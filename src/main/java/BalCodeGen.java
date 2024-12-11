@@ -8,7 +8,6 @@ import io.ballerina.compiler.syntax.tree.NodeFactory;
 import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
-import io.ballerina.compiler.syntax.tree.StatementNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.text.TextDocuments;
@@ -29,7 +28,6 @@ public class BalCodeGen {
 
     public void generateBalCode() {
         System.out.println("Generating Ballerina code...");
-//        System.out.println("Default Package: " + ballerinaModel.defaultPackage());
         List<ImportDeclarationNode> imports = new ArrayList<>();
         List<ModuleMemberDeclarationNode> moduleMembers = new ArrayList<>();
         for (BallerinaModel.Module module : ballerinaModel.modules()) {
@@ -39,15 +37,18 @@ public class BalCodeGen {
                 imports.add(importDeclarationNode);
             }
 
+            for (BallerinaModel.Listener listener : module.listeners()) {
+                ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(
+                        String.format("listener http:Listener %s = new (%s);", listener.name(), listener.port()));
+                moduleMembers.add(member);
+            }
+
             for (BallerinaModel.Service service : module.services()) {
                 StringBuilder stringBuilder = new StringBuilder();
-                Iterator<BallerinaModel.Listener> iterator = service.listeners().iterator();
+                Iterator<String> iterator = service.listenerRefs().iterator();
                 while (iterator.hasNext()) {
-                    BallerinaModel.Listener listener = iterator.next();
-                    ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(
-                            String.format("listener http:Listener %s = new (%s);", listener.name(), listener.port()));
-                    moduleMembers.add(member);
-                    stringBuilder.append(listener.name());
+                    String listener = iterator.next();
+                    stringBuilder.append(listener);
                     if (iterator.hasNext()) {
                         stringBuilder.append(", ");
                     }
@@ -63,9 +64,12 @@ public class BalCodeGen {
                                     "function %s %s() " +
                                     "returns %s {}",
                             resource.resourceMethodName(), resource.path(), resource.returnType()));
-                    List<StatementNode> bodyStmts = new ArrayList<>();
+                    List<String> strList = new ArrayList<>();
+                    for (BallerinaModel.Statement statement : resource.body()) {
+                        String s = generateStatement(statement);
+                        strList.add(s);
+                    }
 
-                    List<String> strList = resource.body().stream().map(BallerinaModel.BodyStatement::stmt).toList();
                     String join = String.join("", strList);
                     FunctionBodyBlockNode funcBodyBlock = NodeParser.parseFunctionBodyBlock(String.format("{ %s }", join));
                     resourceMethod = resourceMethod.modify().withFunctionBody(funcBodyBlock).apply();
@@ -75,11 +79,6 @@ public class BalCodeGen {
                 serviceDecl = serviceDecl.modify().withMembers(nodeList).apply();
                 moduleMembers.add(serviceDecl);
             }
-
-//            System.out.println("Module Name: " + module.moduleName());
-//            System.out.println("Imports: " + module.imports());
-//            System.out.println("Variables: " + module.variables());
-//            System.out.println("Services: " + module.services());
         }
 
         NodeList<ImportDeclarationNode> importDecls = NodeFactory.createNodeList(imports);
@@ -102,5 +101,19 @@ public class BalCodeGen {
         System.out.println("============================================");
         System.out.println(formattedSyntaxTree.toSourceCode());
         System.out.println("============================================");
+    }
+
+    private static String generateStatement(BallerinaModel.Statement stmt) {
+        if (stmt instanceof BallerinaModel.BallerinaStatement ballerinaStatement) {
+            return ballerinaStatement.stmt();
+        } else if (stmt instanceof BallerinaModel.IfElseStatement ifElseStatement) {
+            String ifElseStmt = "if (" + ifElseStatement.condition().expr() + ") {" +
+                    String.join("", ifElseStatement.ifBody().stream().map(BalCodeGen::generateStatement).toList()) +
+                    "} else {" +  String.join("",
+                    ifElseStatement.elseBody().stream().map(BalCodeGen::generateStatement).toList()) + "}";
+            return ifElseStmt;
+        } else {
+            throw new IllegalStateException();
+        }
     }
 }

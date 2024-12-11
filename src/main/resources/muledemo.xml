@@ -1,16 +1,32 @@
-<?xml version="1.0" encoding="UTF-8"?>
-
 <mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
 	  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
-	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="a1d30b8e-6bea-4d1d-bcd1-d9a89307d481" >
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="a1d30b8e-6bea-4d1d-bcd1-d9a89307d481" basePath="/mule">
 		<http:listener-connection host="0.0.0.0" port="8081" />
 	</http:listener-config>
-	<flow name="muledemoFlow" doc:id="31d63b42-12f6-4b4a-aa03-b27739f059d9" >
-		<http:listener doc:name="Listener" doc:id="c11d1c15-eee8-494e-8568-53271adaed65" config-ref="HTTP_Listener_config" path="/demo" allowedMethods="POST"/>
-		<logger level="INFO" doc:name="Logger1" doc:id="256e5c24-fc91-42da-94b2-7c5991d34bf8" message="xxx: logger1 invoked"/>
-		<set-payload value='#[{"name":"lochana"}]' doc:name="Set Payload" doc:id="26a568c1-473b-4b9f-9cca-5aea8589fc6f" />
-		<logger level="INFO" doc:name="Logger2" doc:id="44908bb4-7a4f-41a6-835d-1bfb19523513" message="xxx: logger2 invoked"/>
+	<http:listener-config name="HTTP_Listener_config1" doc:name="HTTP Listener config" doc:id="b3051248-b700-4109-a21d-e251ca5b0f44" basePath="/mule2" >
+		<http:listener-connection host="0.0.0.0" port="8082" />
+	</http:listener-config>
+	<http:listener-config name="HTTP_Listener_config2" doc:name="HTTP Listener config" doc:id="1fee1894-a03b-4e48-8bd8-26cd302b9e4f" basePath="/mule" >
+		<http:listener-connection host="0.0.0.0" port="8083" />
+	</http:listener-config>
+<!--	<flow name="muledemoFlow" doc:id="cb658351-ee94-4b4b-9268-cb3becba586d" >-->
+<!--		<http:listener doc:name="Listener" doc:id="58ebff39-7d94-413f-8e2b-4104b4c4b1e6" config-ref="HTTP_Listener_config" path="/demo" allowedMethods="GET, POST"/>-->
+<!--		<logger level="INFO" doc:name="Logger1" doc:id="f8eb56de-7c32-4dac-bc71-cd1978d25608" message="xxx: logger1 invoked"/>-->
+<!--		<set-payload value='{"name":"hello world"}' doc:name="Set Payload" doc:id="bdc8476a-61df-467a-b1f0-73b468f05d49" />-->
+<!--		<logger level="INFO" doc:name="Logger2" doc:id="dd7d43d7-d369-4c6a-9c7d-e38f415d7351" message="xxx: logger2 invoked"/>-->
+<!--	</flow>-->
+	<flow name="muledemoFlow1" doc:id="a98faf69-8a03-4ae0-b9c4-66197c6079e4" >
+		<http:listener doc:name="Listener" doc:id="b78e474b-57ab-4d63-a124-00937a30463d" config-ref="HTTP_Listener_config2" path="/demo"/>
+		<set-variable value="#[attributes.queryParams.foo]" doc:name="Set Variable" doc:id="e9151c58-113c-4a88-951a-5277c9ced14a" variableName="foo"/>
+		<choice doc:name="Choice" doc:id="d2cee411-77bd-4395-854b-ae27da403d11" >
+			<when expression='#[vars.foo=="10"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="372ded51-1900-458f-9ee6-17e5d0c15d38" message="xxx: true condition reached"/>
+			</when>
+			<otherwise>
+				<logger level="INFO" doc:name="Logger" doc:id="882a2e75-7076-4709-aaf9-24d66dffa870" message="xxx: false condition reached"/>
+			</otherwise>
+		</choice>
 	</flow>
 </mule>

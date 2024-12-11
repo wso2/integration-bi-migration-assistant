@@ -8,7 +8,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     }
 
-    public record Module(String moduleName, List<Import> imports, List<Variable> variables, List<Service> services) {
+    public record Module(String moduleName, List<Import> imports, List<Variable> variables,
+                         List<Listener> listeners, List<Service> services) {
 
     }
 
@@ -20,17 +21,18 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     }
 
-    public record Service(String basePath, List<Listener> listeners, List<Resource> resources, List<String> pathParams,
+    public record Service(String basePath, List<String> listenerRefs, List<Resource> resources, List<String> pathParams,
                           List<String> queryParams) {
 
     }
 
+    // TODO: type means http:Listener, tcp:Listener, etc.
     public record Listener(String type, String name, String port, Map<String, String> config) {
 
     }
 
     public record Resource(String resourceMethodName, String path, List<Parameter> parameters,
-                           String returnType, List<BodyStatement> body) {
+                           String returnType, List<Statement> body) {
 
     }
 
@@ -42,8 +44,19 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 //
 //    }
 
-    public record BodyStatement(String stmt) {
+    public record BallerinaStatement(String stmt) implements Statement {
 
+    }
+
+    public record BallerinaExpression(String expr) {
+
+    }
+
+    public record IfElseStatement(BallerinaExpression condition, List<Statement> ifBody,
+                                  List<Statement> elseBody) implements Statement {
+    }
+
+    public sealed interface Statement permits BallerinaStatement, IfElseStatement {
     }
 
     public record Value(String type, Map<String, Object> content) {
