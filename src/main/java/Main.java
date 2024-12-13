@@ -23,6 +23,7 @@ public class Main {
         HashMap<String, ListenerConfig> globalListenerConfigsMap = new HashMap<>();
         HashSet<Import> imports = new HashSet<>();
         HashSet<String> queryParams = new HashSet<>();
+        boolean hasPayload;
     }
 
     public static void main(String[] args) {
@@ -132,6 +133,7 @@ public class Main {
         List<BallerinaModel.Resource> resources = new ArrayList<>();
         List<BallerinaModel.Statement> body = new ArrayList<>();
         List<BallerinaModel.Parameter> queryPrams = new ArrayList<>();
+
         // TODO: narrow down return type
         String returnType = "anydata|http:Response|http:StatusCodeResponse|" +
                 "stream<http:SseEvent, error?>|stream<http:SseEvent, error>|error";
@@ -159,6 +161,7 @@ public class Main {
                 BallerinaModel.Statement s = convertToStatement(data, lg);
                 body.add(s);
             } else if (record instanceof Payload payload) {
+                data.hasPayload = true;
                 BallerinaModel.Statement s = convertToStatement(data, payload);
                 body.add(s);
             } else if (record instanceof Choice choice) {
@@ -171,9 +174,8 @@ public class Main {
                 throw new UnsupportedOperationException();
             }
         }
-        if (i > 0) {
-            var s = new BallerinaModel.BallerinaStatement("return payload" + i + ";");
-            body.add(s);
+        if (data.hasPayload) {
+            body.add(new BallerinaModel.BallerinaStatement("return " + "\\$payload\\$;"));
         }
 
         for (String qp : data.queryParams) {
@@ -197,11 +199,13 @@ public class Main {
 
     private static BallerinaModel.Statement convertToStatement(Data data, Record r) {
         if (r instanceof Logger lg) {
-            return new BallerinaModel.BallerinaStatement("log:printInfo(\"" + lg.message + "\");");
+            return new BallerinaModel.BallerinaStatement(
+                    "log:printInfo(" + normalizedFromMuleExpr(data, lg.message, true) + ");");
         } else if (r instanceof Payload payload) {
             // TODO: Add multiple payload support with i.
 //            return new BallerinaModel.BallerinaStatement("json payload" + ++i + " = " + payload.expr + ";");
-            return new BallerinaModel.BallerinaStatement("json payload" + " = " + payload.expr + ";");
+            return new BallerinaModel.BallerinaStatement(
+                    "json \\$payload\\$" + " = " + normalizedFromMuleExpr(data, payload.expr, false) + ";");
         } else if (r instanceof Choice choice){
             List<BallerinaModel.Statement> x = new ArrayList<>(choice.whenProcess.size());
             for (Record r2: choice.whenProcess) {
@@ -218,7 +222,7 @@ public class Main {
             String condition = getVariable(data, choice.condition);
             return new BallerinaModel.IfElseStatement(new BallerinaModel.BallerinaExpression(condition), x, y);
         } else if (r instanceof SetVariable setVariable) {
-            String varValue = getVariable(data, setVariable.value);
+            String varValue = normalizedFromMuleExpr(data, setVariable.value, true);
             return new BallerinaModel.BallerinaStatement("string " + setVariable.variableName + " = " + varValue + ";");
         } else {
             throw new IllegalStateException();
@@ -264,13 +268,12 @@ public class Main {
 
     private static Payload readSetPayload(Data data, Element element) {
         String muleExpr = element.getAttribute("value");
-        String expr = normalizedFromMuleExpr(muleExpr);
-        return new Payload(2, expr);
+        return new Payload(2, muleExpr);
     }
 
     private static SetVariable readSetVariable(Data data, Element element) {
         String varName = element.getAttribute("variableName");
-        String val = normalizedFromMuleExpr(element.getAttribute("value"));
+        String val = element.getAttribute("value");
         return new SetVariable(varName, val);
     }
 
@@ -279,7 +282,7 @@ public class Main {
     private static Choice readChoice(Data data, Element element) {
         Node whenNode = element.getElementsByTagName("when").item(0);
         NodeList whenProcesses = whenNode.getChildNodes();
-        String condition = normalizedFromMuleExpr(((Element) whenNode).getAttribute("expression"));
+        String condition = normalizedFromMuleExpr(data, ((Element) whenNode).getAttribute("expression"), false);
         List<Record> whenProcess = new ArrayList<>();
         for (int i = 0; i < whenProcesses.getLength(); i++) {
             Node child = whenProcesses.item(i);
@@ -309,11 +312,12 @@ public class Main {
         }
     }
 
-    private static String normalizedFromMuleExpr(String muleExpr) {
+    private static String normalizedFromMuleExpr(Data data, String muleExpr, boolean encloseInDoubleQuotes) {
         if (muleExpr.startsWith("#[") && muleExpr.endsWith("]")) {
-            return muleExpr.substring(2, muleExpr.length() - 1);
+            var innerExpr = muleExpr.substring(2, muleExpr.length() - 1);
+            return getVariable(data, innerExpr);
         }
-        return muleExpr;
+        return encloseInDoubleQuotes? "\"" + muleExpr + "\"" : muleExpr;
     }
 
     private static String normalizedResourcePath(String resourcePath) {

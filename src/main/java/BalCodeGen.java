@@ -39,7 +39,8 @@ public class BalCodeGen {
 
             for (BallerinaModel.Listener listener : module.listeners()) {
                 ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(
-                        String.format("listener http:Listener %s = new (%s);", listener.name(), listener.port()));
+                        String.format("listener http:Listener %s = new (%s, {host: \"%s\"});", listener.name(),
+                                listener.port(), listener.config().get("host")));
                 moduleMembers.add(member);
             }
 
