@@ -60,10 +60,16 @@ public class BalCodeGen {
 
                 List<Node> members = new ArrayList<>();
                 for (BallerinaModel.Resource resource : service.resources()) {
-                    FunctionDefinitionNode resourceMethod = (FunctionDefinitionNode) NodeParser.parseObjectMember(String.format("resource " +
-                                    "function %s %s() " +
-                                    "returns %s {}",
-                            resource.resourceMethodName(), resource.path(), resource.returnType()));
+                    List<BallerinaModel.Parameter> parameters = resource.parameters();
+                    String queryParamStr = String.join(",",
+                            parameters.stream().map(p -> p.defaultExpr().isPresent() ?
+                                            String.format("%s %s = %s", p.type(), p.name(), p.defaultExpr().get().expr()) :
+                                            String.format("%s %s", p.type(), p.name()))
+                                    .toList());
+
+                    FunctionDefinitionNode resourceMethod = (FunctionDefinitionNode) NodeParser.parseObjectMember(
+                            String.format("resource function %s %s(%s) returns %s {}",
+                            resource.resourceMethodName(), resource.path(), queryParamStr, resource.returnType()));
                     List<String> strList = new ArrayList<>();
                     for (BallerinaModel.Statement statement : resource.body()) {
                         String s = generateStatement(statement);
@@ -107,11 +113,10 @@ public class BalCodeGen {
         if (stmt instanceof BallerinaModel.BallerinaStatement ballerinaStatement) {
             return ballerinaStatement.stmt();
         } else if (stmt instanceof BallerinaModel.IfElseStatement ifElseStatement) {
-            String ifElseStmt = "if (" + ifElseStatement.condition().expr() + ") {" +
-                    String.join("", ifElseStatement.ifBody().stream().map(BalCodeGen::generateStatement).toList()) +
-                    "} else {" +  String.join("",
-                    ifElseStatement.elseBody().stream().map(BalCodeGen::generateStatement).toList()) + "}";
-            return ifElseStmt;
+            return String.format("if (%s) { %s } else { %s }",
+                    ifElseStatement.condition().expr(),
+                    String.join("", ifElseStatement.ifBody().stream().map(BalCodeGen::generateStatement).toList()),
+                    String.join("", ifElseStatement.elseBody().stream().map(BalCodeGen::generateStatement).toList()));
         } else {
             throw new IllegalStateException();
         }

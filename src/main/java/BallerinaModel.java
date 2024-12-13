@@ -1,5 +1,6 @@
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 
 public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules) {
@@ -27,6 +28,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     // TODO: type means http:Listener, tcp:Listener, etc.
+    // TODO: move port to config map
     public record Listener(String type, String name, String port, Map<String, String> config) {
 
     }
@@ -36,7 +38,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     }
 
-    public record Parameter(String name, String type) {
+    public record Parameter(String name, String type, Optional<BallerinaExpression> defaultExpr) {
 
     }
 

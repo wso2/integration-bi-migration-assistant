@@ -2,9 +2,12 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -12,54 +15,65 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class Main {
+
+    static class Data {
+        HashMap<String, ListenerConfig> globalListenerConfigsMap = new HashMap<>();
+        HashSet<Import> imports = new HashSet<>();
+        HashSet<String> queryParams = new HashSet<>();
+    }
+
     public static void main(String[] args) {
-
+        Element root;
         try {
-            // Load the Mule XML file
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setNamespaceAware(true);
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            Document document = builder.parse("src/main/resources/muledemo.xml");
-
-            // Normalize the XML structure
-            document.getDocumentElement().normalize();
-
-            // Print root element
-            Element root = document.getDocumentElement();
-
-            Data data = new Data();
-            // Traverse child nodes of the root element
-            NodeList childNodes = root.getChildNodes();
-            for (int i = 0; i < childNodes.getLength(); i++) {
-                Node node = childNodes.item(i);
-                if (node.getNodeType() != Node.ELEMENT_NODE) {
-                    continue;
-                }
-
-                Element element = (Element) node;
-                if (element.getTagName().equals("http:listener-config")) {
-                    ListenerConfig listenerConfig = readHttpListenerConfig(data, element);
-                    data.globalListenerConfigsMap.put(listenerConfig.name(), listenerConfig);
-                } else if (element.getTagName().equals("flow")) {
-                    BallerinaModel ballerinaModel = readFlow(data, element);
-                    new BalCodeGen(ballerinaModel).generateBalCode();
-                } else {
-                    throw new UnsupportedOperationException();
-                }
-            }
+            root = parseMuleXMLConfigurationFile();
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException("Error while parsing the mule XML configuration file", e);
         }
 
+        Data data = new Data();
+
+        NodeList childNodes = root.getChildNodes();
+        for (int i = 0; i < childNodes.getLength(); i++) {
+            Node node = childNodes.item(i);
+            if (node.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+
+            Element element = (Element) node;
+            String elementTagName = element.getTagName();
+            if (Constants.HTTP_LISTENER_CONFIG.equals(elementTagName)) {
+                ListenerConfig listenerConfig = readHttpListenerConfig(data, element);
+                data.globalListenerConfigsMap.put(listenerConfig.name(), listenerConfig);
+            } else if (Constants.FLOW.equals(elementTagName)) {
+                BallerinaModel ballerinaModel = readFlow(data, element);
+                new BalCodeGen(ballerinaModel).generateBalCode();
+            } else {
+                throw new UnsupportedOperationException();
+            }
+        }
+    }
+
+    private static Element parseMuleXMLConfigurationFile() throws ParserConfigurationException, SAXException, IOException {
+        // Load the Mule XML file
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document document = builder.parse("src/main/resources/muledemo.xml");
+
+        // Normalize the XML structure
+        document.getDocumentElement().normalize();
+
+        return document.getDocumentElement();
     }
 
     private static ListenerConfig readHttpListenerConfig(Data data, Element element) {
-        data.imports.add(new Import("ballerina", "http"));
+        data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP));
         // capture: name, host, and port
         String listenerName = element.getAttribute("name");
-        Element listenerConnection = (Element) element.getElementsByTagName("http:listener-connection").item(0);
+        Element listenerConnection = (Element) element.getElementsByTagName(Constants.HTTP_LISTENER_CONNECTION).item(0);
         String host = listenerConnection.getAttribute("host");
         String port = listenerConnection.getAttribute("port");
         String basePath = normalizedBasePath(element.getAttribute("basePath"));
@@ -69,10 +83,10 @@ public class Main {
 
     private static Record readComponent(Data data, Element element) {
         switch (element.getTagName()) {
-            case "logger" -> {
+            case Constants.LOGGER -> {
                 return readLogger(data, element);
             }
-            case "set-variable" -> {
+            case Constants.SET_VARIABLE -> {
                 return readSetVariable(data, element);
             }
             default -> throw new UnsupportedOperationException();
@@ -91,19 +105,19 @@ public class Main {
             // TODO: divide into source and process
             Element elmt2 = (Element) child;
             switch (elmt2.getTagName()) {
-                case "http:listener" -> {
+                case Constants.HTTP_LISTENER -> {
                     HttpListener hl = readHttpListener(data, elmt2);
                     flow.add(hl);
                 }
-                case "logger", "set-variable" -> {
+                case Constants.LOGGER , Constants.SET_VARIABLE -> {
                     Record r = readComponent(data, elmt2);
                     flow.add(r);
                 }
-                case "set-payload" -> {
+                case Constants.SET_PAYLOAD -> {
                     Payload payload = readSetPayload(data, elmt2);
                     flow.add(payload);
                 }
-                case "choice" -> {
+                case Constants.CHOICE -> {
                     Choice choice = readChoice(data, elmt2);
                     flow.add(choice);
                 }
@@ -117,6 +131,7 @@ public class Main {
         List<BallerinaModel.Listener> listeners = new ArrayList<>();
         List<BallerinaModel.Resource> resources = new ArrayList<>();
         List<BallerinaModel.Statement> body = new ArrayList<>();
+        List<BallerinaModel.Parameter> queryPrams = new ArrayList<>();
         // TODO: narrow down return type
         String returnType = "anydata|http:Response|http:StatusCodeResponse|" +
                 "stream<http:SseEvent, error?>|stream<http:SseEvent, error>|error";
@@ -141,16 +156,16 @@ public class Main {
                 String muleBasePath = data.globalListenerConfigsMap.get(hl.configRef).basePath;
                 basePath = muleBasePath.isEmpty() ? "/" : muleBasePath;
             } else if (record instanceof Logger lg) {
-                BallerinaModel.Statement s = convertToStatement(lg);
+                BallerinaModel.Statement s = convertToStatement(data, lg);
                 body.add(s);
             } else if (record instanceof Payload payload) {
-                BallerinaModel.Statement s = convertToStatement(payload);
+                BallerinaModel.Statement s = convertToStatement(data, payload);
                 body.add(s);
             } else if (record instanceof Choice choice) {
-                BallerinaModel.Statement s = convertToStatement(choice);
+                BallerinaModel.Statement s = convertToStatement(data, choice);
                 body.add(s);
             } else if (record instanceof SetVariable setVariable) {
-                BallerinaModel.Statement s = convertToStatement(setVariable);
+                BallerinaModel.Statement s = convertToStatement(data, setVariable);
                 body.add(s);
             } else {
                 throw new UnsupportedOperationException();
@@ -161,10 +176,15 @@ public class Main {
             body.add(s);
         }
 
+        for (String qp : data.queryParams) {
+            queryPrams.add(new BallerinaModel.Parameter(qp, "string",
+                    Optional.of(new BallerinaModel.BallerinaExpression("\"null\""))));
+        }
+
         for (String resourceMethodName : resourceMethodNames) {
             resourceMethodName = resourceMethodName.toLowerCase();
             BallerinaModel.Resource resource = new BallerinaModel.Resource(resourceMethodName,
-                    resourcePath, Collections.emptyList(), returnType == null ? "http:Created": returnType, body);
+                    resourcePath, queryPrams, returnType == null ? "http:Created": returnType, body);
             resources.add(resource);
         }
 
@@ -175,7 +195,7 @@ public class Main {
         return new BallerinaModel(new BallerinaModel.DefaultPackage("muleDemo", "muleDemo", "1.0.0"), Collections.singletonList(module));
     }
 
-    private static BallerinaModel.Statement convertToStatement(Record r) {
+    private static BallerinaModel.Statement convertToStatement(Data data, Record r) {
         if (r instanceof Logger lg) {
             return new BallerinaModel.BallerinaStatement("log:printInfo(\"" + lg.message + "\");");
         } else if (r instanceof Payload payload) {
@@ -185,21 +205,40 @@ public class Main {
         } else if (r instanceof Choice choice){
             List<BallerinaModel.Statement> x = new ArrayList<>(choice.whenProcess.size());
             for (Record r2: choice.whenProcess) {
-                BallerinaModel.Statement statement = convertToStatement(r2);
+                BallerinaModel.Statement statement = convertToStatement(data, r2);
                 x.add(statement);
             }
 
             List<BallerinaModel.Statement> y = new ArrayList<>(choice.otherwiseProcess.size());
             for (Record r2: choice.otherwiseProcess) {
-                BallerinaModel.Statement statement = convertToStatement(r2);
+                BallerinaModel.Statement statement = convertToStatement(data, r2);
                 y.add(statement);
             }
-            return new BallerinaModel.IfElseStatement(new BallerinaModel.BallerinaExpression(choice.condition), x, y);
+            // TODO: fix properly e.g. vars.bar == "10"
+            String condition = getVariable(data, choice.condition);
+            return new BallerinaModel.IfElseStatement(new BallerinaModel.BallerinaExpression(condition), x, y);
         } else if (r instanceof SetVariable setVariable) {
-            return new BallerinaModel.BallerinaStatement("String " + setVariable.variableName + " = " + setVariable.value + ";");
+            String varValue = getVariable(data, setVariable.value);
+            return new BallerinaModel.BallerinaStatement("string " + setVariable.variableName + " = " + varValue + ";");
         } else {
             throw new IllegalStateException();
         }
+    }
+
+    private static String getVariable(Data data, String value) {
+        String queryParamPrefix = "attributes.queryParams.";
+        String varPrefix = "vars.";
+
+        String v;
+        if (value.startsWith(queryParamPrefix)) {
+            v = value.substring(queryParamPrefix.length());
+            data.queryParams.add(v);
+        } else if (value.startsWith(varPrefix)) {
+            v = value.substring(varPrefix.length());
+        } else {
+            v = value;
+        }
+        return v;
     }
 
     private static HttpListener readHttpListener(Data data, Element element) {
@@ -292,11 +331,6 @@ public class Main {
             return new String[]{"GET", "POST"};
         }
         return allowedMethods.split(",\\s*");
-    }
-
-    static class Data {
-        HashMap<String, ListenerConfig> globalListenerConfigsMap = new HashMap<>();
-        HashSet<Import> imports = new HashSet<>();
     }
 
     public record Import(String org, String module) { }
