@@ -7,6 +7,9 @@ public class Constants {
     public static final String HTTP_LISTENER = "http:listener";
     public static final String HTTP_LISTENER_CONNECTION = "http:listener-connection";
 
+    public static final String HTTP_REQUEST = "http:request";
+    public static final String HTTP_QUERY_PARAMS = "http:query-params";
+
     // Scopes
     public static final String FLOW = "flow";
 

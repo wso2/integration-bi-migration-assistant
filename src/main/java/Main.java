@@ -1,3 +1,4 @@
+import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -77,7 +78,7 @@ public class Main {
         Element listenerConnection = (Element) element.getElementsByTagName(Constants.HTTP_LISTENER_CONNECTION).item(0);
         String host = listenerConnection.getAttribute("host");
         String port = listenerConnection.getAttribute("port");
-        String basePath = normalizedBasePath(element.getAttribute("basePath"));
+        String basePath = insertLeadingSlash(element.getAttribute("basePath"));
         HashMap<String, String> config = new HashMap<>(Collections.singletonMap("host", host));
         return new ListenerConfig("http:Listener", listenerName, basePath, port, config);
     }
@@ -122,6 +123,10 @@ public class Main {
                     Choice choice = readChoice(data, elmt2);
                     flow.add(choice);
                 }
+                case Constants.HTTP_REQUEST -> {
+                    HttpRequest httpRequest = readHttpRequest(data, elmt2);
+                    flow.add(httpRequest);
+                }
                 default -> throw new UnsupportedOperationException();
             }
         }
@@ -149,27 +154,29 @@ public class Main {
             listeners.add(new BallerinaModel.Listener(listenerConfig.type(), listenerConfig.name(), listenerConfig.port(), listenerConfig.config()));
         }
 
-        int i = 0;
         for (Record record : flow) {
             if (record instanceof HttpListener hl) {
-                resourcePath = normalizedResourcePath(hl.resourcePath);
+                resourcePath = removeLeadingSlash(hl.resourcePath);
                 resourceMethodNames = hl.allowedMethods;
                 listenerRefs.add(hl.configRef);
                 String muleBasePath = data.globalListenerConfigsMap.get(hl.configRef).basePath;
                 basePath = muleBasePath.isEmpty() ? "/" : muleBasePath;
             } else if (record instanceof Logger lg) {
-                BallerinaModel.Statement s = convertToStatement(data, lg);
-                body.add(s);
+                List<BallerinaModel.Statement> s = convertToStatements(data, lg);
+                body.addAll(s);
             } else if (record instanceof Payload payload) {
                 data.hasPayload = true;
-                BallerinaModel.Statement s = convertToStatement(data, payload);
-                body.add(s);
+                List<BallerinaModel.Statement> s = convertToStatements(data, payload);
+                body.addAll(s);
             } else if (record instanceof Choice choice) {
-                BallerinaModel.Statement s = convertToStatement(data, choice);
-                body.add(s);
+                List<BallerinaModel.Statement>  s = convertToStatements(data, choice); // TODO: merge similar logic
+                body.addAll(s);
             } else if (record instanceof SetVariable setVariable) {
-                BallerinaModel.Statement s = convertToStatement(data, setVariable);
-                body.add(s);
+                List<BallerinaModel.Statement>  s = convertToStatements(data, setVariable);
+                body.addAll(s);
+            } else if (record instanceof HttpRequest httpRequest) {
+                List<BallerinaModel.Statement>  s = convertToStatements(data, httpRequest);
+                body.addAll(s);
             } else {
                 throw new UnsupportedOperationException();
             }
@@ -197,36 +204,63 @@ public class Main {
         return new BallerinaModel(new BallerinaModel.DefaultPackage("muleDemo", "muleDemo", "1.0.0"), Collections.singletonList(module));
     }
 
-    private static BallerinaModel.Statement convertToStatement(Data data, Record r) {
+    private static List<BallerinaModel.Statement> convertToStatements(Data data, Record r) {
+        List<BallerinaModel.Statement> ls = new ArrayList<>();
         if (r instanceof Logger lg) {
-            return new BallerinaModel.BallerinaStatement(
-                    "log:printInfo(" + normalizedFromMuleExpr(data, lg.message, true) + ");");
+            ls.add(new BallerinaModel.BallerinaStatement(
+                    "log:printInfo(" + normalizedFromMuleExpr(data, lg.message, true) + ");"));
         } else if (r instanceof Payload payload) {
             // TODO: Add multiple payload support with i.
 //            return new BallerinaModel.BallerinaStatement("json payload" + ++i + " = " + payload.expr + ";");
-            return new BallerinaModel.BallerinaStatement(
-                    "json \\$payload\\$" + " = " + normalizedFromMuleExpr(data, payload.expr, false) + ";");
+            ls.add(new BallerinaModel.BallerinaStatement(
+                    "json \\$payload\\$" + " = " + normalizedFromMuleExpr(data, payload.expr, false) + ";"));
         } else if (r instanceof Choice choice){
             List<BallerinaModel.Statement> x = new ArrayList<>(choice.whenProcess.size());
             for (Record r2: choice.whenProcess) {
-                BallerinaModel.Statement statement = convertToStatement(data, r2);
-                x.add(statement);
+                List<BallerinaModel.Statement> statements = convertToStatements(data, r2);
+                x.addAll(statements);
             }
 
             List<BallerinaModel.Statement> y = new ArrayList<>(choice.otherwiseProcess.size());
             for (Record r2: choice.otherwiseProcess) {
-                BallerinaModel.Statement statement = convertToStatement(data, r2);
-                y.add(statement);
+                List<BallerinaModel.Statement> statements = convertToStatements(data, r2);
+                y.addAll(statements);
             }
             // TODO: fix properly e.g. vars.bar == "10"
             String condition = getVariable(data, choice.condition);
-            return new BallerinaModel.IfElseStatement(new BallerinaModel.BallerinaExpression(condition), x, y);
+            ls.add(new BallerinaModel.IfElseStatement(new BallerinaModel.BallerinaExpression(condition), x, y));
         } else if (r instanceof SetVariable setVariable) {
             String varValue = normalizedFromMuleExpr(data, setVariable.value, true);
-            return new BallerinaModel.BallerinaStatement("string " + setVariable.variableName + " = " + varValue + ";");
+            ls.add(new BallerinaModel.BallerinaStatement("string " + setVariable.variableName + " = " + varValue + ";"));
+        } else if (r instanceof HttpRequest httpRequest) {
+            List<BallerinaModel.Statement> statements = new ArrayList<>();
+            String path = httpRequest.path();
+            String method = httpRequest.method();
+            String url = httpRequest.url();
+            Map<String, String> queryParams = httpRequest.queryParams();
+
+            statements.add(new BallerinaModel.BallerinaStatement(String.format(
+                    "http:Client \\$client\\$ = check new(\"%s\");", url)));
+            statements.add(new BallerinaModel.BallerinaStatement(
+                    String.format(
+                            "http:Response|anydata|stream<http:SseEvent, error?> \\$client\\$get = check " +
+                                    "\\$client\\$->%s.%s(%s);",
+                    path, method.toLowerCase(), genQueryParam(queryParams))));
+            statements.add(new BallerinaModel.BallerinaStatement("http:Response \\$client\\$response = check " +
+                    "\\$client\\$get.ensureType(http:Response);"));
+            // TODO: revisit
+//            statements.add(new BallerinaModel.BallerinaStatement("return \\$client\\$response;"));
+            ls.addAll(statements);
         } else {
             throw new IllegalStateException();
         }
+
+        return ls;
+    }
+
+    private static String genQueryParam(Map<String, String> queryParams) {
+        return queryParams.entrySet().stream()
+                .map(e -> String.format("%s = \"%s\"", e.getKey(), e.getValue())).reduce((a, b) -> a + ", " + b).orElse("");
     }
 
     private static String getVariable(Data data, String value) {
@@ -258,12 +292,38 @@ public class Main {
 
     record Logger(int tag, String message, String level) { }
 
-    record Payload(int tag, String expr) { }
+    record Payload(int tag, String expr) {
+    }
+
+    record HttpRequest(int tag, String method, String url, String path, Map<String, String> queryParams) { }
 
     private static Logger readLogger(Data data, Element element) {
         data.imports.add(new Import("ballerina", "log"));
         String message = element.getAttribute("message");
         return new Logger(1, message, "INFO");
+    }
+
+    private static HttpRequest readHttpRequest(Data data, Element element) {
+        String method = element.getAttribute("method").toLowerCase();
+        String url = element.getAttribute("url").toLowerCase();
+        String path = element.getAttribute("path").toLowerCase();
+        Element queryParamsElement = (Element) element.getElementsByTagName(Constants.HTTP_QUERY_PARAMS).item(0);
+        CDATASection cdataSection = (CDATASection) queryParamsElement.getChildNodes().item(0);
+        Map<String, String> queryParams = processQueryParams(cdataSection.getData().trim());
+        return new HttpRequest(0, method, url, path, queryParams);
+    }
+
+    private static Map<String, String> processQueryParams(String queryParams) {
+        assert queryParams.endsWith("}]");
+        String regex = "#\\[output .*\\n---\\n\\{\\n|\\n}]";
+        String trimmed = queryParams.replaceAll(regex, "").trim();
+        String[] pairs = trimmed.split(",\\n\\t");
+        Map<String, String> keyValues = new HashMap<>(pairs.length);
+        for (String pair : pairs) {
+            String[] kv = pair.split(":");
+            keyValues.put(kv[0].trim().replace("\"", ""), kv[1].trim().replace("\"", ""));
+        }
+        return keyValues;
     }
 
     private static Payload readSetPayload(Data data, Element element) {
@@ -320,11 +380,11 @@ public class Main {
         return encloseInDoubleQuotes? "\"" + muleExpr + "\"" : muleExpr;
     }
 
-    private static String normalizedResourcePath(String resourcePath) {
+    private static String removeLeadingSlash(String resourcePath) {
         return resourcePath.startsWith("/") ? resourcePath.substring(1) : resourcePath;
     }
 
-    private static String normalizedBasePath(String basePath) {
+    private static String insertLeadingSlash(String basePath) {
         return basePath.startsWith("/") ? basePath : "/" + basePath;
     }
 
