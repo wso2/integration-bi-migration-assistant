@@ -156,7 +156,7 @@ public class Main {
 
         for (Record record : flow) {
             if (record instanceof HttpListener hl) {
-                resourcePath = removeLeadingSlash(hl.resourcePath);
+                resourcePath = normalizedResourcePath(hl.resourcePath);
                 resourceMethodNames = hl.allowedMethods;
                 listenerRefs.add(hl.configRef);
                 String muleBasePath = data.globalListenerConfigsMap.get(hl.configRef).basePath;
@@ -429,4 +429,18 @@ public class Main {
 
     // TODO: rename type to something meaningful like tag
     public record ListenerConfig(String type, String name, String basePath, String port, Map<String, String> config) {}
+
+    private static String normalizedResourcePath(String path) {
+        // TODO: handle dash e.g. main-constract
+        List<String> list = Arrays.stream(path.split("/")).filter(s -> !s.isEmpty())
+                .map(s -> {
+                    if (s.startsWith("{") && s.endsWith("}")) {
+                        return "[string " + s.substring(1, s.length() - 1) + "]";
+                    }
+                    return s;
+                }).toList();
+
+        String newPath = String.join("/", list);
+        return newPath;
+    }
 }
