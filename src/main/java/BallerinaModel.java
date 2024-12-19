@@ -42,10 +42,6 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     }
 
-//    public record ReturnType(String type, List<String> types) {
-//
-//    }
-
     public record BallerinaStatement(String stmt) implements Statement {
 
     }
@@ -54,14 +50,16 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     }
 
-    public record IfElseStatement(BallerinaExpression condition, List<Statement> ifBody,
+    public record IfElseStatement(BallerinaExpression ifCondition, List<Statement> ifBody,
+                                  List<ElseIfClause> elseIfClauses,
                                   List<Statement> elseBody) implements Statement {
     }
 
-    public sealed interface Statement permits BallerinaStatement, IfElseStatement {
+    public record ElseIfClause(BallerinaExpression condition, List<Statement> elseIfBody) {
+
     }
 
-    public record Value(String type, Map<String, Object> content) {
+    public sealed interface Statement permits BallerinaStatement, IfElseStatement {
 
     }
 }

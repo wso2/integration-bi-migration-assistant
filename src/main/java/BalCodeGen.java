@@ -114,9 +114,18 @@ public class BalCodeGen {
         if (stmt instanceof BallerinaModel.BallerinaStatement ballerinaStatement) {
             return ballerinaStatement.stmt();
         } else if (stmt instanceof BallerinaModel.IfElseStatement ifElseStatement) {
-            return String.format("if (%s) { %s } else { %s }",
-                    ifElseStatement.condition().expr(),
+            StringBuilder stringBuilder = new StringBuilder();
+            for (BallerinaModel.ElseIfClause elseIfClause : ifElseStatement.elseIfClauses()) {
+                stringBuilder.append(
+                        String.format("else if(%s) { %s }", elseIfClause.condition().expr(),
+                                String.join("",
+                                        elseIfClause.elseIfBody().stream().map(BalCodeGen::generateStatement).toList())));
+            }
+
+            return String.format("if (%s) { %s } %s else { %s }",
+                    ifElseStatement.ifCondition().expr(),
                     String.join("", ifElseStatement.ifBody().stream().map(BalCodeGen::generateStatement).toList()),
+                    stringBuilder,
                     String.join("", ifElseStatement.elseBody().stream().map(BalCodeGen::generateStatement).toList()));
         } else {
             throw new IllegalStateException();

@@ -215,20 +215,40 @@ public class Main {
             ls.add(new BallerinaModel.BallerinaStatement(
                     "json \\$payload\\$" + " = " + normalizedFromMuleExpr(data, payload.expr, false) + ";"));
         } else if (r instanceof Choice choice){
-            List<BallerinaModel.Statement> x = new ArrayList<>(choice.whenProcess.size());
-            for (Record r2: choice.whenProcess) {
+            List<WhenInChoice> whens = choice.whens();
+            assert whens.size() > 1; // For valid mule config, there is at least one when
+
+            WhenInChoice firstWhen = whens.getFirst();
+            String ifCondition = normalizedFromMuleExpr(data, firstWhen.condition, false);
+            List<BallerinaModel.Statement> ifBody = new ArrayList<>();
+            for (Record r2: firstWhen.process) {
                 List<BallerinaModel.Statement> statements = convertToStatements(data, r2);
-                x.addAll(statements);
+                ifBody.addAll(statements);
             }
 
-            List<BallerinaModel.Statement> y = new ArrayList<>(choice.otherwiseProcess.size());
+            List<BallerinaModel.ElseIfClause> elseIfClauses = new ArrayList<>(whens.size()-1);
+            for (int i = 1; i < whens.size(); i++) {
+                WhenInChoice when = whens.get(i);
+                List<BallerinaModel.Statement> elseIfBody = new ArrayList<>();
+                for (Record r2: when.process) {
+                    List<BallerinaModel.Statement> statements = convertToStatements(data, r2);
+                    elseIfBody.addAll(statements);
+                }
+                BallerinaModel.ElseIfClause elseIfClause = new BallerinaModel.ElseIfClause(
+                        new BallerinaModel.BallerinaExpression(normalizedFromMuleExpr(data, when.condition, false)),
+                        elseIfBody);
+                elseIfClauses.add(elseIfClause);
+            }
+
+            List<BallerinaModel.Statement> elseBody = new ArrayList<>(choice.otherwiseProcess.size());
             for (Record r2: choice.otherwiseProcess) {
                 List<BallerinaModel.Statement> statements = convertToStatements(data, r2);
-                y.addAll(statements);
+                elseBody.addAll(statements);
             }
             // TODO: fix properly e.g. vars.bar == "10"
-            String condition = getVariable(data, choice.condition);
-            ls.add(new BallerinaModel.IfElseStatement(new BallerinaModel.BallerinaExpression(condition), x, y));
+//            String condition = getVariable(data, choice.condition);
+            ls.add(new BallerinaModel.IfElseStatement(new BallerinaModel.BallerinaExpression(ifCondition), ifBody, elseIfClauses,
+                    elseBody));
         } else if (r instanceof SetVariable setVariable) {
             String varValue = normalizedFromMuleExpr(data, setVariable.value, true);
             ls.add(new BallerinaModel.BallerinaStatement("string " + setVariable.variableName + " = " + varValue + ";"));
@@ -340,17 +360,23 @@ public class Main {
     record SetVariable(String variableName, String value) { }
 
     private static Choice readChoice(Data data, Element element) {
-        Node whenNode = element.getElementsByTagName("when").item(0);
-        NodeList whenProcesses = whenNode.getChildNodes();
-        String condition = normalizedFromMuleExpr(data, ((Element) whenNode).getAttribute("expression"), false);
-        List<Record> whenProcess = new ArrayList<>();
-        for (int i = 0; i < whenProcesses.getLength(); i++) {
-            Node child = whenProcesses.item(i);
-            if (child.getNodeType() != Node.ELEMENT_NODE) {
-                continue;
+        NodeList when = element.getElementsByTagName("when");
+        List<WhenInChoice> whens = new ArrayList<>();
+        for (int i = 0; i < when.getLength(); i++) {
+            Node whenNode = when.item(i);
+            NodeList whenProcesses = whenNode.getChildNodes();
+            String condition = normalizedFromMuleExpr(data, ((Element) whenNode).getAttribute("expression"), false);
+            List<Record> whenProcess = new ArrayList<>();
+            for (int j = 0; j < whenProcesses.getLength(); j++) {
+                Node child = whenProcesses.item(j);
+                if (child.getNodeType() != Node.ELEMENT_NODE) {
+                    continue;
+                }
+                Record r = readComponent(data, (Element) child);
+                whenProcess.add(r);
             }
-            Record r = readComponent(data, (Element) child);
-            whenProcess.add(r);
+            WhenInChoice whenInChoice = new WhenInChoice(condition, whenProcess);
+            whens.add(whenInChoice);
         }
 
         NodeList otherwiseProcesses = element.getElementsByTagName("otherwise").item(0).getChildNodes();
@@ -363,14 +389,16 @@ public class Main {
             Record r = readComponent(data, (Element) child);
             OtherwiseProcess.add(r);
         }
-        return new Choice(condition, whenProcess, OtherwiseProcess);
+        return new Choice(whens, OtherwiseProcess);
     }
 
-    record Choice(String kind, String condition, List<Record> whenProcess, List<Record> otherwiseProcess) {
-        Choice(String condition, List<Record> whenProcess, List<Record> otherwiseProcess) {
-            this("Choice", condition, whenProcess, otherwiseProcess);
+    record Choice(String kind, List<WhenInChoice> whens, List<Record> otherwiseProcess) {
+        Choice(List<WhenInChoice> whens, List<Record> otherwiseProcess) {
+            this("Choice", whens, otherwiseProcess);
         }
     }
+
+    record WhenInChoice(String condition, List<Record> process) { }
 
     private static String normalizedFromMuleExpr(Data data, String muleExpr, boolean encloseInDoubleQuotes) {
         if (muleExpr.startsWith("#[") && muleExpr.endsWith("]")) {
