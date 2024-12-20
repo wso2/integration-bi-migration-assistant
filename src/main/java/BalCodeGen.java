@@ -59,14 +59,23 @@ public class BalCodeGen {
                         String.format("service %s on %s { }", service.basePath(), stringBuilder));
 
 
+                int invokeEndPointCount = 0;
+                FunctionDefinitionNode invokeEndPointMethod = null;
+                String invokeEndPointMethodName = null;
                 List<Node> members = new ArrayList<>();
                 for (BallerinaModel.Resource resource : service.resources()) {
                     List<BallerinaModel.Parameter> parameters = resource.parameters();
+                    // TODO: fix defaultable parameters properly
+//                    String queryParamStr = String.join(",",
+//                            parameters.stream().map(p -> p.defaultExpr().isPresent() ?
+//                                            String.format("%s %s = %s", p.type(), p.name(), p.defaultExpr().get().expr()) :
+//                                            String.format("%s %s", p.type(), p.name()))
+//                                    .toList());
                     String queryParamStr = String.join(",",
-                            parameters.stream().map(p -> p.defaultExpr().isPresent() ?
-                                            String.format("%s %s = %s", p.type(), p.name(), p.defaultExpr().get().expr()) :
-                                            String.format("%s %s", p.type(), p.name()))
-                                    .toList());
+                    parameters.stream().map(p -> String.format("%s %s", p.type(), p.name()))
+                            .toList());
+                    String queryParamStr2 = String.join(",",
+                            parameters.stream().map(p -> String.format("%s %s", p.type(), p.name())).toList());
 
                     FunctionDefinitionNode resourceMethod = (FunctionDefinitionNode) NodeParser.parseObjectMember(
                             String.format("resource function %s %s(%s) returns %s {}",
@@ -78,10 +87,30 @@ public class BalCodeGen {
                     }
 
                     String join = String.join("", strList);
-                    FunctionBodyBlockNode funcBodyBlock = NodeParser.parseFunctionBodyBlock(String.format("{ %s }", join));
-                    resourceMethod = resourceMethod.modify().withFunctionBody(funcBodyBlock).apply();
+                    FunctionBodyBlockNode invokeEndPointFuncBodyBlock = NodeParser.parseFunctionBodyBlock(
+                            String.format("{ %s }", join));
+
+                    if (invokeEndPointMethod == null) {
+                        invokeEndPointMethodName = Constants.HTTP_ENDPOINT_METHOD_NAME + invokeEndPointCount++;
+                    }
+
+
+                    String functionArgs = String.join(",",
+                            parameters.stream().map(p -> String.format("%s", p.name())).toList());
+
+                    FunctionBodyBlockNode resourceFuncBodyBlock = NodeParser.parseFunctionBodyBlock(
+                            String.format("{ return self.%s(%s); }", invokeEndPointMethodName, functionArgs));
+                    resourceMethod = resourceMethod.modify().withFunctionBody(resourceFuncBodyBlock).apply();
                     members.add(resourceMethod);
+
+                    if (invokeEndPointMethod == null) {
+                        invokeEndPointMethod = (FunctionDefinitionNode) NodeParser.parseObjectMember(
+                                String.format("private function %s(%s) returns %s {}",
+                                        invokeEndPointMethodName, queryParamStr2, resource.returnType()));
+                        invokeEndPointMethod = invokeEndPointMethod.modify().withFunctionBody(invokeEndPointFuncBodyBlock).apply();
+                    }
                 }
+                members.add(invokeEndPointMethod);
                 NodeList<Node> nodeList = NodeFactory.createNodeList(members);
                 serviceDecl = serviceDecl.modify().withMembers(nodeList).apply();
                 moduleMembers.add(serviceDecl);

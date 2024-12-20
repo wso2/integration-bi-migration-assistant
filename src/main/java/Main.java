@@ -91,6 +91,15 @@ public class Main {
             case Constants.SET_VARIABLE -> {
                 return readSetVariable(data, element);
             }
+            case Constants.HTTP_REQUEST -> {
+                return readHttpRequest(data, element);
+            }
+            case Constants.SET_PAYLOAD -> {
+                return readSetPayload(data, element);
+            }
+            case Constants.CHOICE -> {
+                return readChoice(data, element);
+            }
             default -> throw new UnsupportedOperationException();
         }
     }
@@ -111,21 +120,10 @@ public class Main {
                     HttpListener hl = readHttpListener(data, elmt2);
                     flow.add(hl);
                 }
-                case Constants.LOGGER , Constants.SET_VARIABLE -> {
+                case Constants.LOGGER , Constants.SET_VARIABLE, Constants.HTTP_REQUEST,
+                        Constants.SET_PAYLOAD, Constants.CHOICE -> {
                     Record r = readComponent(data, elmt2);
                     flow.add(r);
-                }
-                case Constants.SET_PAYLOAD -> {
-                    Payload payload = readSetPayload(data, elmt2);
-                    flow.add(payload);
-                }
-                case Constants.CHOICE -> {
-                    Choice choice = readChoice(data, elmt2);
-                    flow.add(choice);
-                }
-                case Constants.HTTP_REQUEST -> {
-                    HttpRequest httpRequest = readHttpRequest(data, elmt2);
-                    flow.add(httpRequest);
                 }
                 default -> throw new UnsupportedOperationException();
             }
@@ -139,9 +137,7 @@ public class Main {
         List<BallerinaModel.Statement> body = new ArrayList<>();
         List<BallerinaModel.Parameter> queryPrams = new ArrayList<>();
 
-        // TODO: narrow down return type
-        String returnType = "anydata|http:Response|http:StatusCodeResponse|" +
-                "stream<http:SseEvent, error?>|stream<http:SseEvent, error>|error";
+        String returnType = Constants.HTTP_RESOURCE_RETURN_TYPE_DEFAULT;
         String resourcePath = null;
         String[] resourceMethodNames = null;
         List<String> listenerRefs = new ArrayList<>();
@@ -154,6 +150,9 @@ public class Main {
             listeners.add(new BallerinaModel.Listener(listenerConfig.type(), listenerConfig.name(), listenerConfig.port(), listenerConfig.config()));
         }
 
+        // TODO: make internal names unique
+        body.add(new BallerinaModel.BallerinaStatement(
+                String.format("http:Response %s = new;", Constants.VAR_RESPONSE)));
         for (Record record : flow) {
             if (record instanceof HttpListener hl) {
                 resourcePath = normalizedResourcePath(hl.resourcePath);
@@ -165,7 +164,6 @@ public class Main {
                 List<BallerinaModel.Statement> s = convertToStatements(data, lg);
                 body.addAll(s);
             } else if (record instanceof Payload payload) {
-                data.hasPayload = true;
                 List<BallerinaModel.Statement> s = convertToStatements(data, payload);
                 body.addAll(s);
             } else if (record instanceof Choice choice) {
@@ -181,9 +179,8 @@ public class Main {
                 throw new UnsupportedOperationException();
             }
         }
-        if (data.hasPayload) {
-            body.add(new BallerinaModel.BallerinaStatement("return " + "\\$payload\\$;"));
-        }
+
+        body.add(new BallerinaModel.BallerinaStatement(String.format("return %s;", Constants.VAR_RESPONSE)));
 
         for (String qp : data.queryParams) {
             queryPrams.add(new BallerinaModel.Parameter(qp, "string",
@@ -193,7 +190,7 @@ public class Main {
         for (String resourceMethodName : resourceMethodNames) {
             resourceMethodName = resourceMethodName.toLowerCase();
             BallerinaModel.Resource resource = new BallerinaModel.Resource(resourceMethodName,
-                    resourcePath, queryPrams, returnType == null ? "http:Created": returnType, body);
+                    resourcePath, queryPrams, returnType, body);
             resources.add(resource);
         }
 
@@ -210,10 +207,8 @@ public class Main {
             ls.add(new BallerinaModel.BallerinaStatement(
                     "log:printInfo(" + normalizedFromMuleExpr(data, lg.message, true) + ");"));
         } else if (r instanceof Payload payload) {
-            // TODO: Add multiple payload support with i.
-//            return new BallerinaModel.BallerinaStatement("json payload" + ++i + " = " + payload.expr + ";");
-            ls.add(new BallerinaModel.BallerinaStatement(
-                    "json \\$payload\\$" + " = " + normalizedFromMuleExpr(data, payload.expr, false) + ";"));
+            ls.add(new BallerinaModel.BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
+                    normalizedFromMuleExpr(data, payload.expr, false))));
         } else if (r instanceof Choice choice){
             List<WhenInChoice> whens = choice.whens();
             assert whens.size() > 1; // For valid mule config, there is at least one when
@@ -260,14 +255,13 @@ public class Main {
             Map<String, String> queryParams = httpRequest.queryParams();
 
             statements.add(new BallerinaModel.BallerinaStatement(String.format(
-                    "http:Client \\$client\\$ = check new(\"%s\");", url)));
+                    "http:Client %s = check new(\"%s\");", Constants.VAR_CLIENT, url)));
             statements.add(new BallerinaModel.BallerinaStatement(
-                    String.format(
-                            "http:Response|anydata|stream<http:SseEvent, error?> \\$client\\$get = check " +
-                                    "\\$client\\$->%s.%s(%s);",
-                    path, method.toLowerCase(), genQueryParam(queryParams))));
-            statements.add(new BallerinaModel.BallerinaStatement("http:Response \\$client\\$response = check " +
-                    "\\$client\\$get.ensureType(http:Response);"));
+                    String.format("http:Response %s = check %s->%s.%s(%s);",
+                    Constants.VAR_CLIENT_GET, Constants.VAR_CLIENT, path, method.toLowerCase(),
+                            genQueryParam(queryParams))));
+//            statements.add(new BallerinaModel.BallerinaStatement("http:Response \\$client\\$response = check " +
+//                    "\\$client\\$get.ensureType(http:Response);"));
             // TODO: revisit
 //            statements.add(new BallerinaModel.BallerinaStatement("return \\$client\\$response;"));
             ls.addAll(statements);
