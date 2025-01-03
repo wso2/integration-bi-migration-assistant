@@ -5,23 +5,44 @@
 	  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd">
-	<http:listener-config name="config1" doc:name="HTTP Listener config" doc:id="85b56e19-f77d-4d11-bfbe-b30beae6e98a" basePath="/mule" >
+	<http:listener-config name="config1" doc:name="HTTP Listener config" doc:id="85b56e19-f77d-4d11-bfbe-b30beae6e98a" basePath="/foo" >
 		<http:listener-connection host="0.0.0.0" port="8081" />
 	</http:listener-config>
-	<flow name="muledemoFlow1" doc:id="a98faf69-8a03-4ae0-b9c4-66197c6079e4" >
-		<http:listener doc:name="Listener" doc:id="b78e474b-57ab-4d63-a124-00937a30463d" path="/demo" config-ref="config1" allowedMethods="GET"/>
-		<set-variable value="#[attributes.queryParams.foo]" doc:name="Set Variable" doc:id="e9151c58-113c-4a88-951a-5277c9ced14a" variableName="foo0"/>
-		<choice doc:name="Choice" doc:id="d2cee411-77bd-4395-854b-ae27da403d11" >
-			<when expression='#[vars.foo0 == "10"]'>
-				<logger level="INFO" doc:name="Logger" doc:id="372ded51-1900-458f-9ee6-17e5d0c15d38" message="xxx: true condition reached"/>
-				<set-variable value="#[vars.foo0]" doc:name="Set Variable" doc:id="60108471-73a7-41b3-971b-208ae7c5340b" variableName="foo1"/>
-				<logger level="INFO" doc:name="Logger" doc:id="529dea7c-ccd4-4f61-9c88-dab980f19e08" message="#[vars.foo1]"/>
+	<flow name="muledemoFlow" doc:id="d69724f8-64ba-4da5-a94a-62aae8d8053b" >
+		<http:listener doc:name="Listener" doc:id="a8f7cd61-ba1e-40a3-b978-29282ffe3b83" config-ref="config1" allowedMethods="GET, POST, PUT" path="/demo"/>
+		<logger level="INFO" doc:name="Logger" doc:id="def22ab8-ade9-44f6-a320-35fe8df1a716" message="xxx: listener invoked"/>
+		<set-variable value="#[attributes.queryParams.name]" doc:name="Set Variable" doc:id="ddcb1c6a-3244-402c-90fc-fd5b3235887f" variableName="firstName"/>
+		<logger level="INFO" doc:name="Logger" doc:id="2c5a6aba-1a72-4660-ae2a-8c863684e60c" message="#[vars.firstName]"/>
+		<choice doc:name="Choice" doc:id="fce633c4-8c8c-401a-8ff2-223b72b6639c" >
+			<when expression='#[vars.firstName=="ross"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="0ae44fde-4cea-4aee-ba70-7c764f1fc696" message="xxx: ross condition reached"/>
+				<http:request method="GET" doc:name="Request" doc:id="8b599e58-7c65-422e-96ea-4345eaca40aa" url="http://localhost:9090/greetings/hello">
+					<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"name" : "Ross"
+}]]]></http:query-params>
+				</http:request>
+				<set-payload value='#[{"name":"ross"}]' doc:name="Set Payload" doc:id="54a608cd-05bb-4041-b00d-118fbb5ba980" />
+				<logger level="INFO" doc:name="Logger" doc:id="68177629-a1cb-4a50-9f5a-24a67047b3fe" message="xxx: end of ross flow reached"/>
+			</when>
+			<when expression='#[vars.firstName=="mickle"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="f3944b47-7c6f-41b1-af4e-7f841a02d854" message="xxx: mickle condition reached"/>
+				<!-- [STUDIO:"Request"]<http:request method="GET" doc:name="Request" doc:id="5f2ce4a5-c821-40ed-b947-782b950775c9" url="http://localhost:9090/greetings/hello">
+					<http:query-params ><![CDATA[#[output application/java
+&#45;&#45;-
+{
+	"name" : "mickle"
+}&#93;&#93;&#93;></http:query-params>
+				</http:request> [STUDIO] -->
+				<set-payload value='#[{"name":"mickle"}]' doc:name="Set Payload" doc:id="dc2ab658-1915-40b6-93d9-6a5ebe61c1a6" />
+				<logger level="INFO" doc:name="Logger" doc:id="43c6081f-3e10-490e-a438-faf4329ff177" message="xxx: end of mickle flow reached"/>
 			</when>
 			<otherwise >
-				<logger level="INFO" doc:name="Logger" doc:id="882a2e75-7076-4709-aaf9-24d66dffa870" message="xxx: false condition reached"/>
+				<logger level="INFO" doc:name="Logger" doc:id="3d27ec1e-5c52-4ba8-ad60-486e69fd9424" message="xxx: default condition reached"/>
+				<set-payload value='#[{"name":"default"}]' doc:name="Set Payload" doc:id="398e70d9-eb53-47b8-8c50-6be943af0ef8" />
+				<logger level="INFO" doc:name="Logger" doc:id="3d3924f2-5f80-4f88-a571-3688ffa4776a" message="xxx: end of default flow reached"/>
 			</otherwise>
 		</choice>
-		<set-payload value='{"name" : "Lochana"}' doc:name="Set Payload" doc:id="3ae4ba38-db72-4cbd-be0e-d7cf3057a57d" />
-		<logger level="INFO" doc:name="Logger" doc:id="b1f2b490-4f47-4229-9ab5-feb393ea46b1" message="xxx: end of the flow reached"/>
 	</flow>
 </mule>

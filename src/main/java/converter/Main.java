@@ -1,3 +1,8 @@
+package converter;
+
+import ballerina.CodeGenerator;
+import ballerina.BallerinaModel;
+import mule.Constants;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -18,6 +23,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static converter.Utils.genQueryParam;
+import static converter.Utils.getAllowedMethods;
+import static converter.Utils.insertLeadingSlash;
+import static converter.Utils.normalizedFromMuleExpr;
+import static converter.Utils.normalizedResourcePath;
+import static converter.Utils.processQueryParams;
+import static mule.MuleModel.*; // TODO
+
 public class Main {
 
     static class Data {
@@ -25,6 +38,9 @@ public class Main {
         HashSet<Import> imports = new HashSet<>();
         HashSet<String> queryParams = new HashSet<>();
         boolean hasPayload;
+    }
+
+    public record Import(String org, String module) {
     }
 
     public static void main(String[] args) {
@@ -51,7 +67,7 @@ public class Main {
                 data.globalListenerConfigsMap.put(listenerConfig.name(), listenerConfig);
             } else if (Constants.FLOW.equals(elementTagName)) {
                 BallerinaModel ballerinaModel = readFlow(data, element);
-                new BalCodeGen(ballerinaModel).generateBalCode();
+                new CodeGenerator(ballerinaModel).generateBalCode();
             } else {
                 throw new UnsupportedOperationException();
             }
@@ -69,18 +85,6 @@ public class Main {
         document.getDocumentElement().normalize();
 
         return document.getDocumentElement();
-    }
-
-    private static ListenerConfig readHttpListenerConfig(Data data, Element element) {
-        data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP));
-        // capture: name, host, and port
-        String listenerName = element.getAttribute("name");
-        Element listenerConnection = (Element) element.getElementsByTagName(Constants.HTTP_LISTENER_CONNECTION).item(0);
-        String host = listenerConnection.getAttribute("host");
-        String port = listenerConnection.getAttribute("port");
-        String basePath = insertLeadingSlash(element.getAttribute("basePath"));
-        HashMap<String, String> config = new HashMap<>(Collections.singletonMap("host", host));
-        return new ListenerConfig("http:Listener", listenerName, basePath, port, config);
     }
 
     private static Record readComponent(Data data, Element element) {
@@ -155,10 +159,10 @@ public class Main {
                 String.format("http:Response %s = new;", Constants.VAR_RESPONSE)));
         for (Record record : flow) {
             if (record instanceof HttpListener hl) {
-                resourcePath = normalizedResourcePath(hl.resourcePath);
-                resourceMethodNames = hl.allowedMethods;
-                listenerRefs.add(hl.configRef);
-                String muleBasePath = data.globalListenerConfigsMap.get(hl.configRef).basePath;
+                resourcePath = normalizedResourcePath(hl.resourcePath());
+                resourceMethodNames = hl.allowedMethods();
+                listenerRefs.add(hl.configRef());
+                String muleBasePath = data.globalListenerConfigsMap.get(hl.configRef()).basePath();
                 basePath = muleBasePath.isEmpty() ? "/" : muleBasePath;
             } else if (record instanceof Logger lg) {
                 List<BallerinaModel.Statement> s = convertToStatements(data, lg);
@@ -205,18 +209,18 @@ public class Main {
         List<BallerinaModel.Statement> ls = new ArrayList<>();
         if (r instanceof Logger lg) {
             ls.add(new BallerinaModel.BallerinaStatement(
-                    "log:printInfo(" + normalizedFromMuleExpr(data, lg.message, true) + ");"));
+                    "log:printInfo(" + normalizedFromMuleExpr(data, lg.message(), true) + ");"));
         } else if (r instanceof Payload payload) {
             ls.add(new BallerinaModel.BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
-                    normalizedFromMuleExpr(data, payload.expr, false))));
+                    normalizedFromMuleExpr(data, payload.expr(), false))));
         } else if (r instanceof Choice choice){
             List<WhenInChoice> whens = choice.whens();
             assert whens.size() > 1; // For valid mule config, there is at least one when
 
             WhenInChoice firstWhen = whens.getFirst();
-            String ifCondition = normalizedFromMuleExpr(data, firstWhen.condition, false);
+            String ifCondition = normalizedFromMuleExpr(data, firstWhen.condition(), false);
             List<BallerinaModel.Statement> ifBody = new ArrayList<>();
-            for (Record r2: firstWhen.process) {
+            for (Record r2: firstWhen.process()) {
                 List<BallerinaModel.Statement> statements = convertToStatements(data, r2);
                 ifBody.addAll(statements);
             }
@@ -225,18 +229,18 @@ public class Main {
             for (int i = 1; i < whens.size(); i++) {
                 WhenInChoice when = whens.get(i);
                 List<BallerinaModel.Statement> elseIfBody = new ArrayList<>();
-                for (Record r2: when.process) {
+                for (Record r2: when.process()) {
                     List<BallerinaModel.Statement> statements = convertToStatements(data, r2);
                     elseIfBody.addAll(statements);
                 }
                 BallerinaModel.ElseIfClause elseIfClause = new BallerinaModel.ElseIfClause(
-                        new BallerinaModel.BallerinaExpression(normalizedFromMuleExpr(data, when.condition, false)),
+                        new BallerinaModel.BallerinaExpression(normalizedFromMuleExpr(data, when.condition(), false)),
                         elseIfBody);
                 elseIfClauses.add(elseIfClause);
             }
 
-            List<BallerinaModel.Statement> elseBody = new ArrayList<>(choice.otherwiseProcess.size());
-            for (Record r2: choice.otherwiseProcess) {
+            List<BallerinaModel.Statement> elseBody = new ArrayList<>(choice.otherwiseProcess().size());
+            for (Record r2: choice.otherwiseProcess()) {
                 List<BallerinaModel.Statement> statements = convertToStatements(data, r2);
                 elseBody.addAll(statements);
             }
@@ -245,8 +249,9 @@ public class Main {
             ls.add(new BallerinaModel.IfElseStatement(new BallerinaModel.BallerinaExpression(ifCondition), ifBody, elseIfClauses,
                     elseBody));
         } else if (r instanceof SetVariable setVariable) {
-            String varValue = normalizedFromMuleExpr(data, setVariable.value, true);
-            ls.add(new BallerinaModel.BallerinaStatement("string " + setVariable.variableName + " = " + varValue + ";"));
+            String varValue = normalizedFromMuleExpr(data, setVariable.value(), true);
+            ls.add(new BallerinaModel.BallerinaStatement("string " + setVariable.variableName() + " = " + varValue +
+                    ";"));
         } else if (r instanceof HttpRequest httpRequest) {
             List<BallerinaModel.Statement> statements = new ArrayList<>();
             String path = httpRequest.path();
@@ -257,13 +262,13 @@ public class Main {
             statements.add(new BallerinaModel.BallerinaStatement(String.format(
                     "http:Client %s = check new(\"%s\");", Constants.VAR_CLIENT, url)));
             statements.add(new BallerinaModel.BallerinaStatement(
-                    String.format("http:Response %s = check %s->%s.%s(%s);",
+                    String.format("http:Response %s = check %s->%s/.%s(%s);",
                     Constants.VAR_CLIENT_GET, Constants.VAR_CLIENT, path, method.toLowerCase(),
                             genQueryParam(queryParams))));
-//            statements.add(new BallerinaModel.BallerinaStatement("http:Response \\$client\\$response = check " +
+//            statements.add(new ballerina.BallerinaModel.BallerinaStatement("http:Response \\$client\\$response = check " +
 //                    "\\$client\\$get.ensureType(http:Response);"));
             // TODO: revisit
-//            statements.add(new BallerinaModel.BallerinaStatement("return \\$client\\$response;"));
+//            statements.add(new ballerina.BallerinaModel.BallerinaStatement("return \\$client\\$response;"));
             ls.addAll(statements);
         } else {
             throw new IllegalStateException();
@@ -272,87 +277,14 @@ public class Main {
         return ls;
     }
 
-    private static String genQueryParam(Map<String, String> queryParams) {
-        return queryParams.entrySet().stream()
-                .map(e -> String.format("%s = \"%s\"", e.getKey(), e.getValue())).reduce((a, b) -> a + ", " + b).orElse("");
-    }
-
-    private static String getVariable(Data data, String value) {
-        String queryParamPrefix = "attributes.queryParams.";
-        String varPrefix = "vars.";
-
-        String v;
-        if (value.startsWith(queryParamPrefix)) {
-            v = value.substring(queryParamPrefix.length());
-            data.queryParams.add(v);
-        } else if (value.startsWith(varPrefix)) {
-            v = value.substring(varPrefix.length());
-        } else {
-            v = value;
-        }
-        return v;
-    }
-
-    private static HttpListener readHttpListener(Data data, Element element) {
-        String configRef = element.getAttribute("config-ref");
-        String resourcePath = element.getAttribute("path");
-        String[] allowedMethods = Arrays.stream(getAllowedMethods(element.getAttribute("allowedMethods")))
-                .map(String::toLowerCase).toArray(String[]::new);
-        return new HttpListener(0, configRef, resourcePath, allowedMethods);
-    }
-
-    record HttpListener(int tag, String configRef, String resourcePath, String[] allowedMethods) {
-    }
-
-    record Logger(int tag, String message, String level) { }
-
-    record Payload(int tag, String expr) {
-    }
-
-    record HttpRequest(int tag, String method, String url, String path, Map<String, String> queryParams) { }
-
+    // Components
     private static Logger readLogger(Data data, Element element) {
         data.imports.add(new Import("ballerina", "log"));
         String message = element.getAttribute("message");
         return new Logger(1, message, "INFO");
     }
 
-    private static HttpRequest readHttpRequest(Data data, Element element) {
-        String method = element.getAttribute("method").toLowerCase();
-        String url = element.getAttribute("url").toLowerCase();
-        String path = element.getAttribute("path").toLowerCase();
-        Element queryParamsElement = (Element) element.getElementsByTagName(Constants.HTTP_QUERY_PARAMS).item(0);
-        CDATASection cdataSection = (CDATASection) queryParamsElement.getChildNodes().item(0);
-        Map<String, String> queryParams = processQueryParams(cdataSection.getData().trim());
-        return new HttpRequest(0, method, url, path, queryParams);
-    }
-
-    private static Map<String, String> processQueryParams(String queryParams) {
-        assert queryParams.endsWith("}]");
-        String regex = "#\\[output .*\\n---\\n\\{\\n|\\n}]";
-        String trimmed = queryParams.replaceAll(regex, "").trim();
-        String[] pairs = trimmed.split(",\\n\\t");
-        Map<String, String> keyValues = new HashMap<>(pairs.length);
-        for (String pair : pairs) {
-            String[] kv = pair.split(":");
-            keyValues.put(kv[0].trim().replace("\"", ""), kv[1].trim().replace("\"", ""));
-        }
-        return keyValues;
-    }
-
-    private static Payload readSetPayload(Data data, Element element) {
-        String muleExpr = element.getAttribute("value");
-        return new Payload(2, muleExpr);
-    }
-
-    private static SetVariable readSetVariable(Data data, Element element) {
-        String varName = element.getAttribute("variableName");
-        String val = element.getAttribute("value");
-        return new SetVariable(varName, val);
-    }
-
-    record SetVariable(String variableName, String value) { }
-
+    // Flow Control
     private static Choice readChoice(Data data, Element element) {
         NodeList when = element.getElementsByTagName("when");
         List<WhenInChoice> whens = new ArrayList<>();
@@ -386,55 +318,49 @@ public class Main {
         return new Choice(whens, OtherwiseProcess);
     }
 
-    record Choice(String kind, List<WhenInChoice> whens, List<Record> otherwiseProcess) {
-        Choice(List<WhenInChoice> whens, List<Record> otherwiseProcess) {
-            this("Choice", whens, otherwiseProcess);
-        }
+    // Scopes
+
+
+    // Transformers
+    private static Payload readSetPayload(Data data, Element element) {
+        String muleExpr = element.getAttribute("value");
+        return new Payload(2, muleExpr);
     }
 
-    record WhenInChoice(String condition, List<Record> process) { }
-
-    private static String normalizedFromMuleExpr(Data data, String muleExpr, boolean encloseInDoubleQuotes) {
-        if (muleExpr.startsWith("#[") && muleExpr.endsWith("]")) {
-            var innerExpr = muleExpr.substring(2, muleExpr.length() - 1);
-            return getVariable(data, innerExpr);
-        }
-        return encloseInDoubleQuotes? "\"" + muleExpr + "\"" : muleExpr;
+    private static SetVariable readSetVariable(Data data, Element element) {
+        String varName = element.getAttribute("variableName");
+        String val = element.getAttribute("value");
+        return new SetVariable(varName, val);
     }
 
-    private static String removeLeadingSlash(String resourcePath) {
-        return resourcePath.startsWith("/") ? resourcePath.substring(1) : resourcePath;
+    // HTTP Module
+    private static ListenerConfig readHttpListenerConfig(Data data, Element element) {
+        data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP));
+        // capture: name, host, and port
+        String listenerName = element.getAttribute("name");
+        Element listenerConnection = (Element) element.getElementsByTagName(Constants.HTTP_LISTENER_CONNECTION).item(0);
+        String host = listenerConnection.getAttribute("host");
+        String port = listenerConnection.getAttribute("port");
+        String basePath = insertLeadingSlash(element.getAttribute("basePath"));
+        HashMap<String, String> config = new HashMap<>(Collections.singletonMap("host", host));
+        return new ListenerConfig("http:Listener", listenerName, basePath, port, config);
     }
 
-    private static String insertLeadingSlash(String basePath) {
-        return basePath.startsWith("/") ? basePath : "/" + basePath;
+    private static HttpListener readHttpListener(Data data, Element element) {
+        String configRef = element.getAttribute("config-ref");
+        String resourcePath = element.getAttribute("path");
+        String[] allowedMethods = Arrays.stream(getAllowedMethods(element.getAttribute("allowedMethods")))
+                .map(String::toLowerCase).toArray(String[]::new);
+        return new HttpListener(0, configRef, resourcePath, allowedMethods);
     }
 
-    private static String[] getAllowedMethods(String allowedMethods) {
-        if (allowedMethods.isEmpty()) {
-            // Leaving empty will allow all
-            // TODO: check and support other methods
-            return new String[]{"GET", "POST"};
-        }
-        return allowedMethods.split(",\\s*");
-    }
-
-    public record Import(String org, String module) { }
-
-    // TODO: rename type to something meaningful like tag
-    public record ListenerConfig(String type, String name, String basePath, String port, Map<String, String> config) {}
-
-    private static String normalizedResourcePath(String path) {
-        // TODO: handle dash e.g. main-constract
-        List<String> list = Arrays.stream(path.split("/")).filter(s -> !s.isEmpty())
-                .map(s -> {
-                    if (s.startsWith("{") && s.endsWith("}")) {
-                        return "[string " + s.substring(1, s.length() - 1) + "]";
-                    }
-                    return s;
-                }).toList();
-
-        String newPath = String.join("/", list);
-        return newPath;
+    private static HttpRequest readHttpRequest(Data data, Element element) {
+        String method = element.getAttribute("method").toLowerCase();
+        String url = element.getAttribute("url").toLowerCase();
+        String path = element.getAttribute("path").toLowerCase();
+        Element queryParamsElement = (Element) element.getElementsByTagName(Constants.HTTP_QUERY_PARAMS).item(0);
+        CDATASection cdataSection = (CDATASection) queryParamsElement.getChildNodes().item(0);
+        Map<String, String> queryParams = processQueryParams(cdataSection.getData().trim());
+        return new HttpRequest(0, method, url, path, queryParams);
     }
 }
