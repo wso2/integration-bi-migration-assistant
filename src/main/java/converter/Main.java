@@ -30,6 +30,7 @@ import static converter.Utils.normalizedFromMuleExpr;
 import static converter.Utils.normalizedResourcePath;
 import static converter.Utils.processQueryParams;
 import static mule.MuleModel.*; // TODO
+import static ballerina.BallerinaModel.*; // TODO
 
 public class Main {
 
@@ -37,10 +38,6 @@ public class Main {
         HashMap<String, ListenerConfig> globalListenerConfigsMap = new HashMap<>();
         HashSet<Import> imports = new HashSet<>();
         HashSet<String> queryParams = new HashSet<>();
-        boolean hasPayload;
-    }
-
-    public record Import(String org, String module) {
     }
 
     public static void main(String[] args) {
@@ -133,21 +130,22 @@ public class Main {
             }
         }
 
-        // To create service we need, basePath, listeners, resources
-        String basePath = null;
-        List<BallerinaModel.Import> imports = new ArrayList<>();
-        List<BallerinaModel.Listener> listeners = new ArrayList<>();
-        List<BallerinaModel.Resource> resources = new ArrayList<>();
-        List<BallerinaModel.Statement> body = new ArrayList<>();
-        List<BallerinaModel.Parameter> queryPrams = new ArrayList<>();
+        List<Import> imports = new ArrayList<>();
+        List<Listener> listeners = new ArrayList<>();
+        List<Resource> resources = new ArrayList<>();
+        List<Function> functions = new ArrayList<>();
+        List<Statement> body = new ArrayList<>();
+        List<Parameter> queryPrams = new ArrayList<>();
 
         String returnType = Constants.HTTP_RESOURCE_RETURN_TYPE_DEFAULT;
-        String resourcePath = null;
-        String[] resourceMethodNames = null;
         List<String> listenerRefs = new ArrayList<>();
 
+        String basePath = null;
+        String resourcePath = null;
+        String[] resourceMethodNames = null;
+
         for (Import anImport : data.imports) {
-            imports.add(new BallerinaModel.Import(anImport.org(), anImport.module()));
+            imports.add(new Import(anImport.org(), anImport.module()));
         }
 
         for (ListenerConfig listenerConfig : data.globalListenerConfigsMap.values()) {
@@ -191,15 +189,24 @@ public class Main {
                     Optional.of(new BallerinaModel.BallerinaExpression("\"null\""))));
         }
 
+        int invokeEndPointCount = 0; // TODO: support different body resources
+        String functionArgs = String.join(",", queryPrams.stream().map(p -> String.format("%s", p.name())).toList());
+        String invokeEndPointMethodName = Constants.HTTP_ENDPOINT_METHOD_NAME + invokeEndPointCount++;
+
+        var resourceReturnStmt = new BallerinaStatement(String.format("return self.%s(%s);",
+                invokeEndPointMethodName, functionArgs));
+
         for (String resourceMethodName : resourceMethodNames) {
             resourceMethodName = resourceMethodName.toLowerCase();
             BallerinaModel.Resource resource = new BallerinaModel.Resource(resourceMethodName,
-                    resourcePath, queryPrams, returnType, body);
+                    resourcePath, queryPrams, returnType, Collections.singletonList(resourceReturnStmt));
             resources.add(resource);
         }
 
-        BallerinaModel.Service service = new BallerinaModel.Service(basePath, listenerRefs, resources,
-                Collections.emptyList(), Collections.emptyList());
+        functions.add(new Function("private",invokeEndPointMethodName, queryPrams, returnType, body));
+
+        BallerinaModel.Service service = new Service(basePath, listenerRefs, resources,
+                functions, Collections.emptyList(), Collections.emptyList());
         BallerinaModel.Module module = new BallerinaModel.Module("muleDemo", imports, Collections.emptyList(),
                 listeners, Collections.singletonList(service));
         return new BallerinaModel(new BallerinaModel.DefaultPackage("muleDemo", "muleDemo", "1.0.0"), Collections.singletonList(module));

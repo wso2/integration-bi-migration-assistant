@@ -20,9 +20,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     public record Variable(String name, String type, Object value) {
     }
 
-    public record Service(String basePath, List<String> listenerRefs, List<Resource> resources, List<String> pathParams,
-                          List<String> queryParams) {
-
+    public record Service(String basePath, List<String> listenerRefs, List<Resource> resources,
+                          List<Function> functions, List<String> pathParams, List<String> queryParams) {
     }
 
     // TODO: type means http:Listener, tcp:Listener, etc.
@@ -31,6 +30,10 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record Resource(String resourceMethodName, String path, List<Parameter> parameters, String returnType,
+                           List<Statement> body) {
+    }
+
+    public record Function(String visibilityQualifier, String methodName, List<Parameter> parameters, String returnType,
                            List<Statement> body) {
     }
 

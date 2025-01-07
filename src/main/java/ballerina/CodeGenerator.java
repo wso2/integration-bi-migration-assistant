@@ -13,13 +13,24 @@ import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.text.TextDocuments;
-import mule.Constants;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
+import static ballerina.BallerinaModel.BallerinaStatement;
+import static ballerina.BallerinaModel.ElseIfClause;
+import static ballerina.BallerinaModel.Function;
+import static ballerina.BallerinaModel.IfElseStatement;
+import static ballerina.BallerinaModel.Import;
+import static ballerina.BallerinaModel.Listener;
+import static ballerina.BallerinaModel.Module;
+import static ballerina.BallerinaModel.Parameter;
+import static ballerina.BallerinaModel.Resource;
+import static ballerina.BallerinaModel.Service;
+import static ballerina.BallerinaModel.Statement;
 
 public class CodeGenerator {
     private final BallerinaModel ballerinaModel;
@@ -30,98 +41,72 @@ public class CodeGenerator {
 
     public void generateBalCode() {
         System.out.println("Generating Ballerina code...");
-        List<ImportDeclarationNode> imports = new ArrayList<>();
-        List<ModuleMemberDeclarationNode> moduleMembers = new ArrayList<>();
-        for (BallerinaModel.Module module : ballerinaModel.modules()) {
-            for (BallerinaModel.Import importDeclaration : module.imports()) {
+
+        List<SyntaxTree> syntaxTrees = new ArrayList<>();
+        for (Module module : ballerinaModel.modules()) {
+            List<ImportDeclarationNode> imports = new ArrayList<>();
+            for (Import importDeclaration : module.imports()) {
                 ImportDeclarationNode importDeclarationNode = NodeParser.parseImportDeclaration(
                         String.format("import %s/%s;", importDeclaration.org(), importDeclaration.module()));
                 imports.add(importDeclarationNode);
             }
 
-            for (BallerinaModel.Listener listener : module.listeners()) {
+            List<ModuleMemberDeclarationNode> moduleMembers = new ArrayList<>();
+            for (Listener listener : module.listeners()) {
                 ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(
                         String.format("listener http:Listener %s = new (%s, {host: \"%s\"});", listener.name(),
                                 listener.port(), listener.config().get("host")));
                 moduleMembers.add(member);
             }
 
-            for (BallerinaModel.Service service : module.services()) {
-                StringBuilder stringBuilder = new StringBuilder();
-                Iterator<String> iterator = service.listenerRefs().iterator();
-                while (iterator.hasNext()) {
-                    String listener = iterator.next();
-                    stringBuilder.append(listener);
-                    if (iterator.hasNext()) {
-                        stringBuilder.append(", ");
-                    }
-                }
-
+            for (Service service : module.services()) {
+                String listenerRefs = constructCommaSeparatedString(service.listenerRefs());
                 ServiceDeclarationNode serviceDecl = (ServiceDeclarationNode) NodeParser.parseModuleMemberDeclaration(
-                        String.format("service %s on %s { }", service.basePath(), stringBuilder));
+                        String.format("service %s on %s { }", service.basePath(), listenerRefs));
 
-
-                int invokeEndPointCount = 0;
-                FunctionDefinitionNode invokeEndPointMethod = null;
-                String invokeEndPointMethodName = null;
                 List<Node> members = new ArrayList<>();
-                for (BallerinaModel.Resource resource : service.resources()) {
-                    List<BallerinaModel.Parameter> parameters = resource.parameters();
-                    // TODO: fix defaultable parameters properly
-//                    String queryParamStr = String.join(",",
-//                            parameters.stream().map(p -> p.defaultExpr().isPresent() ?
-//                                            String.format("%s %s = %s", p.type(), p.name(), p.defaultExpr().get().expr()) :
-//                                            String.format("%s %s", p.type(), p.name()))
-//                                    .toList());
-                    String queryParamStr = String.join(",",
-                    parameters.stream().map(p -> String.format("%s %s", p.type(), p.name()))
-                            .toList());
-                    String queryParamStr2 = String.join(",",
-                            parameters.stream().map(p -> String.format("%s %s", p.type(), p.name())).toList());
-
+                for (Resource resource : service.resources()) {
+                    String funcParamStr = constructFunctionParameterString(resource.parameters(), false);
                     FunctionDefinitionNode resourceMethod = (FunctionDefinitionNode) NodeParser.parseObjectMember(
                             String.format("resource function %s %s(%s) returns %s {}",
-                            resource.resourceMethodName(), resource.path(), queryParamStr, resource.returnType()));
-                    List<String> strList = new ArrayList<>();
-                    for (BallerinaModel.Statement statement : resource.body()) {
-                        String s = generateStatement(statement);
-                        strList.add(s);
-                    }
+                                    resource.resourceMethodName(), resource.path(), funcParamStr,
+                                    resource.returnType()));
 
-                    String join = String.join("", strList);
-                    FunctionBodyBlockNode invokeEndPointFuncBodyBlock = NodeParser.parseFunctionBodyBlock(
-                            String.format("{ %s }", join));
-
-                    if (invokeEndPointMethod == null) {
-                        invokeEndPointMethodName = Constants.HTTP_ENDPOINT_METHOD_NAME + invokeEndPointCount++;
-                    }
-
-
-                    String functionArgs = String.join(",",
-                            parameters.stream().map(p -> String.format("%s", p.name())).toList());
-
-                    FunctionBodyBlockNode resourceFuncBodyBlock = NodeParser.parseFunctionBodyBlock(
-                            String.format("{ return self.%s(%s); }", invokeEndPointMethodName, functionArgs));
-                    resourceMethod = resourceMethod.modify().withFunctionBody(resourceFuncBodyBlock).apply();
+                    FunctionBodyBlockNode funcBodyBlock = constructFunctionBodyBlock(resource.body());
+                    resourceMethod = resourceMethod.modify().withFunctionBody(funcBodyBlock).apply();
                     members.add(resourceMethod);
-
-                    if (invokeEndPointMethod == null) {
-                        // TODO: Move to front
-                        invokeEndPointMethod = (FunctionDefinitionNode) NodeParser.parseObjectMember(
-                                String.format("private function %s(%s) returns %s {}",
-                                        invokeEndPointMethodName, queryParamStr2, resource.returnType()));
-                        invokeEndPointMethod = invokeEndPointMethod.modify().withFunctionBody(invokeEndPointFuncBodyBlock).apply();
-                    }
                 }
-                members.add(invokeEndPointMethod);
+
+                for (Function function : service.functions()) {
+                    String funcParamString = constructFunctionParameterString(function.parameters(), false);
+                    FunctionDefinitionNode funcDefn = (FunctionDefinitionNode) NodeParser.parseObjectMember(
+                            String.format("%s function %s(%s) returns %s {}",
+                                    function.visibilityQualifier(), function.methodName(), funcParamString,
+                                    function.returnType()));
+
+                    FunctionBodyBlockNode funcBodyBlock = constructFunctionBodyBlock(function.body());
+                    funcDefn = funcDefn.modify().withFunctionBody(funcBodyBlock).apply();
+                    members.add(funcDefn);
+                }
+
                 NodeList<Node> nodeList = NodeFactory.createNodeList(members);
                 serviceDecl = serviceDecl.modify().withMembers(nodeList).apply();
                 moduleMembers.add(serviceDecl);
             }
+
+            NodeList<ImportDeclarationNode> importDecls = NodeFactory.createNodeList(imports);
+            NodeList<ModuleMemberDeclarationNode> moduleMemberDecls = NodeFactory.createNodeList(moduleMembers);
+
+            SyntaxTree syntaxTree = createSyntaxTree(importDecls, moduleMemberDecls);
+            syntaxTree = formatSyntaxTree(syntaxTree);
+            syntaxTrees.add(syntaxTree);
         }
 
-        NodeList<ImportDeclarationNode> importDecls = NodeFactory.createNodeList(imports);
-        NodeList<ModuleMemberDeclarationNode> moduleMemberDecls = NodeFactory.createNodeList(moduleMembers);
+        printSyntaxTree(syntaxTrees.getFirst());
+    }
+
+    private static SyntaxTree createSyntaxTree(NodeList<ImportDeclarationNode> importDecls,
+                                               NodeList<ModuleMemberDeclarationNode> moduleMemberDecls) {
         ModulePartNode modulePartNode = NodeFactory.createModulePartNode(
                 importDecls,
                 moduleMemberDecls,
@@ -130,35 +115,80 @@ public class CodeGenerator {
 
         SyntaxTree syntaxTree = SyntaxTree.from(TextDocuments.from(""));
         syntaxTree = syntaxTree.modifyWith(modulePartNode);
-        SyntaxTree formattedSyntaxTree;
-        try {
-            formattedSyntaxTree = Formatter.format(syntaxTree);
-        } catch (FormatterException e) {
-            throw new RuntimeException(e);
-        }
+        return syntaxTree;
+    }
 
+    private static SyntaxTree formatSyntaxTree(SyntaxTree syntaxTree) {
+        try {
+            syntaxTree = Formatter.format(syntaxTree);
+        } catch (FormatterException e) {
+            throw new RuntimeException("Error formatting the syntax tree");
+        }
+        return syntaxTree;
+    }
+
+    private void printSyntaxTree(SyntaxTree syntaxTree) {
         System.out.println("============================================");
-        System.out.println(formattedSyntaxTree.toSourceCode());
+        System.out.println(syntaxTree.toSourceCode());
         System.out.println("============================================");
     }
 
-    private static String generateStatement(BallerinaModel.Statement stmt) {
-        if (stmt instanceof BallerinaModel.BallerinaStatement ballerinaStatement) {
-            return ballerinaStatement.stmt();
-        } else if (stmt instanceof BallerinaModel.IfElseStatement ifElseStatement) {
+    private String constructCommaSeparatedString(List<String> strings) {
+        StringBuilder stringBuilder = new StringBuilder();
+        Iterator<String> iterator = strings.iterator();
+        while (iterator.hasNext()) {
+            String listener = iterator.next();
+            stringBuilder.append(listener);
+            if (iterator.hasNext()) {
+                stringBuilder.append(", ");
+            }
+        }
+        return stringBuilder.toString();
+    }
+
+    private String constructFunctionParameterString(List<Parameter> parameters, boolean skipDefaultExpr) {
+        if (skipDefaultExpr) {
+            return String.join(",", parameters.stream().map(p -> String.format("%s %s", p.type(), p.name()))
+                    .toList());
+        }
+
+        return String.join(",", parameters.stream().map(p -> p.defaultExpr().isPresent() ?
+                String.format("%s %s = %s", p.type(), p.name(), p.defaultExpr().get().expr()) :
+                String.format("%s %s", p.type(), p.name())).toList());
+    }
+
+    private FunctionBodyBlockNode constructFunctionBodyBlock(List<Statement> body) {
+        List<String> stmtList = new ArrayList<>();
+        for (Statement statement : body) {
+            String s = constructBallerinaStatements(statement);
+            stmtList.add(s);
+        }
+
+        String joinedStatements = String.join("", stmtList);
+        return NodeParser.parseFunctionBodyBlock(String.format("{ %s }", joinedStatements));
+    }
+
+    private static String constructBallerinaStatements(Statement stmt) {
+        if (stmt instanceof BallerinaStatement balStmt) {
+            return balStmt.stmt();
+        } else if (stmt instanceof IfElseStatement ifElseStmt) {
             StringBuilder stringBuilder = new StringBuilder();
-            for (BallerinaModel.ElseIfClause elseIfClause : ifElseStatement.elseIfClauses()) {
+            for (ElseIfClause elseIfClause : ifElseStmt.elseIfClauses()) {
                 stringBuilder.append(
-                        String.format("else if(%s) { %s }", elseIfClause.condition().expr(),
-                                String.join("",
-                                        elseIfClause.elseIfBody().stream().map(CodeGenerator::generateStatement).toList())));
+                        String.format("else if(%s) { %s }",
+                                elseIfClause.condition().expr(),
+                                String.join("", elseIfClause.elseIfBody().stream()
+                                        .map(CodeGenerator::constructBallerinaStatements).toList())
+                        ));
             }
 
             return String.format("if (%s) { %s } %s else { %s }",
-                    ifElseStatement.ifCondition().expr(),
-                    String.join("", ifElseStatement.ifBody().stream().map(CodeGenerator::generateStatement).toList()),
+                    ifElseStmt.ifCondition().expr(),
+                    String.join("", ifElseStmt.ifBody().stream()
+                            .map(CodeGenerator::constructBallerinaStatements).toList()),
                     stringBuilder,
-                    String.join("", ifElseStatement.elseBody().stream().map(CodeGenerator::generateStatement).toList()));
+                    String.join("", ifElseStmt.elseBody().stream()
+                            .map(CodeGenerator::constructBallerinaStatements).toList()));
         } else {
             throw new IllegalStateException();
         }
