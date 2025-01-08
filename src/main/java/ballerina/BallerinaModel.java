@@ -24,9 +24,12 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                           List<Function> functions, List<String> pathParams, List<String> queryParams) {
     }
 
-    // TODO: type means http:Listener, tcp:Listener, etc.
     // TODO: move port to config map
-    public record Listener(String type, String name, String port, Map<String, String> config) {
+    public record Listener(ListenerType type, String name, String port, Map<String, String> config) {
+    }
+
+    public enum ListenerType {
+        HTTP
     }
 
     public record Resource(String resourceMethodName, String path, List<Parameter> parameters, String returnType,
