@@ -41,7 +41,7 @@ import static ballerina.BallerinaModel.Statement;
 import static converter.Utils.genQueryParam;
 import static converter.Utils.getAllowedMethods;
 import static converter.Utils.insertLeadingSlash;
-import static converter.Utils.normalizedFromMuleExpr;
+import static converter.Utils.convertToBallerinaExpression;
 import static converter.Utils.getBallerinaResourcePath;
 import static converter.Utils.processQueryParams;
 import static mule.MuleModel.Choice;
@@ -249,15 +249,15 @@ public class Mule2BalConverter {
         List<Statement> statementList = new ArrayList<>();
         switch (muleRec) {
             case Logger lg -> statementList.add(new BallerinaStatement(String.format("log:%s(%s);",
-                    getBallerinaLogFunction(lg.level()), normalizedFromMuleExpr(data, lg.message(), true))));
+                    getBallerinaLogFunction(lg.level()), convertToBallerinaExpression(data, lg.message(), true))));
             case Payload payload -> statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);",
-                    Constants.VAR_RESPONSE, normalizedFromMuleExpr(data, payload.expr(), false))));
+                    Constants.VAR_RESPONSE, convertToBallerinaExpression(data, payload.expr(), true))));
             case Choice choice -> {
                 List<WhenInChoice> whens = choice.whens();
                 assert whens.size() > 1; // For valid mule config, there is at least one when
 
                 WhenInChoice firstWhen = whens.getFirst();
-                String ifCondition = normalizedFromMuleExpr(data, firstWhen.condition(), false);
+                String ifCondition = convertToBallerinaExpression(data, firstWhen.condition(), false);
                 List<Statement> ifBody = new ArrayList<>();
                 for (MuleRecord r2 : firstWhen.process()) {
                     List<Statement> statements = convertToStatements(data, r2);
@@ -273,7 +273,7 @@ public class Mule2BalConverter {
                         elseIfBody.addAll(statements);
                     }
                     ElseIfClause elseIfClause = new ElseIfClause(
-                            new BallerinaExpression(normalizedFromMuleExpr(data, when.condition(), false)), elseIfBody);
+                            new BallerinaExpression(convertToBallerinaExpression(data, when.condition(), false)), elseIfBody);
                     elseIfClauses.add(elseIfClause);
                 }
 
@@ -287,7 +287,7 @@ public class Mule2BalConverter {
                 statementList.add(new IfElseStatement(new BallerinaExpression(ifCondition), ifBody, elseIfClauses, elseBody));
             }
             case SetVariable setVariable -> {
-                String varValue = normalizedFromMuleExpr(data, setVariable.value(), true);
+                String varValue = convertToBallerinaExpression(data, setVariable.value(), true);
                 statementList.add(new BallerinaStatement(
                         "string " + setVariable.variableName() + " = " + varValue + ";"));
             }
@@ -354,7 +354,7 @@ public class Mule2BalConverter {
         for (int i = 0; i < when.getLength(); i++) {
             Node whenNode = when.item(i);
             NodeList whenProcesses = whenNode.getChildNodes();
-            String condition = normalizedFromMuleExpr(data, ((Element) whenNode).getAttribute("expression"), false);
+            String condition = convertToBallerinaExpression(data, ((Element) whenNode).getAttribute("expression"), false);
             List<MuleRecord> whenProcess = new ArrayList<>();
             for (int j = 0; j < whenProcesses.getLength(); j++) {
                 Node child = whenProcesses.item(j);

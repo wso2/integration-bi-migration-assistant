@@ -83,8 +83,9 @@ public class Utils {
                 .map(e -> String.format("%s = \"%s\"", e.getKey(), e.getValue())).reduce((a, b) -> a + ", " + b).orElse("");
     }
 
-    static String normalizedFromMuleExpr(Mule2BalConverter.Data data, String muleExpr, boolean encloseInDoubleQuotes) {
+    static String convertToBallerinaExpression(Mule2BalConverter.Data data, String muleExpr, boolean encloseInDoubleQuotes) {
         if (muleExpr.startsWith("#[") && muleExpr.endsWith("]")) {
+            // We reach here for mule expression syntax
             var innerExpr = muleExpr.substring(2, muleExpr.length() - 1);
             return getVariable(data, innerExpr);
         }
