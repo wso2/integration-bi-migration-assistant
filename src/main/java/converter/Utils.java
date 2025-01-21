@@ -55,7 +55,7 @@ public class Utils {
                 .map(e -> String.format("%s = \"%s\"", e.getKey(), e.getValue())).reduce((a, b) -> a + ", " + b).orElse("");
     }
 
-    static String normalizedFromMuleExpr(Main.Data data, String muleExpr, boolean encloseInDoubleQuotes) {
+    static String normalizedFromMuleExpr(Mule2BalConverter.Data data, String muleExpr, boolean encloseInDoubleQuotes) {
         if (muleExpr.startsWith("#[") && muleExpr.endsWith("]")) {
             var innerExpr = muleExpr.substring(2, muleExpr.length() - 1);
             return getVariable(data, innerExpr);
@@ -63,7 +63,7 @@ public class Utils {
         return encloseInDoubleQuotes? "\"" + muleExpr + "\"" : muleExpr;
     }
 
-    private static String getVariable(Main.Data data, String value) {
+    private static String getVariable(Mule2BalConverter.Data data, String value) {
         String queryParamPrefix = "attributes.queryParams.";
         String varPrefix = "vars.";
 

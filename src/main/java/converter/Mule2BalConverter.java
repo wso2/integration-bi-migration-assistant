@@ -2,6 +2,7 @@ package converter;
 
 import ballerina.BallerinaModel;
 import ballerina.CodeGenerator;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.Constants;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
@@ -56,7 +57,7 @@ import static mule.MuleModel.Payload;
 import static mule.MuleModel.SetVariable;
 import static mule.MuleModel.WhenInChoice;
 
-public class Main {
+public class Mule2BalConverter {
 
     static class Data {
         HashMap<String, ListenerConfig> globalListenerConfigsMap = new HashMap<>();
@@ -64,11 +65,10 @@ public class Main {
         HashSet<String> queryParams = new HashSet<>();
     }
 
-    public static void main(String[] args) {
+    public static SyntaxTree convertToBallerina(String xmlFilePath) {
         Element root;
         try {
-            String uri = "src/main/resources/muledemo.xml";
-            root = parseMuleXMLConfigurationFile(uri);
+            root = parseMuleXMLConfigurationFile(xmlFilePath);
         } catch (Exception e) {
             throw new RuntimeException("Error while parsing the mule XML configuration file", e);
         }
@@ -91,11 +91,12 @@ public class Main {
             if (Constants.FLOW.equals(elementTagName)) {
                 Flow flow = readFlow(data, element);
                 BallerinaModel ballerinaModel = generateBallerinaModel(data, flow);
-                new CodeGenerator(ballerinaModel).generateBalCode();
+                return new CodeGenerator(ballerinaModel).generateBalCode();
             } else {
                 throw new UnsupportedOperationException();
             }
         }
+        throw new IllegalStateException();
     }
 
     private static Element parseMuleXMLConfigurationFile(String uri) throws ParserConfigurationException, SAXException,

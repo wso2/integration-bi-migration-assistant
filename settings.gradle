@@ -12,4 +12,3 @@ plugins {
 }
 
 rootProject.name = 'mule_to_bal_converter'
-include('app')

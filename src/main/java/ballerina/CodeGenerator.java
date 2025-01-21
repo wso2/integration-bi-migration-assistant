@@ -39,9 +39,7 @@ public class CodeGenerator {
         this.ballerinaModel = ballerinaModel;
     }
 
-    public void generateBalCode() {
-        System.out.println("Generating Ballerina code...");
-
+    public SyntaxTree generateBalCode() {
         List<SyntaxTree> syntaxTrees = new ArrayList<>();
         for (Module module : ballerinaModel.modules()) {
             List<ImportDeclarationNode> imports = new ArrayList<>();
@@ -102,7 +100,9 @@ public class CodeGenerator {
             syntaxTrees.add(syntaxTree);
         }
 
-        printSyntaxTree(syntaxTrees.getFirst());
+//        printSyntaxTree(syntaxTrees.getFirst());
+        // only a single bal file is considered for now
+        return syntaxTrees.getFirst();
     }
 
     private static SyntaxTree createSyntaxTree(NodeList<ImportDeclarationNode> importDecls,
