@@ -11,10 +11,18 @@ public record MuleModel() {
         }
     }
 
-    public record Logger(Kind kind, String message, String level) implements MuleRecord {
-        public Logger(String message, String level) {
+    public record Logger(Kind kind, String message, LogLevel level) implements MuleRecord {
+        public Logger(String message, LogLevel level) {
             this(Kind.LOGGER, message, level);
         }
+    }
+
+    public enum LogLevel {
+        DEBUG,
+        ERROR,
+        INFO,
+        TRACE,
+        WARN
     }
 
     public record Payload(Kind kind, String expr) implements MuleRecord {

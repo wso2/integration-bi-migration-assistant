@@ -49,6 +49,7 @@ import static mule.MuleModel.HttpListener;
 import static mule.MuleModel.HttpRequest;
 import static mule.MuleModel.Kind;
 import static mule.MuleModel.ListenerConfig;
+import static mule.MuleModel.LogLevel;
 import static mule.MuleModel.Logger;
 import static mule.MuleModel.MuleRecord;
 import static mule.MuleModel.Payload;
@@ -66,7 +67,8 @@ public class Main {
     public static void main(String[] args) {
         Element root;
         try {
-            root = parseMuleXMLConfigurationFile();
+            String uri = "src/main/resources/muledemo.xml";
+            root = parseMuleXMLConfigurationFile(uri);
         } catch (Exception e) {
             throw new RuntimeException("Error while parsing the mule XML configuration file", e);
         }
@@ -96,12 +98,13 @@ public class Main {
         }
     }
 
-    private static Element parseMuleXMLConfigurationFile() throws ParserConfigurationException, SAXException, IOException {
+    private static Element parseMuleXMLConfigurationFile(String uri) throws ParserConfigurationException, SAXException,
+            IOException {
         // Load the Mule XML file
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(true);
         DocumentBuilder builder = factory.newDocumentBuilder();
-        Document document = builder.parse("src/main/resources/muledemo.xml");
+        Document document = builder.parse(uri);
 
         // Normalize the XML structure
         document.getDocumentElement().normalize();
@@ -244,8 +247,8 @@ public class Main {
     private static List<Statement> convertToStatements(Data data, MuleRecord muleRec) {
         List<Statement> statementList = new ArrayList<>();
         switch (muleRec) {
-            case Logger lg -> statementList.add(new BallerinaStatement(
-                    "log:printInfo(" + normalizedFromMuleExpr(data, lg.message(), true) + ");"));
+            case Logger lg -> statementList.add(new BallerinaStatement(String.format("log:%s(%s);",
+                    getBallerinaLogFunction(lg.level()), normalizedFromMuleExpr(data, lg.message(), true))));
             case Payload payload -> statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);",
                     Constants.VAR_RESPONSE, normalizedFromMuleExpr(data, payload.expr(), false))));
             case Choice choice -> {
@@ -307,11 +310,40 @@ public class Main {
         return statementList;
     }
 
+    private static String getBallerinaLogFunction(LogLevel logLevel) {
+        return switch (logLevel) {
+            case DEBUG -> "printDebug";
+            case ERROR -> "printError";
+            case INFO, TRACE -> "printInfo";
+            case WARN -> "printWarn";
+        };
+    }
+
     // Components
     private static Logger readLogger(Data data, Element element) {
         data.imports.add(new Import("ballerina", "log"));
         String message = element.getAttribute("message");
-        return new Logger(message, "INFO");
+        String level = element.getAttribute("level");
+        LogLevel logLevel;
+        switch (level) {
+            case "DEBUG" -> {
+                logLevel = LogLevel.DEBUG;
+            }
+            case "ERROR" -> {
+                logLevel = LogLevel.ERROR;
+            }
+            case "INFO" -> {
+                logLevel = LogLevel.INFO;
+            }
+            case "TRACE" -> {
+                logLevel = LogLevel.TRACE;
+            }
+            case "WARN" -> {
+                logLevel = LogLevel.WARN;
+            }
+            default -> throw new IllegalStateException();
+        }
+        return new Logger(message, logLevel);
     }
 
     // Flow Control
