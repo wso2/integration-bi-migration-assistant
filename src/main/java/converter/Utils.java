@@ -4,27 +4,55 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class Utils {
-    static String normalizedResourcePath(String path) {
-        // TODO: handle dash e.g. main-constract
+
+    private static final Pattern UNESCAPED_SPECIAL_CHAR_SET =
+            Pattern.compile("([$&+,:;=\\?@#\\\\|/'\\ \\[\\}\\]<\\>.\"^*{}~`()%!-])");
+
+    /**
+     * Converts a Mule path to a Ballerina resource path.
+     *
+     * @param path mule path
+     * @return ballerina resource path
+     */
+    static String getBallerinaResourcePath(String path) {
         List<String> list = Arrays.stream(path.split("/")).filter(s -> !s.isEmpty())
                 .map(s -> {
                     if (s.startsWith("{") && s.endsWith("}")) {
-                        return "[string " + s.substring(1, s.length() - 1) + "]";
+                        // We come here for mule path params. e.g. foo/{bar}/baz
+                        String pathParamName = s.substring(1, s.length() - 1);
+                        pathParamName = escapeSpecialCharacters(pathParamName);
+                        return "[string " + pathParamName + "]";
                     }
-                    return s;
+                    return escapeSpecialCharacters(s);
                 }).toList();
 
-        String newPath = String.join("/", list);
-        return newPath;
+        String resourcePath;
+        if (list.isEmpty()) {
+            resourcePath = ".";
+        } else {
+            resourcePath = String.join("/", list);
+        }
+        return resourcePath;
+    }
+
+    /**
+     * Escape the special characters in an identifier with a preceding `\`.
+     *
+     * @param identifier encoded identifier string
+     * @return decoded identifier
+     */
+    public static String escapeSpecialCharacters(String identifier) {
+        return UNESCAPED_SPECIAL_CHAR_SET.matcher(identifier).replaceAll("\\\\$1");
     }
 
     static String[] getAllowedMethods(String allowedMethods) {
         if (allowedMethods.isEmpty()) {
             // Leaving empty will allow all
             // TODO: check and support other methods
-            return new String[]{"GET", "POST"};
+            return new String[]{"GET", "POST", "PUT", "DELETE"};
         }
         return allowedMethods.split(",\\s*");
     }

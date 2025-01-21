@@ -42,7 +42,7 @@ import static converter.Utils.genQueryParam;
 import static converter.Utils.getAllowedMethods;
 import static converter.Utils.insertLeadingSlash;
 import static converter.Utils.normalizedFromMuleExpr;
-import static converter.Utils.normalizedResourcePath;
+import static converter.Utils.getBallerinaResourcePath;
 import static converter.Utils.processQueryParams;
 import static mule.MuleModel.Choice;
 import static mule.MuleModel.Flow;
@@ -137,7 +137,7 @@ public class Mule2BalConverter {
     }
 
     private static BallerinaModel genBalModelForHttpSourcedFlow(Data data, HttpListener httpListener, Flow flow) {
-        String resourcePath = normalizedResourcePath(httpListener.resourcePath());
+        String resourcePath = getBallerinaResourcePath(httpListener.resourcePath());
         String[] resourceMethodNames = httpListener.allowedMethods();
         List<String> listenerRefs = Collections.singletonList(httpListener.configRef());
         String muleBasePath = data.globalListenerConfigsMap.get(httpListener.configRef()).basePath();

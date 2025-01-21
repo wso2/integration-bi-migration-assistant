@@ -1,4 +1,5 @@
 import ballerina/http;
+import ballerina/log;
 
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
@@ -9,7 +10,7 @@ service /foo on config {
 
     private function _invokeEndPoint0() returns http:Response|error {
         http:Response _response_ = new;
-        _response_.setPayload(Hello World!);
+        log:printInfo("xxx: logger invoked");
         return _response_;
     }
 }
