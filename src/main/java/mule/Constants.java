@@ -3,6 +3,7 @@ package mule;
 public class Constants {
     // Components
     public static final String LOGGER = "logger";
+    public static final String TRANSFORM_MESSAGE = "dw:transform-message";
 
     // Flow Control
     public static final String CHOICE = "choice";
@@ -39,4 +40,7 @@ public class Constants {
             "stream<http:SseEvent, error?>|stream<http:SseEvent, error>|error";
     public static final String HTTP_RESOURCE_RETURN_TYPE_DEFAULT = "http:Response|error";
     public static final String HTTP_ENDPOINT_METHOD_NAME_TEMPLATE = "_invokeEndPoint%s_";
+
+    //DataWeave
+    public static final String INPUT_PAYLOAD = "input-payload";
 }

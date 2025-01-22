@@ -18,6 +18,12 @@ public record MuleModel() {
         }
     }
 
+    public record TransformMessage(Kind kind, String mimeType, String script) implements MuleRecord {
+        public TransformMessage(String mimeType, String script) {
+            this(Kind.TRANSFORM_MESSAGE, mimeType, script);
+        }
+    }
+
     public enum LogLevel {
         DEBUG,
         ERROR,
@@ -98,7 +104,7 @@ public record MuleModel() {
         WHEN_IN_CHOICE,
         LISTENER_CONFIG,
         SET_VARIABLE,
-        FLOW,
-        SUB_FLOW
+        TRANSFORM_MESSAGE,
+        FLOW
     }
 }

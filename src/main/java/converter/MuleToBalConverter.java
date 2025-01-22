@@ -2,8 +2,11 @@ package converter;
 
 import ballerina.BallerinaModel;
 import ballerina.CodeGenerator;
+import dataweave.DWReader;
+import dataweave.converter.DWConstants;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.Constants;
+import mule.MuleModel;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -48,7 +51,6 @@ import static converter.ConversionUtils.insertLeadingSlash;
 import static converter.ConversionUtils.processQueryParams;
 import static mule.MuleModel.Choice;
 import static mule.MuleModel.Flow;
-import static mule.MuleModel.FlowReference;
 import static mule.MuleModel.HttpListener;
 import static mule.MuleModel.HttpRequest;
 import static mule.MuleModel.Kind;
@@ -58,12 +60,11 @@ import static mule.MuleModel.Logger;
 import static mule.MuleModel.MuleRecord;
 import static mule.MuleModel.Payload;
 import static mule.MuleModel.SetVariable;
-import static mule.MuleModel.SubFlow;
 import static mule.MuleModel.WhenInChoice;
 
 public class MuleToBalConverter {
 
-    static class Data {
+    public static class Data {
         HashMap<String, ListenerConfig> globalListenerConfigsMap = new HashMap<>();
         HashSet<Import> imports = new HashSet<>();
         HashSet<String> queryParams = new HashSet<>();
@@ -136,7 +137,6 @@ public class MuleToBalConverter {
         // TODO: Support multiple flows
         Flow flow = flows.getFirst();
 
-        MuleRecord source = flow.source();
         if (source.kind() != Kind.HTTP_LISTENER) {
             // Only http listener source is supported at the moment
             throw new UnsupportedOperationException();
@@ -271,9 +271,14 @@ public class MuleToBalConverter {
             case Constants.FLOW_REFERENCE -> {
                 return readFlowReference(data, element);
             }
+            case Constants.TRANSFORM_MESSAGE -> {
+                return readTransformMessage(data, element);
+            }
             default -> throw new UnsupportedOperationException();
         }
     }
+
+
 
     private static List<Statement> convertToStatements(Data data, MuleRecord muleRec) {
         List<Statement> statementList = new ArrayList<>();
@@ -340,6 +345,13 @@ public class MuleToBalConverter {
                 // TODO: assumed source is always a http listener
                 statementList.add(new BallerinaStatement(String.format("%s(%s);", flowReference.flowName(),
                         Constants.VAR_RESPONSE)));
+            }
+            case MuleModel.TransformMessage transformMessage -> {
+                String mimeType = transformMessage.mimeType();
+                String script = transformMessage.script();
+                DWReader.processDWScript(script, mimeType, data, statementList);
+                statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);",
+                        Constants.VAR_RESPONSE, DWConstants.DATAWEAVE_OUTPUT_VARIABLE_NAME)));
             }
             case null, default -> throw new IllegalStateException();
         }
@@ -453,6 +465,14 @@ public class MuleToBalConverter {
             Node child = children.item(i);
             if (child.getNodeType() != Node.ELEMENT_NODE) {
                 continue;
+            switch (element.getTagName()) {
+                case Constants.HTTP_LISTENER, Constants.LOGGER,
+                        Constants.SET_VARIABLE, Constants.HTTP_REQUEST,
+                     Constants.SET_PAYLOAD, Constants.CHOICE, Constants.TRANSFORM_MESSAGE -> {
+                    MuleRecord muleRec = readComponent(data, element);
+                    flow.add(muleRec);
+                }
+                default -> throw new UnsupportedOperationException();
             }
 
             Element element = (Element) child;
@@ -507,5 +527,23 @@ public class MuleToBalConverter {
     private static FlowReference readFlowReference(Data data, Element element) {
         String flowName = element.getAttribute("name");
         return new FlowReference(flowName);
+    }
+
+    private static MuleModel.TransformMessage readTransformMessage(Data data, Element element) {
+        Element firstElement = (Element) element.getChildNodes().item(1);
+        String mimeType = null;
+        CDATASection cdataSection;
+        switch (firstElement.getLocalName()) {
+            case Constants.SET_PAYLOAD -> {
+                cdataSection = (CDATASection) firstElement.getChildNodes().item(0);
+            }
+            case Constants.INPUT_PAYLOAD -> {
+                Element secondElement = (Element) element.getChildNodes().item(3);
+                cdataSection = (CDATASection) secondElement.getChildNodes().item(0);
+                mimeType = firstElement.getAttribute("mimeType");
+            }
+            default -> throw new UnsupportedOperationException();
+        }
+        return new MuleModel.TransformMessage(mimeType, cdataSection.getData());
     }
 }
