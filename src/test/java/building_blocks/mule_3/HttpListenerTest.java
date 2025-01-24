@@ -34,4 +34,14 @@ public class HttpListenerTest extends AbstractBuildingBlockTest {
     public void testResourcePathParams() {
         testMule3ToBal("http-listener/sample_6.xml", "http-listener/sample_6.bal");
     }
+
+    @Test
+    public void testAllowedResourceMethods() {
+        // test GET
+        testMule3ToBal("http-listener/sample_7.xml", "http-listener/sample_7.bal");
+        // test GET, POST, DELETE
+        testMule3ToBal("http-listener/sample_8.xml", "http-listener/sample_8.bal");
+        // test default
+        testMule3ToBal("http-listener/sample_9.xml", "http-listener/sample_9.bal");
+    }
 }

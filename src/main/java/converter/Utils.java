@@ -69,9 +69,8 @@ public class Utils {
 
     static String[] getAllowedMethods(String allowedMethods) {
         if (allowedMethods.isEmpty()) {
-            // Leaving empty will allow all
-            // TODO: check and support other methods
-            return new String[]{"GET", "POST", "PUT", "DELETE"};
+            // Leaving empty will allow all methods
+            return new String[]{"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE", "CONNECT"};
         }
         return allowedMethods.split(",\\s*");
     }
