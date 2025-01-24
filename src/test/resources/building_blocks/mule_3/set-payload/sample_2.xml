@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- This is a simple test case to demonstrate the usage of HTTP Listener and Logger components in Mule -->
-
 <mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
       xmlns:spring="http://www.springframework.org/schema/beans"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -9,9 +7,11 @@
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
-    <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" />
+    <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule3"/>
     <flow name="demoFlow">
         <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
-        <logger message="xxx: logger invoked" level="INFO" doc:name="Logger"/>
+        <set-payload value="First payload" doc:name="Set Payload"/>
+        <set-payload value="Second payload" doc:name="Set Payload"/>
+        <set-payload value="Third payload" doc:name="Set Payload"/>
     </flow>
 </mule>

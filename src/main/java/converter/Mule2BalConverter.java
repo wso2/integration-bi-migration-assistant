@@ -40,6 +40,7 @@ import static ballerina.BallerinaModel.Service;
 import static ballerina.BallerinaModel.Statement;
 import static converter.Utils.genQueryParam;
 import static converter.Utils.getAllowedMethods;
+import static converter.Utils.getBallerinaAbsolutePath;
 import static converter.Utils.insertLeadingSlash;
 import static converter.Utils.convertToBallerinaExpression;
 import static converter.Utils.getBallerinaResourcePath;
@@ -141,7 +142,7 @@ public class Mule2BalConverter {
         String[] resourceMethodNames = httpListener.allowedMethods();
         List<String> listenerRefs = Collections.singletonList(httpListener.configRef());
         String muleBasePath = data.globalListenerConfigsMap.get(httpListener.configRef()).basePath();
-        String basePath = muleBasePath.isEmpty() ? "/" : muleBasePath;
+        String basePath = getBallerinaAbsolutePath(muleBasePath);
 
         // Add imports
         List<Import> imports = new ArrayList<>();
@@ -424,9 +425,8 @@ public class Mule2BalConverter {
     private static ListenerConfig readHttpListenerConfig(Data data, Element element) {
         data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP));
         String listenerName = element.getAttribute("name");
-        Element listenerConnection = (Element) element.getElementsByTagName(Constants.HTTP_LISTENER_CONNECTION).item(0);
-        String host = listenerConnection.getAttribute("host");
-        String port = listenerConnection.getAttribute("port");
+        String host = element.getAttribute("host");
+        String port = element.getAttribute("port");
         String basePath = insertLeadingSlash(element.getAttribute("basePath"));
         HashMap<String, String> config = new HashMap<>(Collections.singletonMap("host", host));
         return new ListenerConfig(listenerName, basePath, port, config);

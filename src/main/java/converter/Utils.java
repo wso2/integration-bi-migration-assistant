@@ -12,7 +12,7 @@ public class Utils {
             Pattern.compile("([$&+,:;=\\?@#\\\\|/'\\ \\[\\}\\]<\\>.\"^*{}~`()%!-])");
 
     /**
-     * Converts a Mule path to a Ballerina resource path.
+     * Converts mule path to a Ballerina resource path.
      *
      * @param path mule path
      * @return ballerina resource path
@@ -36,6 +36,25 @@ public class Utils {
             resourcePath = String.join("/", list);
         }
         return resourcePath;
+    }
+
+    /**
+     * Converts mule base path to a Ballerina absolute path.
+     *
+     * @param basePath mule base path
+     * @return ballerina absolute path
+     */
+    static String getBallerinaAbsolutePath(String basePath) {
+        List<String> list = Arrays.stream(basePath.split("/")).filter(s -> !s.isEmpty())
+                .map(Utils::escapeSpecialCharacters).toList();
+
+        String absolutePath;
+        if (list.isEmpty()) {
+            absolutePath = "/";
+        } else {
+            absolutePath = "/" + String.join("/", list);
+        }
+        return absolutePath;
     }
 
     /**

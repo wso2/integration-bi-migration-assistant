@@ -11,14 +11,24 @@ import static converter.Mule2BalConverter.convertToBallerina;
 
 public class AbstractBuildingBlockTest {
 
-    public static void testMuleToBal(String sourcePath, String targetPath) {
-        SyntaxTree syntaxTree =
-                convertToBallerina(RESOURCE_DIRECTORY.resolve("building_blocks").resolve(sourcePath).toString());
-        String expectedBalCode = getSourceText(Path.of("building_blocks", targetPath));
-        Assert.assertEquals(syntaxTree.toSourceCode(), expectedBalCode);
+    private static final Path RESOURCE_DIRECTORY = Path.of("src/test/resources/");
+    private static final String BUILDING_BLOCKS_DIRECTORY = "building_blocks";
+    private static final String MULE_3_DIRECTORY = "mule_3";
+
+    public static void testMule3ToBal(String sourcePath, String targetPath) {
+        testMuleToBal("mule_3", sourcePath, targetPath);
     }
 
-    private static final Path RESOURCE_DIRECTORY = Path.of("src/test/resources/");
+    public static void testMule4ToBal(String sourcePath, String targetPath) {
+        testMuleToBal("mule_4", sourcePath, targetPath);
+    }
+
+    private static void testMuleToBal(String muleVersionDir, String sourcePath, String targetPath) {
+        SyntaxTree syntaxTree =
+                convertToBallerina(RESOURCE_DIRECTORY.resolve(BUILDING_BLOCKS_DIRECTORY).resolve(muleVersionDir).resolve(sourcePath).toString());
+        String expectedBalCode = getSourceText(Path.of(BUILDING_BLOCKS_DIRECTORY, MULE_3_DIRECTORY, targetPath));
+        Assert.assertEquals(syntaxTree.toSourceCode(), expectedBalCode);
+    }
 
     /**
      * Returns Ballerina source code in the given file as a {@code String}.
