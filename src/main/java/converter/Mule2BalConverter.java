@@ -11,9 +11,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,6 +20,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import static ballerina.BallerinaModel.BallerinaExpression;
 import static ballerina.BallerinaModel.BallerinaStatement;
@@ -38,12 +39,12 @@ import static ballerina.BallerinaModel.Parameter;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
 import static ballerina.BallerinaModel.Statement;
+import static converter.Utils.convertToBallerinaExpression;
 import static converter.Utils.genQueryParam;
 import static converter.Utils.getAllowedMethods;
 import static converter.Utils.getBallerinaAbsolutePath;
-import static converter.Utils.insertLeadingSlash;
-import static converter.Utils.convertToBallerinaExpression;
 import static converter.Utils.getBallerinaResourcePath;
+import static converter.Utils.insertLeadingSlash;
 import static converter.Utils.processQueryParams;
 import static mule.MuleModel.Choice;
 import static mule.MuleModel.Flow;
@@ -273,8 +274,8 @@ public class Mule2BalConverter {
                         List<Statement> statements = convertToStatements(data, r2);
                         elseIfBody.addAll(statements);
                     }
-                    ElseIfClause elseIfClause = new ElseIfClause(
-                            new BallerinaExpression(convertToBallerinaExpression(data, when.condition(), false)), elseIfBody);
+                    ElseIfClause elseIfClause = new ElseIfClause(new BallerinaExpression(
+                            convertToBallerinaExpression(data, when.condition(), false)), elseIfBody);
                     elseIfClauses.add(elseIfClause);
                 }
 
@@ -285,7 +286,8 @@ public class Mule2BalConverter {
                 }
                 // TODO: fix properly e.g. vars.bar == "10"
 //            String condition = getVariable(data, choice.condition);
-                statementList.add(new IfElseStatement(new BallerinaExpression(ifCondition), ifBody, elseIfClauses, elseBody));
+                statementList.add(new IfElseStatement(new BallerinaExpression(ifCondition), ifBody, elseIfClauses,
+                        elseBody));
             }
             case SetVariable setVariable -> {
                 String varValue = convertToBallerinaExpression(data, setVariable.value(), true);
@@ -355,7 +357,8 @@ public class Mule2BalConverter {
         for (int i = 0; i < when.getLength(); i++) {
             Node whenNode = when.item(i);
             NodeList whenProcesses = whenNode.getChildNodes();
-            String condition = convertToBallerinaExpression(data, ((Element) whenNode).getAttribute("expression"), false);
+            String condition = convertToBallerinaExpression(data, ((Element) whenNode).getAttribute("expression"),
+                    false);
             List<MuleRecord> whenProcess = new ArrayList<>();
             for (int j = 0; j < whenProcesses.getLength(); j++) {
                 Node child = whenProcesses.item(j);
@@ -370,16 +373,16 @@ public class Mule2BalConverter {
         }
 
         NodeList otherwiseProcesses = element.getElementsByTagName("otherwise").item(0).getChildNodes();
-        List<MuleRecord> OtherwiseProcess = new ArrayList<>();
+        List<MuleRecord> otherwiseProcess = new ArrayList<>();
         for (int i = 0; i < otherwiseProcesses.getLength(); i++) {
             Node child = otherwiseProcesses.item(i);
             if (child.getNodeType() != Node.ELEMENT_NODE) {
                 continue;
             }
             MuleRecord r = readComponent(data, (Element) child);
-            OtherwiseProcess.add(r);
+            otherwiseProcess.add(r);
         }
-        return new Choice(whens, OtherwiseProcess);
+        return new Choice(whens, otherwiseProcess);
     }
 
     // Scopes

@@ -127,12 +127,6 @@ public class CodeGenerator {
         return syntaxTree;
     }
 
-    private void printSyntaxTree(SyntaxTree syntaxTree) {
-        System.out.println("============================================");
-        System.out.println(syntaxTree.toSourceCode());
-        System.out.println("============================================");
-    }
-
     private String constructCommaSeparatedString(List<String> strings) {
         StringBuilder stringBuilder = new StringBuilder();
         Iterator<String> iterator = strings.iterator();

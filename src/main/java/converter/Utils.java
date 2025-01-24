@@ -98,17 +98,18 @@ public class Utils {
     }
 
     static String genQueryParam(Map<String, String> queryParams) {
-        return queryParams.entrySet().stream()
-                .map(e -> String.format("%s = \"%s\"", e.getKey(), e.getValue())).reduce((a, b) -> a + ", " + b).orElse("");
+        return queryParams.entrySet().stream().map(e -> String.format("%s = \"%s\"", e.getKey(), e.getValue()))
+                .reduce((a, b) -> a + ", " + b).orElse("");
     }
 
-    static String convertToBallerinaExpression(Mule2BalConverter.Data data, String muleExpr, boolean encloseInDoubleQuotes) {
+    static String convertToBallerinaExpression(Mule2BalConverter.Data data, String muleExpr,
+                                               boolean encloseInDoubleQuotes) {
         if (muleExpr.startsWith("#[") && muleExpr.endsWith("]")) {
             // We reach here for mule expression syntax
             var innerExpr = muleExpr.substring(2, muleExpr.length() - 1);
             return getVariable(data, innerExpr);
         }
-        return encloseInDoubleQuotes? "\"" + muleExpr + "\"" : muleExpr;
+        return encloseInDoubleQuotes ? "\"" + muleExpr + "\"" : muleExpr;
     }
 
     private static String getVariable(Mule2BalConverter.Data data, String value) {

@@ -5,7 +5,8 @@ import java.util.Map;
 
 public record MuleModel() {
 
-    public record HttpListener(Kind kind, String configRef, String resourcePath, String[] allowedMethods) implements MuleRecord {
+    public record HttpListener(Kind kind, String configRef, String resourcePath, String[] allowedMethods)
+            implements MuleRecord {
         public HttpListener(String configRef, String resourcePath, String[] allowedMethods) {
             this(Kind.HTTP_LISTENER, configRef, resourcePath, allowedMethods);
         }
@@ -31,7 +32,8 @@ public record MuleModel() {
         }
     }
 
-    public record HttpRequest(Kind kind, String method, String url, String path, Map<String, String> queryParams) implements MuleRecord {
+    public record HttpRequest(Kind kind, String method, String url, String path, Map<String, String> queryParams)
+            implements MuleRecord {
         public HttpRequest(String method, String url, String path, Map<String, String> queryParams) {
             this(Kind.HTTP_REQUEST, method, url, path, queryParams);
         }
