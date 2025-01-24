@@ -1,9 +1,9 @@
-package building_blocks.mule_3;
+package blocks.mule3;
 
-import building_blocks.AbstractBuildingBlockTest;
+import blocks.AbstractBlockTest;
 import org.testng.annotations.Test;
 
-public class SetPayloadTest extends AbstractBuildingBlockTest {
+public class SetPayloadTest extends AbstractBlockTest {
 
     @Test
     public void testBasicSetPayload() {

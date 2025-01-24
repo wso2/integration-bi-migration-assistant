@@ -2,7 +2,7 @@
 <suite name="Suite" time-out="120000">
     <test name="LoggerTest">
         <packages>
-            <package name="building_blocks.*"/>
+            <package name="blocks.*"/>
         </packages>
         <classes>
             <class name="TestConverter"/>

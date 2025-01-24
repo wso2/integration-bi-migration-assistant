@@ -1,4 +1,4 @@
-package building_blocks;
+package blocks;
 
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.testng.Assert;
@@ -9,24 +9,20 @@ import java.nio.file.Path;
 
 import static converter.Mule2BalConverter.convertToBallerina;
 
-public class AbstractBuildingBlockTest {
+public class AbstractBlockTest {
 
     private static final Path RESOURCE_DIRECTORY = Path.of("src/test/resources/");
-    private static final String BUILDING_BLOCKS_DIRECTORY = "building_blocks";
-    private static final String MULE_3_DIRECTORY = "mule_3";
+    private static final String BLOCKS_DIRECTORY = "blocks";
+    private static final String MULE_3_DIRECTORY = "mule3";
 
     public static void testMule3ToBal(String sourcePath, String targetPath) {
-        testMuleToBal("mule_3", sourcePath, targetPath);
-    }
-
-    public static void testMule4ToBal(String sourcePath, String targetPath) {
-        testMuleToBal("mule_4", sourcePath, targetPath);
+        testMuleToBal(MULE_3_DIRECTORY, sourcePath, targetPath);
     }
 
     private static void testMuleToBal(String muleVersionDir, String sourcePath, String targetPath) {
-        SyntaxTree syntaxTree =
-                convertToBallerina(RESOURCE_DIRECTORY.resolve(BUILDING_BLOCKS_DIRECTORY).resolve(muleVersionDir).resolve(sourcePath).toString());
-        String expectedBalCode = getSourceText(Path.of(BUILDING_BLOCKS_DIRECTORY, MULE_3_DIRECTORY, targetPath));
+        SyntaxTree syntaxTree = convertToBallerina(RESOURCE_DIRECTORY.resolve(BLOCKS_DIRECTORY).resolve(muleVersionDir)
+                        .resolve(sourcePath).toString());
+        String expectedBalCode = getSourceText(Path.of(BLOCKS_DIRECTORY, MULE_3_DIRECTORY, targetPath));
         Assert.assertEquals(syntaxTree.toSourceCode(), expectedBalCode);
     }
 
