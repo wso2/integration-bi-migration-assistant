@@ -38,5 +38,5 @@ public class Constants {
     public static final String HTTP_RESOURCE_RETURN_TYPE_UPPER = "anydata|http:Response|http:StatusCodeResponse|" +
             "stream<http:SseEvent, error?>|stream<http:SseEvent, error>|error";
     public static final String HTTP_RESOURCE_RETURN_TYPE_DEFAULT = "http:Response|error";
-    public static final String HTTP_ENDPOINT_METHOD_NAME = "_invokeEndPoint";
+    public static final String HTTP_ENDPOINT_METHOD_NAME_TEMPLATE = "_invokeEndPoint%s_";
 }

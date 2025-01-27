@@ -194,7 +194,8 @@ public class Mule2BalConverter {
         int invokeEndPointCount = 0; // TODO: support different body resources
         String functionArgs = String.join(",", queryPrams.stream()
                 .map(p -> String.format("%s", p.name())).toList());
-        String invokeEndPointMethodName = Constants.HTTP_ENDPOINT_METHOD_NAME + invokeEndPointCount++;
+        String invokeEndPointMethodName = String.format(Constants.HTTP_ENDPOINT_METHOD_NAME_TEMPLATE,
+                invokeEndPointCount++);
         var resourceReturnStmt = new BallerinaStatement(String.format("return self.%s(%s);",
                 invokeEndPointMethodName, functionArgs));
 
