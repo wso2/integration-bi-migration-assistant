@@ -11,7 +11,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record Module(String moduleName, List<Import> imports, List<Variable> variables, List<Listener> listeners,
-                         List<Service> services) {
+                         List<Service> services, List<Function> functions) {
     }
 
     public record Import(String org, String module) {
@@ -32,11 +32,12 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         HTTP
     }
 
-    public record Resource(String resourceMethodName, String path, List<Parameter> parameters, String returnType,
-                           List<Statement> body) {
+    public record Resource(String resourceMethodName, String path, List<Parameter> parameters,
+                           Optional<String> returnType, List<Statement> body) {
     }
 
-    public record Function(String visibilityQualifier, String methodName, List<Parameter> parameters, String returnType,
+    public record Function(Optional<String> visibilityQualifier, String methodName, List<Parameter> parameters,
+                           Optional<String> returnType,
                            List<Statement> body) {
     }
 

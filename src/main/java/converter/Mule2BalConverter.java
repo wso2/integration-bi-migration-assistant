@@ -48,6 +48,7 @@ import static converter.Utils.insertLeadingSlash;
 import static converter.Utils.processQueryParams;
 import static mule.MuleModel.Choice;
 import static mule.MuleModel.Flow;
+import static mule.MuleModel.FlowReference;
 import static mule.MuleModel.HttpListener;
 import static mule.MuleModel.HttpRequest;
 import static mule.MuleModel.Kind;
@@ -57,6 +58,7 @@ import static mule.MuleModel.Logger;
 import static mule.MuleModel.MuleRecord;
 import static mule.MuleModel.Payload;
 import static mule.MuleModel.SetVariable;
+import static mule.MuleModel.SubFlow;
 import static mule.MuleModel.WhenInChoice;
 
 public class Mule2BalConverter {
@@ -75,6 +77,9 @@ public class Mule2BalConverter {
             throw new RuntimeException("Error while parsing the mule XML configuration file", e);
         }
 
+        List<Flow> flows = new ArrayList<>();
+        List<SubFlow> subFlows = new ArrayList<>();
+
         Data data = new Data();
         NodeList childNodes = root.getChildNodes();
         for (int i = 0; i < childNodes.getLength(); i++) {
@@ -92,13 +97,15 @@ public class Mule2BalConverter {
 
             if (Constants.FLOW.equals(elementTagName)) {
                 Flow flow = readFlow(data, element);
-                BallerinaModel ballerinaModel = generateBallerinaModel(data, flow);
-                return new CodeGenerator(ballerinaModel).generateBalCode();
-            } else {
-                throw new UnsupportedOperationException();
+                flows.add(flow);
+            } else if (Constants.SUB_FLOW.equals(elementTagName)) {
+                SubFlow subFlow = readSubFlow(data, element);
+                subFlows.add(subFlow);
             }
         }
-        throw new IllegalStateException();
+
+        BallerinaModel ballerinaModel = generateBallerinaModel(data, flows, subFlows);
+        return new CodeGenerator(ballerinaModel).generateBalCode();
     }
 
     private static Element parseMuleXMLConfigurationFile(String uri) throws ParserConfigurationException, SAXException,
@@ -125,25 +132,21 @@ public class Mule2BalConverter {
         }
     }
 
-    private static BallerinaModel generateBallerinaModel(Data data, Flow flow) {
-        List<MuleRecord> flowElements = flow.flowElements();
-        // Starting point has to be a source
-        MuleRecord source = flowElements.getFirst();
+    private static BallerinaModel generateBallerinaModel(Data data, List<Flow> flows, List<SubFlow> subFlows) {
+        // TODO: Support multiple flows
+        Flow flow = flows.getFirst();
 
+        MuleRecord source = flow.source();
         if (source.kind() != Kind.HTTP_LISTENER) {
             // Only http listener source is supported at the moment
             throw new UnsupportedOperationException();
         }
 
-        return genBalModelForHttpSourcedFlow(data, (HttpListener) source, flow);
-    }
+        // Create a service from the flow
+        Service service = genBalService(data, (HttpListener) source, flow.flowBlocks());
 
-    private static BallerinaModel genBalModelForHttpSourcedFlow(Data data, HttpListener httpListener, Flow flow) {
-        String resourcePath = getBallerinaResourcePath(httpListener.resourcePath());
-        String[] resourceMethodNames = httpListener.allowedMethods();
-        List<String> listenerRefs = Collections.singletonList(httpListener.configRef());
-        String muleBasePath = data.globalListenerConfigsMap.get(httpListener.configRef()).basePath();
-        String basePath = getBallerinaAbsolutePath(muleBasePath);
+        // Create functions for sub-flows
+        List<Function> functions = genBalFunctions(data, subFlows);
 
         // Add imports
         List<Import> imports = new ArrayList<>();
@@ -157,6 +160,29 @@ public class Mule2BalConverter {
             listeners.add(new Listener(ListenerType.HTTP, listenerConfig.name(), listenerConfig.port(),
                     listenerConfig.config()));
         }
+
+        return createBallerinaModel(imports, listeners, Collections.singletonList(service), functions);
+    }
+
+    private static List<Function> genBalFunctions(Data data, List<SubFlow> subFlows) {
+        List<Function> functions = new ArrayList<>(subFlows.size());
+        for (SubFlow subFlow : subFlows) {
+            List<Statement> body = genFuncBodyStatements(data, subFlow.flowBlocks());
+            // TODO: assumed source is always a http listener
+            List<Parameter> parameterList = List.of(new Parameter(Constants.VAR_RESPONSE, "http:Response",
+                    Optional.empty()));
+            Function function = new Function(Optional.empty(), subFlow.name(), parameterList, Optional.empty(), body);
+            functions.add(function);
+        }
+        return functions;
+    }
+
+    private static Service genBalService(Data data, HttpListener httpListener, List<MuleRecord> flowBlocks) {
+        String resourcePath = getBallerinaResourcePath(httpListener.resourcePath());
+        String[] resourceMethodNames = httpListener.allowedMethods();
+        List<String> listenerRefs = Collections.singletonList(httpListener.configRef());
+        String muleBasePath = data.globalListenerConfigsMap.get(httpListener.configRef()).basePath();
+        String basePath = getBallerinaAbsolutePath(muleBasePath);
 
         // Add services
         List<Parameter> queryPrams = new ArrayList<>();
@@ -178,21 +204,34 @@ public class Mule2BalConverter {
         for (String resourceMethodName : resourceMethodNames) {
             resourceMethodName = resourceMethodName.toLowerCase();
             Resource resource = new Resource(resourceMethodName,
-                    resourcePath, queryPrams, returnType, Collections.singletonList(resourceReturnStmt));
+                    resourcePath, queryPrams, Optional.of(returnType), Collections.singletonList(resourceReturnStmt));
             resources.add(resource);
         }
 
-        // Add method body statements
-        List<Statement> body = new ArrayList<>();
+        List<Statement> body = genFuncBodyStatements(data, flowBlocks);
         // Add default response
-        body.add(new BallerinaStatement(String.format("http:Response %s = new;", Constants.VAR_RESPONSE)));
+        body.addFirst(new BallerinaStatement(String.format("http:Response %s = new;", Constants.VAR_RESPONSE)));
 
-        // Read flow elements
-        List<MuleRecord> flowElements = flow.flowElements();
-        for (int i = 1; i < flowElements.size(); i++) {
-            MuleRecord record = flowElements.get(i);
+        // Add return statement
+        body.add(new BallerinaStatement(String.format("return %s;", Constants.VAR_RESPONSE)));
+
+        // Add service functions
+        List<Function> functions = new ArrayList<>();
+        functions.add(new Function(Optional.of("private"), invokeEndPointMethodName, queryPrams,
+                Optional.of(returnType), body));
+
+        return new Service(basePath, listenerRefs, resources, functions, Collections.emptyList(),
+                Collections.emptyList());
+    }
+
+    private static List<Statement> genFuncBodyStatements(Data data, List<MuleRecord> flowBlocks) {
+        // Add function body statements
+        List<Statement> body = new ArrayList<>();
+
+        // Read flow blocks
+        for (MuleRecord record : flowBlocks) {
             switch (record.kind()) {
-                case LOGGER, PAYLOAD, CHOICE, SET_VARIABLE, HTTP_REQUEST -> {
+                case LOGGER, PAYLOAD, CHOICE, SET_VARIABLE, HTTP_REQUEST, FLOW_REFERENCE -> {
                     List<Statement> s = convertToStatements(data, record);
                     body.addAll(s);
                 }
@@ -200,34 +239,19 @@ public class Mule2BalConverter {
                 default -> throw new UnsupportedOperationException();
             }
         }
-
-        // Add return statement
-        body.add(new BallerinaStatement(String.format("return %s;", Constants.VAR_RESPONSE)));
-
-        // Add service functions
-        List<Function> functions = new ArrayList<>();
-        functions.add(new Function("private", invokeEndPointMethodName, queryPrams, returnType, body));
-
-        Service service = new Service(basePath, listenerRefs, resources, functions, Collections.emptyList(),
-                Collections.emptyList());
-        return createBallerinaModel(imports, listeners, Collections.singletonList(service));
+        return body;
     }
 
     private static BallerinaModel createBallerinaModel(List<Import> imports, List<Listener> listeners,
-                                                       List<Service> services) {
+                                                       List<Service> services, List<Function> functions) {
         String moduleName = "muleDemo";
-        Module module = new Module(moduleName, imports, Collections.emptyList(), listeners, services);
+        Module module = new Module(moduleName, imports, Collections.emptyList(), listeners, services, functions);
         return new BallerinaModel(new DefaultPackage(moduleName, moduleName, "1.0.0"),
                 Collections.singletonList(module));
     }
 
-    private static MuleRecord readComponent(Data data, Element element) {
+    private static MuleRecord readBlock(Data data, Element element) {
         switch (element.getTagName()) {
-            // Source
-            case Constants.HTTP_LISTENER -> {
-                return readHttpListener(data, element);
-            }
-            // Processes
             case Constants.LOGGER -> {
                 return readLogger(data, element);
             }
@@ -242,6 +266,9 @@ public class Mule2BalConverter {
             }
             case Constants.CHOICE -> {
                 return readChoice(data, element);
+            }
+            case Constants.FLOW_REFERENCE -> {
+                return readFlowReference(data, element);
             }
             default -> throw new UnsupportedOperationException();
         }
@@ -308,6 +335,11 @@ public class Mule2BalConverter {
                         genQueryParam(queryParams))));
                 statementList.addAll(statements);
             }
+            case FlowReference flowReference -> {
+                // TODO: assumed source is always a http listener
+                statementList.add(new BallerinaStatement(String.format("%s(%s);", flowReference.flowName(),
+                        Constants.VAR_RESPONSE)));
+            }
             case null, default -> throw new IllegalStateException();
         }
 
@@ -365,7 +397,7 @@ public class Mule2BalConverter {
                 if (child.getNodeType() != Node.ELEMENT_NODE) {
                     continue;
                 }
-                MuleRecord r = readComponent(data, (Element) child);
+                MuleRecord r = readBlock(data, (Element) child);
                 whenProcess.add(r);
             }
             WhenInChoice whenInChoice = new WhenInChoice(condition, whenProcess);
@@ -379,7 +411,7 @@ public class Mule2BalConverter {
             if (child.getNodeType() != Node.ELEMENT_NODE) {
                 continue;
             }
-            MuleRecord r = readComponent(data, (Element) child);
+            MuleRecord r = readBlock(data, (Element) child);
             otherwiseProcess.add(r);
         }
         return new Choice(whens, otherwiseProcess);
@@ -390,7 +422,8 @@ public class Mule2BalConverter {
         String flowName = flowElement.getAttribute("name");
         NodeList children = flowElement.getChildNodes();
 
-        List<MuleRecord> flow = new ArrayList<>();
+        MuleRecord source = null;
+        List<MuleRecord> flowBlocks = new ArrayList<>();
         for (int i = 0; i < children.getLength(); i++) {
             Node child = children.item(i);
             if (child.getNodeType() != Node.ELEMENT_NODE) {
@@ -398,18 +431,35 @@ public class Mule2BalConverter {
             }
 
             Element element = (Element) child;
-            switch (element.getTagName()) {
-                case Constants.HTTP_LISTENER, Constants.LOGGER,
-                        Constants.SET_VARIABLE, Constants.HTTP_REQUEST,
-                        Constants.SET_PAYLOAD, Constants.CHOICE -> {
-                    MuleRecord muleRec = readComponent(data, element);
-                    flow.add(muleRec);
-                }
-                default -> throw new UnsupportedOperationException();
+            if (element.getTagName().equals(Constants.HTTP_LISTENER)) {
+                source = readHttpListener(data, element);
+            } else {
+                MuleRecord muleRec = readBlock(data, element);
+                flowBlocks.add(muleRec);
             }
         }
 
-        return new Flow(flowName, flow);
+        assert source != null : "A flow should have a source";
+        return new Flow(flowName, source, flowBlocks);
+    }
+
+    private static SubFlow readSubFlow(Data data, Element flowElement) {
+        String flowName = flowElement.getAttribute("name");
+        NodeList children = flowElement.getChildNodes();
+
+        List<MuleRecord> flowBlocks = new ArrayList<>();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+
+            Element element = (Element) child;
+            MuleRecord muleRec = readBlock(data, element);
+            flowBlocks.add(muleRec);
+        }
+
+        return new SubFlow(flowName, flowBlocks);
     }
 
     // Transformers
@@ -451,5 +501,10 @@ public class Mule2BalConverter {
         CDATASection cdataSection = (CDATASection) queryParamsElement.getChildNodes().item(0);
         Map<String, String> queryParams = processQueryParams(cdataSection.getData().trim());
         return new HttpRequest(method, url, path, queryParams);
+    }
+
+    private static FlowReference readFlowReference(Data data, Element element) {
+        String flowName = element.getAttribute("name");
+        return new FlowReference(flowName);
     }
 }

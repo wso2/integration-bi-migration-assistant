@@ -19,6 +19,7 @@ import org.ballerinalang.formatter.core.FormatterException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 import static ballerina.BallerinaModel.BallerinaStatement;
 import static ballerina.BallerinaModel.ElseIfClause;
@@ -66,9 +67,9 @@ public class CodeGenerator {
                 for (Resource resource : service.resources()) {
                     String funcParamStr = constructFunctionParameterString(resource.parameters(), false);
                     FunctionDefinitionNode resourceMethod = (FunctionDefinitionNode) NodeParser.parseObjectMember(
-                            String.format("resource function %s %s(%s) returns %s {}",
+                            String.format("resource function %s %s(%s) %s {}",
                                     resource.resourceMethodName(), resource.path(), funcParamStr,
-                                    resource.returnType()));
+                                    getReturnTypeDescriptor(resource.returnType())));
 
                     FunctionBodyBlockNode funcBodyBlock = constructFunctionBodyBlock(resource.body());
                     resourceMethod = resourceMethod.modify().withFunctionBody(funcBodyBlock).apply();
@@ -78,9 +79,9 @@ public class CodeGenerator {
                 for (Function function : service.functions()) {
                     String funcParamString = constructFunctionParameterString(function.parameters(), false);
                     FunctionDefinitionNode funcDefn = (FunctionDefinitionNode) NodeParser.parseObjectMember(
-                            String.format("%s function %s(%s) returns %s {}",
-                                    function.visibilityQualifier(), function.methodName(), funcParamString,
-                                    function.returnType()));
+                            String.format("%sfunction %s(%s) %s {}",
+                                    getVisibilityQualifier(function.visibilityQualifier()), function.methodName(),
+                                    funcParamString, getReturnTypeDescriptor(function.returnType())));
 
                     FunctionBodyBlockNode funcBodyBlock = constructFunctionBodyBlock(function.body());
                     funcDefn = funcDefn.modify().withFunctionBody(funcBodyBlock).apply();
@@ -92,6 +93,16 @@ public class CodeGenerator {
                 moduleMembers.add(serviceDecl);
             }
 
+            for (Function f : module.functions()) {
+                String funcParamString = constructFunctionParameterString(f.parameters(), false);
+                FunctionDefinitionNode fd = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
+                        String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(f.visibilityQualifier()),
+                                f.methodName(), funcParamString, getReturnTypeDescriptor(f.returnType())));
+                FunctionBodyBlockNode funcBodyBlock = constructFunctionBodyBlock(f.body());
+                fd = fd.modify().withFunctionBody(funcBodyBlock).apply();
+                moduleMembers.add(fd);
+            }
+
             NodeList<ImportDeclarationNode> importDecls = NodeFactory.createNodeList(imports);
             NodeList<ModuleMemberDeclarationNode> moduleMemberDecls = NodeFactory.createNodeList(moduleMembers);
 
@@ -100,7 +111,6 @@ public class CodeGenerator {
             syntaxTrees.add(syntaxTree);
         }
 
-//        printSyntaxTree(syntaxTrees.getFirst());
         // only a single bal file is considered for now
         return syntaxTrees.getFirst();
     }
@@ -125,6 +135,14 @@ public class CodeGenerator {
             throw new RuntimeException("Error formatting the syntax tree");
         }
         return syntaxTree;
+    }
+
+    private String getReturnTypeDescriptor(Optional<String> returnType) {
+        return returnType.map(r ->  String.format("returns %s", r)).orElse("");
+    }
+
+    private String getVisibilityQualifier(Optional<String> visibilityQualifier) {
+        return visibilityQualifier.map(s -> s + " ").orElse("");
     }
 
     private String constructCommaSeparatedString(List<String> strings) {

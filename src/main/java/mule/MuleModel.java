@@ -32,6 +32,12 @@ public record MuleModel() {
         }
     }
 
+    public record FlowReference(Kind kind, String flowName) implements MuleRecord {
+        public FlowReference(String flowName) {
+            this(Kind.FLOW_REFERENCE, flowName);
+        }
+    }
+
     public record HttpRequest(Kind kind, String method, String url, String path, Map<String, String> queryParams)
             implements MuleRecord {
         public HttpRequest(String method, String url, String path, Map<String, String> queryParams) {
@@ -59,9 +65,15 @@ public record MuleModel() {
         }
     }
 
-    public record Flow(Kind kind, String name, List<MuleRecord> flowElements) implements MuleRecord {
-        public Flow(String name, List<MuleRecord> flowElements) {
-            this(Kind.FLOW, name, flowElements);
+    public record Flow(Kind kind, String name, MuleRecord source, List<MuleRecord> flowBlocks) implements MuleRecord {
+        public Flow(String name, MuleRecord source, List<MuleRecord> flowBlocks) {
+            this(Kind.FLOW, name, source, flowBlocks);
+        }
+    }
+
+    public record SubFlow(Kind kind, String name, List<MuleRecord> flowBlocks) implements MuleRecord {
+        public SubFlow(String name, List<MuleRecord> flowBlocks) {
+            this(Kind.SUB_FLOW, name, flowBlocks);
         }
     }
 
@@ -80,11 +92,13 @@ public record MuleModel() {
         HTTP_LISTENER,
         LOGGER,
         PAYLOAD,
+        FLOW_REFERENCE,
         HTTP_REQUEST,
         CHOICE,
         WHEN_IN_CHOICE,
         LISTENER_CONFIG,
         SET_VARIABLE,
-        FLOW
+        FLOW,
+        SUB_FLOW
     }
 }

@@ -9,6 +9,8 @@ public class Constants {
 
     // Scopes
     public static final String FLOW = "flow";
+    public static final String SUB_FLOW = "sub-flow";
+    public static final String FLOW_REFERENCE = "flow-ref";
 
     // Transformers
     public static final String SET_VARIABLE = "set-variable";
