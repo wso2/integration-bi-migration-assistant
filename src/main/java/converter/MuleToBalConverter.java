@@ -133,7 +133,8 @@ public class MuleToBalConverter {
         }
     }
 
-    private static BallerinaModel generateBallerinaModel(Data data, List<Flow> flows, List<MuleModel.SubFlow> subFlows) {
+    private static BallerinaModel generateBallerinaModel(Data data, List<Flow> flows,
+                                                         List<MuleModel.SubFlow> subFlows) {
         // TODO: Support multiple flows
         Flow flow = flows.getFirst();
 

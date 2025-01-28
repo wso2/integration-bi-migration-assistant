@@ -36,6 +36,9 @@ checkstyle {
     config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
 }
 
+checkstyleMain
+        .exclude("dataweave/parser/*.java")
+
 spotbugs {
     reportLevel = 'high'
     excludeFilter = file('spotbugs-exclude.xml')

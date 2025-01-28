@@ -22,13 +22,12 @@ public class DWReader {
 
     public static Object processDWScript(String script, String mimeType, MuleToBalConverter.Data data,
                                          List<BallerinaModel.Statement> statementList) {
-        DataWeaveLexer lexer = new DataWeaveLexer(CharStreams.fromString(script));
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
+//        DataWeaveLexer lexer = new DataWeaveLexer(CharStreams.fromString(script));
+//        CommonTokenStream tokens = new CommonTokenStream(lexer);
 //        tokens.fill();
 //
-//        System.out.println("Tokens:");
 //        for (Token token : tokens.getTokens()) {
-//            System.out.println(token.getText() + " -> " + lexer.getVocabulary().getSymbolicName(token.getType()));
+//            token.getText() + " -> " + lexer.getVocabulary().getSymbolicName(token.getType());
 //        }
         ParseTree tree = readDWScript(script);
         DataWeaveBallerinaVisitor visitor = new DataWeaveBallerinaVisitor(mimeType, data, statementList);

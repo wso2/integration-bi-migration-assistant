@@ -40,7 +40,8 @@ public class DataWeaveBallerinaVisitor extends DataWeaveBaseVisitor<Object> {
         String secondaryDirective = identifiers.size() > 1 ? identifiers.get(1).getText() : "";
 
         // Find and set the directive using the enum
-        this.dwContext.setOutputDirective(DWConstants.OutputDirective.findDirective(primaryDirective, secondaryDirective));
+        this.dwContext.setOutputDirective(DWConstants.OutputDirective.findDirective(primaryDirective,
+                secondaryDirective));
         return visitChildren(ctx);
     }
 
@@ -49,7 +50,8 @@ public class DataWeaveBallerinaVisitor extends DataWeaveBaseVisitor<Object> {
         String expression = ctx.expression().getText();
         String dwType = getVarTypeFromExpression(expression);
         String ballerinaType = this.dwContext.getBallerinaType(dwType);
-        String statement = ballerinaType + " " + ctx.IDENTIFIER().getText() + " " + ctx.ASSIGN().getText() + " " + expression + ";";
+        String statement = ballerinaType + " " + ctx.IDENTIFIER().getText() + " " + ctx.ASSIGN().getText() + " "
+                + expression + ";";
         this.dwContext.addStatement(statement);
 
         return visitChildren(ctx);
@@ -82,7 +84,7 @@ public class DataWeaveBallerinaVisitor extends DataWeaveBaseVisitor<Object> {
 
     @Override
     public Object visitFunctionCall(DataWeaveParser.FunctionCallContext ctx) {
-        return visitFunctionCall(ctx);
+        return super.visitFunctionCall(ctx);
     }
 
     @Override

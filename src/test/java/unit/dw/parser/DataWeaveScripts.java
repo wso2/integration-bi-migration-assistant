@@ -40,16 +40,16 @@ public class DataWeaveScripts {
             ---
             a
             """;
-    public static final String SCRIPT_OUTPUT= """
+    public static final String SCRIPT_OUTPUT = """
             %output application/xml
             ---
             a
             """;
-    public static final String SCRIPT_CONSTANT= """
-            %var conversionRate=13.15
-            ---
-            a
-         """;
+    public static final String SCRIPT_CONSTANT = """
+               %var conversionRate=13.15
+               ---
+               a
+            """;
     public static final String SCRIPT_SIMPLE_STRING = """
             %dw 2.0
             %output application/json
