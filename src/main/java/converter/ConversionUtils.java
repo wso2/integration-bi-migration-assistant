@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class Utils {
+public class ConversionUtils {
 
     private static final Pattern UNESCAPED_SPECIAL_CHAR_SET =
             Pattern.compile("([$&+,:;=\\?@#\\\\|/'\\ \\[\\}\\]<\\>.\"^*{}~`()%!-])");
@@ -46,7 +46,7 @@ public class Utils {
      */
     static String getBallerinaAbsolutePath(String basePath) {
         List<String> list = Arrays.stream(basePath.split("/")).filter(s -> !s.isEmpty())
-                .map(Utils::escapeSpecialCharacters).toList();
+                .map(ConversionUtils::escapeSpecialCharacters).toList();
 
         String absolutePath;
         if (list.isEmpty()) {
@@ -101,7 +101,7 @@ public class Utils {
                 .reduce((a, b) -> a + ", " + b).orElse("");
     }
 
-    static String convertToBallerinaExpression(Mule2BalConverter.Data data, String muleExpr,
+    static String convertToBallerinaExpression(MuleToBalConverter.Data data, String muleExpr,
                                                boolean encloseInDoubleQuotes) {
         if (muleExpr.startsWith("#[") && muleExpr.endsWith("]")) {
             // We reach here for mule expression syntax
@@ -111,7 +111,7 @@ public class Utils {
         return encloseInDoubleQuotes ? "\"" + muleExpr + "\"" : muleExpr;
     }
 
-    private static String getVariable(Mule2BalConverter.Data data, String value) {
+    private static String getVariable(MuleToBalConverter.Data data, String value) {
         String queryParamPrefix = "attributes.queryParams.";
         String varPrefix = "vars.";
 

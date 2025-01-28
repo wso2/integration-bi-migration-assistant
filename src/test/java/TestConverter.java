@@ -3,7 +3,7 @@ import org.testng.annotations.Test;
 
 import java.io.PrintStream;
 
-import static converter.Mule2BalConverter.convertToBallerina;
+import static converter.MuleToBalConverter.convertToBallerina;
 
 public class TestConverter {
 
