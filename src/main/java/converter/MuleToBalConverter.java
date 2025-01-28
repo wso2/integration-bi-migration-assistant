@@ -39,13 +39,13 @@ import static ballerina.BallerinaModel.Parameter;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
 import static ballerina.BallerinaModel.Statement;
-import static converter.Utils.convertToBallerinaExpression;
-import static converter.Utils.genQueryParam;
-import static converter.Utils.getAllowedMethods;
-import static converter.Utils.getBallerinaAbsolutePath;
-import static converter.Utils.getBallerinaResourcePath;
-import static converter.Utils.insertLeadingSlash;
-import static converter.Utils.processQueryParams;
+import static converter.ConversionUtils.convertToBallerinaExpression;
+import static converter.ConversionUtils.genQueryParam;
+import static converter.ConversionUtils.getAllowedMethods;
+import static converter.ConversionUtils.getBallerinaAbsolutePath;
+import static converter.ConversionUtils.getBallerinaResourcePath;
+import static converter.ConversionUtils.insertLeadingSlash;
+import static converter.ConversionUtils.processQueryParams;
 import static mule.MuleModel.Choice;
 import static mule.MuleModel.Flow;
 import static mule.MuleModel.FlowReference;
@@ -61,7 +61,7 @@ import static mule.MuleModel.SetVariable;
 import static mule.MuleModel.SubFlow;
 import static mule.MuleModel.WhenInChoice;
 
-public class Mule2BalConverter {
+public class MuleToBalConverter {
 
     static class Data {
         HashMap<String, ListenerConfig> globalListenerConfigsMap = new HashMap<>();

@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static converter.Mule2BalConverter.convertToBallerina;
+import static converter.MuleToBalConverter.convertToBallerina;
 
 public class AbstractBlockTest {
 
