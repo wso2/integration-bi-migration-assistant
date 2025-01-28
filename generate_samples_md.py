@@ -1,0 +1,92 @@
+import os
+
+# Define the directory paths
+samples_dir = 'src/test/resources/blocks/mule3'
+output_md_path = 'SAMPLES.md'
+readme_md_path = 'README.md'
+
+# List all files in the directory and its subdirectories
+all_files = []
+for root, dirs, files in os.walk(samples_dir):
+    for file in files:
+        all_files.append(os.path.join(root, file))
+
+# Filter XML and BAL files
+xml_files = [f for f in all_files if f.endswith('.xml')]
+bal_files = [f for f in all_files if f.endswith('.bal')]
+
+# Group files by their immediate parent directory
+grouped_files = {}
+for file in xml_files + bal_files:
+    parent_dir = os.path.basename(os.path.dirname(file))
+    if parent_dir not in grouped_files:
+        grouped_files[parent_dir] = {'xml': [], 'bal': []}
+    if file.endswith('.xml'):
+        grouped_files[parent_dir]['xml'].append(file)
+    elif file.endswith('.bal'):
+        grouped_files[parent_dir]['bal'].append(file)
+
+# Pair XML and BAL files based on their names within each group
+paired_files = {}
+for parent_dir, files in grouped_files.items():
+    paired_files[parent_dir] = []
+    for xml_file in files['xml']:
+        base_name = os.path.splitext(os.path.basename(xml_file))[0]
+        for bal_file in files['bal']:
+            if base_name in os.path.basename(bal_file):
+                paired_files[parent_dir].append((xml_file, bal_file))
+                break
+
+# Function to read file content
+def read_file_content(file_path):
+    with open(file_path, 'r') as file:
+        return file.read()
+
+# Generate Markdown content for samples
+markdown_content = '# Sample Input and Output\n\n'
+markdown_content += 'The `mule-to-ballerina-migration-assistant` project includes sample input and output files to demonstrate the conversion process. These samples are located in the `src/test/resources/blocks/mule3` directory.\n\n'
+
+for parent_dir, pairs in paired_files.items():
+    markdown_content += f'## {parent_dir.replace("-", " ").title()}\n\n'
+    for i, (xml_file, bal_file) in enumerate(pairs, start=1):
+        input_content = read_file_content(xml_file)
+        output_content = read_file_content(bal_file)
+
+        markdown_content += f'### Example {i}\n\n'
+        markdown_content += f'**Input ({os.path.basename(xml_file)}):**\n```xml\n{input_content}\n```\n'
+        markdown_content += f'**Output ({os.path.basename(bal_file)}):**\n```ballerina\n{output_content}\n```\n\n'
+
+# Write the Markdown content to the output file
+with open(output_md_path, 'w') as file:
+    file.write(markdown_content)
+
+print(f'Samples have been extracted and written to {output_md_path}')
+
+# List directories to identify supported Mule components
+supported_components = sorted([d for d in os.listdir(samples_dir) if os.path.isdir(os.path.join(samples_dir, d))])
+
+# Read README.md content
+with open(readme_md_path, 'r') as file:
+    readme_content = file.readlines()
+
+# Update the Supported Mule Components section
+start_index = readme_content.index('## Supported Mule Components\n') + 1
+end_index = start_index
+while end_index < len(readme_content) and not readme_content[end_index].startswith('## '):
+    end_index += 1
+
+# Replace the old list with the new list
+new_components_list = 'The migration tool currently supports the following Mule components:\n\n'
+for component in supported_components:
+    component_title = component.replace("-", " ").title()
+    component_link = component.lower().replace(" ", "-")
+    new_components_list += f'- [{component_title}](SAMPLES.md#{component_link})\n'
+
+new_components_list += '\n'
+readme_content = readme_content[:start_index] + [new_components_list] + readme_content[end_index:]
+
+# Write the updated README.md content
+with open(readme_md_path, 'w') as file:
+    file.writelines(readme_content)
+
+print(f'Supported Mule Components section has been updated in {readme_md_path}')

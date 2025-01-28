@@ -47,14 +47,11 @@ For now, Mule 3.x is supported. Support for Mule 4.x is expected to be added lat
 ## Supported Mule Components
 The migration tool currently supports the following Mule components:
 
-- HTTP Listener
-- HTTP Request
-- Logger
-- Set Payload
-- Set Variable
-- Choice
-- Flow Reference
-- Sub Flow
+- [Http Listener](SAMPLES.md#http-listener)
+- [Logger](SAMPLES.md#logger)
+- [Set Payload](SAMPLES.md#set-payload)
+- [Sub Flow](SAMPLES.md#sub-flow)
+- [Variable](SAMPLES.md#variable)
 
 ## Sample Input and Output
 
