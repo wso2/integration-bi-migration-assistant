@@ -1,7 +1,7 @@
 package dataweave;
 
 import ballerina.BallerinaModel;
-import converter.Mule2BalConverter;
+import converter.MuleToBalConverter;
 import dataweave.converter.DataWeaveBallerinaVisitor;
 import dataweave.parser.DataWeaveLexer;
 import dataweave.parser.DataWeaveParser;
@@ -20,7 +20,7 @@ public class DWReader {
         return parser.script();
     }
 
-    public static Object processDWScript(String script, String mimeType, Mule2BalConverter.Data data,
+    public static Object processDWScript(String script, String mimeType, MuleToBalConverter.Data data,
                                          List<BallerinaModel.Statement> statementList) {
         DataWeaveLexer lexer = new DataWeaveLexer(CharStreams.fromString(script));
         CommonTokenStream tokens = new CommonTokenStream(lexer);

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+      xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <sub-flow name="f1Flow">
+        <db:stored-procedure config-ref="EDW_Database_Configuration" doc:name="feature1_Database_Call">
+            <db:parameterized-query><![CDATA[{
+CALL [MuleSoft].[usp_GetWeatherEventsByGeo] (:longitude,:latitude,:begin_date,:end_date,:distance_in_miles,:event_type,:minimum_magnitude)
+}]]></db:parameterized-query>
+            <db:in-param name="longitude" type="FLOAT" value="#[flowVars.params.longitude]"/>
+            <db:in-param name="latitude" type="FLOAT" value="#[flowVars.params.latitude]"/>
+            <db:in-param name="begin_date" type="DATE" value="#[flowVars.beginDate]"/>
+            <db:in-param name="end_date" type="DATE" value="#[flowVars.endDate]"/>
+            <db:in-param name="distance_in_miles" type="INTEGER" value="#[flowVars.params.distance]"/>
+            <db:in-param name="event_type" type="VARCHAR" value=" "/>
+            <db:in-param name="minimum_magnitude" type="FLOAT" value="#[flowVars.params.magnitude]"/>
+        </db:stored-procedure>
+        <dw:transform-message doc:name="Transform Message" metadata:id="1e1fa6f2-f6c0-44fe-a674-92f12bfd0154">
+            <dw:input-payload doc:sample="sample_data\MyPojo_1.dwl"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	hail1: sizeOf (payload.resultSet1 filter ((item,index) -> (item.EVENT_TYPE == 'Hail' and item.MAGNITUDE >= 1 and item.distance_in_miles <= 5)) ),
+	hail2: sizeOf (payload.resultSet1 filter ($.EVENT_TYPE == 'Hail' and  $.magnitude >= 1.5 and $.distance_in_miles <= 5) map {
+		count: $.weather_event_id
+	}),
+	thunder: sizeOf ( payload.resultSet1 filter ($.EVENT_TYPE == 'Thunderstorm Wind' and  $.magnitude >= 30 and $.distance_in_miles <= 1) map {
+		count: $.weather_event_id
+	})
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <logger message="Events Count: --&gt; #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+    </sub-flow>
+
+</mule>

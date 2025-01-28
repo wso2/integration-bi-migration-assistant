@@ -1,20 +1,20 @@
 package dataweave.converter;
 
 import ballerina.BallerinaModel;
-import converter.Mule2BalConverter;
+import converter.MuleToBalConverter;
 
 import java.util.List;
 
 public class DataWeaveContext {
     private final String mimeType;
-    private final Mule2BalConverter.Data data;
+    private final MuleToBalConverter.Data data;
     private final List<BallerinaModel.Statement> statementList;
     private String dwVersion;
     private DWConstants.OutputDirective outputDirective;
     private String variableDeclaration;
     private StringBuilder exprBuilder;
 
-    public DataWeaveContext(String mimeType, Mule2BalConverter.Data data,
+    public DataWeaveContext(String mimeType, MuleToBalConverter.Data data,
                             List<BallerinaModel.Statement> statementList) {
         this.exprBuilder = new StringBuilder();
         this.mimeType = mimeType;

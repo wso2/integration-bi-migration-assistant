@@ -79,7 +79,7 @@ public class MuleToBalConverter {
         }
 
         List<Flow> flows = new ArrayList<>();
-        List<SubFlow> subFlows = new ArrayList<>();
+        List<MuleModel.SubFlow> subFlows = new ArrayList<>();
 
         Data data = new Data();
         NodeList childNodes = root.getChildNodes();
@@ -100,7 +100,7 @@ public class MuleToBalConverter {
                 Flow flow = readFlow(data, element);
                 flows.add(flow);
             } else if (Constants.SUB_FLOW.equals(elementTagName)) {
-                SubFlow subFlow = readSubFlow(data, element);
+                MuleModel.SubFlow subFlow = readSubFlow(data, element);
                 subFlows.add(subFlow);
             }
         }
@@ -133,10 +133,11 @@ public class MuleToBalConverter {
         }
     }
 
-    private static BallerinaModel generateBallerinaModel(Data data, List<Flow> flows, List<SubFlow> subFlows) {
+    private static BallerinaModel generateBallerinaModel(Data data, List<Flow> flows, List<MuleModel.SubFlow> subFlows) {
         // TODO: Support multiple flows
         Flow flow = flows.getFirst();
 
+        MuleRecord source = flow.source();
         if (source.kind() != Kind.HTTP_LISTENER) {
             // Only http listener source is supported at the moment
             throw new UnsupportedOperationException();
@@ -164,9 +165,9 @@ public class MuleToBalConverter {
         return createBallerinaModel(imports, listeners, Collections.singletonList(service), functions);
     }
 
-    private static List<Function> genBalFunctions(Data data, List<SubFlow> subFlows) {
+    private static List<Function> genBalFunctions(Data data, List<MuleModel.SubFlow> subFlows) {
         List<Function> functions = new ArrayList<>(subFlows.size());
-        for (SubFlow subFlow : subFlows) {
+        for (MuleModel.SubFlow subFlow : subFlows) {
             List<Statement> body = genFuncBodyStatements(data, subFlow.flowBlocks());
             // TODO: assumed source is always a http listener
             List<Parameter> parameterList = List.of(new Parameter(Constants.VAR_RESPONSE, "http:Response",
@@ -278,8 +279,6 @@ public class MuleToBalConverter {
         }
     }
 
-
-
     private static List<Statement> convertToStatements(Data data, MuleRecord muleRec) {
         List<Statement> statementList = new ArrayList<>();
         switch (muleRec) {
@@ -341,7 +340,7 @@ public class MuleToBalConverter {
                         genQueryParam(queryParams))));
                 statementList.addAll(statements);
             }
-            case FlowReference flowReference -> {
+            case MuleModel.FlowReference flowReference -> {
                 // TODO: assumed source is always a http listener
                 statementList.add(new BallerinaStatement(String.format("%s(%s);", flowReference.flowName(),
                         Constants.VAR_RESPONSE)));
@@ -456,7 +455,7 @@ public class MuleToBalConverter {
         return new Flow(flowName, source, flowBlocks);
     }
 
-    private static SubFlow readSubFlow(Data data, Element flowElement) {
+    private static MuleModel.SubFlow readSubFlow(Data data, Element flowElement) {
         String flowName = flowElement.getAttribute("name");
         NodeList children = flowElement.getChildNodes();
 
@@ -465,14 +464,6 @@ public class MuleToBalConverter {
             Node child = children.item(i);
             if (child.getNodeType() != Node.ELEMENT_NODE) {
                 continue;
-            switch (element.getTagName()) {
-                case Constants.HTTP_LISTENER, Constants.LOGGER,
-                        Constants.SET_VARIABLE, Constants.HTTP_REQUEST,
-                     Constants.SET_PAYLOAD, Constants.CHOICE, Constants.TRANSFORM_MESSAGE -> {
-                    MuleRecord muleRec = readComponent(data, element);
-                    flow.add(muleRec);
-                }
-                default -> throw new UnsupportedOperationException();
             }
 
             Element element = (Element) child;
@@ -480,7 +471,7 @@ public class MuleToBalConverter {
             flowBlocks.add(muleRec);
         }
 
-        return new SubFlow(flowName, flowBlocks);
+        return new MuleModel.SubFlow(flowName, flowBlocks);
     }
 
     // Transformers
@@ -524,9 +515,9 @@ public class MuleToBalConverter {
         return new HttpRequest(method, url, path, queryParams);
     }
 
-    private static FlowReference readFlowReference(Data data, Element element) {
+    private static MuleModel.FlowReference readFlowReference(Data data, Element element) {
         String flowName = element.getAttribute("name");
-        return new FlowReference(flowName);
+        return new MuleModel.FlowReference(flowName);
     }
 
     private static MuleModel.TransformMessage readTransformMessage(Data data, Element element) {

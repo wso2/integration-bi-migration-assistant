@@ -1,7 +1,7 @@
 package dataweave.converter;
 
 import ballerina.BallerinaModel;
-import converter.Mule2BalConverter;
+import converter.MuleToBalConverter;
 import dataweave.parser.DataWeaveBaseVisitor;
 import dataweave.parser.DataWeaveParser;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -13,7 +13,7 @@ public class DataWeaveBallerinaVisitor extends DataWeaveBaseVisitor<Object> {
 
     private final DataWeaveContext dwContext;
 
-    public DataWeaveBallerinaVisitor(String mimeType, Mule2BalConverter.Data data,
+    public DataWeaveBallerinaVisitor(String mimeType, MuleToBalConverter.Data data,
                                      List<BallerinaModel.Statement> statementList) {
         this.dwContext = new DataWeaveContext(mimeType, data, statementList);
     }
@@ -30,7 +30,7 @@ public class DataWeaveBallerinaVisitor extends DataWeaveBaseVisitor<Object> {
     }
 
     @Override
-    public Object visitOutputDirective(DataWeaveParser.OutputDirectiveContext ctx) {
+    public Object visitOutputDirective(DataWeaveParser.OutputDirectiveContext ctx)  {
         List<TerminalNode> identifiers = ctx.IDENTIFIER();
         if (identifiers.isEmpty() || identifiers.size() > 2) {
             throw new BallerinaDWException("Invalid output directive");
