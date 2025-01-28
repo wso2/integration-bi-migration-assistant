@@ -233,7 +233,7 @@ public class MuleToBalConverter {
         // Read flow blocks
         for (MuleRecord record : flowBlocks) {
             switch (record.kind()) {
-                case LOGGER, PAYLOAD, CHOICE, SET_VARIABLE, HTTP_REQUEST, FLOW_REFERENCE -> {
+                case LOGGER, PAYLOAD, CHOICE, SET_VARIABLE, HTTP_REQUEST, FLOW_REFERENCE, TRANSFORM_MESSAGE -> {
                     List<Statement> s = convertToStatements(data, record);
                     body.addAll(s);
                 }

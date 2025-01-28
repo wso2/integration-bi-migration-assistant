@@ -105,6 +105,7 @@ public record MuleModel() {
         LISTENER_CONFIG,
         SET_VARIABLE,
         TRANSFORM_MESSAGE,
-        FLOW
+        FLOW,
+        SUB_FLOW
     }
 }
