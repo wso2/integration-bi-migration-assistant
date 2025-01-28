@@ -92,17 +92,8 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
     T visitBody(DataWeaveParser.BodyContext ctx);
 
     /**
-     * Visit a parse tree produced by the {@code literalExpression}
-     * labeled alternative in {@link DataWeaveParser#expression}.
-     *
-     * @param ctx the parse tree
-     * @return the visitor result
-     */
-    T visitLiteralExpression(DataWeaveParser.LiteralExpressionContext ctx);
-
-    /**
      * Visit a parse tree produced by the {@code arrayExpression}
-     * labeled alternative in {@link DataWeaveParser#expression}.
+     * labeled alternative in {@link DataWeaveParser}.
      *
      * @param ctx the parse tree
      * @return the visitor result
@@ -110,8 +101,62 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
     T visitArrayExpression(DataWeaveParser.ArrayExpressionContext ctx);
 
     /**
+     * Visit a parse tree produced by the {@code conditionalExpression}
+     * labeled alternative in {@link DataWeaveParser}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitConditionalExpression(DataWeaveParser.ConditionalExpressionContext ctx);
+
+    /**
+     * Visit a parse tree produced by the {@code identifierExpression}
+     * labeled alternative in {@link DataWeaveParser}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitIdentifierExpression(DataWeaveParser.IdentifierExpressionContext ctx);
+
+    /**
+     * Visit a parse tree produced by the {@code mathExpression}
+     * labeled alternative in {@link DataWeaveParser}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitMathExpression(DataWeaveParser.MathExpressionContext ctx);
+
+    /**
+     * Visit a parse tree produced by the {@code comparisonExpression}
+     * labeled alternative in {@link DataWeaveParser}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitComparisonExpression(DataWeaveParser.ComparisonExpressionContext ctx);
+
+    /**
+     * Visit a parse tree produced by the {@code logicalExpression}
+     * labeled alternative in {@link DataWeaveParser}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitLogicalExpression(DataWeaveParser.LogicalExpressionContext ctx);
+
+    /**
+     * Visit a parse tree produced by the {@code groupedExpression}
+     * labeled alternative in {@link DataWeaveParser}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitGroupedExpression(DataWeaveParser.GroupedExpressionContext ctx);
+
+    /**
      * Visit a parse tree produced by the {@code objectExpression}
-     * labeled alternative in {@link DataWeaveParser#expression}.
+     * labeled alternative in {@link DataWeaveParser}.
      *
      * @param ctx the parse tree
      * @return the visitor result
@@ -119,8 +164,26 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
     T visitObjectExpression(DataWeaveParser.ObjectExpressionContext ctx);
 
     /**
+     * Visit a parse tree produced by the {@code chainExpression}
+     * labeled alternative in {@link DataWeaveParser}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitChainExpression(DataWeaveParser.ChainExpressionContext ctx);
+
+    /**
+     * Visit a parse tree produced by the {@code builtInFunctionExpression}
+     * labeled alternative in {@link DataWeaveParser}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitBuiltInFunctionExpression(DataWeaveParser.BuiltInFunctionExpressionContext ctx);
+
+    /**
      * Visit a parse tree produced by the {@code functionCallExpression}
-     * labeled alternative in {@link DataWeaveParser#expression}.
+     * labeled alternative in {@link DataWeaveParser}.
      *
      * @param ctx the parse tree
      * @return the visitor result
@@ -128,13 +191,47 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
     T visitFunctionCallExpression(DataWeaveParser.FunctionCallExpressionContext ctx);
 
     /**
-     * Visit a parse tree produced by the {@code identifierExpression}
-     * labeled alternative in {@link DataWeaveParser#expression}.
+     * Visit a parse tree produced by the {@code rangeExpression}
+     * labeled alternative in {@link DataWeaveParser}.
      *
      * @param ctx the parse tree
      * @return the visitor result
      */
-    T visitIdentifierExpression(DataWeaveParser.IdentifierExpressionContext ctx);
+    T visitRangeExpression(DataWeaveParser.RangeExpressionContext ctx);
+
+    /**
+     * Visit a parse tree produced by the {@code bitwiseExpression}
+     * labeled alternative in {@link DataWeaveParser}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitBitwiseExpression(DataWeaveParser.BitwiseExpressionContext ctx);
+
+    /**
+     * Visit a parse tree produced by the {@code literalExpression}
+     * labeled alternative in {@link DataWeaveParser}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitLiteralExpression(DataWeaveParser.LiteralExpressionContext ctx);
+
+    /**
+     * Visit a parse tree produced by {@link DataWeaveParser#builtInFunctionCall}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitBuiltInFunctionCall(DataWeaveParser.BuiltInFunctionCallContext ctx);
+
+    /**
+     * Visit a parse tree produced by {@link DataWeaveParser#inlineLambda}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitInlineLambda(DataWeaveParser.InlineLambdaContext ctx);
 
     /**
      * Visit a parse tree produced by {@link DataWeaveParser#literal}.
