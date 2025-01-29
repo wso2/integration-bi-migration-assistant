@@ -84,6 +84,13 @@ public record MuleModel() {
         }
     }
 
+    // Misc
+    public record UnsupportedBlock(Kind kind, String xmlBlock) implements MuleRecord {
+        public UnsupportedBlock(String xmlBlock) {
+            this(Kind.UNSUPPORTED_BLOCK, xmlBlock);
+        }
+    }
+
     public interface MuleRecord {
         Kind kind();
     }
@@ -99,6 +106,7 @@ public record MuleModel() {
         LISTENER_CONFIG,
         SET_VARIABLE,
         FLOW,
-        SUB_FLOW
+        SUB_FLOW,
+        UNSUPPORTED_BLOCK
     }
 }

@@ -60,6 +60,7 @@ import static mule.MuleModel.Payload;
 import static mule.MuleModel.SetVariable;
 import static mule.MuleModel.SubFlow;
 import static mule.MuleModel.WhenInChoice;
+import static mule.MuleModel.UnsupportedBlock;
 
 public class MuleToBalConverter {
 
@@ -232,7 +233,7 @@ public class MuleToBalConverter {
         // Read flow blocks
         for (MuleRecord record : flowBlocks) {
             switch (record.kind()) {
-                case LOGGER, PAYLOAD, CHOICE, SET_VARIABLE, HTTP_REQUEST, FLOW_REFERENCE -> {
+                case LOGGER, PAYLOAD, CHOICE, SET_VARIABLE, HTTP_REQUEST, FLOW_REFERENCE, UNSUPPORTED_BLOCK -> {
                     List<Statement> s = convertToStatements(data, record);
                     body.addAll(s);
                 }
@@ -271,7 +272,9 @@ public class MuleToBalConverter {
             case Constants.FLOW_REFERENCE -> {
                 return readFlowReference(data, element);
             }
-            default -> throw new UnsupportedOperationException();
+            default -> {
+                return readUnsupportedBlock(data, element);
+            }
         }
     }
 
@@ -340,6 +343,12 @@ public class MuleToBalConverter {
                 // TODO: assumed source is always a http listener
                 statementList.add(new BallerinaStatement(String.format("%s(%s);", flowReference.flowName(),
                         Constants.VAR_RESPONSE)));
+            }
+            case UnsupportedBlock unsupportedBlock -> {
+                String comment = ConversionUtils.wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());
+                // TODO: comment is not a statement. Find a better way to handle this
+                // This works for now because we concatenate and create a body block `{ stmts }` before parsing.
+                statementList.add(new BallerinaStatement(comment));
             }
             case null, default -> throw new IllegalStateException();
         }
@@ -507,5 +516,10 @@ public class MuleToBalConverter {
     private static FlowReference readFlowReference(Data data, Element element) {
         String flowName = element.getAttribute("name");
         return new FlowReference(flowName);
+    }
+
+    private static UnsupportedBlock readUnsupportedBlock(Data data, Element element) {
+        String xmlBlock = ConversionUtils.elementToString(element);
+        return new UnsupportedBlock(xmlBlock);
     }
 }

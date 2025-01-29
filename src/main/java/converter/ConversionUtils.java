@@ -1,5 +1,13 @@
 package converter;
 
+import org.w3c.dom.Element;
+
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -125,5 +133,31 @@ public class ConversionUtils {
             v = value;
         }
         return v;
+    }
+
+    public static String elementToString(Element element) {
+        try {
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+            StringWriter writer = new StringWriter();
+            transformer.transform(new DOMSource(element), new StreamResult(writer));
+            return writer.getBuffer().toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Error converting Element to String", e);
+        }
+    }
+
+    public static String wrapElementInUnsupportedBlockComment(String input) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n\n");
+        sb.append("// UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.\n");
+        sb.append("// ------------------------------------------------------------------------\n");
+        String[] lines = input.split("\n");
+        for (String line : lines) {
+            sb.append("// ").append(line).append("\n");
+        }
+        sb.append("// ------------------------------------------------------------------------\n\n");
+        return sb.toString();
     }
 }
