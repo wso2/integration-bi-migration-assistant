@@ -3,6 +3,7 @@ package ballerina;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
+import io.ballerina.compiler.syntax.tree.MinutiaeList;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
 import io.ballerina.compiler.syntax.tree.Node;
@@ -32,6 +33,7 @@ import static ballerina.BallerinaModel.Parameter;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
 import static ballerina.BallerinaModel.Statement;
+import static ballerina.BallerinaModel.TextDocument;
 
 public class CodeGenerator {
     private final BallerinaModel ballerinaModel;
@@ -42,23 +44,40 @@ public class CodeGenerator {
 
     public SyntaxTree generateBalCode() {
         List<SyntaxTree> syntaxTrees = new ArrayList<>();
-        for (Module module : ballerinaModel.modules()) {
+        List<Module> modules = ballerinaModel.modules();
+        // TODO: assumed single module for now
+        Module module = modules.getFirst();
+
+        for (TextDocument textDocument : module.textDocuments()) {
             List<ImportDeclarationNode> imports = new ArrayList<>();
-            for (Import importDeclaration : module.imports()) {
+            for (Import importDeclaration : textDocument.imports()) {
                 ImportDeclarationNode importDeclarationNode = NodeParser.parseImportDeclaration(
                         String.format("import %s/%s;", importDeclaration.org(), importDeclaration.module()));
                 imports.add(importDeclarationNode);
             }
 
             List<ModuleMemberDeclarationNode> moduleMembers = new ArrayList<>();
-            for (Listener listener : module.listeners()) {
+
+            for (ModuleTypeDef moduleTypeDef : textDocument.moduleTypeDefs()) {
+                TypeDefinitionNode typeDefinitionNode = (TypeDefinitionNode) NodeParser.parseModuleMemberDeclaration(
+                        String.format("type %s %s;", moduleTypeDef.name(), moduleTypeDef.type()));
+                moduleMembers.add(typeDefinitionNode);
+            }
+
+            for (ModuleVar moduleVar : textDocument.moduleVars()) {
+                ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(
+                        String.format("%s %s = %s;", moduleVar.type(), moduleVar.name(), moduleVar.expr().expr()));
+                moduleMembers.add(member);
+            }
+
+            for (Listener listener : textDocument.listeners()) {
                 ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(
                         String.format("listener http:Listener %s = new (%s, {host: \"%s\"});", listener.name(),
                                 listener.port(), listener.config().get("host")));
                 moduleMembers.add(member);
             }
 
-            for (Service service : module.services()) {
+            for (Service service : textDocument.services()) {
                 String listenerRefs = constructCommaSeparatedString(service.listenerRefs());
                 ServiceDeclarationNode serviceDecl = (ServiceDeclarationNode) NodeParser.parseModuleMemberDeclaration(
                         String.format("service %s on %s { }", service.basePath(), listenerRefs));
@@ -93,7 +112,7 @@ public class CodeGenerator {
                 moduleMembers.add(serviceDecl);
             }
 
-            for (Function f : module.functions()) {
+            for (Function f : textDocument.functions()) {
                 String funcParamString = constructFunctionParameterString(f.parameters(), false);
                 FunctionDefinitionNode fd = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
                         String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(f.visibilityQualifier()),
@@ -106,7 +125,15 @@ public class CodeGenerator {
             NodeList<ImportDeclarationNode> importDecls = NodeFactory.createNodeList(imports);
             NodeList<ModuleMemberDeclarationNode> moduleMemberDecls = NodeFactory.createNodeList(moduleMembers);
 
-            SyntaxTree syntaxTree = createSyntaxTree(importDecls, moduleMemberDecls);
+            MinutiaeList eofLeadingMinutiae;
+            if (textDocument.Comments().isEmpty()) {
+                eofLeadingMinutiae = NodeFactory.createEmptyMinutiaeList();
+            } else {
+                String comments = String.join("", textDocument.Comments());
+                eofLeadingMinutiae = parseLeadingMinutiae(comments);
+            }
+
+            SyntaxTree syntaxTree = createSyntaxTree(importDecls, moduleMemberDecls, eofLeadingMinutiae);
             syntaxTree = formatSyntaxTree(syntaxTree);
             syntaxTrees.add(syntaxTree);
         }
@@ -115,12 +142,17 @@ public class CodeGenerator {
         return syntaxTrees.getFirst();
     }
 
+    private static MinutiaeList parseLeadingMinutiae(String leadingMinutiae) {
+        return NodeParser.parseImportDeclaration(leadingMinutiae + "\nimport x/y;").leadingMinutiae();
+    }
+
     private static SyntaxTree createSyntaxTree(NodeList<ImportDeclarationNode> importDecls,
-                                               NodeList<ModuleMemberDeclarationNode> moduleMemberDecls) {
+                                               NodeList<ModuleMemberDeclarationNode> moduleMemberDecls,
+                                               MinutiaeList eofLeadingMinutiae) {
         ModulePartNode modulePartNode = NodeFactory.createModulePartNode(
                 importDecls,
                 moduleMemberDecls,
-                NodeFactory.createToken(SyntaxKind.EOF_TOKEN)
+                NodeFactory.createToken(SyntaxKind.EOF_TOKEN, eofLeadingMinutiae, NodeFactory.createEmptyMinutiaeList())
         );
 
         SyntaxTree syntaxTree = SyntaxTree.from(TextDocuments.from(""));

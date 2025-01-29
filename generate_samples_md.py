@@ -19,6 +19,8 @@ bal_files = [f for f in all_files if f.endswith('.bal')]
 grouped_files = {}
 for file in xml_files + bal_files:
     parent_dir = os.path.basename(os.path.dirname(file))
+    if parent_dir == 'unsupported-block':
+        continue
     if parent_dir not in grouped_files:
         grouped_files[parent_dir] = {'xml': [], 'bal': []}
     if file.endswith('.xml'):
@@ -66,7 +68,7 @@ with open(output_md_path, 'w') as file:
 print(f'Samples have been extracted and written to {output_md_path}')
 
 # List directories to identify supported Mule components
-supported_components = sorted([d for d in os.listdir(samples_dir) if os.path.isdir(os.path.join(samples_dir, d))])
+supported_components = sorted([d for d in os.listdir(samples_dir) if os.path.isdir(os.path.join(samples_dir, d)) and d != 'unsupported-block'])
 
 # Read README.md content
 with open(readme_md_path, 'r') as file:
