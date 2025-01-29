@@ -7,11 +7,11 @@ public class LoggerTest extends AbstractBlockTest {
 
     @Test
     public void testBasicLogger() {
-        testMule3ToBal("logger/sample_1.xml", "logger/sample_1.bal");
+        testMule3ToBal("logger/basic_logger.xml", "logger/basic_logger.bal");
     }
 
     @Test
     public void testLoggerLevels() {
-        testMule3ToBal("logger/sample_2.xml", "logger/sample_2.bal");
+        testMule3ToBal("logger/logger_levels.xml", "logger/logger_levels.bal");
     }
 }

@@ -6,7 +6,7 @@ import org.testng.annotations.Test;
 public class SubFlowTest extends AbstractBlockTest {
 
     @Test
-    public void testBasicSetPayload() {
-        testMule3ToBal("sub-flow/sample_1.xml", "sub-flow/sample_1.bal");
+    public void testBasicSubFlow() {
+        testMule3ToBal("sub-flow/basic_sub_flow.xml", "sub-flow/basic_sub_flow.bal");
     }
 }
