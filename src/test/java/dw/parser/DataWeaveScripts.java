@@ -1,4 +1,4 @@
-package unit.dw.parser;
+package dw.parser;
 
 public class DataWeaveScripts {
 
