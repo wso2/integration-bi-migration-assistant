@@ -89,7 +89,8 @@ public class ParserTestUtils {
             int expectedSize = expected.size();
             int actualSize = actual.size();
             if (expectedSize != actualSize) {
-                differences.add("Array size mismatch at " + path + ": expected " + expectedSize + ", found " + actualSize);
+                differences.add("Array size mismatch at " + path + ": expected " + expectedSize + ", found "
+                        + actualSize);
             }
 
             for (int i = 0; i < Math.min(expectedSize, actualSize); i++) {

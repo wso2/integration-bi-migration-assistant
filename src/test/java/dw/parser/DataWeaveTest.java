@@ -4,7 +4,14 @@ import dw.parser.utils.ParserTestUtils;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import static dw.parser.DataWeaveScripts.*;
+import static dw.parser.DataWeaveScripts.SCRIPT_DW;
+import static dw.parser.DataWeaveScripts.SCRIPT_OUTPUT;
+import static dw.parser.DataWeaveScripts.SCRIPT_CONSTANT;
+import static dw.parser.DataWeaveScripts.SCRIPT_SIMPLE_BOOLEAN;
+import static dw.parser.DataWeaveScripts.SCRIPT_SIMPLE_DATE;
+import static dw.parser.DataWeaveScripts.SCRIPT_SIMPLE_NUMBER;
+import static dw.parser.DataWeaveScripts.SCRIPT_SIMPLE_NUMBER_DECIMAL;
+import static dw.parser.DataWeaveScripts.SCRIPT_SIMPLE_STRING;
 
 public class DataWeaveTest {
 
