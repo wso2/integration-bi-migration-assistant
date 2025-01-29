@@ -7,11 +7,11 @@ public class SetPayloadTest extends AbstractBlockTest {
 
     @Test
     public void testBasicSetPayload() {
-        testMule3ToBal("set-payload/sample_1.xml", "set-payload/sample_1.bal");
+        testMule3ToBal("set-payload/basic_set_payload.xml", "set-payload/basic_set_payload.bal");
     }
 
     @Test
     public void testMultipleSetPayloads() {
-        testMule3ToBal("set-payload/sample_2.xml", "set-payload/sample_2.bal");
+        testMule3ToBal("set-payload/multiple_set_payloads.xml", "set-payload/multiple_set_payloads.bal");
     }
 }

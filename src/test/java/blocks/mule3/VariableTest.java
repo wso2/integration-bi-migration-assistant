@@ -7,6 +7,6 @@ public class VariableTest extends AbstractBlockTest {
 
     @Test
     public void testSetVariable() {
-        testMule3ToBal("set-payload/sample_1.xml", "set-payload/sample_1.bal");
+        testMule3ToBal("variable/basic_set_variable.xml", "variable/basic_set_variable.bal");
     }
 }
