@@ -1,18 +1,22 @@
 package dw.parser.utils;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import dataweave.parser.DataWeaveBaseVisitor;
 import dataweave.parser.DataWeaveParser;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
-public class JsonVisitor extends DataWeaveBaseVisitor<ObjectNode> {
+public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public ObjectNode visitScript(DataWeaveParser.ScriptContext ctx) {
+    public JsonNode visitScript(DataWeaveParser.ScriptContext ctx) {
         ObjectNode scriptNode = objectMapper.createObjectNode();
         scriptNode.put("type", "Script");
 
@@ -28,7 +32,7 @@ public class JsonVisitor extends DataWeaveBaseVisitor<ObjectNode> {
     }
 
     @Override
-    public ObjectNode visitHeader(DataWeaveParser.HeaderContext ctx) {
+    public JsonNode visitHeader(DataWeaveParser.HeaderContext ctx) {
         ObjectNode headerNode = objectMapper.createObjectNode();
         headerNode.put("type", "Header");
         ArrayNode directives = objectMapper.createArrayNode();
@@ -42,12 +46,12 @@ public class JsonVisitor extends DataWeaveBaseVisitor<ObjectNode> {
     }
 
     @Override
-    public ObjectNode visitDirective(DataWeaveParser.DirectiveContext ctx) {
+    public JsonNode visitDirective(DataWeaveParser.DirectiveContext ctx) {
         return visitChildren(ctx);
     }
 
     @Override
-    public ObjectNode visitDwVersion(DataWeaveParser.DwVersionContext ctx) {
+    public JsonNode visitDwVersion(DataWeaveParser.DwVersionContext ctx) {
         ObjectNode directiveNode = objectMapper.createObjectNode();
         directiveNode.put("type", "Version");
         directiveNode.put("version", ctx.NUMBER().getText());
@@ -55,33 +59,35 @@ public class JsonVisitor extends DataWeaveBaseVisitor<ObjectNode> {
     }
 
     @Override
-    public ObjectNode visitOutputDirective(DataWeaveParser.OutputDirectiveContext ctx) {
+    public JsonNode visitOutputDirective(DataWeaveParser.OutputDirectiveContext ctx) {
         ObjectNode directiveNode = objectMapper.createObjectNode();
         directiveNode.put("type", "Output");
-        for (int i = 0; i < ctx.IDENTIFIER().size(); i++) {
-            directiveNode.put("output" + i, ctx.IDENTIFIER(i).getText());
-        }
+        List<TerminalNode> identifiers = ctx.IDENTIFIER();
+        directiveNode.put("output", identifiers.getFirst().getText() + "/" + identifiers.getLast().getText());
         return directiveNode;
     }
 
     @Override
-    public ObjectNode visitInputDirective(DataWeaveParser.InputDirectiveContext ctx) {
+    public JsonNode visitInputDirective(DataWeaveParser.InputDirectiveContext ctx) {
         ObjectNode directiveNode = objectMapper.createObjectNode();
         directiveNode.put("type", "Input");
-        directiveNode.put("input", ctx.INPUT().getText());
+        List<TerminalNode> identifiers = ctx.IDENTIFIER();
+        directiveNode.put("identifier", identifiers.getFirst().getText());
+        directiveNode.put("input", identifiers.get(1).getText() + "/" + identifiers.getLast().getText());
         return directiveNode;
     }
 
     @Override
-    public ObjectNode visitNamespaceDirective(DataWeaveParser.NamespaceDirectiveContext ctx) {
+    public JsonNode visitNamespaceDirective(DataWeaveParser.NamespaceDirectiveContext ctx) {
         ObjectNode directiveNode = objectMapper.createObjectNode();
         directiveNode.put("type", "NameSpace");
-        directiveNode.put("namespace", ctx.NAMESPACE().getText());
+        directiveNode.put("identifier", ctx.IDENTIFIER().getText());
+        directiveNode.put("value", ctx.URL().getText());
         return directiveNode;
     }
 
     @Override
-    public ObjectNode visitVariableDeclaration(DataWeaveParser.VariableDeclarationContext ctx) {
+    public JsonNode visitVariableDeclaration(DataWeaveParser.VariableDeclarationContext ctx) {
         ObjectNode directiveNode = objectMapper.createObjectNode();
         directiveNode.put("type", "Variable");
         directiveNode.put("identifier", ctx.IDENTIFIER().getText());
@@ -90,17 +96,27 @@ public class JsonVisitor extends DataWeaveBaseVisitor<ObjectNode> {
     }
 
     @Override
-    public ObjectNode visitFunctionDeclaration(DataWeaveParser.FunctionDeclarationContext ctx) {
+    public JsonNode visitFunctionDeclaration(DataWeaveParser.FunctionDeclarationContext ctx) {
         ObjectNode directiveNode = objectMapper.createObjectNode();
         directiveNode.put("type", "Function");
         directiveNode.put("identifier", ctx.IDENTIFIER().getText());
+        directiveNode.set("args", visit(ctx.functionParameters()));
         directiveNode.set("expression", visit(ctx.expression()));
         return directiveNode;
     }
 
+    @Override
+    public JsonNode visitFunctionParameters(DataWeaveParser.FunctionParametersContext ctx) {
+        ObjectNode directiveNode = objectMapper.createObjectNode();
+        String args = ctx.IDENTIFIER()
+                .stream()
+                .map(ParseTree::getText)
+                .collect(Collectors.joining(","));
+        return directiveNode.textNode(args);
+    }
 
     @Override
-    public ObjectNode visitBody(DataWeaveParser.BodyContext ctx) {
+    public JsonNode visitBody(DataWeaveParser.BodyContext ctx) {
         ObjectNode bodyNode = objectMapper.createObjectNode();
         bodyNode.put("type", "Body");
         List<DataWeaveParser.ExpressionContext> expression = ctx.expression();
@@ -117,7 +133,7 @@ public class JsonVisitor extends DataWeaveBaseVisitor<ObjectNode> {
     }
 
     @Override
-    public ObjectNode visitLiteralExpression(DataWeaveParser.LiteralExpressionContext ctx) {
+    public JsonNode visitLiteralExpression(DataWeaveParser.LiteralExpressionContext ctx) {
         ObjectNode literalNode = objectMapper.createObjectNode();
         literalNode.put("type", "Literal");
         literalNode.put("value", ctx.getText());
@@ -125,7 +141,7 @@ public class JsonVisitor extends DataWeaveBaseVisitor<ObjectNode> {
     }
 
     @Override
-    public ObjectNode visitIdentifierExpression(DataWeaveParser.IdentifierExpressionContext ctx) {
+    public JsonNode visitIdentifierExpression(DataWeaveParser.IdentifierExpressionContext ctx) {
         ObjectNode identifierNode = objectMapper.createObjectNode();
         identifierNode.put("type", "Identifier");
         identifierNode.put("name", ctx.getText());
@@ -133,7 +149,7 @@ public class JsonVisitor extends DataWeaveBaseVisitor<ObjectNode> {
     }
 
     @Override
-    public ObjectNode visitArrayExpression(DataWeaveParser.ArrayExpressionContext ctx) {
+    public JsonNode visitArrayExpression(DataWeaveParser.ArrayExpressionContext ctx) {
         ObjectNode arrayNode = objectMapper.createObjectNode();
         arrayNode.put("type", "Array");
         ArrayNode elements = objectMapper.createArrayNode();
@@ -147,14 +163,23 @@ public class JsonVisitor extends DataWeaveBaseVisitor<ObjectNode> {
     }
 
     @Override
-    public ObjectNode visitObjectExpression(DataWeaveParser.ObjectExpressionContext ctx) {
+    public JsonNode visitObjectExpression(DataWeaveParser.ObjectExpressionContext ctx) {
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put("type", "Object");
-
         for (DataWeaveParser.KeyValueContext kv : ctx.object().keyValue()) {
             objectNode.set(kv.IDENTIFIER().getText(), visit(kv.expression()));
         }
 
         return objectNode;
     }
+
+    @Override
+    public JsonNode visitInlineLambda(DataWeaveParser.InlineLambdaContext ctx) {
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "InlineLambda");
+        objectNode.set("args", visit(ctx.functionParameters()));
+        objectNode.set("expression", visit(ctx.expression()));
+        return objectNode;
+    }
+
 }

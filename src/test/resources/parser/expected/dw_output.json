@@ -4,8 +4,7 @@
     "type" : "Header",
     "directives" : [ {
       "type" : "Output",
-      "output0" : "application",
-      "output1" : "xml"
+      "output" : "application/xml"
     } ]
   },
   "body" : {

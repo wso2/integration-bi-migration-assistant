@@ -149,6 +149,22 @@ public interface DataWeaveListener extends ParseTreeListener {
     void exitBody(DataWeaveParser.BodyContext ctx);
 
     /**
+     * Enter a parse tree produced by the {@code lambdaExpression}
+     * labeled alternative in {@link DataWeaveParser}.
+     *
+     * @param ctx the parse tree
+     */
+    void enterLambdaExpression(DataWeaveParser.LambdaExpressionContext ctx);
+
+    /**
+     * Exit a parse tree produced by the {@code lambdaExpression}
+     * labeled alternative in {@link DataWeaveParser}.
+     *
+     * @param ctx the parse tree
+     */
+    void exitLambdaExpression(DataWeaveParser.LambdaExpressionContext ctx);
+
+    /**
      * Enter a parse tree produced by the {@code arrayExpression}
      * labeled alternative in {@link DataWeaveParser}.
      *
@@ -387,6 +403,20 @@ public interface DataWeaveListener extends ParseTreeListener {
     void exitBuiltInFunctionCall(DataWeaveParser.BuiltInFunctionCallContext ctx);
 
     /**
+     * Enter a parse tree produced by {@link DataWeaveParser#inlineLambdaMap}.
+     *
+     * @param ctx the parse tree
+     */
+    void enterInlineLambdaMap(DataWeaveParser.InlineLambdaMapContext ctx);
+
+    /**
+     * Exit a parse tree produced by {@link DataWeaveParser#inlineLambdaMap}.
+     *
+     * @param ctx the parse tree
+     */
+    void exitInlineLambdaMap(DataWeaveParser.InlineLambdaMapContext ctx);
+
+    /**
      * Enter a parse tree produced by {@link DataWeaveParser#inlineLambda}.
      *
      * @param ctx the parse tree
@@ -399,6 +429,20 @@ public interface DataWeaveListener extends ParseTreeListener {
      * @param ctx the parse tree
      */
     void exitInlineLambda(DataWeaveParser.InlineLambdaContext ctx);
+
+    /**
+     * Enter a parse tree produced by {@link DataWeaveParser#functionParameters}.
+     *
+     * @param ctx the parse tree
+     */
+    void enterFunctionParameters(DataWeaveParser.FunctionParametersContext ctx);
+
+    /**
+     * Exit a parse tree produced by {@link DataWeaveParser#functionParameters}.
+     *
+     * @param ctx the parse tree
+     */
+    void exitFunctionParameters(DataWeaveParser.FunctionParametersContext ctx);
 
     /**
      * Enter a parse tree produced by {@link DataWeaveParser#literal}.

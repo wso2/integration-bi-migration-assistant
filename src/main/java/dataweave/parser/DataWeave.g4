@@ -11,6 +11,7 @@ ASSIGN: '=';
 ARROW: '->';
 BOOLEAN: 'true' | 'false';
 IDENTIFIER: [a-zA-Z_][a-zA-Z0-9_]*;
+URL: [a-zA-Z]+ '://' [a-zA-Z0-9./_-]+;
 NUMBER: [0-9]+('.'[0-9]+)?; // Matches integers and decimals
 STRING: '"' .*? '"' | '\'' .*? '\''; // Support for single and double-quoted strings
 DATE: '|' .*? '|'; // ISO-8601 enclosed in "|"
@@ -57,11 +58,11 @@ outputDirective: OUTPUT IDENTIFIER ('/' IDENTIFIER)?;
 
 inputDirective: INPUT IDENTIFIER IDENTIFIER ('/' IDENTIFIER)?;
 
-namespaceDirective: NAMESPACE IDENTIFIER STRING;
+namespaceDirective: NAMESPACE IDENTIFIER URL;
 
 variableDeclaration: VAR IDENTIFIER ASSIGN expression;
 
-functionDeclaration: FUNCTION IDENTIFIER ARROW expression;
+functionDeclaration: FUNCTION IDENTIFIER '(' functionParameters? ')' expression;
 
 body: expression (NEWLINE+ expression)*; // Only one expression allowed at the top level
 
@@ -76,6 +77,7 @@ expression
     | expression OPERATOR_RANGE expression                         # rangeExpression
     | expression OPERATOR_CHAIN expression                         # chainExpression
     | functionCall                                                 # functionCallExpression
+    | inlineLambda                                                 # lambdaExpression
     | literal                                                      # literalExpression
     | array                                                        # arrayExpression
     | object                                                       # objectExpression
@@ -90,8 +92,14 @@ builtInFunctionCall
     ;
 
 // Inline lambda function for `map` and `filter`
-inlineLambda
+inlineLambdaMap
     : '(' (IDENTIFIER (COMMA IDENTIFIER)?)? ARROW expression ')'; // e.g., (item, index) -> item + 1
+
+inlineLambda
+    : '(' functionParameters ')' ARROW expression
+    ;
+
+functionParameters: IDENTIFIER (COMMA IDENTIFIER)*;
 
 
 // Literals (values)

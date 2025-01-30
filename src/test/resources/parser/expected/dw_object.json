@@ -13,8 +13,15 @@
   "body" : {
     "type" : "Body",
     "expression" : {
-      "type" : "Literal",
-      "value" : "123.321"
+      "type" : "Object",
+      "a" : {
+        "type" : "Literal",
+        "value" : "1"
+      },
+      "b" : {
+        "type" : "Literal",
+        "value" : "2"
+      }
     }
   }
 }

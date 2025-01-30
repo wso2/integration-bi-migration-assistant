@@ -13,8 +13,18 @@
   "body" : {
     "type" : "Body",
     "expression" : {
-      "type" : "Literal",
-      "value" : "123.321"
+      "type" : "Array",
+      "elements" : [ {
+        "type" : "Literal",
+        "value" : "1"
+      }, {
+        "type" : "Literal",
+        "value" : "2"
+      }, {
+        "type" : "Literal",
+        "value" : "3"
+      } ]
     }
   }
 }
+

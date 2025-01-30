@@ -24,14 +24,12 @@ public class ParserTestUtils {
 
     public static void compareJson(String dWScript, String expectedJsonFilePath) {
         ParseTree tree = getParseTree(dWScript);
-        ObjectNode actualJson = getJsonFromTree(tree);
+        JsonNode actualJson = getJsonFromTree(tree);
 
         try {
             JsonNode expectedJson = mapper.readTree(Files.readString(Paths.get(expectedJsonFilePath)));
             List<String> differences = new ArrayList<>();
-
             compareJsonNodes(expectedJson, actualJson, "", differences);
-
             if (!differences.isEmpty()) {
                 String errorMessage = "JSON output mismatch!\nDifferences:\n" + String.join("\n", differences) +
                         "\nExpected:\n" + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(expectedJson) +
@@ -51,7 +49,7 @@ public class ParserTestUtils {
         return parser.script();
     }
 
-    private static ObjectNode getJsonFromTree(ParseTree tree) {
+    private static JsonNode getJsonFromTree(ParseTree tree) {
         JsonVisitor visitor = new JsonVisitor();
         return visitor.visit(tree);
     }

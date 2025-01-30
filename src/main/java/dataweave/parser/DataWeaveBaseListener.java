@@ -198,6 +198,24 @@ public class DataWeaveBaseListener implements DataWeaveListener {
      * <p>The default implementation does nothing.</p>
      */
     @Override
+    public void enterLambdaExpression(DataWeaveParser.LambdaExpressionContext ctx) {
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation does nothing.</p>
+     */
+    @Override
+    public void exitLambdaExpression(DataWeaveParser.LambdaExpressionContext ctx) {
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation does nothing.</p>
+     */
+    @Override
     public void enterArrayExpression(DataWeaveParser.ArrayExpressionContext ctx) {
     }
 
@@ -468,6 +486,24 @@ public class DataWeaveBaseListener implements DataWeaveListener {
      * <p>The default implementation does nothing.</p>
      */
     @Override
+    public void enterInlineLambdaMap(DataWeaveParser.InlineLambdaMapContext ctx) {
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation does nothing.</p>
+     */
+    @Override
+    public void exitInlineLambdaMap(DataWeaveParser.InlineLambdaMapContext ctx) {
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation does nothing.</p>
+     */
+    @Override
     public void enterInlineLambda(DataWeaveParser.InlineLambdaContext ctx) {
     }
 
@@ -478,6 +514,24 @@ public class DataWeaveBaseListener implements DataWeaveListener {
      */
     @Override
     public void exitInlineLambda(DataWeaveParser.InlineLambdaContext ctx) {
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation does nothing.</p>
+     */
+    @Override
+    public void enterFunctionParameters(DataWeaveParser.FunctionParametersContext ctx) {
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation does nothing.</p>
+     */
+    @Override
+    public void exitFunctionParameters(DataWeaveParser.FunctionParametersContext ctx) {
     }
 
     /**
