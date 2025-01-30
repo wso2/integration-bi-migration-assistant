@@ -171,9 +171,9 @@ public class MuleToBalConverter {
 
         // Add global listeners
         List<Listener> listeners = new ArrayList<>();
-        for (HTTPListenerConfig HTTPListenerConfig : data.globalHttpListenerConfigsMap.values()) {
-            listeners.add(new Listener(ListenerType.HTTP, HTTPListenerConfig.name(), HTTPListenerConfig.port(),
-                    HTTPListenerConfig.config()));
+        for (HTTPListenerConfig httpListenerConfig : data.globalHttpListenerConfigsMap.values()) {
+            listeners.add(new Listener(ListenerType.HTTP, httpListenerConfig.name(), httpListenerConfig.port(),
+                    httpListenerConfig.config()));
         }
 
         // Add module vars

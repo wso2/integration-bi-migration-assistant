@@ -2,7 +2,6 @@ package dw.parser.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import dataweave.parser.DataWeaveLexer;
 import dataweave.parser.DataWeaveParser;
 import org.antlr.v4.runtime.CharStream;
