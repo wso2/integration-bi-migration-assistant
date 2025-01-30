@@ -55,4 +55,7 @@ public class Constants {
     // Misc
     public static final String METHOD_NAME_HTTP_ENDPOINT_TEMPLATE = "_invokeEndPoint%s_";
     public static final String VAR_DB_STREAM_TEMPLATE = "_dbStream%s_";
+
+    //DataWeave
+    public static final String INPUT_PAYLOAD = "input-payload";
 }
