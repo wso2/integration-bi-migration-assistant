@@ -38,6 +38,8 @@ import static ballerina.BallerinaModel.Import;
 import static ballerina.BallerinaModel.Listener;
 import static ballerina.BallerinaModel.ListenerType;
 import static ballerina.BallerinaModel.Module;
+import static ballerina.BallerinaModel.ModuleTypeDef;
+import static ballerina.BallerinaModel.ModuleVar;
 import static ballerina.BallerinaModel.Parameter;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
@@ -50,22 +52,30 @@ import static converter.ConversionUtils.getBallerinaResourcePath;
 import static converter.ConversionUtils.insertLeadingSlash;
 import static converter.ConversionUtils.processQueryParams;
 import static mule.MuleModel.Choice;
+import static mule.MuleModel.DbMSQLConfig;
+import static mule.MuleModel.DbSelect;
 import static mule.MuleModel.Flow;
+import static mule.MuleModel.FlowReference;
 import static mule.MuleModel.HttpListener;
 import static mule.MuleModel.HttpRequest;
 import static mule.MuleModel.Kind;
-import static mule.MuleModel.ListenerConfig;
+import static mule.MuleModel.HTTPListenerConfig;
 import static mule.MuleModel.LogLevel;
 import static mule.MuleModel.Logger;
 import static mule.MuleModel.MuleRecord;
 import static mule.MuleModel.Payload;
 import static mule.MuleModel.SetVariable;
+import static mule.MuleModel.SubFlow;
+import static mule.MuleModel.TransformMessage;
 import static mule.MuleModel.WhenInChoice;
+import static mule.MuleModel.UnsupportedBlock;
 
 public class MuleToBalConverter {
 
-    public static class Data {
-        HashMap<String, ListenerConfig> globalListenerConfigsMap = new HashMap<>();
+    static class Data {
+        HashMap<String, HTTPListenerConfig> globalHttpListenerConfigsMap = new HashMap<>();
+        HashMap<String, DbMSQLConfig> globalDbMySQLConfigsMap = new HashMap<>();
+        HashMap<String, ModuleTypeDef> typeDef = new HashMap<>();
         HashSet<Import> imports = new HashSet<>();
         HashSet<String> queryParams = new HashSet<>();
     }
@@ -79,7 +89,7 @@ public class MuleToBalConverter {
         }
 
         List<Flow> flows = new ArrayList<>();
-        List<MuleModel.SubFlow> subFlows = new ArrayList<>();
+        List<SubFlow> subFlows = new ArrayList<>();
 
         Data data = new Data();
         NodeList childNodes = root.getChildNodes();
@@ -91,7 +101,8 @@ public class MuleToBalConverter {
 
             Element element = (Element) node;
             String elementTagName = element.getTagName();
-            if (Constants.HTTP_LISTENER_CONFIG.equals(elementTagName)) {
+            if (Constants.HTTP_LISTENER_CONFIG.equals(elementTagName) ||
+                    Constants.DB_MYSQL_CONFIG.equals(elementTagName)) {
                 readGlobalConfigElement(data, element);
                 continue;
             }
@@ -100,7 +111,7 @@ public class MuleToBalConverter {
                 Flow flow = readFlow(data, element);
                 flows.add(flow);
             } else if (Constants.SUB_FLOW.equals(elementTagName)) {
-                MuleModel.SubFlow subFlow = readSubFlow(data, element);
+                SubFlow subFlow = readSubFlow(data, element);
                 subFlows.add(subFlow);
             }
         }
@@ -126,15 +137,17 @@ public class MuleToBalConverter {
     private static void readGlobalConfigElement(Data data, Element element) {
         String elementTagName = element.getTagName();
         if (Constants.HTTP_LISTENER_CONFIG.equals(elementTagName)) {
-            ListenerConfig listenerConfig = readHttpListenerConfig(data, element);
-            data.globalListenerConfigsMap.put(listenerConfig.name(), listenerConfig);
+            HTTPListenerConfig httpListenerConfig = readHttpListenerConfig(data, element);
+            data.globalHttpListenerConfigsMap.put(httpListenerConfig.name(), httpListenerConfig);
+        } else if (Constants.DB_MYSQL_CONFIG.equals(elementTagName)) {
+            DbMSQLConfig dbMSQLConfig = readDbMySQLConfig(data, element);
+            data.globalDbMySQLConfigsMap.put(dbMSQLConfig.name(), dbMSQLConfig);
         } else {
             throw new UnsupportedOperationException();
         }
     }
 
-    private static BallerinaModel generateBallerinaModel(Data data, List<Flow> flows,
-                                                         List<MuleModel.SubFlow> subFlows) {
+    private static BallerinaModel generateBallerinaModel(Data data, List<Flow> flows, List<SubFlow> subFlows) {
         // TODO: Support multiple flows
         Flow flow = flows.getFirst();
 
@@ -153,22 +166,32 @@ public class MuleToBalConverter {
         // Add imports
         List<Import> imports = new ArrayList<>();
         for (Import imp : data.imports) {
-            imports.add(new Import(imp.org(), imp.module()));
+            imports.add(new Import(imp.orgName(), imp.moduleName(), imp.importPrefix()));
         }
 
         // Add global listeners
         List<Listener> listeners = new ArrayList<>();
-        for (ListenerConfig listenerConfig : data.globalListenerConfigsMap.values()) {
-            listeners.add(new Listener(ListenerType.HTTP, listenerConfig.name(), listenerConfig.port(),
-                    listenerConfig.config()));
+        for (HTTPListenerConfig HTTPListenerConfig : data.globalHttpListenerConfigsMap.values()) {
+            listeners.add(new Listener(ListenerType.HTTP, HTTPListenerConfig.name(), HTTPListenerConfig.port(),
+                    HTTPListenerConfig.config()));
         }
 
-        return createBallerinaModel(imports, listeners, Collections.singletonList(service), functions);
+        // Add module vars
+        List<ModuleVar> moduleVars = new ArrayList<>();
+        for (DbMSQLConfig dbMSQLConfig : data.globalDbMySQLConfigsMap.values()) {
+            var balExpr = new BallerinaExpression(String.format("check new (\"%s\", \"%s\", \"%s\", \"%s\", %s)",
+                    dbMSQLConfig.host(), dbMSQLConfig.user(), dbMSQLConfig.password(), dbMSQLConfig.database(),
+                    dbMSQLConfig.port()));
+            moduleVars.add(new ModuleVar(dbMSQLConfig.name(), Constants.MYSQL_CLIENT, balExpr));
+        }
+
+        return createBallerinaModel(imports, data.typeDef.values().stream().toList(), moduleVars, listeners,
+                Collections.singletonList(service), functions);
     }
 
-    private static List<Function> genBalFunctions(Data data, List<MuleModel.SubFlow> subFlows) {
+    private static List<Function> genBalFunctions(Data data, List<SubFlow> subFlows) {
         List<Function> functions = new ArrayList<>(subFlows.size());
-        for (MuleModel.SubFlow subFlow : subFlows) {
+        for (SubFlow subFlow : subFlows) {
             List<Statement> body = genFuncBodyStatements(data, subFlow.flowBlocks());
             // TODO: assumed source is always a http listener
             List<Parameter> parameterList = List.of(new Parameter(Constants.VAR_RESPONSE, "http:Response",
@@ -183,7 +206,7 @@ public class MuleToBalConverter {
         String resourcePath = getBallerinaResourcePath(httpListener.resourcePath());
         String[] resourceMethodNames = httpListener.allowedMethods();
         List<String> listenerRefs = Collections.singletonList(httpListener.configRef());
-        String muleBasePath = data.globalListenerConfigsMap.get(httpListener.configRef()).basePath();
+        String muleBasePath = data.globalHttpListenerConfigsMap.get(httpListener.configRef()).basePath();
         String basePath = getBallerinaAbsolutePath(muleBasePath);
 
         // Add services
@@ -196,7 +219,7 @@ public class MuleToBalConverter {
         int invokeEndPointCount = 0; // TODO: support different body resources
         String functionArgs = String.join(",", queryPrams.stream()
                 .map(p -> String.format("%s", p.name())).toList());
-        String invokeEndPointMethodName = String.format(Constants.HTTP_ENDPOINT_METHOD_NAME_TEMPLATE,
+        String invokeEndPointMethodName = String.format(Constants.METHOD_NAME_HTTP_ENDPOINT_TEMPLATE,
                 invokeEndPointCount++);
         var resourceReturnStmt = new BallerinaStatement(String.format("return self.%s(%s);",
                 invokeEndPointMethodName, functionArgs));
@@ -234,7 +257,8 @@ public class MuleToBalConverter {
         // Read flow blocks
         for (MuleRecord record : flowBlocks) {
             switch (record.kind()) {
-                case LOGGER, PAYLOAD, CHOICE, SET_VARIABLE, HTTP_REQUEST, FLOW_REFERENCE, TRANSFORM_MESSAGE -> {
+                case LOGGER, PAYLOAD, CHOICE, SET_VARIABLE, HTTP_REQUEST, FLOW_REFERENCE, UNSUPPORTED_BLOCK,
+                        DB_SELECT -> {
                     List<Statement> s = convertToStatements(data, record);
                     body.addAll(s);
                 }
@@ -245,10 +269,11 @@ public class MuleToBalConverter {
         return body;
     }
 
-    private static BallerinaModel createBallerinaModel(List<Import> imports, List<Listener> listeners,
+    private static BallerinaModel createBallerinaModel(List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
+                                                       List<ModuleVar> moduleVars, List<Listener> listeners,
                                                        List<Service> services, List<Function> functions) {
         String moduleName = "muleDemo";
-        Module module = new Module(moduleName, imports, Collections.emptyList(), listeners, services, functions);
+        Module module = new Module(moduleName, imports, moduleTypeDefs, moduleVars, listeners, services, functions);
         return new BallerinaModel(new DefaultPackage(moduleName, moduleName, "1.0.0"),
                 Collections.singletonList(module));
     }
@@ -276,7 +301,12 @@ public class MuleToBalConverter {
             case Constants.TRANSFORM_MESSAGE -> {
                 return readTransformMessage(data, element);
             }
-            default -> throw new UnsupportedOperationException();
+            case Constants.DB_SELECT -> {
+                return readDbSelect(data, element);
+            }
+            default -> {
+                return readUnsupportedBlock(data, element);
+            }
         }
     }
 
@@ -341,17 +371,37 @@ public class MuleToBalConverter {
                         genQueryParam(queryParams))));
                 statementList.addAll(statements);
             }
-            case MuleModel.FlowReference flowReference -> {
+            case FlowReference flowReference -> {
                 // TODO: assumed source is always a http listener
                 statementList.add(new BallerinaStatement(String.format("%s(%s);", flowReference.flowName(),
                         Constants.VAR_RESPONSE)));
             }
-            case MuleModel.TransformMessage transformMessage -> {
+            case DbSelect dbSelect -> {
+                // TODO: assumed source is always a http listener
+                data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_SQL, Optional.empty()));
+                String streamConstraintType = "Record";
+                data.typeDef.put(streamConstraintType, new ModuleTypeDef(streamConstraintType, "record {}"));
+                statementList.add(new BallerinaStatement(String.format("%s %s= %s->query(`%s`);",
+                        String.format(Constants.DB_QUERY_DEFAULT_TEMPLATE, streamConstraintType),
+                        String.format(Constants.VAR_DB_STREAM_TEMPLATE, 0),
+                        dbSelect.configRef(), dbSelect.query())));
+                // Record[] payload = check from Record r in _dbStream0_ select r;
+                statementList.add(new BallerinaStatement(
+                        String.format("%s[] payload = check from %s %s in %s select %s;", streamConstraintType,
+                                streamConstraintType, "r", String.format(Constants.VAR_DB_STREAM_TEMPLATE, 0), "r")));
+            }
+            case TransformMessage transformMessage -> {
                 String mimeType = transformMessage.mimeType();
                 String script = transformMessage.script();
                 DWReader.processDWScript(script, mimeType, data, statementList);
                 statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);",
                         Constants.VAR_RESPONSE, DWConstants.DATAWEAVE_OUTPUT_VARIABLE_NAME)));
+            }
+            case UnsupportedBlock unsupportedBlock -> {
+                String comment = ConversionUtils.wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());
+                // TODO: comment is not a statement. Find a better way to handle this
+                // This works for now because we concatenate and create a body block `{ stmts }` before parsing.
+                statementList.add(new BallerinaStatement(comment));
             }
             case null, default -> throw new IllegalStateException();
         }
@@ -370,7 +420,7 @@ public class MuleToBalConverter {
 
     // Components
     private static Logger readLogger(Data data, Element element) {
-        data.imports.add(new Import("ballerina", "log"));
+        data.imports.add(new Import("ballerina", "log", Optional.empty()));
         String message = element.getAttribute("message");
         String level = element.getAttribute("level");
         LogLevel logLevel;
@@ -456,7 +506,7 @@ public class MuleToBalConverter {
         return new Flow(flowName, source, flowBlocks);
     }
 
-    private static MuleModel.SubFlow readSubFlow(Data data, Element flowElement) {
+    private static SubFlow readSubFlow(Data data, Element flowElement) {
         String flowName = flowElement.getAttribute("name");
         NodeList children = flowElement.getChildNodes();
 
@@ -472,7 +522,7 @@ public class MuleToBalConverter {
             flowBlocks.add(muleRec);
         }
 
-        return new MuleModel.SubFlow(flowName, flowBlocks);
+        return new SubFlow(flowName, flowBlocks);
     }
 
     // Transformers
@@ -488,16 +538,6 @@ public class MuleToBalConverter {
     }
 
     // HTTP Module
-    private static ListenerConfig readHttpListenerConfig(Data data, Element element) {
-        data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP));
-        String listenerName = element.getAttribute("name");
-        String host = element.getAttribute("host");
-        String port = element.getAttribute("port");
-        String basePath = insertLeadingSlash(element.getAttribute("basePath"));
-        HashMap<String, String> config = new HashMap<>(Collections.singletonMap("host", host));
-        return new ListenerConfig(listenerName, basePath, port, config);
-    }
-
     private static HttpListener readHttpListener(Data data, Element element) {
         String configRef = element.getAttribute("config-ref");
         String resourcePath = element.getAttribute("path");
@@ -516,12 +556,46 @@ public class MuleToBalConverter {
         return new HttpRequest(method, url, path, queryParams);
     }
 
-    private static MuleModel.FlowReference readFlowReference(Data data, Element element) {
+    private static FlowReference readFlowReference(Data data, Element element) {
         String flowName = element.getAttribute("name");
-        return new MuleModel.FlowReference(flowName);
+        return new FlowReference(flowName);
     }
 
-    private static MuleModel.TransformMessage readTransformMessage(Data data, Element element) {
+    private static DbSelect readDbSelect(Data data, Element element) {
+        String configRef = element.getAttribute("config-ref");
+        String query = element.getElementsByTagName("db:parameterized-query").item(0).getTextContent();
+        return new DbSelect(configRef, query);
+    }
+
+    private static UnsupportedBlock readUnsupportedBlock(Data data, Element element) {
+        String xmlBlock = ConversionUtils.elementToString(element);
+        return new UnsupportedBlock(xmlBlock);
+    }
+
+    // Global Elements
+    private static HTTPListenerConfig readHttpListenerConfig(Data data, Element element) {
+        data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP, Optional.empty()));
+        String listenerName = element.getAttribute("name");
+        String host = element.getAttribute("host");
+        String port = element.getAttribute("port");
+        String basePath = insertLeadingSlash(element.getAttribute("basePath"));
+        HashMap<String, String> config = new HashMap<>(Collections.singletonMap("host", host));
+        return new HTTPListenerConfig(listenerName, basePath, port, config);
+    }
+
+    private static DbMSQLConfig readDbMySQLConfig(Data data, Element element) {
+        data.imports.add(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_MYSQL, Optional.empty()));
+        data.imports.add(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_MYSQL_DRIVER, Optional.of("_")));
+        String name = element.getAttribute("name");
+        String host = element.getAttribute("host");
+        String port = element.getAttribute("port");
+        String user = element.getAttribute("user");
+        String password = element.getAttribute("password");
+        String database = element.getAttribute("database");
+        return new DbMSQLConfig(name, host, port, user, password, database);
+    }
+
+    private static TransformMessage readTransformMessage(Data data, Element element) {
         Element firstElement = (Element) element.getChildNodes().item(1);
         String mimeType = null;
         CDATASection cdataSection;

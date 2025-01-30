@@ -12,6 +12,7 @@ import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
@@ -28,6 +29,8 @@ import static ballerina.BallerinaModel.IfElseStatement;
 import static ballerina.BallerinaModel.Import;
 import static ballerina.BallerinaModel.Listener;
 import static ballerina.BallerinaModel.Module;
+import static ballerina.BallerinaModel.ModuleTypeDef;
+import static ballerina.BallerinaModel.ModuleVar;
 import static ballerina.BallerinaModel.Parameter;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
@@ -46,11 +49,24 @@ public class CodeGenerator {
             List<ImportDeclarationNode> imports = new ArrayList<>();
             for (Import importDeclaration : module.imports()) {
                 ImportDeclarationNode importDeclarationNode = NodeParser.parseImportDeclaration(
-                        String.format("import %s/%s;", importDeclaration.org(), importDeclaration.module()));
+                        constructImportDeclaration(importDeclaration));
                 imports.add(importDeclarationNode);
             }
 
             List<ModuleMemberDeclarationNode> moduleMembers = new ArrayList<>();
+
+            for (ModuleTypeDef moduleTypeDef : module.moduleTypeDefs()) {
+                TypeDefinitionNode typeDefinitionNode = (TypeDefinitionNode) NodeParser.parseModuleMemberDeclaration(
+                        String.format("type %s %s;", moduleTypeDef.name(), moduleTypeDef.type()));
+                moduleMembers.add(typeDefinitionNode);
+            }
+
+            for (ModuleVar moduleVar : module.moduleVars()) {
+                ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(
+                        String.format("%s %s = %s;", moduleVar.type(), moduleVar.name(), moduleVar.expr().expr()));
+                moduleMembers.add(member);
+            }
+
             for (Listener listener : module.listeners()) {
                 ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(
                         String.format("listener http:Listener %s = new (%s, {host: \"%s\"});", listener.name(),
@@ -204,5 +220,11 @@ public class CodeGenerator {
         } else {
             throw new IllegalStateException();
         }
+    }
+
+    private static String constructImportDeclaration(Import importDeclaration) {
+        String importPrefix = importDeclaration.importPrefix().map(ip -> String.format(" as %s", ip)).orElse("");
+        return String.format("import %s/%s%s;", importDeclaration.orgName(), importDeclaration.moduleName(),
+                importPrefix);
     }
 }

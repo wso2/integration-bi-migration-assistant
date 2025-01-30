@@ -63,14 +63,6 @@ public record MuleModel() {
         }
     }
 
-    public record ListenerConfig(Kind kind, String name, String basePath, String port,
-                                 Map<String, String> config) implements MuleRecord {
-        public ListenerConfig(String name, String basePath, String port, Map<String,
-                String> config) {
-            this(Kind.LISTENER_CONFIG, name, basePath, port, config);
-        }
-    }
-
     public record Flow(Kind kind, String name, MuleRecord source, List<MuleRecord> flowBlocks) implements MuleRecord {
         public Flow(String name, MuleRecord source, List<MuleRecord> flowBlocks) {
             this(Kind.FLOW, name, source, flowBlocks);
@@ -90,6 +82,36 @@ public record MuleModel() {
         }
     }
 
+    // Global Elements
+    public record HTTPListenerConfig(Kind kind, String name, String basePath, String port,
+                                     Map<String, String> config) implements MuleRecord {
+        public HTTPListenerConfig(String name, String basePath, String port, Map<String,
+                String> config) {
+            this(Kind.HTTP_LISTENER_CONFIG, name, basePath, port, config);
+        }
+    }
+
+    public record DbMSQLConfig(Kind kind, String name, String host, String port, String user, String password,
+                               String database) implements MuleRecord {
+        public DbMSQLConfig(String name, String host, String port, String user, String password, String database) {
+            this(Kind.DB_MYSQL_CONFIG, name, host, port, user, password, database);
+        }
+    }
+
+    // Database Connector
+    public record DbSelect(Kind kind, String configRef, String query) implements MuleRecord {
+        public DbSelect(String configRef, String query) {
+            this(Kind.DB_SELECT, configRef, query);
+        }
+    }
+
+    // Misc
+    public record UnsupportedBlock(Kind kind, String xmlBlock) implements MuleRecord {
+        public UnsupportedBlock(String xmlBlock) {
+            this(Kind.UNSUPPORTED_BLOCK, xmlBlock);
+        }
+    }
+
     public interface MuleRecord {
         Kind kind();
     }
@@ -102,10 +124,13 @@ public record MuleModel() {
         HTTP_REQUEST,
         CHOICE,
         WHEN_IN_CHOICE,
-        LISTENER_CONFIG,
+        HTTP_LISTENER_CONFIG,
+        DB_MYSQL_CONFIG,
+        DB_SELECT,
         SET_VARIABLE,
         TRANSFORM_MESSAGE,
         FLOW,
-        SUB_FLOW
+        SUB_FLOW,
+        UNSUPPORTED_BLOCK
     }
 }
