@@ -13,6 +13,7 @@ import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
@@ -29,6 +30,8 @@ import static ballerina.BallerinaModel.IfElseStatement;
 import static ballerina.BallerinaModel.Import;
 import static ballerina.BallerinaModel.Listener;
 import static ballerina.BallerinaModel.Module;
+import static ballerina.BallerinaModel.ModuleTypeDef;
+import static ballerina.BallerinaModel.ModuleVar;
 import static ballerina.BallerinaModel.Parameter;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
@@ -52,7 +55,7 @@ public class CodeGenerator {
             List<ImportDeclarationNode> imports = new ArrayList<>();
             for (Import importDeclaration : textDocument.imports()) {
                 ImportDeclarationNode importDeclarationNode = NodeParser.parseImportDeclaration(
-                        String.format("import %s/%s;", importDeclaration.org(), importDeclaration.module()));
+                        constructImportDeclaration(importDeclaration));
                 imports.add(importDeclarationNode);
             }
 
@@ -236,5 +239,11 @@ public class CodeGenerator {
         } else {
             throw new IllegalStateException();
         }
+    }
+
+    private static String constructImportDeclaration(Import importDeclaration) {
+        String importPrefix = importDeclaration.importPrefix().map(ip -> String.format(" as %s", ip)).orElse("");
+        return String.format("import %s/%s%s;", importDeclaration.orgName(), importDeclaration.moduleName(),
+                importPrefix);
     }
 }
