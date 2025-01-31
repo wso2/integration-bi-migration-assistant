@@ -2,7 +2,7 @@ package dataweave;
 
 import ballerina.BallerinaModel;
 import converter.MuleToBalConverter;
-import dataweave.converter.DataWeaveBallerinaVisitor;
+import dataweave.converter.BallerinaVisitor;
 import dataweave.parser.DataWeaveLexer;
 import dataweave.parser.DataWeaveParser;
 import org.antlr.v4.runtime.CharStreams;
@@ -22,15 +22,8 @@ public class DWReader {
 
     public static Object processDWScript(String script, String mimeType, MuleToBalConverter.Data data,
                                          List<BallerinaModel.Statement> statementList) {
-//        DataWeaveLexer lexer = new DataWeaveLexer(CharStreams.fromString(script));
-//        CommonTokenStream tokens = new CommonTokenStream(lexer);
-//        tokens.fill();
-//
-//        for (Token token : tokens.getTokens()) {
-//            token.getText() + " -> " + lexer.getVocabulary().getSymbolicName(token.getType());
-//        }
         ParseTree tree = readDWScript(script);
-        DataWeaveBallerinaVisitor visitor = new DataWeaveBallerinaVisitor(mimeType, data, statementList);
+        BallerinaVisitor visitor = new BallerinaVisitor(mimeType, data, statementList);
         visitor.visit(tree);
         return null;
     }

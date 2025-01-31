@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import dataweave.parser.DataWeaveBaseVisitor;
 import dataweave.parser.DataWeaveParser;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -62,8 +61,7 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     public JsonNode visitOutputDirective(DataWeaveParser.OutputDirectiveContext ctx) {
         ObjectNode directiveNode = objectMapper.createObjectNode();
         directiveNode.put("type", "Output");
-        List<TerminalNode> identifiers = ctx.IDENTIFIER();
-        directiveNode.put("output", identifiers.getFirst().getText() + "/" + identifiers.getLast().getText());
+        directiveNode.put("output", ctx.MEDIA_TYPE().getText());
         return directiveNode;
     }
 
@@ -71,9 +69,8 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     public JsonNode visitInputDirective(DataWeaveParser.InputDirectiveContext ctx) {
         ObjectNode directiveNode = objectMapper.createObjectNode();
         directiveNode.put("type", "Input");
-        List<TerminalNode> identifiers = ctx.IDENTIFIER();
-        directiveNode.put("identifier", identifiers.getFirst().getText());
-        directiveNode.put("input", identifiers.get(1).getText() + "/" + identifiers.getLast().getText());
+        directiveNode.put("identifier", ctx.IDENTIFIER().getText());
+        directiveNode.put("input", ctx.MEDIA_TYPE().getText());
         return directiveNode;
     }
 

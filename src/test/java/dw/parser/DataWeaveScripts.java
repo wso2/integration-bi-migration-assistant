@@ -51,6 +51,13 @@ public class DataWeaveScripts {
             ---
             payload
             """;
+    public static final String SCRIPT_OUTPUT_INPUT = """
+            %dw 1.0
+            %output application/xml
+            %input payload application/json
+            ---
+            payload
+            """;
     public static final String SCRIPT_NAME_SPACE = """
             %dw 2.0
             %namespace mes http://www.mulesoft.com/anypoint/SOA/message/v1.0

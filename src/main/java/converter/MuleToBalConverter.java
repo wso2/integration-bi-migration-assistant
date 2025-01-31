@@ -3,7 +3,7 @@ package converter;
 import ballerina.BallerinaModel;
 import ballerina.CodeGenerator;
 import dataweave.DWReader;
-import dataweave.converter.DWConstants;
+import dataweave.converter.DWUtils;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.Constants;
 import mule.MuleModel;
@@ -75,9 +75,11 @@ public class MuleToBalConverter {
     public static class Data {
         HashMap<String, HTTPListenerConfig> globalHttpListenerConfigsMap = new HashMap<>();
         HashMap<String, DbMSQLConfig> globalDbMySQLConfigsMap = new HashMap<>();
-        HashMap<String, ModuleTypeDef> typeDef = new HashMap<>();
-        HashSet<Import> imports = new HashSet<>();
+        public HashMap<String, ModuleTypeDef> typeDef = new HashMap<>();
+        public HashSet<Import> imports = new HashSet<>();
         HashSet<String> queryParams = new HashSet<>();
+        public List<Function> functions = new ArrayList<>();
+        public int dwMethodCount = 0;
     }
 
     public static SyntaxTree convertToBallerina(String xmlFilePath) {
@@ -199,6 +201,7 @@ public class MuleToBalConverter {
             Function function = new Function(Optional.empty(), subFlow.name(), parameterList, Optional.empty(), body);
             functions.add(function);
         }
+        functions.addAll(data.functions);
         return functions;
     }
 
@@ -395,7 +398,7 @@ public class MuleToBalConverter {
                 String script = transformMessage.script();
                 DWReader.processDWScript(script, mimeType, data, statementList);
                 statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);",
-                        Constants.VAR_RESPONSE, DWConstants.DATAWEAVE_OUTPUT_VARIABLE_NAME)));
+                        Constants.VAR_RESPONSE, DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME)));
             }
             case UnsupportedBlock unsupportedBlock -> {
                 String comment = ConversionUtils.wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());

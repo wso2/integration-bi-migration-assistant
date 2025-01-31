@@ -12,6 +12,7 @@ ARROW: '->';
 BOOLEAN: 'true' | 'false';
 IDENTIFIER: [a-zA-Z_][a-zA-Z0-9_]*;
 URL: [a-zA-Z]+ '://' [a-zA-Z0-9./_-]+;
+MEDIA_TYPE: [a-z]+ '/' [a-z0-9.+-]+;
 NUMBER: [0-9]+('.'[0-9]+)?; // Matches integers and decimals
 STRING: '"' .*? '"' | '\'' .*? '\''; // Support for single and double-quoted strings
 DATE: '|' .*? '|'; // ISO-8601 enclosed in "|"
@@ -54,9 +55,9 @@ directive
 
 dwVersion: DW NUMBER;
 
-outputDirective: OUTPUT IDENTIFIER ('/' IDENTIFIER)?;
+outputDirective: OUTPUT MEDIA_TYPE;
 
-inputDirective: INPUT IDENTIFIER IDENTIFIER ('/' IDENTIFIER)?;
+inputDirective: INPUT IDENTIFIER MEDIA_TYPE;
 
 namespaceDirective: NAMESPACE IDENTIFIER URL;
 

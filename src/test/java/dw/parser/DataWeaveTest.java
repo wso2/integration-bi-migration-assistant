@@ -31,6 +31,7 @@ public class DataWeaveTest {
 // TODO: Fix overlapping regex conflict
                 {DataWeaveScripts.SCRIPT_ARRAY, "src/test/resources/parser/expected/dw_array.json"},
                 {DataWeaveScripts.SCRIPT_OBJECT, "src/test/resources/parser/expected/dw_object.json"},
+                {DataWeaveScripts.SCRIPT_OUTPUT_INPUT, "src/test/resources/parser/expected/dw_output_input.json"},
         };
     }
 }

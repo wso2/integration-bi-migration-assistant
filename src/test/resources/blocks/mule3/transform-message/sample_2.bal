@@ -41,12 +41,13 @@ service /foo on config {
 
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
-        string _dwOutput_ = _dwMethod0_();
+        json _dwOutput_ = _dwMethod0_(payload);
         _response_.setPayload(_dwOutput_);
         return _response_;
     }
 }
 
-private function _dwMethod0_() returns string {
-    return "Hello World";
+private function _dwMethod0_(json payload) returns json {
+    int conversionRate = 13.15;
+    return {"s": "Hello World", "n": 1.23, "b": true, "a": [1, 2, 3], "o": {"name": "Anne"}};
 }
