@@ -8,7 +8,6 @@ import dataweave.parser.DataWeaveBaseVisitor;
 import dataweave.parser.DataWeaveParser;
 import org.antlr.v4.runtime.tree.ParseTree;
 
-import java.util.List;
 import java.util.stream.Collectors;
 
 public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
@@ -116,16 +115,8 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     public JsonNode visitBody(DataWeaveParser.BodyContext ctx) {
         ObjectNode bodyNode = objectMapper.createObjectNode();
         bodyNode.put("type", "Body");
-        List<DataWeaveParser.ExpressionContext> expression = ctx.expression();
-        if (expression.size() == 1) {
-            bodyNode.set("expression", visit(expression.getFirst()));
-        } else {
-            ArrayNode expressions = objectMapper.createArrayNode();
-            for (DataWeaveParser.ExpressionContext expr : expression) {
-                expressions.add(visit(expr));
-            }
-            bodyNode.set("expression", expressions);
-        }
+        DataWeaveParser.ExpressionContext expression = ctx.expression();
+        bodyNode.set("expression", visit(expression));
         return bodyNode;
     }
 
@@ -166,7 +157,15 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
         for (DataWeaveParser.KeyValueContext kv : ctx.object().keyValue()) {
             objectNode.set(kv.IDENTIFIER().getText(), visit(kv.expression()));
         }
+        return objectNode;
+    }
 
+    @Override
+    public JsonNode visitSingleValueSelector(DataWeaveParser.SingleValueSelectorContext ctx) {
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "SingleValueSelector");
+        objectNode.set("primary", visit(ctx.primaryExpression()));
+        objectNode.put("identifier", ctx.IDENTIFIER().getText());
         return objectNode;
     }
 

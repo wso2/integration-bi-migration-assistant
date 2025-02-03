@@ -130,6 +130,94 @@ public class DataWeaveBaseVisitor<T> extends AbstractParseTreeVisitor<T> impleme
      * {@link #visitChildren} on {@code ctx}.</p>
      */
     @Override
+    public T visitPrimaryExpressionWrapper(DataWeaveParser.PrimaryExpressionWrapperContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     */
+    @Override
+    public T visitChainExpression(DataWeaveParser.ChainExpressionContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     */
+    @Override
+    public T visitConditionalExpression(DataWeaveParser.ConditionalExpressionContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     */
+    @Override
+    public T visitMathExpression(DataWeaveParser.MathExpressionContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     */
+    @Override
+    public T visitRangeExpression(DataWeaveParser.RangeExpressionContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     */
+    @Override
+    public T visitComparisonExpression(DataWeaveParser.ComparisonExpressionContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     */
+    @Override
+    public T visitBitwiseExpression(DataWeaveParser.BitwiseExpressionContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     */
+    @Override
+    public T visitLogicalExpression(DataWeaveParser.LogicalExpressionContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     */
+    @Override
     public T visitLambdaExpression(DataWeaveParser.LambdaExpressionContext ctx) {
         return visitChildren(ctx);
     }
@@ -152,17 +240,6 @@ public class DataWeaveBaseVisitor<T> extends AbstractParseTreeVisitor<T> impleme
      * {@link #visitChildren} on {@code ctx}.</p>
      */
     @Override
-    public T visitConditionalExpression(DataWeaveParser.ConditionalExpressionContext ctx) {
-        return visitChildren(ctx);
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * <p>The default implementation returns the result of calling
-     * {@link #visitChildren} on {@code ctx}.</p>
-     */
-    @Override
     public T visitIdentifierExpression(DataWeaveParser.IdentifierExpressionContext ctx) {
         return visitChildren(ctx);
     }
@@ -174,7 +251,7 @@ public class DataWeaveBaseVisitor<T> extends AbstractParseTreeVisitor<T> impleme
      * {@link #visitChildren} on {@code ctx}.</p>
      */
     @Override
-    public T visitMathExpression(DataWeaveParser.MathExpressionContext ctx) {
+    public T visitIndexedSelector(DataWeaveParser.IndexedSelectorContext ctx) {
         return visitChildren(ctx);
     }
 
@@ -185,7 +262,7 @@ public class DataWeaveBaseVisitor<T> extends AbstractParseTreeVisitor<T> impleme
      * {@link #visitChildren} on {@code ctx}.</p>
      */
     @Override
-    public T visitComparisonExpression(DataWeaveParser.ComparisonExpressionContext ctx) {
+    public T visitAttributeSelector(DataWeaveParser.AttributeSelectorContext ctx) {
         return visitChildren(ctx);
     }
 
@@ -196,7 +273,7 @@ public class DataWeaveBaseVisitor<T> extends AbstractParseTreeVisitor<T> impleme
      * {@link #visitChildren} on {@code ctx}.</p>
      */
     @Override
-    public T visitLogicalExpression(DataWeaveParser.LogicalExpressionContext ctx) {
+    public T visitDescendantsSelector(DataWeaveParser.DescendantsSelectorContext ctx) {
         return visitChildren(ctx);
     }
 
@@ -229,7 +306,7 @@ public class DataWeaveBaseVisitor<T> extends AbstractParseTreeVisitor<T> impleme
      * {@link #visitChildren} on {@code ctx}.</p>
      */
     @Override
-    public T visitChainExpression(DataWeaveParser.ChainExpressionContext ctx) {
+    public T visitExistenceQuerySelector(DataWeaveParser.ExistenceQuerySelectorContext ctx) {
         return visitChildren(ctx);
     }
 
@@ -240,7 +317,7 @@ public class DataWeaveBaseVisitor<T> extends AbstractParseTreeVisitor<T> impleme
      * {@link #visitChildren} on {@code ctx}.</p>
      */
     @Override
-    public T visitBuiltInFunctionExpression(DataWeaveParser.BuiltInFunctionExpressionContext ctx) {
+    public T visitSingleValueSelector(DataWeaveParser.SingleValueSelectorContext ctx) {
         return visitChildren(ctx);
     }
 
@@ -262,18 +339,7 @@ public class DataWeaveBaseVisitor<T> extends AbstractParseTreeVisitor<T> impleme
      * {@link #visitChildren} on {@code ctx}.</p>
      */
     @Override
-    public T visitRangeExpression(DataWeaveParser.RangeExpressionContext ctx) {
-        return visitChildren(ctx);
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * <p>The default implementation returns the result of calling
-     * {@link #visitChildren} on {@code ctx}.</p>
-     */
-    @Override
-    public T visitBitwiseExpression(DataWeaveParser.BitwiseExpressionContext ctx) {
+    public T visitMultiValueSelector(DataWeaveParser.MultiValueSelectorContext ctx) {
         return visitChildren(ctx);
     }
 
@@ -296,17 +362,6 @@ public class DataWeaveBaseVisitor<T> extends AbstractParseTreeVisitor<T> impleme
      */
     @Override
     public T visitBuiltInFunctionCall(DataWeaveParser.BuiltInFunctionCallContext ctx) {
-        return visitChildren(ctx);
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * <p>The default implementation returns the result of calling
-     * {@link #visitChildren} on {@code ctx}.</p>
-     */
-    @Override
-    public T visitInlineLambdaMap(DataWeaveParser.InlineLambdaMapContext ctx) {
         return visitChildren(ctx);
     }
 
@@ -384,6 +439,17 @@ public class DataWeaveBaseVisitor<T> extends AbstractParseTreeVisitor<T> impleme
      */
     @Override
     public T visitFunctionCall(DataWeaveParser.FunctionCallContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     */
+    @Override
+    public T visitGrouped(DataWeaveParser.GroupedContext ctx) {
         return visitChildren(ctx);
     }
 }

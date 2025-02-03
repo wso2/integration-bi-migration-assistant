@@ -134,5 +134,12 @@ public class DataWeaveScripts {
             ---
             { a: 1, b: 2}
             """;
+    public static final String SCRIPT_INPUT_PAYLOAD = """
+            %dw 2.0
+            %output application/json
+            %input payload application/json
+            ---
+            { a: payload}
+            """;
 
 }
