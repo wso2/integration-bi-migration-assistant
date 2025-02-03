@@ -73,7 +73,7 @@ import static mule.MuleModel.UnsupportedBlock;
 
 public class MuleToBalConverter {
 
-    static class Data {
+    public static class Data {
         // Mule global elements
         HashMap<String, HTTPListenerConfig> globalHttpListenerConfigsMap = new HashMap<>();
         HashMap<String, DbMSQLConfig> globalDbMySQLConfigsMap = new HashMap<>();
@@ -212,6 +212,7 @@ public class MuleToBalConverter {
             Function function = new Function(Optional.empty(), subFlow.name(), parameterList, Optional.empty(), body);
             functions.add(function);
         }
+        functions.addAll(data.functions);
         return functions;
     }
 
@@ -270,8 +271,8 @@ public class MuleToBalConverter {
         // Read flow blocks
         for (MuleRecord record : flowBlocks) {
             switch (record.kind()) {
-                case LOGGER, PAYLOAD, CHOICE, SET_VARIABLE, HTTP_REQUEST, FLOW_REFERENCE, UNSUPPORTED_BLOCK, TRANSFORM_MESSAGE,
-                        DB_SELECT -> {
+                case LOGGER, PAYLOAD, CHOICE, SET_VARIABLE, HTTP_REQUEST, FLOW_REFERENCE, UNSUPPORTED_BLOCK,
+                     TRANSFORM_MESSAGE, DB_SELECT -> {
                     List<Statement> s = convertToStatements(data, record);
                     body.addAll(s);
                 }
