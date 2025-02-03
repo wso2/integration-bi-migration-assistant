@@ -47,6 +47,6 @@ service /foo on config {
     }
 }
 
-private function _dwMethod0_() returns string {
+function _dwMethod0_() returns string {
     return "Hello World";
 }

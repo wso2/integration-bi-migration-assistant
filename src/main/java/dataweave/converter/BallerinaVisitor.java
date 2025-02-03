@@ -63,10 +63,19 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         String dwType = DWUtils.getVarTypeFromExpression(expression);
         String ballerinaType = DWUtils.getBallerinaType(dwType);
         visit(ctx.expression());
+        String valueExpr = this.dwContext.getExpression();
+        ballerinaType = dwType.equals(DWUtils.NUMBER) ? refineNumberType(valueExpr, ballerinaType) : ballerinaType;
         String statement = ballerinaType + " " + ctx.IDENTIFIER().getText() + " " + ctx.ASSIGN().getText() + " "
-                + this.dwContext.getExpression() + ";";
+                + valueExpr + ";";
         this.dwContext.body.add(new BallerinaModel.BallerinaStatement(statement));
         return null;
+    }
+
+    private String refineNumberType(String valueExpr, String ballerinaType) {
+        if (valueExpr.contains(".")) {
+            return "float";
+        }
+        return ballerinaType;
     }
 
     @Override
@@ -78,7 +87,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 + DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME + " = " + methodName + "(" +
                 DWUtils.getParamsString(dwContext.params) + ");"));
         dwContext.finalizeFunction();
-        this.data.functions.add(new BallerinaModel.Function(Optional.of("private"), methodName, dwContext.params,
+        this.data.functions.add(new BallerinaModel.Function(Optional.empty(), methodName, dwContext.params,
                 Optional.of(dwContext.outputType), dwContext.body));
         return null;
     }

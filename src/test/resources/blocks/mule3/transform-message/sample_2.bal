@@ -47,7 +47,7 @@ service /foo on config {
     }
 }
 
-private function _dwMethod0_(json payload) returns json {
-    int conversionRate = 13.15;
+function _dwMethod0_(json payload) returns json {
+    float conversionRate = 13.15;
     return {"s": "Hello World", "n": 1.23, "b": true, "a": [1, 2, 3], "o": {"name": "Anne"}};
 }
