@@ -8,6 +8,7 @@ public class Constants {
 
     // Components
     public static final String LOGGER = "logger";
+    public static final String TRANSFORM_MESSAGE = "dw:transform-message";
 
     // Flow Control
     public static final String CHOICE = "choice";
@@ -54,4 +55,7 @@ public class Constants {
     // Misc
     public static final String METHOD_NAME_HTTP_ENDPOINT_TEMPLATE = "_invokeEndPoint%s_";
     public static final String VAR_DB_STREAM_TEMPLATE = "_dbStream%s_";
+
+    //DataWeave
+    public static final String INPUT_PAYLOAD = "input-payload";
 }

@@ -18,6 +18,12 @@ public record MuleModel() {
         }
     }
 
+    public record TransformMessage(Kind kind, String mimeType, String script) implements MuleRecord {
+        public TransformMessage(String mimeType, String script) {
+            this(Kind.TRANSFORM_MESSAGE, mimeType, script);
+        }
+    }
+
     public enum LogLevel {
         DEBUG,
         ERROR,
@@ -122,6 +128,7 @@ public record MuleModel() {
         DB_MYSQL_CONFIG,
         DB_SELECT,
         SET_VARIABLE,
+        TRANSFORM_MESSAGE,
         FLOW,
         SUB_FLOW,
         UNSUPPORTED_BLOCK

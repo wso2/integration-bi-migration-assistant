@@ -2,8 +2,11 @@ package converter;
 
 import ballerina.BallerinaModel;
 import ballerina.CodeGenerator;
+import dataweave.DWReader;
+import dataweave.converter.DWUtils;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.Constants;
+import mule.MuleModel;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -64,12 +67,13 @@ import static mule.MuleModel.MuleRecord;
 import static mule.MuleModel.Payload;
 import static mule.MuleModel.SetVariable;
 import static mule.MuleModel.SubFlow;
+import static mule.MuleModel.TransformMessage;
 import static mule.MuleModel.WhenInChoice;
 import static mule.MuleModel.UnsupportedBlock;
 
 public class MuleToBalConverter {
 
-    static class Data {
+    public static class Data {
         // Mule global elements
         HashMap<String, HTTPListenerConfig> globalHttpListenerConfigsMap = new HashMap<>();
         HashMap<String, DbMSQLConfig> globalDbMySQLConfigsMap = new HashMap<>();
@@ -79,6 +83,8 @@ public class MuleToBalConverter {
         HashMap<String, ModuleTypeDef> typeDef = new HashMap<>();
         HashSet<Import> imports = new HashSet<>();
         HashSet<String> queryParams = new HashSet<>();
+        public List<Function> functions = new ArrayList<>();
+        public int dwMethodCount = 0;
     }
 
     public static SyntaxTree convertToBallerina(String xmlFilePath) {
@@ -206,6 +212,7 @@ public class MuleToBalConverter {
             Function function = new Function(Optional.empty(), subFlow.name(), parameterList, Optional.empty(), body);
             functions.add(function);
         }
+        functions.addAll(data.functions);
         return functions;
     }
 
@@ -265,7 +272,7 @@ public class MuleToBalConverter {
         for (MuleRecord record : flowBlocks) {
             switch (record.kind()) {
                 case LOGGER, PAYLOAD, CHOICE, SET_VARIABLE, HTTP_REQUEST, FLOW_REFERENCE, UNSUPPORTED_BLOCK,
-                        DB_SELECT -> {
+                     TRANSFORM_MESSAGE, DB_SELECT -> {
                     List<Statement> s = convertToStatements(data, record);
                     body.addAll(s);
                 }
@@ -310,6 +317,9 @@ public class MuleToBalConverter {
             }
             case Constants.FLOW_REFERENCE -> {
                 return readFlowReference(data, element);
+            }
+            case Constants.TRANSFORM_MESSAGE -> {
+                return readTransformMessage(data, element);
             }
             case Constants.DB_SELECT -> {
                 return readDbSelect(data, element);
@@ -399,6 +409,13 @@ public class MuleToBalConverter {
                 statementList.add(new BallerinaStatement(
                         String.format("%s[] payload = check from %s %s in %s select %s;", streamConstraintType,
                                 streamConstraintType, "r", String.format(Constants.VAR_DB_STREAM_TEMPLATE, 0), "r")));
+            }
+            case TransformMessage transformMessage -> {
+                String mimeType = transformMessage.mimeType();
+                String script = transformMessage.script();
+                DWReader.processDWScript(script, mimeType, data, statementList);
+                statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);",
+                        Constants.VAR_RESPONSE, DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME)));
             }
             case UnsupportedBlock unsupportedBlock -> {
                 String comment = ConversionUtils.wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());
@@ -596,5 +613,23 @@ public class MuleToBalConverter {
         String password = element.getAttribute("password");
         String database = element.getAttribute("database");
         return new DbMSQLConfig(name, host, port, user, password, database);
+    }
+
+    private static TransformMessage readTransformMessage(Data data, Element element) {
+        Element firstElement = (Element) element.getChildNodes().item(1);
+        String mimeType = null;
+        CDATASection cdataSection;
+        switch (firstElement.getLocalName()) {
+            case Constants.SET_PAYLOAD -> {
+                cdataSection = (CDATASection) firstElement.getChildNodes().item(0);
+            }
+            case Constants.INPUT_PAYLOAD -> {
+                Element secondElement = (Element) element.getChildNodes().item(3);
+                cdataSection = (CDATASection) secondElement.getChildNodes().item(0);
+                mimeType = firstElement.getAttribute("mimeType");
+            }
+            default -> throw new UnsupportedOperationException();
+        }
+        return new MuleModel.TransformMessage(mimeType, cdataSection.getData());
     }
 }

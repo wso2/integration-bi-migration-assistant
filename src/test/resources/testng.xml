@@ -8,4 +8,12 @@
             <class name="TestConverter"/>
         </classes>
     </test>
+    <test name="ParserTest">
+        <packages>
+            <package name="dw.parser.*"/>
+        </packages>
+        <classes>
+            <class name="TestConverter"/>
+        </classes>
+    </test>
 </suite>

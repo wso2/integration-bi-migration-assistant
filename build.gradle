@@ -26,6 +26,8 @@ dependencies {
     implementation group: 'org.ballerinalang', name: 'ballerina-parser', version: "${ballerinaLangVersion}"
     implementation group: 'org.ballerinalang', name: 'formatter-core', version: "${ballerinaLangVersion}"
     implementation group: 'org.ballerinalang', name: 'ballerina-tools-api', version: "${ballerinaLangVersion}"
+    implementation group: 'org.antlr', name: 'antlr4', version: "${antlrVersion}"
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${fasterXmlVersion}"
     testImplementation 'org.testng:testng:7.7.0'
     spotbugs 'com.github.spotbugs:spotbugs:4.8.4'
 }
@@ -34,6 +36,9 @@ checkstyle {
     toolVersion = '10.3.4'
     config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
 }
+
+checkstyleMain
+        .exclude("dataweave/parser/*.java")
 
 spotbugs {
     reportLevel = 'high'

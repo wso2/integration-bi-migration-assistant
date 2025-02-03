@@ -1,0 +1,31 @@
+{
+  "type" : "Script",
+  "header" : {
+    "type" : "Header",
+    "directives" : [ {
+      "type" : "Version",
+      "version" : "1.0"
+    }, {
+      "type" : "Output",
+      "output" : "application/json"
+    }, {
+      "type" : "Function",
+      "identifier" : "toUser",
+      "args" : "user",
+      "expression" : {
+        "type" : "Object",
+        "firstName" : {
+          "type" : "Identifier",
+          "name" : "user"
+        }
+      }
+    } ]
+  },
+  "body" : {
+    "type" : "Body",
+    "expression" : {
+      "type" : "Object",
+      "user" : null
+    }
+  }
+}
