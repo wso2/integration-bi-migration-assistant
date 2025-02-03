@@ -152,7 +152,7 @@ public class ConversionUtils {
     public static String wrapElementInUnsupportedBlockComment(String input) {
         StringBuilder sb = new StringBuilder();
         sb.append("\n\n");
-        sb.append("// UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.\n");
+        sb.append("// TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.\n");
         sb.append("// ------------------------------------------------------------------------\n");
         String[] lines = input.split("\n");
         for (String line : lines) {

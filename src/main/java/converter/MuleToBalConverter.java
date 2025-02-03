@@ -44,6 +44,7 @@ import static ballerina.BallerinaModel.Parameter;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
 import static ballerina.BallerinaModel.Statement;
+import static ballerina.BallerinaModel.TextDocument;
 import static converter.ConversionUtils.convertToBallerinaExpression;
 import static converter.ConversionUtils.genQueryParam;
 import static converter.ConversionUtils.getAllowedMethods;
@@ -72,11 +73,15 @@ import static mule.MuleModel.UnsupportedBlock;
 
 public class MuleToBalConverter {
 
-    public static class Data {
+    static class Data {
+        // Mule global elements
         HashMap<String, HTTPListenerConfig> globalHttpListenerConfigsMap = new HashMap<>();
         HashMap<String, DbMSQLConfig> globalDbMySQLConfigsMap = new HashMap<>();
-        public HashMap<String, ModuleTypeDef> typeDef = new HashMap<>();
-        public HashSet<Import> imports = new HashSet<>();
+        List<UnsupportedBlock> globalUnsupportedBlocks = new ArrayList<>();
+
+        // Ballerina global elements
+        HashMap<String, ModuleTypeDef> typeDef = new HashMap<>();
+        HashSet<Import> imports = new HashSet<>();
         HashSet<String> queryParams = new HashSet<>();
         public List<Function> functions = new ArrayList<>();
         public int dwMethodCount = 0;
@@ -103,19 +108,18 @@ public class MuleToBalConverter {
 
             Element element = (Element) node;
             String elementTagName = element.getTagName();
-            if (Constants.HTTP_LISTENER_CONFIG.equals(elementTagName) ||
-                    Constants.DB_MYSQL_CONFIG.equals(elementTagName)) {
-                readGlobalConfigElement(data, element);
-                continue;
-            }
 
             if (Constants.FLOW.equals(elementTagName)) {
                 Flow flow = readFlow(data, element);
                 flows.add(flow);
+                continue;
             } else if (Constants.SUB_FLOW.equals(elementTagName)) {
                 SubFlow subFlow = readSubFlow(data, element);
                 subFlows.add(subFlow);
+                continue;
             }
+
+            readGlobalConfigElement(data, element);
         }
 
         BallerinaModel ballerinaModel = generateBallerinaModel(data, flows, subFlows);
@@ -145,7 +149,8 @@ public class MuleToBalConverter {
             DbMSQLConfig dbMSQLConfig = readDbMySQLConfig(data, element);
             data.globalDbMySQLConfigsMap.put(dbMSQLConfig.name(), dbMSQLConfig);
         } else {
-            throw new UnsupportedOperationException();
+            UnsupportedBlock unsupportedBlock = readUnsupportedBlock(data, element);
+            data.globalUnsupportedBlocks.add(unsupportedBlock);
         }
     }
 
@@ -187,8 +192,14 @@ public class MuleToBalConverter {
             moduleVars.add(new ModuleVar(dbMSQLConfig.name(), Constants.MYSQL_CLIENT, balExpr));
         }
 
+        List<String> comments = new ArrayList<>();
+        for (UnsupportedBlock unsupportedBlock : data.globalUnsupportedBlocks) {
+            String comment = ConversionUtils.wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());
+            comments.add(comment);
+        }
+
         return createBallerinaModel(imports, data.typeDef.values().stream().toList(), moduleVars, listeners,
-                Collections.singletonList(service), functions);
+                Collections.singletonList(service), functions, comments);
     }
 
     private static List<Function> genBalFunctions(Data data, List<SubFlow> subFlows) {
@@ -201,7 +212,6 @@ public class MuleToBalConverter {
             Function function = new Function(Optional.empty(), subFlow.name(), parameterList, Optional.empty(), body);
             functions.add(function);
         }
-        functions.addAll(data.functions);
         return functions;
     }
 
@@ -260,8 +270,8 @@ public class MuleToBalConverter {
         // Read flow blocks
         for (MuleRecord record : flowBlocks) {
             switch (record.kind()) {
-                case LOGGER, PAYLOAD, CHOICE, SET_VARIABLE, HTTP_REQUEST, FLOW_REFERENCE, TRANSFORM_MESSAGE
-                , UNSUPPORTED_BLOCK, DB_SELECT -> {
+                case LOGGER, PAYLOAD, CHOICE, SET_VARIABLE, HTTP_REQUEST, FLOW_REFERENCE, UNSUPPORTED_BLOCK, TRANSFORM_MESSAGE,
+                        DB_SELECT -> {
                     List<Statement> s = convertToStatements(data, record);
                     body.addAll(s);
                 }
@@ -274,10 +284,16 @@ public class MuleToBalConverter {
 
     private static BallerinaModel createBallerinaModel(List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
                                                        List<ModuleVar> moduleVars, List<Listener> listeners,
-                                                       List<Service> services, List<Function> functions) {
-        String moduleName = "muleDemo";
-        Module module = new Module(moduleName, imports, moduleTypeDefs, moduleVars, listeners, services, functions);
-        return new BallerinaModel(new DefaultPackage(moduleName, moduleName, "1.0.0"),
+                                                       List<Service> services, List<Function> functions,
+                                                       List<String> comments) {
+        // TODO: figure out package, module names properly
+        String projectName = "muleDemoProject";
+        String moduleName = "muleDemoModule";
+        String textDocumentName = "muleDemoTextDocument";
+        TextDocument textDocument = new TextDocument(textDocumentName, imports, moduleTypeDefs, moduleVars, listeners,
+                services, functions, comments);
+        Module module = new Module(moduleName, Collections.singletonList(textDocument));
+        return new BallerinaModel(new DefaultPackage(projectName, projectName, "0.1.0"),
                 Collections.singletonList(module));
     }
 

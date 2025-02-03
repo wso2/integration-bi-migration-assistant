@@ -10,9 +10,12 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     public record DefaultPackage(String org, String name, String version) {
     }
 
-    public record Module(String moduleName, List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
-                         List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
-                         List<Function> functions) {
+    public record Module(String name, List<TextDocument> textDocuments) {
+    }
+
+    public record TextDocument(String documentName, List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
+                               List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
+                               List<Function> functions, List<String> Comments) {
     }
 
     public record Import(String orgName, String moduleName, Optional<String> importPrefix) {
