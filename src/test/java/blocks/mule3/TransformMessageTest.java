@@ -6,13 +6,15 @@ import org.testng.annotations.Test;
 public class TransformMessageTest extends AbstractBlockTest {
 
     @Test
-    public void testBasicSetPayload() {
-        testMule3ToBal("transform-message/sample_1.xml", "transform-message/sample_1.bal");
+    public void testBasicTransformMessageWithStringReturn() {
+        testMule3ToBal("transform-message/basic_transform_message_with_string_return.xml",
+                "transform-message/basic_transform_message_with_string_return.bal");
     }
 
     @Test
-    public void testFirstLevelSetPayload() {
-        testMule3ToBal("transform-message/sample_2.xml", "transform-message/sample_2.bal");
+    public void testTransformMessageWithSimpleValue() {
+        testMule3ToBal("transform-message/transform_message_with_simple_value.xml",
+                "transform-message/transform_message_with_simple_value.bal");
     }
 
 }
