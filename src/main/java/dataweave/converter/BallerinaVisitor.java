@@ -1,13 +1,16 @@
 package dataweave.converter;
 
 import ballerina.BallerinaModel;
+import converter.ConversionUtils;
 import converter.MuleToBalConverter;
 import dataweave.parser.DataWeaveBaseVisitor;
 import dataweave.parser.DataWeaveParser;
+import io.ballerina.compiler.internal.parser.LexerTerminals;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
@@ -67,7 +70,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         ballerinaType = dwType.equals(DWUtils.NUMBER) ? refineNumberType(valueExpr, ballerinaType) : ballerinaType;
         String statement = ballerinaType + " " + ctx.IDENTIFIER().getText() + " " + ctx.ASSIGN().getText() + " "
                 + valueExpr + ";";
-        this.dwContext.body.add(new BallerinaModel.BallerinaStatement(statement));
+        this.dwContext.statements.add(new BallerinaModel.BallerinaStatement(statement));
         return null;
     }
 
@@ -87,8 +90,11 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 + DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME + " = " + methodName + "(" +
                 DWUtils.getParamsString(dwContext.params) + ");"));
         dwContext.finalizeFunction();
+        if (dwContext.containsCheck) {
+            dwContext.outputType = dwContext.outputType + "| error";
+        }
         this.data.functions.add(new BallerinaModel.Function(Optional.empty(), methodName, dwContext.params,
-                Optional.of(dwContext.outputType), dwContext.body));
+                Optional.of(dwContext.outputType), dwContext.statements));
         return null;
     }
 
@@ -129,6 +135,59 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         } else {
             this.dwContext.exprBuilder.append("()"); // Default case
         }
+        return null;
+    }
+
+    @Override
+    public Void visitFunctionCall(DataWeaveParser.FunctionCallContext ctx) {
+        String functionName = ctx.IDENTIFIER().getText();
+        List<String> arguments = new ArrayList<>();
+        for (var expr : ctx.expression()) {
+            visit(expr);
+            arguments.add(dwContext.getExpression());
+        }
+        switch (functionName) {
+            case DWUtils.DW_FUNCTION_SIZE_OF:
+                handleSizeOfFunction(dwContext, arguments);
+                break;
+            default:
+                dwContext.parentStatements.add(new BallerinaModel.BallerinaStatement(
+                        ConversionUtils.wrapElementInUnsupportedBlockComment(ctx.getText())));
+        }
+        return null;
+    }
+
+    private void handleSizeOfFunction(DWContext dwContext, List<String> arguments) {
+        if (arguments.size() != 1) {
+            dwContext.parentStatements.add(new BallerinaModel.BallerinaStatement(
+                    ConversionUtils.wrapElementInUnsupportedBlockComment(DWUtils.DW_FUNCTION_SIZE_OF)));
+            return;
+        }
+        if (Objects.equals(dwContext.inputType, LexerTerminals.JSON)) {
+            String castStatement = "json[] jsonArr = <json[]>" + arguments.getFirst() + ";";
+            dwContext.statements.add(new BallerinaModel.BallerinaStatement(castStatement));
+            dwContext.exprBuilder.append("jsonArr").append(".length()");
+            return;
+        }
+        dwContext.parentStatements.add(new BallerinaModel.BallerinaStatement(
+                ConversionUtils.wrapElementInUnsupportedBlockComment(DWUtils.DW_FUNCTION_SIZE_OF)));
+    }
+
+    @Override
+    public Void visitSingleValueSelector(DataWeaveParser.SingleValueSelectorContext ctx) {
+        visit(ctx.primaryExpression());
+        if (!Objects.equals(dwContext.inputType, LexerTerminals.JSON)) {
+            dwContext.exprBuilder.append("[").append(ctx.IDENTIFIER().getText()).append("]");
+        } else {
+            dwContext.exprBuilder.append(".").append(ctx.IDENTIFIER().getText());
+        }
+        dwContext.addCheckExpr();
+        return null;
+    }
+
+    @Override
+    public Void visitIdentifierExpression(DataWeaveParser.IdentifierExpressionContext ctx) {
+        this.dwContext.exprBuilder.append(ctx.IDENTIFIER().getText());
         return null;
     }
 

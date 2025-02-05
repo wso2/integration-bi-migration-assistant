@@ -29,7 +29,14 @@
     "type" : "Body",
     "expression" : {
       "type" : "Object",
-      "user" : null
+      "user" : {
+        "type" : "FunctionCall",
+        "name" : "toUser",
+        "args" : [ {
+          "type" : "Identifier",
+          "name" : "payload"
+        } ]
+      }
     }
   }
 }

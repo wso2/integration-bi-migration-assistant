@@ -17,4 +17,15 @@ public class TransformMessageTest extends AbstractBlockTest {
                 "transform-message/transform_message_with_simple_value.bal");
     }
 
+    @Test
+    public void testTransformMessageWithSingleSelector() {
+        testMule3ToBal("transform-message/transform_message_with_single_selector.xml",
+                "transform-message/transform_message_with_single_selector.bal");
+    }
+
+    @Test
+    public void testTransformMessageWithSizeOfFunction() {
+        testMule3ToBal("transform-message/transform_message_with_sizeof.xml",
+                "transform-message/transform_message_with_sizeof.bal");
+    }
 }

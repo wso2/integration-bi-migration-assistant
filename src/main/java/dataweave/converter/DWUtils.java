@@ -42,6 +42,13 @@ public class DWUtils {
     public static final String STRING = "String";
     public static final String TIME = "Time";
 
+    // DataWeave Built-in functions
+    public static final String DW_FUNCTION_MAP = "map";
+    public static final String DW_FUNCTION_FILTER = "filter";
+    public static final String DW_FUNCTION_FLATTEN = "flatten";
+    public static final String DW_FUNCTION_SIZE_OF = "sizeOf";
+
+
     // Ballerina Identifiers
     public static final String DW_FUNCTION_NAME = "_dwMethod%s_";
 

@@ -9,11 +9,12 @@ public class DWContext {
     final String mimeType;
     final List<BallerinaModel.Statement> parentStatements;
     public List<BallerinaModel.Parameter> params = new ArrayList<>();
-    public List<BallerinaModel.Statement> body = new ArrayList<>();
+    public List<BallerinaModel.Statement> statements = new ArrayList<>();
     public String inputType;
     String dwVersion;
     String outputType;
     StringBuilder exprBuilder;
+    public boolean containsCheck = false;
 
     public DWContext(String mimeType, List<BallerinaModel.Statement> statementList) {
         this.exprBuilder = new StringBuilder();
@@ -25,7 +26,7 @@ public class DWContext {
         if (exprBuilder.isEmpty()) {
             return;
         }
-        this.body.add(new BallerinaModel.BallerinaStatement("return " + exprBuilder + ";"));
+        this.statements.add(new BallerinaModel.BallerinaStatement("return " + exprBuilder + ";"));
         this.exprBuilder = new StringBuilder();
 
     }
@@ -34,5 +35,10 @@ public class DWContext {
         String s = exprBuilder.toString();
         exprBuilder = new StringBuilder();
         return s;
+    }
+
+    public void addCheckExpr() {
+        this.exprBuilder.insert(0, "check ");
+        this.containsCheck = true;
     }
 }

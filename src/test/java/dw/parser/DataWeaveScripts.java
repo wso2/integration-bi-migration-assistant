@@ -141,5 +141,21 @@ public class DataWeaveScripts {
             ---
             { a: payload}
             """;
+    public static final String SCRIPT_BUILTIN_SIZEOF = """
+            %dw 2.0
+            %output application/json
+            %input payload application/json
+            ---
+            sizeOf ([1,2,3,4])
+            """;
+    public static final String SCRIPT_BUILTIN_SIZEOF_IN_OBJECT = """
+            %dw 2.0
+            %output application/json
+            %input payload application/json
+            ---
+            {
+                hail1: sizeOf ([1,2,3,4])
+            }
+            """;
 
 }
