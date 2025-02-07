@@ -4,6 +4,130 @@
 
 The `mule-to-ballerina-migration-assistant` project includes sample input and output files to demonstrate the conversion process. These samples are located in the `src/test/resources/blocks/mule3` directory.
 
+## Database
+
+- ### Basic Db Select
+
+**Input (basic_db_select.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule3"/>
+    <db:mysql-config name="MySQL_Configuration" host="localhost" port="3306" user="root" password="admin123" database="test_db" doc:name="MySQL Configuration"/>
+    <flow name="demoFlow">
+        <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
+        <db:select config-ref="MySQL_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[SELECT * FROM users;]]></db:parameterized-query>
+        </db:select>
+    </flow>
+</mule>
+
+```
+**Output (basic_db_select.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/sql;
+import ballerinax/mysql;
+import ballerinax/mysql.driver as _;
+
+type Record record {
+};
+
+mysql:Client MySQL_Configuration = check new ("localhost", "root", "admin123", "test_db", 3306);
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /mule3 on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+
+        // Database operation
+        sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
+        stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
+        Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
+            select _iterator_;
+        _response_.setPayload(_dbSelect0_.toString());
+        return _response_;
+    }
+}
+
+```
+
+- ### Db Select Query From Template
+
+**Input (db_select_query_from_template.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule3"/>
+    <db:mysql-config name="MySQL_Configuration" host="localhost" port="3306" user="root" password="admin123" database="test_db" doc:name="MySQL Configuration"/>
+    <db:template-query name="Template_Select_Query" doc:name="Template Query">
+        <db:parameterized-query><![CDATA[SELECT * FROM users;]]></db:parameterized-query>
+    </db:template-query>
+    <flow name="demoFlow">
+        <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
+        <db:select config-ref="MySQL_Configuration" doc:name="Database">
+            <db:template-query-ref name="Template_Select_Query"/>
+        </db:select>
+    </flow>
+</mule>
+
+```
+**Output (db_select_query_from_template.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/sql;
+import ballerinax/mysql;
+import ballerinax/mysql.driver as _;
+
+type Record record {
+};
+
+mysql:Client MySQL_Configuration = check new ("localhost", "root", "admin123", "test_db", 3306);
+sql:ParameterizedQuery Template_Select_Query = `SELECT * FROM users;`;
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /mule3 on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+
+        // Database operation
+        sql:ParameterizedQuery _dbQuery0_ = Template_Select_Query;
+        stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
+        Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
+            select _iterator_;
+        _response_.setPayload(_dbSelect0_.toString());
+        return _response_;
+    }
+}
+
+```
+
 ## Sub Flow
 
 - ### Basic Sub Flow
@@ -197,6 +321,355 @@ service /mule3 on config {
         string age = "29";
         return _response_;
     }
+}
+
+```
+
+## Transform Message
+
+- ### Transform Message With Single Selector
+
+**Input (transform_message_with_single_selector.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
+    <flow name="mule6demoFlow">
+        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
+            <dw:input-payload mimeType="application/java"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%input payload application/json
+---
+{
+	hail1: sizeOf (payload.resultSet1)
+}]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_single_selector.bal):**
+```ballerina
+import ballerina/http;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /foo on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function post .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function put .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function delete .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function patch .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function head .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function options .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function trace .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function connect .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        json _dwOutput_ = _dwMethod0_(payload);
+        _response_.setPayload(_dwOutput_);
+        return _response_;
+    }
+}
+
+function _dwMethod0_(json payload) returns json|error {
+    json[] jsonArr = <json[]>check payload.resultSet1;
+    return {"hail1": jsonArr.length()};
+}
+
+```
+
+- ### Basic Transform Message With String Return
+
+**Input (basic_transform_message_with_string_return.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
+    <flow name="mule6demoFlow">
+        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
+            <dw:input-payload mimeType="application/java"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output text/plain
+---
+"Hello World"]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
+
+```
+**Output (basic_transform_message_with_string_return.bal):**
+```ballerina
+import ballerina/http;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /foo on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function post .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function put .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function delete .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function patch .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function head .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function options .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function trace .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function connect .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        string _dwOutput_ = _dwMethod0_();
+        _response_.setPayload(_dwOutput_);
+        return _response_;
+    }
+}
+
+function _dwMethod0_() returns string {
+    return "Hello World";
+}
+
+```
+
+- ### Transform Message With Simple Value
+
+**Input (transform_message_with_simple_value.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
+    <flow name="mule6demoFlow">
+        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
+            <dw:input-payload mimeType="application/java"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%input payload application/json
+%var conversionRate=13.15
+---
+{s: "Hello World", n: 1.23, b: true, a:[1,2,3], o:{ name:  "Anne" }}]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_simple_value.bal):**
+```ballerina
+import ballerina/http;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /foo on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function post .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function put .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function delete .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function patch .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function head .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function options .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function trace .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function connect .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        json _dwOutput_ = _dwMethod0_(payload);
+        _response_.setPayload(_dwOutput_);
+        return _response_;
+    }
+}
+
+function _dwMethod0_(json payload) returns json {
+    float conversionRate = 13.15;
+    return {"s": "Hello World", "n": 1.23, "b": true, "a": [1, 2, 3], "o": {"name": "Anne"}};
+}
+
+```
+
+- ### Transform Message With Sizeof
+
+**Input (transform_message_with_sizeof.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
+    <flow name="mule6demoFlow">
+        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
+            <dw:input-payload mimeType="application/java"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%input payload application/json
+---
+{
+	hail1: sizeOf ([1,2,3,4])
+}]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_sizeof.bal):**
+```ballerina
+import ballerina/http;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /foo on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function post .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function put .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function delete .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function patch .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function head .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function options .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function trace .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function connect .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        json _dwOutput_ = _dwMethod0_(payload);
+        _response_.setPayload(_dwOutput_);
+        return _response_;
+    }
+}
+
+function _dwMethod0_(json payload) returns json {
+    json[] jsonArr = <json[]>[1, 2, 3, 4];
+    return {"hail1": jsonArr.length()};
 }
 
 ```
