@@ -44,11 +44,14 @@ def read_file_content(file_path):
     with open(file_path, 'r') as file:
         return file.read()
 
+# Sort the paired_files dictionary by parent_dir keys in alphabetical order
+sorted_paired_files = dict(sorted(paired_files.items()))
+
 # Generate Markdown content for samples
 markdown_content = '# Sample Input and Output\n\n'
 markdown_content += 'The `mule-to-ballerina-migration-assistant` project includes sample input and output files to demonstrate the conversion process. These samples are located in the `src/test/resources/blocks/mule3` directory.\n\n'
 
-for parent_dir, pairs in paired_files.items():
+for parent_dir, pairs in sorted_paired_files.items():
     markdown_content += f'## {parent_dir.replace("-", " ").title()}\n\n'
     for xml_file, bal_file in pairs:
         # TODO: Filter out display samples by a tag or something
