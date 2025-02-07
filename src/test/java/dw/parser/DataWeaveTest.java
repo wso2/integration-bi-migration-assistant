@@ -4,6 +4,8 @@ import dw.parser.utils.ParserTestUtils;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import static dw.parser.DataWeaveScripts.SCRIPT_BUILTIN_MAP;
+
 public class DataWeaveTest {
 
     @Test(dataProvider = "provideTestInput")
@@ -36,6 +38,7 @@ public class DataWeaveTest {
                 {DataWeaveScripts.SCRIPT_BUILTIN_SIZEOF, "src/test/resources/parser/expected/dw_builtin_sizeof.json"},
                 {DataWeaveScripts.SCRIPT_BUILTIN_SIZEOF_IN_OBJECT, "src/test/resources/parser/expected/" +
                         "dw_builtin_sizeof_in_object.json"},
+                {SCRIPT_BUILTIN_MAP, "src/test/resources/parser/expected/dw_builtin_map.json"},
         };
     }
 }

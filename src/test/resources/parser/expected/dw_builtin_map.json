@@ -4,7 +4,7 @@
     "type" : "Header",
     "directives" : [ {
       "type" : "Version",
-      "version" : "2.0"
+      "version" : "1.0"
     }, {
       "type" : "Output",
       "output" : "application/json"
@@ -17,8 +17,8 @@
   "body" : {
     "type" : "Body",
     "expression" : {
-      "type" : "SizeOf",
-      "array" : {
+      "type" : "Map",
+      "element" : {
         "type" : "Array",
         "elements" : [ {
           "type" : "Literal",
@@ -29,10 +29,19 @@
         }, {
           "type" : "Literal",
           "value" : "3"
-        }, {
-          "type" : "Literal",
-          "value" : "4"
         } ]
+      },
+      "lambda" : {
+        "type" : "MathBinaryExpression",
+        "operator" : "+",
+        "left" : {
+          "type" : "Identifier",
+          "name" : "$"
+        },
+        "right" : {
+          "type" : "Literal",
+          "value" : "1"
+        }
       }
     }
   }

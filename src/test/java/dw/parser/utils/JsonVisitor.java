@@ -138,17 +138,27 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
 
     @Override
     public JsonNode visitArrayExpression(DataWeaveParser.ArrayExpressionContext ctx) {
+        return visitArrayJsonNodes(ctx.array());
+    }
+
+    private ObjectNode visitArrayJsonNodes(DataWeaveParser.ArrayContext ctx) {
         ObjectNode arrayNode = objectMapper.createObjectNode();
         arrayNode.put("type", "Array");
         ArrayNode elements = objectMapper.createArrayNode();
 
-        for (DataWeaveParser.ExpressionContext expr : ctx.array().expression()) {
+        for (DataWeaveParser.ExpressionContext expr : ctx.expression()) {
             elements.add(visit(expr));
         }
 
         arrayNode.set("elements", elements);
         return arrayNode;
     }
+
+    @Override
+    public JsonNode visitArray(DataWeaveParser.ArrayContext ctx) {
+        return visitArrayJsonNodes(ctx);
+    }
+
 
     @Override
     public JsonNode visitObjectExpression(DataWeaveParser.ObjectExpressionContext ctx) {
@@ -187,6 +197,39 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
             args.add(visit(expr));
         }
         objectNode.set("args", args);
+        return objectNode;
+    }
+
+    @Override
+    public JsonNode visitSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx) {
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "SizeOf");
+        if (ctx.array() != null) {
+            objectNode.set("array", visit(ctx.array()));
+        } else if (ctx.object() != null) {
+            objectNode.set("object", visit(ctx.object()));
+        } else if (ctx.STRING() != null) {
+            objectNode.set("expression", visit(ctx.STRING()));
+        }
+        return objectNode;
+    }
+
+    @Override
+    public JsonNode visitMapExpression(DataWeaveParser.MapExpressionContext ctx) {
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "Map");
+        objectNode.set("element", visit(ctx.expression()));
+        objectNode.set("lambda", visit(ctx.implicitLambdaExpression()));
+        return objectNode;
+    }
+
+    @Override
+    public JsonNode visitMathExpression(DataWeaveParser.MathExpressionContext ctx) {
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "MathBinaryExpression");
+        objectNode.put("operator", ctx.OPERATOR_MATH().getText());
+        objectNode.set("left", visit(ctx.expression(0)));
+        objectNode.set("right", visit(ctx.expression(1)));
         return objectNode;
     }
 

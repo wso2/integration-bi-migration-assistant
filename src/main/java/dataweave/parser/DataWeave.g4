@@ -10,7 +10,7 @@ DW: '%dw';
 ASSIGN: '=';
 ARROW: '->';
 BOOLEAN: 'true' | 'false';
-IDENTIFIER: [a-zA-Z_][a-zA-Z0-9_]*;
+IDENTIFIER: INDEX_IDENTIFIER | VALUE_IDENTIFIER | [a-zA-Z_][a-zA-Z0-9_]* ;
 URL: [a-zA-Z]+ '://' [a-zA-Z0-9./_-]+;
 MEDIA_TYPE: [a-z]+ '/' [a-z0-9.+-]+;
 NUMBER: [0-9]+('.'[0-9]+)?; // Matches integers and decimals
@@ -45,6 +45,9 @@ OPERATOR_RANGE: DOUBLE_DOT;
 OPERATOR_CHAIN: '++';
 
 BUILTIN_FUNCTION: 'sizeOf' | 'map' | 'filter';
+
+INDEX_IDENTIFIER: '$$';
+VALUE_IDENTIFIER: '$';
 
 // Parser rules
 script: header? SEPARATOR body? NEWLINE* EOF;
@@ -83,11 +86,13 @@ expression
     | expression OPERATOR_MATH expression                             # mathExpression
     | expression OPERATOR_RANGE expression                            # rangeExpression
     | expression OPERATOR_CHAIN expression                            # chainExpression
+    | expression 'map' implicitLambdaExpression                       # mapExpression
     ;
 
 // Primary Expressions (Non-Recursive Base Expressions)
 primaryExpression
     : functionCall                                          # functionCallExpression
+    | 'sizeOf' ('(' (array | STRING | object) ')' | array | STRING | object)  # sizeOfExpression
     | inlineLambda                                          # lambdaExpression
     | literal                                               # literalExpression
     | array                                                 # arrayExpression
@@ -102,6 +107,11 @@ primaryExpression
     | primaryExpression QUESTION                            # existenceQuerySelector
     ;
 
+// Implicit Lambda Expressions (Ensuring `$` or `$$` is inside)
+implicitLambdaExpression
+    : expression                                     # singleParameterImplicitLambda
+    | '(' IDENTIFIER (',' IDENTIFIER)* ')' ARROW expression  # multiParameterImplicitLambda
+    ;
 
 // Built-in function call
 builtInFunctionCall

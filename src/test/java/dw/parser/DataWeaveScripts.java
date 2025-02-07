@@ -146,7 +146,7 @@ public class DataWeaveScripts {
             %output application/json
             %input payload application/json
             ---
-            sizeOf ([1,2,3,4])
+            sizeOf [1,2,3,4]
             """;
     public static final String SCRIPT_BUILTIN_SIZEOF_IN_OBJECT = """
             %dw 2.0
@@ -154,8 +154,15 @@ public class DataWeaveScripts {
             %input payload application/json
             ---
             {
-                hail1: sizeOf ([1,2,3,4])
+                hail1: sizeOf [1,2,3,4]
             }
+            """;
+    public static final String SCRIPT_BUILTIN_MAP = """
+            %dw 1.0
+            %output application/json
+            %input payload application/json
+            ---
+            [1, 2, 3] map $ + 1
             """;
 
 }

@@ -19,9 +19,8 @@
     "expression" : {
       "type" : "Object",
       "hail1" : {
-        "type" : "FunctionCall",
-        "name" : "sizeOf",
-        "args" : [ {
+        "type" : "SizeOf",
+        "array" : {
           "type" : "Array",
           "elements" : [ {
             "type" : "Literal",
@@ -36,7 +35,7 @@
             "type" : "Literal",
             "value" : "4"
           } ]
-        } ]
+        }
       }
     }
   }
