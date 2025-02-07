@@ -22,6 +22,8 @@ public class Constants {
     // Transformers
     public static final String SET_VARIABLE = "set-variable";
     public static final String SET_PAYLOAD = "set-payload";
+    public static final String OBJECT_TO_JSON = "json:object-to-json-transformer";
+    public static final String OBJECT_TO_STRING = "object-to-string-transformer";
 
     // HTTP Module
     public static final String HTTP_LISTENER = "http:listener";
@@ -57,6 +59,8 @@ public class Constants {
     public static final String VAR_DB_STREAM_TEMPLATE = "_dbStream%s_";
     public static final String VAR_DB_QUERY_TEMPLATE = "_dbQuery%s_";
     public static final String VAR_DB_SELECT_TEMPLATE = "_dbSelect%s_";
+    public static final String VAR_OBJ_TO_JSON_TEMPLATE = "_to_json%s_";
+    public static final String VAR_OBJ_TO_STRING_TEMPLATE = "_to_string%s_";
 
     // Types
     public static final String HTTP_RESOURCE_RETURN_TYPE_DEFAULT = "http:Response|error";

@@ -66,6 +66,8 @@ import static mule.MuleModel.HTTPListenerConfig;
 import static mule.MuleModel.LogLevel;
 import static mule.MuleModel.Logger;
 import static mule.MuleModel.MuleRecord;
+import static mule.MuleModel.ObjectToJson;
+import static mule.MuleModel.ObjectToString;
 import static mule.MuleModel.Payload;
 import static mule.MuleModel.QueryType;
 import static mule.MuleModel.SetVariable;
@@ -95,6 +97,8 @@ public class MuleToBalConverter {
         public int dbQueryVarCount = 0;
         public int dbStreamVarCount = 0;
         public int dbSelectVarCount = 0;
+        public int objectToJsonVarCount = 0;
+        public int objectToStringVarCount = 0;
 
         // Temporary payload info
         public CurrentPayloadVarInfo payload = null;
@@ -309,15 +313,8 @@ public class MuleToBalConverter {
 
         // Read flow blocks
         for (MuleRecord record : flowBlocks) {
-            switch (record.kind()) {
-                case LOGGER, PAYLOAD, CHOICE, SET_VARIABLE, HTTP_REQUEST, FLOW_REFERENCE, UNSUPPORTED_BLOCK,
-                        TRANSFORM_MESSAGE, DB_INSERT, DB_SELECT, DB_UPDATE, DB_DELETE -> {
-                    List<Statement> s = convertToStatements(data, record);
-                    body.addAll(s);
-                }
-                case null -> throw new IllegalStateException();
-                default -> throw new UnsupportedOperationException();
-            }
+            List<Statement> s = convertToStatements(data, record);
+            body.addAll(s);
         }
         return body;
     }
@@ -362,6 +359,12 @@ public class MuleToBalConverter {
             }
             case Constants.DB_INSERT, Constants.DB_SELECT, Constants.DB_UPDATE, Constants.DB_DELETE -> {
                 return readDatabase(data, element);
+            }
+            case Constants.OBJECT_TO_JSON -> {
+                return readObjectToJson(data, element);
+            }
+            case Constants.OBJECT_TO_STRING -> {
+                return readObjectToString(data, element);
             }
             default -> {
                 return readUnsupportedBlock(data, element);
@@ -416,6 +419,38 @@ public class MuleToBalConverter {
                 statementList.add(new BallerinaStatement(
                         "string " + setVariable.variableName() + " = " + varValue + ";"));
             }
+            case ObjectToJson objectToJson -> {
+                if (data.payload == null) {
+                    throw new UnsupportedOperationException();
+                }
+
+                statementList.add(new BallerinaStatement("\n\n// json transformation\n"));
+                String objToJsonVarName = String.format(Constants.VAR_OBJ_TO_JSON_TEMPLATE,
+                        data.objectToJsonVarCount++);
+                statementList.add(new BallerinaStatement(String.format("json %s = %s.toJson();", objToJsonVarName,
+                        data.payload.nameReference())));
+
+                // object to json transformer implicitly sets the payload
+                data.payload = new CurrentPayloadVarInfo("json", objToJsonVarName);
+                statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
+                        getSetPayloadArg(data.payload))));
+            }
+            case ObjectToString objectToString -> {
+                if (data.payload == null) {
+                    throw new UnsupportedOperationException();
+                }
+
+                statementList.add(new BallerinaStatement("\n\n// string transformation\n"));
+                String objToStringVarName = String.format(Constants.VAR_OBJ_TO_STRING_TEMPLATE,
+                        data.objectToStringVarCount++);
+                statementList.add(new BallerinaStatement(String.format("string %s = %s.toString();", objToStringVarName,
+                        data.payload.nameReference())));
+
+                // object to string transformer implicitly sets the payload
+                data.payload = new CurrentPayloadVarInfo("string", objToStringVarName);
+                statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
+                        getSetPayloadArg(data.payload))));
+            }
             case HttpRequest httpRequest -> {
                 List<Statement> statements = new ArrayList<>();
                 String path = httpRequest.path();
@@ -441,8 +476,7 @@ public class MuleToBalConverter {
                 String streamConstraintType = "Record";
                 data.typeDef.put(streamConstraintType, new ModuleTypeDef(streamConstraintType, Constants.RECORD_TYPE));
 
-                statementList.add(new BallerinaStatement("\n\n// Database operation\n"));
-
+                statementList.add(new BallerinaStatement("\n\n// database operation\n"));
                 String dbQueryVarName = String.format(Constants.VAR_DB_QUERY_TEMPLATE, data.dbQueryVarCount++);
                 statementList.add(new BallerinaStatement(String.format("%s %s = %s;",
                         Constants.SQL_PARAMETERIZED_QUERY_TYPE, dbQueryVarName,
@@ -481,7 +515,8 @@ public class MuleToBalConverter {
                 // This works for now because we concatenate and create a body block `{ stmts }` before parsing.
                 statementList.add(new BallerinaStatement(comment));
             }
-            case null, default -> throw new IllegalStateException();
+            case null -> throw new IllegalStateException();
+            default -> throw new UnsupportedOperationException();
         }
 
         return statementList;
@@ -615,6 +650,14 @@ public class MuleToBalConverter {
         return new SetVariable(varName, val);
     }
 
+    private static ObjectToJson readObjectToJson(Data data, Element element) {
+        return new ObjectToJson();
+    }
+
+    private static ObjectToString readObjectToString(Data data, Element element) {
+        return new ObjectToString();
+    }
+
     // HTTP Module
     private static HttpListener readHttpListener(Data data, Element element) {
         String configRef = element.getAttribute("config-ref");
@@ -639,6 +682,7 @@ public class MuleToBalConverter {
         return new FlowReference(flowName);
     }
 
+    // Database Connector
     private static Database readDatabase(Data data, Element element) {
         String configRef = element.getAttribute("config-ref");
 

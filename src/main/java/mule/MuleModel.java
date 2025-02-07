@@ -32,12 +32,6 @@ public record MuleModel() {
         WARN
     }
 
-    public record Payload(Kind kind, String expr) implements MuleRecord {
-        public Payload(String expr) {
-            this(Kind.PAYLOAD, expr);
-        }
-    }
-
     public record FlowReference(Kind kind, String flowName) implements MuleRecord {
         public FlowReference(String flowName) {
             this(Kind.FLOW_REFERENCE, flowName);
@@ -79,6 +73,24 @@ public record MuleModel() {
     public record SetVariable(Kind kind, String variableName, String value) implements MuleRecord {
         public SetVariable(String variableName, String value) {
             this(Kind.SET_VARIABLE, variableName, value);
+        }
+    }
+
+    public record Payload(Kind kind, String expr) implements MuleRecord {
+        public Payload(String expr) {
+            this(Kind.PAYLOAD, expr);
+        }
+    }
+
+    public record ObjectToJson(Kind kind) implements MuleRecord {
+        public ObjectToJson() {
+            this(Kind.OBJECT_TO_JSON);
+        }
+    }
+
+    public record ObjectToString(Kind kind) implements MuleRecord {
+        public ObjectToString() {
+            this(Kind.OBJECT_TO_STRING);
         }
     }
 
@@ -143,6 +155,8 @@ public record MuleModel() {
         DB_DELETE,
         DB_IN_PARAM,
         SET_VARIABLE,
+        OBJECT_TO_JSON,
+        OBJECT_TO_STRING,
         TRANSFORM_MESSAGE,
         FLOW,
         SUB_FLOW,

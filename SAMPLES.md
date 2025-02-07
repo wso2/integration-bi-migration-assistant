@@ -53,7 +53,7 @@ service /mule3 on config {
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
 
-        // Database operation
+        // database operation
         sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
         stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
         Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
@@ -116,7 +116,7 @@ service /mule3 on config {
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
 
-        // Database operation
+        // database operation
         sql:ParameterizedQuery _dbQuery0_ = Template_Select_Query;
         stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
         Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
@@ -319,6 +319,72 @@ service /mule3 on config {
         http:Response _response_ = new;
         string name = "lochana";
         string age = "29";
+        return _response_;
+    }
+}
+
+```
+
+## Object To Json
+
+- ### Basic Object To Json
+
+**Input (basic_object_to_json.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule3"/>
+    <db:mysql-config name="MySQL_Configuration" host="localhost" port="3306" user="root" password="admin123" database="test_db" doc:name="MySQL Configuration"/>
+    <flow name="demoFlow">
+        <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
+        <db:select config-ref="MySQL_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[SELECT * FROM users;]]></db:parameterized-query>
+        </db:select>
+        <json:object-to-json-transformer doc:name="Object to JSON"/>
+    </flow>
+</mule>
+
+```
+**Output (basic_object_to_json.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/sql;
+import ballerinax/mysql;
+import ballerinax/mysql.driver as _;
+
+type Record record {
+};
+
+mysql:Client MySQL_Configuration = check new ("localhost", "root", "admin123", "test_db", 3306);
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /mule3 on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+
+        // database operation
+        sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
+        stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
+        Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
+            select _iterator_;
+        _response_.setPayload(_dbSelect0_.toString());
+
+        // json transformation
+        json _to_json0_ = _dbSelect0_.toJson();
+        _response_.setPayload(_to_json0_);
         return _response_;
     }
 }
@@ -1170,6 +1236,72 @@ service /mule3 on config {
         _response_.setPayload("First payload");
         _response_.setPayload("Second payload");
         _response_.setPayload("Third payload");
+        return _response_;
+    }
+}
+
+```
+
+## Object To String
+
+- ### Basic Object To String
+
+**Input (basic_object_to_string.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule3"/>
+    <db:mysql-config name="MySQL_Configuration" host="localhost" port="3306" user="root" password="admin123" database="test_db" doc:name="MySQL Configuration"/>
+    <flow name="demoFlow">
+        <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
+        <db:select config-ref="MySQL_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[SELECT * FROM users;]]></db:parameterized-query>
+        </db:select>
+        <object-to-string-transformer doc:name="Object to String"/>
+    </flow>
+</mule>
+
+```
+**Output (basic_object_to_string.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/sql;
+import ballerinax/mysql;
+import ballerinax/mysql.driver as _;
+
+type Record record {
+};
+
+mysql:Client MySQL_Configuration = check new ("localhost", "root", "admin123", "test_db", 3306);
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /mule3 on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+
+        // database operation
+        sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
+        stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
+        Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
+            select _iterator_;
+        _response_.setPayload(_dbSelect0_.toString());
+
+        // string transformation
+        string _to_string0_ = _dbSelect0_.toString();
+        _response_.setPayload(_to_string0_);
         return _response_;
     }
 }

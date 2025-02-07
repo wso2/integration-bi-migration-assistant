@@ -17,7 +17,7 @@ service /mule3 on config {
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
 
-        // Database operation
+        // database operation
         sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
         stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
         Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
