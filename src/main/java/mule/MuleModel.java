@@ -32,12 +32,6 @@ public record MuleModel() {
         WARN
     }
 
-    public record Payload(Kind kind, String expr) implements MuleRecord {
-        public Payload(String expr) {
-            this(Kind.PAYLOAD, expr);
-        }
-    }
-
     public record FlowReference(Kind kind, String flowName) implements MuleRecord {
         public FlowReference(String flowName) {
             this(Kind.FLOW_REFERENCE, flowName);
@@ -82,6 +76,24 @@ public record MuleModel() {
         }
     }
 
+    public record Payload(Kind kind, String expr) implements MuleRecord {
+        public Payload(String expr) {
+            this(Kind.PAYLOAD, expr);
+        }
+    }
+
+    public record ObjectToJson(Kind kind) implements MuleRecord {
+        public ObjectToJson() {
+            this(Kind.OBJECT_TO_JSON);
+        }
+    }
+
+    public record ObjectToString(Kind kind) implements MuleRecord {
+        public ObjectToString() {
+            this(Kind.OBJECT_TO_STRING);
+        }
+    }
+
     // Global Elements
     public record HTTPListenerConfig(Kind kind, String name, String basePath, String port,
                                      Map<String, String> config) implements MuleRecord {
@@ -98,11 +110,21 @@ public record MuleModel() {
         }
     }
 
-    // Database Connector
-    public record DbSelect(Kind kind, String configRef, String query) implements MuleRecord {
-        public DbSelect(String configRef, String query) {
-            this(Kind.DB_SELECT, configRef, query);
+    public record DbTemplateQuery(Kind kind, String name, String parameterizedQuery,
+                                  List<DbInParam> dbInParams) implements MuleRecord {
+        public DbTemplateQuery(String name, String parameterizedQuery, List<DbInParam> dbInParams) {
+            this(Kind.DB_TEMPLATE_QUERY, name, parameterizedQuery, dbInParams);
         }
+    }
+
+    public record DbInParam(Kind kind, String name, Type type, String defaultValue) implements MuleRecord {
+        public DbInParam(String name, Type type, String defaultValue) {
+            this(Kind.DB_IN_PARAM, name, type, defaultValue);
+        }
+    }
+
+    // Database Connector
+    public record Database(Kind kind, String configRef, QueryType queryType, String query) implements MuleRecord {
     }
 
     // Misc
@@ -126,11 +148,37 @@ public record MuleModel() {
         WHEN_IN_CHOICE,
         HTTP_LISTENER_CONFIG,
         DB_MYSQL_CONFIG,
+        DB_TEMPLATE_QUERY,
+        DB_INSERT,
         DB_SELECT,
+        DB_UPDATE,
+        DB_DELETE,
+        DB_IN_PARAM,
         SET_VARIABLE,
+        OBJECT_TO_JSON,
+        OBJECT_TO_STRING,
         TRANSFORM_MESSAGE,
         FLOW,
         SUB_FLOW,
         UNSUPPORTED_BLOCK
+    }
+
+    public enum Type {
+        BOOLEAN,
+        VARCHAR;
+
+        public static Type from(String type) {
+            try {
+                return Type.valueOf(type);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Illegal type: " + type, e);
+            }
+        }
+    }
+
+    public enum QueryType {
+        PARAMETERIZED_QUERY,
+        DYNAMIC_QUERY,
+        TEMPLATE_QUERY_REF
     }
 }

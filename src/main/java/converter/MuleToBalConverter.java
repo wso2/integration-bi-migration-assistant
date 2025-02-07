@@ -53,8 +53,10 @@ import static converter.ConversionUtils.getBallerinaResourcePath;
 import static converter.ConversionUtils.insertLeadingSlash;
 import static converter.ConversionUtils.processQueryParams;
 import static mule.MuleModel.Choice;
+import static mule.MuleModel.DbInParam;
 import static mule.MuleModel.DbMSQLConfig;
-import static mule.MuleModel.DbSelect;
+import static mule.MuleModel.DbTemplateQuery;
+import static mule.MuleModel.Database;
 import static mule.MuleModel.Flow;
 import static mule.MuleModel.FlowReference;
 import static mule.MuleModel.HttpListener;
@@ -64,10 +66,14 @@ import static mule.MuleModel.HTTPListenerConfig;
 import static mule.MuleModel.LogLevel;
 import static mule.MuleModel.Logger;
 import static mule.MuleModel.MuleRecord;
+import static mule.MuleModel.ObjectToJson;
+import static mule.MuleModel.ObjectToString;
 import static mule.MuleModel.Payload;
+import static mule.MuleModel.QueryType;
 import static mule.MuleModel.SetVariable;
 import static mule.MuleModel.SubFlow;
 import static mule.MuleModel.TransformMessage;
+import static mule.MuleModel.Type;
 import static mule.MuleModel.WhenInChoice;
 import static mule.MuleModel.UnsupportedBlock;
 
@@ -77,6 +83,7 @@ public class MuleToBalConverter {
         // Mule global elements
         HashMap<String, HTTPListenerConfig> globalHttpListenerConfigsMap = new HashMap<>();
         HashMap<String, DbMSQLConfig> globalDbMySQLConfigsMap = new HashMap<>();
+        HashMap<String, DbTemplateQuery> globalDbTemplateQueryMap = new HashMap<>();
         List<UnsupportedBlock> globalUnsupportedBlocks = new ArrayList<>();
 
         // Ballerina global elements
@@ -84,7 +91,20 @@ public class MuleToBalConverter {
         HashSet<Import> imports = new HashSet<>();
         HashSet<String> queryParams = new HashSet<>();
         public List<Function> functions = new ArrayList<>();
+
+        // Internal variable/method count
         public int dwMethodCount = 0;
+        public int dbQueryVarCount = 0;
+        public int dbStreamVarCount = 0;
+        public int dbSelectVarCount = 0;
+        public int objectToJsonVarCount = 0;
+        public int objectToStringVarCount = 0;
+
+        // Temporary payload info
+        public CurrentPayloadVarInfo payload = null;
+    }
+
+    public record CurrentPayloadVarInfo (String type, String nameReference) {
     }
 
     public static SyntaxTree convertToBallerina(String xmlFilePath) {
@@ -148,6 +168,9 @@ public class MuleToBalConverter {
         } else if (Constants.DB_MYSQL_CONFIG.equals(elementTagName)) {
             DbMSQLConfig dbMSQLConfig = readDbMySQLConfig(data, element);
             data.globalDbMySQLConfigsMap.put(dbMSQLConfig.name(), dbMSQLConfig);
+        } else if (Constants.DB_TEMPLATE_QUERY.equals(elementTagName)) {
+            DbTemplateQuery dbTemplateQuery = readDbTemplateQuery(data, element);
+            data.globalDbTemplateQueryMap.put(dbTemplateQuery.name(), dbTemplateQuery);
         } else {
             UnsupportedBlock unsupportedBlock = readUnsupportedBlock(data, element);
             data.globalUnsupportedBlocks.add(unsupportedBlock);
@@ -189,7 +212,12 @@ public class MuleToBalConverter {
             var balExpr = new BallerinaExpression(String.format("check new (\"%s\", \"%s\", \"%s\", \"%s\", %s)",
                     dbMSQLConfig.host(), dbMSQLConfig.user(), dbMSQLConfig.password(), dbMSQLConfig.database(),
                     dbMSQLConfig.port()));
-            moduleVars.add(new ModuleVar(dbMSQLConfig.name(), Constants.MYSQL_CLIENT, balExpr));
+            moduleVars.add(new ModuleVar(dbMSQLConfig.name(), Constants.MYSQL_CLIENT_TYPE, balExpr));
+        }
+
+        for (DbTemplateQuery dbTemplateQuery : data.globalDbTemplateQueryMap.values()) {
+            var balExpr = new BallerinaExpression(String.format("`%s`", dbTemplateQuery.parameterizedQuery()));
+            moduleVars.add(new ModuleVar(dbTemplateQuery.name(), Constants.SQL_PARAMETERIZED_QUERY_TYPE, balExpr));
         }
 
         List<String> comments = new ArrayList<>();
@@ -264,21 +292,29 @@ public class MuleToBalConverter {
                 Collections.emptyList());
     }
 
+    private static String getSetPayloadArg(CurrentPayloadVarInfo currentPayloadVarInfo) {
+        if (isSetPayloadAllowedType(currentPayloadVarInfo.type())) {
+            return currentPayloadVarInfo.nameReference();
+        } else {
+            return String.format("%s.toString()", currentPayloadVarInfo.nameReference());
+        }
+    }
+
+    private static boolean isSetPayloadAllowedType(String type) {
+        return switch (type) {
+            case "string", "xml", "json", "byte[]" -> true;
+            default -> false;
+        };
+    }
+
     private static List<Statement> genFuncBodyStatements(Data data, List<MuleRecord> flowBlocks) {
         // Add function body statements
         List<Statement> body = new ArrayList<>();
 
         // Read flow blocks
         for (MuleRecord record : flowBlocks) {
-            switch (record.kind()) {
-                case LOGGER, PAYLOAD, CHOICE, SET_VARIABLE, HTTP_REQUEST, FLOW_REFERENCE, UNSUPPORTED_BLOCK,
-                     TRANSFORM_MESSAGE, DB_SELECT -> {
-                    List<Statement> s = convertToStatements(data, record);
-                    body.addAll(s);
-                }
-                case null -> throw new IllegalStateException();
-                default -> throw new UnsupportedOperationException();
-            }
+            List<Statement> s = convertToStatements(data, record);
+            body.addAll(s);
         }
         return body;
     }
@@ -321,8 +357,14 @@ public class MuleToBalConverter {
             case Constants.TRANSFORM_MESSAGE -> {
                 return readTransformMessage(data, element);
             }
-            case Constants.DB_SELECT -> {
-                return readDbSelect(data, element);
+            case Constants.DB_INSERT, Constants.DB_SELECT, Constants.DB_UPDATE, Constants.DB_DELETE -> {
+                return readDatabase(data, element);
+            }
+            case Constants.OBJECT_TO_JSON -> {
+                return readObjectToJson(data, element);
+            }
+            case Constants.OBJECT_TO_STRING -> {
+                return readObjectToString(data, element);
             }
             default -> {
                 return readUnsupportedBlock(data, element);
@@ -377,6 +419,38 @@ public class MuleToBalConverter {
                 statementList.add(new BallerinaStatement(
                         "string " + setVariable.variableName() + " = " + varValue + ";"));
             }
+            case ObjectToJson objectToJson -> {
+                if (data.payload == null) {
+                    throw new UnsupportedOperationException();
+                }
+
+                statementList.add(new BallerinaStatement("\n\n// json transformation\n"));
+                String objToJsonVarName = String.format(Constants.VAR_OBJ_TO_JSON_TEMPLATE,
+                        data.objectToJsonVarCount++);
+                statementList.add(new BallerinaStatement(String.format("json %s = %s.toJson();", objToJsonVarName,
+                        data.payload.nameReference())));
+
+                // object to json transformer implicitly sets the payload
+                data.payload = new CurrentPayloadVarInfo("json", objToJsonVarName);
+                statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
+                        getSetPayloadArg(data.payload))));
+            }
+            case ObjectToString objectToString -> {
+                if (data.payload == null) {
+                    throw new UnsupportedOperationException();
+                }
+
+                statementList.add(new BallerinaStatement("\n\n// string transformation\n"));
+                String objToStringVarName = String.format(Constants.VAR_OBJ_TO_STRING_TEMPLATE,
+                        data.objectToStringVarCount++);
+                statementList.add(new BallerinaStatement(String.format("string %s = %s.toString();", objToStringVarName,
+                        data.payload.nameReference())));
+
+                // object to string transformer implicitly sets the payload
+                data.payload = new CurrentPayloadVarInfo("string", objToStringVarName);
+                statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
+                        getSetPayloadArg(data.payload))));
+            }
             case HttpRequest httpRequest -> {
                 List<Statement> statements = new ArrayList<>();
                 String path = httpRequest.path();
@@ -396,19 +470,37 @@ public class MuleToBalConverter {
                 statementList.add(new BallerinaStatement(String.format("%s(%s);", flowReference.flowName(),
                         Constants.VAR_RESPONSE)));
             }
-            case DbSelect dbSelect -> {
+            case Database database -> {
                 // TODO: assumed source is always a http listener
                 data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_SQL, Optional.empty()));
                 String streamConstraintType = "Record";
-                data.typeDef.put(streamConstraintType, new ModuleTypeDef(streamConstraintType, "record {}"));
-                statementList.add(new BallerinaStatement(String.format("%s %s= %s->query(`%s`);",
+                data.typeDef.put(streamConstraintType, new ModuleTypeDef(streamConstraintType, Constants.RECORD_TYPE));
+
+                statementList.add(new BallerinaStatement("\n\n// database operation\n"));
+                String dbQueryVarName = String.format(Constants.VAR_DB_QUERY_TEMPLATE, data.dbQueryVarCount++);
+                statementList.add(new BallerinaStatement(String.format("%s %s = %s;",
+                        Constants.SQL_PARAMETERIZED_QUERY_TYPE, dbQueryVarName,
+                        database.queryType() == QueryType.TEMPLATE_QUERY_REF ? database.query() :
+                                String.format("`%s`", database.query()))));
+
+                String dbStreamVarName = String.format(Constants.VAR_DB_STREAM_TEMPLATE, data.dbStreamVarCount++);
+                statementList.add(new BallerinaStatement(String.format("%s %s= %s->query(%s);",
                         String.format(Constants.DB_QUERY_DEFAULT_TEMPLATE, streamConstraintType),
-                        String.format(Constants.VAR_DB_STREAM_TEMPLATE, 0),
-                        dbSelect.configRef(), dbSelect.query())));
-                // Record[] payload = check from Record r in _dbStream0_ select r;
-                statementList.add(new BallerinaStatement(
-                        String.format("%s[] payload = check from %s %s in %s select %s;", streamConstraintType,
-                                streamConstraintType, "r", String.format(Constants.VAR_DB_STREAM_TEMPLATE, 0), "r")));
+                        dbStreamVarName, database.configRef(), dbQueryVarName)));
+
+                if (database.kind() == Kind.DB_SELECT) {
+                    String dbSelectVarName = String.format(Constants.VAR_DB_SELECT_TEMPLATE, data.dbSelectVarCount++);
+                    statementList.add(new BallerinaStatement(
+                            String.format("%s[] %s = check from %s %s in %s select %s;", streamConstraintType,
+                                    dbSelectVarName, streamConstraintType, Constants.VAR_ITERATOR, dbStreamVarName,
+                                    Constants.VAR_ITERATOR)));
+
+                    // db:select implicitly sets the payload
+                    data.payload = new CurrentPayloadVarInfo(String.format("%s[]", streamConstraintType),
+                            dbSelectVarName);
+                    statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
+                            getSetPayloadArg(data.payload))));
+                }
             }
             case TransformMessage transformMessage -> {
                 String mimeType = transformMessage.mimeType();
@@ -423,7 +515,8 @@ public class MuleToBalConverter {
                 // This works for now because we concatenate and create a body block `{ stmts }` before parsing.
                 statementList.add(new BallerinaStatement(comment));
             }
-            case null, default -> throw new IllegalStateException();
+            case null -> throw new IllegalStateException();
+            default -> throw new UnsupportedOperationException();
         }
 
         return statementList;
@@ -557,6 +650,14 @@ public class MuleToBalConverter {
         return new SetVariable(varName, val);
     }
 
+    private static ObjectToJson readObjectToJson(Data data, Element element) {
+        return new ObjectToJson();
+    }
+
+    private static ObjectToString readObjectToString(Data data, Element element) {
+        return new ObjectToString();
+    }
+
     // HTTP Module
     private static HttpListener readHttpListener(Data data, Element element) {
         String configRef = element.getAttribute("config-ref");
@@ -581,10 +682,68 @@ public class MuleToBalConverter {
         return new FlowReference(flowName);
     }
 
-    private static DbSelect readDbSelect(Data data, Element element) {
+    // Database Connector
+    private static Database readDatabase(Data data, Element element) {
         String configRef = element.getAttribute("config-ref");
-        String query = element.getElementsByTagName("db:parameterized-query").item(0).getTextContent();
-        return new DbSelect(configRef, query);
+
+        QueryType queryType = null;
+        String query = null;
+
+        NodeList childNodes = element.getChildNodes();
+        for (int i = 0; i < childNodes.getLength(); i++) {
+            Node node = childNodes.item(i);
+            if (node.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+
+            assert queryType == null;
+            Element childElement = (Element) node;
+            queryType = getQueryType(childElement.getTagName());
+            query = readQuery(data, childElement, queryType);
+        }
+
+        if (queryType == null) {
+            throw new IllegalStateException("No valid query found in the database block");
+        }
+
+        Kind kind = switch (element.getTagName()) {
+            case Constants.DB_INSERT -> Kind.DB_INSERT;
+            case Constants.DB_SELECT -> Kind.DB_SELECT;
+            case Constants.DB_UPDATE -> Kind.DB_UPDATE;
+            case Constants.DB_DELETE -> Kind.DB_DELETE;
+            default -> throw new UnsupportedOperationException();
+        };
+
+        return new Database(kind, configRef, queryType, query);
+    }
+
+    private static QueryType getQueryType(String tagName) {
+        return switch (tagName) {
+            case Constants.DB_PARAMETERIZED_QUERY -> QueryType.PARAMETERIZED_QUERY;
+            case Constants.DB_DYNAMIC_QUERY -> QueryType.DYNAMIC_QUERY;
+            case Constants.DB_TEMPLATE_QUERY_REF -> QueryType.TEMPLATE_QUERY_REF;
+            default -> throw new IllegalStateException("Invalid query type");
+        };
+    }
+
+    private static String readQuery(Data data, Element element, QueryType queryType) {
+        return switch (queryType) {
+            case PARAMETERIZED_QUERY -> readDbParameterizedQuery(data, element);
+            case DYNAMIC_QUERY -> readDbDynamicQuery(data, element);
+            case TEMPLATE_QUERY_REF -> readDbTemplateQueryRef(data, element);
+        };
+    }
+
+    private static String readDbParameterizedQuery(Data data, Element element) {
+        return element.getTextContent();
+    }
+
+    private static String readDbDynamicQuery(Data data, Element element) {
+        return element.getTextContent();
+    }
+
+    private static String readDbTemplateQueryRef(Data data, Element element) {
+        return element.getAttribute("name");
     }
 
     private static UnsupportedBlock readUnsupportedBlock(Data data, Element element) {
@@ -613,6 +772,42 @@ public class MuleToBalConverter {
         String password = element.getAttribute("password");
         String database = element.getAttribute("database");
         return new DbMSQLConfig(name, host, port, user, password, database);
+    }
+
+    private static DbTemplateQuery readDbTemplateQuery(Data data, Element element) {
+        String name = element.getAttribute("name");
+        String query = null;
+        List<DbInParam> dbInParams = new ArrayList<>();
+        NodeList childNodes = element.getChildNodes();
+        for (int i = 0; i < childNodes.getLength(); i++) {
+            Node node = childNodes.item(i);
+            if (node.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+
+            Element childElement = (Element) node;
+            if (childElement.getTagName().equals("db:parameterized-query")) {
+                query = readDbParameterizedQuery(data, childElement);
+            } else if (childElement.getTagName().equals("db:in-param")) {
+                DbInParam dbInParam = readDbInParam(data, childElement);
+                dbInParams.add(dbInParam);
+            } else {
+                throw new UnsupportedOperationException();
+            }
+        }
+
+        if (query == null) {
+            throw new IllegalStateException("No query found in the db:template-query block");
+        }
+        return new DbTemplateQuery(name, query, dbInParams);
+    }
+
+    private static DbInParam readDbInParam(Data data, Element element) {
+        String name = element.getAttribute("name");
+        String type = element.getAttribute("type");
+        Type ty = Type.from(type);
+        String defaultValue = element.getAttribute("defaultValue");
+        return new DbInParam(name, ty, defaultValue);
     }
 
     private static TransformMessage readTransformMessage(Data data, Element element) {
