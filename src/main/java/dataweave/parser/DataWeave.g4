@@ -92,7 +92,7 @@ expression
 // Primary Expressions (Non-Recursive Base Expressions)
 primaryExpression
     : functionCall                                          # functionCallExpression
-    | 'sizeOf' ('(' (array | STRING | object) ')' | array | STRING | object)  # sizeOfExpression
+    | 'sizeOf' ('(' (expression) ')' | expression)  # sizeOfExpression
     | inlineLambda                                          # lambdaExpression
     | literal                                               # literalExpression
     | array                                                 # arrayExpression

@@ -1,6 +1,8 @@
 package dataweave.converter;
 
 import ballerina.BallerinaModel;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import converter.ConversionUtils;
 import converter.MuleToBalConverter;
 import dataweave.parser.DataWeaveBaseVisitor;
@@ -146,25 +148,27 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             visit(expr);
             arguments.add(dwContext.getExpression());
         }
-        switch (functionName) {
-            case DWUtils.DW_FUNCTION_SIZE_OF:
-                handleSizeOfFunction(dwContext, arguments);
-                break;
-            default:
-                dwContext.parentStatements.add(new BallerinaModel.BallerinaStatement(
-                        ConversionUtils.wrapElementInUnsupportedBlockComment(ctx.getText())));
-        }
+//        switch (functionName) {
+//            case DWUtils.DW_FUNCTION_SIZE_OF:
+//                handleSizeOfFunction(dwContext, arguments);
+//                break;
+//            default:
+//                dwContext.parentStatements.add(new BallerinaModel.BallerinaStatement(
+//                        ConversionUtils.wrapElementInUnsupportedBlockComment(ctx.getText())));
+//        }
         return null;
     }
 
-    private void handleSizeOfFunction(DWContext dwContext, List<String> arguments) {
-        if (arguments.size() != 1) {
-            dwContext.parentStatements.add(new BallerinaModel.BallerinaStatement(
-                    ConversionUtils.wrapElementInUnsupportedBlockComment(DWUtils.DW_FUNCTION_SIZE_OF)));
-            return;
-        }
+    @Override
+    public Void visitSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx) {
+        visit(ctx.expression());
+        handleSizeOfFunction(dwContext, dwContext.getExpression());
+        return null;
+    }
+
+    private void handleSizeOfFunction(DWContext dwContext, String argument) {
         if (Objects.equals(dwContext.inputType, LexerTerminals.JSON)) {
-            String castStatement = "json[] jsonArr = <json[]>" + arguments.getFirst() + ";";
+            String castStatement = "json[] jsonArr = <json[]>" + argument + ";";
             dwContext.statements.add(new BallerinaModel.BallerinaStatement(castStatement));
             dwContext.exprBuilder.append("jsonArr").append(".length()");
             return;

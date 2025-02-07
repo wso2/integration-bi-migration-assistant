@@ -38,7 +38,7 @@ public class DataWeaveTest {
                 {DataWeaveScripts.SCRIPT_BUILTIN_SIZEOF, "src/test/resources/parser/expected/dw_builtin_sizeof.json"},
                 {DataWeaveScripts.SCRIPT_BUILTIN_SIZEOF_IN_OBJECT, "src/test/resources/parser/expected/" +
                         "dw_builtin_sizeof_in_object.json"},
-                {SCRIPT_BUILTIN_MAP, "src/test/resources/parser/expected/dw_builtin_map.json"},
+                {DataWeaveScripts.SCRIPT_BUILTIN_MAP, "src/test/resources/parser/expected/dw_builtin_map.json"},
         };
     }
 }

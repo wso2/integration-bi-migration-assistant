@@ -204,13 +204,7 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     public JsonNode visitSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx) {
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put("type", "SizeOf");
-        if (ctx.array() != null) {
-            objectNode.set("array", visit(ctx.array()));
-        } else if (ctx.object() != null) {
-            objectNode.set("object", visit(ctx.object()));
-        } else if (ctx.STRING() != null) {
-            objectNode.set("expression", visit(ctx.STRING()));
-        }
+        objectNode.set("expression", visit(ctx.expression()));
         return objectNode;
     }
 
