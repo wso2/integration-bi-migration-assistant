@@ -50,6 +50,7 @@ For now, Mule 3.x is supported. Support for Mule 4.x is expected to be added lat
 The migration tool currently supports the following Mule components:
 
 - [Database](SAMPLES.md#database)
+- [Flow](SAMPLES.md#flow)
 - [Http Listener](SAMPLES.md#http-listener)
 - [Logger](SAMPLES.md#logger)
 - [Object To Json](SAMPLES.md#object-to-json)

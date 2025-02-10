@@ -2,6 +2,7 @@ package mule;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public record MuleModel() {
 
@@ -57,8 +58,8 @@ public record MuleModel() {
         }
     }
 
-    public record Flow(Kind kind, String name, MuleRecord source, List<MuleRecord> flowBlocks) implements MuleRecord {
-        public Flow(String name, MuleRecord source, List<MuleRecord> flowBlocks) {
+    public record Flow(Kind kind, String name, Optional<MuleRecord> source, List<MuleRecord> flowBlocks) implements MuleRecord {
+        public Flow(String name, Optional<MuleRecord> source, List<MuleRecord> flowBlocks) {
             this(Kind.FLOW, name, source, flowBlocks);
         }
     }

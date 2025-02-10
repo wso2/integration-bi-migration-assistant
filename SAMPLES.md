@@ -128,6 +128,103 @@ service /mule3 on config {
 
 ```
 
+## Flow
+
+- ### Basic Flow
+
+**Input (basic_flow.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule3"/>
+    <flow name="demoFlow">
+        <http:listener config-ref="config" path="/"  doc:name="HTTP" allowedMethods="GET"/>
+        <logger message="xxx: logger invoked via http end point" level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>
+
+```
+**Output (basic_flow.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /mule3 on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        log:printInfo("xxx: logger invoked via http end point");
+        return _response_;
+    }
+}
+
+```
+
+- ### Private Flow
+
+**Input (private_flow.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule3"/>
+    <flow name="demoFlow">
+        <http:listener config-ref="config" path="/"  doc:name="HTTP" allowedMethods="GET"/>
+        <logger message="xxx: logger invoked via http end point" level="INFO" doc:name="Logger"/>
+        <flow-ref name="demoPrivateFlow" doc:name="Flow Reference"/>
+        <logger message="xxx: end of main flow" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="demoPrivateFlow">
+        <logger message="xxx: private flow invoked" level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>
+
+```
+**Output (private_flow.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /mule3 on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        log:printInfo("xxx: logger invoked via http end point");
+        demoPrivateFlow(_response_);
+        log:printInfo("xxx: end of main flow");
+        return _response_;
+    }
+}
+
+function demoPrivateFlow(http:Response _response_) {
+    log:printInfo("xxx: private flow invoked");
+}
+
+```
+
 ## Http Listener
 
 - ### Empty Resource Path

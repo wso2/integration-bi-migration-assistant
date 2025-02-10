@@ -6,7 +6,6 @@ import dataweave.DWReader;
 import dataweave.converter.DWUtils;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.Constants;
-import mule.MuleModel;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -178,20 +177,34 @@ public class MuleToBalConverter {
     }
 
     private static BallerinaModel generateBallerinaModel(Data data, List<Flow> flows, List<SubFlow> subFlows) {
-        // TODO: Support multiple flows
-        Flow flow = flows.getFirst();
+        List<Service> services = new ArrayList<>();
+        List<Flow> privateFlows = new ArrayList<>();
 
-        MuleRecord source = flow.source();
-        if (source.kind() != Kind.HTTP_LISTENER) {
-            // Only http listener source is supported at the moment
-            throw new UnsupportedOperationException();
+        for (Flow flow : flows) {
+            Optional<MuleRecord> source = flow.source();
+            if (source.isEmpty()) {
+                privateFlows.add(flow);
+                continue;
+            }
+
+            MuleRecord src = source.get();
+            assert src.kind() == Kind.HTTP_LISTENER;
+
+            // Create a service from the flow
+            Service service = genBalService(data, (HttpListener) src, flow.flowBlocks());
+            services.add(service);
         }
 
-        // Create a service from the flow
-        Service service = genBalService(data, (HttpListener) source, flow.flowBlocks());
+        List<Function> functions = new ArrayList<>();
+
+        // Create functions for private flows
+        List<Function> privateFlowFuncs = genBalFuncsFromPrivateFlows(data, privateFlows);
 
         // Create functions for sub-flows
-        List<Function> functions = genBalFunctions(data, subFlows);
+        List<Function> subFlowFuncs = genBalFuncsFromSubFlows(data, subFlows);
+
+        functions.addAll(privateFlowFuncs);
+        functions.addAll(subFlowFuncs);
 
         // Add imports
         List<Import> imports = new ArrayList<>();
@@ -226,11 +239,11 @@ public class MuleToBalConverter {
             comments.add(comment);
         }
 
-        return createBallerinaModel(imports, data.typeDef.values().stream().toList(), moduleVars, listeners,
-                Collections.singletonList(service), functions, comments);
+        return createBallerinaModel(imports, data.typeDef.values().stream().toList(), moduleVars, listeners, services,
+                functions, comments);
     }
 
-    private static List<Function> genBalFunctions(Data data, List<SubFlow> subFlows) {
+    private static List<Function> genBalFuncsFromSubFlows(Data data, List<SubFlow> subFlows) {
         List<Function> functions = new ArrayList<>(subFlows.size());
         for (SubFlow subFlow : subFlows) {
             List<Statement> body = genFuncBodyStatements(data, subFlow.flowBlocks());
@@ -238,6 +251,22 @@ public class MuleToBalConverter {
             List<Parameter> parameterList = List.of(new Parameter(Constants.VAR_RESPONSE, "http:Response",
                     Optional.empty()));
             Function function = new Function(Optional.empty(), subFlow.name(), parameterList, Optional.empty(), body);
+            functions.add(function);
+        }
+        functions.addAll(data.functions);
+        return functions;
+    }
+
+    private static List<Function> genBalFuncsFromPrivateFlows(Data data, List<Flow> privateFlows) {
+        List<Function> functions = new ArrayList<>(privateFlows.size());
+        for (Flow privateFlow : privateFlows) {
+            assert privateFlow.source().isEmpty();
+            // TODO: assumed source is always a http listener
+            List<Parameter> parameterList = List.of(new Parameter(Constants.VAR_RESPONSE, "http:Response",
+                    Optional.empty()));
+            List<Statement> body = genFuncBodyStatements(data, privateFlow.flowBlocks());
+            Function function = new Function(Optional.empty(), privateFlow.name(), parameterList, Optional.empty(),
+                    body);
             functions.add(function);
         }
         functions.addAll(data.functions);
@@ -471,7 +500,6 @@ public class MuleToBalConverter {
                         Constants.VAR_RESPONSE)));
             }
             case Database database -> {
-                // TODO: assumed source is always a http listener
                 data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_SQL, Optional.empty()));
                 String streamConstraintType = "Record";
                 data.typeDef.put(streamConstraintType, new ModuleTypeDef(streamConstraintType, Constants.RECORD_TYPE));
@@ -498,6 +526,7 @@ public class MuleToBalConverter {
                     // db:select implicitly sets the payload
                     data.payload = new CurrentPayloadVarInfo(String.format("%s[]", streamConstraintType),
                             dbSelectVarName);
+                    // TODO: assumed source is always a http listener
                     statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
                             getSetPayloadArg(data.payload))));
                 }
@@ -608,6 +637,7 @@ public class MuleToBalConverter {
 
             Element element = (Element) child;
             if (element.getTagName().equals(Constants.HTTP_LISTENER)) {
+                assert source == null;
                 source = readHttpListener(data, element);
             } else {
                 MuleRecord muleRec = readBlock(data, element);
@@ -615,8 +645,13 @@ public class MuleToBalConverter {
             }
         }
 
-        assert source != null : "A flow should have a source";
-        return new Flow(flowName, source, flowBlocks);
+        Optional<MuleRecord> optSource;
+        if (source == null) {
+            optSource = Optional.empty();
+        } else {
+            optSource = Optional.of(source);
+        }
+        return new Flow(flowName, optSource, flowBlocks);
     }
 
     private static SubFlow readSubFlow(Data data, Element flowElement) {
@@ -825,6 +860,6 @@ public class MuleToBalConverter {
             }
             default -> throw new UnsupportedOperationException();
         }
-        return new MuleModel.TransformMessage(mimeType, cdataSection.getData());
+        return new TransformMessage(mimeType, cdataSection.getData());
     }
 }
