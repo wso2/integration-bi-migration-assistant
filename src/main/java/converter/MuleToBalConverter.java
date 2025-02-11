@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -195,16 +196,13 @@ public class MuleToBalConverter {
             services.add(service);
         }
 
-        List<Function> functions = new ArrayList<>();
+        Set<Function> functions = new HashSet<>();
 
         // Create functions for private flows
-        List<Function> privateFlowFuncs = genBalFuncsFromPrivateFlows(data, privateFlows);
+        genBalFuncsFromPrivateFlows(data, privateFlows, functions);
 
         // Create functions for sub-flows
-        List<Function> subFlowFuncs = genBalFuncsFromSubFlows(data, subFlows);
-
-        functions.addAll(privateFlowFuncs);
-        functions.addAll(subFlowFuncs);
+        genBalFuncsFromSubFlows(data, subFlows, functions);
 
         // Add imports
         List<Import> imports = new ArrayList<>();
@@ -240,11 +238,10 @@ public class MuleToBalConverter {
         }
 
         return createBallerinaModel(imports, data.typeDef.values().stream().toList(), moduleVars, listeners, services,
-                functions, comments);
+                functions.stream().toList(), comments);
     }
 
-    private static List<Function> genBalFuncsFromSubFlows(Data data, List<SubFlow> subFlows) {
-        List<Function> functions = new ArrayList<>(subFlows.size());
+    private static void genBalFuncsFromSubFlows(Data data, List<SubFlow> subFlows, Set<Function> functions) {
         for (SubFlow subFlow : subFlows) {
             List<Statement> body = genFuncBodyStatements(data, subFlow.flowBlocks());
             // TODO: assumed source is always a http listener
@@ -254,11 +251,9 @@ public class MuleToBalConverter {
             functions.add(function);
         }
         functions.addAll(data.functions);
-        return functions;
     }
 
-    private static List<Function> genBalFuncsFromPrivateFlows(Data data, List<Flow> privateFlows) {
-        List<Function> functions = new ArrayList<>(privateFlows.size());
+    private static void genBalFuncsFromPrivateFlows(Data data, List<Flow> privateFlows, Set<Function> functions) {
         for (Flow privateFlow : privateFlows) {
             assert privateFlow.source().isEmpty();
             // TODO: assumed source is always a http listener
@@ -270,7 +265,6 @@ public class MuleToBalConverter {
             functions.add(function);
         }
         functions.addAll(data.functions);
-        return functions;
     }
 
     private static Service genBalService(Data data, HttpListener httpListener, List<MuleRecord> flowBlocks) {
