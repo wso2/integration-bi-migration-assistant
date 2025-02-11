@@ -482,7 +482,18 @@ public class DataWeaveBaseVisitor<T> extends AbstractParseTreeVisitor<T> impleme
      * {@link #visitChildren} on {@code ctx}.</p>
      */
     @Override
-    public T visitObject(DataWeaveParser.ObjectContext ctx) {
+    public T visitMultiKeyValueObject(DataWeaveParser.MultiKeyValueObjectContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     */
+    @Override
+    public T visitSingleKeyValueObject(DataWeaveParser.SingleKeyValueObjectContext ctx) {
         return visitChildren(ctx);
     }
 

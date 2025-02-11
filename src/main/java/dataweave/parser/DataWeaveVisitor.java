@@ -375,12 +375,22 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
     T visitArray(DataWeaveParser.ArrayContext ctx);
 
     /**
-     * Visit a parse tree produced by {@link DataWeaveParser#object}.
+     * Visit a parse tree produced by the {@code multiKeyValueObject}
+     * labeled alternative in {@link DataWeaveParser#object}.
      *
      * @param ctx the parse tree
      * @return the visitor result
      */
-    T visitObject(DataWeaveParser.ObjectContext ctx);
+    T visitMultiKeyValueObject(DataWeaveParser.MultiKeyValueObjectContext ctx);
+
+    /**
+     * Visit a parse tree produced by the {@code singleKeyValueObject}
+     * labeled alternative in {@link DataWeaveParser#object}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitSingleKeyValueObject(DataWeaveParser.SingleKeyValueObjectContext ctx);
 
     /**
      * Visit a parse tree produced by {@link DataWeaveParser#keyValue}.

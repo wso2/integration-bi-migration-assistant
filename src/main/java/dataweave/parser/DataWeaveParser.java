@@ -2794,12 +2794,27 @@ public class DataWeaveParser extends Parser {
 
     @SuppressWarnings("CheckReturnValue")
     public static class ObjectContext extends ParserRuleContext {
-        public TerminalNode LCURLY() {
-            return getToken(DataWeaveParser.LCURLY, 0);
+        public ObjectContext(ParserRuleContext parent, int invokingState) {
+            super(parent, invokingState);
         }
 
-        public TerminalNode RCURLY() {
-            return getToken(DataWeaveParser.RCURLY, 0);
+        @Override
+        public int getRuleIndex() {
+            return RULE_object;
+        }
+
+        public ObjectContext() {
+        }
+
+        public void copyFrom(ObjectContext ctx) {
+            super.copyFrom(ctx);
+        }
+    }
+
+    @SuppressWarnings("CheckReturnValue")
+    public static class MultiKeyValueObjectContext extends ObjectContext {
+        public TerminalNode LCURLY() {
+            return getToken(DataWeaveParser.LCURLY, 0);
         }
 
         public List<KeyValueContext> keyValue() {
@@ -2810,6 +2825,10 @@ public class DataWeaveParser extends Parser {
             return getRuleContext(KeyValueContext.class, i);
         }
 
+        public TerminalNode RCURLY() {
+            return getToken(DataWeaveParser.RCURLY, 0);
+        }
+
         public List<TerminalNode> COMMA() {
             return getTokens(DataWeaveParser.COMMA);
         }
@@ -2818,28 +2837,52 @@ public class DataWeaveParser extends Parser {
             return getToken(DataWeaveParser.COMMA, i);
         }
 
-        public ObjectContext(ParserRuleContext parent, int invokingState) {
-            super(parent, invokingState);
-        }
-
-        @Override
-        public int getRuleIndex() {
-            return RULE_object;
+        public MultiKeyValueObjectContext(ObjectContext ctx) {
+            copyFrom(ctx);
         }
 
         @Override
         public void enterRule(ParseTreeListener listener) {
-            if (listener instanceof DataWeaveListener) ((DataWeaveListener) listener).enterObject(this);
+            if (listener instanceof DataWeaveListener) ((DataWeaveListener) listener).enterMultiKeyValueObject(this);
         }
 
         @Override
         public void exitRule(ParseTreeListener listener) {
-            if (listener instanceof DataWeaveListener) ((DataWeaveListener) listener).exitObject(this);
+            if (listener instanceof DataWeaveListener) ((DataWeaveListener) listener).exitMultiKeyValueObject(this);
         }
 
         @Override
         public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-            if (visitor instanceof DataWeaveVisitor) return ((DataWeaveVisitor<? extends T>) visitor).visitObject(this);
+            if (visitor instanceof DataWeaveVisitor)
+                return ((DataWeaveVisitor<? extends T>) visitor).visitMultiKeyValueObject(this);
+            else return visitor.visitChildren(this);
+        }
+    }
+
+    @SuppressWarnings("CheckReturnValue")
+    public static class SingleKeyValueObjectContext extends ObjectContext {
+        public KeyValueContext keyValue() {
+            return getRuleContext(KeyValueContext.class, 0);
+        }
+
+        public SingleKeyValueObjectContext(ObjectContext ctx) {
+            copyFrom(ctx);
+        }
+
+        @Override
+        public void enterRule(ParseTreeListener listener) {
+            if (listener instanceof DataWeaveListener) ((DataWeaveListener) listener).enterSingleKeyValueObject(this);
+        }
+
+        @Override
+        public void exitRule(ParseTreeListener listener) {
+            if (listener instanceof DataWeaveListener) ((DataWeaveListener) listener).exitSingleKeyValueObject(this);
+        }
+
+        @Override
+        public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+            if (visitor instanceof DataWeaveVisitor)
+                return ((DataWeaveVisitor<? extends T>) visitor).visitSingleKeyValueObject(this);
             else return visitor.visitChildren(this);
         }
     }
@@ -2849,38 +2892,47 @@ public class DataWeaveParser extends Parser {
         enterRule(_localctx, 36, RULE_object);
         int _la;
         try {
-            enterOuterAlt(_localctx, 1);
-            {
-                setState(263);
-                match(LCURLY);
-                setState(272);
-                _errHandler.sync(this);
-                _la = _input.LA(1);
-                if (_la == IDENTIFIER) {
-                    {
-                        setState(264);
-                        keyValue();
-                        setState(269);
+            setState(275);
+            _errHandler.sync(this);
+            switch (_input.LA(1)) {
+                case LCURLY:
+                    _localctx = new MultiKeyValueObjectContext(_localctx);
+                    enterOuterAlt(_localctx, 1);
+                {
+                    setState(263);
+                    match(LCURLY);
+                    setState(264);
+                    keyValue();
+                    setState(269);
+                    _errHandler.sync(this);
+                    _la = _input.LA(1);
+                    while (_la == COMMA) {
+                        {
+                            {
+                                setState(265);
+                                match(COMMA);
+                                setState(266);
+                                keyValue();
+                            }
+                        }
+                        setState(271);
                         _errHandler.sync(this);
                         _la = _input.LA(1);
-                        while (_la == COMMA) {
-                            {
-                                {
-                                    setState(265);
-                                    match(COMMA);
-                                    setState(266);
-                                    keyValue();
-                                }
-                            }
-                            setState(271);
-                            _errHandler.sync(this);
-                            _la = _input.LA(1);
-                        }
                     }
+                    setState(272);
+                    match(RCURLY);
                 }
-
-                setState(274);
-                match(RCURLY);
+                break;
+                case IDENTIFIER:
+                    _localctx = new SingleKeyValueObjectContext(_localctx);
+                    enterOuterAlt(_localctx, 2);
+                {
+                    setState(274);
+                    keyValue();
+                }
+                break;
+                default:
+                    throw new NoViableAltException(this);
             }
         } catch (RecognitionException re) {
             _localctx.exception = re;
@@ -2939,11 +2991,11 @@ public class DataWeaveParser extends Parser {
         try {
             enterOuterAlt(_localctx, 1);
             {
-                setState(276);
-                match(IDENTIFIER);
                 setState(277);
-                match(COLON);
+                match(IDENTIFIER);
                 setState(278);
+                match(COLON);
+                setState(279);
                 expression(0);
             }
         } catch (RecognitionException re) {
@@ -3012,37 +3064,37 @@ public class DataWeaveParser extends Parser {
         try {
             enterOuterAlt(_localctx, 1);
             {
-                setState(280);
-                match(IDENTIFIER);
                 setState(281);
+                match(IDENTIFIER);
+                setState(282);
                 match(T__0);
-                setState(290);
+                setState(291);
                 _errHandler.sync(this);
                 _la = _input.LA(1);
                 if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 343507058L) != 0)) {
                     {
-                        setState(282);
+                        setState(283);
                         expression(0);
-                        setState(287);
+                        setState(288);
                         _errHandler.sync(this);
                         _la = _input.LA(1);
                         while (_la == COMMA) {
                             {
                                 {
-                                    setState(283);
-                                    match(COMMA);
                                     setState(284);
+                                    match(COMMA);
+                                    setState(285);
                                     expression(0);
                                 }
                             }
-                            setState(289);
+                            setState(290);
                             _errHandler.sync(this);
                             _la = _input.LA(1);
                         }
                     }
                 }
 
-                setState(292);
+                setState(293);
                 match(T__1);
             }
         } catch (RecognitionException re) {
@@ -3094,11 +3146,11 @@ public class DataWeaveParser extends Parser {
         try {
             enterOuterAlt(_localctx, 1);
             {
-                setState(294);
-                match(T__0);
                 setState(295);
-                expression(0);
+                match(T__0);
                 setState(296);
+                expression(0);
+                setState(297);
                 match(T__1);
             }
         } catch (RecognitionException re) {
@@ -3162,7 +3214,7 @@ public class DataWeaveParser extends Parser {
     }
 
     public static final String _serializedATN =
-            "\u0004\u0001/\u012b\u0002\u0000\u0007\u0000\u0002\u0001\u0007\u0001\u0002" +
+            "\u0004\u0001/\u012c\u0002\u0000\u0007\u0000\u0002\u0001\u0007\u0001\u0002" +
                     "\u0002\u0007\u0002\u0002\u0003\u0007\u0003\u0002\u0004\u0007\u0004\u0002" +
                     "\u0005\u0007\u0005\u0002\u0006\u0007\u0006\u0002\u0007\u0007\u0007\u0002" +
                     "\b\u0007\b\u0002\t\u0007\t\u0002\n\u0007\n\u0002\u000b\u0007\u000b\u0002" +
@@ -3201,14 +3253,14 @@ public class DataWeaveParser extends Parser {
                     "\u0010\u0001\u0011\u0001\u0011\u0001\u0011\u0001\u0011\u0005\u0011\u00ff" +
                     "\b\u0011\n\u0011\f\u0011\u0102\t\u0011\u0003\u0011\u0104\b\u0011\u0001" +
                     "\u0011\u0001\u0011\u0001\u0012\u0001\u0012\u0001\u0012\u0001\u0012\u0005" +
-                    "\u0012\u010c\b\u0012\n\u0012\f\u0012\u010f\t\u0012\u0003\u0012\u0111\b" +
-                    "\u0012\u0001\u0012\u0001\u0012\u0001\u0013\u0001\u0013\u0001\u0013\u0001" +
-                    "\u0013\u0001\u0014\u0001\u0014\u0001\u0014\u0001\u0014\u0001\u0014\u0005" +
-                    "\u0014\u011e\b\u0014\n\u0014\f\u0014\u0121\t\u0014\u0003\u0014\u0123\b" +
-                    "\u0014\u0001\u0014\u0001\u0014\u0001\u0015\u0001\u0015\u0001\u0015\u0001" +
+                    "\u0012\u010c\b\u0012\n\u0012\f\u0012\u010f\t\u0012\u0001\u0012\u0001\u0012" +
+                    "\u0001\u0012\u0003\u0012\u0114\b\u0012\u0001\u0013\u0001\u0013\u0001\u0013" +
+                    "\u0001\u0013\u0001\u0014\u0001\u0014\u0001\u0014\u0001\u0014\u0001\u0014" +
+                    "\u0005\u0014\u011f\b\u0014\n\u0014\f\u0014\u0122\t\u0014\u0003\u0014\u0124" +
+                    "\b\u0014\u0001\u0014\u0001\u0014\u0001\u0015\u0001\u0015\u0001\u0015\u0001" +
                     "\u0015\u0001\u0015\u0000\u0002\u0014\u0016\u0016\u0000\u0002\u0004\u0006" +
                     "\b\n\f\u000e\u0010\u0012\u0014\u0016\u0018\u001a\u001c\u001e \"$&(*\u0000" +
-                    "\u0002\u0001\u0000\u001f \u0002\u0000\u000f\u000f\u0013\u0016\u0144\u0000" +
+                    "\u0002\u0001\u0000\u001f \u0002\u0000\u000f\u000f\u0013\u0016\u0145\u0000" +
                     "-\u0001\u0000\u0000\u0000\u0002B\u0001\u0000\u0000\u0000\u0004L\u0001" +
                     "\u0000\u0000\u0000\u0006N\u0001\u0000\u0000\u0000\bQ\u0001\u0000\u0000" +
                     "\u0000\nT\u0001\u0000\u0000\u0000\fX\u0001\u0000\u0000\u0000\u000e\\\u0001" +
@@ -3216,9 +3268,9 @@ public class DataWeaveParser extends Parser {
                     "\u0000\u0014q\u0001\u0000\u0000\u0000\u0016\u00b4\u0001\u0000\u0000\u0000" +
                     "\u0018\u00dc\u0001\u0000\u0000\u0000\u001a\u00de\u0001\u0000\u0000\u0000" +
                     "\u001c\u00ea\u0001\u0000\u0000\u0000\u001e\u00f0\u0001\u0000\u0000\u0000" +
-                    " \u00f8\u0001\u0000\u0000\u0000\"\u00fa\u0001\u0000\u0000\u0000$\u0107" +
-                    "\u0001\u0000\u0000\u0000&\u0114\u0001\u0000\u0000\u0000(\u0118\u0001\u0000" +
-                    "\u0000\u0000*\u0126\u0001\u0000\u0000\u0000,.\u0003\u0002\u0001\u0000" +
+                    " \u00f8\u0001\u0000\u0000\u0000\"\u00fa\u0001\u0000\u0000\u0000$\u0113" +
+                    "\u0001\u0000\u0000\u0000&\u0115\u0001\u0000\u0000\u0000(\u0119\u0001\u0000" +
+                    "\u0000\u0000*\u0127\u0001\u0000\u0000\u0000,.\u0003\u0002\u0001\u0000" +
                     "-,\u0001\u0000\u0000\u0000-.\u0001\u0000\u0000\u0000./\u0001\u0000\u0000" +
                     "\u0000/1\u0005\u001e\u0000\u000002\u0003\u0012\t\u000010\u0001\u0000\u0000" +
                     "\u000012\u0001\u0000\u0000\u000026\u0001\u0000\u0000\u000035\u0005 \u0000" +
@@ -3333,28 +3385,28 @@ public class DataWeaveParser extends Parser {
                     "\u0000\u0101\u0104\u0001\u0000\u0000\u0000\u0102\u0100\u0001\u0000\u0000" +
                     "\u0000\u0103\u00fb\u0001\u0000\u0000\u0000\u0103\u0104\u0001\u0000\u0000" +
                     "\u0000\u0104\u0105\u0001\u0000\u0000\u0000\u0105\u0106\u0005\u001d\u0000" +
-                    "\u0000\u0106#\u0001\u0000\u0000\u0000\u0107\u0110\u0005\u001a\u0000\u0000" +
+                    "\u0000\u0106#\u0001\u0000\u0000\u0000\u0107\u0108\u0005\u001a\u0000\u0000" +
                     "\u0108\u010d\u0003&\u0013\u0000\u0109\u010a\u0005\u0019\u0000\u0000\u010a" +
                     "\u010c\u0003&\u0013\u0000\u010b\u0109\u0001\u0000\u0000\u0000\u010c\u010f" +
                     "\u0001\u0000\u0000\u0000\u010d\u010b\u0001\u0000\u0000\u0000\u010d\u010e" +
-                    "\u0001\u0000\u0000\u0000\u010e\u0111\u0001\u0000\u0000\u0000\u010f\u010d" +
-                    "\u0001\u0000\u0000\u0000\u0110\u0108\u0001\u0000\u0000\u0000\u0110\u0111" +
-                    "\u0001\u0000\u0000\u0000\u0111\u0112\u0001\u0000\u0000\u0000\u0112\u0113" +
-                    "\u0005\u001b\u0000\u0000\u0113%\u0001\u0000\u0000\u0000\u0114\u0115\u0005" +
-                    "\u0010\u0000\u0000\u0115\u0116\u0005\u0018\u0000\u0000\u0116\u0117\u0003" +
-                    "\u0014\n\u0000\u0117\'\u0001\u0000\u0000\u0000\u0118\u0119\u0005\u0010" +
-                    "\u0000\u0000\u0119\u0122\u0005\u0001\u0000\u0000\u011a\u011f\u0003\u0014" +
-                    "\n\u0000\u011b\u011c\u0005\u0019\u0000\u0000\u011c\u011e\u0003\u0014\n" +
-                    "\u0000\u011d\u011b\u0001\u0000\u0000\u0000\u011e\u0121\u0001\u0000\u0000" +
-                    "\u0000\u011f\u011d\u0001\u0000\u0000\u0000\u011f\u0120\u0001\u0000\u0000" +
-                    "\u0000\u0120\u0123\u0001\u0000\u0000\u0000\u0121\u011f\u0001\u0000\u0000" +
-                    "\u0000\u0122\u011a\u0001\u0000\u0000\u0000\u0122\u0123\u0001\u0000\u0000" +
-                    "\u0000\u0123\u0124\u0001\u0000\u0000\u0000\u0124\u0125\u0005\u0002\u0000" +
-                    "\u0000\u0125)\u0001\u0000\u0000\u0000\u0126\u0127\u0005\u0001\u0000\u0000" +
-                    "\u0127\u0128\u0003\u0014\n\u0000\u0128\u0129\u0005\u0002\u0000\u0000\u0129" +
-                    "+\u0001\u0000\u0000\u0000\u001a-16?DLen\u008f\u0091\u009c\u00a4\u00ac" +
-                    "\u00b4\u00ca\u00cc\u00d6\u00dc\u00e5\u00f5\u0100\u0103\u010d\u0110\u011f" +
-                    "\u0122";
+                    "\u0001\u0000\u0000\u0000\u010e\u0110\u0001\u0000\u0000\u0000\u010f\u010d" +
+                    "\u0001\u0000\u0000\u0000\u0110\u0111\u0005\u001b\u0000\u0000\u0111\u0114" +
+                    "\u0001\u0000\u0000\u0000\u0112\u0114\u0003&\u0013\u0000\u0113\u0107\u0001" +
+                    "\u0000\u0000\u0000\u0113\u0112\u0001\u0000\u0000\u0000\u0114%\u0001\u0000" +
+                    "\u0000\u0000\u0115\u0116\u0005\u0010\u0000\u0000\u0116\u0117\u0005\u0018" +
+                    "\u0000\u0000\u0117\u0118\u0003\u0014\n\u0000\u0118\'\u0001\u0000\u0000" +
+                    "\u0000\u0119\u011a\u0005\u0010\u0000\u0000\u011a\u0123\u0005\u0001\u0000" +
+                    "\u0000\u011b\u0120\u0003\u0014\n\u0000\u011c\u011d\u0005\u0019\u0000\u0000" +
+                    "\u011d\u011f\u0003\u0014\n\u0000\u011e\u011c\u0001\u0000\u0000\u0000\u011f" +
+                    "\u0122\u0001\u0000\u0000\u0000\u0120\u011e\u0001\u0000\u0000\u0000\u0120" +
+                    "\u0121\u0001\u0000\u0000\u0000\u0121\u0124\u0001\u0000\u0000\u0000\u0122" +
+                    "\u0120\u0001\u0000\u0000\u0000\u0123\u011b\u0001\u0000\u0000\u0000\u0123" +
+                    "\u0124\u0001\u0000\u0000\u0000\u0124\u0125\u0001\u0000\u0000\u0000\u0125" +
+                    "\u0126\u0005\u0002\u0000\u0000\u0126)\u0001\u0000\u0000\u0000\u0127\u0128" +
+                    "\u0005\u0001\u0000\u0000\u0128\u0129\u0003\u0014\n\u0000\u0129\u012a\u0005" +
+                    "\u0002\u0000\u0000\u012a+\u0001\u0000\u0000\u0000\u001a-16?DLen\u008f" +
+                    "\u0091\u009c\u00a4\u00ac\u00b4\u00ca\u00cc\u00d6\u00dc\u00e5\u00f5\u0100" +
+                    "\u0103\u010d\u0113\u0120\u0123";
     public static final ATN _ATN =
             new ATNDeserializer().deserialize(_serializedATN.toCharArray());
 

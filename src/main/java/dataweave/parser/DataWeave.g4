@@ -136,7 +136,10 @@ literal
 array: LSQUARE (expression (COMMA expression)*)? RSQUARE;
 
 // Objects
-object: LCURLY (keyValue (COMMA keyValue)*)? RCURLY;
+object
+    : LCURLY keyValue (COMMA keyValue)* RCURLY  # multiKeyValueObject
+    | keyValue                                  # singleKeyValueObject
+    ;
 
 keyValue: IDENTIFIER COLON expression;
 

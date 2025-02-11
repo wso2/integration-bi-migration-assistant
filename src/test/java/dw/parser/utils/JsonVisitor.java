@@ -161,12 +161,21 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
 
 
     @Override
-    public JsonNode visitObjectExpression(DataWeaveParser.ObjectExpressionContext ctx) {
+    public JsonNode visitMultiKeyValueObject(DataWeaveParser.MultiKeyValueObjectContext ctx) {
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put("type", "Object");
-        for (DataWeaveParser.KeyValueContext kv : ctx.object().keyValue()) {
+        for (DataWeaveParser.KeyValueContext kv : ctx.keyValue()) {
             objectNode.set(kv.IDENTIFIER().getText(), visit(kv.expression()));
         }
+        return objectNode;
+    }
+
+    @Override
+    public JsonNode visitSingleKeyValueObject(DataWeaveParser.SingleKeyValueObjectContext ctx) {
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "Object");
+        DataWeaveParser.KeyValueContext kv = ctx.keyValue();
+        objectNode.set(kv.IDENTIFIER().getText(), visit(kv.expression()));
         return objectNode;
     }
 

@@ -99,7 +99,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     }
 
     @Override
-    public Void visitObject(DataWeaveParser.ObjectContext ctx) {
+    public Void visitMultiKeyValueObject(DataWeaveParser.MultiKeyValueObjectContext ctx) {
         List<String> keyValuePairs = new ArrayList<>();
         for (var kv : ctx.keyValue()) {
             String key = "\"" + kv.IDENTIFIER().getText() + "\"";
@@ -107,6 +107,18 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             String value = dwContext.getExpression();
             keyValuePairs.add(key + ": " + value);
         }
+        dwContext.exprBuilder.append("{ ").append(String.join(", ", keyValuePairs)).append(" }");
+        return null;
+    }
+
+    @Override
+    public Void visitSingleKeyValueObject(DataWeaveParser.SingleKeyValueObjectContext ctx) {
+        List<String> keyValuePairs = new ArrayList<>();
+        DataWeaveParser.KeyValueContext kv = ctx.keyValue();
+        String key = "\"" + kv.IDENTIFIER().getText() + "\"";
+        visit(kv.expression());
+        String value = dwContext.getExpression();
+        keyValuePairs.add(key + ": " + value);
         dwContext.exprBuilder.append("{ ").append(String.join(", ", keyValuePairs)).append(" }");
         return null;
     }
@@ -229,15 +241,17 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitUpperExpression(DataWeaveParser.UpperExpressionContext ctx) {
+        this.dwContext.exprBuilder.append("(<string>");
         visit(ctx.expression());
-        this.dwContext.exprBuilder.append(".toUpperAscii()");
+        this.dwContext.exprBuilder.append(").toUpperAscii()");
         return null;
     }
 
     @Override
     public Void visitLowerExpression(DataWeaveParser.LowerExpressionContext ctx) {
+        this.dwContext.exprBuilder.append("(<string>");
         visit(ctx.expression());
-        this.dwContext.exprBuilder.append(".toLowerAscii()");
+        this.dwContext.exprBuilder.append(").toLowerAscii()");
         return null;
     }
 

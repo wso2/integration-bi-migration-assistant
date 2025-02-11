@@ -774,7 +774,7 @@ public class DataWeaveBaseListener implements DataWeaveListener {
      * <p>The default implementation does nothing.</p>
      */
     @Override
-    public void enterObject(DataWeaveParser.ObjectContext ctx) {
+    public void enterMultiKeyValueObject(DataWeaveParser.MultiKeyValueObjectContext ctx) {
     }
 
     /**
@@ -783,7 +783,25 @@ public class DataWeaveBaseListener implements DataWeaveListener {
      * <p>The default implementation does nothing.</p>
      */
     @Override
-    public void exitObject(DataWeaveParser.ObjectContext ctx) {
+    public void exitMultiKeyValueObject(DataWeaveParser.MultiKeyValueObjectContext ctx) {
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation does nothing.</p>
+     */
+    @Override
+    public void enterSingleKeyValueObject(DataWeaveParser.SingleKeyValueObjectContext ctx) {
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation does nothing.</p>
+     */
+    @Override
+    public void exitSingleKeyValueObject(DataWeaveParser.SingleKeyValueObjectContext ctx) {
     }
 
     /**

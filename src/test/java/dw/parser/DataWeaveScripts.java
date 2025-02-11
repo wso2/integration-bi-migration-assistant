@@ -179,4 +179,10 @@ public class DataWeaveScripts {
             lower "APPLE"
             """;
 
+    public static final String SCRIPT_SINGLE_OBJECT = """
+            %dw 2.0
+            %output application/json
+            ---
+            a: 1
+            """;
 }
