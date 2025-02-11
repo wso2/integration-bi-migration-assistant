@@ -46,4 +46,16 @@ public class TransformMessageTest extends AbstractBlockTest {
         testMule3ToBal("transform-message/transform_message_with_map_index_identifier_only.xml",
                 "transform-message/transform_message_with_map_index_identifier_only.bal");
     }
+
+    @Test
+    public void testTransformMessageWithUpper() {
+        testMule3ToBal("transform-message/transform_message_with_upper.xml",
+                "transform-message/transform_message_with_upper.bal");
+    }
+
+    @Test
+    public void testTransformMessageWithLower() {
+        testMule3ToBal("transform-message/transform_message_with_lower.xml",
+                "transform-message/transform_message_with_lower.bal");
+    }
 }

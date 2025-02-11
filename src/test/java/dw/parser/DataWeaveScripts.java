@@ -164,5 +164,19 @@ public class DataWeaveScripts {
             ---
             [1, 2, 3] map $ + 1
             """;
+    public static final String SCRIPT_BUILTIN_UPPER = """
+            %dw 1.0
+            %output application/json
+            %input payload application/json
+            ---
+            upper "apple"
+            """;
+    public static final String SCRIPT_BUILTIN_LOWER = """
+            %dw 1.0
+            %output application/json
+            %input payload application/json
+            ---
+            lower "APPLE"
+            """;
 
 }

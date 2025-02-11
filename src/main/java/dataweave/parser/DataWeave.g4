@@ -92,7 +92,9 @@ expression
 // Primary Expressions (Non-Recursive Base Expressions)
 primaryExpression
     : functionCall                                          # functionCallExpression
-    | 'sizeOf' ('(' (expression) ')' | expression)  # sizeOfExpression
+    | 'sizeOf' ('(' (expression) ')' | expression)          # sizeOfExpression
+    | 'upper' ('(' (expression) ')' | expression)           # upperExpression
+    | 'lower' ('(' (expression) ')' | expression)           # lowerExpression
     | inlineLambda                                          # lambdaExpression
     | literal                                               # literalExpression
     | array                                                 # arrayExpression

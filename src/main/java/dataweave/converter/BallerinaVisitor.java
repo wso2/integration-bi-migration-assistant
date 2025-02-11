@@ -227,6 +227,21 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitUpperExpression(DataWeaveParser.UpperExpressionContext ctx) {
+        visit(ctx.expression());
+        this.dwContext.exprBuilder.append(".toUpperAscii()");
+        return null;
+    }
+
+    @Override
+    public Void visitLowerExpression(DataWeaveParser.LowerExpressionContext ctx) {
+        visit(ctx.expression());
+        this.dwContext.exprBuilder.append(".toLowerAscii()");
+        return null;
+    }
+
+
 
 //
 //    @Override

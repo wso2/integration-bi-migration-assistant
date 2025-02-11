@@ -227,5 +227,21 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
         return objectNode;
     }
 
+    @Override
+    public JsonNode visitUpperExpression(DataWeaveParser.UpperExpressionContext ctx) {
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "UpperExpression");
+        objectNode.set("expression", visit(ctx.expression()));
+        return objectNode;
+    }
+
+    @Override
+    public JsonNode visitLowerExpression(DataWeaveParser.LowerExpressionContext ctx) {
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "LowerExpression");
+        objectNode.set("expression", visit(ctx.expression()));
+        return objectNode;
+    }
+
 
 }
