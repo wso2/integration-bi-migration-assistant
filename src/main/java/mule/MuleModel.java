@@ -58,7 +58,8 @@ public record MuleModel() {
         }
     }
 
-    public record Flow(Kind kind, String name, Optional<MuleRecord> source, List<MuleRecord> flowBlocks) implements MuleRecord {
+    public record Flow(Kind kind, String name, Optional<MuleRecord> source, List<MuleRecord> flowBlocks)
+            implements MuleRecord {
         public Flow(String name, Optional<MuleRecord> source, List<MuleRecord> flowBlocks) {
             this(Kind.FLOW, name, source, flowBlocks);
         }

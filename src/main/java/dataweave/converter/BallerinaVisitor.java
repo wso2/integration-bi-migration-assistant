@@ -1,8 +1,6 @@
 package dataweave.converter;
 
 import ballerina.BallerinaModel;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import converter.ConversionUtils;
 import converter.MuleToBalConverter;
 import dataweave.parser.DataWeaveBaseVisitor;
@@ -15,11 +13,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import static dataweave.converter.DWUtils.DW_INDEX_IDENTIFIER;
+import static dataweave.converter.DWUtils.DW_VALUE_IDENTIFIER;
+
 public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
-    private final List<BallerinaModel.Function> functions = new ArrayList<>();
-    private final List<BallerinaModel.ModuleVar> moduleVars = new ArrayList<>();
-    private final List<BallerinaModel.Import> imports = new ArrayList<>();
     private final DWContext dwContext;
     private final MuleToBalConverter.Data data;
 
@@ -111,7 +109,6 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         }
         dwContext.exprBuilder.append("{ ").append(String.join(", ", keyValuePairs)).append(" }");
         return null;
-//        return new BallerinaModel.BallerinaExpression("{ " + String.join(", ", keyValuePairs) + " }");
     }
 
     @Override
@@ -122,7 +119,6 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             elements.add(dwContext.getExpression());
         }
         dwContext.exprBuilder.append("[").append(String.join(", ", elements)).append("]");
-//        return new BallerinaModel.BallerinaExpression("[" + String.join(", ", elements) + "]");
         return null;
     }
 
@@ -142,39 +138,68 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitFunctionCall(DataWeaveParser.FunctionCallContext ctx) {
-        String functionName = ctx.IDENTIFIER().getText();
         List<String> arguments = new ArrayList<>();
         for (var expr : ctx.expression()) {
             visit(expr);
             arguments.add(dwContext.getExpression());
         }
-//        switch (functionName) {
-//            case DWUtils.DW_FUNCTION_SIZE_OF:
-//                handleSizeOfFunction(dwContext, arguments);
-//                break;
-//            default:
-//                dwContext.parentStatements.add(new BallerinaModel.BallerinaStatement(
-//                        ConversionUtils.wrapElementInUnsupportedBlockComment(ctx.getText())));
-//        }
         return null;
     }
 
     @Override
     public Void visitSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx) {
         visit(ctx.expression());
-        handleSizeOfFunction(dwContext, dwContext.getExpression());
-        return null;
-    }
-
-    private void handleSizeOfFunction(DWContext dwContext, String argument) {
         if (Objects.equals(dwContext.inputType, LexerTerminals.JSON)) {
-            String castStatement = "json[] jsonArr = <json[]>" + argument + ";";
+            String castStatement = "json[] jsonArg = <json[]>" + dwContext.getExpression() + ";";
             dwContext.statements.add(new BallerinaModel.BallerinaStatement(castStatement));
-            dwContext.exprBuilder.append("jsonArr").append(".length()");
-            return;
+            dwContext.exprBuilder.append("jsonArg").append(".length()");
+            return null;
         }
         dwContext.parentStatements.add(new BallerinaModel.BallerinaStatement(
                 ConversionUtils.wrapElementInUnsupportedBlockComment(DWUtils.DW_FUNCTION_SIZE_OF)));
+        return null;
+    }
+
+    @Override
+    public Void visitMapExpression(DataWeaveParser.MapExpressionContext ctx) {
+        visit(ctx.expression());
+        if (Objects.equals(dwContext.inputType, LexerTerminals.JSON)) {
+            String castStatement = "json[] " + DWUtils.MAP_ARG + " = <json[]>" + dwContext.getExpression() + ";";
+            dwContext.varTypes.put(DWUtils.MAP_ARG, "json[]");
+            dwContext.varTypes.put(DWUtils.ELEMENT_ARG, "json");
+            dwContext.statements.add(new BallerinaModel.BallerinaStatement(castStatement));
+            dwContext.exprBuilder.append(DWUtils.MAP_ARG + ".'map(");
+            visit(ctx.implicitLambdaExpression());
+            dwContext.exprBuilder.append(")");
+            return null;
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitSingleParameterImplicitLambda(DataWeaveParser.SingleParameterImplicitLambdaContext ctx) {
+        String expr = ctx.expression().getText();
+        dwContext.exprBuilder.append(DWUtils.ELEMENT_ARG).append("=>");
+        if (expr.contains(DW_VALUE_IDENTIFIER)) {
+            dwContext.commonArgs.put(DW_VALUE_IDENTIFIER, DWUtils.ELEMENT_ARG);
+        }
+        visit(ctx.expression());
+        return null;
+    }
+
+
+    @Override
+    public Void visitMathExpression(DataWeaveParser.MathExpressionContext ctx) {
+        this.dwContext.statements.add(
+                new BallerinaModel.BallerinaStatement(String.format(DWUtils.TYPE_CAST_COMMENT, ctx.getText())));
+        this.dwContext.exprBuilder.append("<int>");
+        visit(ctx.expression(0));
+        String expression = dwContext.getExpression();
+        expression += ctx.OPERATOR_MATH().getText();
+        visit(ctx.expression(1));
+        expression += "<int>" + dwContext.getExpression();
+        dwContext.exprBuilder.append(expression);
+        return null;
     }
 
     @Override
@@ -191,7 +216,14 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitIdentifierExpression(DataWeaveParser.IdentifierExpressionContext ctx) {
-        this.dwContext.exprBuilder.append(ctx.IDENTIFIER().getText());
+        String varName = ctx.IDENTIFIER().getText();
+        if (varName.equals(DW_VALUE_IDENTIFIER)) {
+            varName = this.dwContext.commonArgs.get(DW_VALUE_IDENTIFIER);
+        }
+        if (varName.equals(DW_INDEX_IDENTIFIER)) {
+            varName = DWUtils.MAP_ARG + ".indexOf(" + DWUtils.ELEMENT_ARG + ")";
+        }
+        this.dwContext.exprBuilder.append(varName);
         return null;
     }
 

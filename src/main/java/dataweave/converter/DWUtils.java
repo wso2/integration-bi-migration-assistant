@@ -18,6 +18,8 @@ public class DWUtils {
     public static final String CURLY_START_BRACKET = "{";
     public static final String CURLY_END_BRACKET = "}";
     public static final String DATAWEAVE_OUTPUT_VARIABLE_NAME = "_dwOutput_";
+    public static final  String DW_INDEX_IDENTIFIER = "$$";
+    public static final  String DW_VALUE_IDENTIFIER = "$";
 
     // IO Types
     public static final String APPLICATION_JAVA = "application/java";
@@ -51,6 +53,11 @@ public class DWUtils {
 
     // Ballerina Identifiers
     public static final String DW_FUNCTION_NAME = "_dwMethod%s_";
+    public static final String MAP_ARG = "mapArg";
+    public static final String ELEMENT_ARG = "element";
+
+    public static final String TYPE_CAST_COMMENT = "\n// TODO: AMBIGUOUS TYPE FOUND FOR MATH OPERATOR" +
+            " '%s'. MANUAL CASTING REQUIRED.\n";
 
     public static String findBallerinaType(String mediaType) {
         return switch (mediaType) {

@@ -4,8 +4,6 @@ import dw.parser.utils.ParserTestUtils;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import static dw.parser.DataWeaveScripts.SCRIPT_BUILTIN_MAP;
-
 public class DataWeaveTest {
 
     @Test(dataProvider = "provideTestInput")

@@ -48,6 +48,5 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json|error {
-    json[] jsonArr = <json[]>check payload.resultSet1;
-    return {"hail1": jsonArr.length()};
+    return {"hail1": check payload.resultSet1};
 }

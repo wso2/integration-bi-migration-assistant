@@ -17,7 +17,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 %input payload application/json
 ---
 {
-	hail1: sizeOf ([1,2,3,4])
+	hail1: sizeOf [1,2,3,4]
 }]]></dw:set-payload>
         </dw:transform-message>
     </flow>

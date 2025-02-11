@@ -16,9 +16,8 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 %output application/json
 %input payload application/json
 ---
-{
-	hail1: payload.resultSet1
-}]]></dw:set-payload>
+[1, 2, 3, 4] map $ + 1
+]]></dw:set-payload>
         </dw:transform-message>
     </flow>
 </mule>

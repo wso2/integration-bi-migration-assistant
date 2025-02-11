@@ -28,4 +28,22 @@ public class TransformMessageTest extends AbstractBlockTest {
         testMule3ToBal("transform-message/transform_message_with_sizeof.xml",
                 "transform-message/transform_message_with_sizeof.bal");
     }
+
+    @Test
+    public void testTransformMessageWithMapFunctionValueIdentifier() {
+        testMule3ToBal("transform-message/transform_message_with_map_value_identifier.xml",
+                "transform-message/transform_message_with_map_value_identifier.bal");
+    }
+
+    @Test
+    public void testTransformMessageWithMapFunctionIndexIdentifier() {
+        testMule3ToBal("transform-message/transform_message_with_map_index_identifier.xml",
+                "transform-message/transform_message_with_map_index_identifier.bal");
+    }
+
+    @Test
+    public void testTransformMessageWithMapFunctionIndexIdentifierOnly() {
+        testMule3ToBal("transform-message/transform_message_with_map_index_identifier_only.xml",
+                "transform-message/transform_message_with_map_index_identifier_only.bal");
+    }
 }
