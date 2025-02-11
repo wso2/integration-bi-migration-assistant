@@ -227,6 +227,15 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     }
 
     @Override
+    public JsonNode visitFilterExpression(DataWeaveParser.FilterExpressionContext ctx) {
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "Filter");
+        objectNode.set("element", visit(ctx.expression()));
+        objectNode.set("lambda", visit(ctx.implicitLambdaExpression()));
+        return objectNode;
+    }
+
+    @Override
     public JsonNode visitMathExpression(DataWeaveParser.MathExpressionContext ctx) {
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put("type", "MathBinaryExpression");

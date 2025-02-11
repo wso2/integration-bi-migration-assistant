@@ -53,11 +53,13 @@ public class DWUtils {
 
     // Ballerina Identifiers
     public static final String DW_FUNCTION_NAME = "_dwMethod%s_";
-    public static final String MAP_ARG = "mapArg";
+    public static final String ARRAY_ARG = "arrayArg";
     public static final String ELEMENT_ARG = "element";
 
-    public static final String TYPE_CAST_COMMENT = "\n// TODO: AMBIGUOUS TYPE FOUND FOR MATH OPERATOR" +
+    public static final String TYPE_CAST_COMMENT_MATH = "\n// TODO: AMBIGUOUS TYPE FOUND FOR MATH OPERATOR" +
             " '%s'. MANUAL CASTING REQUIRED.\n";
+    public static final String TYPE_CAST_COMMENT_COMPARISON = "\n// TODO: AMBIGUOUS TYPE FOUND FOR COMPARISON " +
+            "OPERATOR '%s'. MANUAL CASTING REQUIRED.\n";
 
     public static String findBallerinaType(String mediaType) {
         return switch (mediaType) {

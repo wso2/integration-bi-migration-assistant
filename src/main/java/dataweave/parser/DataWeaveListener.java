@@ -213,6 +213,22 @@ public interface DataWeaveListener extends ParseTreeListener {
     void exitConditionalExpression(DataWeaveParser.ConditionalExpressionContext ctx);
 
     /**
+     * Enter a parse tree produced by the {@code filterExpression}
+     * labeled alternative in {@link DataWeaveParser}.
+     *
+     * @param ctx the parse tree
+     */
+    void enterFilterExpression(DataWeaveParser.FilterExpressionContext ctx);
+
+    /**
+     * Exit a parse tree produced by the {@code filterExpression}
+     * labeled alternative in {@link DataWeaveParser}.
+     *
+     * @param ctx the parse tree
+     */
+    void exitFilterExpression(DataWeaveParser.FilterExpressionContext ctx);
+
+    /**
      * Enter a parse tree produced by the {@code mathExpression}
      * labeled alternative in {@link DataWeaveParser}.
      *

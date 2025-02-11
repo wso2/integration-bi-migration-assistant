@@ -64,4 +64,10 @@ public class TransformMessageTest extends AbstractBlockTest {
         testMule3ToBal("transform-message/transform_message_with_map_combination.xml",
                 "transform-message/transform_message_with_map_combination.bal");
     }
+
+    @Test
+    public void testTransformMessageWithFilterFunctionValueIdentifier() {
+        testMule3ToBal("transform-message/transform_message_with_filter_value_identifier.xml",
+                "transform-message/transform_message_with_filter_value_identifier.bal");
+    }
 }

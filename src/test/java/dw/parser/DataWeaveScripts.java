@@ -185,4 +185,11 @@ public class DataWeaveScripts {
             ---
             a: 1
             """;
+    public static final String SCRIPT_BUILTIN_FILTER = """
+            %dw 1.0
+            %output application/json
+            %input payload application/json
+            ---
+            [1, 2, 3, 4, 5] filter $ > 2
+            """;
 }

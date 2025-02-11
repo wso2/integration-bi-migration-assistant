@@ -128,6 +128,15 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
     T visitConditionalExpression(DataWeaveParser.ConditionalExpressionContext ctx);
 
     /**
+     * Visit a parse tree produced by the {@code filterExpression}
+     * labeled alternative in {@link DataWeaveParser}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitFilterExpression(DataWeaveParser.FilterExpressionContext ctx);
+
+    /**
      * Visit a parse tree produced by the {@code mathExpression}
      * labeled alternative in {@link DataWeaveParser}.
      *

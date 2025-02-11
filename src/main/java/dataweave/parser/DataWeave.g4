@@ -87,6 +87,7 @@ expression
     | expression OPERATOR_RANGE expression                            # rangeExpression
     | expression OPERATOR_CHAIN expression                            # chainExpression
     | expression 'map' implicitLambdaExpression                       # mapExpression
+    | expression 'filter' implicitLambdaExpression                    # filterExpression
     ;
 
 // Primary Expressions (Non-Recursive Base Expressions)

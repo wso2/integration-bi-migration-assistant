@@ -48,6 +48,6 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json {
-    json[] mapArg = <json[]>["john", "peter", "matt"];
-    return {"users": mapArg.'map(element => (<string>element).toUpperAscii())};
+    json[] arrayArg = <json[]>["john", "peter", "matt"];
+    return {"users": arrayArg.'map(element => (<string>element).toUpperAscii())};
 }

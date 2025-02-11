@@ -48,7 +48,7 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json {
-    json[] mapArg = <json[]>[1, 2, 3, 4];
+    json[] arrayArg = <json[]>[1, 2, 3, 4];
     // TODO: AMBIGUOUS TYPE FOUND FOR MATH OPERATOR '$+1'. MANUAL CASTING REQUIRED.
-    return mapArg.'map(element => <int>element + <int>1);
+    return arrayArg.'map(element => <int>element + <int>1);
 }

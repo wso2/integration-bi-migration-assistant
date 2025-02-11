@@ -42,6 +42,8 @@ public class DataWeaveTest {
                         "dw_builtin_upper.json"},
                 {DataWeaveScripts.SCRIPT_BUILTIN_LOWER, "src/test/resources/parser/expected/" +
                         "dw_builtin_lower.json"},
+                {DataWeaveScripts.SCRIPT_BUILTIN_FILTER, "src/test/resources/parser/expected/dw_builtin_filter.json"},
+
         };
     }
 }
