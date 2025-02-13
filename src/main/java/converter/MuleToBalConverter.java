@@ -58,6 +58,7 @@ import static mule.MuleModel.DbInParam;
 import static mule.MuleModel.DbMSQLConfig;
 import static mule.MuleModel.DbTemplateQuery;
 import static mule.MuleModel.Database;
+import static mule.MuleModel.Enricher;
 import static mule.MuleModel.Flow;
 import static mule.MuleModel.FlowReference;
 import static mule.MuleModel.HttpListener;
@@ -100,6 +101,7 @@ public class MuleToBalConverter {
         public int dbSelectVarCount = 0;
         public int objectToJsonVarCount = 0;
         public int objectToStringVarCount = 0;
+        public int enricherMethodCount = 0;
 
         // Temporary payload info
         public CurrentPayloadVarInfo payload = null;
@@ -248,7 +250,8 @@ public class MuleToBalConverter {
             // TODO: assumed source is always a http listener
             List<Parameter> parameterList = List.of(new Parameter(Constants.VAR_RESPONSE, "http:Response",
                     Optional.empty()));
-            Function function = new Function(Optional.empty(), subFlow.name(), parameterList, Optional.empty(), body);
+            String methodName = ConversionUtils.escapeSpecialCharacters(subFlow.name());
+            Function function = new Function(Optional.empty(), methodName, parameterList, Optional.empty(), body);
             functions.add(function);
         }
         functions.addAll(data.functions);
@@ -257,12 +260,15 @@ public class MuleToBalConverter {
     private static void genBalFuncsFromPrivateFlows(Data data, List<Flow> privateFlows, Set<Function> functions) {
         for (Flow privateFlow : privateFlows) {
             assert privateFlow.source().isEmpty();
-            // TODO: assumed source is always a http listener
-            List<Parameter> parameterList = List.of(new Parameter(Constants.VAR_RESPONSE, "http:Response",
-                    Optional.empty()));
+            List<Parameter> parameterList = new ArrayList<>();
+            // TODO: fix the payload check properly
+            if (data.payload != null) {
+                parameterList.add(new Parameter(Constants.VAR_RESPONSE, "http:Response", Optional.empty()));
+            }
+
             List<Statement> body = genFuncBodyStatements(data, privateFlow.flowBlocks());
-            Function function = new Function(Optional.empty(), privateFlow.name(), parameterList, Optional.empty(),
-                    body);
+            String methodName = ConversionUtils.escapeSpecialCharacters(privateFlow.name());
+            Function function = new Function(Optional.empty(), methodName, parameterList, Optional.empty(), body);
             functions.add(function);
         }
         functions.addAll(data.functions);
@@ -390,6 +396,9 @@ public class MuleToBalConverter {
             case Constants.OBJECT_TO_STRING -> {
                 return readObjectToString(data, element);
             }
+            case Constants.ENRICHER -> {
+                return readEnricher(data, element);
+            }
             default -> {
                 return readUnsupportedBlock(data, element);
             }
@@ -405,7 +414,7 @@ public class MuleToBalConverter {
                     Constants.VAR_RESPONSE, convertToBallerinaExpression(data, payload.expr(), true))));
             case Choice choice -> {
                 List<WhenInChoice> whens = choice.whens();
-                assert whens.size() > 1; // For valid mule config, there is at least one when
+                assert !whens.isEmpty(); // For valid mule config, there is at least one when
 
                 WhenInChoice firstWhen = whens.getFirst();
                 String ifCondition = convertToBallerinaExpression(data, firstWhen.condition(), false);
@@ -440,8 +449,8 @@ public class MuleToBalConverter {
             }
             case SetVariable setVariable -> {
                 String varValue = convertToBallerinaExpression(data, setVariable.value(), true);
-                statementList.add(new BallerinaStatement(
-                        "string " + setVariable.variableName() + " = " + varValue + ";"));
+                String varName = ConversionUtils.escapeSpecialCharacters(setVariable.variableName());
+                statementList.add(new BallerinaStatement("string " + varName + " = " + varValue + ";"));
             }
             case ObjectToJson objectToJson -> {
                 if (data.payload == null) {
@@ -491,8 +500,32 @@ public class MuleToBalConverter {
             }
             case FlowReference flowReference -> {
                 // TODO: assumed source is always a http listener
-                statementList.add(new BallerinaStatement(String.format("%s(%s);", flowReference.flowName(),
-                        Constants.VAR_RESPONSE)));
+                String funcRef = ConversionUtils.escapeSpecialCharacters(flowReference.flowName());
+                String params = data.payload == null ? "" : Constants.VAR_RESPONSE;
+                statementList.add(new BallerinaStatement(String.format("%s(%s);", funcRef, params)));
+            }
+            case Enricher enricher -> {
+                // TODO: support source and target vars properly
+                String targetVarName = ConversionUtils.getSimpleMuleFlowVar(enricher.target());
+                String sourceArgName = ConversionUtils.getSimpleMuleFlowVar(enricher.source());
+                if (enricher.innerBlock().isEmpty()) {
+                    statementList.add(new BallerinaStatement(String.format("%s = %s;", targetVarName, sourceArgName)));
+                } else if (enricher.innerBlock().get().kind() == Kind.FLOW_REFERENCE) {
+                    FlowReference flowReference = (FlowReference) enricher.innerBlock().get();
+                    String flowName = flowReference.flowName();
+                    statementList.add(new BallerinaStatement(String.format("%s = %s(%s);", targetVarName,
+                            ConversionUtils.escapeSpecialCharacters(flowName), sourceArgName)));
+                } else {
+                    List<Statement> enricherStmts = convertToStatements(data, enricher.innerBlock().get());
+                    data.functions.add(new Function(Optional.empty(),
+                            String.format(Constants.METHOD_NAME_ENRICHER_TEMPLATE, data.enricherMethodCount),
+                            List.of(new Parameter(sourceArgName, "string", Optional.empty())),
+                            Optional.of("string"), enricherStmts));
+                    enricherStmts.add(new BallerinaStatement(String.format("return %s;", sourceArgName)));
+                    statementList.add(new BallerinaStatement(String.format("%s = %s(%s);", targetVarName,
+                            String.format(Constants.METHOD_NAME_ENRICHER_TEMPLATE, data.enricherMethodCount++),
+                            sourceArgName)));
+                }
             }
             case Database database -> {
                 data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_SQL, Optional.empty()));
@@ -587,8 +620,7 @@ public class MuleToBalConverter {
         for (int i = 0; i < when.getLength(); i++) {
             Node whenNode = when.item(i);
             NodeList whenProcesses = whenNode.getChildNodes();
-            String condition = convertToBallerinaExpression(data, ((Element) whenNode).getAttribute("expression"),
-                    false);
+            String condition = ((Element) whenNode).getAttribute("expression");
             List<MuleRecord> whenProcess = new ArrayList<>();
             for (int j = 0; j < whenProcesses.getLength(); j++) {
                 Node child = whenProcesses.item(j);
@@ -664,6 +696,29 @@ public class MuleToBalConverter {
         }
 
         return new SubFlow(flowName, flowBlocks);
+    }
+
+    private static Enricher readEnricher(Data data, Element element) {
+        String source = element.getAttribute("source");
+        String target = element.getAttribute("target");
+
+        NodeList children = element.getChildNodes();
+
+
+        MuleRecord block = null;
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+
+            Element e = (Element) child;
+            assert block == null;
+            block = readBlock(data, e);
+        }
+
+        Optional<MuleRecord> innerBlock = block != null ? Optional.of(block) : Optional.empty();
+        return new Enricher(source, target, innerBlock);
     }
 
     // Transformers

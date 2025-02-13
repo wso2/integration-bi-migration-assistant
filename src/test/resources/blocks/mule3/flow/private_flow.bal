@@ -11,12 +11,12 @@ service /mule3 on config {
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
         log:printInfo("xxx: logger invoked via http end point");
-        demoPrivateFlow(_response_);
+        demoPrivateFlow();
         log:printInfo("xxx: end of main flow");
         return _response_;
     }
 }
 
-function demoPrivateFlow(http:Response _response_) {
+function demoPrivateFlow() {
     log:printInfo("xxx: private flow invoked");
 }

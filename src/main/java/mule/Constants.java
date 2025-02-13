@@ -18,6 +18,7 @@ public class Constants {
     public static final String FLOW = "flow";
     public static final String SUB_FLOW = "sub-flow";
     public static final String FLOW_REFERENCE = "flow-ref";
+    public static final String ENRICHER = "enricher";
 
     // Transformers
     public static final String SET_VARIABLE = "set-variable";
@@ -62,6 +63,7 @@ public class Constants {
     public static final String VAR_DB_SELECT_TEMPLATE = "_dbSelect%s_";
     public static final String VAR_OBJ_TO_JSON_TEMPLATE = "_to_json%s_";
     public static final String VAR_OBJ_TO_STRING_TEMPLATE = "_to_string%s_";
+    public static final String METHOD_NAME_ENRICHER_TEMPLATE = "_enricher%s_";
 
     // Types
     public static final String HTTP_RESOURCE_RETURN_TYPE_DEFAULT = "http:Response|error";

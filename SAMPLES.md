@@ -213,13 +213,13 @@ service /mule3 on config {
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
         log:printInfo("xxx: logger invoked via http end point");
-        demoPrivateFlow(_response_);
+        demoPrivateFlow();
         log:printInfo("xxx: end of main flow");
         return _response_;
     }
 }
 
-function demoPrivateFlow(http:Response _response_) {
+function demoPrivateFlow() {
     log:printInfo("xxx: private flow invoked");
 }
 
@@ -734,6 +734,40 @@ service /mule3 on config {
 
 ```
 
+## Message Enricher
+
+- ### Empty Message Enricher
+
+**Input (empty_message_enricher.xml):**
+```xml
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+
+    <flow name="variableEnricherFlow">
+        <set-variable variableName="userId" value="st455u" doc:name="Variable"/>
+        <set-variable variableName="enrichedUserId" value="null" doc:name="Variable"/>
+        <enricher source="#[flowVars.userId]" target="#[flowVars.enrichedUserId]" doc:name="Message Enricher">
+        </enricher>
+        <logger message="User ID: #[flowVars.userId], Enriched User ID: #[flowVars.enrichedUserId]" level="INFO" doc:name="Logger"/>
+    </flow>
+
+</mule>
+
+```
+**Output (empty_message_enricher.bal):**
+```ballerina
+import ballerina/log;
+
+function variableEnricherFlow() {
+    string userId = "st455u";
+    string enrichedUserId = "null";
+    enrichedUserId = userId;
+    log:printInfo(string `User ID: ${flowVars.userId}, Enriched User ID: ${flowVars.enrichedUserId}`);
+}
+
+```
+
 ## Object To Json
 
 - ### Basic Object To Json
@@ -998,7 +1032,7 @@ service /mule3 on config {
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
         log:printInfo("xxx: logger invoked via http end point");
-        demoSub_Flow(_response_);
+        demoSub_Flow();
         log:printInfo("xxx: logger after flow reference invoked");
         return _response_;
     }

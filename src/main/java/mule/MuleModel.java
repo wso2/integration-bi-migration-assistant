@@ -89,6 +89,7 @@ public record MuleModel() {
         }
     }
 
+    // Scopes
     public record Flow(Kind kind, String name, Optional<MuleRecord> source, List<MuleRecord> flowBlocks)
             implements MuleRecord {
         public Flow(String name, Optional<MuleRecord> source, List<MuleRecord> flowBlocks) {
@@ -99,6 +100,13 @@ public record MuleModel() {
     public record SubFlow(Kind kind, String name, List<MuleRecord> flowBlocks) implements MuleRecord {
         public SubFlow(String name, List<MuleRecord> flowBlocks) {
             this(Kind.SUB_FLOW, name, flowBlocks);
+        }
+    }
+
+    public record Enricher(Kind kind, String source, String target, Optional<MuleRecord> innerBlock)
+            implements MuleRecord {
+        public Enricher(String source, String target, Optional<MuleRecord> innerBlock) {
+            this(Kind.MESSAGE_ENRICHER, source, target, innerBlock);
         }
     }
 
@@ -197,6 +205,7 @@ public record MuleModel() {
         DW_INPUT_PAYLOAD,
         FLOW,
         SUB_FLOW,
+        MESSAGE_ENRICHER,
         UNSUPPORTED_BLOCK
     }
 
