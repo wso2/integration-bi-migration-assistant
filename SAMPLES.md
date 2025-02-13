@@ -1097,6 +1097,531 @@ function _dwMethod0_() returns string {
 
 ```
 
+- ### Transform Message With Filter Value Identifier
+
+**Input (transform_message_with_filter_value_identifier.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
+    <flow name="mule6demoFlow">
+        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
+            <dw:input-payload mimeType="application/java"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%input payload application/json
+---
+[1, 2, 3, 4] filter $ > 2
+]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_filter_value_identifier.bal):**
+```ballerina
+import ballerina/http;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /foo on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function post .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function put .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function delete .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function patch .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function head .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function options .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function trace .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function connect .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        json _dwOutput_ = _dwMethod0_(payload);
+        _response_.setPayload(_dwOutput_);
+        return _response_;
+    }
+}
+
+function _dwMethod0_(json payload) returns json {
+    json[] arrayArg = <json[]>[1, 2, 3, 4];
+    // TODO: AMBIGUOUS TYPE FOUND FOR COMPARISON OPERATOR '$>2'. MANUAL CASTING REQUIRED.
+    return arrayArg.filter(element => <int>element > <int>2);
+}
+
+```
+
+- ### Transform Message With Lower
+
+**Input (transform_message_with_lower.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
+    <flow name="mule6demoFlow">
+        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
+            <dw:input-payload mimeType="application/java"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%input payload application/json
+---
+lower "APPLE"
+]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_lower.bal):**
+```ballerina
+import ballerina/http;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /foo on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function post .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function put .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function delete .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function patch .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function head .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function options .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function trace .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function connect .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        json _dwOutput_ = _dwMethod0_(payload);
+        _response_.setPayload(_dwOutput_);
+        return _response_;
+    }
+}
+
+function _dwMethod0_(json payload) returns json {
+    return (<string>"APPLE").toLowerAscii();
+}
+
+```
+
+- ### Transform Message With Map Combination
+
+**Input (transform_message_with_map_combination.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
+    <flow name="mule6demoFlow">
+        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
+            <dw:input-payload mimeType="application/java"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%input payload application/json
+---
+users: ["john", "peter", "matt"] map  upper $
+]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_map_combination.bal):**
+```ballerina
+import ballerina/http;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /foo on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function post .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function put .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function delete .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function patch .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function head .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function options .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function trace .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function connect .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        json _dwOutput_ = _dwMethod0_(payload);
+        _response_.setPayload(_dwOutput_);
+        return _response_;
+    }
+}
+
+function _dwMethod0_(json payload) returns json {
+    json[] arrayArg = <json[]>["john", "peter", "matt"];
+    return {"users": arrayArg.'map(element => (<string>element).toUpperAscii())};
+}
+
+```
+
+- ### Transform Message With Map Index Identifier
+
+**Input (transform_message_with_map_index_identifier.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
+    <flow name="mule6demoFlow">
+        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
+            <dw:input-payload mimeType="application/java"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%input payload application/json
+---
+[1, 2, 3, 4] map $ + $$
+]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_map_index_identifier.bal):**
+```ballerina
+import ballerina/http;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /foo on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function post .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function put .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function delete .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function patch .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function head .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function options .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function trace .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function connect .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        json _dwOutput_ = _dwMethod0_(payload);
+        _response_.setPayload(_dwOutput_);
+        return _response_;
+    }
+}
+
+function _dwMethod0_(json payload) returns json {
+    json[] arrayArg = <json[]>[1, 2, 3, 4];
+    // TODO: AMBIGUOUS TYPE FOUND FOR MATH OPERATOR '$+$$'. MANUAL CASTING REQUIRED.
+    return arrayArg.'map(element => <int>element + <int>arrayArg.indexOf(element));
+}
+
+```
+
+- ### Transform Message With Map Index Identifier Only
+
+**Input (transform_message_with_map_index_identifier_only.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
+    <flow name="mule6demoFlow">
+        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
+            <dw:input-payload mimeType="application/java"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%input payload application/json
+---
+[1, 2, 3, 4] map $$ + 1
+]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_map_index_identifier_only.bal):**
+```ballerina
+import ballerina/http;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /foo on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function post .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function put .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function delete .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function patch .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function head .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function options .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function trace .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function connect .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        json _dwOutput_ = _dwMethod0_(payload);
+        _response_.setPayload(_dwOutput_);
+        return _response_;
+    }
+}
+
+function _dwMethod0_(json payload) returns json {
+    json[] arrayArg = <json[]>[1, 2, 3, 4];
+    // TODO: AMBIGUOUS TYPE FOUND FOR MATH OPERATOR '$$+1'. MANUAL CASTING REQUIRED.
+    return arrayArg.'map(element => <int>arrayArg.indexOf(element) + <int>1);
+}
+
+```
+
+- ### Transform Message With Map Value Identifier
+
+**Input (transform_message_with_map_value_identifier.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
+    <flow name="mule6demoFlow">
+        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
+            <dw:input-payload mimeType="application/java"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%input payload application/json
+---
+[1, 2, 3, 4] map $ + 1
+]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_map_value_identifier.bal):**
+```ballerina
+import ballerina/http;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /foo on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function post .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function put .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function delete .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function patch .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function head .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function options .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function trace .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function connect .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        json _dwOutput_ = _dwMethod0_(payload);
+        _response_.setPayload(_dwOutput_);
+        return _response_;
+    }
+}
+
+function _dwMethod0_(json payload) returns json {
+    json[] arrayArg = <json[]>[1, 2, 3, 4];
+    // TODO: AMBIGUOUS TYPE FOUND FOR MATH OPERATOR '$+1'. MANUAL CASTING REQUIRED.
+    return arrayArg.'map(element => <int>element + <int>1);
+}
+
+```
+
 - ### Transform Message With Simple Value
 
 **Input (transform_message_with_simple_value.xml):**
@@ -1207,7 +1732,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 %input payload application/json
 ---
 {
-	hail1: sizeOf (payload.resultSet1)
+	hail1: payload.resultSet1
 }]]></dw:set-payload>
         </dw:transform-message>
     </flow>
@@ -1266,8 +1791,7 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json|error {
-    json[] jsonArr = <json[]>check payload.resultSet1;
-    return {"hail1": jsonArr.length()};
+    return {"hail1": check payload.resultSet1};
 }
 
 ```
@@ -1295,7 +1819,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 %input payload application/json
 ---
 {
-	hail1: sizeOf ([1,2,3,4])
+	hail1: sizeOf [1,2,3,4]
 }]]></dw:set-payload>
         </dw:transform-message>
     </flow>
@@ -1354,8 +1878,94 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json {
-    json[] jsonArr = <json[]>[1, 2, 3, 4];
-    return {"hail1": jsonArr.length()};
+    json[] jsonArg = <json[]>[1, 2, 3, 4];
+    return {"hail1": jsonArg.length()};
+}
+
+```
+
+- ### Transform Message With Upper
+
+**Input (transform_message_with_upper.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
+    <flow name="mule6demoFlow">
+        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
+            <dw:input-payload mimeType="application/java"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%input payload application/json
+---
+upper "apple"
+]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_upper.bal):**
+```ballerina
+import ballerina/http;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /foo on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function post .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function put .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function delete .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function patch .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function head .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function options .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function trace .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    resource function connect .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        json _dwOutput_ = _dwMethod0_(payload);
+        _response_.setPayload(_dwOutput_);
+        return _response_;
+    }
+}
+
+function _dwMethod0_(json payload) returns json {
+    return (<string>"apple").toUpperAscii();
 }
 
 ```
