@@ -1,4 +1,4 @@
-# Mule to Ballerina Integrator Migration Assistant
+# integration-bi-migration-assistant
 
 ## Table of Contents
 - [Overview](#overview)
@@ -8,11 +8,9 @@
 - [Mule Version Support](#mule-version-support)
 - [Supported Mule Components](#supported-mule-components)
 - [Sample Input and Output](#sample-input-and-output)
-- [License](#license)
 
 ## Overview
-The Mule to Ballerina Integrator Migration Assistant is a comprehensive tool designed to convert Mule XML configuration 
-files into Ballerina code. It facilitates the migration of Mule applications to Ballerina by automating the conversion process. The tool reads Mule XML configuration files and generates equivalent Ballerina code, ensuring a seamless transition with minimal manual effort.
+The integrator-bi-migration-assistant is a comprehensive tool designed to convert Mule XML configuration files into Ballerina code. It facilitates the migration of Mule applications to Ballerina by automating the conversion process. The tool reads Mule XML configuration files and generates equivalent Ballerina code, ensuring a seamless transition with minimal manual effort.
 
 ## Prerequisites
 - Java 21
@@ -64,5 +62,3 @@ The migration tool currently supports the following Mule components:
 
 For detailed sample input and output files, please refer to the [SAMPLES.md](SAMPLES.md) file.
 
-## License
-WSO2 Inc. licenses this source under the WSO2 Commercial [LICENSE](LICENSE).
