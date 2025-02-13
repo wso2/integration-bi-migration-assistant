@@ -1,0 +1,42 @@
+{
+  "type" : "Script",
+  "header" : {
+    "type" : "Header",
+    "directives" : [ {
+      "type" : "Version",
+      "version" : "1.0"
+    }, {
+      "type" : "Output",
+      "output" : "application/json"
+    }, {
+      "type" : "Function",
+      "identifier" : "toUser",
+      "args" : "user",
+      "expression" : {
+        "type" : "Object",
+        "firstName" : {
+          "type" : "SingleValueSelector",
+          "primary" : {
+            "type" : "Identifier",
+            "name" : "user"
+          },
+          "identifier" : "name"
+        }
+      }
+    } ]
+  },
+  "body" : {
+    "type" : "Body",
+    "expression" : {
+      "type" : "Object",
+      "user" : {
+        "type" : "FunctionCall",
+        "name" : "toUser",
+        "args" : [ {
+          "type" : "Identifier",
+          "name" : "payload"
+        } ]
+      }
+    }
+  }
+}

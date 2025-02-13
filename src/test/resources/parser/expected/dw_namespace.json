@@ -1,0 +1,21 @@
+{
+  "type" : "Script",
+  "header" : {
+    "type" : "Header",
+    "directives" : [ {
+      "type" : "Version",
+      "version" : "2.0"
+    }, {
+      "type" : "NameSpace",
+      "identifier" : "mes",
+      "value" : "http://www.mulesoft.com/anypoint/SOA/message/v1.0"
+    } ]
+  },
+  "body" : {
+    "type" : "Body",
+    "expression" : {
+      "type" : "Identifier",
+      "name" : "a"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "type" : "Script",
+  "header" : {
+    "type" : "Header",
+    "directives" : [ {
+      "type" : "Version",
+      "version" : "1.0"
+    }, {
+      "type" : "Output",
+      "output" : "application/json"
+    }, {
+      "type" : "Input",
+      "identifier" : "payload",
+      "input" : "application/json"
+    } ]
+  },
+  "body" : {
+    "type" : "Body",
+    "expression" : {
+      "type" : "UpperExpression",
+      "expression" : {
+        "type" : "Literal",
+        "value" : "\"apple\""
+      }
+    }
+  }
+}

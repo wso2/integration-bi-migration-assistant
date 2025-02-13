@@ -1,0 +1,46 @@
+{
+  "type" : "Script",
+  "header" : {
+    "type" : "Header",
+    "directives" : [ {
+      "type" : "Version",
+      "version" : "1.0"
+    }, {
+      "type" : "Output",
+      "output" : "application/json"
+    }, {
+      "type" : "Input",
+      "identifier" : "payload",
+      "input" : "application/json"
+    } ]
+  },
+  "body" : {
+    "type" : "Body",
+    "expression" : {
+      "type" : "Filter",
+      "element" : {
+        "type" : "Array",
+        "elements" : [ {
+          "type" : "Literal",
+          "value" : "1"
+        }, {
+          "type" : "Literal",
+          "value" : "2"
+        }, {
+          "type" : "Literal",
+          "value" : "3"
+        }, {
+          "type" : "Literal",
+          "value" : "4"
+        }, {
+          "type" : "Literal",
+          "value" : "5"
+        } ]
+      },
+      "lambda" : {
+        "type" : "Literal",
+        "value" : "2"
+      }
+    }
+  }
+}
