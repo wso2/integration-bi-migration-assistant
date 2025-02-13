@@ -11,6 +11,9 @@ for root, dirs, files in os.walk(samples_dir):
     for file in files:
         all_files.append(os.path.join(root, file))
 
+# Sort all files to ensure consistent order
+all_files.sort()
+
 # Filter XML and BAL files
 xml_files = [f for f in all_files if f.endswith('.xml')]
 bal_files = [f for f in all_files if f.endswith('.bal')]
@@ -27,6 +30,11 @@ for file in xml_files + bal_files:
         grouped_files[parent_dir]['xml'].append(file)
     elif file.endswith('.bal'):
         grouped_files[parent_dir]['bal'].append(file)
+
+# Sort files within each group to ensure consistent order
+for files in grouped_files.values():
+    files['xml'].sort()
+    files['bal'].sort()
 
 # Pair XML and BAL files based on their names within each group
 paired_files = {}
