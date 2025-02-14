@@ -27,6 +27,9 @@ public class Constants {
     public static final String OBJECT_TO_JSON = "json:object-to-json-transformer";
     public static final String OBJECT_TO_STRING = "object-to-string-transformer";
 
+    // Error Handling
+    public static final String CATCH_EXCEPTION_STRATEGY = "catch-exception-strategy";
+
     // HTTP Module
     public static final String HTTP_LISTENER = "http:listener";
     public static final String HTTP_LISTENER_CONNECTION = "http:listener-connection";

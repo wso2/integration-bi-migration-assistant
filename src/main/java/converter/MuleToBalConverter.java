@@ -32,6 +32,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import static ballerina.BallerinaModel.BallerinaExpression;
 import static ballerina.BallerinaModel.BallerinaStatement;
 import static ballerina.BallerinaModel.DefaultPackage;
+import static ballerina.BallerinaModel.DoStatement;
 import static ballerina.BallerinaModel.ElseIfClause;
 import static ballerina.BallerinaModel.Function;
 import static ballerina.BallerinaModel.IfElseStatement;
@@ -41,6 +42,7 @@ import static ballerina.BallerinaModel.ListenerType;
 import static ballerina.BallerinaModel.Module;
 import static ballerina.BallerinaModel.ModuleTypeDef;
 import static ballerina.BallerinaModel.ModuleVar;
+import static ballerina.BallerinaModel.OnFailClause;
 import static ballerina.BallerinaModel.Parameter;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
@@ -53,6 +55,7 @@ import static converter.ConversionUtils.getBallerinaAbsolutePath;
 import static converter.ConversionUtils.getBallerinaResourcePath;
 import static converter.ConversionUtils.insertLeadingSlash;
 import static converter.ConversionUtils.processQueryParams;
+import static mule.MuleModel.CatchExceptionStrategy;
 import static mule.MuleModel.Choice;
 import static mule.MuleModel.DbInParam;
 import static mule.MuleModel.DbMSQLConfig;
@@ -344,6 +347,11 @@ public class MuleToBalConverter {
         // Read flow blocks
         for (MuleRecord record : flowBlocks) {
             List<Statement> s = convertToStatements(data, record);
+            // TODO: handle properly
+            if (s.size() == 1 && s.getFirst() instanceof DoStatement doStatement) {
+                body = new ArrayList<>(Collections.singletonList(new DoStatement(body, doStatement.onFailClause())));
+                continue;
+            }
             body.addAll(s);
         }
         return body;
@@ -398,6 +406,9 @@ public class MuleToBalConverter {
             }
             case Constants.ENRICHER -> {
                 return readEnricher(data, element);
+            }
+            case Constants.CATCH_EXCEPTION_STRATEGY -> {
+                return readCatchExceptionStrategy(data, element);
             }
             default -> {
                 return readUnsupportedBlock(data, element);
@@ -526,6 +537,18 @@ public class MuleToBalConverter {
                             String.format(Constants.METHOD_NAME_ENRICHER_TEMPLATE, data.enricherMethodCount++),
                             sourceArgName)));
                 }
+            }
+            case CatchExceptionStrategy catchExceptionStrategy -> {
+                List<Statement> onFailBody = new ArrayList<>();
+
+                for (MuleRecord catchBlock : catchExceptionStrategy.catchBlocks()) {
+                    List<Statement> s = convertToStatements(data, catchBlock);
+                    onFailBody.addAll(s);
+                }
+
+                OnFailClause onFailClause = new OnFailClause(onFailBody);
+                DoStatement doStatement = new DoStatement(Collections.emptyList(), Optional.of(onFailClause));
+                statementList.add(doStatement);
             }
             case Database database -> {
                 data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_SQL, Optional.empty()));
@@ -739,6 +762,25 @@ public class MuleToBalConverter {
 
     private static ObjectToString readObjectToString(Data data, Element element) {
         return new ObjectToString();
+    }
+
+    // Error handling
+    private static CatchExceptionStrategy readCatchExceptionStrategy(Data data, Element element) {
+        NodeList children = element.getChildNodes();
+
+        List<MuleRecord> catchBlocks = new ArrayList<>();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+
+            Element e = (Element) child;
+            MuleRecord muleRec = readBlock(data, e);
+            catchBlocks.add(muleRec);
+        }
+
+        return new CatchExceptionStrategy(catchBlocks);
     }
 
     // HTTP Module

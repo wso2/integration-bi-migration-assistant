@@ -135,6 +135,13 @@ public record MuleModel() {
         }
     }
 
+    // Error handling
+    public record CatchExceptionStrategy(Kind kind, List<MuleRecord> catchBlocks) implements MuleRecord {
+        public CatchExceptionStrategy(List<MuleRecord> catchBlocks) {
+            this(Kind.CATCH_EXCEPTION_STRATEGY, catchBlocks);
+        }
+    }
+
     // Global Elements
     public record HTTPListenerConfig(Kind kind, String name, String basePath, String port,
                                      Map<String, String> config) implements MuleRecord {
@@ -206,6 +213,7 @@ public record MuleModel() {
         FLOW,
         SUB_FLOW,
         MESSAGE_ENRICHER,
+        CATCH_EXCEPTION_STRATEGY,
         UNSUPPORTED_BLOCK
     }
 

@@ -4,6 +4,97 @@
 
 The `mule-to-ballerina-migration-assistant` project includes sample input and output files to demonstrate the conversion process. These samples are located in the `src/test/resources/blocks/mule3` directory.
 
+## Catch Exception Strategy
+
+- ### Basic Catch Exception Strategy
+
+**Input (basic_catch_exception_strategy.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <flow name="demoFlow">
+        <logger message="xxx: logger invoked via http end point" level="INFO" doc:name="Logger"/>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <logger message="xxx: exception caught" level="INFO" doc:name="Logger"/>
+            <logger message="xxx: end of catch flow reached" level="INFO" doc:name="Logger"/>
+        </catch-exception-strategy>
+    </flow>
+</mule>
+
+```
+**Output (basic_catch_exception_strategy.bal):**
+```ballerina
+import ballerina/log;
+
+function demoFlow() {
+    do {
+        log:printInfo("xxx: logger invoked via http end point");
+    } on fail {
+        log:printInfo("xxx: exception caught");
+        log:printInfo("xxx: end of catch flow reached");
+    }
+}
+
+```
+
+- ### Catch Exception With Http Listener Source
+
+**Input (catch_exception_with_http_listener_source.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule3"/>
+    <flow name="demoFlow">
+        <http:listener config-ref="config" path="/"  doc:name="HTTP" allowedMethods="GET"/>
+        <logger message="xxx: logger invoked via http end point" level="INFO" doc:name="Logger"/>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <logger message="xxx: exception caught" level="INFO" doc:name="Logger"/>
+            <logger message="xxx: end of catch flow reached" level="INFO" doc:name="Logger"/>
+        </catch-exception-strategy>
+    </flow>
+</mule>
+
+```
+**Output (catch_exception_with_http_listener_source.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /mule3 on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        do {
+            log:printInfo("xxx: logger invoked via http end point");
+        } on fail {
+            log:printInfo("xxx: exception caught");
+            log:printInfo("xxx: end of catch flow reached");
+        }
+        return _response_;
+    }
+}
+
+```
+
 ## Database
 
 - ### Basic Db Select
