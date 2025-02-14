@@ -10,6 +10,11 @@ DW: '%dw';
 ASSIGN: '=';
 ARROW: '->';
 BOOLEAN: 'true' | 'false';
+
+// Operators with names
+MOD: 'mod';
+OPERATOR_LOGICAL: 'and' | 'or';
+
 IDENTIFIER: INDEX_IDENTIFIER | VALUE_IDENTIFIER | [a-zA-Z_][a-zA-Z0-9_]* ;
 URL: [a-zA-Z]+ '://' [a-zA-Z0-9./_-]+;
 MEDIA_TYPE: [a-z]+ '/' [a-z0-9.+-]+;
@@ -29,20 +34,19 @@ WS: [ \t]+ -> skip; // Skip whitespace
 NEWLINE: [\r\n]+ -> skip;
 COMMENT: '//' ~[\r\n]* -> skip;
 
+// Operators with symbols
+OPERATOR_MATH: '+' | '-' | STAR | '/' | MOD;
+OPERATOR_COMPARISON: '==' | '!=' | '>' | '<' | '>=' | '<=';
+OPERATOR_BITWISE: '|' | '&' | '^';
+OPERATOR_CONDITIONAL: '?' | ':';
+OPERATOR_RANGE: DOUBLE_DOT;
+OPERATOR_CHAIN: '++';
+
 // Selectors
 STAR: '*';
 DOUBLE_DOT: '..';
 AT: '@';
 QUESTION: '?';
-
-// Operators
-OPERATOR_MATH: '+' | '-' | STAR | '/' | 'mod';
-OPERATOR_COMPARISON: '==' | '!=' | '>' | '<' | '>=' | '<=';
-OPERATOR_LOGICAL: 'and' | 'or';
-OPERATOR_BITWISE: '|' | '&' | '^';
-OPERATOR_CONDITIONAL: '?' | ':';
-OPERATOR_RANGE: DOUBLE_DOT;
-OPERATOR_CHAIN: '++';
 
 BUILTIN_FUNCTION: 'sizeOf' | 'map' | 'filter';
 
@@ -78,31 +82,41 @@ body: expression NEWLINE*;
 
 // Expression Rules (Rewritten for Precedence)
 expression
-    : primaryExpression                                               # primaryExpressionWrapper
-    | expression OPERATOR_CONDITIONAL expression COLON expression     # conditionalExpression
-    | expression OPERATOR_LOGICAL expression                          # logicalExpression
-    | expression OPERATOR_COMPARISON expression                       # comparisonExpression
-    | expression OPERATOR_BITWISE expression                          # bitwiseExpression
-    | expression OPERATOR_MATH expression                             # mathExpression
-    | expression OPERATOR_RANGE expression                            # rangeExpression
-    | expression OPERATOR_CHAIN expression                            # chainExpression
-    | expression 'map' implicitLambdaExpression                       # mapExpression
-    | expression 'filter' implicitLambdaExpression                    # filterExpression
+    : primaryExpression                                           # primaryExpressionWrapper
+    | selectorExpression                                          # selectorExpressionWrapper
+    | expression OPERATOR_LOGICAL expression                      # logicalExpression
+    | expression OPERATOR_COMPARISON expression                   # comparisonExpression
+    | expression OPERATOR_BITWISE expression                      # bitwiseExpression
+    | expression OPERATOR_MATH expression                         # mathExpression
+    | expression OPERATOR_RANGE expression                        # rangeExpression
+    | expression OPERATOR_CHAIN expression                        # chainExpression
+    | expression 'filter' implicitLambdaExpression                # filterExpression
+    | expression 'map' implicitLambdaExpression                   # mapExpression
     ;
 
 // Primary Expressions (Non-Recursive Base Expressions)
 primaryExpression
-    : functionCall                                          # functionCallExpression
-    | 'sizeOf' ('(' (expression) ')' | expression)          # sizeOfExpression
-    | 'upper' ('(' (expression) ')' | expression)           # upperExpression
-    | 'lower' ('(' (expression) ')' | expression)           # lowerExpression
+    : grouped                                               # groupedExpression
+    | primitive                                             # primitiveExpression
+    | functionCall                                          # functionCallExpression
+    | 'sizeOf' ('(' expression ')' | expression)           # sizeOfExpression
+    | 'upper' ('(' expression ')' | expression)            # upperExpression
+    | 'lower' ('(' expression ')' | expression)            # lowerExpression
     | inlineLambda                                          # lambdaExpression
-    | literal                                               # literalExpression
+    ;
+
+primitive
+    : literal                                               # literalExpression
     | array                                                 # arrayExpression
     | object                                                # objectExpression
     | IDENTIFIER                                            # identifierExpression
-    | grouped                                               # groupedExpression
-    | primaryExpression DOT IDENTIFIER                      # singleValueSelector
+    ;
+
+// Grouped expressions
+grouped: '(' expression ')';
+
+selectorExpression
+    : primaryExpression DOT IDENTIFIER                      # singleValueSelector
     | primaryExpression DOT STAR IDENTIFIER                 # multiValueSelector
     | primaryExpression OPERATOR_RANGE IDENTIFIER           # descendantsSelector
     | primaryExpression LSQUARE NUMBER RSQUARE              # indexedSelector
@@ -115,10 +129,6 @@ implicitLambdaExpression
     : expression                                     # singleParameterImplicitLambda
     | '(' IDENTIFIER (',' IDENTIFIER)* ')' ARROW expression  # multiParameterImplicitLambda
     ;
-
-// Built-in function call
-builtInFunctionCall
-    : BUILTIN_FUNCTION '(' expression (COMMA expression)* ')';
 
 // Lambda functions
 inlineLambda: '(' functionParameters ')' ARROW expression;
@@ -146,7 +156,3 @@ keyValue: IDENTIFIER COLON expression;
 
 // Function calls
 functionCall: IDENTIFIER '(' (expression (COMMA expression)*)? ')';
-
-// Grouped expressions
-grouped: '(' expression ')';
-

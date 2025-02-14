@@ -48,6 +48,6 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json {
-    json[] jsonArg = <json[]>[1, 2, 3, 4];
+    var jsonArg = [1, 2, 3, 4];
     return {"hail1": jsonArg.length()};
 }

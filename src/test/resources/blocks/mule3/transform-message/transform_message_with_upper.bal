@@ -48,5 +48,5 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json {
-    return (<string>"apple").toUpperAscii();
+    return "apple".toUpperAscii();
 }

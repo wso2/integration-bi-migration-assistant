@@ -48,7 +48,7 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json {
-    json[] arrayArg = <json[]>[1, 2, 3, 4];
+    var arrayArg = [1, 2, 3, 4];
     // TODO: AMBIGUOUS TYPE FOUND FOR COMPARISON OPERATOR '$>2'. MANUAL CASTING REQUIRED.
-    return arrayArg.filter(element => <int>element > <int>2);
+    return arrayArg.filter(element => element > 2);
 }
