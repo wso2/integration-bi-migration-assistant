@@ -159,6 +159,17 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
         return visitArrayJsonNodes(ctx);
     }
 
+    @Override
+    public JsonNode visitPrimaryExpressionWrapper(DataWeaveParser.PrimaryExpressionWrapperContext ctx) {
+        JsonNode node = visit(ctx.primaryExpression());
+        if (ctx.expressionRest() != null) {
+            return visit(ctx.expressionRest());
+        }
+        if (ctx.selectorExpression() != null) {
+            return visit(ctx.selectorExpression());
+        }
+        return node;
+    }
 
     @Override
     public JsonNode visitMultiKeyValueObject(DataWeaveParser.MultiKeyValueObjectContext ctx) {
@@ -183,7 +194,6 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     public JsonNode visitSingleValueSelector(DataWeaveParser.SingleValueSelectorContext ctx) {
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put("type", "SingleValueSelector");
-        objectNode.set("primary", visit(ctx.primaryExpression()));
         objectNode.put("identifier", ctx.IDENTIFIER().getText());
         return objectNode;
     }
@@ -221,7 +231,7 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     public JsonNode visitMapExpression(DataWeaveParser.MapExpressionContext ctx) {
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put("type", "Map");
-        objectNode.set("element", visit(ctx.expression()));
+        objectNode.set("element", visit(ctx.getParent().getChild(0)));
         objectNode.set("lambda", visit(ctx.implicitLambdaExpression()));
         return objectNode;
     }
@@ -230,7 +240,7 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     public JsonNode visitFilterExpression(DataWeaveParser.FilterExpressionContext ctx) {
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put("type", "Filter");
-        objectNode.set("element", visit(ctx.expression()));
+        objectNode.set("element", visit(ctx.getParent().getChild(0)));
         objectNode.set("lambda", visit(ctx.implicitLambdaExpression()));
         return objectNode;
     }
@@ -240,8 +250,28 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put("type", "MathBinaryExpression");
         objectNode.put("operator", ctx.OPERATOR_MATH().getText());
-        objectNode.set("left", visit(ctx.expression(0)));
-        objectNode.set("right", visit(ctx.expression(1)));
+        objectNode.set("left", visit(ctx.getParent().getChild(0)));
+        objectNode.set("right", visit(ctx.expression()));
+        return objectNode;
+    }
+
+    @Override
+    public JsonNode  visitLogicalExpression(DataWeaveParser.LogicalExpressionContext ctx) {
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "LogicalBinaryExpression");
+        objectNode.put("operator", ctx.OPERATOR_LOGICAL().getText());
+        objectNode.set("left", visit(ctx.getParent().getChild(0)));
+        objectNode.set("right", visit(ctx.expression()));
+        return objectNode;
+    }
+
+    @Override
+    public JsonNode visitComparisonExpression(DataWeaveParser.ComparisonExpressionContext ctx) {
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "LogicalBinaryExpression");
+        objectNode.put("operator", ctx.OPERATOR_COMPARISON().getText());
+        objectNode.set("left", visit(ctx.getParent().getChild(0)));
+        objectNode.set("right", visit(ctx.expression()));
         return objectNode;
     }
 

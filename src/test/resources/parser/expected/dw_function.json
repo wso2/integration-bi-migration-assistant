@@ -16,10 +16,6 @@
         "type" : "Object",
         "firstName" : {
           "type" : "SingleValueSelector",
-          "primary" : {
-            "type" : "Identifier",
-            "name" : "user"
-          },
           "identifier" : "name"
         }
       }

@@ -43,6 +43,12 @@ public class DataWeaveTest {
                 {DataWeaveScripts.SCRIPT_BUILTIN_LOWER, "src/test/resources/parser/expected/" +
                         "dw_builtin_lower.json"},
                 {DataWeaveScripts.SCRIPT_BUILTIN_FILTER, "src/test/resources/parser/expected/dw_builtin_filter.json"},
+                {DataWeaveScripts.SCRIPT_MATH_OPERATOR, "src/test/resources/parser/expected/" +
+                        "dw_math_operator.json"},
+                {DataWeaveScripts.SCRIPT_LOGICAL_OPERATOR, "src/test/resources/parser/expected/" +
+                        "dw_logical_operator.json"},
+                {DataWeaveScripts.SCRIPT_COMPARISON_OPERATOR, "src/test/resources/parser/expected/" +
+                        "dw_comparison_operator.json"},
 
         };
     }

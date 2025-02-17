@@ -38,8 +38,16 @@
         } ]
       },
       "lambda" : {
-        "type" : "Literal",
-        "value" : "2"
+        "type" : "LogicalBinaryExpression",
+        "operator" : ">",
+        "left" : {
+          "type" : "Identifier",
+          "name" : "$"
+        },
+        "right" : {
+          "type" : "Literal",
+          "value" : "2"
+        }
       }
     }
   }

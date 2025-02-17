@@ -99,6 +99,18 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     }
 
     @Override
+    public Void visitPrimaryExpressionWrapper(DataWeaveParser.PrimaryExpressionWrapperContext ctx) {
+        visit(ctx.primaryExpression());
+        if (ctx.expressionRest() != null) {
+            return visit(ctx.expressionRest());
+        }
+        if (ctx.selectorExpression() != null) {
+            return visit(ctx.selectorExpression());
+        }
+        return null;
+    }
+
+    @Override
     public Void visitMultiKeyValueObject(DataWeaveParser.MultiKeyValueObjectContext ctx) {
         List<String> keyValuePairs = new ArrayList<>();
         for (var kv : ctx.keyValue()) {
@@ -174,7 +186,6 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitMapExpression(DataWeaveParser.MapExpressionContext ctx) {
-        visit(ctx.expression());
         if (Objects.equals(dwContext.inputType, LexerTerminals.JSON)) {
             String castStatement = "var " + DWUtils.ARRAY_ARG + " = " + dwContext.getExpression() + ";";
             dwContext.varTypes.put(DWUtils.ARRAY_ARG, "var");
@@ -190,7 +201,6 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitFilterExpression(DataWeaveParser.FilterExpressionContext ctx) {
-        visit(ctx.expression());
         if (Objects.equals(dwContext.inputType, LexerTerminals.JSON)) {
             String castStatement = "var " + DWUtils.ARRAY_ARG + " = " + dwContext.getExpression() + ";";
             dwContext.varTypes.put(DWUtils.ARRAY_ARG, "var");
@@ -218,11 +228,11 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     @Override
     public Void visitMathExpression(DataWeaveParser.MathExpressionContext ctx) {
         this.dwContext.statements.add(
-                new BallerinaModel.BallerinaStatement(String.format(DWUtils.TYPE_CAST_COMMENT_MATH, ctx.getText())));
-        visit(ctx.expression(0));
+                new BallerinaModel.BallerinaStatement(String.format(DWUtils.TYPE_CAST_COMMENT_MATH,
+                        ctx.getParent().getText())));
         String expression = dwContext.getExpression();
         expression += ctx.OPERATOR_MATH().getText();
-        visit(ctx.expression(1));
+        visit(ctx.expression());
         expression += dwContext.getExpression();
         dwContext.exprBuilder.append(expression);
         return null;
@@ -232,11 +242,10 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     public Void visitComparisonExpression(DataWeaveParser.ComparisonExpressionContext ctx)  {
         this.dwContext.statements.add(
                 new BallerinaModel.BallerinaStatement(String.format(DWUtils.TYPE_CAST_COMMENT_COMPARISON,
-                        ctx.getText())));
-        visit(ctx.expression(0));
+                        ctx.getParent().getText())));
         String expression = dwContext.getExpression();
         expression += ctx.OPERATOR_COMPARISON().getText();
-        visit(ctx.expression(1));
+        visit(ctx.expression());
         expression += dwContext.getExpression();
         dwContext.exprBuilder.append(expression);
         return null;
@@ -244,7 +253,6 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitSingleValueSelector(DataWeaveParser.SingleValueSelectorContext ctx) {
-        visit(ctx.primaryExpression());
         if (!Objects.equals(dwContext.inputType, LexerTerminals.JSON)) {
             dwContext.exprBuilder.append("[").append(ctx.IDENTIFIER().getText()).append("]");
         } else {
