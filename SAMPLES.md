@@ -304,13 +304,13 @@ service /mule3 on config {
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
         log:printInfo("xxx: logger invoked via http end point");
-        demoPrivateFlow();
+        demoPrivateFlow(_response_);
         log:printInfo("xxx: end of main flow");
         return _response_;
     }
 }
 
-function demoPrivateFlow() {
+function demoPrivateFlow(http:Response _response_) {
     log:printInfo("xxx: private flow invoked");
 }
 
@@ -859,6 +859,92 @@ function variableEnricherFlow() {
 
 ```
 
+- ### Enricher With Inside Flow Reference
+
+**Input (enricher_with_inside_flow_reference.xml):**
+```xml
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+
+    <flow name="variableEnricherFlow">
+        <set-variable variableName="userId" value="st455u" doc:name="Variable"/>
+        <set-variable variableName="enrichedUserId" value="null" doc:name="Variable"/>
+        <enricher source="#[flowVars.userId]" target="#[flowVars.enrichedUserId]" doc:name="Message Enricher">
+            <flow-ref name="flow1" doc:name="Flow Reference"/>
+        </enricher>
+        <logger message="User ID: #[flowVars.userId], Enriched User ID: #[flowVars.enrichedUserId]" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="flow1">
+        <logger message="xxx: flow1 starting logger invkoed" level="INFO" doc:name="Logger"/>
+        <logger message="xxx: end of flow1 reached" level="INFO" doc:name="Logger"/>
+    </flow>
+
+</mule>
+
+```
+**Output (enricher_with_inside_flow_reference.bal):**
+```ballerina
+import ballerina/log;
+
+function variableEnricherFlow() {
+    string userId = "st455u";
+    string enrichedUserId = "null";
+    enrichedUserId = _enricher0_(userId);
+    log:printInfo(string `User ID: ${flowVars.userId}, Enriched User ID: ${flowVars.enrichedUserId}`);
+}
+
+function flow1() {
+    log:printInfo("xxx: flow1 starting logger invkoed");
+    log:printInfo("xxx: end of flow1 reached");
+}
+
+function _enricher0_(string userId) returns string {
+    flow1();
+    return userId;
+}
+
+```
+
+- ### Enricher With Inside Logger
+
+**Input (enricher_with_inside_logger.xml):**
+```xml
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+
+    <flow name="variableEnricherFlow">
+        <set-variable variableName="userId" value="st455u" doc:name="Variable"/>
+        <set-variable variableName="enrichedUserId" value="null" doc:name="Variable"/>
+        <enricher source="#[flowVars.userId]" target="#[flowVars.enrichedUserId]" doc:name="Message Enricher">
+            <logger message="xxx: logger inside the message enricher invoked" level="INFO" doc:name="Logger"/>
+        </enricher>
+        <logger message="User ID: #[flowVars.userId], Enriched User ID: #[flowVars.enrichedUserId]" level="INFO" doc:name="Logger"/>
+    </flow>
+
+</mule>
+
+```
+**Output (enricher_with_inside_logger.bal):**
+```ballerina
+import ballerina/log;
+
+function variableEnricherFlow() {
+    string userId = "st455u";
+    string enrichedUserId = "null";
+    enrichedUserId = _enricher0_(userId);
+    log:printInfo(string `User ID: ${flowVars.userId}, Enriched User ID: ${flowVars.enrichedUserId}`);
+}
+
+function _enricher0_(string userId) returns string {
+    log:printInfo("xxx: logger inside the message enricher invoked");
+    return userId;
+}
+
+```
+
 ## Object To Json
 
 - ### Basic Object To Json
@@ -1123,7 +1209,7 @@ service /mule3 on config {
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
         log:printInfo("xxx: logger invoked via http end point");
-        demoSub_Flow();
+        demoSub_Flow(_response_);
         log:printInfo("xxx: logger after flow reference invoked");
         return _response_;
     }

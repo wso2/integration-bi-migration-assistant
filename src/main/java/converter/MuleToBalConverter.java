@@ -106,8 +106,27 @@ public class MuleToBalConverter {
         public int objectToStringVarCount = 0;
         public int enricherMethodCount = 0;
 
+        // We don't know all the params passing down to funcs until we fully read the mule config.
+        // Therefore, we need to keep a track of the params needed.
+        private final HashMap<String, HashSet<Parameter>> functionParamMap = new HashMap<>();
+
+        public void addFuncParam(String funcName, Parameter param) {
+            HashSet<Parameter> parameters = functionParamMap.get(funcName);
+            if (parameters == null) {
+                functionParamMap.put(funcName, new HashSet<>(Collections.singletonList(param)));
+            } else {
+                parameters.add(param);
+            }
+        }
+
         // Temporary payload info
         public CurrentPayloadVarInfo payload = null;
+        public Context currentContext = Context.DEFAULT;
+    }
+
+    public enum Context {
+        DEFAULT,
+        HTTP_LISTENER
     }
 
     public record CurrentPayloadVarInfo (String type, String nameReference) {
@@ -197,9 +216,11 @@ public class MuleToBalConverter {
             MuleRecord src = source.get();
             assert src.kind() == Kind.HTTP_LISTENER;
 
+            data.currentContext = Context.HTTP_LISTENER;
             // Create a service from the flow
             Service service = genBalService(data, (HttpListener) src, flow.flowBlocks());
             services.add(service);
+            data.currentContext = Context.DEFAULT;
         }
 
         Set<Function> functions = new HashSet<>();
@@ -243,18 +264,32 @@ public class MuleToBalConverter {
             comments.add(comment);
         }
 
+        // Update function params
+        List<Function> funcs = new ArrayList<>(functions.size());
+        for (Function function : functions) {
+            HashSet<Parameter> parameters = data.functionParamMap.get(function.methodName());
+            if (parameters == null) {
+                funcs.add(function);
+            } else {
+                funcs.add(new Function(function.visibilityQualifier(), function.methodName(),
+                        parameters.stream().toList(), function.returnType(), function.body()));
+            }
+        }
+
         return createBallerinaModel(imports, data.typeDef.values().stream().toList(), moduleVars, listeners, services,
-                functions.stream().toList(), comments);
+                funcs, comments);
     }
 
     private static void genBalFuncsFromSubFlows(Data data, List<SubFlow> subFlows, Set<Function> functions) {
         for (SubFlow subFlow : subFlows) {
             List<Statement> body = genFuncBodyStatements(data, subFlow.flowBlocks());
-            // TODO: assumed source is always a http listener
-            List<Parameter> parameterList = List.of(new Parameter(Constants.VAR_RESPONSE, "http:Response",
-                    Optional.empty()));
+//            // TODO: assumed source is always a http listener
+//            List<Parameter> parameterList = List.of(new Parameter(Constants.VAR_RESPONSE, "http:Response",
+//                    Optional.empty()));
             String methodName = ConversionUtils.escapeSpecialCharacters(subFlow.name());
-            Function function = new Function(Optional.empty(), methodName, parameterList, Optional.empty(), body);
+            HashSet<Parameter> parameters = data.functionParamMap.computeIfAbsent(methodName, k -> new HashSet<>());
+            Function function = new Function(Optional.empty(), methodName, parameters.stream().toList(),
+                    Optional.empty(), body);
             functions.add(function);
         }
         functions.addAll(data.functions);
@@ -263,15 +298,17 @@ public class MuleToBalConverter {
     private static void genBalFuncsFromPrivateFlows(Data data, List<Flow> privateFlows, Set<Function> functions) {
         for (Flow privateFlow : privateFlows) {
             assert privateFlow.source().isEmpty();
-            List<Parameter> parameterList = new ArrayList<>();
-            // TODO: fix the payload check properly
-            if (data.payload != null) {
-                parameterList.add(new Parameter(Constants.VAR_RESPONSE, "http:Response", Optional.empty()));
-            }
+//            List<Parameter> parameterList = new ArrayList<>();
+//            // TODO: fix the payload check properly
+//            if (data.payload != null) {
+//                parameterList.add(new Parameter(Constants.VAR_RESPONSE, "http:Response", Optional.empty()));
+//            }
 
             List<Statement> body = genFuncBodyStatements(data, privateFlow.flowBlocks());
             String methodName = ConversionUtils.escapeSpecialCharacters(privateFlow.name());
-            Function function = new Function(Optional.empty(), methodName, parameterList, Optional.empty(), body);
+            HashSet<Parameter> parameters = data.functionParamMap.computeIfAbsent(methodName, k -> new HashSet<>());
+            Function function = new Function(Optional.empty(), methodName, parameters.stream().toList(),
+                    Optional.empty(), body);
             functions.add(function);
         }
         functions.addAll(data.functions);
@@ -510,9 +547,15 @@ public class MuleToBalConverter {
                 statementList.addAll(statements);
             }
             case FlowReference flowReference -> {
-                // TODO: assumed source is always a http listener
                 String funcRef = ConversionUtils.escapeSpecialCharacters(flowReference.flowName());
-                String params = data.payload == null ? "" : Constants.VAR_RESPONSE;
+
+                String params = "";
+                if (data.currentContext == Context.HTTP_LISTENER) {
+                    Parameter param = new Parameter(Constants.VAR_RESPONSE, "http:Response", Optional.empty());
+                    data.addFuncParam(funcRef, param);
+                    params = Constants.VAR_RESPONSE;
+                }
+
                 statementList.add(new BallerinaStatement(String.format("%s(%s);", funcRef, params)));
             }
             case Enricher enricher -> {
@@ -521,17 +564,27 @@ public class MuleToBalConverter {
                 String sourceArgName = ConversionUtils.getSimpleMuleFlowVar(enricher.source());
                 if (enricher.innerBlock().isEmpty()) {
                     statementList.add(new BallerinaStatement(String.format("%s = %s;", targetVarName, sourceArgName)));
-                } else if (enricher.innerBlock().get().kind() == Kind.FLOW_REFERENCE) {
-                    FlowReference flowReference = (FlowReference) enricher.innerBlock().get();
-                    String flowName = flowReference.flowName();
-                    statementList.add(new BallerinaStatement(String.format("%s = %s(%s);", targetVarName,
-                            ConversionUtils.escapeSpecialCharacters(flowName), sourceArgName)));
+                    // TODO: revisit special casing flow reference
+//                } else if (enricher.innerBlock().get().kind() == Kind.FLOW_REFERENCE) {
+//                    FlowReference flowReference = (FlowReference) enricher.innerBlock().get();
+//
+//                    String methodName = ConversionUtils.escapeSpecialCharacters(flowReference.flowName());
+//                    Parameter sourceAsParam = new Parameter(sourceArgName, "string", Optional.empty());
+//                    data.addFuncParam(methodName, sourceAsParam);
+//
+//                    statementList.add(new BallerinaStatement(String.format("%s = %s(%s);", targetVarName,
+//                            methodName, sourceArgName)));
                 } else {
+                    String methodName = String.format(Constants.METHOD_NAME_ENRICHER_TEMPLATE,
+                            data.enricherMethodCount);
+                    Parameter sourceAsParam = new Parameter(sourceArgName, "string", Optional.empty());
+                    data.addFuncParam(methodName, sourceAsParam);
+
                     List<Statement> enricherStmts = convertToStatements(data, enricher.innerBlock().get());
-                    data.functions.add(new Function(Optional.empty(),
-                            String.format(Constants.METHOD_NAME_ENRICHER_TEMPLATE, data.enricherMethodCount),
-                            List.of(new Parameter(sourceArgName, "string", Optional.empty())),
-                            Optional.of("string"), enricherStmts));
+                    Function func = new Function(Optional.empty(), methodName, Collections.emptyList(),
+                            Optional.of("string"), enricherStmts);
+                    data.functions.add(func);
+
                     enricherStmts.add(new BallerinaStatement(String.format("return %s;", sourceArgName)));
                     statementList.add(new BallerinaStatement(String.format("%s = %s(%s);", targetVarName,
                             String.format(Constants.METHOD_NAME_ENRICHER_TEMPLATE, data.enricherMethodCount++),

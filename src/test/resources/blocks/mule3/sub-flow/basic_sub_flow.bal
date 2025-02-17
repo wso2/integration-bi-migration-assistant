@@ -11,7 +11,7 @@ service /mule3 on config {
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
         log:printInfo("xxx: logger invoked via http end point");
-        demoSub_Flow();
+        demoSub_Flow(_response_);
         log:printInfo("xxx: logger after flow reference invoked");
         return _response_;
     }
