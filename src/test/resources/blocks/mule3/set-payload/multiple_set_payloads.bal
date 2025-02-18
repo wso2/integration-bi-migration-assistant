@@ -9,9 +9,16 @@ service /mule3 on config {
 
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
-        _response_.setPayload("First payload");
-        _response_.setPayload("Second payload");
-        _response_.setPayload("Third payload");
+
+        // set payload
+        string _payload0_ = "First payload";
+
+        // set payload
+        string _payload1_ = "Second payload";
+
+        // set payload
+        string _payload2_ = "Third payload";
+        _response_.setPayload(_payload2_);
         return _response_;
     }
 }

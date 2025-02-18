@@ -19,5 +19,8 @@ service /mule3 on config {
 
 function demoSub_Flow(http:Response _response_) {
     log:printInfo("xxx: sub flow logger invoked");
-    _response_.setPayload("This is a sub flow set-payload call");
+
+    // set payload
+    string _payload0_ = "This is a sub flow set-payload call";
+    _response_.setPayload(_payload0_);
 }

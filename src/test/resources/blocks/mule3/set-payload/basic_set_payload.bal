@@ -9,7 +9,10 @@ service /mule3 on config {
 
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
-        _response_.setPayload("Hello world!");
+
+        // set payload
+        string _payload0_ = "Hello world!";
+        _response_.setPayload(_payload0_);
         return _response_;
     }
 }

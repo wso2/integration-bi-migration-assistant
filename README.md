@@ -55,6 +55,7 @@ The migration tool currently supports the following Mule components:
 - [Message Enricher](SAMPLES.md#message-enricher)
 - [Object To Json](SAMPLES.md#object-to-json)
 - [Object To String](SAMPLES.md#object-to-string)
+- [Session Variable](SAMPLES.md#session-variable)
 - [Set Payload](SAMPLES.md#set-payload)
 - [Sub Flow](SAMPLES.md#sub-flow)
 - [Transform Message](SAMPLES.md#transform-message)

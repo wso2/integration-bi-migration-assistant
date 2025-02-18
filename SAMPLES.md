@@ -1000,7 +1000,6 @@ service /mule3 on config {
         stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
         Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
             select _iterator_;
-        _response_.setPayload(_dbSelect0_.toString());
 
         // json transformation
         json _to_json0_ = _dbSelect0_.toJson();
@@ -1066,13 +1065,152 @@ service /mule3 on config {
         stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
         Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
             select _iterator_;
-        _response_.setPayload(_dbSelect0_.toString());
 
         // string transformation
         string _to_string0_ = _dbSelect0_.toString();
         _response_.setPayload(_to_string0_);
         return _response_;
     }
+}
+
+```
+
+## Session Variable
+
+- ### Basic Set Session Variable
+
+**Input (basic_set_session_variable.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:json="http://www.mulesoft.org/schema/mule/json"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <flow name="myFlow">
+        <logger message="xxx: flow starting logger invoked" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="sessionVar1" value="this is first session variable" doc:name="Session Variable"/>
+        <set-session-variable variableName="sessionVar2" value="this is second session variable" doc:name="Session Variable"/>
+        <logger message="xxx: end of flow reached" level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>
+
+```
+**Output (basic_set_session_variable.bal):**
+```ballerina
+import ballerina/log;
+
+string sessionVar1 = "this is first session variable";
+string sessionVar2 = "this is second session variable";
+
+function myFlow() {
+    log:printInfo("xxx: flow starting logger invoked");
+    log:printInfo("xxx: end of flow reached");
+}
+
+```
+
+- ### Set Session Variable With Http Source
+
+**Input (set_session_variable_with_http_source.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:json="http://www.mulesoft.org/schema/mule/json"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <http:listener-config name="HTTP_Config" host="0.0.0.0" port="8081" basePath="/mule3" doc:name="HTTP Listener Config"/>
+    <flow name="sessionVarExampleFlow">
+        <!-- HTTP Listener as the source -->
+        <http:listener config-ref="HTTP_Config" path="/session" allowedMethods="GET" doc:name="HTTP Listener"/>
+
+        <!-- Set Session Variable -->
+        <set-session-variable variableName="sessionVarExample" value="Initial Value" doc:name="Set Session Variable"/>
+
+        <!-- Log Initial Session Variable -->
+        <logger message="Session Variable (Initial): #[sessionVars.sessionVarExample]" level="INFO" doc:name="Logger Initial"/>
+
+        <!-- Modify Session Variable -->
+        <set-session-variable variableName="sessionVarExample" value="Modified Value" doc:name="Modify Session Variable"/>
+
+        <!-- Log Modified Session Variable -->
+        <logger message="Session Variable (Modified): #[sessionVars.sessionVarExample]" level="INFO" doc:name="Logger Modified"/>
+
+        <set-payload value="{&quot;message&quot;:&quot;Check logs for session variable values&quot;}" doc:name="Set JSON Response"/>
+    </flow>
+</mule>
+
+```
+**Output (set_session_variable_with_http_source.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+string sessionVarExample = "Initial Value";
+listener http:Listener HTTP_Config = new (8081, {host: "0.0.0.0"});
+
+service /mule3 on HTTP_Config {
+    resource function get session() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        log:printInfo(string `Session Variable (Initial): ${sessionVars.sessionVarExample}`);
+        sessionVarExample = "Modified Value";
+        log:printInfo(string `Session Variable (Modified): ${sessionVars.sessionVarExample}`);
+
+        // set payload
+        string _payload0_ = "{\"message\":\"Check logs for session variable values\"}";
+        _response_.setPayload(_payload0_);
+        return _response_;
+    }
+}
+
+```
+
+- ### Updating Same Session Variable
+
+**Input (updating_same_session_variable.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:json="http://www.mulesoft.org/schema/mule/json"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <flow name="myFlow">
+        <logger message="xxx: flow starting logger invoked" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="sessionVar1" value="initial value" doc:name="Session Variable"/>
+        <set-session-variable variableName="sessionVar1" value="updated value" doc:name="Session Variable"/>
+        <logger message="xxx: end of flow reached" level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>
+
+```
+**Output (updating_same_session_variable.bal):**
+```ballerina
+import ballerina/log;
+
+string sessionVar1 = "initial value";
+
+function myFlow() {
+    log:printInfo("xxx: flow starting logger invoked");
+    sessionVar1 = "updated value";
+    log:printInfo("xxx: end of flow reached");
 }
 
 ```
@@ -1113,7 +1251,10 @@ service /mule3 on config {
 
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
-        _response_.setPayload("Hello world!");
+
+        // set payload
+        string _payload0_ = "Hello world!";
+        _response_.setPayload(_payload0_);
         return _response_;
     }
 }
@@ -1156,9 +1297,16 @@ service /mule3 on config {
 
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
-        _response_.setPayload("First payload");
-        _response_.setPayload("Second payload");
-        _response_.setPayload("Third payload");
+
+        // set payload
+        string _payload0_ = "First payload";
+
+        // set payload
+        string _payload1_ = "Second payload";
+
+        // set payload
+        string _payload2_ = "Third payload";
+        _response_.setPayload(_payload2_);
         return _response_;
     }
 }
@@ -1217,7 +1365,10 @@ service /mule3 on config {
 
 function demoSub_Flow(http:Response _response_) {
     log:printInfo("xxx: sub flow logger invoked");
-    _response_.setPayload("This is a sub flow set-payload call");
+
+    // set payload
+    string _payload0_ = "This is a sub flow set-payload call";
+    _response_.setPayload(_payload0_);
 }
 
 ```
