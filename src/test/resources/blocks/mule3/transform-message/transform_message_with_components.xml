@@ -13,10 +13,10 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <dw:transform-message>
             <dw:input-payload mimeType="application/java"/>
             <dw:set-variable variableName="myVariable"
-                             resource="/Users/hinduja/Documents/Mule2Ballerina/integration-bi-migration-assistant/src/test/resources/blocks/mule3/transform-message/dataweave-files/transform_message_with_components.dwl"/>
-            <dw:set-payload resource="/Users/hinduja/Documents/Mule2Ballerina/integration-bi-migration-assistant/src/test/resources/blocks/mule3/transform-message/dataweave-files/transform_message_with_components.dwl"/>
+                             resource="blocks/mule3/transform-message/dataweave-files/transform_message_with_components.dwl"/>
+            <dw:set-payload resource="blocks/mule3/transform-message/dataweave-files/transform_message_with_components.dwl"/>
             <dw:set-session-variable variableName="mySessionVariable"
-                      resource="/Users/hinduja/Documents/Mule2Ballerina/integration-bi-migration-assistant/src/test/resources/blocks/mule3/transform-message/dataweave-files/transform_message_with_components.dwl"/>
+                      resource="blocks/mule3/transform-message/dataweave-files/transform_message_with_components.dwl"/>
         </dw:transform-message>
     </flow>
 </mule>

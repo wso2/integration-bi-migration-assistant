@@ -12,6 +12,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,22 +29,39 @@ public class DWReader {
     }
 
     public static ParseTree readDWScriptFromFile(String filePath) {
-        Path path = Paths.get(filePath).toAbsolutePath();
-        if (!Files.exists(path)) {
-            throw new RuntimeException("File does not exist: " + filePath);
+        Path path = Paths.get(filePath);
+        if (Files.exists(path) && Files.isRegularFile(path)) {
+            return parseFromFile(path);
         }
-        if (!Files.isRegularFile(path)) {
-            throw new RuntimeException("Provided path is not a file: " + filePath);
+        InputStream inputStream = DWReader.class.getClassLoader().getResourceAsStream(filePath);
+        if (inputStream != null) {
+            return parseFromStream(inputStream, filePath);
         }
-        if (!filePath.toLowerCase().endsWith(".dwl")) {
-            throw new RuntimeException("Invalid file type. Expected a .dwl file: " + filePath);
+        throw new RuntimeException("File not found: " + filePath);
+    }
+
+    private static ParseTree parseFromFile(Path path) {
+        if (!path.toString().toLowerCase().endsWith(".dwl")) {
+            throw new RuntimeException("Invalid file type. Expected a .dwl file: " + path);
         }
-        String script;
         try {
-            script = Files.readString(path, StandardCharsets.UTF_8);
+            String script = Files.readString(path, StandardCharsets.UTF_8);
+            return parseScript(script);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to read file - " + filePath, e);
+            throw new RuntimeException("Failed to read file - " + path, e);
         }
+    }
+
+    private static ParseTree parseFromStream(InputStream inputStream, String filePath) {
+        try {
+            String script = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            return parseScript(script);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read file from resources: " + filePath, e);
+        }
+    }
+
+    private static ParseTree parseScript(String script) {
         DataWeaveLexer lexer = new DataWeaveLexer(CharStreams.fromString(script));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         DataWeaveParser parser = new DataWeaveParser(tokens);
