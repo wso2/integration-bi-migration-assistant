@@ -1028,7 +1028,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
     <flow name="mule6demoFlow">
-        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
         <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
             <dw:input-payload mimeType="application/java"/>
             <dw:set-payload><![CDATA[%dw 1.0
@@ -1048,38 +1048,6 @@ listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /foo on config {
     resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function put .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function patch .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function head .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function options .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function trace .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function connect .() returns http:Response|error {
         return self._invokeEndPoint0_();
     }
 
@@ -1112,7 +1080,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
     <flow name="mule6demoFlow">
-        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
         <dw:transform-message>
             <dw:input-payload mimeType="application/java"/>
             <dw:set-variable variableName="myVariable"
@@ -1133,38 +1101,6 @@ listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /foo on config {
     resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function put .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function patch .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function head .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function options .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function trace .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function connect .() returns http:Response|error {
         return self._invokeEndPoint0_();
     }
 
@@ -1207,7 +1143,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
     <flow name="mule6demoFlow">
-        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
         <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
             <dw:input-payload mimeType="application/java"/>
             <dw:set-payload><![CDATA[%dw 1.0
@@ -1232,38 +1168,6 @@ service /foo on config {
         return self._invokeEndPoint0_();
     }
 
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function put .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function patch .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function head .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function options .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function trace .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function connect .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
         json _dwOutput_ = _dwMethod0_(payload);
@@ -1274,7 +1178,6 @@ service /foo on config {
 
 function _dwMethod0_(json payload) returns json {
     var arrayArg = [1, 2, 3, 4];
-    // TODO: AMBIGUOUS TYPE FOUND FOR COMPARISON OPERATOR '$>2'. MANUAL CASTING REQUIRED.
     return arrayArg.filter(element => element > 2);
 }
 
@@ -1295,7 +1198,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
     <flow name="mule6demoFlow">
-        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
         <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
             <dw:input-payload mimeType="application/java"/>
             <dw:set-payload><![CDATA[%dw 1.0
@@ -1317,38 +1220,6 @@ listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /foo on config {
     resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function put .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function patch .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function head .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function options .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function trace .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function connect .() returns http:Response|error {
         return self._invokeEndPoint0_();
     }
 
@@ -1381,7 +1252,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
     <flow name="mule6demoFlow">
-        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
         <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
             <dw:input-payload mimeType="application/java"/>
             <dw:set-payload><![CDATA[%dw 1.0
@@ -1403,38 +1274,6 @@ listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /foo on config {
     resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function put .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function patch .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function head .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function options .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function trace .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function connect .() returns http:Response|error {
         return self._invokeEndPoint0_();
     }
 
@@ -1468,7 +1307,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
     <flow name="mule6demoFlow">
-        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
         <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
             <dw:input-payload mimeType="application/java"/>
             <dw:set-payload><![CDATA[%dw 1.0
@@ -1493,38 +1332,6 @@ service /foo on config {
         return self._invokeEndPoint0_();
     }
 
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function put .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function patch .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function head .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function options .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function trace .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function connect .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
         json _dwOutput_ = _dwMethod0_(payload);
@@ -1535,7 +1342,6 @@ service /foo on config {
 
 function _dwMethod0_(json payload) returns json {
     var arrayArg = [1, 2, 3, 4];
-    // TODO: AMBIGUOUS TYPE FOUND FOR MATH OPERATOR '$+$$'. MANUAL CASTING REQUIRED.
     return arrayArg.'map(element => element + arrayArg.indexOf(element));
 }
 
@@ -1556,7 +1362,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
     <flow name="mule6demoFlow">
-        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
         <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
             <dw:input-payload mimeType="application/java"/>
             <dw:set-payload><![CDATA[%dw 1.0
@@ -1581,38 +1387,6 @@ service /foo on config {
         return self._invokeEndPoint0_();
     }
 
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function put .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function patch .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function head .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function options .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function trace .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function connect .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
         json _dwOutput_ = _dwMethod0_(payload);
@@ -1623,7 +1397,6 @@ service /foo on config {
 
 function _dwMethod0_(json payload) returns json {
     var arrayArg = [1, 2, 3, 4];
-    // TODO: AMBIGUOUS TYPE FOUND FOR MATH OPERATOR '$$+1'. MANUAL CASTING REQUIRED.
     return arrayArg.'map(element => arrayArg.indexOf(element) + 1);
 }
 
@@ -1644,7 +1417,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
     <flow name="mule6demoFlow">
-        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
         <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
             <dw:input-payload mimeType="application/java"/>
             <dw:set-payload><![CDATA[%dw 1.0
@@ -1669,38 +1442,6 @@ service /foo on config {
         return self._invokeEndPoint0_();
     }
 
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function put .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function patch .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function head .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function options .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function trace .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function connect .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
         json _dwOutput_ = _dwMethod0_(payload);
@@ -1711,7 +1452,6 @@ service /foo on config {
 
 function _dwMethod0_(json payload) returns json {
     var arrayArg = [1, 2, 3, 4];
-    // TODO: AMBIGUOUS TYPE FOUND FOR MATH OPERATOR '$+1'. MANUAL CASTING REQUIRED.
     return arrayArg.'map(element => element + 1);
 }
 
@@ -1732,7 +1472,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
     <flow name="mule6demoFlow">
-        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
         <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
             <dw:input-payload mimeType="application/java"/>
             <dw:set-payload><![CDATA[%dw 1.0
@@ -1754,38 +1494,6 @@ listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /foo on config {
     resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function put .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function patch .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function head .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function options .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function trace .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function connect .() returns http:Response|error {
         return self._invokeEndPoint0_();
     }
 
@@ -1819,7 +1527,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
     <flow name="mule6demoFlow">
-        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
         <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
             <dw:input-payload mimeType="application/java"/>
             <dw:set-payload><![CDATA[%dw 1.0
@@ -1842,38 +1550,6 @@ listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /foo on config {
     resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function put .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function patch .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function head .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function options .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function trace .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function connect .() returns http:Response|error {
         return self._invokeEndPoint0_();
     }
 
@@ -1906,7 +1582,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
     <flow name="mule6demoFlow">
-        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
         <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
             <dw:input-payload mimeType="application/java"/>
             <dw:set-payload><![CDATA[%dw 1.0
@@ -1929,38 +1605,6 @@ listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /foo on config {
     resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function put .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function patch .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function head .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function options .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function trace .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function connect .() returns http:Response|error {
         return self._invokeEndPoint0_();
     }
 
@@ -1994,7 +1638,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/foo" doc:name="HTTP Listener Configuration"/>
     <flow name="mule6demoFlow">
-        <http:listener config-ref="config" path="/" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
         <dw:transform-message doc:name="Transform Message" metadata:id="7ac8bde9-bc67-492b-b681-45be71ec7e83">
             <dw:input-payload mimeType="application/java"/>
             <dw:set-payload><![CDATA[%dw 1.0
@@ -2016,38 +1660,6 @@ listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /foo on config {
     resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function put .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function patch .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function head .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function options .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function trace .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function connect .() returns http:Response|error {
         return self._invokeEndPoint0_();
     }
 
