@@ -846,8 +846,7 @@ public class MuleToBalConverter {
                 case Constants.SET_PAYLOAD -> {
                     String resource = node.getAttribute("resource");
                     if (resource.isEmpty()) {
-                        CDATASection cdataSection = (CDATASection) node.getChildNodes().item(0);
-                        transformMessageElements.add(new MuleModel.SetPayloadElement(null, cdataSection.getData()));
+                        transformMessageElements.add(new MuleModel.SetPayloadElement(null, node.getTextContent()));
                     } else {
                         transformMessageElements.add(new MuleModel.SetPayloadElement(resource, null));
                     }

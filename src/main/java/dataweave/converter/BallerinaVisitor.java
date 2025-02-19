@@ -222,9 +222,6 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitMathExpression(DataWeaveParser.MathExpressionContext ctx) {
-        this.dwContext.statements.add(
-                new BallerinaModel.BallerinaStatement(String.format(DWUtils.TYPE_CAST_COMMENT_MATH,
-                        ctx.getParent().getText())));
         String expression = dwContext.getExpression();
         expression += ctx.OPERATOR_MATH().getText();
         visit(ctx.expression());
@@ -235,9 +232,6 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitComparisonExpression(DataWeaveParser.ComparisonExpressionContext ctx)  {
-        this.dwContext.statements.add(
-                new BallerinaModel.BallerinaStatement(String.format(DWUtils.TYPE_CAST_COMMENT_COMPARISON,
-                        ctx.getParent().getText())));
         String expression = dwContext.getExpression();
         expression += ctx.OPERATOR_COMPARISON().getText();
         visit(ctx.expression());

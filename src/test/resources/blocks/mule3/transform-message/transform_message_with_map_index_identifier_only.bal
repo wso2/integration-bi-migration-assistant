@@ -7,38 +7,6 @@ service /foo on config {
         return self._invokeEndPoint0_();
     }
 
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function put .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function patch .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function head .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function options .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function trace .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    resource function connect .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
         json _dwOutput_ = _dwMethod0_(payload);
@@ -49,6 +17,5 @@ service /foo on config {
 
 function _dwMethod0_(json payload) returns json {
     var arrayArg = [1, 2, 3, 4];
-    // TODO: AMBIGUOUS TYPE FOUND FOR MATH OPERATOR '$$+1'. MANUAL CASTING REQUIRED.
     return arrayArg.'map(element => arrayArg.indexOf(element) + 1);
 }

@@ -25,18 +25,12 @@ public record MuleModel() {
         }
     }
 
-    public interface TransformMessageElement {
-        Kind kind();
+    public interface TransformMessageElement extends MuleRecord {
     }
 
     public record SetPayloadElement(Kind kind, String resource, String script) implements TransformMessageElement {
         public SetPayloadElement(String resource, String script) {
             this(Kind.DW_SET_PAYLOAD, resource, script);
-        }
-
-        @Override
-        public Kind kind() {
-            return kind;
         }
     }
 
@@ -45,22 +39,12 @@ public record MuleModel() {
         public SetVariableElement(String resource, String script, String variableName) {
             this(Kind.DW_SET_VARIABLE, resource, script, variableName);
         }
-
-        @Override
-        public Kind kind() {
-            return kind;
-        }
     }
 
     public record SetSessionVariableElement(Kind kind, String resource, String script, String variableName)
             implements TransformMessageElement {
         public SetSessionVariableElement(String resource, String script, String variableName) {
             this(Kind.DW_SET_SESSION_VARIABLE, resource, script, variableName);
-        }
-
-        @Override
-        public Kind kind() {
-            return kind;
         }
     }
 
@@ -69,11 +53,6 @@ public record MuleModel() {
         // TODO - add support for reader property
         public InputPayloadElement(String mimeType, String samplePath) {
             this(Kind.DW_INPUT_PAYLOAD, mimeType, samplePath);
-        }
-
-        @Override
-        public Kind kind() {
-            return kind;
         }
     }
 
