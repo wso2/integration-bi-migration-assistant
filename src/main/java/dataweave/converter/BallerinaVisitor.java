@@ -21,13 +21,9 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     private final DWContext dwContext;
     private final MuleToBalConverter.Data data;
 
-    public BallerinaVisitor(String mimeType, MuleToBalConverter.Data data,
-                            List<BallerinaModel.Statement> statementList) {
-        this.dwContext = new DWContext(mimeType, statementList);
+    public BallerinaVisitor(DWContext context, MuleToBalConverter.Data data) {
+        this.dwContext = context;
         this.data = data;
-        if (mimeType != null) {
-            this.dwContext.inputType = DWUtils.findBallerinaType(mimeType);
-        }
     }
 
     @Override
@@ -86,15 +82,14 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         String methodName = String.format(DWUtils.DW_FUNCTION_NAME,
                 data.dwMethodCount++);
         visitChildren(ctx);
-        dwContext.parentStatements.add(new BallerinaModel.BallerinaStatement(this.dwContext.outputType + " "
-                + DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME + " = " + methodName + "(" +
-                DWUtils.getParamsString(dwContext.params) + ");"));
         dwContext.finalizeFunction();
+        String outputType = dwContext.outputType;
         if (dwContext.containsCheck) {
-            dwContext.outputType = dwContext.outputType + "| error";
+            outputType = dwContext.outputType + "| error";
         }
+        this.dwContext.functionNames.add(methodName);
         this.data.functions.add(new BallerinaModel.Function(Optional.empty(), methodName, dwContext.params,
-                Optional.of(dwContext.outputType), dwContext.statements));
+                Optional.of(outputType), dwContext.statements));
         return null;
     }
 

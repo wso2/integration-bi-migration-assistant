@@ -21,6 +21,7 @@ public class Constants {
 
     // Transformers
     public static final String SET_VARIABLE = "set-variable";
+    public static final String SET_SESSION_VARIABLE = "set-session-variable";
     public static final String SET_PAYLOAD = "set-payload";
     public static final String OBJECT_TO_JSON = "json:object-to-json-transformer";
     public static final String OBJECT_TO_STRING = "object-to-string-transformer";
@@ -73,4 +74,6 @@ public class Constants {
 
     //DataWeave
     public static final String INPUT_PAYLOAD = "input-payload";
+    public static final String CLASSPATH_DIR = "src/main/resources/";
+    public static final String CLASSPATH = "classpath:";
 }
