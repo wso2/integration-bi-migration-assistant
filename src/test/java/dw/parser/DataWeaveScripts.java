@@ -192,4 +192,38 @@ public class DataWeaveScripts {
             ---
             [1, 2, 3, 4, 5] filter $ > 2
             """;
+    public static final String SCRIPT_MATH_OPERATOR = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+              addition: 10 + 5,
+              subtraction: 10 - 5,
+              multiplication: 10 * 5,
+              division: 10 / 5,
+              modulus: 10 mod 3
+            }
+            """;
+    public static final String SCRIPT_LOGICAL_OPERATOR = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+              res1: true and false,
+              res2: true or false
+            }
+            """;
+    public static final String SCRIPT_COMPARISON_OPERATOR = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+              res1: 10 > 5,
+              res2: 10 < 5,
+              res3: 10 >= 5,
+              res4: 10 <= 5,
+              res5: 10 == 5,
+              res6: 10 != 5
+            }
+            """;
 }

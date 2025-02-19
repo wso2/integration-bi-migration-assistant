@@ -2,10 +2,11 @@ package converter;
 
 import ballerina.BallerinaModel;
 import ballerina.CodeGenerator;
-import dataweave.DWReader;
+import dataweave.converter.DWReader;
 import dataweave.converter.DWUtils;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.Constants;
+import mule.MuleModel;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -526,9 +527,7 @@ public class MuleToBalConverter {
                 }
             }
             case TransformMessage transformMessage -> {
-                String mimeType = transformMessage.mimeType();
-                String script = transformMessage.script();
-                DWReader.processDWScript(script, mimeType, data, statementList);
+                DWReader.processDWElements(transformMessage.children(), data, statementList);
                 statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);",
                         Constants.VAR_RESPONSE, DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME)));
             }
@@ -840,20 +839,46 @@ public class MuleToBalConverter {
     }
 
     private static TransformMessage readTransformMessage(Data data, Element element) {
-        Element firstElement = (Element) element.getChildNodes().item(1);
-        String mimeType = null;
-        CDATASection cdataSection;
-        switch (firstElement.getLocalName()) {
-            case Constants.SET_PAYLOAD -> {
-                cdataSection = (CDATASection) firstElement.getChildNodes().item(0);
+        List<MuleModel.TransformMessageElement> transformMessageElements = new ArrayList<>();
+        for (int i = 1; i < element.getChildNodes().getLength(); i += 2) {
+            Element node = (Element) element.getChildNodes().item(i);
+            switch (node.getLocalName()) {
+                case Constants.SET_PAYLOAD -> {
+                    String resource = node.getAttribute("resource");
+                    if (resource.isEmpty()) {
+                        transformMessageElements.add(new MuleModel.SetPayloadElement(null, node.getTextContent()));
+                    } else {
+                        transformMessageElements.add(new MuleModel.SetPayloadElement(resource, null));
+                    }
+                }
+                case Constants.INPUT_PAYLOAD -> {
+                    String mimeType = node.getAttribute("mimeType");
+                    String docSamplePath = node.getAttribute("doc:sample");
+                    transformMessageElements.add(new MuleModel.InputPayloadElement(mimeType, docSamplePath));
+                }
+                case Constants.SET_VARIABLE -> {
+                    String variableName = node.getAttribute("variableName");
+                    String resource = node.getAttribute("resource");
+                    String script = null;
+                    if (resource.isEmpty()) {
+                        script = ((CDATASection) node.getChildNodes().item(0)).getData();
+                    }
+                    transformMessageElements.add(new MuleModel.SetVariableElement(resource, script, variableName));
+                }
+                case Constants.SET_SESSION_VARIABLE -> {
+                    String variableName = node.getAttribute("variableName");
+                    String resource = node.getAttribute("resource");
+                    String script = null;
+                    if (resource.isEmpty()) {
+                        script = ((CDATASection) node.getChildNodes().item(0)).getData();
+                    }
+                    transformMessageElements.add(new MuleModel.SetSessionVariableElement(
+                            resource, script, variableName));
+                }
+
+                default -> throw new UnsupportedOperationException();
             }
-            case Constants.INPUT_PAYLOAD -> {
-                Element secondElement = (Element) element.getChildNodes().item(3);
-                cdataSection = (CDATASection) secondElement.getChildNodes().item(0);
-                mimeType = firstElement.getAttribute("mimeType");
-            }
-            default -> throw new UnsupportedOperationException();
         }
-        return new TransformMessage(mimeType, cdataSection.getData());
+        return new TransformMessage(transformMessageElements);
     }
 }

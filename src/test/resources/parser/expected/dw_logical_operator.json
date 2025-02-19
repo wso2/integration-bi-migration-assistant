@@ -1,0 +1,43 @@
+{
+  "type" : "Script",
+  "header" : {
+    "type" : "Header",
+    "directives" : [ {
+      "type" : "Version",
+      "version" : "1.0"
+    }, {
+      "type" : "Output",
+      "output" : "application/json"
+    } ]
+  },
+  "body" : {
+    "type" : "Body",
+    "expression" : {
+      "type" : "Object",
+      "res1" : {
+        "type" : "LogicalBinaryExpression",
+        "operator" : "and",
+        "left" : {
+          "type" : "Literal",
+          "value" : "true"
+        },
+        "right" : {
+          "type" : "Literal",
+          "value" : "false"
+        }
+      },
+      "res2" : {
+        "type" : "LogicalBinaryExpression",
+        "operator" : "or",
+        "left" : {
+          "type" : "Literal",
+          "value" : "true"
+        },
+        "right" : {
+          "type" : "Literal",
+          "value" : "false"
+        }
+      }
+    }
+  }
+}

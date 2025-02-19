@@ -19,9 +19,40 @@ public record MuleModel() {
         }
     }
 
-    public record TransformMessage(Kind kind, String mimeType, String script) implements MuleRecord {
-        public TransformMessage(String mimeType, String script) {
-            this(Kind.TRANSFORM_MESSAGE, mimeType, script);
+    public record TransformMessage(Kind kind, List<TransformMessageElement> children) implements MuleRecord {
+        public TransformMessage(List<TransformMessageElement> children) {
+            this(Kind.TRANSFORM_MESSAGE, children);
+        }
+    }
+
+    public interface TransformMessageElement extends MuleRecord {
+    }
+
+    public record SetPayloadElement(Kind kind, String resource, String script) implements TransformMessageElement {
+        public SetPayloadElement(String resource, String script) {
+            this(Kind.DW_SET_PAYLOAD, resource, script);
+        }
+    }
+
+    public record SetVariableElement(Kind kind, String resource, String script, String variableName)
+            implements TransformMessageElement {
+        public SetVariableElement(String resource, String script, String variableName) {
+            this(Kind.DW_SET_VARIABLE, resource, script, variableName);
+        }
+    }
+
+    public record SetSessionVariableElement(Kind kind, String resource, String script, String variableName)
+            implements TransformMessageElement {
+        public SetSessionVariableElement(String resource, String script, String variableName) {
+            this(Kind.DW_SET_SESSION_VARIABLE, resource, script, variableName);
+        }
+    }
+
+    public record InputPayloadElement(Kind kind, String mimeType, String samplePath)
+            implements TransformMessageElement {
+        // TODO - add support for reader property
+        public InputPayloadElement(String mimeType, String samplePath) {
+            this(Kind.DW_INPUT_PAYLOAD, mimeType, samplePath);
         }
     }
 
@@ -160,6 +191,10 @@ public record MuleModel() {
         OBJECT_TO_JSON,
         OBJECT_TO_STRING,
         TRANSFORM_MESSAGE,
+        DW_SET_PAYLOAD,
+        DW_SET_VARIABLE,
+        DW_SET_SESSION_VARIABLE,
+        DW_INPUT_PAYLOAD,
         FLOW,
         SUB_FLOW,
         UNSUPPORTED_BLOCK

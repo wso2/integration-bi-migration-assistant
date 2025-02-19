@@ -9,13 +9,22 @@ service /foo on config {
 
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
-        json _dwOutput_ = _dwMethod0_(payload);
+        json myVariable = _dwMethod0_(payload);
+        json _dwOutput_ = _dwMethod1_(payload);
+        json mySessionVariable = _dwMethod2_(payload);
         _response_.setPayload(_dwOutput_);
         return _response_;
     }
 }
 
 function _dwMethod0_(json payload) returns json {
-    var jsonArg = [1, 2, 3, 4];
-    return {"hail1": jsonArg.length()};
+    return "apple".toUpperAscii();
+}
+
+function _dwMethod2_(json payload) returns json {
+    return "apple".toUpperAscii();
+}
+
+function _dwMethod1_(json payload) returns json {
+    return "apple".toUpperAscii();
 }
