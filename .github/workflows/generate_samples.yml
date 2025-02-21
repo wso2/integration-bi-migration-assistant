@@ -23,7 +23,7 @@ jobs:
           python-version: '3.x'
 
       - name: Generate samples
-        run: python3 generate_samples_md.py
+        run: python3 scripts/generate_samples_md.py
 
       - name: Print git diff
         run: git diff
