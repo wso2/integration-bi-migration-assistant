@@ -88,8 +88,8 @@ public class MuleToBalConverter {
         List<UnsupportedBlock> globalUnsupportedBlocks = new ArrayList<>();
 
         // Ballerina global elements
-        HashMap<String, ModuleTypeDef> typeDef = new HashMap<>();
-        HashSet<Import> imports = new HashSet<>();
+        public HashMap<String, ModuleTypeDef> typeDef = new HashMap<>();
+        public HashSet<Import> imports = new HashSet<>();
         HashSet<String> queryParams = new HashSet<>();
         public List<Function> functions = new ArrayList<>();
 
