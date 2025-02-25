@@ -16,4 +16,12 @@
             <class name="TestConverter"/>
         </classes>
     </test>
+    <test name="Tibco parser tests">
+        <packages>
+            <package name="dw.parser.*"/>
+        </packages>
+        <classes>
+            <class name="tibco.ParserTest"/>
+        </classes>
+    </test>
 </suite>
