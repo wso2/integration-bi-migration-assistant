@@ -30,8 +30,10 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -187,8 +189,108 @@ public class TibcoToBalConverter {
         return new TibcoModel.Types.Schema.ComplexType.Choice(elements);
     }
 
-    private static TibcoModel.Types.WSDLDefinition parseWSDLDefinition(Element child) {
-        return new TibcoModel.Types.WSDLDefinition();
+    private static TibcoModel.Types.WSDLDefinition parseWSDLDefinition(Element element) {
+        Map<String, String> namespaces = new HashMap<>();
+        TibcoModel.Types.WSDLDefinition.PartnerLinkType partnerLinkType = null;
+        List<TibcoModel.NameSpace> imports = new ArrayList<>();
+        List<TibcoModel.Types.WSDLDefinition.Message> messages = new ArrayList<>();
+        List<TibcoModel.Types.WSDLDefinition.PortType> portTypes = new ArrayList<>();
+        for (Element child : ElementIterable.of(element)) {
+            String tag = getTagNameWithoutNameSpace(child);
+            switch (tag) {
+                case "partnerLinkType" -> {
+                    if (partnerLinkType != null) {
+                        throw new ParserException("Multiple partnerLinkType elements found in the XML", element);
+                    }
+                    partnerLinkType = parsePartnerLinkType(child);
+                }
+                case "import" -> imports.add(parseImport(child));
+                case "message" -> messages.add(parseMessage(child));
+                case "portType" -> portTypes.add(parsePortType(child));
+                default -> throw new ParserException("Unsupported WSDL definition tag: " + tag, element);
+            }
+        }
+        assert partnerLinkType != null;
+        return new TibcoModel.Types.WSDLDefinition(namespaces, partnerLinkType, imports, messages, portTypes);
+    }
+
+    private static TibcoModel.Types.WSDLDefinition.PortType parsePortType(Element element) {
+        String name = element.getAttribute("name");
+        // FIXME:
+        String apiPath = "";
+        Element operation =
+                getFistMatchingChild(element, (child) -> getTagNameWithoutNameSpace(child).equals("operation"))
+                        .orElseThrow(() -> new ParserException("Operation not found in portType", element));
+        TibcoModel.Types.WSDLDefinition.PortType.Operation portOperation = parsePortOperation(operation);
+        return new TibcoModel.Types.WSDLDefinition.PortType(name, apiPath, portOperation);
+    }
+
+    private static TibcoModel.Types.WSDLDefinition.PortType.Operation parsePortOperation(Element operation) {
+
+        record MessageNamePair(TibcoModel.NameSpaceValue message, String name) {
+
+            static MessageNamePair from(Element element) {
+                return new MessageNamePair(TibcoModel.NameSpaceValue.from(element.getAttribute("message")),
+                        element.getAttribute("name"));
+            }
+        }
+        String name = operation.getAttribute("name");
+        TibcoModel.Types.WSDLDefinition.PortType.Operation.Input input = null;
+        TibcoModel.Types.WSDLDefinition.PortType.Operation.Output output = null;
+        List<TibcoModel.Types.WSDLDefinition.PortType.Operation.Fault> faults = new ArrayList<>();
+        for (Element child : ElementIterable.of(operation)) {
+            MessageNamePair messageNamePair = MessageNamePair.from(child);
+            String tag = getTagNameWithoutNameSpace(child);
+            switch (tag) {
+                case "input" -> {
+                    input = new TibcoModel.Types.WSDLDefinition.PortType.Operation.Input(messageNamePair.message,
+                            messageNamePair.name);
+                }
+                case "output" -> {
+                    output = new TibcoModel.Types.WSDLDefinition.PortType.Operation.Output(messageNamePair.message,
+                            messageNamePair.name);
+                }
+                case "fault" -> {
+                    faults.add(new TibcoModel.Types.WSDLDefinition.PortType.Operation.Fault(messageNamePair.message,
+                            messageNamePair.name));
+                }
+                default -> throw new ParserException("Unsupported port operation tag: " + tag, operation);
+            }
+        }
+        if (input == null) {
+            throw new ParserException("Input not found in port operation", operation);
+        }
+        if (output == null) {
+            throw new ParserException("Output not found in port operation", operation);
+        }
+        return new TibcoModel.Types.WSDLDefinition.PortType.Operation(name, input, output, faults);
+    }
+
+    private static TibcoModel.Types.WSDLDefinition.Message parseMessage(Element element) {
+        String name = element.getAttribute("name");
+        List<TibcoModel.Types.WSDLDefinition.Message.Part> parts =
+                parseSequence(element, TibcoToBalConverter::parseMessagePart);
+        return new TibcoModel.Types.WSDLDefinition.Message(name, parts);
+    }
+
+    private static TibcoModel.Types.WSDLDefinition.Message.Part parseMessagePart(Element node) {
+        String name = node.getAttribute("name");
+        Optional<TibcoModel.NameSpaceValue> element = node.hasAttribute("element")
+                ? Optional.of(TibcoModel.NameSpaceValue.from(node.getAttribute("element")))
+                : Optional.empty();
+        // TODO: is this correct?
+        boolean multipleNamespaces = node.hasAttribute("multipleNamespaces");
+        return new TibcoModel.Types.WSDLDefinition.Message.Part(name, element, multipleNamespaces);
+    }
+
+    private static TibcoModel.Types.WSDLDefinition.PartnerLinkType parsePartnerLinkType(Element element) {
+        String name = element.getAttribute("name");
+        Element role = expectNChildren(element, 1).iterator().next();
+        String roleName = role.getAttribute("name");
+        String portTypeName = role.getAttribute("portType");
+        return new TibcoModel.Types.WSDLDefinition.PartnerLinkType(name,
+                new TibcoModel.Types.WSDLDefinition.PartnerLinkType.Role(roleName,
+                        TibcoModel.NameSpaceValue.from(portTypeName)));
     }
 
     private static Element parseXmlFile(String xmlFilePath)
@@ -221,7 +323,7 @@ public class TibcoToBalConverter {
         return children;
     }
 
-    private static <E> Collection<E> parseSequence(Element sequenceNode, Function<Element, E> parseFn) {
+    private static <E> List<E> parseSequence(Element sequenceNode, Function<Element, E> parseFn) {
         return ElementIterable.of(sequenceNode).stream().map(parseFn).toList();
     }
 

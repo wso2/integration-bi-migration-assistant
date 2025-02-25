@@ -21,8 +21,19 @@ package tibco;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public class TibcoModel {
+
+    public record NameSpaceValue(NameSpace nameSpace, String value) {
+
+        public static NameSpaceValue from(String value) {
+            String[] parts = value.split(":");
+            return new NameSpaceValue(new NameSpace(parts[0]), parts[1]);
+        }
+    }
 
     public record Types(Collection<Members> types) {
 
@@ -34,7 +45,41 @@ public class TibcoModel {
 
         }
 
-        public record WSDLDefinition() implements Members {
+        public record WSDLDefinition(Map<String, String> namespaces, PartnerLinkType partnerLinkType,
+                                     Collection<NameSpace> imports, Collection<Message> messages,
+                                     Collection<PortType> portTypes) implements Members {
+
+            public record PartnerLinkType(String name, Role role) {
+
+                public record Role(String name, NameSpaceValue portType) {
+
+                }
+            }
+
+            public record Message(String name, List<Part> parts) {
+
+                public record Part(String name, Optional<NameSpaceValue> element, boolean hasMultipleNamespaces) {
+
+                }
+            }
+
+            public record PortType(String name, String apiPath, Operation operation) {
+
+                public record Operation(String name, Input input, Output output, Collection<Fault> faults) {
+
+                    public record Input(NameSpaceValue message, String name) {
+
+                    }
+
+                    public record Output(NameSpaceValue message, String name) {
+
+                    }
+
+                    public record Fault(NameSpaceValue message, String name) {
+
+                    }
+                }
+            }
 
         }
 
