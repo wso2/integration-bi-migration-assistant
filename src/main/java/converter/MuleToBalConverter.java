@@ -111,8 +111,6 @@ public class MuleToBalConverter {
         public int enricherMethodCount = 0;
         public int payloadVarCount = 0;
 
-        // Data Analyze attributes
-
         // We don't know all the params passing down to funcs until we fully read the mule config.
         // Therefore, we need to keep a track of the params needed.
         private final HashMap<String, HashSet<Parameter>> functionParamMap = new HashMap<>();
@@ -126,19 +124,21 @@ public class MuleToBalConverter {
             }
         }
 
-        // Globally
-        // For processed ones -> flowName - balMethod map; this would allow modifying based on the flow ref calls
-        // For unprocessed ones -> flowName - context map; this will allow to process the flow later with the context
-
-        Map<String, FlowInfo> flowInfoMap = new HashMap<>(); // TODO: refactor
-        Map<String, Function> porcessedFlowBalMethodMap = new HashMap<>(); // OK
-        Map<String, Context> unPorcessedFlowContextMap = new HashMap<>(); // OK
+        // Data analyze attributes
+        Map<String, FlowInfo> flowInfoMap = new HashMap<>();
+        Map<String, Function> flowToGenMethodMap = new HashMap<>();
         FlowInfo currentFlowInfo = null;
 
         static class FlowInfo {
             final String flowName;
             private Context context;
             private PayloadVarInfo currentPayload;
+
+            FlowInfo(String flowName) {
+                this.flowName = flowName;
+                this.context = Context.DEFAULT;
+                this.currentPayload = DEFAULT_PAYLOAD;
+            }
 
             FlowInfo(String flowName, Context context) {
                 this.flowName = flowName;
@@ -148,9 +148,8 @@ public class MuleToBalConverter {
         }
     }
 
-    static Context getFlowContext(Data data, String flowName) {
-        Context context = data.unPorcessedFlowContextMap.get(flowName);
-        return context != null ? context : Context.DEFAULT;
+    static void putFlowInfoIfAbsent(Data data, String flowName) {
+        data.flowInfoMap.putIfAbsent(flowName, new Data.FlowInfo(flowName));
     }
 
     public enum Context {
@@ -263,6 +262,7 @@ public class MuleToBalConverter {
 
         // Create functions for sub-flows
         genBalFuncsFromSubFlows(data, subFlows, functions);
+        functions.addAll(data.functions);
 
         // Add global listeners
         List<Listener> listeners = new ArrayList<>();
@@ -311,55 +311,41 @@ public class MuleToBalConverter {
 
     private static void genBalFuncsFromSubFlows(Data data, List<SubFlow> subFlows, Set<Function> functions) {
         for (SubFlow subFlow : subFlows) {
-            Context flowContext = getFlowContext(data, subFlow.name());
-            Data.FlowInfo flowInfo = new Data.FlowInfo(subFlow.name(), flowContext);
-            String methodName = ConversionUtils.escapeSpecialCharacters(subFlow.name());
+            genBalFuncForPrivateOrSubFlow(data, functions, subFlow.name(), subFlow.flowBlocks());
+        }
+    }
 
-            data.flowInfoMap.put(subFlow.name(), flowInfo);
-            data.currentFlowInfo = flowInfo;
+    private static void genBalFuncForPrivateOrSubFlow(Data data, Set<Function> functions, String flowName,
+                                                      List<MuleRecord> flowBlocks) {
+        putFlowInfoIfAbsent(data, flowName);
+        data.currentFlowInfo = data.flowInfoMap.get(flowName);
 
-            List<Statement> body = genFuncBodyStatements(data, subFlow.flowBlocks());
+        List<Statement> body = genFuncBodyStatements(data, flowBlocks);
+        addEndOfMethodStatements(data.currentFlowInfo, body);
 
-            if (flowInfo.context == Context.HTTP_LISTENER && flowInfo.currentPayload != DEFAULT_PAYLOAD) {
+        String methodName = ConversionUtils.escapeSpecialCharacters(flowName);
+        HashSet<Parameter> parameters = data.functionParamMap.computeIfAbsent(methodName, k -> new HashSet<>());
+        Function function = new Function(Optional.empty(), methodName, parameters.stream().toList(),
+                Optional.empty(), body);
+        functions.add(function);
+        data.flowToGenMethodMap.put(flowName, function);
+    }
+
+    private static void addEndOfMethodStatements(Data.FlowInfo flowInfo, List<Statement> body) {
+        if (flowInfo.context == Context.HTTP_LISTENER) {
+            if (flowInfo.currentPayload != DEFAULT_PAYLOAD) {
                 // the payload has been updated
                 body.add(new BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
                         getSetPayloadArg(flowInfo.currentPayload))));
-            }
 
-            HashSet<Parameter> parameters = data.functionParamMap.computeIfAbsent(methodName, k -> new HashSet<>());
-            Function function = new Function(Optional.empty(), methodName, parameters.stream().toList(),
-                    Optional.empty(), body);
-            functions.add(function);
-            data.porcessedFlowBalMethodMap.put(subFlow.name(), function);
+            }
         }
-        functions.addAll(data.functions);
     }
 
     private static void genBalFuncsFromPrivateFlows(Data data, List<Flow> privateFlows, Set<Function> functions) {
         for (Flow privateFlow : privateFlows) {
-            assert privateFlow.source().isEmpty();
-
-            Context flowContext = getFlowContext(data, privateFlow.name());
-            Data.FlowInfo flowInfo = new Data.FlowInfo(privateFlow.name(), flowContext);
-            data.flowInfoMap.put(privateFlow.name(), flowInfo);
-            data.currentFlowInfo = flowInfo;
-
-            List<Statement> body = genFuncBodyStatements(data, privateFlow.flowBlocks());
-            String methodName = ConversionUtils.escapeSpecialCharacters(privateFlow.name());
-
-            if (flowInfo.context == Context.HTTP_LISTENER && flowInfo.currentPayload != DEFAULT_PAYLOAD) {
-                // the payload has been updated
-                body.add(new BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
-                        getSetPayloadArg(flowInfo.currentPayload))));
-            }
-
-            HashSet<Parameter> parameters = data.functionParamMap.computeIfAbsent(methodName, k -> new HashSet<>());
-            Function function = new Function(Optional.empty(), methodName, parameters.stream().toList(),
-                    Optional.empty(), body);
-            functions.add(function);
-            data.porcessedFlowBalMethodMap.put(privateFlow.name(), function);
+            genBalFuncForPrivateOrSubFlow(data, functions, privateFlow.name(), privateFlow.flowBlocks());
         }
-        functions.addAll(data.functions);
     }
 
     private static Service genBalService(Data data, HttpListener httpListener, List<MuleRecord> flowBlocks) {
@@ -607,7 +593,8 @@ public class MuleToBalConverter {
                 statementList.addAll(statements);
             }
             case FlowReference flowReference -> {
-                String funcRef = ConversionUtils.escapeSpecialCharacters(flowReference.flowName());
+                String flowName = flowReference.flowName();
+                String funcRef = ConversionUtils.escapeSpecialCharacters(flowName);
 
                 String params = "";
                 if (data.currentFlowInfo.context == Context.HTTP_LISTENER) {
@@ -615,21 +602,16 @@ public class MuleToBalConverter {
                     data.addFuncParam(funcRef, param);
                     params = Constants.VAR_RESPONSE;
 
-                    Function func = data.porcessedFlowBalMethodMap.get(flowReference.flowName());
-                    if (func != null) {
-                        // Means we have analyzed the flow already
-                        Data.FlowInfo flowInfo = data.flowInfoMap.get(flowReference.flowName());
-                        assert flowInfo != null;
-                        // TODO: flow context is default assumed
-                        if (flowInfo.currentPayload != DEFAULT_PAYLOAD) {
-                            // the payload has been updated
-                            // TODO: be mindful about possible return statements
-                            statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);",
-                                    Constants.VAR_RESPONSE, getSetPayloadArg(flowInfo.currentPayload))));
-                        }
-
+                    Function method = data.flowToGenMethodMap.get(flowName);
+                    if (method == null) {
+                        // Set the flow context to Http listener
+                        Data.FlowInfo flowInfo = new Data.FlowInfo(flowName, Context.HTTP_LISTENER);
+                        data.flowInfoMap.put(flowName, flowInfo);
                     } else {
-                        data.unPorcessedFlowContextMap.put(flowReference.flowName(), Context.HTTP_LISTENER);
+                        // Means we have analyzed the flow already
+                        Data.FlowInfo flowInfo = data.flowInfoMap.get(flowName);
+                        flowInfo.context = Context.HTTP_LISTENER;
+                        addEndOfMethodStatements(flowInfo, data.flowToGenMethodMap.get(flowName).body());
                     }
                 }
 
