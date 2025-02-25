@@ -27,17 +27,25 @@ import org.xml.sax.SAXException;
 import tibco.TibcoModel;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 public class TibcoToBalConverter {
 
@@ -72,18 +80,18 @@ public class TibcoToBalConverter {
 
     private static TibcoModel.Process parseProcess(Element root) {
         String name = root.getAttribute("name");
-        Collection<TibcoModel.Type> types = null;
+        TibcoModel.Types types = null;
         for (Element element : new ElementIterable(root)) {
             String tag = getTagNameWithoutNameSpace(element);
             switch (tag) {
                 case "Types" -> {
                     if (types != null) {
-                        throw new IllegalArgumentException("Multiple Types elements found in the XML");
+                        throw new ParserException("Multiple Types elements found in the XML", root);
                     }
                     types = parseTypes(element);
                 }
                 default -> {
-                    throw new UnsupportedOperationException("Unsupported process member tag: " + tag);
+                    throw new ParserException("Unsupported process member tag: " + tag, root);
                 }
             }
         }
@@ -99,65 +107,175 @@ public class TibcoToBalConverter {
         return parts[1];
     }
 
-    private static Collection<TibcoModel.Type> parseTypes(Element element) {
-        return ElementIterable.of(element).stream()
-                .map(each -> expectTag(each, "schema"))
-                .flatMap(schema -> ElementIterable.of(schema).stream())
-                .filter(each -> getTagNameWithoutNameSpace(each).equals("complexType"))
-                .map(TibcoToBalConverter::parseType)
-                .toList();
-    }
-
-    private static Element expectTag(Element element, String tag) {
-        if (!getTagNameWithoutNameSpace(element).equals(tag)) {
-            throw new IllegalArgumentException("Expected tag: " + tag + ", but found: " + element.getTagName());
+    private static TibcoModel.Types parseTypes(Element element) {
+        List<TibcoModel.Types.Members> members = new ArrayList<>();
+        for (Element child : ElementIterable.of(element)) {
+            String tag = getTagNameWithoutNameSpace(child);
+            switch (tag) {
+                case "schema" -> members.add(parseSchema(child));
+                case "definitions" -> members.add(parseWSDLDefinition(child));
+                default -> throw new ParserException("Unsupported types member tag: " + tag, element);
+            }
         }
-        return element;
+        return new TibcoModel.Types(members);
     }
 
-    private static TibcoModel.Type parseType(Element element) {
+    private static TibcoModel.Types.WSDLDefinition parseWSDLDefinition(Element child) {
+        return new TibcoModel.Types.WSDLDefinition();
+    }
+
+    private static TibcoModel.Types.Schema parseSchema(Element element) {
+        List<TibcoModel.Types.Schema.Type> types = new ArrayList<>();
+        List<TibcoModel.Types.Schema.Element> elements = new ArrayList<>();
+        List<TibcoModel.NameSpace> imports = new ArrayList<>();
+        for (Element each : ElementIterable.of(element)) {
+            String tag = getTagNameWithoutNameSpace(each);
+            switch (tag) {
+                case "element" -> elements.add(parseSchemaElement(each));
+                case "complexType" -> types.add(parseType(each));
+                case "import" -> imports.add(parseImport(each));
+                default -> throw new ParserException("Unsupported schema element tag: " + tag, element);
+            }
+        }
+        return new TibcoModel.Types.Schema(types, elements, imports);
+    }
+
+    private static TibcoModel.Types.Schema.Element parseSchemaElement(Element each) {
+        String name = each.getAttribute("name");
+        String typeName = each.getAttribute("type");
+        return new TibcoModel.Types.Schema.Element(name, TibcoModel.Types.Schema.TibcoType.of(typeName));
+    }
+
+    private static TibcoModel.Types.Schema.Type parseType(Element element) {
         String tag = getTagNameWithoutNameSpace(element);
         switch (tag) {
             case "complexType" -> {
                 return parseComplexType(element);
             }
-            default -> {
-                throw new UnsupportedOperationException("Unsupported type tag: " + tag);
-            }
+            default -> throw new ParserException("Unsupported type tag: " + tag, element);
         }
     }
 
-    private static TibcoModel.ComplexType parseComplexType(Element element) {
+    private static TibcoModel.NameSpace parseImport(Element each) {
+        return new TibcoModel.NameSpace(each.getAttribute("namespace"));
+    }
+
+    private static TibcoModel.Types.Schema.ComplexType parseComplexType(Element element) {
         String name = element.getAttribute("name");
-        Element sequence = getFistMatchingChild(element, e -> getTagNameWithoutNameSpace(e).equals("sequence"))
-                .orElseThrow(() -> new IllegalArgumentException("Sequence element not found in the complex type"));
-        Optional<TibcoModel.ComplexType.Rest> rest = Optional.empty();
-        List<TibcoModel.ComplexType.Element> elements = new ArrayList<>();
-        for (Element child : ElementIterable.of(sequence)) {
+        Element child = expectNChildren(element, 1).iterator().next();
+        TibcoModel.Types.Schema.ComplexType.Body body = switch (getTagNameWithoutNameSpace(child)) {
+            case "sequence" -> parseComplexTypeSequence(child);
+            case "complexContent" -> parseComplexContent(child);
+            case "choice" -> parseComplexTypeChoice(child);
+            default -> throw new ParserException(
+                    "Unsupported complex type body tag: " + getTagNameWithoutNameSpace(child), element);
+        };
+        return new TibcoModel.Types.Schema.ComplexType(name, body);
+    }
+
+    private static Collection<Element> expectNChildren(Element element, int n) {
+        List<Element> children = ElementIterable.of(element).stream().toList();
+        if (children.size() != n) {
+            throw new ParserException("Expected " + n + " children, but found: " + children.size(), element);
+        }
+        return children;
+    }
+
+    private static TibcoModel.Types.Schema.ComplexType.Body parseComplexTypeSequence(Element sequence) {
+        Collection<TibcoModel.Types.Schema.ComplexType.SequenceBody.Element> elements =
+                parseSequence(sequence, (child) -> {
+                    String tag = getTagNameWithoutNameSpace(child);
+                    return switch (tag) {
+                        case "element" -> parseComplexTypeElement(child);
+                        case "any" -> {
+                            boolean isLax = Boolean.parseBoolean(child.getAttribute("processContents"));
+                            yield new TibcoModel.Types.Schema.ComplexType.Rest(isLax);
+                        }
+                        default -> throw new ParserException("Unsupported complex type element tag: " + tag, sequence);
+                    };
+                });
+        return new TibcoModel.Types.Schema.ComplexType.SequenceBody(elements);
+    }
+
+    private static TibcoModel.Types.Schema.ComplexType.ComplexContent parseComplexContent(Element element) {
+        return new TibcoModel.Types.Schema.ComplexType.ComplexContent(
+                parseComplexContentExtension(expectNChildren(element, 1).iterator().next()));
+    }
+
+    private static TibcoModel.Types.Schema.ComplexType.Choice parseComplexTypeChoice(Element element) {
+        Collection<TibcoModel.Types.Schema.ComplexType.Choice.Element> elements = parseSequence(element, (child) -> {
+            String typeName = child.getAttribute("ref");
+            int minOccurs = getIntAttribute(child, "minOccurs");
+            int maxOccurs = getIntAttribute(child, "maxOccurs");
+            return new TibcoModel.Types.Schema.ComplexType.Choice.Element(maxOccurs, minOccurs,
+                    TibcoModel.Types.Schema.TibcoType.of(typeName));
+        });
+        return new TibcoModel.Types.Schema.ComplexType.Choice(elements);
+    }
+
+    private static <E> Collection<E> parseSequence(Element sequenceNode, Function<Element, E> parseFn) {
+        return ElementIterable.of(sequenceNode).stream().map(parseFn).toList();
+    }
+
+    private static TibcoModel.Types.Schema.ComplexType.Element parseComplexTypeElement(Element element) {
+        String elementName = element.getAttribute("name");
+        String typeName = element.getAttribute("type");
+        return new TibcoModel.Types.Schema.ComplexType.Element(elementName,
+                TibcoModel.Types.Schema.TibcoType.of(typeName));
+    }
+
+    private static TibcoModel.Types.Schema.ComplexType.ComplexContent.Extension parseComplexContentExtension(
+            Element element) {
+        TibcoModel.Types.Schema.TibcoType base = TibcoModel.Types.Schema.TibcoType.of(element.getAttribute("base"));
+        Collection<TibcoModel.Types.Schema.ComplexType.Element> elements = new ArrayList<>();
+        for (Element child : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(child);
-            switch (tag) {
-                case "element" -> elements.add(parseComplexTypeElement(child));
-                case "any" -> {
-                    if (rest.isPresent()) {
-                        throw new IllegalArgumentException("Multiple any elements found in the complex type");
-                    }
-                    boolean isLax = Boolean.parseBoolean(child.getAttribute("processContents"));
-                    rest = Optional.of(new TibcoModel.ComplexType.Rest(isLax));
-                }
-                default -> throw new UnsupportedOperationException("Unsupported complex type element tag: " + tag);
+            if (tag.equals("sequence")) {
+                elements = parseSequence(child, TibcoToBalConverter::parseComplexTypeElement);
+                break;
+            } else {
+                throw new ParserException("Unsupported complex content extension tag: " + tag, element);
             }
         }
-        return new TibcoModel.ComplexType(name, elements, rest);
+        return new TibcoModel.Types.Schema.ComplexType.ComplexContent.Extension(base, elements);
+    }
+
+    private static int getIntAttribute(Element element, String attributeName) {
+        try {
+            return Integer.parseInt(element.getAttribute(attributeName));
+        } catch (NumberFormatException e) {
+            throw new ParserException("Invalid integer value for attribute: " + attributeName, element);
+        }
+    }
+
+    private static Element expectTag(Element element, String tag) {
+        if (!getTagNameWithoutNameSpace(element).equals(tag)) {
+            throw new ParserException("Expected tag: " + tag + ", but found: " + element.getTagName(), element);
+        }
+        return element;
     }
 
     private static Optional<Element> getFistMatchingChild(Element element, Predicate<Element> predicate) {
         return ElementIterable.of(element).stream().filter(predicate).findFirst();
     }
 
-    private static TibcoModel.ComplexType.Element parseComplexTypeElement(Element element) {
-        String elementName = element.getAttribute("name");
-        String typeName = element.getAttribute("type");
-        return new TibcoModel.ComplexType.Element(elementName, TibcoModel.TibcoType.of(typeName));
+    private static String elementToString(Element element) {
+        try {
+            TransformerFactory factory = TransformerFactory.newInstance();
+            Transformer transformer = factory.newTransformer();
+            // Configure the transformer for clean output
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+
+            DOMSource source = new DOMSource(element);
+            StringWriter writer = new StringWriter();
+            StreamResult result = new StreamResult(writer);
+
+            transformer.transform(source, result);
+            return writer.toString();
+        } catch (TransformerException e) {
+            throw new RuntimeException("Failed to convert element to string", e);
+        }
     }
 
     private record ElementIterable(Element root) implements Iterable<Element> {
@@ -218,4 +336,11 @@ public class TibcoToBalConverter {
         }
     }
 
+    static class ParserException extends RuntimeException {
+
+        public ParserException(String message, Element element) {
+            super("[ParseError] : " + message + "\n" + elementToString(element));
+        }
+
+    }
 }

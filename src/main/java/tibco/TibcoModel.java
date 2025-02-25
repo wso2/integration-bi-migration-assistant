@@ -21,45 +21,106 @@ package tibco;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Optional;
 
 public class TibcoModel {
 
-    public interface Type {
+    public record Types(Collection<Members> types) {
 
-        String name();
+        public Types {
+            types = Collections.unmodifiableCollection(types);
+        }
+
+        public interface Members {
+
+        }
+
+        public record WSDLDefinition() implements Members {
+
+        }
+
+        public record Schema(Collection<Type> types, Collection<Element> elements, Collection<NameSpace> imports)
+                implements
+                Members {
+
+            public interface Type {
+
+                String name();
+            }
+
+            public record Element(String name, TibcoType type) {
+
+            }
+
+            public record TibcoType(String name) {
+
+                private static final HashMap<String, TibcoType> TYPES = new HashMap<>();
+
+                public static TibcoType of(String name) {
+                    return TYPES.computeIfAbsent(name, TibcoType::new);
+                }
+
+            }
+
+            public record ComplexType(String name, Body body) implements Type {
+
+                public ComplexType {
+                    assert name != null;
+                    assert body != null;
+                }
+
+                public interface Body {
+
+                }
+
+                public record Choice(Collection<Element> elements) implements Body {
+
+                    public record Element(int maxOccurs, int minOccurs, TibcoType ref) {
+
+                    }
+                }
+
+                public record SequenceBody(Collection<Element> elements) implements Body {
+
+                    public interface Element {
+
+                    }
+                }
+
+                public record Element(String name, TibcoType type) implements SequenceBody.Element {
+
+                }
+
+                public record ComplexContent(Extension extension) implements Body {
+
+                    public record Extension(TibcoType base, Collection<Element> elements) implements Body {
+
+                        public Extension {
+                            assert base != null;
+                            elements = Collections.unmodifiableCollection(elements);
+                        }
+                    }
+                }
+
+                public record Rest(boolean isLax) implements SequenceBody.Element {
+
+                }
+
+                public record Elements(Collection<Element> elements) implements Body {
+
+                }
+            }
+        }
     }
 
-    public record TibcoType(String name) {
-
-        private static final HashMap<String, TibcoType> TYPES = new HashMap<>();
-
-        public static TibcoType of(String name) {
-            return TYPES.computeIfAbsent(name, TibcoType::new);
-        }
+    public record NameSpace(String nameSpace) {
 
     }
 
-    public record ComplexType(String name, Collection<Element> elements, Optional<Rest> rest) implements Type {
-
-        public ComplexType {
-            assert name != null;
-            assert elements != null;
-        }
-
-        public record Element(String name, TibcoType type) {
-
-        }
-
-        public record Rest(boolean isLax) {
-
-        }
-    }
-
-    public record Process(String name, Collection<Type> types) {
+    public record Process(String name, Types types) {
 
         public Process {
-            types = Collections.unmodifiableCollection(types);
+            assert name != null;
+            assert types != null;
         }
     }
 
