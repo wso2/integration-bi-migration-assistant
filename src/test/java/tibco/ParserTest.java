@@ -17,6 +17,8 @@ package tibco;
  *  under the License.
  */
 
+import converter.TibcoToBalConverter;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -31,7 +33,16 @@ public class ParserTest {
 
     @Test(groups = {"tibco", "parser"}, dataProvider = "parserDataProvider")
     public void testParser(Path path, TestKind kind) {
-        assert kind == TestKind.VALID;
+        try {
+            SyntaxTree tree = TibcoToBalConverter.convertToBallerina(path.toString());
+            if (kind == TestKind.ERROR) {
+                throw new AssertionError("Parsing succeeded for an invalid input: " + path);
+            }
+        } catch (Exception e) {
+            if (kind == TestKind.VALID) {
+                throw new AssertionError("Parsing failed for a valid input: " + path, e);
+            }
+        }
     }
 
     @DataProvider(name = "parserDataProvider")

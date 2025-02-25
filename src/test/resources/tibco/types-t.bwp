@@ -4,7 +4,7 @@
     targetNamespace="http://xmlns.example.com/20180827154353"
     xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"
     xmlns:tibprop="http://ns.tibco.com/bw/property" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-    >
+    xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable">
     <tibex:Types>
         <xs:schema attributeFormDefault="unqualified"
             elementFormDefault="qualified"
