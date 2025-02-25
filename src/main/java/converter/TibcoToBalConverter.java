@@ -65,19 +65,6 @@ public class TibcoToBalConverter {
         return null;
     }
 
-    private static Element parseXmlFile(String xmlFilePath)
-            throws IOException, SAXException, ParserConfigurationException {
-
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setNamespaceAware(true);
-        DocumentBuilder builder = factory.newDocumentBuilder();
-        Document document = builder.parse(xmlFilePath);
-
-        document.getDocumentElement().normalize();
-
-        return document.getDocumentElement();
-    }
-
     private static TibcoModel.Process parseProcess(Element root) {
         String name = root.getAttribute("name");
         TibcoModel.Types types = null;
@@ -98,15 +85,6 @@ public class TibcoToBalConverter {
         return new TibcoModel.Process(name, types);
     }
 
-    private static String getTagNameWithoutNameSpace(Element element) {
-        String[] parts = element.getTagName().split(":");
-        if (parts.length == 1) {
-            return parts[0];
-        }
-        assert parts.length == 2;
-        return parts[1];
-    }
-
     private static TibcoModel.Types parseTypes(Element element) {
         List<TibcoModel.Types.Members> members = new ArrayList<>();
         for (Element child : ElementIterable.of(element)) {
@@ -118,10 +96,6 @@ public class TibcoToBalConverter {
             }
         }
         return new TibcoModel.Types(members);
-    }
-
-    private static TibcoModel.Types.WSDLDefinition parseWSDLDefinition(Element child) {
-        return new TibcoModel.Types.WSDLDefinition();
     }
 
     private static TibcoModel.Types.Schema parseSchema(Element element) {
@@ -140,6 +114,10 @@ public class TibcoToBalConverter {
         return new TibcoModel.Types.Schema(types, elements, imports);
     }
 
+    private static TibcoModel.NameSpace parseImport(Element each) {
+        return new TibcoModel.NameSpace(each.getAttribute("namespace"));
+    }
+
     private static TibcoModel.Types.Schema.Element parseSchemaElement(Element each) {
         String name = each.getAttribute("name");
         String typeName = each.getAttribute("type");
@@ -156,10 +134,6 @@ public class TibcoToBalConverter {
         }
     }
 
-    private static TibcoModel.NameSpace parseImport(Element each) {
-        return new TibcoModel.NameSpace(each.getAttribute("namespace"));
-    }
-
     private static TibcoModel.Types.Schema.ComplexType parseComplexType(Element element) {
         String name = element.getAttribute("name");
         Element child = expectNChildren(element, 1).iterator().next();
@@ -173,15 +147,8 @@ public class TibcoToBalConverter {
         return new TibcoModel.Types.Schema.ComplexType(name, body);
     }
 
-    private static Collection<Element> expectNChildren(Element element, int n) {
-        List<Element> children = ElementIterable.of(element).stream().toList();
-        if (children.size() != n) {
-            throw new ParserException("Expected " + n + " children, but found: " + children.size(), element);
-        }
-        return children;
-    }
-
     private static TibcoModel.Types.Schema.ComplexType.Body parseComplexTypeSequence(Element sequence) {
+        // FIXME: extract method
         Collection<TibcoModel.Types.Schema.ComplexType.SequenceBody.Element> elements =
                 parseSequence(sequence, (child) -> {
                     String tag = getTagNameWithoutNameSpace(child);
@@ -195,6 +162,13 @@ public class TibcoToBalConverter {
                     };
                 });
         return new TibcoModel.Types.Schema.ComplexType.SequenceBody(elements);
+    }
+
+    private static TibcoModel.Types.Schema.ComplexType.Element parseComplexTypeElement(Element element) {
+        String elementName = element.getAttribute("name");
+        String typeName = element.getAttribute("type");
+        return new TibcoModel.Types.Schema.ComplexType.Element(elementName,
+                TibcoModel.Types.Schema.TibcoType.of(typeName));
     }
 
     private static TibcoModel.Types.Schema.ComplexType.ComplexContent parseComplexContent(Element element) {
@@ -213,15 +187,42 @@ public class TibcoToBalConverter {
         return new TibcoModel.Types.Schema.ComplexType.Choice(elements);
     }
 
-    private static <E> Collection<E> parseSequence(Element sequenceNode, Function<Element, E> parseFn) {
-        return ElementIterable.of(sequenceNode).stream().map(parseFn).toList();
+    private static TibcoModel.Types.WSDLDefinition parseWSDLDefinition(Element child) {
+        return new TibcoModel.Types.WSDLDefinition();
     }
 
-    private static TibcoModel.Types.Schema.ComplexType.Element parseComplexTypeElement(Element element) {
-        String elementName = element.getAttribute("name");
-        String typeName = element.getAttribute("type");
-        return new TibcoModel.Types.Schema.ComplexType.Element(elementName,
-                TibcoModel.Types.Schema.TibcoType.of(typeName));
+    private static Element parseXmlFile(String xmlFilePath)
+            throws IOException, SAXException, ParserConfigurationException {
+
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document document = builder.parse(xmlFilePath);
+
+        document.getDocumentElement().normalize();
+
+        return document.getDocumentElement();
+    }
+
+    private static String getTagNameWithoutNameSpace(Element element) {
+        String[] parts = element.getTagName().split(":");
+        if (parts.length == 1) {
+            return parts[0];
+        }
+        assert parts.length == 2;
+        return parts[1];
+    }
+
+    private static Collection<Element> expectNChildren(Element element, int n) {
+        List<Element> children = ElementIterable.of(element).stream().toList();
+        if (children.size() != n) {
+            throw new ParserException("Expected " + n + " children, but found: " + children.size(), element);
+        }
+        return children;
+    }
+
+    private static <E> Collection<E> parseSequence(Element sequenceNode, Function<Element, E> parseFn) {
+        return ElementIterable.of(sequenceNode).stream().map(parseFn).toList();
     }
 
     private static TibcoModel.Types.Schema.ComplexType.ComplexContent.Extension parseComplexContentExtension(
