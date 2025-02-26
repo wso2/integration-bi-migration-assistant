@@ -76,4 +76,5 @@ public class TransformMessageTest extends AbstractBlockTest {
         testMule3ToBal("transform-message/transform_message_with_components.xml",
                 "transform-message/transform_message_with_components.bal");
     }
+
 }

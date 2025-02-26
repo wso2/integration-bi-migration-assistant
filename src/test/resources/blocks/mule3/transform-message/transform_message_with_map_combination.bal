@@ -16,6 +16,6 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json {
-    var arrayArg = ["john", "peter", "matt"];
-    return {"users": arrayArg.'map(element => element.toUpperAscii())};
+    var _var_0 = ["john", "peter", "matt"];
+    return {"users": _var_0.'map(element => element.toUpperAscii())};
 }

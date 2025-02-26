@@ -12,13 +12,16 @@ ARROW: '->';
 BOOLEAN: 'true' | 'false';
 
 // Operators with names
-OPERATOR_LOGICAL: 'and' | 'or';
-OPERATOR_COMPARISON: '==' | '!=' | '>' | '<' | '>=' | '<=';
-OPERATOR_MATH: '+' | '-' | STAR | '/' | 'mod';
+OPERATOR_EQUALITY: '==' | '!=' | '~=';
+OPERATOR_RELATIONAL:'>' | '<' | '>=' | '<=' | 'is';
+OPERATOR_MULTIPLICATIVE: '*' | '/';
+OPERATOR_ADDITIVE: '+' | '>>' | '-' ;
+OPERATOR_TYPE_COERCION: 'as';
 OPERATOR_RANGE: '..';
-OPERATOR_CHAIN: '++';
 
-IDENTIFIER: INDEX_IDENTIFIER | VALUE_IDENTIFIER | [a-zA-Z_][a-zA-Z0-9_]* ;
+IDENTIFIER: [a-zA-Z_][a-zA-Z0-9_]*;
+INDEX_IDENTIFIER: '$$';
+VALUE_IDENTIFIER: '$';
 URL: [a-zA-Z]+ '://' [a-zA-Z0-9./_-]+;
 MEDIA_TYPE: [a-z]+ '/' [a-z0-9.+-]+;
 NUMBER: [0-9]+('.'[0-9]+)?; // Matches integers and decimals
@@ -41,11 +44,6 @@ COMMENT: '//' ~[\r\n]* -> skip;
 STAR: '*';
 AT: '@';
 QUESTION: '?';
-
-BUILTIN_FUNCTION: 'sizeOf' | 'map' | 'filter';
-
-INDEX_IDENTIFIER: '$$';
-VALUE_IDENTIFIER: '$';
 
 // Parser rules
 script: header? SEPARATOR body? NEWLINE* EOF;
@@ -76,59 +74,109 @@ body: expression NEWLINE*;
 
 // Expression Rules (Rewritten for Precedence)
 expression
-    : primaryExpression selectorExpression? expressionRest?  # primaryExpressionWrapper
+    : conditionalExpression                        # expressionWrapper
     ;
 
-expressionRest
-    : OPERATOR_CHAIN expression         # chainExpression
-    | OPERATOR_RANGE expression          # rangeExpression
-    | OPERATOR_MATH expression            # mathExpression
-    | OPERATOR_COMPARISON expression      # comparisonExpression
-    | OPERATOR_LOGICAL expression         # logicalExpression
-    | 'filter' implicitLambdaExpression   # filterExpression
-    | 'map' implicitLambdaExpression      # mapExpression
-    ;
-
-// Primary Expressions (Non-Recursive Base Expressions)
-primaryExpression
-    : grouped                                               # groupedExpression
-    | primitive                                             # primitiveExpression
-    | functionCall                                          # functionCallExpression
-    | 'sizeOf' ('(' expression ')' | expression)           # sizeOfExpression
-    | 'upper' ('(' expression ')' | expression)            # upperExpression
-    | 'lower' ('(' expression ')' | expression)            # lowerExpression
-    | inlineLambda                                          # lambdaExpression
-    ;
-
-primitive
-    : literal                                               # literalExpression
-    | array                                                 # arrayExpression
-    | object                                                # objectExpression
-    | IDENTIFIER                                            # identifierExpression
-    ;
-
-// Grouped expressions
-grouped: '(' expression ')';
-
-selectorExpression
-    : (DOT IDENTIFIER)                  # singleValueSelector
-    | (DOT STAR IDENTIFIER)              # multiValueSelector
-    | (OPERATOR_RANGE IDENTIFIER)        # descendantsSelector
-    | (LSQUARE NUMBER RSQUARE)           # indexedSelector
-    | (DOT AT IDENTIFIER)                # attributeSelector
-    | (QUESTION)                        # existenceQuerySelector
+// Level 10: Conditional Expressions (WHEN OTHERWISE, UNLESS OTHERWISE)
+conditionalExpression
+    : defaultExpression ('when' expression 'otherwise' expression | 'unless' expression 'otherwise' expression)*
     ;
 
 // Implicit Lambda Expressions (Ensuring `$` or `$$` is inside)
 implicitLambdaExpression
-    : expression                                     # singleParameterImplicitLambda
-    | '(' IDENTIFIER (',' IDENTIFIER)* ')' ARROW expression  # multiParameterImplicitLambda
+    : expression
+    | inlineLambda
+    | '(' implicitLambdaExpression ')'
     ;
 
 // Lambda functions
 inlineLambda: '(' functionParameters ')' ARROW expression;
 
 functionParameters: IDENTIFIER (COMMA IDENTIFIER)*;
+
+// Level 9: Default value, Pattern Matching, Map, Filter
+defaultExpression
+    : logicalOrExpression defaultExpressionRest # defaultExpressionWrapper
+    ;
+
+defaultExpressionRest
+    : 'filter' implicitLambdaExpression defaultExpressionRest  # filterExpression
+    | 'map' implicitLambdaExpression defaultExpressionRest     # mapExpression
+    | 'groupBy' expression defaultExpressionRest               # groupByExpression
+    | /* epsilon (empty) */                                    # defaultExpressionEnd
+    ;
+
+// Level 8: Logical OR
+logicalOrExpression
+    : logicalAndExpression ('or' logicalAndExpression)*
+    ;
+
+// Level 7: Logical AND
+logicalAndExpression
+    : equalityExpression ('and' equalityExpression)*
+    ;
+
+// Level 6: Equality Operators (==, !=, ~=)
+equalityExpression
+    : relationalExpression (OPERATOR_EQUALITY relationalExpression)*
+    ;
+
+// Level 5: Relational and Type Comparison (>, <, >=, ⇐, is)
+relationalExpression
+    : additiveExpression (OPERATOR_RELATIONAL additiveExpression)*
+    ;
+
+// Level 4: Additive Operators (+, -, >>)
+additiveExpression
+    : multiplicativeExpression (OPERATOR_ADDITIVE multiplicativeExpression)*
+    ;
+
+// Level 3: Multiplicative Operators (*, /)
+multiplicativeExpression
+    : typeCoercionExpression (OPERATOR_MULTIPLICATIVE typeCoercionExpression)*
+    ;
+
+// Level 2: Type Coercion (`as`)
+typeCoercionExpression
+    : unaryExpression (OPERATOR_TYPE_COERCION typeExpression)?
+    ;
+
+// Level 1: Unary Operators (-, not)
+unaryExpression
+    : 'sizeOf' expression                   # sizeOfExpression
+    | 'sizeOf' '(' expression ')'           # sizeOfExpressionWithParentheses
+    | 'upper' expression                    # upperExpression
+    | 'upper' '(' expression ')'            # upperExpressionWithParentheses
+    | 'lower' expression                    # lowerExpression
+    | 'lower' '(' expression ')'            # lowerExpressionWithParentheses
+    | primaryExpression                     # primaryExpressionWrapper
+    ;
+
+// **Primary Expressions (Highest Precedence)**
+primaryExpression
+    : inlineLambda                           # lambdaExpression
+    | grouped                                # groupedExpression
+    | literal                                # literalExpression
+    | functionCall                           # functionCallExpression
+    | array                                  # arrayExpression
+    | object                                 # objectExpression
+    | IDENTIFIER                             # identifierExpression
+    | VALUE_IDENTIFIER                       # valueIdentifierExpression
+    | INDEX_IDENTIFIER                       # indexIdentifierExpression
+    | primaryExpression selectorExpression   # selectorExpressionWrapper
+    ;
+
+// Grouped expressions
+grouped: '(' expression ')';
+
+selectorExpression
+    : DOT IDENTIFIER                         # singleValueSelector
+    | DOT STAR IDENTIFIER                    # multiValueSelector
+    | OPERATOR_RANGE IDENTIFIER              # descendantsSelector
+    | LSQUARE expression RSQUARE             # indexedSelector
+    | DOT AT IDENTIFIER                      # attributeSelector
+    | QUESTION                               # existenceQuerySelector
+    ;
 
 // Literals
 literal
@@ -151,3 +199,6 @@ keyValue: IDENTIFIER COLON expression;
 
 // Function calls
 functionCall: IDENTIFIER '(' (expression (COMMA expression)*)? ')';
+
+typeExpression
+    : IDENTIFIER;

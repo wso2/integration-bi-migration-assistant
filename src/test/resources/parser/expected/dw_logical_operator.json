@@ -15,25 +15,25 @@
     "expression" : {
       "type" : "Object",
       "res1" : {
-        "type" : "LogicalBinaryExpression",
-        "operator" : "and",
+        "type" : "LogicalAndExpression",
         "left" : {
           "type" : "Literal",
           "value" : "true"
         },
-        "right" : {
+        "operator" : "and",
+        "right1" : {
           "type" : "Literal",
           "value" : "false"
         }
       },
       "res2" : {
-        "type" : "LogicalBinaryExpression",
-        "operator" : "or",
+        "type" : "LogicalOrExpression",
         "left" : {
           "type" : "Literal",
           "value" : "true"
         },
-        "right" : {
+        "operator" : "or",
+        "right1" : {
           "type" : "Literal",
           "value" : "false"
         }

@@ -17,8 +17,8 @@
   "body" : {
     "type" : "Body",
     "expression" : {
-      "type" : "Map",
-      "element" : {
+      "type" : "DefaultExpression",
+      "expression" : {
         "type" : "Array",
         "elements" : [ {
           "type" : "Literal",
@@ -31,16 +31,19 @@
           "value" : "3"
         } ]
       },
-      "lambda" : {
-        "type" : "MathBinaryExpression",
-        "operator" : "+",
-        "left" : {
-          "type" : "Identifier",
-          "name" : "$"
-        },
-        "right" : {
-          "type" : "Literal",
-          "value" : "1"
+      "default" : {
+        "type" : "Map",
+        "lambda" : {
+          "type" : "AdditiveExpression",
+          "left" : {
+            "type" : "Identifier",
+            "name" : "$"
+          },
+          "operator" : "+",
+          "right1" : {
+            "type" : "Literal",
+            "value" : "1"
+          }
         }
       }
     }

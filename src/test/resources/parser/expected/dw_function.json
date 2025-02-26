@@ -15,8 +15,15 @@
       "expression" : {
         "type" : "Object",
         "firstName" : {
-          "type" : "SingleValueSelector",
-          "identifier" : "name"
+          "type" : "SelectorExpression",
+          "primary" : {
+            "type" : "Identifier",
+            "name" : "user"
+          },
+          "selector" : {
+            "type" : "SingleValueSelector",
+            "identifier" : "name"
+          }
         }
       }
     } ]

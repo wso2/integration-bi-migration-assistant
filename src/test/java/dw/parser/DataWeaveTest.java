@@ -49,7 +49,14 @@ public class DataWeaveTest {
                         "dw_logical_operator.json"},
                 {DataWeaveScripts.SCRIPT_COMPARISON_OPERATOR, "src/test/resources/parser/expected/" +
                         "dw_comparison_operator.json"},
-
+                {DataWeaveScripts.SCRIPT_COMPLEX_OPERATORS,
+                        "src/test/resources/parser/expected/dw_complex_operators.json"},
+                {DataWeaveScripts.SCRIPT_COMPLEX_OPERATORS_IN_OBJECT, "src/test/resources/parser/expected/" +
+                        "dw_complex_operators_in_object.json"},
+                {DataWeaveScripts.SCRIPT_COMPLEX_OPERATORS_IN_OBJECT_WITH_FUNCTIONS,
+                        "src/test/resources/parser/expected/dw_complex_operators_in_object_with_functions.json"},
+                {DataWeaveScripts.SCRIPT_COMPLEX_OPERATORS_IN_OBJECT_WITH_FUNCTIONS2,
+                        "src/test/resources/parser/expected/dw_complex_operators_in_object_with_functions2.json"},
         };
     }
 }

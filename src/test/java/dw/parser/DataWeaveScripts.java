@@ -200,8 +200,7 @@ public class DataWeaveScripts {
               addition: 10 + 5,
               subtraction: 10 - 5,
               multiplication: 10 * 5,
-              division: 10 / 5,
-              modulus: 10 mod 3
+              division: 10 / 5
             }
             """;
     public static final String SCRIPT_LOGICAL_OPERATOR = """
@@ -225,5 +224,55 @@ public class DataWeaveScripts {
               res5: 10 == 5,
               res6: 10 != 5
             }
+            """;
+    public static final String SCRIPT_COMPLEX_OPERATORS = """
+            %dw 1.0
+            %output application/json
+            ---
+            payload.EVENT_TYPE == 'Hail' and payload.MAGNITUDE >= 1 and payload.distance_in_miles <= 5
+            """;
+    public static final String SCRIPT_COMPLEX_OPERATORS_IN_OBJECT = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+            hail1: (payload.EVENT_TYPE == 'Hail' and payload.MAGNITUDE >= 1 and payload.distance_in_miles <= 5)
+            }
+            """;
+
+    public static final String SCRIPT_SAMPLE = """
+            %dw 1.0
+            %output application/json
+            ---
+            payload.EVENT_TYPE == 'Hail' and payload.MAGNITUDE >= 1 and payload.distance_in_miles <= 5)) )
+            }
+         
+            """;
+    public static final String SCRIPT_COMPLEX_OPERATORS_IN_OBJECT_WITH_FUNCTIONS = """
+            %dw 1.0
+            %output application/json
+            ---
+            [payload.resultSet1 filter (item,index) -> (item.EVENT_TYPE == 'Hail' and item.MAGNITUDE >= 1 and
+             item.distance_in_miles <= 5)]
+            """;
+    public static final String SCRIPT_COMPLEX_OPERATORS_IN_OBJECT_WITH_FUNCTIONS2 = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+                hail1: sizeOf (payload.resultSet1 filter ((item,index) -> (item.EVENT_TYPE == 'Hail' and 
+                item.MAGNITUDE >= 1 and item.distance_in_miles <= 5)) ),
+                hail2: sizeOf (payload.resultSet1 filter ($.EVENT_TYPE == 'Hail' and  $.magnitude >= 1.5 and 
+                $.distance_in_miles <= 5) map { count: $.weather_event_id }),
+                thunder: sizeOf ( payload.resultSet1 filter ($.EVENT_TYPE == 'Thunderstorm Wind' and  
+                $.magnitude >= 30 and $.distance_in_miles <= 1) map { count: $.weather_event_id })
+            }
+            """;
+    public static final String TEST = """
+            %dw 1.0
+            %output application/json
+            ---
+            sizeOf (payload.resultSet1 filter ($.EVENT_TYPE == 'Hail' and  $.magnitude >= 1.5 and
+             $.distance_in_miles <= 5) map { count: $.weather_event_id })
             """;
 }

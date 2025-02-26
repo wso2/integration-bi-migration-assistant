@@ -13,6 +13,7 @@ public class DWContext {
     public List<BallerinaModel.Parameter> params = new ArrayList<>();
     public List<BallerinaModel.Statement> statements = new ArrayList<>();
     public Map<String, String> varTypes = new HashMap<>();
+    public Map<String, String> varNames = new HashMap<>();
 
     public String inputType;
     public List<String> functionNames;

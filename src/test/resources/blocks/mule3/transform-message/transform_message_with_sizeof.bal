@@ -16,6 +16,6 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json {
-    var jsonArg = [1, 2, 3, 4];
-    return {"hail1": jsonArg.length()};
+    var _var_0 = [1, 2, 3, 4];
+    return {"hail1": _var_0.length()};
 }
