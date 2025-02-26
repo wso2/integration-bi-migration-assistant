@@ -30,11 +30,13 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -70,6 +72,7 @@ public class TibcoToBalConverter {
     private static TibcoModel.Process parseProcess(Element root) {
         String name = root.getAttribute("name");
         TibcoModel.Types types = null;
+        TibcoModel.ProcessInfo processInfo = null;
         for (Element element : new ElementIterable(root)) {
             String tag = getTagNameWithoutNameSpace(element);
             switch (tag) {
@@ -79,12 +82,37 @@ public class TibcoToBalConverter {
                     }
                     types = parseTypes(element);
                 }
+                case "ProcessInfo" -> {
+                    if (processInfo != null) {
+                        throw new ParserException("Multiple ProcessInfo elements found in the XML", root);
+                    }
+                    processInfo = parseProcessInfo(element);
+                }
                 default -> {
                     throw new ParserException("Unsupported process member tag: " + tag, root);
                 }
             }
         }
-        return new TibcoModel.Process(name, types);
+        return new TibcoModel.Process(name, types, processInfo);
+    }
+
+    private static TibcoModel.ProcessInfo parseProcessInfo(Element element) {
+        boolean callable = expectBooleanAttribute(element, "callable");
+        boolean extraErrorVars = expectBooleanAttribute(element, "extraErrorVars");
+        // TODO: how multiple modifiers represented?
+        Set<TibcoModel.ProcessInfo.Modifier> modifiers = EnumSet.noneOf(TibcoModel.ProcessInfo.Modifier.class);
+        String modifiersStr = element.getAttribute("modifiers");
+        if (modifiersStr.contains("public")) {
+            modifiers.add(TibcoModel.ProcessInfo.Modifier.PUBLIC);
+        }
+        boolean scalable = expectBooleanAttribute(element, "scalable");
+        boolean singleton = expectBooleanAttribute(element, "singleton");
+        boolean stateless = expectBooleanAttribute(element, "stateless");
+        TibcoModel.ProcessInfo.Type type = switch (element.getAttribute("type")) {
+            case "IT" -> TibcoModel.ProcessInfo.Type.IT;
+            default -> throw new ParserException("Unsupported process type: " + element.getAttribute("type"), element);
+        };
+        return new TibcoModel.ProcessInfo(callable, extraErrorVars, modifiers, scalable, singleton, stateless, type);
     }
 
     private static TibcoModel.Types parseTypes(Element element) {
@@ -181,8 +209,8 @@ public class TibcoToBalConverter {
     private static TibcoModel.Types.Schema.ComplexType.Choice parseComplexTypeChoice(Element element) {
         Collection<TibcoModel.Types.Schema.ComplexType.Choice.Element> elements = parseSequence(element, (child) -> {
             String typeName = child.getAttribute("ref");
-            int minOccurs = getIntAttribute(child, "minOccurs");
-            int maxOccurs = getIntAttribute(child, "maxOccurs");
+            int minOccurs = expectIntAttribute(child, "minOccurs");
+            int maxOccurs = expectIntAttribute(child, "maxOccurs");
             return new TibcoModel.Types.Schema.ComplexType.Choice.Element(maxOccurs, minOccurs,
                     TibcoModel.Types.Schema.TibcoType.of(typeName));
         });
@@ -343,12 +371,21 @@ public class TibcoToBalConverter {
         return new TibcoModel.Types.Schema.ComplexType.ComplexContent.Extension(base, elements);
     }
 
-    private static int getIntAttribute(Element element, String attributeName) {
+    private static int expectIntAttribute(Element element, String attributeName) {
         try {
             return Integer.parseInt(element.getAttribute(attributeName));
         } catch (NumberFormatException e) {
             throw new ParserException("Invalid integer value for attribute: " + attributeName, element);
         }
+    }
+
+    private static boolean expectBooleanAttribute(Element element, String attributeName) {
+        String attribute = element.getAttribute(attributeName).toLowerCase();
+        return switch (attribute) {
+            case "true" -> true;
+            case "false" -> false;
+            default -> throw new ParserException("Invalid boolean value for attribute: " + attributeName, element);
+        };
     }
 
     private static Element expectTag(Element element, String tag) {

@@ -24,17 +24,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class TibcoModel {
 
-    public record NameSpaceValue(NameSpace nameSpace, String value) {
+    public record Process(String name, Types types, ProcessInfo processInfo) {
 
-        public static NameSpaceValue from(String value) {
-            String[] parts = value.split(":");
-            return new NameSpaceValue(new NameSpace(parts[0]), parts[1]);
-        }
     }
 
+    // TODO: may be line this record (just a holder of collection)
     public record Types(Collection<Members> types) {
 
         public Types {
@@ -157,15 +155,26 @@ public class TibcoModel {
         }
     }
 
+    public record ProcessInfo(boolean callable, boolean extraErrorVars, Set<Modifier> modifiers, boolean scalable,
+                              boolean singleton, boolean stateless, Type type) {
+
+        public enum Modifier {
+            PUBLIC
+        }
+
+        public enum Type {
+            IT
+        }
+    }
     public record NameSpace(String nameSpace) {
 
     }
 
-    public record Process(String name, Types types) {
+    public record NameSpaceValue(NameSpace nameSpace, String value) {
 
-        public Process {
-            assert name != null;
-            assert types != null;
+        public static NameSpaceValue from(String value) {
+            String[] parts = value.split(":");
+            return new NameSpaceValue(new NameSpace(parts[0]), parts[1]);
         }
     }
 
