@@ -1,5 +1,6 @@
 package ballerina;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,59 +30,94 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
     }
 
-    public record ModuleTypeDef(Type type, String name) {
+    public record ModuleTypeDef(String name, TypeDesc typeDesc) {
     }
 
-    public interface Type {
-    }
+    public sealed interface TypeDesc {
 
-    public record BallerinaType(String type) implements Type {
-        @Override
-        public String toString() {
-            return type;
-        }
-    }
+        record BallerinaType(String value) implements TypeDesc {
 
-    public interface RecordType extends Type {
-        List<RecordField> recordFields();
-    }
-
-    public record ClosedRecordType(List<RecordField> recordFields, Optional<Type> restType) implements RecordType {
-        public ClosedRecordType(List<RecordField> recordFields) {
-            this(recordFields, Optional.empty());
+            @Override
+            public String toString() {
+                return value;
+            }
         }
 
-        @Override
-        public String toString() {
-            StringBuilder fieldsSb = new StringBuilder();
-            for (RecordField recordField : recordFields()) {
-                fieldsSb.append(String.format(recordField.isOptional() ? "%s %s?;" : "%s %s;", recordField.type(),
-                        recordField.name()));
+        record RecordTypeDesc(List<RecordField> fields, TypeDesc rest) implements TypeDesc {
+
+            private static final String INDENT = "  ";
+
+            public static RecordTypeDesc closedRecord(Collection<RecordField> fields) {
+                return new RecordTypeDesc(List.copyOf(fields), BuiltinType.NEVER);
             }
 
-            return String.format("record {| %s %s |}", fieldsSb, restType().map(Object::toString)
-                    .orElse(""));
-        }
-    }
-
-    public record OpenRecordType(List<RecordField> recordFields) implements RecordType {
-        @Override
-        public String toString() {
-            StringBuilder fieldsSb = new StringBuilder();
-            for (RecordField recordField : recordFields()) {
-                fieldsSb.append(String.format(recordField.isOptional() ? "%s %s?;" : "%s %s;",
-                        recordField.type(), recordField.name()));
+            @Override
+            public String toString() {
+                StringBuilder sb = new StringBuilder();
+                boolean isExclusive = rest != BuiltinType.ANYDATA;
+                sb.append("record ").append(isExclusive ? "{|" : "{").append("\n");
+                for (RecordField field : fields) {
+                    sb.append(INDENT).append(field).append("\n");
+                }
+                if (isExclusive && rest != BuiltinType.NEVER) {
+                    sb.append(INDENT).append("...").append(rest).append("\n");
+                }
+                sb.append(isExclusive ? "|}" : "}");
+                return sb.toString();
             }
 
-            return String.format("record { %s }", fieldsSb);
+            public record RecordField(String name, TypeDesc typeDesc, boolean isOptional) {
+
+                public RecordField(String name, TypeDesc typeDesc) {
+                    this(name, typeDesc, false);
+                }
+
+                @Override
+                public String toString() {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(typeDesc).append(" ").append(name);
+                    if (isOptional) {
+                        sb.append("?");
+                    }
+                    sb.append(";");
+                    return sb.toString();
+                }
+            }
         }
+
+        record TypeReference(String name) implements TypeDesc {
+
+            @Override
+            public String toString() {
+                return name;
+            }
+        }
+
+        record UnionTypeDesc(Collection<TypeDesc> members) implements TypeDesc {
+
+            public static UnionTypeDesc of(TypeDesc... members) {
+                return new UnionTypeDesc(List.of(members));
+            }
+        }
+
+        enum BuiltinType implements TypeDesc {
+            ANYDATA("anydata"), NEVER("never");
+
+            private final String name;
+
+            BuiltinType(String name) {
+                this.name = name;
+            }
+
+            @Override
+            public String toString() {
+                return name;
+            }
+        }
+
     }
 
-    public record RecordField(Type type, String name, boolean isOptional) {
-
-    }
-
-    public record ModuleVar(String name, Type type, BallerinaExpression expr) {
+    public record ModuleVar(String name, TypeDesc type, BallerinaExpression expr) {
     }
 
     public record Service(String basePath, List<String> listenerRefs, Optional<Function> initFunc,
@@ -89,7 +125,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                           List<String> queryParams, List<ObjectField> fields) {
     }
 
-    public record ObjectField(Type type, String name) {
+    public record ObjectField(TypeDesc type, String name) {
 
     }
 
@@ -128,8 +164,9 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                                      Optional<List<String>> paramTypes) implements FunctionBody {
     }
 
-    public record Parameter(String name, Type type, Optional<BallerinaExpression> defaultExpr) {
-        public Parameter(String name, Type type) {
+    public record Parameter(String name, TypeDesc type, Optional<BallerinaExpression> defaultExpr) {
+
+        public Parameter(String name, TypeDesc type) {
             this(name, type, Optional.empty());
         }
     }
@@ -155,7 +192,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             String ifBlock = String.format("if %s { %s }", ifCondition, String.join("",
                     ifBody.stream().map(Object::toString).toList()));
             String elseIfs = String.join("", elseIfClauses.stream().map(Object::toString).toList());
-            String elseBlock = elseBody.isEmpty() ? "" : String.format("else { %s }",
+            String elseBlock = elseBody.isEmpty() ? ""
+                    : String.format("else { %s }",
                     String.join("", elseBody.stream().map(Object::toString).toList()));
             return ifBlock + elseIfs + elseBlock;
         }
@@ -190,7 +228,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     // Note: should be placed at the beginning of a function-body-block
-    public record NamedWorkerDecl(String name, Optional<Type> returnType,
+    public record NamedWorkerDecl(String name, Optional<TypeDesc> returnType,
                                   List<Statement> statements) implements Statement {
         @Override
         public String toString() {
@@ -209,7 +247,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
     }
 
-    public record TypeBindingPattern(Type type, String variableName) {
+    public record TypeBindingPattern(TypeDesc type, String variableName) {
         @Override
         public String toString() {
             return type + " " + variableName;

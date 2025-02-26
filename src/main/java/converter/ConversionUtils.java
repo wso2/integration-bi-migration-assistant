@@ -1,5 +1,7 @@
 package converter;
 
+import ballerina.BallerinaModel;
+
 import org.w3c.dom.Element;
 
 import java.io.StringWriter;
@@ -16,10 +18,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import static ballerina.BallerinaModel.BallerinaType;
 import static ballerina.BallerinaModel.BallerinaExpression;
-import static ballerina.BallerinaModel.RecordField;
-import static ballerina.BallerinaModel.RecordType;
 import static ballerina.BallerinaModel.BallerinaStatement;
 
 public class ConversionUtils {
@@ -247,9 +246,9 @@ public class ConversionUtils {
         return sb.toString();
     }
 
-    public static String getRecordInitValue(RecordType recordType) {
+    public static String getRecordInitValue(BallerinaModel.TypeDesc.RecordTypeDesc recordType) {
         List<String> requiredFields = new ArrayList<>();
-        for (RecordField recordField : recordType.recordFields()) {
+        for (var recordField : recordType.fields()) {
             if (!recordField.isOptional()) {
                 String value = getRequiredRecFieldDefaultValue(recordField);
                 requiredFields.add(String.format("%s : %s", recordField.name(), value));
@@ -259,17 +258,19 @@ public class ConversionUtils {
         return String.format("{ %s }", recordBody);
     }
 
-    private static String getRequiredRecFieldDefaultValue(RecordField recordField) {
+    private static String getRequiredRecFieldDefaultValue(
+            BallerinaModel.TypeDesc.RecordTypeDesc.RecordField recordField) {
         assert !recordField.isOptional();
-        if (recordField.type().toString().equals("anydata")) {
+        if (recordField.typeDesc().toString().equals("anydata")) {
             return "()";
         }
 
-        if (recordField.type().toString().equals("FlowVars") || recordField.type().toString().equals("SessionVars")) {
+        if (recordField.typeDesc().toString().equals("FlowVars") ||
+                recordField.typeDesc().toString().equals("SessionVars")) {
             return "{}";
         }
 
-        if (recordField.type().toString().equals("InboundProperties")) {
+        if (recordField.typeDesc().toString().equals("InboundProperties")) {
             // TODO: handle non-http sources
             return "{response: new}";
         }
@@ -285,7 +286,7 @@ public class ConversionUtils {
         return new BallerinaStatement(stmt);
     }
 
-    public static BallerinaType typeFrom(String type) {
-        return new BallerinaType(type);
+    public static BallerinaModel.TypeDesc.BallerinaType typeFrom(String type) {
+        return new BallerinaModel.TypeDesc.BallerinaType(type);
     }
 }

@@ -53,8 +53,8 @@ public class CodeGenerator {
         for (TextDocument textDocument : module.textDocuments()) {
             List<ImportDeclarationNode> imports = new ArrayList<>();
             for (Import importDeclaration : textDocument.imports()) {
-                ImportDeclarationNode importDeclarationNode =
-                        NodeParser.parseImportDeclaration(importDeclaration.toString());
+                ImportDeclarationNode importDeclarationNode = NodeParser
+                        .parseImportDeclaration(importDeclaration.toString());
                 imports.add(importDeclarationNode);
             }
 
@@ -63,7 +63,7 @@ public class CodeGenerator {
             for (ModuleTypeDef moduleTypeDef : textDocument.moduleTypeDefs()) {
                 // TODO: handle visibility qualifier properly
                 TypeDefinitionNode typeDefinitionNode = (TypeDefinitionNode) NodeParser.parseModuleMemberDeclaration(
-                        String.format("public type %s %s;", moduleTypeDef.name(), moduleTypeDef.type()));
+                        String.format("public type %s %s;", moduleTypeDef.name(), moduleTypeDef.typeDesc()));
                 moduleMembers.add(typeDefinitionNode);
             }
 
@@ -160,7 +160,7 @@ public class CodeGenerator {
         if (function.body() instanceof BallerinaModel.BlockFunctionBody) {
             functionDefinitionNode = (FunctionDefinitionNode) NodeParser.parseObjectMember(
                     String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(
-                                    function.visibilityQualifier()), function.funcName(), funcParamString,
+                            function.visibilityQualifier()), function.funcName(), funcParamString,
                             getReturnTypeDescriptor(function.returnType())));
             functionDefinitionNode = generateBallerinaFunction(functionDefinitionNode, function.body());
         } else {
@@ -171,7 +171,7 @@ public class CodeGenerator {
     }
 
     private FunctionDefinitionNode generateBallerinaExternalFunction(Function f, String funcParamString,
-                                                                     String methodName) {
+            String methodName) {
         BallerinaModel.ExternFunctionBody body = (BallerinaModel.ExternFunctionBody) f.body();
         return (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
                 String.format("%sfunction %s(%s) %s  = %s { %s } external;", getVisibilityQualifier(
@@ -191,8 +191,7 @@ public class CodeGenerator {
             String paramTypeString = String.join(", ",
                     body.paramTypes().get().stream()
                             .map(param -> "\"" + param + "\"")
-                            .toList()
-            );
+                            .toList());
 
             s.append(paramTypeString).append("]");
         }
@@ -200,9 +199,9 @@ public class CodeGenerator {
     }
 
     private FunctionDefinitionNode generateBallerinaFunction(FunctionDefinitionNode fd,
-                                                             BallerinaModel.FunctionBody body) {
-        FunctionBodyBlockNode funcBodyBlock = constructFunctionBodyBlock(((BallerinaModel.BlockFunctionBody)
-                body).statements());
+            BallerinaModel.FunctionBody body) {
+        FunctionBodyBlockNode funcBodyBlock = constructFunctionBodyBlock(
+                ((BallerinaModel.BlockFunctionBody) body).statements());
         return fd.modify().withFunctionBody(funcBodyBlock).apply();
     }
 
@@ -211,13 +210,13 @@ public class CodeGenerator {
     }
 
     private static SyntaxTree createSyntaxTree(NodeList<ImportDeclarationNode> importDecls,
-                                               NodeList<ModuleMemberDeclarationNode> moduleMemberDecls,
-                                               MinutiaeList eofLeadingMinutiae) {
+            NodeList<ModuleMemberDeclarationNode> moduleMemberDecls,
+            MinutiaeList eofLeadingMinutiae) {
         ModulePartNode modulePartNode = NodeFactory.createModulePartNode(
                 importDecls,
                 moduleMemberDecls,
-                NodeFactory.createToken(SyntaxKind.EOF_TOKEN, eofLeadingMinutiae, NodeFactory.createEmptyMinutiaeList())
-        );
+                NodeFactory.createToken(SyntaxKind.EOF_TOKEN, eofLeadingMinutiae,
+                        NodeFactory.createEmptyMinutiaeList()));
 
         SyntaxTree syntaxTree = SyntaxTree.from(TextDocuments.from(""));
         syntaxTree = syntaxTree.modifyWith(modulePartNode);
@@ -234,7 +233,7 @@ public class CodeGenerator {
     }
 
     private String getReturnTypeDescriptor(Optional<String> returnType) {
-        return returnType.map(r ->  String.format("returns %s", r)).orElse("");
+        return returnType.map(r -> String.format("returns %s", r)).orElse("");
     }
 
     private String getVisibilityQualifier(Optional<String> visibilityQualifier) {
@@ -260,9 +259,12 @@ public class CodeGenerator {
                     .toList());
         }
 
-        return String.join(",", parameters.stream().map(p -> p.defaultExpr().isPresent() ?
-                String.format("%s %s = %s", p.type(), p.name(), p.defaultExpr().get().expr()) :
-                String.format("%s %s", p.type(), p.name())).toList());
+        return String.join(",",
+                parameters.stream()
+                        .map(p -> p.defaultExpr().isPresent()
+                                ? String.format("%s %s = %s", p.type(), p.name(), p.defaultExpr().get().expr())
+                                : String.format("%s %s", p.type(), p.name()))
+                        .toList());
     }
 
     private FunctionBodyBlockNode constructFunctionBodyBlock(List<Statement> body) {

@@ -1,12 +1,13 @@
 package converter;
 
-import ballerina.BallerinaModel.BallerinaType;
+import ballerina.BallerinaModel;
 import ballerina.BallerinaModel.Import;
 import ballerina.BallerinaModel.Parameter;
 
 import java.util.Collections;
 import java.util.List;
 
+import static ballerina.BallerinaModel.TypeDesc.*;
 import static converter.ConversionUtils.typeFrom;
 
 public class Constants {
