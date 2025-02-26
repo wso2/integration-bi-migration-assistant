@@ -28,24 +28,24 @@ import java.util.Set;
 
 public class TibcoModel {
 
-    public record Process(String name, Types types, ProcessInfo processInfo) {
+    public record Process(String name, Collection<Type> types, ProcessInfo processInfo) {
+
+        public Process {
+            assert name != null;
+            if (types == null) {
+                types = List.of();
+            } else {
+                types = Collections.unmodifiableCollection(types);
+            }
+        }
 
     }
 
-    // TODO: may be line this record (just a holder of collection)
-    public record Types(Collection<Members> types) {
+    public interface Type {
 
-        public Types {
-            types = Collections.unmodifiableCollection(types);
-        }
-
-        public interface Members {
-
-        }
-
-        public record WSDLDefinition(Map<String, String> namespaces, PartnerLinkType partnerLinkType,
-                                     Collection<NameSpace> imports, Collection<Message> messages,
-                                     Collection<PortType> portTypes) implements Members {
+        record WSDLDefinition(Map<String, String> namespaces, PartnerLinkType partnerLinkType,
+                              Collection<NameSpace> imports, Collection<Message> messages,
+                              Collection<PortType> portTypes) implements Type {
 
             public record PartnerLinkType(String name, Role role) {
 
@@ -81,14 +81,8 @@ public class TibcoModel {
 
         }
 
-        public record Schema(Collection<Type> types, Collection<Element> elements, Collection<NameSpace> imports)
-                implements
-                Members {
-
-            public interface Type {
-
-                String name();
-            }
+        record Schema(Collection<ComplexType> types, Collection<Element> elements, Collection<NameSpace> imports)
+                implements Type {
 
             public record Element(String name, TibcoType type) {
 
@@ -104,7 +98,7 @@ public class TibcoModel {
 
             }
 
-            public record ComplexType(String name, Body body) implements Type {
+            public record ComplexType(String name, Body body) {
 
                 public ComplexType {
                     assert name != null;
@@ -148,9 +142,6 @@ public class TibcoModel {
 
                 }
 
-                public record Elements(Collection<Element> elements) implements Body {
-
-                }
             }
         }
     }
@@ -166,6 +157,7 @@ public class TibcoModel {
             IT
         }
     }
+
     public record NameSpace(String nameSpace) {
 
     }

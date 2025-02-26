@@ -71,7 +71,7 @@ public class TibcoToBalConverter {
 
     private static TibcoModel.Process parseProcess(Element root) {
         String name = root.getAttribute("name");
-        TibcoModel.Types types = null;
+        Collection<TibcoModel.Type> types = null;
         TibcoModel.ProcessInfo processInfo = null;
         for (Element element : new ElementIterable(root)) {
             String tag = getTagNameWithoutNameSpace(element);
@@ -88,9 +88,7 @@ public class TibcoToBalConverter {
                     }
                     processInfo = parseProcessInfo(element);
                 }
-                default -> {
-                    throw new ParserException("Unsupported process member tag: " + tag, root);
-                }
+                default -> throw new ParserException("Unsupported process member tag: " + tag, root);
             }
         }
         return new TibcoModel.Process(name, types, processInfo);
@@ -115,8 +113,8 @@ public class TibcoToBalConverter {
         return new TibcoModel.ProcessInfo(callable, extraErrorVars, modifiers, scalable, singleton, stateless, type);
     }
 
-    private static TibcoModel.Types parseTypes(Element element) {
-        List<TibcoModel.Types.Members> members = new ArrayList<>();
+    private static Collection<TibcoModel.Type> parseTypes(Element element) {
+        List<TibcoModel.Type> members = new ArrayList<>();
         for (Element child : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
@@ -125,12 +123,12 @@ public class TibcoToBalConverter {
                 default -> throw new ParserException("Unsupported types member tag: " + tag, element);
             }
         }
-        return new TibcoModel.Types(members);
+        return members;
     }
 
-    private static TibcoModel.Types.Schema parseSchema(Element element) {
-        List<TibcoModel.Types.Schema.Type> types = new ArrayList<>();
-        List<TibcoModel.Types.Schema.Element> elements = new ArrayList<>();
+    private static TibcoModel.Type.Schema parseSchema(Element element) {
+        List<TibcoModel.Type.Schema.ComplexType> types = new ArrayList<>();
+        List<TibcoModel.Type.Schema.Element> elements = new ArrayList<>();
         List<TibcoModel.NameSpace> imports = new ArrayList<>();
         for (Element each : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(each);
@@ -141,88 +139,88 @@ public class TibcoToBalConverter {
                 default -> throw new ParserException("Unsupported schema element tag: " + tag, element);
             }
         }
-        return new TibcoModel.Types.Schema(types, elements, imports);
+        return new TibcoModel.Type.Schema(types, elements, imports);
     }
 
     private static TibcoModel.NameSpace parseImport(Element each) {
         return new TibcoModel.NameSpace(each.getAttribute("namespace"));
     }
 
-    private static TibcoModel.Types.Schema.Element parseSchemaElement(Element each) {
+    private static TibcoModel.Type.Schema.Element parseSchemaElement(Element each) {
         String name = each.getAttribute("name");
         String typeName = each.getAttribute("type");
-        return new TibcoModel.Types.Schema.Element(name, TibcoModel.Types.Schema.TibcoType.of(typeName));
+        return new TibcoModel.Type.Schema.Element(name, TibcoModel.Type.Schema.TibcoType.of(typeName));
     }
 
-    private static TibcoModel.Types.Schema.Type parseType(Element element) {
-        String tag = getTagNameWithoutNameSpace(element);
-        switch (tag) {
-            case "complexType" -> {
-                return parseComplexType(element);
-            }
-            default -> throw new ParserException("Unsupported type tag: " + tag, element);
-        }
+    private static TibcoModel.Type.Schema.ComplexType parseType(Element element) {
+        Element complexType = expectTag(element, "complexType");
+        return parseComplexType(complexType);
     }
 
-    private static TibcoModel.Types.Schema.ComplexType parseComplexType(Element element) {
+    private static TibcoModel.Type.Schema.ComplexType parseComplexType(Element element) {
         String name = element.getAttribute("name");
         Element child = expectNChildren(element, 1).iterator().next();
-        TibcoModel.Types.Schema.ComplexType.Body body = switch (getTagNameWithoutNameSpace(child)) {
+        TibcoModel.Type.Schema.ComplexType.Body body = switch (getTagNameWithoutNameSpace(child)) {
             case "sequence" -> parseComplexTypeSequence(child);
             case "complexContent" -> parseComplexContent(child);
             case "choice" -> parseComplexTypeChoice(child);
             default -> throw new ParserException(
                     "Unsupported complex type body tag: " + getTagNameWithoutNameSpace(child), element);
         };
-        return new TibcoModel.Types.Schema.ComplexType(name, body);
+        return new TibcoModel.Type.Schema.ComplexType(name, body);
     }
 
-    private static TibcoModel.Types.Schema.ComplexType.Body parseComplexTypeSequence(Element sequence) {
-        // FIXME: extract method
-        Collection<TibcoModel.Types.Schema.ComplexType.SequenceBody.Element> elements =
-                parseSequence(sequence, (child) -> {
-                    String tag = getTagNameWithoutNameSpace(child);
-                    return switch (tag) {
-                        case "element" -> parseComplexTypeElement(child);
-                        case "any" -> {
-                            boolean isLax = Boolean.parseBoolean(child.getAttribute("processContents"));
-                            yield new TibcoModel.Types.Schema.ComplexType.Rest(isLax);
-                        }
-                        default -> throw new ParserException("Unsupported complex type element tag: " + tag, sequence);
-                    };
-                });
-        return new TibcoModel.Types.Schema.ComplexType.SequenceBody(elements);
+    private static TibcoModel.Type.Schema.ComplexType.Body parseComplexTypeSequence(Element sequence) {
+        Collection<TibcoModel.Type.Schema.ComplexType.SequenceBody.Element> elements =
+                parseSequence(sequence, TibcoToBalConverter::parseComplexTypeSequenceElement);
+        return new TibcoModel.Type.Schema.ComplexType.SequenceBody(elements);
     }
 
-    private static TibcoModel.Types.Schema.ComplexType.Element parseComplexTypeElement(Element element) {
+    private static TibcoModel.Type.Schema.ComplexType.SequenceBody.Element parseComplexTypeSequenceElement(
+            Element element) {
+        String tag = getTagNameWithoutNameSpace(element);
+        return switch (tag) {
+            case "element" -> parseComplexTypeElement(element);
+            case "any" -> {
+                boolean isLax = Boolean.parseBoolean(element.getAttribute("processContents"));
+                yield new TibcoModel.Type.Schema.ComplexType.Rest(isLax);
+            }
+            default -> throw new ParserException("Unsupported complex type element tag: " + tag, element);
+        };
+    }
+
+    private static TibcoModel.Type.Schema.ComplexType.Element parseComplexTypeElement(Element element) {
         String elementName = element.getAttribute("name");
         String typeName = element.getAttribute("type");
-        return new TibcoModel.Types.Schema.ComplexType.Element(elementName,
-                TibcoModel.Types.Schema.TibcoType.of(typeName));
+        return new TibcoModel.Type.Schema.ComplexType.Element(elementName,
+                TibcoModel.Type.Schema.TibcoType.of(typeName));
     }
 
-    private static TibcoModel.Types.Schema.ComplexType.ComplexContent parseComplexContent(Element element) {
-        return new TibcoModel.Types.Schema.ComplexType.ComplexContent(
+    private static TibcoModel.Type.Schema.ComplexType.ComplexContent parseComplexContent(Element element) {
+        return new TibcoModel.Type.Schema.ComplexType.ComplexContent(
                 parseComplexContentExtension(expectNChildren(element, 1).iterator().next()));
     }
 
-    private static TibcoModel.Types.Schema.ComplexType.Choice parseComplexTypeChoice(Element element) {
-        Collection<TibcoModel.Types.Schema.ComplexType.Choice.Element> elements = parseSequence(element, (child) -> {
-            String typeName = child.getAttribute("ref");
-            int minOccurs = expectIntAttribute(child, "minOccurs");
-            int maxOccurs = expectIntAttribute(child, "maxOccurs");
-            return new TibcoModel.Types.Schema.ComplexType.Choice.Element(maxOccurs, minOccurs,
-                    TibcoModel.Types.Schema.TibcoType.of(typeName));
-        });
-        return new TibcoModel.Types.Schema.ComplexType.Choice(elements);
+    private static TibcoModel.Type.Schema.ComplexType.Choice parseComplexTypeChoice(Element element) {
+        Collection<TibcoModel.Type.Schema.ComplexType.Choice.Element> elements =
+                parseSequence(element, TibcoToBalConverter::parseComplexTypeChoiceElement);
+        return new TibcoModel.Type.Schema.ComplexType.Choice(elements);
     }
 
-    private static TibcoModel.Types.WSDLDefinition parseWSDLDefinition(Element element) {
+    private static TibcoModel.Type.Schema.ComplexType.Choice.Element parseComplexTypeChoiceElement(Element element) {
+        String typeName = element.getAttribute("ref");
+        int minOccurs = expectIntAttribute(element, "minOccurs");
+        int maxOccurs = expectIntAttribute(element, "maxOccurs");
+        return new TibcoModel.Type.Schema.ComplexType.Choice.Element(maxOccurs, minOccurs,
+                TibcoModel.Type.Schema.TibcoType.of(typeName));
+    }
+
+    private static TibcoModel.Type.WSDLDefinition parseWSDLDefinition(Element element) {
         Map<String, String> namespaces = new HashMap<>();
-        TibcoModel.Types.WSDLDefinition.PartnerLinkType partnerLinkType = null;
+        TibcoModel.Type.WSDLDefinition.PartnerLinkType partnerLinkType = null;
         List<TibcoModel.NameSpace> imports = new ArrayList<>();
-        List<TibcoModel.Types.WSDLDefinition.Message> messages = new ArrayList<>();
-        List<TibcoModel.Types.WSDLDefinition.PortType> portTypes = new ArrayList<>();
+        List<TibcoModel.Type.WSDLDefinition.Message> messages = new ArrayList<>();
+        List<TibcoModel.Type.WSDLDefinition.PortType> portTypes = new ArrayList<>();
         for (Element child : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
@@ -239,21 +237,21 @@ public class TibcoToBalConverter {
             }
         }
         assert partnerLinkType != null;
-        return new TibcoModel.Types.WSDLDefinition(namespaces, partnerLinkType, imports, messages, portTypes);
+        return new TibcoModel.Type.WSDLDefinition(namespaces, partnerLinkType, imports, messages, portTypes);
     }
 
-    private static TibcoModel.Types.WSDLDefinition.PortType parsePortType(Element element) {
+    private static TibcoModel.Type.WSDLDefinition.PortType parsePortType(Element element) {
         String name = element.getAttribute("name");
         // FIXME:
         String apiPath = "";
         Element operation =
                 getFistMatchingChild(element, (child) -> getTagNameWithoutNameSpace(child).equals("operation"))
                         .orElseThrow(() -> new ParserException("Operation not found in portType", element));
-        TibcoModel.Types.WSDLDefinition.PortType.Operation portOperation = parsePortOperation(operation);
-        return new TibcoModel.Types.WSDLDefinition.PortType(name, apiPath, portOperation);
+        TibcoModel.Type.WSDLDefinition.PortType.Operation portOperation = parsePortOperation(operation);
+        return new TibcoModel.Type.WSDLDefinition.PortType(name, apiPath, portOperation);
     }
 
-    private static TibcoModel.Types.WSDLDefinition.PortType.Operation parsePortOperation(Element operation) {
+    private static TibcoModel.Type.WSDLDefinition.PortType.Operation parsePortOperation(Element operation) {
 
         record MessageNamePair(TibcoModel.NameSpaceValue message, String name) {
 
@@ -263,23 +261,23 @@ public class TibcoToBalConverter {
             }
         }
         String name = operation.getAttribute("name");
-        TibcoModel.Types.WSDLDefinition.PortType.Operation.Input input = null;
-        TibcoModel.Types.WSDLDefinition.PortType.Operation.Output output = null;
-        List<TibcoModel.Types.WSDLDefinition.PortType.Operation.Fault> faults = new ArrayList<>();
+        TibcoModel.Type.WSDLDefinition.PortType.Operation.Input input = null;
+        TibcoModel.Type.WSDLDefinition.PortType.Operation.Output output = null;
+        List<TibcoModel.Type.WSDLDefinition.PortType.Operation.Fault> faults = new ArrayList<>();
         for (Element child : ElementIterable.of(operation)) {
             MessageNamePair messageNamePair = MessageNamePair.from(child);
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
                 case "input" -> {
-                    input = new TibcoModel.Types.WSDLDefinition.PortType.Operation.Input(messageNamePair.message,
+                    input = new TibcoModel.Type.WSDLDefinition.PortType.Operation.Input(messageNamePair.message,
                             messageNamePair.name);
                 }
                 case "output" -> {
-                    output = new TibcoModel.Types.WSDLDefinition.PortType.Operation.Output(messageNamePair.message,
+                    output = new TibcoModel.Type.WSDLDefinition.PortType.Operation.Output(messageNamePair.message,
                             messageNamePair.name);
                 }
                 case "fault" -> {
-                    faults.add(new TibcoModel.Types.WSDLDefinition.PortType.Operation.Fault(messageNamePair.message,
+                    faults.add(new TibcoModel.Type.WSDLDefinition.PortType.Operation.Fault(messageNamePair.message,
                             messageNamePair.name));
                 }
                 default -> throw new ParserException("Unsupported port operation tag: " + tag, operation);
@@ -291,33 +289,33 @@ public class TibcoToBalConverter {
         if (output == null) {
             throw new ParserException("Output not found in port operation", operation);
         }
-        return new TibcoModel.Types.WSDLDefinition.PortType.Operation(name, input, output, faults);
+        return new TibcoModel.Type.WSDLDefinition.PortType.Operation(name, input, output, faults);
     }
 
-    private static TibcoModel.Types.WSDLDefinition.Message parseMessage(Element element) {
+    private static TibcoModel.Type.WSDLDefinition.Message parseMessage(Element element) {
         String name = element.getAttribute("name");
-        List<TibcoModel.Types.WSDLDefinition.Message.Part> parts =
+        List<TibcoModel.Type.WSDLDefinition.Message.Part> parts =
                 parseSequence(element, TibcoToBalConverter::parseMessagePart);
-        return new TibcoModel.Types.WSDLDefinition.Message(name, parts);
+        return new TibcoModel.Type.WSDLDefinition.Message(name, parts);
     }
 
-    private static TibcoModel.Types.WSDLDefinition.Message.Part parseMessagePart(Element node) {
+    private static TibcoModel.Type.WSDLDefinition.Message.Part parseMessagePart(Element node) {
         String name = node.getAttribute("name");
         Optional<TibcoModel.NameSpaceValue> element = node.hasAttribute("element")
                 ? Optional.of(TibcoModel.NameSpaceValue.from(node.getAttribute("element")))
                 : Optional.empty();
         // TODO: is this correct?
         boolean multipleNamespaces = node.hasAttribute("multipleNamespaces");
-        return new TibcoModel.Types.WSDLDefinition.Message.Part(name, element, multipleNamespaces);
+        return new TibcoModel.Type.WSDLDefinition.Message.Part(name, element, multipleNamespaces);
     }
 
-    private static TibcoModel.Types.WSDLDefinition.PartnerLinkType parsePartnerLinkType(Element element) {
+    private static TibcoModel.Type.WSDLDefinition.PartnerLinkType parsePartnerLinkType(Element element) {
         String name = element.getAttribute("name");
         Element role = expectNChildren(element, 1).iterator().next();
         String roleName = role.getAttribute("name");
         String portTypeName = role.getAttribute("portType");
-        return new TibcoModel.Types.WSDLDefinition.PartnerLinkType(name,
-                new TibcoModel.Types.WSDLDefinition.PartnerLinkType.Role(roleName,
+        return new TibcoModel.Type.WSDLDefinition.PartnerLinkType(name,
+                new TibcoModel.Type.WSDLDefinition.PartnerLinkType.Role(roleName,
                         TibcoModel.NameSpaceValue.from(portTypeName)));
     }
 
@@ -355,10 +353,10 @@ public class TibcoToBalConverter {
         return ElementIterable.of(sequenceNode).stream().map(parseFn).toList();
     }
 
-    private static TibcoModel.Types.Schema.ComplexType.ComplexContent.Extension parseComplexContentExtension(
+    private static TibcoModel.Type.Schema.ComplexType.ComplexContent.Extension parseComplexContentExtension(
             Element element) {
-        TibcoModel.Types.Schema.TibcoType base = TibcoModel.Types.Schema.TibcoType.of(element.getAttribute("base"));
-        Collection<TibcoModel.Types.Schema.ComplexType.Element> elements = new ArrayList<>();
+        TibcoModel.Type.Schema.TibcoType base = TibcoModel.Type.Schema.TibcoType.of(element.getAttribute("base"));
+        Collection<TibcoModel.Type.Schema.ComplexType.Element> elements = new ArrayList<>();
         for (Element child : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             if (tag.equals("sequence")) {
@@ -368,7 +366,7 @@ public class TibcoToBalConverter {
                 throw new ParserException("Unsupported complex content extension tag: " + tag, element);
             }
         }
-        return new TibcoModel.Types.Schema.ComplexType.ComplexContent.Extension(base, elements);
+        return new TibcoModel.Type.Schema.ComplexType.ComplexContent.Extension(base, elements);
     }
 
     private static int expectIntAttribute(Element element, String attributeName) {
