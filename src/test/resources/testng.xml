@@ -21,7 +21,7 @@
             <package name="dw.parser.*"/>
         </packages>
         <classes>
-            <class name="tibco.ParserTest"/>
+            <class name="converter.tibco.ParserTest"/>
         </classes>
     </test>
 </suite>

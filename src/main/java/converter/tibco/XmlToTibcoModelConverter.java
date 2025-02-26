@@ -16,17 +16,13 @@
  *  under the License.
  */
 
-package converter;
+package converter.tibco;
 
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 import tibco.TibcoModel;
 
-import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,9 +38,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
@@ -52,25 +45,12 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-public class TibcoToBalConverter {
+public final class XmlToTibcoModelConverter {
 
-    private TibcoToBalConverter() {
+    private XmlToTibcoModelConverter() {
     }
 
-    public static SyntaxTree convertToBallerina(String xmlFilePath) {
-        Element root;
-        try {
-            root = parseXmlFile(xmlFilePath);
-            assert root != null;
-        } catch (Exception e) {
-            throw new RuntimeException("Error while parsing the XML file: " + xmlFilePath, e);
-        }
-        TibcoModel.Process process = parseProcess(root);
-        assert process != null;
-        return null;
-    }
-
-    private static TibcoModel.Process parseProcess(Element root) {
+    static TibcoModel.Process parseProcess(Element root) {
         String name = root.getAttribute("name");
         Collection<TibcoModel.Type> types = null;
         TibcoModel.ProcessInfo processInfo = null;
@@ -119,7 +99,7 @@ public class TibcoToBalConverter {
     private static TibcoModel.Scope parseScope(Element element) {
         String name = element.getAttribute("name");
         return new TibcoModel.Scope(name,
-                ElementIterable.of(element).stream().map(TibcoToBalConverter::parseFlow).toList());
+                ElementIterable.of(element).stream().map(XmlToTibcoModelConverter::parseFlow).toList());
     }
 
     private static TibcoModel.Scope.Flow parseFlow(Element flow) {
@@ -152,29 +132,29 @@ public class TibcoToBalConverter {
                     element);
         };
         String partnerLink = element.getAttribute("partnerLink");
-        List<TibcoModel.Scope.Flow.Activity.Invoke.InputBinding> inputBindings = new ArrayList<>();
-        Collection<TibcoModel.Scope.Flow.Activity.Invoke.Target> targets = new ArrayList<>();
-        Collection<TibcoModel.Scope.Flow.Activity.Invoke.Source> sources = new ArrayList<>();
+        List<TibcoModel.Scope.Flow.Activity.InputBinding> inputBindings = new ArrayList<>();
+        Collection<TibcoModel.Scope.Flow.Activity.Target> targets = new ArrayList<>();
+        Collection<TibcoModel.Scope.Flow.Activity.Source> sources = new ArrayList<>();
         for (Element each : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(each);
             switch (tag) {
                 case "inputBinding" -> inputBindings.add(
-                        new TibcoModel.Scope.Flow.Activity.Invoke.InputBinding(parseExpressionNode(each)));
+                        new TibcoModel.Scope.Flow.Activity.InputBinding(parseExpressionNode(each)));
                 case "inputBindings" -> {
                     // TODO: what is the difference in partBindings
                     for (Element partBinding : ElementIterable.of(each)) {
-                        inputBindings.add(new TibcoModel.Scope.Flow.Activity.Invoke.InputBinding(
+                        inputBindings.add(new TibcoModel.Scope.Flow.Activity.InputBinding(
                                 parseExpressionNode(partBinding)));
                     }
                 }
                 case "targets" -> {
                     for (Element target : ElementIterable.of(each)) {
-                        targets.add(new TibcoModel.Scope.Flow.Activity.Invoke.Target(target.getAttribute("linkName")));
+                        targets.add(new TibcoModel.Scope.Flow.Activity.Target(target.getAttribute("linkName")));
                     }
                 }
                 case "sources" -> {
                     for (Element source : ElementIterable.of(each)) {
-                        sources.add(new TibcoModel.Scope.Flow.Activity.Invoke.Source(source.getAttribute("linkName")));
+                        sources.add(new TibcoModel.Scope.Flow.Activity.Source(source.getAttribute("linkName")));
                     }
                 }
                 default -> throw new ParserException("Unsupported invoke element tag: " + tag, element);
@@ -227,11 +207,11 @@ public class TibcoToBalConverter {
         String inputVariable = activity.getAttribute("inputVariable");
         Collection<TibcoModel.Scope.Flow.Activity.Target> targets =
                 ElementIterable.of(getFirstChildWithTag(activity, "targets")).stream()
-                        .map(each -> new TibcoModel.Scope.Flow.Activity.Invoke.Target(each.getAttribute("linkName")))
+                        .map(each -> new TibcoModel.Scope.Flow.Activity.Target(each.getAttribute("linkName")))
                         .toList();
         Collection<TibcoModel.Scope.Flow.Activity.InputBinding> inputBindings =
                 ElementIterable.of(getFirstChildWithTag(activity, "inputBindings")).stream()
-                        .map(each -> new TibcoModel.Scope.Flow.Activity.Invoke.InputBinding(parseExpressionNode(each)))
+                        .map(each -> new TibcoModel.Scope.Flow.Activity.InputBinding(parseExpressionNode(each)))
                         .toList();
         TibcoModel.Scope.Flow.Activity.ActivityExtension.Config config =
                 parseActivityExtensionConfig(getFirstChildWithTag(activity, "config"));
@@ -262,7 +242,7 @@ public class TibcoToBalConverter {
     }
 
     private static Collection<TibcoModel.Variable> parseVariables(Element element) {
-        return ElementIterable.of(element).stream().map(TibcoToBalConverter::parseVariable).toList();
+        return ElementIterable.of(element).stream().map(XmlToTibcoModelConverter::parseVariable).toList();
     }
 
     private static TibcoModel.Variable parseVariable(Element element) {
@@ -284,7 +264,7 @@ public class TibcoToBalConverter {
     }
 
     private static Collection<TibcoModel.PartnerLink> parsePartnerLinks(Element element) {
-        return ElementIterable.of(element).stream().map(TibcoToBalConverter::parsePartnerLink).toList();
+        return ElementIterable.of(element).stream().map(XmlToTibcoModelConverter::parsePartnerLink).toList();
     }
 
     private static TibcoModel.PartnerLink parsePartnerLink(Element element) {
@@ -337,14 +317,14 @@ public class TibcoToBalConverter {
         TibcoModel.PartnerLink.Binding.Operation.Format clientRequestFormat =
                 parseFormat(getFirstChildWithTag(operation, "clientRequestFormat"));
         List<TibcoModel.PartnerLink.Binding.Operation.Parameter> parameters =
-                tryGetFirstChildWithTag(operation, "parameters").map(TibcoToBalConverter::parseParameters)
+                tryGetFirstChildWithTag(operation, "parameters").map(XmlToTibcoModelConverter::parseParameters)
                         .orElseGet(Collections::emptyList);
         return new TibcoModel.PartnerLink.Binding.Operation(method, requestEntityProcessing, requestStyle,
                 responseStyle, clientFormat, clientRequestFormat, parameters);
     }
 
     private static List<TibcoModel.PartnerLink.Binding.Operation.Parameter> parseParameters(Element parameters) {
-        return ElementIterable.of(parameters).stream().map(TibcoToBalConverter::parseParameter).toList();
+        return ElementIterable.of(parameters).stream().map(XmlToTibcoModelConverter::parseParameter).toList();
     }
 
     private static TibcoModel.PartnerLink.Binding.Operation.Parameter parseParameter(Element element) {
@@ -450,7 +430,7 @@ public class TibcoToBalConverter {
 
     private static TibcoModel.Type.Schema.ComplexType.Body parseComplexTypeSequence(Element sequence) {
         Collection<TibcoModel.Type.Schema.ComplexType.SequenceBody.Member> elements =
-                parseSequence(sequence, TibcoToBalConverter::parseComplexTypeSequenceElement);
+                parseSequence(sequence, XmlToTibcoModelConverter::parseComplexTypeSequenceElement);
         return new TibcoModel.Type.Schema.ComplexType.SequenceBody(elements);
     }
 
@@ -467,7 +447,7 @@ public class TibcoToBalConverter {
         };
     }
 
-    private static TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Element parseComplexTypeElement(
+    static TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Element parseComplexTypeElement(
             Element element) {
         String elementName = element.getAttribute("name");
         String typeName = element.getAttribute("type");
@@ -482,7 +462,7 @@ public class TibcoToBalConverter {
 
     private static TibcoModel.Type.Schema.ComplexType.Choice parseComplexTypeChoice(Element element) {
         Collection<TibcoModel.Type.Schema.ComplexType.Choice.Element> elements =
-                parseSequence(element, TibcoToBalConverter::parseComplexTypeChoiceElement);
+                parseSequence(element, XmlToTibcoModelConverter::parseComplexTypeChoiceElement);
         return new TibcoModel.Type.Schema.ComplexType.Choice(elements);
     }
 
@@ -574,7 +554,7 @@ public class TibcoToBalConverter {
     private static TibcoModel.Type.WSDLDefinition.Message parseMessage(Element element) {
         String name = element.getAttribute("name");
         List<TibcoModel.Type.WSDLDefinition.Message.Part> parts =
-                parseSequence(element, TibcoToBalConverter::parseMessagePart);
+                parseSequence(element, XmlToTibcoModelConverter::parseMessagePart);
         return new TibcoModel.Type.WSDLDefinition.Message(name, parts);
     }
 
@@ -595,19 +575,6 @@ public class TibcoToBalConverter {
         return new TibcoModel.Type.WSDLDefinition.PartnerLinkType(name,
                 new TibcoModel.Type.WSDLDefinition.PartnerLinkType.Role(roleName,
                         TibcoModel.NameSpaceValue.from(portTypeName)));
-    }
-
-    private static Element parseXmlFile(String xmlFilePath)
-            throws IOException, SAXException, ParserConfigurationException {
-
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setNamespaceAware(true);
-        DocumentBuilder builder = factory.newDocumentBuilder();
-        Document document = builder.parse(xmlFilePath);
-
-        document.getDocumentElement().normalize();
-
-        return document.getDocumentElement();
     }
 
     private static String getTagNameWithoutNameSpace(Element element) {
@@ -643,7 +610,7 @@ public class TibcoToBalConverter {
         for (Element child : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             if (tag.equals("sequence")) {
-                elements = parseSequence(child, TibcoToBalConverter::parseComplexTypeElement);
+                elements = parseSequence(child, XmlToTibcoModelConverter::parseComplexTypeElement);
                 break;
             } else {
                 throw new ParserException("Unsupported complex content extension tag: " + tag, element);

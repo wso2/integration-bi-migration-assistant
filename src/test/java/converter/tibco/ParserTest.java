@@ -1,4 +1,3 @@
-package tibco;
 /*
  *  Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
  *
@@ -17,8 +16,8 @@ package tibco;
  *  under the License.
  */
 
-import converter.TibcoToBalConverter;
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
+package converter.tibco;
+
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -34,7 +33,8 @@ public class ParserTest {
     @Test(groups = {"tibco", "parser"}, dataProvider = "parserDataProvider")
     public void testParser(Path path, TestKind kind) {
         try {
-            SyntaxTree tree = TibcoToBalConverter.convertToBallerina(path.toString());
+            var element = TibcoToBalConverter.parseXmlFile(path.toString());
+            var process = XmlToTibcoModelConverter.parseProcess(element);
             if (kind == TestKind.ERROR) {
                 throw new AssertionError("Parsing succeeded for an invalid input: " + path);
             }
