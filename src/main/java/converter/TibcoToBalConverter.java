@@ -75,6 +75,7 @@ public class TibcoToBalConverter {
         Collection<TibcoModel.Type> types = null;
         TibcoModel.ProcessInfo processInfo = null;
         Collection<TibcoModel.PartnerLink> partnerLinks = null;
+        Collection<TibcoModel.Variable> variables = null;
         for (Element element : new ElementIterable(root)) {
             String tag = getTagNameWithoutNameSpace(element);
             switch (tag) {
@@ -96,10 +97,38 @@ public class TibcoToBalConverter {
                     }
                     partnerLinks = parsePartnerLinks(element);
                 }
+                case "variables" -> {
+                    if (variables != null) {
+                        throw new ParserException("Multiple variables elements found in the XML", root);
+                    }
+                    variables = parseVariables(element);
+                }
                 default -> throw new ParserException("Unsupported process member tag: " + tag, root);
             }
         }
-        return new TibcoModel.Process(name, types, processInfo, partnerLinks);
+        return new TibcoModel.Process(name, types, processInfo, partnerLinks, variables);
+    }
+
+    private static Collection<TibcoModel.Variable> parseVariables(Element element) {
+        return ElementIterable.of(element).stream().map(TibcoToBalConverter::parseVariable).toList();
+    }
+
+    private static TibcoModel.Variable parseVariable(Element element) {
+        String name = element.getAttribute("name");
+        boolean isInternal = getAttributeIgnoringNamespace(element, "internal").equals("true");
+        return new TibcoModel.Variable(name, isInternal);
+    }
+
+    private static String getAttributeIgnoringNamespace(Element element, String attributeName) {
+        var attributes = element.getAttributes();
+        for (int i = 0; i < attributes.getLength(); i++) {
+            var attribute = attributes.item(i);
+            String nameWithoutNamespace = getTagNameWithoutNameSpaceInner(attribute.getNodeName());
+            if (nameWithoutNamespace.equals(attributeName)) {
+                return attribute.getNodeValue();
+            }
+        }
+        throw new ParserException("Attribute not found: " + attributeName, element);
     }
 
     private static Collection<TibcoModel.PartnerLink> parsePartnerLinks(Element element) {
@@ -428,7 +457,12 @@ public class TibcoToBalConverter {
     }
 
     private static String getTagNameWithoutNameSpace(Element element) {
-        String[] parts = element.getTagName().split(":");
+        String tagName = element.getTagName();
+        return getTagNameWithoutNameSpaceInner(tagName);
+    }
+
+    private static String getTagNameWithoutNameSpaceInner(String tagName) {
+        String[] parts = tagName.split(":");
         if (parts.length == 1) {
             return parts[0];
         }

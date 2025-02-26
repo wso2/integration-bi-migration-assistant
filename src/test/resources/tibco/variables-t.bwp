@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpws:process exitOnStandardFault="no"
+    name="creditapp.module.EquifaxScore" suppressJoinFailure="yes"
+    targetNamespace="http://xmlns.example.com/20180827154353"
+    xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+    xmlns:info="http://www.tibco.com/bw/process/info"
+    xmlns:ns="http://www.tibco.com/pe/EngineTypes"
+    xmlns:ns0="http://xmlns.example.com/20180827154353PLT"
+    xmlns:ns1="http://tns.tibco.com/bw/palette/internal/activityerror+2632841e-3358-4851-a82f-2f2cd3aeec16"
+    xmlns:ns2="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema"
+    xmlns:ns3="http://tns.tibco.com/bw/palette/internal/activityerror+44ece17e-f278-4255-b693-65bb9cf58bca"
+    xmlns:sca="http://docs.oasis-open.org/ns/opencsa/sca/200912"
+    xmlns:sca-bpel="http://docs.oasis-open.org/ns/opencsa/sca-bpel/200801"
+    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"
+    xmlns:tibprop="http://ns.tibco.com/bw/property" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <bpws:variables>
+        <bpws:variable element="ns:ProcessContext"
+            name="_processContext" sca-bpel:internal="true"/>
+        <bpws:variable element="ns2:GiveNewSchemaNameHere" name="Start"
+            sca-bpel:internal="true" tibex:parameter="in"/>
+        <bpws:variable element="ns2:SuccessSchema" name="End-input"
+            sca-bpel:internal="true" tibex:parameter="out"/>
+        <bpws:variable messageType="ns0:postRequest1" name="post-input" sca-bpel:internal="true"/>
+        <bpws:variable messageType="ns0:postResponse1" name="post" sca-bpel:internal="true"/>
+        <bpws:variable element="ns3:ActivityErrorData"
+            name="_error_post" sca-bpel:internal="true"/>
+        <bpws:variable element="ns:ErrorReport" name="_error" sca-bpel:internal="true"/>
+    </bpws:variables>
+</bpws:process>

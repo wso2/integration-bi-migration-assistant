@@ -29,7 +29,7 @@ import java.util.Set;
 public class TibcoModel {
 
     public record Process(String name, Collection<Type> types, ProcessInfo processInfo,
-                          Collection<PartnerLink> partnerLinks) {
+                          Collection<PartnerLink> partnerLinks, Collection<Variable> variables) {
 
         public Process {
             assert name != null;
@@ -42,6 +42,11 @@ public class TibcoModel {
                 partnerLinks = List.of();
             } else {
                 partnerLinks = Collections.unmodifiableCollection(partnerLinks);
+            }
+            if (variables == null) {
+                variables = List.of();
+            } else {
+                variables = Collections.unmodifiableCollection(variables);
             }
         }
 
@@ -162,6 +167,10 @@ public class TibcoModel {
         public enum Type {
             IT
         }
+    }
+
+    public record Variable(String name, boolean isInternal) {
+
     }
 
     public record PartnerLink(String name, Binding Binding) {
