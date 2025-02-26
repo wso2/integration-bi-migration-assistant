@@ -52,7 +52,7 @@ public class TibcoModel {
 
     }
 
-    public interface Type {
+    public sealed interface Type {
 
         record WSDLDefinition(Map<String, String> namespaces, PartnerLinkType partnerLinkType,
                               Collection<NameSpace> imports, Collection<Message> messages,
@@ -116,7 +116,7 @@ public class TibcoModel {
                     assert body != null;
                 }
 
-                public interface Body {
+                public sealed interface Body {
 
                 }
 
@@ -127,30 +127,30 @@ public class TibcoModel {
                     }
                 }
 
-                public record SequenceBody(Collection<Element> elements) implements Body {
+                public record SequenceBody(Collection<Member> elements) implements Body {
 
-                    public interface Element {
+                    public sealed interface Member {
 
+                        record Element(String name, TibcoType type) implements Member {
+
+                        }
+
+                        record Rest(boolean isLax) implements Member {
+
+                        }
                     }
-                }
-
-                public record Element(String name, TibcoType type) implements SequenceBody.Element {
-
                 }
 
                 public record ComplexContent(Extension extension) implements Body {
 
-                    public record Extension(TibcoType base, Collection<Element> elements) implements Body {
+                    public record Extension(TibcoType base, Collection<SequenceBody.Member.Element> elements)
+                            implements Body {
 
                         public Extension {
                             assert base != null;
                             elements = Collections.unmodifiableCollection(elements);
                         }
                     }
-                }
-
-                public record Rest(boolean isLax) implements SequenceBody.Element {
-
                 }
 
             }
@@ -250,9 +250,9 @@ public class TibcoModel {
 
             }
 
-            public interface Activity {
+            public sealed interface Activity {
 
-                interface Expression {
+                sealed interface Expression {
 
                     record XSLT(String expression) implements Expression {
 
@@ -267,9 +267,8 @@ public class TibcoModel {
                     }
                 }
 
-                record ActivityExtension(Expression expression, String inputVariable,
-                                         Collection<Target> targets, Collection<InputBinding> inputBindings,
-                                         Config config) implements Activity {
+                record ActivityExtension(Expression expression, String inputVariable, Collection<Target> targets,
+                                         Collection<InputBinding> inputBindings, Config config) implements Activity {
 
                     public record Config() {
 
@@ -277,8 +276,8 @@ public class TibcoModel {
                 }
 
                 record Invoke(String inputVariable, String outputVariable, Operation operation, String partnerLink,
-                              List<InputBinding> inputBindings, Collection<Target> targets,
-                              Collection<Source> sources) implements Activity {
+                              List<InputBinding> inputBindings, Collection<Target> targets, Collection<Source> sources)
+                        implements Activity {
 
                     public enum Operation {
                         POST

@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
@@ -25,8 +24,8 @@ import static ballerina.BallerinaModel.BallerinaStatement;
 
 public class ConversionUtils {
 
-    private static final Pattern UNESCAPED_SPECIAL_CHAR_SET =
-            Pattern.compile("([$&+,:;=\\?@#\\\\|/'\\ \\[\\}\\]<\\>.\"^*{}~`()%!-])");
+    private static final Pattern UNESCAPED_SPECIAL_CHAR_SET = Pattern
+            .compile("([$&+,:;=\\?@#\\\\|/'\\ \\[\\}\\]<\\>.\"^*{}~`()%!-])");
 
     /**
      * Converts mule path to a Ballerina resource path.
@@ -75,9 +74,9 @@ public class ConversionUtils {
     }
 
     static void processExprCompContent(MuleToBalConverter.SharedProjectData sharedProjectData,
-                                       String convertedBalStmts) {
-        List<String> list =
-                Arrays.stream(convertedBalStmts.split(";")).filter(s -> !s.isEmpty()).map(String::trim).toList();
+            String convertedBalStmts) {
+        List<String> list = Arrays.stream(convertedBalStmts.split(";")).filter(s -> !s.isEmpty()).map(String::trim)
+                .toList();
         for (String stmt : list) {
             processStatement(sharedProjectData, stmt);
         }
@@ -127,7 +126,7 @@ public class ConversionUtils {
     static String[] getAllowedMethods(String allowedMethods) {
         if (allowedMethods.isEmpty()) {
             // Leaving empty will allow all methods
-            return new String[]{"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE", "CONNECT"};
+            return new String[] { "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE", "CONNECT" };
         }
         return allowedMethods.split(",\\s*");
     }
@@ -198,7 +197,8 @@ public class ConversionUtils {
         // Replace payload: payload --> ctx.payload
         result = result.replaceAll("\\b(payload)\\b", addToStringCalls ? "ctx.$1.toString()" : "ctx.$1");
 
-        // Replace variable references: flowVars.foo --> ctx.flowVars.foo / ctx.flowVars.foo.toString()
+        // Replace variable references: flowVars.foo --> ctx.flowVars.foo /
+        // ctx.flowVars.foo.toString()
         result = result.replaceAll("\\b(flowVars|sessionVars|message|recordVars)(\\.\\w+)\\b",
                 addToStringCalls ? "ctx.$1$2.toString()" : "ctx.$1$2");
 
@@ -230,7 +230,7 @@ public class ConversionUtils {
             transformer.transform(new DOMSource(element), new StreamResult(writer));
             return writer.getBuffer().toString();
         } catch (Exception e) {
-            throw new RuntimeException("Error converting Element to String", e);
+            throw new RuntimeException("Error converting Member to String", e);
         }
     }
 

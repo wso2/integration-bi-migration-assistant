@@ -1,0 +1,27 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
+<suite name="Suite" time-out="120000">
+    <test name="LoggerTest">
+        <packages>
+            <package name="blocks.*"/>
+        </packages>
+        <classes>
+            <class name="TestConverter"/>
+        </classes>
+    </test>
+    <test name="ParserTest">
+        <packages>
+            <package name="dw.parser.*"/>
+        </packages>
+        <classes>
+            <class name="TestConverter"/>
+        </classes>
+    </test>
+    <test name="Tibco parser tests">
+        <packages>
+            <package name="dw.parser.*"/>
+        </packages>
+        <classes>
+            <class name="tibco.ParserTest"/>
+        </classes>
+    </test>
+</suite>

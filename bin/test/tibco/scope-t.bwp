@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpws:process exitOnStandardFault="no"
+    name="creditapp.module.EquifaxScore" suppressJoinFailure="yes"
+    targetNamespace="http://xmlns.example.com/20180827154353"
+    xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+    xmlns:info="http://www.tibco.com/bw/process/info"
+    xmlns:ns="http://www.tibco.com/pe/EngineTypes"
+    xmlns:ns0="http://xmlns.example.com/20180827154353PLT"
+    xmlns:ns1="http://tns.tibco.com/bw/palette/internal/activityerror+2632841e-3358-4851-a82f-2f2cd3aeec16"
+    xmlns:ns2="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema"
+    xmlns:ns3="http://tns.tibco.com/bw/palette/internal/activityerror+44ece17e-f278-4255-b693-65bb9cf58bca"
+    xmlns:sca="http://docs.oasis-open.org/ns/opencsa/sca/200912"
+    xmlns:sca-bpel="http://docs.oasis-open.org/ns/opencsa/sca-bpel/200801"
+    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"
+    xmlns:tibprop="http://ns.tibco.com/bw/property" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <bpws:scope name="scope">
+        <bpws:flow name="flow">
+            <bpws:links>
+                <bpws:link name="StartTopost" tibex:linkType="SUCCESS"/>
+                <bpws:link name="postToEnd" tibex:linkType="SUCCESS"/>
+            </bpws:links>
+            <bpws:extensionActivity>
+                <tibex:receiveEvent createInstance="yes"
+                    eventTimeout="0" name="Start"
+                    tibex:xpdlId="f08c9c84-4895-4488-aa64-c358634777bf"
+                    variable="Start" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:sources>
+                        <bpws:source linkName="StartTopost"/>
+                    </bpws:sources>
+                    <tibex:eventSource>
+                        <tibex:StartEvent xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"/>
+                    </tibex:eventSource>
+                </tibex:receiveEvent>
+            </bpws:extensionActivity>
+            <bpws:extensionActivity>
+                <tibex:activityExtension
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns3=&quot;/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;post&quot;/>&lt;xsl:template name=&quot;End-input&quot; match=&quot;/&quot;>&lt;tns3:SuccessSchema>&lt;xsl:if test=&quot;$post/item/tns3:SuccessSchema/tns3:FICOScore&quot;>&lt;tns3:FICOScore>&lt;xsl:value-of select=&quot;$post/item/tns3:SuccessSchema/tns3:FICOScore&quot;/>&lt;/tns3:FICOScore>&lt;/xsl:if>&lt;xsl:if test=&quot;$post/item/tns3:SuccessSchema/tns3:NoOfInquiries&quot;>&lt;tns3:NoOfInquiries>&lt;xsl:value-of select=&quot;$post/item/tns3:SuccessSchema/tns3:NoOfInquiries&quot;/>&lt;/tns3:NoOfInquiries>&lt;/xsl:if>&lt;xsl:if test=&quot;$post/item/tns3:SuccessSchema/tns3:Rating&quot;>&lt;tns3:Rating>&lt;xsl:value-of select=&quot;$post/item/tns3:SuccessSchema/tns3:Rating&quot;/>&lt;/tns3:Rating>&lt;/xsl:if>&lt;/tns3:SuccessSchema>&lt;/xsl:template>&lt;/xsl:stylesheet>"
+                    expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"
+                    inputVariable="End-input" name="End"
+                    tibex:xpdlId="1947e91d-84cc-4a00-ae0f-09d2f6e225f9" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:targets>
+                        <bpws:target linkName="postToEnd"/>
+                    </bpws:targets>
+                    <tibex:inputBindings>
+                        <tibex:inputBinding
+                            expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns3=&quot;/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema&quot; version=&quot;2.0&quot;>&#xa;    &lt;xsl:param name=&quot;post.item&quot;/>&#xa;    &lt;xsl:template name=&quot;End-input&quot; match=&quot;/&quot;>&#xa;        &lt;tns3:SuccessSchema>&#xa;            &lt;xsl:if test=&quot;$post.item/tns3:FICOScore&quot;>&#xa;                &lt;tns3:FICOScore>&#xa;                    &lt;xsl:value-of select=&quot;$post.item/tns3:FICOScore&quot;/>&#xa;                &lt;/tns3:FICOScore>&#xa;            &lt;/xsl:if>&#xa;            &lt;xsl:if test=&quot;$post.item/tns3:NoOfInquiries&quot;>&#xa;                &lt;tns3:NoOfInquiries>&#xa;                    &lt;xsl:value-of select=&quot;$post.item/tns3:NoOfInquiries&quot;/>&#xa;                &lt;/tns3:NoOfInquiries>&#xa;            &lt;/xsl:if>&#xa;            &lt;xsl:if test=&quot;$post.item/tns3:Rating&quot;>&#xa;                &lt;tns3:Rating>&#xa;                    &lt;xsl:value-of select=&quot;$post.item/tns3:Rating&quot;/>&#xa;                &lt;/tns3:Rating>&#xa;            &lt;/xsl:if>&#xa;        &lt;/tns3:SuccessSchema>&#xa;    &lt;/xsl:template>&#xa;&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                    <tibex:config>
+                        <bwext:BWActivity
+                            activityTypeID="bw.internal.end"
+                            xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                            xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                            xmlns:internalactivities="http://ns.tibco.com/bw/core/internalactivity" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <activityConfig>
+                                <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                    <type href="http://ns.tibco.com/bw/core/internalactivity#//End"/>
+                                    <value xsi:type="internalactivities:End"/>
+                                </properties>
+                            </activityConfig>
+                        </bwext:BWActivity>
+                    </tibex:config>
+                </tibex:activityExtension>
+            </bpws:extensionActivity>
+            <bpws:invoke inputVariable="post-input" name="post"
+                operation="post" outputVariable="post"
+                partnerLink="creditscore1" portType="ns0:creditscore1" tibex:xpdlId="44ece17e-f278-4255-b693-65bb9cf58bca">
+                <tibex:inputBinding expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com/20180827154353PLT" xmlns:tns1="http://tns.tibco.com/bw/REST" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0"&gt;&lt;xsl:param name="Start"/&gt;&lt;xsl:template name="post-input" match="/"&gt;&lt;tns:postRequest1&gt;&lt;item&gt;&lt;tns3:GiveNewSchemaNameHere&gt;&lt;xsl:if test="$Start/tns3:DOB"&gt;&lt;tns3:DOB&gt;&lt;xsl:value-of select="$Start/tns3:DOB"/&gt;&lt;/tns3:DOB&gt;&lt;/xsl:if&gt;&lt;xsl:if test="$Start/tns3:FirstName"&gt;&lt;tns3:FirstName&gt;&lt;xsl:value-of select="$Start/tns3:FirstName"/&gt;&lt;/tns3:FirstName&gt;&lt;/xsl:if&gt;&lt;xsl:if test="$Start/tns3:LastName"&gt;&lt;tns3:LastName&gt;&lt;xsl:value-of select="$Start/tns3:LastName"/&gt;&lt;/tns3:LastName&gt;&lt;/xsl:if&gt;&lt;xsl:if test="$Start/tns3:SSN"&gt;&lt;tns3:SSN&gt;&lt;xsl:value-of select="$Start/tns3:SSN"/&gt;&lt;/tns3:SSN&gt;&lt;/xsl:if&gt;&lt;/tns3:GiveNewSchemaNameHere&gt;&lt;/item&gt;&lt;httpHeaders&gt;&lt;tns1:httpHeaders/&gt;&lt;/httpHeaders&gt;&lt;/tns:postRequest1&gt;&lt;/xsl:template&gt;&lt;/xsl:stylesheet&gt;</tibex:inputBinding>
+                <tibex:inputBindings>
+                    <tibex:partBinding
+                        expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns=&quot;http://xmlns.example.com/20180827154353PLT&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/REST&quot; xmlns:tns3=&quot;/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema&quot; version=&quot;2.0&quot;>&#xa;    &lt;xsl:param name=&quot;Start&quot;/>&#xa;    &lt;xsl:template name=&quot;post-input&quot; match=&quot;/&quot;>&#xa;        &lt;tns3:GiveNewSchemaNameHere>&#xa;            &lt;xsl:if test=&quot;$Start/tns3:DOB&quot;>&#xa;                &lt;tns3:DOB>&#xa;                    &lt;xsl:value-of select=&quot;$Start/tns3:DOB&quot;/>&#xa;                &lt;/tns3:DOB>&#xa;            &lt;/xsl:if>&#xa;            &lt;xsl:if test=&quot;$Start/tns3:FirstName&quot;>&#xa;                &lt;tns3:FirstName>&#xa;                    &lt;xsl:value-of select=&quot;$Start/tns3:FirstName&quot;/>&#xa;                &lt;/tns3:FirstName>&#xa;            &lt;/xsl:if>&#xa;            &lt;xsl:if test=&quot;$Start/tns3:LastName&quot;>&#xa;                &lt;tns3:LastName>&#xa;                    &lt;xsl:value-of select=&quot;$Start/tns3:LastName&quot;/>&#xa;                &lt;/tns3:LastName>&#xa;            &lt;/xsl:if>&#xa;            &lt;xsl:if test=&quot;$Start/tns3:SSN&quot;>&#xa;                &lt;tns3:SSN>&#xa;                    &lt;xsl:value-of select=&quot;$Start/tns3:SSN&quot;/>&#xa;                &lt;/tns3:SSN>&#xa;            &lt;/xsl:if>&#xa;        &lt;/tns3:GiveNewSchemaNameHere>&#xa;    &lt;/xsl:template>&#xa;&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    <tibex:partBinding
+                        expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns=&quot;http://xmlns.example.com/20180827154353PLT&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/REST&quot; xmlns:tns3=&quot;/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema&quot; version=&quot;2.0&quot;>&#xa;    &lt;xsl:template name=&quot;post-input&quot; match=&quot;/&quot;>&#xa;        &lt;tns1:httpHeaders/>&#xa;    &lt;/xsl:template>&#xa;&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                </tibex:inputBindings>
+                <bpws:targets>
+                    <bpws:target linkName="StartTopost"/>
+                </bpws:targets>
+                <bpws:sources>
+                    <bpws:source linkName="postToEnd"/>
+                </bpws:sources>
+            </bpws:invoke>
+        </bpws:flow>
+    </bpws:scope>
+</bpws:process>
