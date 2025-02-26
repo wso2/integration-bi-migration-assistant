@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -73,6 +74,7 @@ public class TibcoToBalConverter {
         String name = root.getAttribute("name");
         Collection<TibcoModel.Type> types = null;
         TibcoModel.ProcessInfo processInfo = null;
+        Collection<TibcoModel.PartnerLink> partnerLinks = null;
         for (Element element : new ElementIterable(root)) {
             String tag = getTagNameWithoutNameSpace(element);
             switch (tag) {
@@ -88,10 +90,103 @@ public class TibcoToBalConverter {
                     }
                     processInfo = parseProcessInfo(element);
                 }
+                case "partnerLinks" -> {
+                    if (partnerLinks != null) {
+                        throw new ParserException("Multiple partnerLinks elements found in the XML", root);
+                    }
+                    partnerLinks = parsePartnerLinks(element);
+                }
                 default -> throw new ParserException("Unsupported process member tag: " + tag, root);
             }
         }
-        return new TibcoModel.Process(name, types, processInfo);
+        return new TibcoModel.Process(name, types, processInfo, partnerLinks);
+    }
+
+    private static Collection<TibcoModel.PartnerLink> parsePartnerLinks(Element element) {
+        return ElementIterable.of(element).stream().map(TibcoToBalConverter::parsePartnerLink).toList();
+    }
+
+    private static TibcoModel.PartnerLink parsePartnerLink(Element element) {
+        String name = element.getAttribute("name");
+        return finishParsingTibexReferenceBinding(getFirstChildWithTag(element, "ReferenceBinding"), name);
+    }
+
+    private static TibcoModel.PartnerLink finishParsingTibexReferenceBinding(Element referenceBinding, String name) {
+        return finishParsingTibexBinding(getFirstChildWithTag(referenceBinding, "binding"), name);
+    }
+
+    private static TibcoModel.PartnerLink finishParsingTibexBinding(Element binding, String name) {
+        return finishParsingBWBaseBinding(getFirstChildWithTag(binding, "BWBaseBinding"), name);
+    }
+
+    private static TibcoModel.PartnerLink finishParsingBWBaseBinding(Element bwBaseBinding, String name) {
+        return finishParsingReferenceBinding(getFirstChildWithTag(bwBaseBinding, "referenceBinding"), name);
+    }
+
+    private static TibcoModel.PartnerLink finishParsingReferenceBinding(Element referenceBinding, String name) {
+        return finishParsingBinding(getFirstChildWithTag(referenceBinding, "binding"), name);
+    }
+
+    private static TibcoModel.PartnerLink finishParsingBinding(Element binding, String name) {
+        String basePath = binding.getAttribute("basePath");
+        String path = binding.getAttribute("path");
+        TibcoModel.PartnerLink.Binding.Connector connector =
+                TibcoModel.PartnerLink.Binding.Connector.from(binding.getAttribute("connector"));
+        TibcoModel.PartnerLink.Binding.Operation
+                operation = parseBindingOperation(getFirstChildWithTag(binding, "operation"));
+        return new TibcoModel.PartnerLink(name,
+                new TibcoModel.PartnerLink.Binding(new TibcoModel.PartnerLink.Binding.Path(basePath, path), connector,
+                        operation));
+    }
+
+    private static TibcoModel.PartnerLink.Binding.Operation parseBindingOperation(Element operation) {
+        TibcoModel.PartnerLink.Binding.Operation.Method method =
+                TibcoModel.PartnerLink.Binding.Operation.Method.from(operation.getAttribute("httpMethod"));
+
+        TibcoModel.PartnerLink.Binding.Operation.RequestEntityProcessing requestEntityProcessing =
+                TibcoModel.PartnerLink.Binding.Operation.RequestEntityProcessing.from(
+                        operation.getAttribute("requestEntityProcessing"));
+        TibcoModel.PartnerLink.Binding.Operation.MessageStyle requestStyle =
+                TibcoModel.PartnerLink.Binding.Operation.MessageStyle.from(operation.getAttribute("requestStyle"));
+        TibcoModel.PartnerLink.Binding.Operation.MessageStyle responseStyle =
+                TibcoModel.PartnerLink.Binding.Operation.MessageStyle.from(operation.getAttribute("responseStyle"));
+        TibcoModel.PartnerLink.Binding.Operation.Format clientFormat =
+                parseFormat(getFirstChildWithTag(operation, "clientFormat"));
+
+        TibcoModel.PartnerLink.Binding.Operation.Format clientRequestFormat =
+                parseFormat(getFirstChildWithTag(operation, "clientRequestFormat"));
+        List<TibcoModel.PartnerLink.Binding.Operation.Parameter> parameters =
+                tryGetFirstChildWithTag(operation, "parameters").map(TibcoToBalConverter::parseParameters).orElseGet(
+                        Collections::emptyList);
+        return new TibcoModel.PartnerLink.Binding.Operation(method, requestEntityProcessing, requestStyle,
+                responseStyle, clientFormat, clientRequestFormat, parameters);
+    }
+
+    private static List<TibcoModel.PartnerLink.Binding.Operation.Parameter> parseParameters(Element parameters) {
+        return ElementIterable.of(parameters).stream().map(TibcoToBalConverter::parseParameter).toList();
+    }
+
+    private static TibcoModel.PartnerLink.Binding.Operation.Parameter parseParameter(Element element) {
+        throw new UnsupportedOperationException("unimplemented");
+    }
+
+    private static TibcoModel.PartnerLink.Binding.Operation.Format parseFormat(Element clientFormat) {
+        String body = clientFormat.getTextContent();
+        if (body.equals("json")) {
+            return TibcoModel.PartnerLink.Binding.Operation.Format.JSON;
+        } else {
+            throw new ParserException("Unsupported format: " + body, clientFormat);
+        }
+    }
+
+    private static Element getFirstChildWithTag(Element element, String tag) {
+        return tryGetFirstChildWithTag(element, tag).orElseThrow(
+                () -> new ParserException("Child with tag: " + tag + " not found", element));
+    }
+
+    private static Optional<Element> tryGetFirstChildWithTag(Element element, String tag) {
+        return ElementIterable.of(element).stream().filter(child -> getTagNameWithoutNameSpace(child).equals(tag))
+                .findFirst();
     }
 
     private static TibcoModel.ProcessInfo parseProcessInfo(Element element) {

@@ -28,7 +28,8 @@ import java.util.Set;
 
 public class TibcoModel {
 
-    public record Process(String name, Collection<Type> types, ProcessInfo processInfo) {
+    public record Process(String name, Collection<Type> types, ProcessInfo processInfo,
+                          Collection<PartnerLink> partnerLinks) {
 
         public Process {
             assert name != null;
@@ -36,6 +37,11 @@ public class TibcoModel {
                 types = List.of();
             } else {
                 types = Collections.unmodifiableCollection(types);
+            }
+            if (partnerLinks == null) {
+                partnerLinks = List.of();
+            } else {
+                partnerLinks = Collections.unmodifiableCollection(partnerLinks);
             }
         }
 
@@ -156,6 +162,75 @@ public class TibcoModel {
         public enum Type {
             IT
         }
+    }
+
+    public record PartnerLink(String name, Binding Binding) {
+
+        public record Binding(Path path, Connector connector, Operation operation) {
+
+            public record Path(String basePath, String path) {
+
+            }
+
+            public enum Connector {
+                HTTP_CLIENT_RESOURCE_2;
+
+                public static Connector from(String value) {
+                    if (value.contains("HttpClientResource2")) {
+                        return HTTP_CLIENT_RESOURCE_2;
+                    }
+                    throw new IllegalArgumentException("Unknown connector: " + value);
+                }
+            }
+
+            public record Operation(Method method, RequestEntityProcessing requestEntityProcessing,
+                                    MessageStyle requestStyle, MessageStyle responseStyle, Format clientFormat,
+                                    Format clientRequestFormat, List<Parameter> parameters) {
+
+                public enum Method {
+                    POST;
+
+                    public static Method from(String value) {
+                        if (value.equals("POST")) {
+                            return POST;
+                        }
+                        throw new IllegalArgumentException("Unknown method: " + value);
+                    }
+                }
+
+                public enum RequestEntityProcessing {
+                    CHUNKED;
+
+                    public static RequestEntityProcessing from(String value) {
+                        if (value.equals("chunked")) {
+                            return CHUNKED;
+                        }
+                        throw new IllegalArgumentException("Unknown request entity processing: " + value);
+                    }
+                }
+
+                public enum MessageStyle {
+                    ELEMENT;
+
+                    public static MessageStyle from(String value) {
+                        if (value.equals("element")) {
+                            return ELEMENT;
+                        }
+                        throw new IllegalArgumentException("Unknown message style: " + value);
+                    }
+                }
+
+                public enum Format {
+                    JSON
+                }
+
+                public record Parameter() {
+
+                }
+            }
+
+        }
+
     }
 
     public record NameSpace(String nameSpace) {
