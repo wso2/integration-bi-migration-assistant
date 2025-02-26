@@ -1177,8 +1177,8 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json {
-    var arrayArg = [1, 2, 3, 4];
-    return arrayArg.filter(element => element > 2);
+    var _var_0 = [1, 2, 3, 4];
+    return _var_0.filter(element => element > 2);
 }
 
 ```
@@ -1286,8 +1286,8 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json {
-    var arrayArg = ["john", "peter", "matt"];
-    return {"users": arrayArg.'map(element => element.toUpperAscii())};
+    var _var_0 = ["john", "peter", "matt"];
+    return {"users": _var_0.'map(element => element.toUpperAscii())};
 }
 
 ```
@@ -1341,8 +1341,8 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json {
-    var arrayArg = [1, 2, 3, 4];
-    return arrayArg.'map(element => element + arrayArg.indexOf(element));
+    var _var_0 = [1, 2, 3, 4];
+    return _var_0.'map(element => element + _var_0.indexOf(element));
 }
 
 ```
@@ -1396,8 +1396,8 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json {
-    var arrayArg = [1, 2, 3, 4];
-    return arrayArg.'map(element => arrayArg.indexOf(element) + 1);
+    var _var_0 = [1, 2, 3, 4];
+    return _var_0.'map(element => _var_0.indexOf(element) + 1);
 }
 
 ```
@@ -1451,8 +1451,8 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json {
-    var arrayArg = [1, 2, 3, 4];
-    return arrayArg.'map(element => element + 1);
+    var _var_0 = [1, 2, 3, 4];
+    return _var_0.'map(element => element + 1);
 }
 
 ```
@@ -1617,8 +1617,8 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json {
-    var jsonArg = [1, 2, 3, 4];
-    return {"hail1": jsonArg.length()};
+    var _var_0 = [1, 2, 3, 4];
+    return {"hail1": _var_0.length()};
 }
 
 ```
