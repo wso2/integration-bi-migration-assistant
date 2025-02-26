@@ -29,7 +29,7 @@ import java.util.Set;
 public class TibcoModel {
 
     public record Process(String name, Collection<Type> types, ProcessInfo processInfo,
-                          Collection<PartnerLink> partnerLinks, Collection<Variable> variables) {
+                          Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope) {
 
         public Process {
             assert name != null;
@@ -240,6 +240,66 @@ public class TibcoModel {
 
         }
 
+    }
+
+    public record Scope(String name, Collection<Flow> flows) {
+
+        public record Flow(String name, Collection<Link> links, List<Activity> activities) {
+
+            public record Link(String name) {
+
+            }
+
+            public interface Activity {
+
+                interface Expression {
+
+                    record XSLT(String expression) implements Expression {
+
+                    }
+                }
+
+                record ReceiveEvent(boolean createInstance, float eventTimeout, String variable,
+                                    Collection<Source> sources) implements Activity {
+
+                    public record Source(String linkName) {
+
+                    }
+                }
+
+                record ActivityExtension(Expression expression, String inputVariable,
+                                         Collection<Target> targets, Collection<InputBinding> inputBindings,
+                                         Config config) implements Activity {
+
+                    public record Config() {
+
+                    }
+                }
+
+                record Invoke(String inputVariable, String outputVariable, Operation operation, String partnerLink,
+                              List<InputBinding> inputBindings, Collection<Target> targets,
+                              Collection<Source> sources) implements Activity {
+
+                    public enum Operation {
+                        POST
+                    }
+
+                }
+
+                record Target(String linkName) {
+
+                }
+
+                record Source(String linkName) {
+
+                }
+
+                record InputBinding(Expression expression) {
+
+                }
+
+            }
+        }
     }
 
     public record NameSpace(String nameSpace) {

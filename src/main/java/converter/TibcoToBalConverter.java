@@ -76,6 +76,7 @@ public class TibcoToBalConverter {
         TibcoModel.ProcessInfo processInfo = null;
         Collection<TibcoModel.PartnerLink> partnerLinks = null;
         Collection<TibcoModel.Variable> variables = null;
+        TibcoModel.Scope scope = null;
         for (Element element : new ElementIterable(root)) {
             String tag = getTagNameWithoutNameSpace(element);
             switch (tag) {
@@ -103,10 +104,166 @@ public class TibcoToBalConverter {
                     }
                     variables = parseVariables(element);
                 }
+                case "scope" -> {
+                    if (scope != null) {
+                        throw new ParserException("Multiple scope elements found in the XML", root);
+                    }
+                    scope = parseScope(element);
+                }
                 default -> throw new ParserException("Unsupported process member tag: " + tag, root);
             }
         }
-        return new TibcoModel.Process(name, types, processInfo, partnerLinks, variables);
+        return new TibcoModel.Process(name, types, processInfo, partnerLinks, variables, scope);
+    }
+
+    private static TibcoModel.Scope parseScope(Element element) {
+        String name = element.getAttribute("name");
+        return new TibcoModel.Scope(name,
+                ElementIterable.of(element).stream().map(TibcoToBalConverter::parseFlow)
+                        .toList());
+    }
+
+    private static TibcoModel.Scope.Flow parseFlow(Element flow) {
+        String name = flow.getAttribute("name");
+        Collection<TibcoModel.Scope.Flow.Link> links = null;
+        List<TibcoModel.Scope.Flow.Activity> activities = new ArrayList<>();
+        for (Element element : ElementIterable.of(flow)) {
+            String tag = getTagNameWithoutNameSpace(element);
+            switch (tag) {
+                case "links" -> {
+                    if (links != null) {
+                        throw new ParserException("Multiple links elements found in the XML", flow);
+                    }
+                    links = parseLinks(element);
+                }
+                case "extensionActivity" -> activities.add(parseExtensionActivity(element));
+                case "invoke" -> activities.add(parseInvoke(element));
+                default -> throw new ParserException("Unsupported flow member tag: " + tag, flow);
+            }
+        }
+        return new TibcoModel.Scope.Flow(name, links, activities);
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.Invoke parseInvoke(Element element) {
+        String inputVariable = element.getAttribute("inputVariable");
+        String outputVariable = element.getAttribute("outputVariable");
+        TibcoModel.Scope.Flow.Activity.Invoke.Operation operation = switch (element.getAttribute("operation")) {
+            case "post" -> TibcoModel.Scope.Flow.Activity.Invoke.Operation.POST;
+            default -> throw new ParserException("Unsupported invoke operation: " + element.getAttribute("operation"),
+                    element);
+        };
+        String partnerLink = element.getAttribute("partnerLink");
+        List<TibcoModel.Scope.Flow.Activity.Invoke.InputBinding> inputBindings = new ArrayList<>();
+        Collection<TibcoModel.Scope.Flow.Activity.Invoke.Target> targets = new ArrayList<>();
+        Collection<TibcoModel.Scope.Flow.Activity.Invoke.Source> sources = new ArrayList<>();
+        for (Element each : ElementIterable.of(element)) {
+            String tag = getTagNameWithoutNameSpace(each);
+            switch (tag) {
+                case "inputBinding" -> inputBindings.add(
+                        new TibcoModel.Scope.Flow.Activity.Invoke.InputBinding(parseExpressionNode(each)));
+                case "inputBindings" -> {
+                    // TODO: what is the difference in partBindings
+                    for (Element partBinding : ElementIterable.of(each)) {
+                        inputBindings.add(new TibcoModel.Scope.Flow.Activity.Invoke.InputBinding(
+                                parseExpressionNode(partBinding)));
+                    }
+                }
+                case "targets" -> {
+                    for (Element target : ElementIterable.of(each)) {
+                        targets.add(new TibcoModel.Scope.Flow.Activity.Invoke.Target(target.getAttribute("linkName")));
+                    }
+                }
+                case "sources" -> {
+                    for (Element source : ElementIterable.of(each)) {
+                        sources.add(new TibcoModel.Scope.Flow.Activity.Invoke.Source(source.getAttribute("linkName")));
+                    }
+                }
+                default -> throw new ParserException("Unsupported invoke element tag: " + tag, element);
+            }
+        }
+        return new TibcoModel.Scope.Flow.Activity.Invoke(inputVariable, outputVariable, operation, partnerLink,
+                inputBindings, targets, sources);
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.Expression parseExpressionNode(Element node) {
+        String language = node.getAttribute("expressionLanguage");
+        if (language.contains("xslt")) {
+            return parseXSLTExpression(node);
+        }
+        throw new ParserException("Unsupported expression language: " + language, node);
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.Expression.XSLT parseXSLTExpression(Element node) {
+        String expression;
+        if (node.hasAttribute("expression")) {
+            expression = node.getAttribute("expression");
+        } else {
+            expression = node.getTextContent();
+        }
+        expression = unEscapeXml(expression);
+        return new TibcoModel.Scope.Flow.Activity.Expression.XSLT(expression);
+    }
+
+    private static String unEscapeXml(String escapedXml) {
+        return escapedXml.replaceAll("&lt;", "<")
+                .replaceAll("&gt;", ">")
+                .replaceAll("&amp;", "&")
+                .replaceAll("&quot;", "\"")
+                .replaceAll("&apos;", "'");
+    }
+
+    private static TibcoModel.Scope.Flow.Activity parseExtensionActivity(Element element) {
+        Element activity = expectNChildren(element, 1).iterator().next();
+        switch (getTagNameWithoutNameSpace(activity)) {
+            case "receiveEvent" -> {
+                return parseReceiveEvent(activity);
+            }
+            case "activityExtension" -> {
+                return parseActivityExtension(activity);
+            }
+            default -> throw new ParserException(
+                    "Unsupported extension activity tag: " + getTagNameWithoutNameSpace(activity),
+                    element);
+        }
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.ActivityExtension parseActivityExtension(Element activity) {
+        TibcoModel.Scope.Flow.Activity.Expression expression = parseExpressionNode(activity);
+        String inputVariable = activity.getAttribute("inputVariable");
+        Collection<TibcoModel.Scope.Flow.Activity.Target> targets =
+                ElementIterable.of(getFirstChildWithTag(activity, "targets")).stream()
+                        .map(each -> new TibcoModel.Scope.Flow.Activity.Invoke.Target(each.getAttribute("linkName")))
+                        .toList();
+        Collection<TibcoModel.Scope.Flow.Activity.InputBinding> inputBindings =
+                ElementIterable.of(getFirstChildWithTag(activity, "inputBindings")).stream()
+                        .map(each -> new TibcoModel.Scope.Flow.Activity.Invoke.InputBinding(parseExpressionNode(each)))
+                        .toList();
+        TibcoModel.Scope.Flow.Activity.ActivityExtension.Config config = parseActivityExtensionConfig(
+                getFirstChildWithTag(activity, "config"));
+        return new TibcoModel.Scope.Flow.Activity.ActivityExtension(expression, inputVariable, targets, inputBindings,
+                config);
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.ActivityExtension.Config parseActivityExtensionConfig(
+            Element config) {
+        return new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config();
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.ReceiveEvent parseReceiveEvent(Element activity) {
+        boolean createInstance = activity.getAttribute("createInstance").equals("yes");
+        float eventTimeout = expectFloatAttribute(activity, "eventTimeout");
+        String variable = activity.getAttribute("variable");
+        Collection<TibcoModel.Scope.Flow.Activity.ReceiveEvent.Source> sources =
+                ElementIterable.of(getFirstChildWithTag(activity, "sources")).stream()
+                        .map(each -> new TibcoModel.Scope.Flow.Activity.ReceiveEvent.Source(
+                                each.getAttribute("linkName"))).toList();
+
+        return new TibcoModel.Scope.Flow.Activity.ReceiveEvent(createInstance, eventTimeout, variable, sources);
+    }
+
+    private static Collection<TibcoModel.Scope.Flow.Link> parseLinks(Element element) {
+        return ElementIterable.of(element).stream()
+                .map(link -> new TibcoModel.Scope.Flow.Link(link.getAttribute("name"))).toList();
     }
 
     private static Collection<TibcoModel.Variable> parseVariables(Element element) {
@@ -214,6 +371,7 @@ public class TibcoToBalConverter {
     }
 
     private static Optional<Element> tryGetFirstChildWithTag(Element element, String tag) {
+        // TODO: use predicate things we have already implemented
         return ElementIterable.of(element).stream().filter(child -> getTagNameWithoutNameSpace(child).equals(tag))
                 .findFirst();
     }
@@ -503,6 +661,14 @@ public class TibcoToBalConverter {
             return Integer.parseInt(element.getAttribute(attributeName));
         } catch (NumberFormatException e) {
             throw new ParserException("Invalid integer value for attribute: " + attributeName, element);
+        }
+    }
+
+    private static float expectFloatAttribute(Element element, String attributeName) {
+        try {
+            return Float.parseFloat(element.getAttribute(attributeName));
+        } catch (NumberFormatException e) {
+            throw new ParserException("Invalid float value for attribute: " + attributeName, element);
         }
     }
 
