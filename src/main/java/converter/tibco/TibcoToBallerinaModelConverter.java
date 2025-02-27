@@ -106,19 +106,11 @@ public class TibcoToBallerinaModelConverter {
                     throw new IllegalStateException("Type not found: " + entry.getKey());
                 }
             }
-            List<BallerinaModel.Import> combinedImports = Stream.concat(
-                    imports.stream(),
-                    textDocument.imports().stream()
-            ).toList();
-            return new BallerinaModel.TextDocument(
-                    textDocument.documentName(),
-                    combinedImports,
-                    textDocument.moduleTypeDefs(),
-                    textDocument.moduleVars(),
-                    textDocument.listeners(),
-                    textDocument.services(),
-                    textDocument.functions(),
-                    textDocument.Comments());
+            List<BallerinaModel.Import> combinedImports =
+                    Stream.concat(imports.stream(), textDocument.imports().stream()).toList();
+            return new BallerinaModel.TextDocument(textDocument.documentName(), combinedImports,
+                    textDocument.moduleTypeDefs(), textDocument.moduleVars(), textDocument.listeners(),
+                    textDocument.services(), textDocument.functions(), textDocument.Comments());
         }
     }
 
@@ -127,13 +119,13 @@ public class TibcoToBallerinaModelConverter {
     }
 
     static BallerinaModel.Module convertProcess(Context cx, TibcoModel.Process process) {
-        List<BallerinaModel.ModuleTypeDef> moduleTypeDefs = process.types().stream()
-                .map(type -> convertTypes(cx, type)).flatMap(Collection::stream).toList();
+        List<BallerinaModel.ModuleTypeDef> moduleTypeDefs =
+                process.types().stream().map(type -> convertTypes(cx, type)).flatMap(Collection::stream).toList();
         // FIXME: this is wrong(name is not a package name)
         String name = process.name();
-        BallerinaModel.TextDocument textDocument =
-                cx.finish(new BallerinaModel.TextDocument(name + ".bal", List.of(), moduleTypeDefs,
-                        List.of(), List.of(), List.of(), List.of(), List.of()));
+        BallerinaModel.TextDocument textDocument = cx.finish(
+                new BallerinaModel.TextDocument(name + ".bal", List.of(), moduleTypeDefs, List.of(), List.of(),
+                        List.of(), List.of(), List.of()));
         return new BallerinaModel.Module(name, List.of(textDocument));
     }
 
@@ -146,8 +138,8 @@ public class TibcoToBallerinaModelConverter {
 
     private static Collection<BallerinaModel.ModuleTypeDef> convertSchema(Context cx, TibcoModel.Type.Schema schema) {
         // TODO: (may be) handle namespaces
-        Stream<BallerinaModel.ModuleTypeDef>
-                newTypeDefinitions = schema.types().stream().map(type -> convertComplexType(cx, type));
+        Stream<BallerinaModel.ModuleTypeDef> newTypeDefinitions =
+                schema.types().stream().map(type -> convertComplexType(cx, type));
         Stream<BallerinaModel.ModuleTypeDef> typeAliases =
                 schema.elements().stream().map(element -> convertTypeAlias(cx, element));
         return Stream.concat(newTypeDefinitions, typeAliases).toList();
@@ -196,8 +188,8 @@ public class TibcoToBallerinaModelConverter {
         return new BallerinaModel.TypeDesc.RecordTypeDesc(List.of(), body.fields(), body.rest());
     }
 
-    private static <E extends TibcoModel.Type.Schema.ComplexType.SequenceBody.Member> RecordBody getRecordBody(
-            Context cx, Collection<E> members) {
+    private static RecordBody getRecordBody(Context cx,
+                                            Collection<? extends TibcoModel.Type.Schema.ComplexType.SequenceBody.Member> members) {
         List<BallerinaModel.TypeDesc.RecordTypeDesc.RecordField> fields = new ArrayList<>();
         Optional<BallerinaModel.TypeDesc> rest = Optional.empty();
         for (TibcoModel.Type.Schema.ComplexType.SequenceBody.Member member : members) {
@@ -226,26 +218,23 @@ public class TibcoToBallerinaModelConverter {
 
     static BallerinaModel.TypeDesc.UnionTypeDesc convertTypeChoice(Context cx,
                                                                    TibcoModel.Type.Schema.ComplexType.Choice choice) {
-        List<? extends BallerinaModel.TypeDesc> types = choice.elements().stream()
-                .map(element -> {
-                    BallerinaModel.TypeDesc typeDesc = cx.getTypeByName(element.ref().name());
-                    assert element.maxOccurs() == 1;
-                    if (element.minOccurs() == 0) {
-                        return BallerinaModel.TypeDesc.UnionTypeDesc.of(typeDesc,
-                                BallerinaModel.TypeDesc.BuiltinType.NIL);
-                    } else {
-                        return typeDesc;
-                    }
-                })
-                .flatMap(type -> {
-                    if (type instanceof BallerinaModel.TypeDesc.UnionTypeDesc(
-                            Collection<? extends BallerinaModel.TypeDesc> members
-                    )) {
-                        return members.stream();
-                    } else {
-                        return Stream.of(type);
-                    }
-                }).distinct().toList();
+        List<? extends BallerinaModel.TypeDesc> types = choice.elements().stream().map(element -> {
+            BallerinaModel.TypeDesc typeDesc = cx.getTypeByName(element.ref().name());
+            assert element.maxOccurs() == 1;
+            if (element.minOccurs() == 0) {
+                return BallerinaModel.TypeDesc.UnionTypeDesc.of(typeDesc, BallerinaModel.TypeDesc.BuiltinType.NIL);
+            } else {
+                return typeDesc;
+            }
+        }).flatMap(type -> {
+            if (type instanceof BallerinaModel.TypeDesc.UnionTypeDesc(
+                    Collection<? extends BallerinaModel.TypeDesc> members
+            )) {
+                return members.stream();
+            } else {
+                return Stream.of(type);
+            }
+        }).distinct().toList();
         return new BallerinaModel.TypeDesc.UnionTypeDesc(types);
     }
 
