@@ -30,7 +30,6 @@ import static ballerina.BallerinaModel.Listener;
 import static ballerina.BallerinaModel.Module;
 import static ballerina.BallerinaModel.ModuleTypeDef;
 import static ballerina.BallerinaModel.ModuleVar;
-import static ballerina.BallerinaModel.ObjectField;
 import static ballerina.BallerinaModel.Parameter;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
@@ -87,7 +86,7 @@ public class CodeGenerator {
                         String.format("service %s on %s { }", service.basePath(), listenerRefs));
 
                 List<Node> members = new ArrayList<>();
-                for (ObjectField field : service.fields()) {
+                for (var field : service.fields()) {
                     ObjectFieldNode objectFieldNode = (ObjectFieldNode) NodeParser.parseObjectMember(
                             String.format("%s %s;", field.type(), field.name()));
                     members.add(objectFieldNode);
@@ -121,7 +120,7 @@ public class CodeGenerator {
 
             for (Function f : textDocument.functions()) {
                 String funcParamString = constructFunctionParameterString(f.parameters(), false);
-                String methodName = f.funcName();
+                String methodName = f.functionName();
                 FunctionDefinitionNode functionDefinitionNode;
                 if (f.body() instanceof BallerinaModel.BlockFunctionBody) {
                     FunctionDefinitionNode fd = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
@@ -160,12 +159,12 @@ public class CodeGenerator {
         if (function.body() instanceof BallerinaModel.BlockFunctionBody) {
             functionDefinitionNode = (FunctionDefinitionNode) NodeParser.parseObjectMember(
                     String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(
-                            function.visibilityQualifier()), function.funcName(), funcParamString,
+                                    function.visibilityQualifier()), function.functionName(), funcParamString,
                             getReturnTypeDescriptor(function.returnType())));
             functionDefinitionNode = generateBallerinaFunction(functionDefinitionNode, function.body());
         } else {
             functionDefinitionNode = generateBallerinaExternalFunction(function, funcParamString,
-                    function.funcName());
+                    function.functionName());
         }
         return functionDefinitionNode;
     }

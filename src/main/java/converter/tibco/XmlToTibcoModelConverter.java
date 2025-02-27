@@ -255,7 +255,7 @@ public final class XmlToTibcoModelConverter {
         var attributes = element.getAttributes();
         for (int i = 0; i < attributes.getLength(); i++) {
             var attribute = attributes.item(i);
-            String nameWithoutNamespace = getTagNameWithoutNameSpaceInner(attribute.getNodeName());
+            String nameWithoutNamespace = getTagNameWithoutNameSpace(attribute.getNodeName());
             if (nameWithoutNamespace.equals(attributeName)) {
                 return attribute.getNodeValue();
             }
@@ -579,10 +579,10 @@ public final class XmlToTibcoModelConverter {
 
     private static String getTagNameWithoutNameSpace(Element element) {
         String tagName = element.getTagName();
-        return getTagNameWithoutNameSpaceInner(tagName);
+        return getTagNameWithoutNameSpace(tagName);
     }
 
-    private static String getTagNameWithoutNameSpaceInner(String tagName) {
+    public static String getTagNameWithoutNameSpace(String tagName) {
         String[] parts = tagName.split(":");
         if (parts.length == 1) {
             return parts[0];
@@ -670,7 +670,7 @@ public final class XmlToTibcoModelConverter {
             transformer.transform(source, result);
             return writer.toString();
         } catch (TransformerException e) {
-            throw new RuntimeException("Failed to convert element to string", e);
+            throw new RuntimeException("Failed to convertTypes element to string", e);
         }
     }
 

@@ -45,7 +45,6 @@ import static ballerina.BallerinaModel.ListenerType;
 import static ballerina.BallerinaModel.Module;
 import static ballerina.BallerinaModel.ModuleTypeDef;
 import static ballerina.BallerinaModel.ModuleVar;
-import static ballerina.BallerinaModel.ObjectField;
 import static ballerina.BallerinaModel.OnFailClause;
 import static ballerina.BallerinaModel.Parameter;
 import static ballerina.BallerinaModel.Resource;
@@ -634,8 +633,8 @@ public class MuleToBalConverter {
                 Optional.of(returnType), new BlockFunctionBody(body)));
 
         // Add service fields
-        List<ObjectField> fields = Collections.singletonList(
-                new ObjectField(typeFrom(Constants.CONTEXT_RECORD_TYPE), Constants.CONTEXT_REFERENCE));
+        List<BallerinaModel.ObjectField> fields = Collections.singletonList(
+                new BallerinaModel.ObjectField(typeFrom(Constants.CONTEXT_RECORD_TYPE), Constants.CONTEXT_REFERENCE));
         return new Service(basePath, listenerRefs, Optional.empty(), resources, functions, Collections.emptyList(),
                 Collections.emptyList(), fields);
     }

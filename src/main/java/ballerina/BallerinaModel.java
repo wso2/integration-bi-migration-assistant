@@ -8,14 +8,17 @@ import java.util.Optional;
 public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules) {
 
     public record DefaultPackage(String org, String name, String version) {
+
     }
 
     public record Module(String name, List<TextDocument> textDocuments) {
+
     }
 
     public record TextDocument(String documentName, List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
                                List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
                                List<Function> functions, List<String> Comments) {
+
     }
 
     public record Import(String orgName, String moduleName, Optional<String> importPrefix) {
@@ -31,6 +34,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record ModuleTypeDef(String name, TypeDesc typeDesc) {
+
     }
 
     public sealed interface TypeDesc {
@@ -43,12 +47,13 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
-        record RecordTypeDesc(List<RecordField> fields, TypeDesc rest) implements TypeDesc {
+        record RecordTypeDesc(List<TypeDesc> inclusions, List<RecordField> fields, TypeDesc rest)
+                implements TypeDesc {
 
             private static final String INDENT = "  ";
 
             public static RecordTypeDesc closedRecord(Collection<RecordField> fields) {
-                return new RecordTypeDesc(List.copyOf(fields), BuiltinType.NEVER);
+                return new RecordTypeDesc(List.of(), List.copyOf(fields), BuiltinType.NEVER);
             }
 
             @Override
@@ -56,6 +61,9 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                 StringBuilder sb = new StringBuilder();
                 boolean isExclusive = rest != BuiltinType.ANYDATA;
                 sb.append("record ").append(isExclusive ? "{|" : "{").append("\n");
+                for (TypeDesc inclusion : inclusions) {
+                    sb.append(INDENT).append("include ").append(inclusion).append("\n");
+                }
                 for (RecordField field : fields) {
                     sb.append(INDENT).append(field).append("\n");
                 }
@@ -93,15 +101,20 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
-        record UnionTypeDesc(Collection<TypeDesc> members) implements TypeDesc {
+        record UnionTypeDesc(Collection<? extends TypeDesc> members) implements TypeDesc {
 
             public static UnionTypeDesc of(TypeDesc... members) {
                 return new UnionTypeDesc(List.of(members));
             }
+
+            @Override
+            public String toString() {
+                return String.join(" | ", members.stream().map(Object::toString).toList());
+            }
         }
 
         enum BuiltinType implements TypeDesc {
-            ANYDATA("anydata"), NEVER("never");
+            ANYDATA("anydata"), NEVER("never"), NIL("()"), STRING("string");
 
             private final String name;
 
@@ -131,6 +144,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     // TODO: move port to config map
     public record Listener(ListenerType type, String name, String port, Map<String, String> config) {
+
     }
 
     public enum ListenerType {
@@ -139,9 +153,10 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     public record Resource(String resourceMethodName, String path, List<Parameter> parameters,
                            Optional<String> returnType, List<Statement> body) {
+
     }
 
-    public record Function(Optional<String> visibilityQualifier, String funcName, List<Parameter> parameters,
+    public record Function(Optional<String> visibilityQualifier, String functionName, List<Parameter> parameters,
                            Optional<String> returnType, FunctionBody body) {
         public Function(String funcName, List<Parameter> parameters, List<Statement> body) {
             this(Optional.empty(), funcName, parameters, Optional.empty(),

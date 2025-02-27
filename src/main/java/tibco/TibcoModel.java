@@ -143,8 +143,7 @@ public class TibcoModel {
 
                 public record ComplexContent(Extension extension) implements Body {
 
-                    public record Extension(TibcoType base, Collection<SequenceBody.Member.Element> elements)
-                            implements Body {
+                    public record Extension(TibcoType base, Collection<SequenceBody.Member.Element> elements) {
 
                         public Extension {
                             assert base != null;
