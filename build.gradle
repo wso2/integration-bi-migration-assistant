@@ -37,8 +37,8 @@ dependencies {
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${fasterXmlVersion}"
     implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8', version: "${fasterXmlVersion}"
 
-    testImplementation 'org.testng:testng:7.7.0'
-    spotbugs 'com.github.spotbugs:spotbugs:4.8.4'
+    testImplementation group: 'org.testng', name: 'testng', version: "${testngVersion}"
+    spotbugs group: 'com.github.spotbugs', name: 'spotbugs', version: "${spotbugsVersion}"
 }
 
 checkstyle {
