@@ -22,6 +22,7 @@
         </packages>
         <classes>
             <class name="converter.tibco.ParserTest"/>
+            <class name="converter.tibco.ConversionTest"/>
         </classes>
     </test>
 </suite>
