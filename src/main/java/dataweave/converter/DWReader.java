@@ -71,65 +71,26 @@ public class DWReader {
     public static void processDWElements(List<MuleModel.TransformMessageElement> children, MuleToBalConverter.Data data,
                                          List<BallerinaModel.Statement> statementList) {
         DWContext context = new DWContext(statementList);
-        ParseTree tree;
-        BallerinaVisitor visitor;
         for (MuleModel.TransformMessageElement child : children) {
             switch (child.kind()) {
                 case DW_SET_PAYLOAD:
                     MuleModel.SetPayloadElement setPayloadElement = (MuleModel.SetPayloadElement) child;
-
-                    if (setPayloadElement.script() != null) {
-                        tree = readDWScript(setPayloadElement.script());
-                    } else {
-                        tree = readDWScriptFromFile(setPayloadElement.resource().replace(Constants.CLASSPATH
-                                , Constants.CLASSPATH_DIR));
-                    }
-                    visitor = new BallerinaVisitor(context, data);
-                    visitor.visit(tree);
-                    StringBuilder statement = new StringBuilder(context.outputType + " "
-                            + DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME + " = ");
-                    if (context.containsCheck) {
-                        statement.append("check ");
-                    }
-                    statement.append(context.functionNames.getLast()).append("(")
-                            .append(DWUtils.getParamsString(context.params)).append(");");
-                    statementList.add(new BallerinaModel.BallerinaStatement(statement.toString()));
-                    context.clearScript();
+                    addStatementToList(setPayloadElement.script(), setPayloadElement.resource(),
+                            context, data, DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME, statementList);
                     break;
                 case DW_SET_VARIABLE:
                     MuleModel.SetVariableElement setVariableElement = (MuleModel.SetVariableElement) child;
-                    if (setVariableElement.script() != null) {
-                        tree = readDWScript(setVariableElement.script());
-                    } else {
-                        tree = readDWScriptFromFile(setVariableElement.resource().replace(Constants.CLASSPATH
-                                , Constants.CLASSPATH_DIR));
-                    }
-                    visitor = new BallerinaVisitor(context, data);
-                    visitor.visit(tree);
-                    statementList.add(new BallerinaModel.BallerinaStatement(context.outputType + " "
-                            + setVariableElement.variableName() + " = " + context.functionNames.getLast() + "(" +
-                            DWUtils.getParamsString(context.params) + ");"));
-                    context.clearScript();
+                    addStatementToList(setVariableElement.script(), setVariableElement.resource(),
+                            context, data, setVariableElement.variableName(), statementList);
                     break;
                 case DW_SET_SESSION_VARIABLE:
                     MuleModel.SetSessionVariableElement sessionVariableElement =
                             (MuleModel.SetSessionVariableElement) child;
-                    if (sessionVariableElement.script() != null) {
-                        tree = readDWScript(sessionVariableElement.script());
-                    } else {
-                        tree = readDWScriptFromFile(sessionVariableElement.resource().replace(Constants.CLASSPATH
-                                , Constants.CLASSPATH_DIR));
-                    }
-                    visitor = new BallerinaVisitor(context, data);
-                    visitor.visit(tree);
-                    statementList.add(new BallerinaModel.BallerinaStatement(context.outputType + " "
-                            + sessionVariableElement.variableName() + " = " + context.functionNames.getLast() + "(" +
-                            DWUtils.getParamsString(context.params) + ");"));
-                    context.clearScript();
+                    addStatementToList(sessionVariableElement.script(), sessionVariableElement.resource(),
+                            context, data, sessionVariableElement.variableName(), statementList);
                     break;
                 case DW_INPUT_PAYLOAD:
-                    String mimeType = ((MuleModel.InputPayloadElement) child).mimeType();
-                    context.setMimeType(mimeType);
+                    context.setMimeType(((MuleModel.InputPayloadElement) child).mimeType());
                     break;
                 default:
                     statementList.add(new BallerinaModel.BallerinaStatement(
@@ -137,7 +98,46 @@ public class DWReader {
                     break;
             }
         }
+    }
 
+    private static void addStatementToList(String script, String resourcePath,
+                                           DWContext context,
+                                           MuleToBalConverter.Data data,
+                                           String varName,
+                                           List<BallerinaModel.Statement> statementList) {
+        String funcStatement = getFunctionStatement(script, resourcePath, context, data, varName);
+        statementList.add(new BallerinaModel.BallerinaStatement(funcStatement));
+        context.clearScript();
+    }
 
+    private static String getFunctionStatement(String script, String resourcePath, DWContext context,
+                                               MuleToBalConverter.Data data, String varName) {
+        if (script != null) {
+            ParseTree tree = readDWScript(script);
+            BallerinaVisitor visitor = new BallerinaVisitor(context, data);
+            visitor.visit(tree);
+            context.currentScriptContext.funcName = context.functionNames.getLast();
+            return buildStatement(context, varName);
+        }
+        if (context.scriptCache.containsKey(resourcePath)) {
+            context.currentScriptContext = context.scriptCache.get(resourcePath);
+            return buildStatement(context, varName);
+        }
+        ParseTree tree = readDWScriptFromFile(resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR));
+        BallerinaVisitor visitor = new BallerinaVisitor(context, data);
+        visitor.visit(tree);
+        context.currentScriptContext.funcName = context.functionNames.getLast();
+        context.scriptCache.put(resourcePath, context.currentScriptContext);
+        return buildStatement(context, varName);
+
+    }
+
+    private static String buildStatement(DWContext context, String varName) {
+        String statement = context.currentScriptContext.outputType + " " + varName + " = ";
+        if (context.currentScriptContext.containsCheck) {
+            statement += "check ";
+        }
+        return statement + context.functionNames.getLast() + "(" +
+                DWUtils.getParamsString(context.currentScriptContext.params) + ");";
     }
 }

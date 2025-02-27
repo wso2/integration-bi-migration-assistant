@@ -1,6 +1,7 @@
 package blocks.mule3;
 
 import blocks.AbstractBlockTest;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 public class TransformMessageTest extends AbstractBlockTest {
@@ -75,6 +76,19 @@ public class TransformMessageTest extends AbstractBlockTest {
     public void testTransformMessageWithComponents() {
         testMule3ToBal("transform-message/transform_message_with_components.xml",
                 "transform-message/transform_message_with_components.bal");
+    }
+
+    @Test (dataProvider = "provideTestParams")
+    public void testTransformMessageWithCustomDataWeave(String dwFile, String balFile) {
+        testDataWeaveMule3ToBal(dwFile, balFile);
+    }
+
+    @DataProvider (name = "provideTestParams")
+    public Object[][] provideTestParams() {
+        return new Object[][]{
+                {"transform-message/dataweave-files/transform_message_with_components.dwl",
+                        "transform-message/transform_message_with_template.bal"},
+        };
     }
 
 }
