@@ -18,10 +18,13 @@
 
 package converter.tibco;
 
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class ConversionTest {
@@ -32,7 +35,7 @@ public class ConversionTest {
     }
 
     @Test(groups = {"tibco", "converter"}, dataProvider = "testCaseProvider")
-    public void testConvertor(Path path, TestUtils.TestKind kind) {
+    public void testBallerinaModelConverter(Path path, TestUtils.TestKind kind) {
         try {
             var element = TibcoToBalConverter.parseXmlFile(path.toString());
             var process = XmlToTibcoModelConverter.parseProcess(element);
@@ -42,6 +45,20 @@ public class ConversionTest {
             if (kind == TestUtils.TestKind.ERROR) {
                 throw new AssertionError("Parsing succeeded for an invalid input: " + path);
             }
+        } catch (Exception e) {
+            if (kind == TestUtils.TestKind.VALID) {
+                throw new AssertionError("Parsing failed for a valid input: " + path, e);
+            }
+        }
+    }
+
+    @Test(groups = {"tibco", "converter"}, dataProvider = "testCaseProvider")
+    public void testBallerinaSourceConverter(Path path, TestUtils.TestKind kind) {
+        try {
+            SyntaxTree syntaxTree = TibcoToBalConverter.convertToBallerina(path.toString());
+            String source = syntaxTree.toSourceCode();
+            String expectedSource = Files.readString(Path.of(path.toString().replace(".bwp", ".bal")));
+            Assert.assertEquals(source, expectedSource);
         } catch (Exception e) {
             if (kind == TestUtils.TestKind.VALID) {
                 throw new AssertionError("Parsing failed for a valid input: " + path, e);

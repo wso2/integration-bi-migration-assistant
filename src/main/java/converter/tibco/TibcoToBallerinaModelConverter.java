@@ -164,7 +164,6 @@ public class TibcoToBallerinaModelConverter {
         BallerinaModel.TypeDesc typeDesc = switch (complexType.body()) {
             case TibcoModel.Type.Schema.ComplexType.Choice choice -> convertTypeChoice(cx, choice);
             case TibcoModel.Type.Schema.ComplexType.SequenceBody sequenceBody -> convertSequenceBody(cx, sequenceBody);
-            // FIXME: handle type inclusion
             case TibcoModel.Type.Schema.ComplexType.ComplexContent complexContent ->
                     convertTypeInclusion(cx, complexContent);
         };
