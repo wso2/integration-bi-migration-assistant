@@ -22,61 +22,28 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.stream.Stream;
 
 public class ParserTest {
 
-    private static final Path RESOURCE_DIRECTORY = Path.of("src", "test", "resources", "tibco");
+    @DataProvider
+    public static Object[][] testCaseProvider() throws IOException {
+        return TestUtils.testCaseProvider();
+    }
 
-    @Test(groups = {"tibco", "parser"}, dataProvider = "parserDataProvider")
-    public void testParser(Path path, TestKind kind) {
+    @Test(groups = {"tibco", "parser"}, dataProvider = "testCaseProvider")
+    public void testParser(Path path, TestUtils.TestKind kind) {
         try {
             var element = TibcoToBalConverter.parseXmlFile(path.toString());
             var process = XmlToTibcoModelConverter.parseProcess(element);
-            if (kind == TestKind.ERROR) {
+            // TODO: figure out how to validate the model
+            if (kind == TestUtils.TestKind.ERROR) {
                 throw new AssertionError("Parsing succeeded for an invalid input: " + path);
             }
         } catch (Exception e) {
-            if (kind == TestKind.VALID) {
+            if (kind == TestUtils.TestKind.VALID) {
                 throw new AssertionError("Parsing failed for a valid input: " + path, e);
             }
-        }
-    }
-
-    @DataProvider(name = "parserDataProvider")
-    public Object[][] parserDataProvider() throws IOException {
-        try (Stream<Path> paths = Files.walk(RESOURCE_DIRECTORY)) {
-            return paths
-                    .filter(Files::isRegularFile)
-                    .filter(ParserTest::isBWP)
-                    .map(path -> new Object[]{path, TestKind.from(path)})
-                    .toArray(Object[][]::new);
-        }
-    }
-
-    private static boolean isBWP(Path path) {
-        return path.toString().endsWith(".bwp");
-    }
-
-    public enum TestKind {
-        VALID,
-        ERROR;
-
-        public static TestKind from(Path path) {
-            String fileName = path.getFileName().toString();
-            int startIndex = fileName.lastIndexOf('-') + 1;
-            int endIndex = fileName.lastIndexOf(".bwp");
-            if (startIndex > 0 && endIndex > startIndex) {
-                String suffix = fileName.substring(startIndex, endIndex).toLowerCase();
-                return switch (suffix) {
-                    case "t" -> VALID;
-                    case "e" -> ERROR;
-                    default -> throw new IllegalArgumentException("Invalid file suffix in" + path);
-                };
-            }
-            throw new IllegalArgumentException("Invalid file name" + path);
         }
     }
 
