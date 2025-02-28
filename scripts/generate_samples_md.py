@@ -1,9 +1,17 @@
 import os
 
-# Define the directory paths
-samples_dir = 'src/test/resources/blocks/mule3'
-output_md_path = 'SAMPLES.md'
-readme_md_path = 'README.md'
+# Get the root directory of the project
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
+# Define the relative paths from the root directory
+relative_samples_dir = 'src/test/resources/blocks/mule3'
+relative_output_md_path = 'SAMPLES.md'
+relative_readme_md_path = 'README.md'
+
+# Construct the absolute paths
+samples_dir = os.path.join(root_dir, relative_samples_dir)
+output_md_path = os.path.join(root_dir, relative_output_md_path)
+readme_md_path = os.path.join(root_dir, relative_readme_md_path)
 
 # List all files in the directory and its subdirectories
 all_files = []

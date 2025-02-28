@@ -163,6 +163,11 @@ public class MuleToBalConverter {
     }
 
     public static SyntaxTree convertToBallerina(String xmlFilePath) {
+        BallerinaModel ballerinaModel = getBallerinaModel(xmlFilePath);
+        return new CodeGenerator(ballerinaModel).generateBalCode();
+    }
+
+    public static BallerinaModel getBallerinaModel(String xmlFilePath) {
         Element root;
         try {
             root = parseMuleXMLConfigurationFile(xmlFilePath);
@@ -197,8 +202,7 @@ public class MuleToBalConverter {
             readGlobalConfigElement(data, element);
         }
 
-        BallerinaModel ballerinaModel = generateBallerinaModel(data, flows, subFlows);
-        return new CodeGenerator(ballerinaModel).generateBalCode();
+        return generateBallerinaModel(data, flows, subFlows);
     }
 
     private static Element parseMuleXMLConfigurationFile(String uri) throws ParserConfigurationException, SAXException,
