@@ -23,7 +23,7 @@ service /mule3 on config {
         // <json:object-to-json-transformer-unsupported xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" doc:name="Object to JSON" xmlns:json="http://www.mulesoft.org/schema/mule/json"/>
         // ------------------------------------------------------------------------
 
-        log:printInfo("Users details: #[payload]");
+        log:printInfo(string `Users details: ${payload}`);
         return _response_;
     }
 }

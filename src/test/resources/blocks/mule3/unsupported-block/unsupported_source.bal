@@ -3,7 +3,7 @@ import ballerina/log;
 
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
-function demoFlow(http:Response _response_) {
+function demoFlow() {
 
     // TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.
     // ------------------------------------------------------------------------

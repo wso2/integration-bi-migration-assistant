@@ -22,7 +22,6 @@ service /mule3 on config {
         stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
         Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
             select _iterator_;
-        _response_.setPayload(_dbSelect0_.toString());
 
         // json transformation
         json _to_json0_ = _dbSelect0_.toJson();

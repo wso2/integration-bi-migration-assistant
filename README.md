@@ -47,12 +47,15 @@ For now, Mule 3.x is supported. Support for Mule 4.x is expected to be added lat
 
 The migration tool currently supports the following Mule components:
 
+- [Catch Exception Strategy](SAMPLES.md#catch-exception-strategy)
 - [Database](SAMPLES.md#database)
 - [Flow](SAMPLES.md#flow)
 - [Http Listener](SAMPLES.md#http-listener)
 - [Logger](SAMPLES.md#logger)
+- [Message Enricher](SAMPLES.md#message-enricher)
 - [Object To Json](SAMPLES.md#object-to-json)
 - [Object To String](SAMPLES.md#object-to-string)
+- [Session Variable](SAMPLES.md#session-variable)
 - [Set Payload](SAMPLES.md#set-payload)
 - [Sub Flow](SAMPLES.md#sub-flow)
 - [Transform Message](SAMPLES.md#transform-message)
