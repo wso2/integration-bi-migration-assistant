@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static ballerina.BallerinaModel.BallerinaStatement;
+import static ballerina.BallerinaModel.DoStatement;
 import static ballerina.BallerinaModel.ElseIfClause;
 import static ballerina.BallerinaModel.Function;
 import static ballerina.BallerinaModel.IfElseStatement;
@@ -218,6 +219,13 @@ public class CodeGenerator {
     private static String constructBallerinaStatements(Statement stmt) {
         if (stmt instanceof BallerinaStatement balStmt) {
             return balStmt.stmt();
+        } else if (stmt instanceof DoStatement doStatement) {
+            // TODO: check for optional on-fail
+            return String.format("do { %s } on fail { %s }",
+                    String.join("", doStatement.doBody().stream()
+                            .map(CodeGenerator::constructBallerinaStatements).toList()),
+                    String.join("", doStatement.onFailClause().get().onFailBody().stream()
+                            .map(CodeGenerator::constructBallerinaStatements).toList()));
         } else if (stmt instanceof IfElseStatement ifElseStmt) {
             StringBuilder stringBuilder = new StringBuilder();
             for (ElseIfClause elseIfClause : ifElseStmt.elseIfClauses()) {

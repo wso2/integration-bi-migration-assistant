@@ -89,6 +89,7 @@ public record MuleModel() {
         }
     }
 
+    // Scopes
     public record Flow(Kind kind, String name, Optional<MuleRecord> source, List<MuleRecord> flowBlocks)
             implements MuleRecord {
         public Flow(String name, Optional<MuleRecord> source, List<MuleRecord> flowBlocks) {
@@ -102,10 +103,23 @@ public record MuleModel() {
         }
     }
 
+    public record Enricher(Kind kind, String source, String target, Optional<MuleRecord> innerBlock)
+            implements MuleRecord {
+        public Enricher(String source, String target, Optional<MuleRecord> innerBlock) {
+            this(Kind.MESSAGE_ENRICHER, source, target, innerBlock);
+        }
+    }
+
     // Transformers
     public record SetVariable(Kind kind, String variableName, String value) implements MuleRecord {
         public SetVariable(String variableName, String value) {
             this(Kind.SET_VARIABLE, variableName, value);
+        }
+    }
+
+    public record SetSessionVariable(Kind kind, String variableName, String value) implements MuleRecord {
+        public SetSessionVariable(String variableName, String value) {
+            this(Kind.SET_SESSION_VARIABLE, variableName, value);
         }
     }
 
@@ -124,6 +138,13 @@ public record MuleModel() {
     public record ObjectToString(Kind kind) implements MuleRecord {
         public ObjectToString() {
             this(Kind.OBJECT_TO_STRING);
+        }
+    }
+
+    // Error handling
+    public record CatchExceptionStrategy(Kind kind, List<MuleRecord> catchBlocks) implements MuleRecord {
+        public CatchExceptionStrategy(List<MuleRecord> catchBlocks) {
+            this(Kind.CATCH_EXCEPTION_STRATEGY, catchBlocks);
         }
     }
 
@@ -188,6 +209,7 @@ public record MuleModel() {
         DB_DELETE,
         DB_IN_PARAM,
         SET_VARIABLE,
+        SET_SESSION_VARIABLE,
         OBJECT_TO_JSON,
         OBJECT_TO_STRING,
         TRANSFORM_MESSAGE,
@@ -197,6 +219,8 @@ public record MuleModel() {
         DW_INPUT_PAYLOAD,
         FLOW,
         SUB_FLOW,
+        MESSAGE_ENRICHER,
+        CATCH_EXCEPTION_STRATEGY,
         UNSUPPORTED_BLOCK
     }
 

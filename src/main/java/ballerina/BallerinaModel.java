@@ -64,6 +64,12 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     public record ElseIfClause(BallerinaExpression condition, List<Statement> elseIfBody) {
     }
 
-    public sealed interface Statement permits BallerinaStatement, IfElseStatement {
+    public record DoStatement(List<Statement> doBody, Optional<OnFailClause> onFailClause) implements Statement {
+    }
+
+    public record OnFailClause(List<Statement> onFailBody) {
+    }
+
+    public sealed interface Statement permits BallerinaStatement, IfElseStatement, DoStatement {
     }
 }

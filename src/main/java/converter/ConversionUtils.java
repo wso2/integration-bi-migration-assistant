@@ -112,17 +112,35 @@ public class ConversionUtils {
 
     static String convertToBallerinaExpression(MuleToBalConverter.Data data, String muleExpr,
                                                boolean encloseInDoubleQuotes) {
-        if (muleExpr.startsWith("#[") && muleExpr.endsWith("]")) {
-            // We reach here for mule expression syntax
-            var innerExpr = muleExpr.substring(2, muleExpr.length() - 1);
-            return getVariable(data, innerExpr);
+        // Check if the string contains mule expression in form #[]
+        if (!muleExpr.contains("#[")) {
+            return surroundWithDoubleQuotes(muleExpr);
         }
-        return encloseInDoubleQuotes ? "\"" + muleExpr + "\"" : muleExpr;
+
+        // Replace #[...] with ${...}
+        String replacedExpr = muleExpr.replaceAll("#\\[([^]]+)]", "\\${$1}");
+        return String.format("string `%s`", replacedExpr);
+    }
+
+    private static String surroundWithDoubleQuotes(String str) {
+        // Escape double quotes in the input string
+        String escapedExpr = str.replace("\"", "\\\"");
+        return String.format("\"%s\"", escapedExpr);
+    }
+
+    public static String getSimpleMuleFlowVar(String muleExpr) {
+        String expr = extractSimpleMuleExpr(muleExpr);
+        return getVariable(null, expr);
+    }
+
+    public static String extractSimpleMuleExpr(String muleExpr) {
+        assert muleExpr.startsWith("#[") && muleExpr.endsWith("]");
+        return muleExpr.substring(2, muleExpr.length() - 1);
     }
 
     private static String getVariable(MuleToBalConverter.Data data, String value) {
         String queryParamPrefix = "attributes.queryParams.";
-        String varPrefix = "vars.";
+        String varPrefix = "flowVars.";
 
         String v;
         if (value.startsWith(queryParamPrefix)) {

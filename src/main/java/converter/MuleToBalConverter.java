@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,6 +34,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import static ballerina.BallerinaModel.BallerinaExpression;
 import static ballerina.BallerinaModel.BallerinaStatement;
 import static ballerina.BallerinaModel.DefaultPackage;
+import static ballerina.BallerinaModel.DoStatement;
 import static ballerina.BallerinaModel.ElseIfClause;
 import static ballerina.BallerinaModel.Function;
 import static ballerina.BallerinaModel.IfElseStatement;
@@ -41,6 +44,7 @@ import static ballerina.BallerinaModel.ListenerType;
 import static ballerina.BallerinaModel.Module;
 import static ballerina.BallerinaModel.ModuleTypeDef;
 import static ballerina.BallerinaModel.ModuleVar;
+import static ballerina.BallerinaModel.OnFailClause;
 import static ballerina.BallerinaModel.Parameter;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
@@ -53,11 +57,13 @@ import static converter.ConversionUtils.getBallerinaAbsolutePath;
 import static converter.ConversionUtils.getBallerinaResourcePath;
 import static converter.ConversionUtils.insertLeadingSlash;
 import static converter.ConversionUtils.processQueryParams;
+import static mule.MuleModel.CatchExceptionStrategy;
 import static mule.MuleModel.Choice;
 import static mule.MuleModel.DbInParam;
 import static mule.MuleModel.DbMSQLConfig;
 import static mule.MuleModel.DbTemplateQuery;
 import static mule.MuleModel.Database;
+import static mule.MuleModel.Enricher;
 import static mule.MuleModel.Flow;
 import static mule.MuleModel.FlowReference;
 import static mule.MuleModel.HttpListener;
@@ -72,6 +78,7 @@ import static mule.MuleModel.ObjectToString;
 import static mule.MuleModel.Payload;
 import static mule.MuleModel.QueryType;
 import static mule.MuleModel.SetVariable;
+import static mule.MuleModel.SetSessionVariable;
 import static mule.MuleModel.SubFlow;
 import static mule.MuleModel.TransformMessage;
 import static mule.MuleModel.Type;
@@ -82,15 +89,17 @@ public class MuleToBalConverter {
 
     public static class Data {
         // Mule global elements
-        HashMap<String, HTTPListenerConfig> globalHttpListenerConfigsMap = new HashMap<>();
-        HashMap<String, DbMSQLConfig> globalDbMySQLConfigsMap = new HashMap<>();
-        HashMap<String, DbTemplateQuery> globalDbTemplateQueryMap = new HashMap<>();
+        HashMap<String, HTTPListenerConfig> globalHttpListenerConfigsMap = new LinkedHashMap<>();
+        HashMap<String, DbMSQLConfig> globalDbMySQLConfigsMap = new LinkedHashMap<>();
+        HashMap<String, DbTemplateQuery> globalDbTemplateQueryMap = new LinkedHashMap<>();
         List<UnsupportedBlock> globalUnsupportedBlocks = new ArrayList<>();
 
         // Ballerina global elements
         public HashMap<String, ModuleTypeDef> typeDef = new HashMap<>();
         public HashSet<Import> imports = new HashSet<>();
         HashSet<String> queryParams = new HashSet<>();
+        HashMap<String, ModuleTypeDef> typeDefMap = new LinkedHashMap<>();
+        HashMap<String, ModuleVar> moduleVarMap = new LinkedHashMap<>();
         public List<Function> functions = new ArrayList<>();
 
         // Internal variable/method count
@@ -100,15 +109,66 @@ public class MuleToBalConverter {
         public int dbSelectVarCount = 0;
         public int objectToJsonVarCount = 0;
         public int objectToStringVarCount = 0;
+        public int enricherMethodCount = 0;
+        public int payloadVarCount = 0;
 
-        // Temporary payload info
-        public CurrentPayloadVarInfo payload = null;
+        // We don't know all the params passing down to funcs until we fully read the mule config.
+        // Therefore, we need to keep a track of the params needed.
+        private final HashMap<String, HashSet<Parameter>> functionParamMap = new HashMap<>();
+
+        public void addFuncParam(String funcName, Parameter param) {
+            HashSet<Parameter> parameters = functionParamMap.get(funcName);
+            if (parameters == null) {
+                functionParamMap.put(funcName, new HashSet<>(Collections.singletonList(param)));
+            } else {
+                parameters.add(param);
+            }
+        }
+
+        // Data analyze attributes
+        Map<String, FlowInfo> flowInfoMap = new HashMap<>();
+        Map<String, Function> flowToGenMethodMap = new HashMap<>();
+        FlowInfo currentFlowInfo = null;
+
+        static class FlowInfo {
+            final String flowName;
+            private Context context;
+            private PayloadVarInfo currentPayload;
+
+            FlowInfo(String flowName) {
+                this.flowName = flowName;
+                this.context = Context.DEFAULT;
+                this.currentPayload = DEFAULT_PAYLOAD;
+            }
+
+            FlowInfo(String flowName, Context context) {
+                this.flowName = flowName;
+                this.context = context;
+                this.currentPayload = DEFAULT_PAYLOAD;
+            }
+        }
     }
 
-    public record CurrentPayloadVarInfo (String type, String nameReference) {
+    static void putFlowInfoIfAbsent(Data data, String flowName) {
+        data.flowInfoMap.putIfAbsent(flowName, new Data.FlowInfo(flowName));
+    }
+
+    public enum Context {
+        DEFAULT,
+        HTTP_LISTENER
+    }
+
+    static final PayloadVarInfo DEFAULT_PAYLOAD = new PayloadVarInfo("()", "null");
+
+    public record PayloadVarInfo(String type, String nameReference) {
     }
 
     public static SyntaxTree convertToBallerina(String xmlFilePath) {
+        BallerinaModel ballerinaModel = getBallerinaModel(xmlFilePath);
+        return new CodeGenerator(ballerinaModel).generateBalCode();
+    }
+
+    public static BallerinaModel getBallerinaModel(String xmlFilePath) {
         Element root;
         try {
             root = parseMuleXMLConfigurationFile(xmlFilePath);
@@ -143,8 +203,7 @@ public class MuleToBalConverter {
             readGlobalConfigElement(data, element);
         }
 
-        BallerinaModel ballerinaModel = generateBallerinaModel(data, flows, subFlows);
-        return new CodeGenerator(ballerinaModel).generateBalCode();
+        return generateBallerinaModel(data, flows, subFlows);
     }
 
     private static Element parseMuleXMLConfigurationFile(String uri) throws ParserConfigurationException, SAXException,
@@ -192,6 +251,10 @@ public class MuleToBalConverter {
             MuleRecord src = source.get();
             assert src.kind() == Kind.HTTP_LISTENER;
 
+            Data.FlowInfo flowInfo = new Data.FlowInfo(flow.name(), Context.HTTP_LISTENER);
+            data.flowInfoMap.put(flow.name(), flowInfo);
+            data.currentFlowInfo = flowInfo;
+
             // Create a service from the flow
             Service service = genBalService(data, (HttpListener) src, flow.flowBlocks());
             services.add(service);
@@ -204,12 +267,7 @@ public class MuleToBalConverter {
 
         // Create functions for sub-flows
         genBalFuncsFromSubFlows(data, subFlows, functions);
-
-        // Add imports
-        List<Import> imports = new ArrayList<>();
-        for (Import imp : data.imports) {
-            imports.add(new Import(imp.orgName(), imp.moduleName(), imp.importPrefix()));
-        }
+        functions.addAll(data.functions);
 
         // Add global listeners
         List<Listener> listeners = new ArrayList<>();
@@ -232,40 +290,67 @@ public class MuleToBalConverter {
             moduleVars.add(new ModuleVar(dbTemplateQuery.name(), Constants.SQL_PARAMETERIZED_QUERY_TYPE, balExpr));
         }
 
+        moduleVars.addAll(data.moduleVarMap.values());
+
         List<String> comments = new ArrayList<>();
         for (UnsupportedBlock unsupportedBlock : data.globalUnsupportedBlocks) {
             String comment = ConversionUtils.wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());
             comments.add(comment);
         }
 
-        return createBallerinaModel(imports, data.typeDef.values().stream().toList(), moduleVars, listeners, services,
-                functions.stream().toList(), comments);
+        // Update function params
+        List<Function> funcs = new ArrayList<>(functions.size());
+        for (Function function : functions) {
+            HashSet<Parameter> parameters = data.functionParamMap.get(function.methodName());
+            if (parameters == null) {
+                funcs.add(function);
+            } else {
+                funcs.add(new Function(function.visibilityQualifier(), function.methodName(),
+                        parameters.stream().toList(), function.returnType(), function.body()));
+            }
+        }
+
+        return createBallerinaModel(new ArrayList<>(data.imports), data.typeDefMap.values().stream().toList(),
+                moduleVars, listeners, services, funcs, comments);
     }
 
     private static void genBalFuncsFromSubFlows(Data data, List<SubFlow> subFlows, Set<Function> functions) {
         for (SubFlow subFlow : subFlows) {
-            List<Statement> body = genFuncBodyStatements(data, subFlow.flowBlocks());
-            // TODO: assumed source is always a http listener
-            List<Parameter> parameterList = List.of(new Parameter(Constants.VAR_RESPONSE, "http:Response",
-                    Optional.empty()));
-            Function function = new Function(Optional.empty(), subFlow.name(), parameterList, Optional.empty(), body);
-            functions.add(function);
+            genBalFuncForPrivateOrSubFlow(data, functions, subFlow.name(), subFlow.flowBlocks());
         }
-        functions.addAll(data.functions);
+    }
+
+    private static void genBalFuncForPrivateOrSubFlow(Data data, Set<Function> functions, String flowName,
+                                                      List<MuleRecord> flowBlocks) {
+        putFlowInfoIfAbsent(data, flowName);
+        data.currentFlowInfo = data.flowInfoMap.get(flowName);
+
+        List<Statement> body = genFuncBodyStatements(data, flowBlocks);
+        addEndOfMethodStatements(data.currentFlowInfo, body);
+
+        String methodName = ConversionUtils.escapeSpecialCharacters(flowName);
+        HashSet<Parameter> parameters = data.functionParamMap.computeIfAbsent(methodName, k -> new HashSet<>());
+        Function function = new Function(Optional.empty(), methodName, parameters.stream().toList(),
+                Optional.empty(), body);
+        functions.add(function);
+        data.flowToGenMethodMap.put(flowName, function);
+    }
+
+    private static void addEndOfMethodStatements(Data.FlowInfo flowInfo, List<Statement> body) {
+        if (flowInfo.context == Context.HTTP_LISTENER) {
+            if (flowInfo.currentPayload != DEFAULT_PAYLOAD) {
+                // the payload has been updated
+                body.add(new BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
+                        getSetPayloadArg(flowInfo.currentPayload))));
+
+            }
+        }
     }
 
     private static void genBalFuncsFromPrivateFlows(Data data, List<Flow> privateFlows, Set<Function> functions) {
         for (Flow privateFlow : privateFlows) {
-            assert privateFlow.source().isEmpty();
-            // TODO: assumed source is always a http listener
-            List<Parameter> parameterList = List.of(new Parameter(Constants.VAR_RESPONSE, "http:Response",
-                    Optional.empty()));
-            List<Statement> body = genFuncBodyStatements(data, privateFlow.flowBlocks());
-            Function function = new Function(Optional.empty(), privateFlow.name(), parameterList, Optional.empty(),
-                    body);
-            functions.add(function);
+            genBalFuncForPrivateOrSubFlow(data, functions, privateFlow.name(), privateFlow.flowBlocks());
         }
-        functions.addAll(data.functions);
     }
 
     private static Service genBalService(Data data, HttpListener httpListener, List<MuleRecord> flowBlocks) {
@@ -304,6 +389,12 @@ public class MuleToBalConverter {
         // Add default response
         body.addFirst(new BallerinaStatement(String.format("http:Response %s = new;", Constants.VAR_RESPONSE)));
 
+        if (data.currentFlowInfo.currentPayload != DEFAULT_PAYLOAD) {
+            // the payload has been updated
+            body.add(new BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
+                    getSetPayloadArg(data.currentFlowInfo.currentPayload))));
+        }
+
         // Add return statement
         body.add(new BallerinaStatement(String.format("return %s;", Constants.VAR_RESPONSE)));
 
@@ -316,11 +407,11 @@ public class MuleToBalConverter {
                 Collections.emptyList());
     }
 
-    private static String getSetPayloadArg(CurrentPayloadVarInfo currentPayloadVarInfo) {
-        if (isSetPayloadAllowedType(currentPayloadVarInfo.type())) {
-            return currentPayloadVarInfo.nameReference();
+    private static String getSetPayloadArg(PayloadVarInfo payloadVarInfo) {
+        if (isSetPayloadAllowedType(payloadVarInfo.type())) {
+            return payloadVarInfo.nameReference();
         } else {
-            return String.format("%s.toString()", currentPayloadVarInfo.nameReference());
+            return String.format("%s.toString()", payloadVarInfo.nameReference());
         }
     }
 
@@ -338,6 +429,11 @@ public class MuleToBalConverter {
         // Read flow blocks
         for (MuleRecord record : flowBlocks) {
             List<Statement> s = convertToStatements(data, record);
+            // TODO: handle properly
+            if (s.size() == 1 && s.getFirst() instanceof DoStatement doStatement) {
+                body = new ArrayList<>(Collections.singletonList(new DoStatement(body, doStatement.onFailClause())));
+                continue;
+            }
             body.addAll(s);
         }
         return body;
@@ -366,6 +462,9 @@ public class MuleToBalConverter {
             case Constants.SET_VARIABLE -> {
                 return readSetVariable(data, element);
             }
+            case Constants.SET_SESSION_VARIABLE -> {
+                return readSetSessionVariable(data, element);
+            }
             case Constants.HTTP_REQUEST -> {
                 return readHttpRequest(data, element);
             }
@@ -390,6 +489,12 @@ public class MuleToBalConverter {
             case Constants.OBJECT_TO_STRING -> {
                 return readObjectToString(data, element);
             }
+            case Constants.ENRICHER -> {
+                return readEnricher(data, element);
+            }
+            case Constants.CATCH_EXCEPTION_STRATEGY -> {
+                return readCatchExceptionStrategy(data, element);
+            }
             default -> {
                 return readUnsupportedBlock(data, element);
             }
@@ -401,11 +506,16 @@ public class MuleToBalConverter {
         switch (muleRec) {
             case Logger lg -> statementList.add(new BallerinaStatement(String.format("log:%s(%s);",
                     getBallerinaLogFunction(lg.level()), convertToBallerinaExpression(data, lg.message(), true))));
-            case Payload payload -> statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);",
-                    Constants.VAR_RESPONSE, convertToBallerinaExpression(data, payload.expr(), true))));
+            case Payload payload -> {
+                statementList.add(new BallerinaStatement("\n\n// set payload\n"));
+                String pyld = convertToBallerinaExpression(data, payload.expr(), true);
+                String payloadVar = String.format(Constants.VAR_PAYLOAD_TEMPLATE, data.payloadVarCount++);
+                statementList.add(new BallerinaStatement(String.format("string %s = %s;", payloadVar, pyld)));
+                data.currentFlowInfo.currentPayload = new PayloadVarInfo("string", payloadVar);
+            }
             case Choice choice -> {
                 List<WhenInChoice> whens = choice.whens();
-                assert whens.size() > 1; // For valid mule config, there is at least one when
+                assert !whens.isEmpty(); // For valid mule config, there is at least one when
 
                 WhenInChoice firstWhen = whens.getFirst();
                 String ifCondition = convertToBallerinaExpression(data, firstWhen.condition(), false);
@@ -440,40 +550,38 @@ public class MuleToBalConverter {
             }
             case SetVariable setVariable -> {
                 String varValue = convertToBallerinaExpression(data, setVariable.value(), true);
-                statementList.add(new BallerinaStatement(
-                        "string " + setVariable.variableName() + " = " + varValue + ";"));
+                String varName = ConversionUtils.escapeSpecialCharacters(setVariable.variableName());
+                statementList.add(new BallerinaStatement("string " + varName + " = " + varValue + ";"));
+            }
+            case SetSessionVariable setSessionVariable -> {
+                String varValue = convertToBallerinaExpression(data, setSessionVariable.value(), true);
+                String varName = ConversionUtils.escapeSpecialCharacters(setSessionVariable.variableName());
+                ModuleVar moduleVar = data.moduleVarMap.get(varName);
+                if (moduleVar == null) {
+                    data.moduleVarMap.put(varName, new ModuleVar(varName, "string", new BallerinaExpression(varValue)));
+                } else {
+                    statementList.add(new BallerinaStatement(String.format("%s = %s;", varName, varValue)));
+                }
             }
             case ObjectToJson objectToJson -> {
-                if (data.payload == null) {
-                    throw new UnsupportedOperationException();
-                }
-
                 statementList.add(new BallerinaStatement("\n\n// json transformation\n"));
                 String objToJsonVarName = String.format(Constants.VAR_OBJ_TO_JSON_TEMPLATE,
                         data.objectToJsonVarCount++);
                 statementList.add(new BallerinaStatement(String.format("json %s = %s.toJson();", objToJsonVarName,
-                        data.payload.nameReference())));
+                        data.currentFlowInfo.currentPayload.nameReference())));
 
                 // object to json transformer implicitly sets the payload
-                data.payload = new CurrentPayloadVarInfo("json", objToJsonVarName);
-                statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
-                        getSetPayloadArg(data.payload))));
+                data.currentFlowInfo.currentPayload = new PayloadVarInfo("json", objToJsonVarName);
             }
             case ObjectToString objectToString -> {
-                if (data.payload == null) {
-                    throw new UnsupportedOperationException();
-                }
-
                 statementList.add(new BallerinaStatement("\n\n// string transformation\n"));
                 String objToStringVarName = String.format(Constants.VAR_OBJ_TO_STRING_TEMPLATE,
                         data.objectToStringVarCount++);
                 statementList.add(new BallerinaStatement(String.format("string %s = %s.toString();", objToStringVarName,
-                        data.payload.nameReference())));
+                        data.currentFlowInfo.currentPayload.nameReference())));
 
                 // object to string transformer implicitly sets the payload
-                data.payload = new CurrentPayloadVarInfo("string", objToStringVarName);
-                statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
-                        getSetPayloadArg(data.payload))));
+                data.currentFlowInfo.currentPayload = new PayloadVarInfo("string", objToStringVarName);
             }
             case HttpRequest httpRequest -> {
                 List<Statement> statements = new ArrayList<>();
@@ -490,14 +598,80 @@ public class MuleToBalConverter {
                 statementList.addAll(statements);
             }
             case FlowReference flowReference -> {
-                // TODO: assumed source is always a http listener
-                statementList.add(new BallerinaStatement(String.format("%s(%s);", flowReference.flowName(),
-                        Constants.VAR_RESPONSE)));
+                String flowName = flowReference.flowName();
+                String funcRef = ConversionUtils.escapeSpecialCharacters(flowName);
+
+                String params = "";
+                if (data.currentFlowInfo.context == Context.HTTP_LISTENER) {
+                    Parameter param = new Parameter(Constants.VAR_RESPONSE, "http:Response", Optional.empty());
+                    data.addFuncParam(funcRef, param);
+                    params = Constants.VAR_RESPONSE;
+
+                    Function method = data.flowToGenMethodMap.get(flowName);
+                    if (method == null) {
+                        // Set the flow context to Http listener
+                        Data.FlowInfo flowInfo = new Data.FlowInfo(flowName, Context.HTTP_LISTENER);
+                        data.flowInfoMap.put(flowName, flowInfo);
+                    } else {
+                        // Means we have analyzed the flow already
+                        Data.FlowInfo flowInfo = data.flowInfoMap.get(flowName);
+                        flowInfo.context = Context.HTTP_LISTENER;
+                        addEndOfMethodStatements(flowInfo, data.flowToGenMethodMap.get(flowName).body());
+                    }
+                }
+
+                statementList.add(new BallerinaStatement(String.format("%s(%s);", funcRef, params)));
+            }
+            case Enricher enricher -> {
+                // TODO: support source and target vars properly
+                String targetVarName = ConversionUtils.getSimpleMuleFlowVar(enricher.target());
+                String sourceArgName = ConversionUtils.getSimpleMuleFlowVar(enricher.source());
+                if (enricher.innerBlock().isEmpty()) {
+                    statementList.add(new BallerinaStatement(String.format("%s = %s;", targetVarName, sourceArgName)));
+                    // TODO: revisit special casing flow reference
+//                } else if (enricher.innerBlock().get().kind() == Kind.FLOW_REFERENCE) {
+//                    FlowReference flowReference = (FlowReference) enricher.innerBlock().get();
+//
+//                    String methodName = ConversionUtils.escapeSpecialCharacters(flowReference.flowName());
+//                    Parameter sourceAsParam = new Parameter(sourceArgName, "string", Optional.empty());
+//                    data.addFuncParam(methodName, sourceAsParam);
+//
+//                    statementList.add(new BallerinaStatement(String.format("%s = %s(%s);", targetVarName,
+//                            methodName, sourceArgName)));
+                } else {
+                    String methodName = String.format(Constants.METHOD_NAME_ENRICHER_TEMPLATE,
+                            data.enricherMethodCount);
+                    Parameter sourceAsParam = new Parameter(sourceArgName, "string", Optional.empty());
+                    data.addFuncParam(methodName, sourceAsParam);
+
+                    List<Statement> enricherStmts = convertToStatements(data, enricher.innerBlock().get());
+                    Function func = new Function(Optional.empty(), methodName, Collections.emptyList(),
+                            Optional.of("string"), enricherStmts);
+                    data.functions.add(func);
+
+                    enricherStmts.add(new BallerinaStatement(String.format("return %s;", sourceArgName)));
+                    statementList.add(new BallerinaStatement(String.format("%s = %s(%s);", targetVarName,
+                            String.format(Constants.METHOD_NAME_ENRICHER_TEMPLATE, data.enricherMethodCount++),
+                            sourceArgName)));
+                }
+            }
+            case CatchExceptionStrategy catchExceptionStrategy -> {
+                List<Statement> onFailBody = new ArrayList<>();
+
+                for (MuleRecord catchBlock : catchExceptionStrategy.catchBlocks()) {
+                    List<Statement> s = convertToStatements(data, catchBlock);
+                    onFailBody.addAll(s);
+                }
+
+                OnFailClause onFailClause = new OnFailClause(onFailBody);
+                DoStatement doStatement = new DoStatement(Collections.emptyList(), Optional.of(onFailClause));
+                statementList.add(doStatement);
             }
             case Database database -> {
                 data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_SQL, Optional.empty()));
                 String streamConstraintType = "Record";
-                data.typeDef.put(streamConstraintType, new ModuleTypeDef(streamConstraintType, Constants.RECORD_TYPE));
+                data.typeDefMap.put(streamConstraintType, new ModuleTypeDef(streamConstraintType,
+                        Constants.RECORD_TYPE));
 
                 statementList.add(new BallerinaStatement("\n\n// database operation\n"));
                 String dbQueryVarName = String.format(Constants.VAR_DB_QUERY_TEMPLATE, data.dbQueryVarCount++);
@@ -519,11 +693,9 @@ public class MuleToBalConverter {
                                     Constants.VAR_ITERATOR)));
 
                     // db:select implicitly sets the payload
-                    data.payload = new CurrentPayloadVarInfo(String.format("%s[]", streamConstraintType),
+                    data.currentFlowInfo.currentPayload = new PayloadVarInfo(String.format("%s[]",
+                            streamConstraintType),
                             dbSelectVarName);
-                    // TODO: assumed source is always a http listener
-                    statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
-                            getSetPayloadArg(data.payload))));
                 }
             }
             case TransformMessage transformMessage -> {
@@ -587,8 +759,7 @@ public class MuleToBalConverter {
         for (int i = 0; i < when.getLength(); i++) {
             Node whenNode = when.item(i);
             NodeList whenProcesses = whenNode.getChildNodes();
-            String condition = convertToBallerinaExpression(data, ((Element) whenNode).getAttribute("expression"),
-                    false);
+            String condition = ((Element) whenNode).getAttribute("expression");
             List<MuleRecord> whenProcess = new ArrayList<>();
             for (int j = 0; j < whenProcesses.getLength(); j++) {
                 Node child = whenProcesses.item(j);
@@ -666,6 +837,29 @@ public class MuleToBalConverter {
         return new SubFlow(flowName, flowBlocks);
     }
 
+    private static Enricher readEnricher(Data data, Element element) {
+        String source = element.getAttribute("source");
+        String target = element.getAttribute("target");
+
+        NodeList children = element.getChildNodes();
+
+
+        MuleRecord block = null;
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+
+            Element e = (Element) child;
+            assert block == null;
+            block = readBlock(data, e);
+        }
+
+        Optional<MuleRecord> innerBlock = block != null ? Optional.of(block) : Optional.empty();
+        return new Enricher(source, target, innerBlock);
+    }
+
     // Transformers
     private static Payload readSetPayload(Data data, Element element) {
         String muleExpr = element.getAttribute("value");
@@ -678,12 +872,37 @@ public class MuleToBalConverter {
         return new SetVariable(varName, val);
     }
 
+    private static SetSessionVariable readSetSessionVariable(Data data, Element element) {
+        String varName = element.getAttribute("variableName");
+        String val = element.getAttribute("value");
+        return new SetSessionVariable(varName, val);
+    }
+
     private static ObjectToJson readObjectToJson(Data data, Element element) {
         return new ObjectToJson();
     }
 
     private static ObjectToString readObjectToString(Data data, Element element) {
         return new ObjectToString();
+    }
+
+    // Error handling
+    private static CatchExceptionStrategy readCatchExceptionStrategy(Data data, Element element) {
+        NodeList children = element.getChildNodes();
+
+        List<MuleRecord> catchBlocks = new ArrayList<>();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+
+            Element e = (Element) child;
+            MuleRecord muleRec = readBlock(data, e);
+            catchBlocks.add(muleRec);
+        }
+
+        return new CatchExceptionStrategy(catchBlocks);
     }
 
     // HTTP Module
