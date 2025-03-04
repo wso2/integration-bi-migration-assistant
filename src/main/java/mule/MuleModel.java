@@ -142,9 +142,16 @@ public record MuleModel() {
     }
 
     // Error handling
-    public record CatchExceptionStrategy(Kind kind, List<MuleRecord> catchBlocks) implements MuleRecord {
-        public CatchExceptionStrategy(List<MuleRecord> catchBlocks) {
-            this(Kind.CATCH_EXCEPTION_STRATEGY, catchBlocks);
+    public record CatchExceptionStrategy(Kind kind, List<MuleRecord> catchBlocks, String when) implements MuleRecord {
+        public CatchExceptionStrategy(List<MuleRecord> catchBlocks, String when) {
+            this(Kind.CATCH_EXCEPTION_STRATEGY, catchBlocks, when);
+        }
+    }
+
+    public record ChoiceExceptionStrategy(Kind kind, List<CatchExceptionStrategy> catchExceptionStrategyList)
+            implements MuleRecord {
+        public ChoiceExceptionStrategy(List<CatchExceptionStrategy> catchExceptionStrategyList) {
+            this(Kind.CHOICE_EXCEPTION_STRATEGY, catchExceptionStrategyList);
         }
     }
 
@@ -221,6 +228,7 @@ public record MuleModel() {
         SUB_FLOW,
         MESSAGE_ENRICHER,
         CATCH_EXCEPTION_STRATEGY,
+        CHOICE_EXCEPTION_STRATEGY,
         UNSUPPORTED_BLOCK
     }
 
