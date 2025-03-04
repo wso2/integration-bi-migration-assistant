@@ -36,7 +36,7 @@ bal_files = [f for f in all_files if f.endswith('.bal')]
 grouped_files = {}
 for file in xml_files + bal_files:
     parent_dir = os.path.basename(os.path.dirname(file))
-    if parent_dir == 'unsupported-block':
+    if parent_dir == 'unsupported-block' or parent_dir == 'dataweave-bal-files':
         continue
     if parent_dir not in grouped_files:
         grouped_files[parent_dir] = {'xml': [], 'bal': []}
