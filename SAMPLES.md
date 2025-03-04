@@ -1444,7 +1444,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
     <flow name="mule6demoFlow">
         <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
         <dw:transform-message>
-            <dw:input-payload mimeType="application/java"/>
+            <dw:input-payload mimeType="application/json"/>
             <dw:set-variable variableName="myVariable"
                              resource="blocks/mule3/transform-message/dataweave-files/transform_message_with_components.dwl"/>
             <dw:set-payload resource="blocks/mule3/transform-message/dataweave-files/transform_message_with_components.dwl"/>
@@ -1469,22 +1469,14 @@ service /foo on config {
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
         json myVariable = _dwMethod0_(payload);
-        json _dwOutput_ = _dwMethod1_(payload);
-        json mySessionVariable = _dwMethod2_(payload);
+        json _dwOutput_ = _dwMethod0_(payload);
+        json mySessionVariable = _dwMethod0_(payload);
         _response_.setPayload(_dwOutput_);
         return _response_;
     }
 }
 
 function _dwMethod0_(json payload) returns json {
-    return "apple".toUpperAscii();
-}
-
-function _dwMethod2_(json payload) returns json {
-    return "apple".toUpperAscii();
-}
-
-function _dwMethod1_(json payload) returns json {
     return "apple".toUpperAscii();
 }
 
