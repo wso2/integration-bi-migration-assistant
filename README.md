@@ -2,79 +2,51 @@
 
 ## Table of Contents
 - [Overview](#overview)
-- [Setting Up the Prerequisites](#setting-up-the-prerequisites)
-- [Building the Source](#building-the-source)
+- [Prerequisites](#prerequisites)
+- [Building the Project](#building-the-project)
 - [Running the Migration Tool](#running-the-migration-tool)
-- [Sending Changes](#sending-changes)
-- [Supported Mule Versions](#supported-mule-versions)
+- [Mule Version Support](#mule-version-support)
+- [DataWeave Transformations](#dataweave-transformations)
 - [Supported Mule Components](#supported-mule-components)
-- [Supported DataWeave Transformations](#supported-dataweave-transformations)
 - [Sample Input and Output](#sample-input-and-output)
 
 ## Overview
-The integrator-bi-migration-assistant is a comprehensive tool designed to convert Mule XML configuration files into Ballerina code. It facilitates the migration of Mule projects to Ballerina by automating the conversion process. The tool reads Mule XML configuration files and generates equivalent Ballerina code, ensuring a seamless transition with minimal manual effort.
+The integrator-bi-migration-assistant is a comprehensive tool designed to convert Mule XML configuration files into Ballerina code. It facilitates the migration of Mule applications to Ballerina by automating the conversion process. The tool reads Mule XML configuration files and generates equivalent Ballerina code, ensuring a seamless transition with minimal manual effort.
 
-## Setting Up the Prerequisites
+## Prerequisites
+- Java 21
+- Gradle 8.11 or later
 
-1. Download and install Java SE Development Kit (JDK) version 21 (from one of the following locations).
-   * [Oracle](https://www.oracle.com/java/technologies/downloads/)
-   * [OpenJDK](http://openjdk.java.net/install/index.html)
+## Building the Project
+To build the project, follow these steps:
 
-2. Generate a GitHub access token with read package permissions, then set the following `env` variables:
+1. Clone the repository:
+    ```sh
+    git clone https://github.com/lochana-chathura/mule-to-bi-migration-assistant.git
+    cd mule-to-ballerina-migration-assistant
+    ```
 
-    ```shell
-   export packageUser=<Your GitHub Username>
-   export packagePAT=<GitHub Personal Access Token>
-   ```
-
-## Building the Source
-
-Execute the commands below to build from source.
-
-1. To build the package:
-
-   ```bash
-   ./gradlew clean build
-   ```
-
-2. To run the tests:
-
-   ```bash
-   ./gradlew clean test
-   ```
-
-3. To build without the tests:
-
-   ```bash
-   ./gradlew clean build -x test
-   ```
+2. Build the project using Gradle:
+    ```sh
+    ./gradlew build
+    ```
 
 ## Running the Migration Tool
-
-First, build the project to create the `build/libs/mule-to-ballerina-migration-assistant.jar` file.
-
 To run the migration tool, use the following command:
 
 ```sh
 java -jar build/libs/mule-to-ballerina-migration-assistant.jar <mule-xml-config-file-or-project-directory>
 ```
 
-**Parameters:**
-- `<mule-xml-config-file-or-project-directory>`: Path to the Mule XML configuration file or the Mule project directory to be converted.
+**For a Mule XML config file:**
+- A standalone `.bal` file is created with the same name but with a `.bal` extension.
+- The converted file is located in the same directory as the input file.
 
-**Output:**
-- **Mule XML Config File**: A standalone `.bal` file is generated with the same name as the input file but with a `.bal` extension. This file is located in the same directory as the input file.
-- **Mule Project Directory**: A new Ballerina package is created with the same name as the input project directory, appended with a `-ballerina` suffix. This new package is located inside the given project directory path, and a `.bal` file is created for each Mule XML file within the project.
+**For a Mule project directory:**
+- A new Ballerina project is created with the same name as the input project directory, but with a `-ballerina` suffix.
+- A bal file is created for each mule xml file.
 
-## Sending Changes
-Before sending changes, ensure you have Python 3 installed.
-Then, run the following command to automatically generate [MULE_COMPONENT_SAMPLES.md](samples/MULE_COMPONENT_SAMPLES.md), [MULE_DATAWEAVE_SAMPLES.md](samples/MULE_DATAWEAVE_SAMPLES.md) and the relevant sections in [README.md](README.md):
-
-```sh
-python3 scripts/generate_samples_md.py
-```
-
-## Supported Mule Versions
+## Mule Version Support
 For now, Mule 3.x is supported. Support for Mule 4.x is expected to be added later.
 
 ## Supported Mule Components
@@ -82,45 +54,45 @@ For now, Mule 3.x is supported. Support for Mule 4.x is expected to be added lat
 
 The migration tool currently supports the following Mule components:
 
-- [Catch Exception Strategy](samples/MULE_COMPONENT_SAMPLES.md#catch-exception-strategy)
-- [Choice](samples/MULE_COMPONENT_SAMPLES.md#choice)
-- [Database](samples/MULE_COMPONENT_SAMPLES.md#database)
-- [Flow](samples/MULE_COMPONENT_SAMPLES.md#flow)
-- [Http Listener](samples/MULE_COMPONENT_SAMPLES.md#http-listener)
-- [Logger](samples/MULE_COMPONENT_SAMPLES.md#logger)
-- [Message Enricher](samples/MULE_COMPONENT_SAMPLES.md#message-enricher)
-- [Object To Json](samples/MULE_COMPONENT_SAMPLES.md#object-to-json)
-- [Object To String](samples/MULE_COMPONENT_SAMPLES.md#object-to-string)
-- [Session Variable](samples/MULE_COMPONENT_SAMPLES.md#session-variable)
-- [Set Payload](samples/MULE_COMPONENT_SAMPLES.md#set-payload)
-- [Sub Flow](samples/MULE_COMPONENT_SAMPLES.md#sub-flow)
-- [Transform Message](samples/MULE_COMPONENT_SAMPLES.md#transform-message)
-- [Variable](samples/MULE_COMPONENT_SAMPLES.md#variable)
+- [Catch Exception Strategy](SAMPLES.md#catch-exception-strategy)
+- [Choice Exception Strategy](SAMPLES.md#choice-exception-strategy)
+- [Database](SAMPLES.md#database)
+- [Flow](SAMPLES.md#flow)
+- [Http Listener](SAMPLES.md#http-listener)
+- [Logger](SAMPLES.md#logger)
+- [Message Enricher](SAMPLES.md#message-enricher)
+- [Object To Json](SAMPLES.md#object-to-json)
+- [Object To String](SAMPLES.md#object-to-string)
+- [Session Variable](SAMPLES.md#session-variable)
+- [Set Payload](SAMPLES.md#set-payload)
+- [Sub Flow](SAMPLES.md#sub-flow)
+- [Transform Message](SAMPLES.md#transform-message)
+- [Variable](SAMPLES.md#variable)
 
-## Supported DataWeave Transformations
+## DataWeave Transformations
 (This section is AUTO-GENERATED by the test suite)
 
-The migration tool currently supports the following DataWeave transformations and their corresponding Ballerina implementations:
+The following DataWeave transformations and their corresponding Ballerina implementations are documented:
 
-- [Concat Array Expression](samples/MULE_DATAWEAVE_SAMPLES.md#concat-array-expression)
-- [Concat Object Expression](samples/MULE_DATAWEAVE_SAMPLES.md#concat-object-expression)
-- [Concat String Expression](samples/MULE_DATAWEAVE_SAMPLES.md#concat-string-expression)
-- [Date Type Expression](samples/MULE_DATAWEAVE_SAMPLES.md#date-type-expression)
-- [Filter Value Identifier Expression](samples/MULE_DATAWEAVE_SAMPLES.md#filter-value-identifier-expression)
-- [Lower Expression](samples/MULE_DATAWEAVE_SAMPLES.md#lower-expression)
-- [Map Combination Expression](samples/MULE_DATAWEAVE_SAMPLES.md#map-combination-expression)
-- [Map Index Identifier Expression](samples/MULE_DATAWEAVE_SAMPLES.md#map-index-identifier-expression)
-- [Map Index Identifier Only Expression](samples/MULE_DATAWEAVE_SAMPLES.md#map-index-identifier-only-expression)
-- [Map Value Identifier Expression](samples/MULE_DATAWEAVE_SAMPLES.md#map-value-identifier-expression)
-- [Replace With Expression](samples/MULE_DATAWEAVE_SAMPLES.md#replace-with-expression)
-- [Single Selector Expression](samples/MULE_DATAWEAVE_SAMPLES.md#single-selector-expression)
-- [Sizeof Expression](samples/MULE_DATAWEAVE_SAMPLES.md#sizeof-expression)
-- [String Return Expression](samples/MULE_DATAWEAVE_SAMPLES.md#string-return-expression)
-- [Upper Expression](samples/MULE_DATAWEAVE_SAMPLES.md#upper-expression)
-- [When Otherwise Expression](samples/MULE_DATAWEAVE_SAMPLES.md#when-otherwise-expression)
-- [When Otherwise Nested Expression](samples/MULE_DATAWEAVE_SAMPLES.md#when-otherwise-nested-expression)
+- [Concat Array Expression](Dataweave_samples.md#concat-array-expression)
+- [Concat Object Expression](Dataweave_samples.md#concat-object-expression)
+- [Concat String Expression](Dataweave_samples.md#concat-string-expression)
+- [Date Type Expression](Dataweave_samples.md#date-type-expression)
+- [Filter Value Identifier Expression](Dataweave_samples.md#filter-value-identifier-expression)
+- [Lower Expression](Dataweave_samples.md#lower-expression)
+- [Map Combination Expression](Dataweave_samples.md#map-combination-expression)
+- [Map Index Identifier Expression](Dataweave_samples.md#map-index-identifier-expression)
+- [Map Index Identifier Only Expression](Dataweave_samples.md#map-index-identifier-only-expression)
+- [Map Value Identifier Expression](Dataweave_samples.md#map-value-identifier-expression)
+- [Replace With Expression](Dataweave_samples.md#replace-with-expression)
+- [Single Selector Expression](Dataweave_samples.md#single-selector-expression)
+- [Sizeof Expression](Dataweave_samples.md#sizeof-expression)
+- [String Return Expression](Dataweave_samples.md#string-return-expression)
+- [Upper Expression](Dataweave_samples.md#upper-expression)
+- [When Otherwise Expression](Dataweave_samples.md#when-otherwise-expression)
+- [When Otherwise Nested Expression](Dataweave_samples.md#when-otherwise-nested-expression)
 
 ## Sample Input and Output
 
-For detailed XML input and ballerina output samples, please refer to [MULE_COMPONENT_SAMPLES.md](samples/MULE_COMPONENT_SAMPLES.md) and [MULE_DATAWEAVE_SAMPLES.md](samples/MULE_DATAWEAVE_SAMPLES.md).
+For detailed sample input and output files, please refer to the [SAMPLES.md](SAMPLES.md) file.
 

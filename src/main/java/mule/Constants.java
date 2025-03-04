@@ -29,6 +29,7 @@ public class Constants {
 
     // Error Handling
     public static final String CATCH_EXCEPTION_STRATEGY = "catch-exception-strategy";
+    public static final String CHOICE_EXCEPTION_STRATEGY = "choice-exception-strategy";
 
     // HTTP Module
     public static final String HTTP_LISTENER = "http:listener";

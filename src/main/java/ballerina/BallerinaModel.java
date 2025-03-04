@@ -46,6 +46,9 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     public record Function(Optional<String> visibilityQualifier, String methodName, List<Parameter> parameters,
                            Optional<String> returnType,
                            List<Statement> body) {
+        public Function(String methodName, List<Parameter> parameters, List<Statement> body) {
+            this(Optional.empty(), methodName, parameters, Optional.empty(), body);
+        }
     }
 
     public record Parameter(String name, String type, Optional<BallerinaExpression> defaultExpr) {
@@ -65,9 +68,26 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record DoStatement(List<Statement> doBody, Optional<OnFailClause> onFailClause) implements Statement {
+        public DoStatement(List<Statement> doBody) {
+            this(doBody, Optional.empty());
+        }
+
+        public DoStatement(List<Statement> doBody, OnFailClause onFailClause) {
+            this(doBody, Optional.of(onFailClause));
+        }
     }
 
-    public record OnFailClause(List<Statement> onFailBody) {
+    public record OnFailClause(List<Statement> onFailBody, Optional<TypeBindingPattern> typeBindingPattern) {
+        public OnFailClause(List<Statement> onFailBody) {
+            this(onFailBody, Optional.empty());
+        }
+
+        public OnFailClause(List<Statement> onFailBody, TypeBindingPattern typeBindingPattern) {
+            this(onFailBody, Optional.of(typeBindingPattern));
+        }
+    }
+
+    public record TypeBindingPattern(String type, String variableName) {
     }
 
     public sealed interface Statement permits BallerinaStatement, IfElseStatement, DoStatement {
