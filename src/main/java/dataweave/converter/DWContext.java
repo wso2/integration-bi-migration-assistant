@@ -68,6 +68,7 @@ public class DWContext {
         public boolean containsCheck = false;
         public Map<String, String> varNames = new HashMap<>();
         public String funcName;
+        public String currentType;
     }
 
 }

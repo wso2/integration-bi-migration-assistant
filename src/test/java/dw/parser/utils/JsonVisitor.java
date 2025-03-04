@@ -288,6 +288,23 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     }
 
     @Override
+    public JsonNode visitReplaceExpression(DataWeaveParser.ReplaceExpressionContext ctx) {
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "Replace");
+        objectNode.put("regex", ctx.REGEX().getText());
+        objectNode.set("replacement", visit(ctx.expression()));
+        return objectNode;
+    }
+
+    @Override
+    public JsonNode visitConcatExpression(DataWeaveParser.ConcatExpressionContext ctx) {
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "Concat");
+        objectNode.set("expression", visit(ctx.expression()));
+        return objectNode;
+    }
+
+    @Override
     public JsonNode visitGrouped(DataWeaveParser.GroupedContext ctx) {
         return visit(ctx.expression());
     }
@@ -437,6 +454,4 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
         }
         return node;
     }
-
-
 }

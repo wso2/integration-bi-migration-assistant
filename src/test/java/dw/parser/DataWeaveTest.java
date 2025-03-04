@@ -60,7 +60,10 @@ public class DataWeaveTest {
                 {DataWeaveScripts.SCRIPT_WHEN_OTHERWISE, "src/test/resources/parser/expected/dw_when_otherwise.json"},
                 {DataWeaveScripts.SCRIPT_WHEN_OTHERWISE_NESTED, "src/test/resources/parser/expected/" +
                         "dw_when_otherwise_nested.json"},
-
+                {DataWeaveScripts.SCRIPT_REPLACE_WITH, "src/test/resources/parser/expected/" +
+                        "dw_replace_with.json"},
+                {DataWeaveScripts.SCRIPT_CONCAT_STRING, "src/test/resources/parser/expected/" +
+                        "dw_concat_string.json"},
         };
     }
 }

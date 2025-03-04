@@ -106,6 +106,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             keyValuePairs.add(key + ": " + value);
         }
         dwContext.append("{ ").append(String.join(", ", keyValuePairs)).append(" }");
+        dwContext.currentScriptContext.currentType = DWUtils.OBJECT;
         return null;
     }
 
@@ -118,6 +119,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         String value = dwContext.getExpression();
         keyValuePairs.add(key + ": " + value);
         dwContext.append("{ ").append(String.join(", ", keyValuePairs)).append(" }");
+        dwContext.currentScriptContext.currentType = DWUtils.OBJECT;
         return null;
     }
 
@@ -129,18 +131,23 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             elements.add(dwContext.getExpression());
         }
         dwContext.append("[").append(String.join(", ", elements)).append("]");
+        dwContext.currentScriptContext.currentType = DWUtils.ARRAY;
         return null;
     }
 
     @Override
     public Void visitLiteral(DataWeaveParser.LiteralContext ctx) {
         if (ctx.STRING() != null) {
+            this.dwContext.currentScriptContext.currentType = DWUtils.STRING;
             this.dwContext.append(ctx.STRING().getText()); // Return string value
         } else if (ctx.NUMBER() != null) {
+            this.dwContext.currentScriptContext.currentType = DWUtils.NUMBER;
             this.dwContext.append(ctx.NUMBER().getText()); // Return number value
         } else if (ctx.BOOLEAN() != null) {
+            this.dwContext.currentScriptContext.currentType = DWUtils.BOOLEAN;
             this.dwContext.append(ctx.BOOLEAN().getText()); // Return boolean value
         } else {
+            this.dwContext.currentScriptContext.currentType = DWUtils.NULL;
             this.dwContext.append("()"); // Default case
         }
         return null;
@@ -224,6 +231,55 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         }
         return null;
     }
+
+    @Override
+    public Void visitReplaceExpression(DataWeaveParser.ReplaceExpressionContext ctx) {
+        String regexVar = "_pattern_";
+        String statement = "string:RegExp " + regexVar + " = re `" + ctx.REGEX().getText() + "`;";
+        dwContext.currentScriptContext.statements.add(new BallerinaModel.BallerinaStatement(statement));
+        visit((((DataWeaveParser.DefaultExpressionWrapperContext) ctx.getParent()).logicalOrExpression()));
+        String varName = VAR_PREFIX + varCount++;
+        String parameterStatement = "var " + varName + " = " + dwContext.getExpression() + ";";
+        dwContext.currentScriptContext.statements.add(new BallerinaModel.BallerinaStatement(parameterStatement));
+        dwContext.append(regexVar + ".replace(");
+        dwContext.append(varName);
+        dwContext.append(", ");
+        visit(ctx.expression());
+        dwContext.append(")");
+        return null;
+    }
+
+    @Override
+    public Void visitConcatExpression(DataWeaveParser.ConcatExpressionContext ctx) {
+        visit((((DataWeaveParser.DefaultExpressionWrapperContext) ctx.getParent()).logicalOrExpression()));
+        String leftExpr = dwContext.getExpression();
+        visit(ctx.expression());
+        String rightExpr = dwContext.getExpression();
+        switch (dwContext.currentScriptContext.currentType) {
+            case DWUtils.STRING:
+                dwContext.append(leftExpr).append(" + ").append(rightExpr);
+                break;
+            case DWUtils.ARRAY:
+                String leftArr = VAR_PREFIX + varCount++;
+                String leftArrayStatement = "any[] " + leftArr + " = " + leftExpr + ";";
+                dwContext.currentScriptContext.statements.add(
+                        new BallerinaModel.BallerinaStatement(leftArrayStatement));
+                String rightArr = VAR_PREFIX + varCount++;
+                String rightArrayStatement = "var " + rightArr + " = " + rightExpr + ";";
+                dwContext.currentScriptContext.statements.add(
+                        new BallerinaModel.BallerinaStatement(rightArrayStatement));
+                dwContext.append(leftArr).append(".push(...").append(rightArr).append(")");
+                break;
+            default:
+                String leftMap = VAR_PREFIX + varCount++;
+                String leftMapStatement = "var " + leftMap + " = " + leftExpr + ";";
+                dwContext.currentScriptContext.statements.add(
+                        new BallerinaModel.BallerinaStatement(leftMapStatement));
+                dwContext.append(rightExpr.replaceFirst("\\{", "{ " + leftMap + ", "));
+        }
+        return null;
+    }
+
 
     @Override
     public Void visitGrouped(DataWeaveParser.GroupedContext ctx) {

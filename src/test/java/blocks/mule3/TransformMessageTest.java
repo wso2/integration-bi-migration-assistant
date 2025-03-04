@@ -92,6 +92,14 @@ public class TransformMessageTest extends AbstractBlockTest {
                         "transform-message/transform_message_with_when_otherwise.bal"},
                 {"transform-message/dataweave-files/transform_message_with_when_otherwise_nested.dwl",
                         "transform-message/transform_message_with_when_otherwise_nested.bal"},
+                {"transform-message/dataweave-files/transform_message_with_replace_with.dwl",
+                        "transform-message/transform_message_with_replace_with.bal"},
+                {"transform-message/dataweave-files/transform_message_with_concat_string.dwl",
+                        "transform-message/transform_message_with_concat_string.bal"},
+                {"transform-message/dataweave-files/transform_message_with_concat_array.dwl",
+                        "transform-message/transform_message_with_concat_array.bal"},
+                {"transform-message/dataweave-files/transform_message_with_concat_object.dwl",
+                        "transform-message/transform_message_with_concat_object.bal"},
         };
     }
 

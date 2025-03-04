@@ -303,4 +303,16 @@ public class DataWeaveScripts {
                 currency: "EUR"
             }
             """;
+    public static final String SCRIPT_REPLACE_WITH = """
+            %dw 1.0
+            %output application/json
+            ---
+            "admin123" replace /(\\d+)/ with "ID"
+            """;
+    public static final String SCRIPT_CONCAT_STRING = """
+            %dw 1.0
+            %output application/json
+            ---
+            "Hello" ++ "World"
+            """;
 }
