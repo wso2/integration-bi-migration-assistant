@@ -8,6 +8,7 @@ import dataweave.parser.DataWeaveBaseVisitor;
 import dataweave.parser.DataWeaveParser;
 import org.antlr.v4.runtime.tree.ParseTree;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
@@ -409,5 +410,33 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
         objectNode.set("expression", visit(ctx.expression()));
         return objectNode;
     }
+
+    @Override
+    public JsonNode visitWhenCondition(DataWeaveParser.WhenConditionContext ctx) {
+        List<DataWeaveParser.DefaultExpressionContext> contexts = ctx.defaultExpression();
+        return buildWhenCondition(contexts, 0);
+    }
+
+    private JsonNode buildWhenCondition(List<DataWeaveParser.DefaultExpressionContext> contexts, int index) {
+        if (index >= contexts.size()) {
+            return null;
+        }
+        ObjectNode node = objectMapper.createObjectNode();
+        node.put("type", "WhenCondition");
+        if (index < contexts.size() - 1) {
+            node.set("condition", visit(contexts.get(index + 1)));
+        }
+        node.set("when-body", visit(contexts.get(index)));
+        if (index + 2 < contexts.size()) {
+            JsonNode otherwiseNode = buildWhenCondition(contexts, index + 2);
+            if (otherwiseNode != null) {
+                node.set("otherwise-body", otherwiseNode);
+            }
+        } else if (index + 1 == contexts.size() - 1) {
+            node.set("otherwise-body", visit(contexts.get(index + 1)));
+        }
+        return node;
+    }
+
 
 }

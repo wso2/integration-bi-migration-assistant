@@ -74,12 +74,14 @@ body: expression NEWLINE*;
 
 // Expression Rules (Rewritten for Precedence)
 expression
-    : conditionalExpression                        # expressionWrapper
+    : defaultExpression                             # expressionWrapper
+    | conditionalExpression                         # conditionalExpressionWrapper
     ;
 
 // Level 10: Conditional Expressions (WHEN OTHERWISE, UNLESS OTHERWISE)
 conditionalExpression
-    : defaultExpression ('when' expression 'otherwise' expression | 'unless' expression 'otherwise' expression)*
+    : defaultExpression ('when' defaultExpression 'otherwise' defaultExpression)+     #whenCondition
+    | defaultExpression ('unless' defaultExpression 'otherwise' defaultExpression)+   #unlessCondition
     ;
 
 // Implicit Lambda Expressions (Ensuring `$` or `$$` is inside)

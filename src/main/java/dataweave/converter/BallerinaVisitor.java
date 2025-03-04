@@ -3,6 +3,7 @@ package dataweave.converter;
 import ballerina.BallerinaModel;
 import converter.ConversionUtils;
 import converter.MuleToBalConverter;
+import dataweave.converter.builder.IfStatementBuilder;
 import dataweave.parser.DataWeaveBaseVisitor;
 import dataweave.parser.DataWeaveParser;
 import io.ballerina.compiler.internal.parser.LexerTerminals;
@@ -393,6 +394,48 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         visit(ctx.expression());
         this.dwContext.append(".toLowerAscii()");
         return null;
+    }
+
+    @Override
+    public Void visitWhenCondition(DataWeaveParser.WhenConditionContext ctx) {
+        List<DataWeaveParser.DefaultExpressionContext> contexts = ctx.defaultExpression();
+        dwContext.currentScriptContext.statements.add(buildWhenCondition(contexts));
+        return null;
+    }
+
+    private BallerinaModel.IfElseStatement buildWhenCondition(List<DataWeaveParser.DefaultExpressionContext> contexts) {
+        int size = contexts.size();
+        if (size < 3) {
+            throw new RuntimeException("Invalid when condition");
+        }
+        IfStatementBuilder builder = new IfStatementBuilder();
+        visit(contexts.get(1));
+        builder.setIfCondition(new BallerinaModel.BallerinaExpression(dwContext.getExpression()));
+        visit(contexts.get(0));
+        String varName = DWUtils.VAR_PREFIX + varCount++;
+        builder.resultVar = varName;
+        dwContext.currentScriptContext.statements.add(new BallerinaModel.BallerinaStatement(
+                dwContext.currentScriptContext.outputType + " " + varName + ";"));
+        builder.addIfBody(new BallerinaModel.BallerinaStatement(varName + " = " + dwContext.getExpression() + ";"));
+        if (size == 3) {
+            visit(contexts.get(2));
+            builder.addElseBody(new BallerinaModel.BallerinaStatement(varName + " = " +
+                    dwContext.getExpression() + ";"));
+            dwContext.append(" " + varName);
+            return builder.getStatement();
+        }
+        for (int i = 2; i < size - 1; i += 2) {
+            visit(contexts.get(i + 1));
+            String condition = dwContext.getExpression();
+            List<BallerinaModel.Statement> statements = new ArrayList<>();
+            visit(contexts.get(i));
+            statements.add(new BallerinaModel.BallerinaStatement(varName + " = " + dwContext.getExpression() + ";"));
+            builder.addElseIfClause(new BallerinaModel.BallerinaExpression(condition), statements);
+        }
+        visit(contexts.get(size - 1));
+        builder.addElseBody(new BallerinaModel.BallerinaStatement(varName + " = " + dwContext.getExpression() + ";"));
+        dwContext.append(" " + varName);
+        return builder.getStatement();
     }
 
 }

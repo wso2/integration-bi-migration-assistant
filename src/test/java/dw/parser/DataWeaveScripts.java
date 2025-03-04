@@ -275,4 +275,32 @@ public class DataWeaveScripts {
             sizeOf (payload.resultSet1 filter ($.EVENT_TYPE == 'Hail' and  $.magnitude >= 1.5 and
              $.distance_in_miles <= 5) map { count: $.weather_event_id })
             """;
+    public static final String SCRIPT_WHEN_OTHERWISE = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+              currency: "USD"
+            } when payload.country == "USA"
+            otherwise
+            {
+                  currency: "EUR"
+            }
+            """;
+    public static final String SCRIPT_WHEN_OTHERWISE_NESTED = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+                currency: "USD"
+            } when payload.country =="USA"
+            otherwise
+            {
+                currency: "GBP"
+            } when payload.country =="UK"
+            otherwise
+            {
+                currency: "EUR"
+            }
+            """;
 }

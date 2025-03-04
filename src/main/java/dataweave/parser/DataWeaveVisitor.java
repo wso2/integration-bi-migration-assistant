@@ -101,12 +101,31 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
     T visitExpressionWrapper(DataWeaveParser.ExpressionWrapperContext ctx);
 
     /**
-     * Visit a parse tree produced by {@link DataWeaveParser#conditionalExpression}.
+     * Visit a parse tree produced by the {@code conditionalExpressionWrapper}
+     * labeled alternative in {@link DataWeaveParser#expression}.
      *
      * @param ctx the parse tree
      * @return the visitor result
      */
-    T visitConditionalExpression(DataWeaveParser.ConditionalExpressionContext ctx);
+    T visitConditionalExpressionWrapper(DataWeaveParser.ConditionalExpressionWrapperContext ctx);
+
+    /**
+     * Visit a parse tree produced by the {@code whenCondition}
+     * labeled alternative in {@link DataWeaveParser#conditionalExpression}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitWhenCondition(DataWeaveParser.WhenConditionContext ctx);
+
+    /**
+     * Visit a parse tree produced by the {@code unlessCondition}
+     * labeled alternative in {@link DataWeaveParser#conditionalExpression}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitUnlessCondition(DataWeaveParser.UnlessConditionContext ctx);
 
     /**
      * Visit a parse tree produced by {@link DataWeaveParser#implicitLambdaExpression}.
@@ -288,7 +307,7 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
     T visitLowerExpressionWithParentheses(DataWeaveParser.LowerExpressionWithParenthesesContext ctx);
 
     /**
-     * Visit a parse tree produced by the {@code primaryExpressionWrapper}
+     * Visit a parse tree produced by the {@code Wrapper}
      * labeled alternative in {@link DataWeaveParser#unaryExpression}.
      *
      * @param ctx the parse tree
@@ -298,7 +317,7 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 
     /**
      * Visit a parse tree produced by the {@code objectExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      * @return the visitor result
@@ -307,7 +326,7 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 
     /**
      * Visit a parse tree produced by the {@code lambdaExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      * @return the visitor result
@@ -316,7 +335,7 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 
     /**
      * Visit a parse tree produced by the {@code arrayExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      * @return the visitor result
@@ -325,7 +344,7 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 
     /**
      * Visit a parse tree produced by the {@code identifierExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      * @return the visitor result
@@ -334,7 +353,7 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 
     /**
      * Visit a parse tree produced by the {@code functionCallExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      * @return the visitor result
@@ -343,7 +362,7 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 
     /**
      * Visit a parse tree produced by the {@code selectorExpressionWrapper}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      * @return the visitor result
@@ -352,7 +371,7 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 
     /**
      * Visit a parse tree produced by the {@code literalExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      * @return the visitor result
@@ -361,7 +380,7 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 
     /**
      * Visit a parse tree produced by the {@code indexIdentifierExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      * @return the visitor result
@@ -370,7 +389,7 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 
     /**
      * Visit a parse tree produced by the {@code valueIdentifierExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      * @return the visitor result
@@ -379,7 +398,7 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 
     /**
      * Visit a parse tree produced by the {@code groupedExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      * @return the visitor result

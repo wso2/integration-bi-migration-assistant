@@ -57,6 +57,10 @@ public class DataWeaveTest {
                         "src/test/resources/parser/expected/dw_complex_operators_in_object_with_functions.json"},
                 {DataWeaveScripts.SCRIPT_COMPLEX_OPERATORS_IN_OBJECT_WITH_FUNCTIONS2,
                         "src/test/resources/parser/expected/dw_complex_operators_in_object_with_functions2.json"},
+                {DataWeaveScripts.SCRIPT_WHEN_OTHERWISE, "src/test/resources/parser/expected/dw_when_otherwise.json"},
+                {DataWeaveScripts.SCRIPT_WHEN_OTHERWISE_NESTED, "src/test/resources/parser/expected/" +
+                        "dw_when_otherwise_nested.json"},
+
         };
     }
 }

@@ -88,6 +88,10 @@ public class TransformMessageTest extends AbstractBlockTest {
         return new Object[][]{
                 {"transform-message/dataweave-files/transform_message_with_components.dwl",
                         "transform-message/transform_message_with_template.bal"},
+                {"transform-message/dataweave-files/transform_message_with_when_otherwise.dwl",
+                        "transform-message/transform_message_with_when_otherwise.bal"},
+                {"transform-message/dataweave-files/transform_message_with_when_otherwise_nested.dwl",
+                        "transform-message/transform_message_with_when_otherwise_nested.bal"},
         };
     }
 

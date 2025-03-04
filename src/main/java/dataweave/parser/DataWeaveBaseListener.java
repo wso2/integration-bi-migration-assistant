@@ -216,7 +216,7 @@ public class DataWeaveBaseListener implements DataWeaveListener {
      * <p>The default implementation does nothing.</p>
      */
     @Override
-    public void enterConditionalExpression(DataWeaveParser.ConditionalExpressionContext ctx) {
+    public void enterConditionalExpressionWrapper(DataWeaveParser.ConditionalExpressionWrapperContext ctx) {
     }
 
     /**
@@ -225,7 +225,43 @@ public class DataWeaveBaseListener implements DataWeaveListener {
      * <p>The default implementation does nothing.</p>
      */
     @Override
-    public void exitConditionalExpression(DataWeaveParser.ConditionalExpressionContext ctx) {
+    public void exitConditionalExpressionWrapper(DataWeaveParser.ConditionalExpressionWrapperContext ctx) {
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation does nothing.</p>
+     */
+    @Override
+    public void enterWhenCondition(DataWeaveParser.WhenConditionContext ctx) {
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation does nothing.</p>
+     */
+    @Override
+    public void exitWhenCondition(DataWeaveParser.WhenConditionContext ctx) {
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation does nothing.</p>
+     */
+    @Override
+    public void enterUnlessCondition(DataWeaveParser.UnlessConditionContext ctx) {
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation does nothing.</p>
+     */
+    @Override
+    public void exitUnlessCondition(DataWeaveParser.UnlessConditionContext ctx) {
     }
 
     /**

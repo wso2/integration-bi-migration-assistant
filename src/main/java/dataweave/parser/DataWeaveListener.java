@@ -165,18 +165,52 @@ public interface DataWeaveListener extends ParseTreeListener {
     void exitExpressionWrapper(DataWeaveParser.ExpressionWrapperContext ctx);
 
     /**
-     * Enter a parse tree produced by {@link DataWeaveParser#conditionalExpression}.
+     * Enter a parse tree produced by the {@code conditionalExpressionWrapper}
+     * labeled alternative in {@link DataWeaveParser#expression}.
      *
      * @param ctx the parse tree
      */
-    void enterConditionalExpression(DataWeaveParser.ConditionalExpressionContext ctx);
+    void enterConditionalExpressionWrapper(DataWeaveParser.ConditionalExpressionWrapperContext ctx);
 
     /**
-     * Exit a parse tree produced by {@link DataWeaveParser#conditionalExpression}.
+     * Exit a parse tree produced by the {@code conditionalExpressionWrapper}
+     * labeled alternative in {@link DataWeaveParser#expression}.
      *
      * @param ctx the parse tree
      */
-    void exitConditionalExpression(DataWeaveParser.ConditionalExpressionContext ctx);
+    void exitConditionalExpressionWrapper(DataWeaveParser.ConditionalExpressionWrapperContext ctx);
+
+    /**
+     * Enter a parse tree produced by the {@code whenCondition}
+     * labeled alternative in {@link DataWeaveParser#conditionalExpression}.
+     *
+     * @param ctx the parse tree
+     */
+    void enterWhenCondition(DataWeaveParser.WhenConditionContext ctx);
+
+    /**
+     * Exit a parse tree produced by the {@code whenCondition}
+     * labeled alternative in {@link DataWeaveParser#conditionalExpression}.
+     *
+     * @param ctx the parse tree
+     */
+    void exitWhenCondition(DataWeaveParser.WhenConditionContext ctx);
+
+    /**
+     * Enter a parse tree produced by the {@code unlessCondition}
+     * labeled alternative in {@link DataWeaveParser#conditionalExpression}.
+     *
+     * @param ctx the parse tree
+     */
+    void enterUnlessCondition(DataWeaveParser.UnlessConditionContext ctx);
+
+    /**
+     * Exit a parse tree produced by the {@code unlessCondition}
+     * labeled alternative in {@link DataWeaveParser#conditionalExpression}.
+     *
+     * @param ctx the parse tree
+     */
+    void exitUnlessCondition(DataWeaveParser.UnlessConditionContext ctx);
 
     /**
      * Enter a parse tree produced by {@link DataWeaveParser#implicitLambdaExpression}.
@@ -495,7 +529,7 @@ public interface DataWeaveListener extends ParseTreeListener {
     void exitLowerExpressionWithParentheses(DataWeaveParser.LowerExpressionWithParenthesesContext ctx);
 
     /**
-     * Enter a parse tree produced by the {@code primaryExpressionWrapper}
+     * Enter a parse tree produced by the {@code Wrapper}
      * labeled alternative in {@link DataWeaveParser#unaryExpression}.
      *
      * @param ctx the parse tree
@@ -503,7 +537,7 @@ public interface DataWeaveListener extends ParseTreeListener {
     void enterPrimaryExpressionWrapper(DataWeaveParser.PrimaryExpressionWrapperContext ctx);
 
     /**
-     * Exit a parse tree produced by the {@code primaryExpressionWrapper}
+     * Exit a parse tree produced by the {@code Wrapper}
      * labeled alternative in {@link DataWeaveParser#unaryExpression}.
      *
      * @param ctx the parse tree
@@ -512,7 +546,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Enter a parse tree produced by the {@code objectExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -520,7 +554,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Exit a parse tree produced by the {@code objectExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -528,7 +562,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Enter a parse tree produced by the {@code lambdaExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -536,7 +570,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Exit a parse tree produced by the {@code lambdaExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -544,7 +578,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Enter a parse tree produced by the {@code arrayExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -552,7 +586,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Exit a parse tree produced by the {@code arrayExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -560,7 +594,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Enter a parse tree produced by the {@code identifierExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -568,7 +602,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Exit a parse tree produced by the {@code identifierExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -576,7 +610,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Enter a parse tree produced by the {@code functionCallExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -584,7 +618,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Exit a parse tree produced by the {@code functionCallExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -592,7 +626,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Enter a parse tree produced by the {@code selectorExpressionWrapper}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -600,7 +634,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Exit a parse tree produced by the {@code selectorExpressionWrapper}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -608,7 +642,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Enter a parse tree produced by the {@code literalExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -616,7 +650,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Exit a parse tree produced by the {@code literalExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -624,7 +658,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Enter a parse tree produced by the {@code indexIdentifierExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -632,7 +666,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Exit a parse tree produced by the {@code indexIdentifierExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -640,7 +674,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Enter a parse tree produced by the {@code valueIdentifierExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -648,7 +682,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Exit a parse tree produced by the {@code valueIdentifierExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -656,7 +690,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Enter a parse tree produced by the {@code groupedExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
@@ -664,7 +698,7 @@ public interface DataWeaveListener extends ParseTreeListener {
 
     /**
      * Exit a parse tree produced by the {@code groupedExpression}
-     * labeled alternative in {@link DataWeaveParser#primaryExpression}.
+     * labeled alternative in {@link DataWeaveParser#}.
      *
      * @param ctx the parse tree
      */
