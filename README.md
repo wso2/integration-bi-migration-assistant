@@ -34,10 +34,16 @@ To build the project, follow these steps:
 To run the migration tool, use the following command:
 
 ```sh
-java -jar build/libs/mule-to-ballerina-migration-assistant.jar <mule-xml-configuration-file>
+java -jar build/libs/mule-to-ballerina-migration-assistant.jar <mule-xml-config-file-or-project-directory>
 ```
 
-The generated Ballerina file will have the same name as the input XML file, but with a `.bal` extension, and will be located in the same directory as the input file.
+**For a Mule XML config file:**
+- A standalone `.bal` file is created with the same name but with a `.bal` extension.
+- The converted file is located in the same directory as the input file.
+
+**For a Mule project directory:**
+- A new Ballerina project is created with the same name as the input project directory, but with a `-ballerina` suffix.
+- A bal file is created for each mule xml file.
 
 ## Mule Version Support
 For now, Mule 3.x is supported. Support for Mule 4.x is expected to be added later.

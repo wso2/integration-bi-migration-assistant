@@ -168,6 +168,11 @@ public class MuleToBalConverter {
     }
 
     public static BallerinaModel getBallerinaModel(String xmlFilePath) {
+        Data data = new Data();
+        return getBallerinaModel(xmlFilePath, data);
+    }
+
+    private static BallerinaModel getBallerinaModel(String xmlFilePath, Data data) {
         Element root;
         try {
             root = parseMuleXMLConfigurationFile(xmlFilePath);
@@ -178,7 +183,6 @@ public class MuleToBalConverter {
         List<Flow> flows = new ArrayList<>();
         List<SubFlow> subFlows = new ArrayList<>();
 
-        Data data = new Data();
         NodeList childNodes = root.getChildNodes();
         for (int i = 0; i < childNodes.getLength(); i++) {
             Node node = childNodes.item(i);
@@ -377,6 +381,7 @@ public class MuleToBalConverter {
         // Add service resources
         List<Resource> resources = new ArrayList<>();
         String returnType = Constants.HTTP_RESOURCE_RETURN_TYPE_DEFAULT;
+        data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP, Optional.empty()));
         for (String resourceMethodName : resourceMethodNames) {
             resourceMethodName = resourceMethodName.toLowerCase();
             Resource resource = new Resource(resourceMethodName,
