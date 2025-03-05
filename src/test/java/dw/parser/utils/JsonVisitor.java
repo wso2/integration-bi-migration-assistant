@@ -8,6 +8,7 @@ import dataweave.parser.DataWeaveBaseVisitor;
 import dataweave.parser.DataWeaveParser;
 import org.antlr.v4.runtime.tree.ParseTree;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
@@ -115,8 +116,7 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     public JsonNode visitBody(DataWeaveParser.BodyContext ctx) {
         ObjectNode bodyNode = objectMapper.createObjectNode();
         bodyNode.put("type", "Body");
-        DataWeaveParser.ExpressionContext expression = ctx.expression();
-        bodyNode.set("expression", visit(expression));
+        bodyNode.set("expression", visit(ctx.expression()));
         return bodyNode;
     }
 
@@ -130,6 +130,22 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
 
     @Override
     public JsonNode visitIdentifierExpression(DataWeaveParser.IdentifierExpressionContext ctx) {
+        ObjectNode identifierNode = objectMapper.createObjectNode();
+        identifierNode.put("type", "Identifier");
+        identifierNode.put("name", ctx.getText());
+        return identifierNode;
+    }
+
+    @Override
+    public JsonNode visitValueIdentifierExpression(DataWeaveParser.ValueIdentifierExpressionContext ctx) {
+        ObjectNode identifierNode = objectMapper.createObjectNode();
+        identifierNode.put("type", "Identifier");
+        identifierNode.put("name", ctx.getText());
+        return identifierNode;
+    }
+
+    @Override
+    public JsonNode visitIndexIdentifierExpression(DataWeaveParser.IndexIdentifierExpressionContext ctx) {
         ObjectNode identifierNode = objectMapper.createObjectNode();
         identifierNode.put("type", "Identifier");
         identifierNode.put("name", ctx.getText());
@@ -160,18 +176,6 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     }
 
     @Override
-    public JsonNode visitPrimaryExpressionWrapper(DataWeaveParser.PrimaryExpressionWrapperContext ctx) {
-        JsonNode node = visit(ctx.primaryExpression());
-        if (ctx.expressionRest() != null) {
-            return visit(ctx.expressionRest());
-        }
-        if (ctx.selectorExpression() != null) {
-            return visit(ctx.selectorExpression());
-        }
-        return node;
-    }
-
-    @Override
     public JsonNode visitMultiKeyValueObject(DataWeaveParser.MultiKeyValueObjectContext ctx) {
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put("type", "Object");
@@ -191,11 +195,31 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     }
 
     @Override
+    public JsonNode visitSelectorExpressionWrapper(DataWeaveParser.SelectorExpressionWrapperContext ctx) {
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "SelectorExpression");
+        objectNode.set("primary", visit(ctx.primaryExpression()));
+        objectNode.set("selector", visit(ctx.selectorExpression()));
+        return objectNode;
+    }
+
+    @Override
     public JsonNode visitSingleValueSelector(DataWeaveParser.SingleValueSelectorContext ctx) {
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put("type", "SingleValueSelector");
         objectNode.put("identifier", ctx.IDENTIFIER().getText());
         return objectNode;
+    }
+
+    @Override
+    public JsonNode visitImplicitLambdaExpression(DataWeaveParser.ImplicitLambdaExpressionContext ctx) {
+        if (ctx.inlineLambda() != null) {
+            return visit(ctx.inlineLambda());
+        }
+        if (ctx.implicitLambdaExpression() != null) {
+            return visit(ctx.implicitLambdaExpression());
+        }
+        return visit(ctx.expression());
     }
 
     @Override
@@ -228,11 +252,27 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     }
 
     @Override
+    public JsonNode visitDefaultExpressionWrapper(DataWeaveParser.DefaultExpressionWrapperContext ctx) {
+        if (ctx.defaultExpressionRest() == null || ctx.defaultExpressionRest() instanceof
+                DataWeaveParser.DefaultExpressionEndContext) {
+            return visit(ctx.logicalOrExpression());
+        }
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "DefaultExpression");
+        objectNode.set("expression", visit(ctx.logicalOrExpression()));
+        objectNode.set("default", visit(ctx.defaultExpressionRest()));
+        return objectNode;
+    }
+
+
+    @Override
     public JsonNode visitMapExpression(DataWeaveParser.MapExpressionContext ctx) {
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put("type", "Map");
-        objectNode.set("element", visit(ctx.getParent().getChild(0)));
         objectNode.set("lambda", visit(ctx.implicitLambdaExpression()));
+        if (!(ctx.defaultExpressionRest() instanceof DataWeaveParser.DefaultExpressionEndContext)) {
+            objectNode.set("default", visit(ctx.defaultExpressionRest()));
+        }
         return objectNode;
     }
 
@@ -240,38 +280,135 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     public JsonNode visitFilterExpression(DataWeaveParser.FilterExpressionContext ctx) {
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put("type", "Filter");
-        objectNode.set("element", visit(ctx.getParent().getChild(0)));
         objectNode.set("lambda", visit(ctx.implicitLambdaExpression()));
+        if (!(ctx.defaultExpressionRest() instanceof DataWeaveParser.DefaultExpressionEndContext)) {
+            objectNode.set("default", visit(ctx.defaultExpressionRest()));
+        }
         return objectNode;
     }
 
     @Override
-    public JsonNode visitMathExpression(DataWeaveParser.MathExpressionContext ctx) {
+    public JsonNode visitReplaceExpression(DataWeaveParser.ReplaceExpressionContext ctx) {
         ObjectNode objectNode = objectMapper.createObjectNode();
-        objectNode.put("type", "MathBinaryExpression");
-        objectNode.put("operator", ctx.OPERATOR_MATH().getText());
-        objectNode.set("left", visit(ctx.getParent().getChild(0)));
-        objectNode.set("right", visit(ctx.expression()));
+        objectNode.put("type", "Replace");
+        objectNode.put("regex", ctx.REGEX().getText());
+        objectNode.set("replacement", visit(ctx.expression()));
         return objectNode;
     }
 
     @Override
-    public JsonNode  visitLogicalExpression(DataWeaveParser.LogicalExpressionContext ctx) {
+    public JsonNode visitConcatExpression(DataWeaveParser.ConcatExpressionContext ctx) {
         ObjectNode objectNode = objectMapper.createObjectNode();
-        objectNode.put("type", "LogicalBinaryExpression");
-        objectNode.put("operator", ctx.OPERATOR_LOGICAL().getText());
-        objectNode.set("left", visit(ctx.getParent().getChild(0)));
-        objectNode.set("right", visit(ctx.expression()));
+        objectNode.put("type", "Concat");
+        objectNode.set("expression", visit(ctx.expression()));
         return objectNode;
     }
 
     @Override
-    public JsonNode visitComparisonExpression(DataWeaveParser.ComparisonExpressionContext ctx) {
+    public JsonNode visitGrouped(DataWeaveParser.GroupedContext ctx) {
+        return visit(ctx.expression());
+    }
+
+    @Override
+    public JsonNode visitLogicalOrExpression(DataWeaveParser.LogicalOrExpressionContext ctx) {
+        if (ctx.logicalAndExpression().size() == 1) {
+            return visit(ctx.logicalAndExpression(0));
+        }
         ObjectNode objectNode = objectMapper.createObjectNode();
-        objectNode.put("type", "LogicalBinaryExpression");
-        objectNode.put("operator", ctx.OPERATOR_COMPARISON().getText());
-        objectNode.set("left", visit(ctx.getParent().getChild(0)));
-        objectNode.set("right", visit(ctx.expression()));
+        objectNode.put("type", "LogicalOrExpression");
+        objectNode.set("left", visit(ctx.logicalAndExpression(0)));
+        for (int i = 1; i < ctx.logicalAndExpression().size(); i++) {
+            objectNode.put("operator", "or");
+            objectNode.set("right" + i, visit(ctx.logicalAndExpression(i)));
+        }
+        return objectNode;
+    }
+
+    @Override
+    public JsonNode visitLogicalAndExpression(DataWeaveParser.LogicalAndExpressionContext ctx) {
+        if (ctx.equalityExpression().size() == 1) {
+            return visit(ctx.equalityExpression(0));
+        }
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "LogicalAndExpression");
+        objectNode.set("left", visit(ctx.equalityExpression(0)));
+        for (int i = 1; i < ctx.equalityExpression().size(); i++) {
+            objectNode.put("operator", "and");
+            objectNode.set("right" + i, visit(ctx.equalityExpression(i)));
+        }
+        return objectNode;
+    }
+
+    @Override
+    public JsonNode visitEqualityExpression(DataWeaveParser.EqualityExpressionContext ctx) {
+        if (ctx.relationalExpression().size() == 1) {
+            return visit(ctx.relationalExpression(0));
+        }
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "EqualityExpression");
+        objectNode.set("left", visit(ctx.relationalExpression(0)));
+        for (int i = 1; i < ctx.relationalExpression().size(); i++) {
+            objectNode.put("operator", ctx.OPERATOR_EQUALITY((i - 1)).getText());
+            objectNode.set("right" + i, visit(ctx.relationalExpression(i)));
+        }
+        return objectNode;
+    }
+
+    @Override
+    public JsonNode visitRelationalExpression(DataWeaveParser.RelationalExpressionContext ctx) {
+        if (ctx.additiveExpression().size() == 1) {
+            return visit(ctx.additiveExpression(0));
+        }
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "RelationalExpression");
+        objectNode.set("left", visit(ctx.additiveExpression(0)));
+        for (int i = 1; i < ctx.additiveExpression().size(); i++) {
+            objectNode.put("operator", ctx.OPERATOR_RELATIONAL(i - 1).getText());
+            objectNode.set("right" + i, visit(ctx.additiveExpression(i)));
+        }
+        return objectNode;
+    }
+
+    @Override
+    public JsonNode visitAdditiveExpression(DataWeaveParser.AdditiveExpressionContext ctx) {
+        if (ctx.multiplicativeExpression().size() == 1) {
+            return visit(ctx.multiplicativeExpression(0));
+        }
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "AdditiveExpression");
+        objectNode.set("left", visit(ctx.multiplicativeExpression(0)));
+        for (int i = 1; i < ctx.multiplicativeExpression().size(); i++) {
+            objectNode.put("operator", ctx.OPERATOR_ADDITIVE(i - 1).getText());
+            objectNode.set("right" + i, visit(ctx.multiplicativeExpression(i)));
+        }
+        return objectNode;
+    }
+
+    @Override
+    public JsonNode visitMultiplicativeExpression(DataWeaveParser.MultiplicativeExpressionContext ctx) {
+        if (ctx.typeCoercionExpression().size() == 1) {
+            return visit(ctx.typeCoercionExpression(0));
+        }
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "MultiplicativeExpression");
+        objectNode.set("left", visit(ctx.typeCoercionExpression(0)));
+        for (int i = 1; i < ctx.typeCoercionExpression().size(); i++) {
+            objectNode.put("operator", ctx.OPERATOR_MULTIPLICATIVE(i - 1).getText());
+            objectNode.set("right" + i, visit(ctx.typeCoercionExpression(i)));
+        }
+        return objectNode;
+    }
+
+    @Override
+    public JsonNode visitTypeCoercionExpression(DataWeaveParser.TypeCoercionExpressionContext ctx) {
+        if (ctx.typeExpression() == null) {
+            return visit(ctx.unaryExpression());
+        }
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "TypeCoercionExpression");
+        objectNode.set("left", visit(ctx.unaryExpression()));
+        objectNode.put("operator", ctx.OPERATOR_TYPE_COERCION().getText());
+        objectNode.set("right", visit(ctx.typeExpression()));
         return objectNode;
     }
 
@@ -291,5 +428,30 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
         return objectNode;
     }
 
+    @Override
+    public JsonNode visitWhenCondition(DataWeaveParser.WhenConditionContext ctx) {
+        List<DataWeaveParser.DefaultExpressionContext> contexts = ctx.defaultExpression();
+        return buildWhenCondition(contexts, 0);
+    }
 
+    private JsonNode buildWhenCondition(List<DataWeaveParser.DefaultExpressionContext> contexts, int index) {
+        if (index >= contexts.size()) {
+            return null;
+        }
+        ObjectNode node = objectMapper.createObjectNode();
+        node.put("type", "WhenCondition");
+        if (index < contexts.size() - 1) {
+            node.set("condition", visit(contexts.get(index + 1)));
+        }
+        node.set("when-body", visit(contexts.get(index)));
+        if (index + 2 < contexts.size()) {
+            JsonNode otherwiseNode = buildWhenCondition(contexts, index + 2);
+            if (otherwiseNode != null) {
+                node.set("otherwise-body", otherwiseNode);
+            }
+        } else if (index + 1 == contexts.size() - 1) {
+            node.set("otherwise-body", visit(contexts.get(index + 1)));
+        }
+        return node;
+    }
 }

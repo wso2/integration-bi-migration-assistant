@@ -15,63 +15,51 @@
     "expression" : {
       "type" : "Object",
       "addition" : {
-        "type" : "MathBinaryExpression",
-        "operator" : "+",
+        "type" : "AdditiveExpression",
         "left" : {
           "type" : "Literal",
           "value" : "10"
         },
-        "right" : {
+        "operator" : "+",
+        "right1" : {
           "type" : "Literal",
           "value" : "5"
         }
       },
       "subtraction" : {
-        "type" : "MathBinaryExpression",
-        "operator" : "-",
+        "type" : "AdditiveExpression",
         "left" : {
           "type" : "Literal",
           "value" : "10"
         },
-        "right" : {
+        "operator" : "-",
+        "right1" : {
           "type" : "Literal",
           "value" : "5"
         }
       },
       "multiplication" : {
-        "type" : "MathBinaryExpression",
-        "operator" : "*",
+        "type" : "MultiplicativeExpression",
         "left" : {
           "type" : "Literal",
           "value" : "10"
         },
-        "right" : {
+        "operator" : "*",
+        "right1" : {
           "type" : "Literal",
           "value" : "5"
         }
       },
       "division" : {
-        "type" : "MathBinaryExpression",
-        "operator" : "/",
+        "type" : "MultiplicativeExpression",
         "left" : {
           "type" : "Literal",
           "value" : "10"
         },
-        "right" : {
+        "operator" : "/",
+        "right1" : {
           "type" : "Literal",
           "value" : "5"
-        }
-      },
-      "modulus" : {
-        "type" : "MathBinaryExpression",
-        "operator" : "mod",
-        "left" : {
-          "type" : "Literal",
-          "value" : "10"
-        },
-        "right" : {
-          "type" : "Literal",
-          "value" : "3"
         }
       }
     }

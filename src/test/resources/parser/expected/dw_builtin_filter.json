@@ -17,8 +17,8 @@
   "body" : {
     "type" : "Body",
     "expression" : {
-      "type" : "Filter",
-      "element" : {
+      "type" : "DefaultExpression",
+      "expression" : {
         "type" : "Array",
         "elements" : [ {
           "type" : "Literal",
@@ -37,16 +37,19 @@
           "value" : "5"
         } ]
       },
-      "lambda" : {
-        "type" : "LogicalBinaryExpression",
-        "operator" : ">",
-        "left" : {
-          "type" : "Identifier",
-          "name" : "$"
-        },
-        "right" : {
-          "type" : "Literal",
-          "value" : "2"
+      "default" : {
+        "type" : "Filter",
+        "lambda" : {
+          "type" : "RelationalExpression",
+          "left" : {
+            "type" : "Identifier",
+            "name" : "$"
+          },
+          "operator" : ">",
+          "right1" : {
+            "type" : "Literal",
+            "value" : "2"
+          }
         }
       }
     }

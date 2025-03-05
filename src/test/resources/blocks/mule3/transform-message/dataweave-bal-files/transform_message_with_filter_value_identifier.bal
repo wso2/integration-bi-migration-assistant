@@ -16,6 +16,6 @@ service /foo on config {
 }
 
 function _dwMethod0_(json payload) returns json {
-    var arrayArg = [1, 2, 3, 4];
-    return arrayArg.'map(element => element + 1);
+    var _var_0 = [1, 2, 3, 4];
+    return _var_0.filter(element => element > 2);
 }

@@ -9,13 +9,12 @@ service /foo on config {
 
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
-        json _dwOutput_ = _dwMethod0_(payload);
+        json _dwOutput_ = _dwMethod0_();
         _response_.setPayload(_dwOutput_);
         return _response_;
     }
 }
 
-function _dwMethod0_(json payload) returns json {
-    var arrayArg = [1, 2, 3, 4];
-    return arrayArg.'map(element => element + arrayArg.indexOf(element));
+function _dwMethod0_() returns json {
+    return {"name": "Ballerina " + "Conversion"};
 }

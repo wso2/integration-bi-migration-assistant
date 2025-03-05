@@ -114,7 +114,13 @@ public class DataWeaveScripts {
             %dw 2.0
             %output application/json
             ---
-            |2021-01-01|
+            {
+                date: |2021-01-01|,
+                time: |23:59:56|,
+                timeZone: |-08:00|,
+                dateTime: |2003-10-01T23:57:59-03:00|,
+                localDateTime: |2003-10-01T23:57:59|
+            }
             """;
     public static final String SCRIPT_SIMPLE_REGEX = """
             %dw 2.0
@@ -200,8 +206,7 @@ public class DataWeaveScripts {
               addition: 10 + 5,
               subtraction: 10 - 5,
               multiplication: 10 * 5,
-              division: 10 / 5,
-              modulus: 10 mod 3
+              division: 10 / 5
             }
             """;
     public static final String SCRIPT_LOGICAL_OPERATOR = """
@@ -225,5 +230,95 @@ public class DataWeaveScripts {
               res5: 10 == 5,
               res6: 10 != 5
             }
+            """;
+    public static final String SCRIPT_COMPLEX_OPERATORS = """
+            %dw 1.0
+            %output application/json
+            ---
+            payload.EVENT_TYPE == 'Hail' and payload.MAGNITUDE >= 1 and payload.distance_in_miles <= 5
+            """;
+    public static final String SCRIPT_COMPLEX_OPERATORS_IN_OBJECT = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+            hail1: (payload.EVENT_TYPE == 'Hail' and payload.MAGNITUDE >= 1 and payload.distance_in_miles <= 5)
+            }
+            """;
+
+    public static final String SCRIPT_SAMPLE = """
+            %dw 1.0
+            %output application/json
+            ---
+            payload.EVENT_TYPE == 'Hail' and payload.MAGNITUDE >= 1 and payload.distance_in_miles <= 5)) )
+            }
+         
+            """;
+    public static final String SCRIPT_COMPLEX_OPERATORS_IN_OBJECT_WITH_FUNCTIONS = """
+            %dw 1.0
+            %output application/json
+            ---
+            [payload.resultSet1 filter (item,index) -> (item.EVENT_TYPE == 'Hail' and item.MAGNITUDE >= 1 and
+             item.distance_in_miles <= 5)]
+            """;
+    public static final String SCRIPT_COMPLEX_OPERATORS_IN_OBJECT_WITH_FUNCTIONS2 = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+                hail1: sizeOf (payload.resultSet1 filter ((item,index) -> (item.EVENT_TYPE == 'Hail' and 
+                item.MAGNITUDE >= 1 and item.distance_in_miles <= 5)) ),
+                hail2: sizeOf (payload.resultSet1 filter ($.EVENT_TYPE == 'Hail' and  $.magnitude >= 1.5 and 
+                $.distance_in_miles <= 5) map { count: $.weather_event_id }),
+                thunder: sizeOf ( payload.resultSet1 filter ($.EVENT_TYPE == 'Thunderstorm Wind' and  
+                $.magnitude >= 30 and $.distance_in_miles <= 1) map { count: $.weather_event_id })
+            }
+            """;
+    public static final String TEST = """
+            %dw 1.0
+            %output application/json
+            ---
+            sizeOf (payload.resultSet1 filter ($.EVENT_TYPE == 'Hail' and  $.magnitude >= 1.5 and
+             $.distance_in_miles <= 5) map { count: $.weather_event_id })
+            """;
+    public static final String SCRIPT_WHEN_OTHERWISE = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+              currency: "USD"
+            } when payload.country == "USA"
+            otherwise
+            {
+                  currency: "EUR"
+            }
+            """;
+    public static final String SCRIPT_WHEN_OTHERWISE_NESTED = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+                currency: "USD"
+            } when payload.country =="USA"
+            otherwise
+            {
+                currency: "GBP"
+            } when payload.country =="UK"
+            otherwise
+            {
+                currency: "EUR"
+            }
+            """;
+    public static final String SCRIPT_REPLACE_WITH = """
+            %dw 1.0
+            %output application/json
+            ---
+            "admin123" replace /(\\d+)/ with "ID"
+            """;
+    public static final String SCRIPT_CONCAT_STRING = """
+            %dw 1.0
+            %output application/json
+            ---
+            "Hello" ++ "World"
             """;
 }

@@ -15,73 +15,73 @@
     "expression" : {
       "type" : "Object",
       "res1" : {
-        "type" : "LogicalBinaryExpression",
-        "operator" : ">",
+        "type" : "RelationalExpression",
         "left" : {
           "type" : "Literal",
           "value" : "10"
         },
-        "right" : {
+        "operator" : ">",
+        "right1" : {
           "type" : "Literal",
           "value" : "5"
         }
       },
       "res2" : {
-        "type" : "LogicalBinaryExpression",
-        "operator" : "<",
+        "type" : "RelationalExpression",
         "left" : {
           "type" : "Literal",
           "value" : "10"
         },
-        "right" : {
+        "operator" : "<",
+        "right1" : {
           "type" : "Literal",
           "value" : "5"
         }
       },
       "res3" : {
-        "type" : "LogicalBinaryExpression",
-        "operator" : ">=",
+        "type" : "RelationalExpression",
         "left" : {
           "type" : "Literal",
           "value" : "10"
         },
-        "right" : {
+        "operator" : ">=",
+        "right1" : {
           "type" : "Literal",
           "value" : "5"
         }
       },
       "res4" : {
-        "type" : "LogicalBinaryExpression",
-        "operator" : "<=",
+        "type" : "RelationalExpression",
         "left" : {
           "type" : "Literal",
           "value" : "10"
         },
-        "right" : {
+        "operator" : "<=",
+        "right1" : {
           "type" : "Literal",
           "value" : "5"
         }
       },
       "res5" : {
-        "type" : "LogicalBinaryExpression",
-        "operator" : "==",
+        "type" : "EqualityExpression",
         "left" : {
           "type" : "Literal",
           "value" : "10"
         },
-        "right" : {
+        "operator" : "==",
+        "right1" : {
           "type" : "Literal",
           "value" : "5"
         }
       },
       "res6" : {
-        "type" : "LogicalBinaryExpression",
-        "operator" : "!=",
+        "type" : "EqualityExpression",
         "left" : {
           "type" : "Literal",
           "value" : "10"
         },
-        "right" : {
+        "operator" : "!=",
+        "right1" : {
           "type" : "Literal",
           "value" : "5"
         }

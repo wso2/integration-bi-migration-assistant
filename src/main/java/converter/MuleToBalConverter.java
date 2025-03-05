@@ -95,10 +95,10 @@ public class MuleToBalConverter {
         List<UnsupportedBlock> globalUnsupportedBlocks = new ArrayList<>();
 
         // Ballerina global elements
+        public HashSet<Import> imports = new LinkedHashSet<>();
+        HashSet<String> queryParams = new LinkedHashSet<>();
         HashMap<String, ModuleTypeDef> typeDefMap = new LinkedHashMap<>();
         HashMap<String, ModuleVar> moduleVarMap = new LinkedHashMap<>();
-        HashSet<Import> imports = new LinkedHashSet<>();
-        HashSet<String> queryParams = new LinkedHashSet<>();
         public List<Function> functions = new ArrayList<>();
 
         // Internal variable/method count

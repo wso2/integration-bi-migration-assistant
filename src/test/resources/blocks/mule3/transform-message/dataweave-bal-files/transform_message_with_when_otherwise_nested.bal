@@ -9,12 +9,20 @@ service /foo on config {
 
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
-        json _dwOutput_ = _dwMethod0_(payload);
+        json _dwOutput_ = check _dwMethod0_(payload);
         _response_.setPayload(_dwOutput_);
         return _response_;
     }
 }
 
-function _dwMethod0_(json payload) returns json {
-    return "apple".toUpperAscii();
+function _dwMethod0_(json payload) returns json|error {
+    json _var_0;
+    if (check payload.country == "USA") {
+        _var_0 = {"currency": "USD"};
+    } else if (check payload.country == "UK") {
+        _var_0 = {"currency": "GBP"};
+    } else {
+        _var_0 = {"currency": "EUR"};
+    }
+    return _var_0;
 }

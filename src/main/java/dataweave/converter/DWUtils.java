@@ -53,7 +53,7 @@ public class DWUtils {
 
     // Ballerina Identifiers
     public static final String DW_FUNCTION_NAME = "_dwMethod%s_";
-    public static final String ARRAY_ARG = "arrayArg";
+    public static final String VAR_PREFIX = "_var_";
     public static final String ELEMENT_ARG = "element";
 
     public static final String TYPE_CAST_COMMENT_MATH = "\n// TODO: AMBIGUOUS TYPE FOUND FOR MATH OPERATOR" +
