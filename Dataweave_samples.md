@@ -30,16 +30,16 @@ service /foo on config {
 
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
-        json _dwOutput_ = _dwMethod0_();
+        json _dwOutput_ = check _dwMethod0_();
         _response_.setPayload(_dwOutput_);
         return _response_;
     }
 }
 
-function _dwMethod0_() returns json {
+function _dwMethod0_() returns json|error {
     any[] _var_0 = [0, 1, 2];
     var _var_1 = [3, 4, 5];
-    return {"a": _var_0.push(..._var_1)};
+    return {"a": check _var_0.push(..._var_1).ensureType(json)};
 }
 
 ```
@@ -68,15 +68,15 @@ service /foo on config {
 
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
-        json _dwOutput_ = _dwMethod0_();
+        json _dwOutput_ = check _dwMethod0_();
         _response_.setPayload(_dwOutput_);
         return _response_;
     }
 }
 
-function _dwMethod0_() returns json {
+function _dwMethod0_() returns json|error {
     var _var_0 = {"aa": "a"};
-    return {"concat": {_var_0, "cc": "c"}};
+    return {"concat": check {_var_0, "cc": "c"}.ensureType(json)};
 }
 
 ```
@@ -115,6 +115,49 @@ service /foo on config {
 
 function _dwMethod0_() returns json {
     return {"name": "Ballerina " + "Conversion"};
+}
+
+```
+
+## Date Type Expression
+
+**DataWeave Script (transform_message_with_date_type.dwl):**
+```dataweave
+%dw 1.0
+%output application/json
+---
+{
+    date: |2021-01-01|,
+    time: |23:59:56|,
+    timeZone: |-08:00|,
+    dateTime: |2003-10-01T23:57:59-03:00|,
+    localDateTime: |2003-10-01T23:57:59|
+}
+
+```
+
+**Ballerina Output (transform_message_with_date_type.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/time;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /foo on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        json _dwOutput_ = check _dwMethod0_();
+        _response_.setPayload(_dwOutput_);
+        return _response_;
+    }
+}
+
+function _dwMethod0_() returns json|error {
+    return {"date": check time:civilFromString("2021-01-01").ensureType(json), "time": check time:civilFromString("23:59:56").ensureType(json), "timeZone": check time:civilFromString("-08:00").ensureType(json), "dateTime": check time:civilFromString("2003-10-01T23:57:59-03:00").ensureType(json), "localDateTime": check time:civilFromString("2003-10-01T23:57:59").ensureType(json)};
 }
 
 ```

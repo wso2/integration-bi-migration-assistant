@@ -58,6 +58,8 @@ public class TransformMessageTest extends AbstractBlockTest {
                         "transform-message/dataweave-bal-files/transform_message_with_concat_array.bal"},
                 {"transform-message/dataweave-files/transform_message_with_concat_object.dwl",
                         "transform-message/dataweave-bal-files/transform_message_with_concat_object.bal"},
+                {"transform-message/dataweave-files/transform_message_with_date_type.dwl",
+                        "transform-message/dataweave-bal-files/transform_message_with_date_type.bal"},
         };
     }
 

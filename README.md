@@ -75,6 +75,7 @@ The following DataWeave transformations and their corresponding Ballerina implem
 - [Concat Array Expression](Dataweave_samples.md#concat-array-expression)
 - [Concat Object Expression](Dataweave_samples.md#concat-object-expression)
 - [Concat String Expression](Dataweave_samples.md#concat-string-expression)
+- [Date Type Expression](Dataweave_samples.md#date-type-expression)
 - [Filter Value Identifier Expression](Dataweave_samples.md#filter-value-identifier-expression)
 - [Lower Expression](Dataweave_samples.md#lower-expression)
 - [Map Combination Expression](Dataweave_samples.md#map-combination-expression)
