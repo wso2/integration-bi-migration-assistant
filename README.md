@@ -2,8 +2,8 @@
 
 ## Table of Contents
 - [Overview](#overview)
-- [Prerequisites](#prerequisites)
-- [Building the Project](#building-the-project)
+- [Setting Up the Prerequisites](#setting-up-the-prerequisites)
+- [Building the Source](#building-the-source)
 - [Running the Migration Tool](#running-the-migration-tool)
 - [Mule Version Support](#mule-version-support)
 - [DataWeave Transformations](#dataweave-transformations)
@@ -13,38 +13,57 @@
 ## Overview
 The integrator-bi-migration-assistant is a comprehensive tool designed to convert Mule XML configuration files into Ballerina code. It facilitates the migration of Mule applications to Ballerina by automating the conversion process. The tool reads Mule XML configuration files and generates equivalent Ballerina code, ensuring a seamless transition with minimal manual effort.
 
-## Prerequisites
-- Java 21
-- Gradle 8.11 or later
+## Setting Up the Prerequisites
 
-## Building the Project
-To build the project, follow these steps:
+1. Download and install Java SE Development Kit (JDK) version 21 (from one of the following locations).
+   * [Oracle](https://www.oracle.com/java/technologies/downloads/)
+   * [OpenJDK](http://openjdk.java.net/install/index.html)
 
-1. Clone the repository:
-    ```sh
-    git clone https://github.com/lochana-chathura/mule-to-bi-migration-assistant.git
-    cd mule-to-ballerina-migration-assistant
-    ```
+2. Generate a GitHub access token with read package permissions, then set the following `env` variables:
 
-2. Build the project using Gradle:
-    ```sh
-    ./gradlew build
-    ```
+    ```shell
+   export packageUser=<Your GitHub Username>
+   export packagePAT=<GitHub Personal Access Token>
+   ```
+
+## Building the Source
+
+Execute the commands below to build from source.
+
+1. To build the package:
+
+   ```bash
+   ./gradlew clean build
+   ```
+
+2. To run the tests:
+
+   ```bash
+   ./gradlew clean test
+   ```
+
+3. To build without the tests:
+
+   ```bash
+   ./gradlew clean build -x test
+   ```
 
 ## Running the Migration Tool
+
+First, build the project to create the `build/libs/mule-to-ballerina-migration-assistant.jar` file.
+
 To run the migration tool, use the following command:
 
 ```sh
 java -jar build/libs/mule-to-ballerina-migration-assistant.jar <mule-xml-config-file-or-project-directory>
 ```
 
-**For a Mule XML config file:**
-- A standalone `.bal` file is created with the same name but with a `.bal` extension.
-- The converted file is located in the same directory as the input file.
+**Parameters:**
+- `<mule-xml-config-file-or-project-directory>`: Path to the Mule XML configuration file or the Mule project directory to be converted.
 
-**For a Mule project directory:**
-- A new Ballerina project is created with the same name as the input project directory, but with a `-ballerina` suffix.
-- A bal file is created for each mule xml file.
+**Output:**
+- **Mule XML Config File**: A standalone `.bal` file is generated with the same name as the input file but with a `.bal` extension. This file is located in the same directory as the input file.
+- **Mule Project Directory**: A new Ballerina package is created with the same name as the input project directory, appended with a `-ballerina` suffix. This new package is located inside the given project directory path, and a `.bal` file is created for each Mule XML file within the project.
 
 ## Mule Version Support
 For now, Mule 3.x is supported. Support for Mule 4.x is expected to be added later.
