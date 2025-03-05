@@ -6,6 +6,7 @@
 - [Building the Project](#building-the-project)
 - [Running the Migration Tool](#running-the-migration-tool)
 - [Mule Version Support](#mule-version-support)
+- [DataWeave Transformations](#dataweave-transformations)
 - [Supported Mule Components](#supported-mule-components)
 - [Sample Input and Output](#sample-input-and-output)
 

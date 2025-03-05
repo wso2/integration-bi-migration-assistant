@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -94,9 +95,8 @@ public class MuleToBalConverter {
         List<UnsupportedBlock> globalUnsupportedBlocks = new ArrayList<>();
 
         // Ballerina global elements
-        HashMap<String, ModuleTypeDef> typeDef = new HashMap<>();
-        public HashSet<Import> imports = new HashSet<>();
-        HashSet<String> queryParams = new HashSet<>();
+        public HashSet<Import> imports = new LinkedHashSet<>();
+        HashSet<String> queryParams = new LinkedHashSet<>();
         HashMap<String, ModuleTypeDef> typeDefMap = new LinkedHashMap<>();
         HashMap<String, ModuleVar> moduleVarMap = new LinkedHashMap<>();
         public List<Function> functions = new ArrayList<>();
