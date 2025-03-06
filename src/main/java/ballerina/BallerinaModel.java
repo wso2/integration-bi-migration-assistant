@@ -52,6 +52,9 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record Parameter(String name, String type, Optional<BallerinaExpression> defaultExpr) {
+        public Parameter(String name, String type) {
+            this(name, type, Optional.empty());
+        }
     }
 
     public record BallerinaStatement(String stmt) implements Statement {

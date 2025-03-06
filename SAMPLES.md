@@ -1190,6 +1190,103 @@ service /mule3 on config {
 
 ```
 
+## Reference Exception Strategy
+
+- ### Basic Reference Exception Strategy
+
+**Input (basic_reference_exception_strategy.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <catch-exception-strategy name="catch-exception-strategy">
+        <logger level="INFO" doc:name="Logger" message="xxx: inside catch exception strategy"/>
+    </catch-exception-strategy>
+    <flow name="muleProject">
+        <logger level="INFO" doc:name="Logger" message="xxx: end of flow reached"/>
+        <exception-strategy ref="catch-exception-strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+</mule>
+
+```
+**Output (basic_reference_exception_strategy.bal):**
+```ballerina
+import ballerina/log;
+
+function catch\-exception\-strategy(error e) {
+    log:printInfo("xxx: inside catch exception strategy");
+}
+
+function muleProject() {
+    do {
+        log:printInfo("xxx: end of flow reached");
+    } on fail error e {
+        catch\-exception\-strategy(e);
+    }
+}
+
+```
+
+- ### Reference Exception With Http Listener Source
+
+**Input (reference_exception_with_http_listener_source.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <http:listener-config name="httpConfig" host="0.0.0.0" port="8081" basePath="/" doc:name="HTTP Listener Configuration"/>
+    <catch-exception-strategy name="catch-exception-strategy">
+        <logger level="INFO" doc:name="Logger" message="xxx: inside catch exception strategy"/>
+    </catch-exception-strategy>
+    <flow name="muleProject">
+        <http:listener config-ref="httpConfig" path="/" doc:name="HTTP" allowedMethods="GET"/>
+        <logger level="INFO" doc:name="Logger" message="xxx: end of flow reached"/>
+        <exception-strategy ref="catch-exception-strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+</mule>
+
+```
+**Output (reference_exception_with_http_listener_source.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+listener http:Listener httpConfig = new (8081, {host: "0.0.0.0"});
+
+service / on httpConfig {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        do {
+            log:printInfo("xxx: end of flow reached");
+        } on fail error e {
+            catch\-exception\-strategy(e);
+        }
+        return _response_;
+    }
+}
+
+function catch\-exception\-strategy(error e) {
+    log:printInfo("xxx: inside catch exception strategy");
+}
+
+```
+
 ## Session Variable
 
 - ### Basic Set Session Variable
