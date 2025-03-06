@@ -4,7 +4,7 @@ import org.w3c.dom.Element;
 
 import java.io.StringWriter;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -97,7 +97,7 @@ public class ConversionUtils {
         String regex = "#\\[output .*\\n---\\n\\{\\n|\\n}]";
         String trimmed = queryParams.replaceAll(regex, "").trim();
         String[] pairs = trimmed.split(",\\n\\t");
-        Map<String, String> keyValues = new HashMap<>(pairs.length);
+        Map<String, String> keyValues = new LinkedHashMap<>(pairs.length);
         for (String pair : pairs) {
             String[] kv = pair.split(":");
             keyValues.put(kv[0].trim().replace("\"", ""), kv[1].trim().replace("\"", ""));
