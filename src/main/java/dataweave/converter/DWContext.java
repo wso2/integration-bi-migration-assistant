@@ -16,6 +16,10 @@ public class DWContext {
     public Map<String, String> commonArgs = new HashMap<>();
     final Map<String, DWScriptContext> scriptCache = new HashMap<>();
 
+    // For conversion percentage tracking
+    public int totalNodes = 0;
+    public int convertedNodes = 0;
+
     public DWContext(List<BallerinaModel.Statement> statementList) {
         this.parentStatements = statementList;
         this.functionNames = new ArrayList<>();
@@ -23,7 +27,16 @@ public class DWContext {
     }
 
     public void clearScript() {
-        this.currentScriptContext = new DWScriptContext(); // Reset only per-script values
+        if (!this.currentScriptContext.errors.isEmpty() && !this.currentScriptContext.visited) {
+            this.currentScriptContext.statements.add(new BallerinaModel.BallerinaStatement(
+                    DWUtils.PARSER_ERROR_COMMENT));
+            for (String error : this.currentScriptContext.errors) {
+                this.currentScriptContext.statements.add(new BallerinaModel.BallerinaStatement("// " + error
+                        + "\n"));
+            }
+            this.currentScriptContext.visited = true;
+        }
+        this.currentScriptContext = new DWScriptContext();
     }
 
     public void finalizeFunction() {
@@ -57,6 +70,11 @@ public class DWContext {
         return this.currentScriptContext.exprBuilder.append(context);
     }
 
+    public void addUnsupportedComment(String context) {
+        this.currentScriptContext.statements.add(new BallerinaModel.BallerinaStatement(
+                String.format(DWUtils.UNSUPPORTED_DW_NODE, context)));
+    }
+
     public static class DWScriptContext {
         public List<BallerinaModel.Parameter> params = new ArrayList<>();
         public List<BallerinaModel.Statement> statements = new ArrayList<>();
@@ -69,6 +87,8 @@ public class DWContext {
         public Map<String, String> varNames = new HashMap<>();
         public String funcName;
         public String currentType;
+        public List<String> errors = new ArrayList<>();
+        public boolean visited = false;
     }
 
 }

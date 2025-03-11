@@ -3,7 +3,7 @@ package dw.parser;
 public class DataWeaveScripts {
 
     public static final String SCRIPT1 = """
-            %dw 2.0
+            %dw 1.0
             var myRead = read("<car><color>red</color></car>",
                             "application/xml")
             output application/json
@@ -91,6 +91,12 @@ public class DataWeaveScripts {
             %output application/json
             ---
             "Hello World"
+            """;
+    public static final String SCRIPT_SIMPLE_STRING_SINGLE_QUOTED = """
+            %dw 2.0
+            %output application/json
+            ---
+            'Hello'
             """;
     public static final String SCRIPT_SIMPLE_BOOLEAN = """
             %dw 2.0

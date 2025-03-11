@@ -8,6 +8,7 @@ import dataweave.parser.DataWeaveBaseVisitor;
 import dataweave.parser.DataWeaveParser;
 import io.ballerina.compiler.internal.parser.LexerTerminals;
 import mule.Constants;
+import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.ArrayList;
@@ -28,45 +29,69 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitScript(DataWeaveParser.ScriptContext ctx) {
+        dwContext.totalNodes++;
         if (ctx.header() != null) {
             visit(ctx.header());
         }
         visit(ctx.body());
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitDwVersion(DataWeaveParser.DwVersionContext ctx) {
+        dwContext.totalNodes++;
         this.dwContext.currentScriptContext.dwVersion = ctx.NUMBER().getText();
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitOutputDirective(DataWeaveParser.OutputDirectiveContext ctx) {
+        dwContext.totalNodes++;
         TerminalNode mediaType = ctx.MEDIA_TYPE();
         this.dwContext.currentScriptContext.outputType = DWUtils.findBallerinaType(mediaType.getText());
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitInputDirective(DataWeaveParser.InputDirectiveContext ctx) {
+        dwContext.totalNodes++;
         this.dwContext.currentScriptContext.inputType = DWUtils.findBallerinaType(ctx.MEDIA_TYPE().getText());
         this.dwContext.currentScriptContext.params.add(new BallerinaModel.Parameter(ctx.IDENTIFIER().getText()
                 , this.dwContext.currentScriptContext.inputType, Optional.empty()));
+        dwContext.convertedNodes++;
+        return null;
+    }
+
+    @Override
+    public Void visitNamespaceDirective(DataWeaveParser.NamespaceDirectiveContext ctx) {
+        dwContext.totalNodes++;
+        dwContext.addUnsupportedComment(ctx.getText());
         return null;
     }
 
     @Override
     public Void visitVariableDeclaration(DataWeaveParser.VariableDeclarationContext ctx) {
+        dwContext.totalNodes++;
         String expression = ctx.expression().getText();
         String dwType = DWUtils.getVarTypeFromExpression(expression);
-        String ballerinaType = DWUtils.getBallerinaType(dwType);
+        String ballerinaType = DWUtils.getBallerinaType(dwType, data);
         visit(ctx.expression());
         String valueExpr = this.dwContext.getExpression();
         ballerinaType = dwType.equals(DWUtils.NUMBER) ? refineNumberType(valueExpr, ballerinaType) : ballerinaType;
         String statement = ballerinaType + " " + ctx.IDENTIFIER().getText() + " " + ctx.ASSIGN().getText() + " "
                 + valueExpr + ";";
         this.dwContext.currentScriptContext.statements.add(new BallerinaModel.BallerinaStatement(statement));
+        dwContext.convertedNodes++;
+        return null;
+    }
+
+    @Override
+    public Void visitFunctionDeclaration(DataWeaveParser.FunctionDeclarationContext ctx) {
+        dwContext.totalNodes++;
+        dwContext.addUnsupportedComment(ctx.getText());
         return null;
     }
 
@@ -79,6 +104,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitBody(DataWeaveParser.BodyContext ctx) {
+        dwContext.totalNodes++;
         String methodName = String.format(DWUtils.DW_FUNCTION_NAME,
                 data.dwMethodCount++);
         visitChildren(ctx);
@@ -91,11 +117,13 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         this.data.functions.add(new BallerinaModel.Function(Optional.empty(), methodName,
                 dwContext.currentScriptContext.params, Optional.of(outputType),
                 dwContext.currentScriptContext.statements));
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitMultiKeyValueObject(DataWeaveParser.MultiKeyValueObjectContext ctx) {
+        dwContext.totalNodes++;
         List<String> keyValuePairs = new ArrayList<>();
         for (var kv : ctx.keyValue()) {
             String key = "\"" + kv.IDENTIFIER().getText() + "\"";
@@ -112,11 +140,13 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         }
         dwContext.append("{ ").append(String.join(", ", keyValuePairs)).append(" }");
         dwContext.currentScriptContext.currentType = DWUtils.OBJECT;
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitSingleKeyValueObject(DataWeaveParser.SingleKeyValueObjectContext ctx) {
+        dwContext.totalNodes++;
         List<String> keyValuePairs = new ArrayList<>();
         DataWeaveParser.KeyValueContext kv = ctx.keyValue();
         String key = "\"" + kv.IDENTIFIER().getText() + "\"";
@@ -132,6 +162,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         keyValuePairs.add(key + ": " + value);
         dwContext.append("{ ").append(String.join(", ", keyValuePairs)).append(" }");
         dwContext.currentScriptContext.currentType = DWUtils.OBJECT;
+        dwContext.convertedNodes++;
         return null;
     }
 
@@ -142,6 +173,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitArray(DataWeaveParser.ArrayContext ctx) {
+        dwContext.totalNodes++;
         List<String> elements = new ArrayList<>();
         for (var expr : ctx.expression()) {
             visit(expr);
@@ -149,20 +181,26 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         }
         dwContext.append("[").append(String.join(", ", elements)).append("]");
         dwContext.currentScriptContext.currentType = DWUtils.ARRAY;
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitLiteral(DataWeaveParser.LiteralContext ctx) {
+        dwContext.totalNodes++;
         if (ctx.STRING() != null) {
             this.dwContext.currentScriptContext.currentType = DWUtils.STRING;
-            this.dwContext.append(ctx.STRING().getText()); // Return string value
+            String text = ctx.STRING().getText();
+            if (text.startsWith("'")) {
+                text = "\"" + text.substring(1, text.length() - 1) + "\"";
+            }
+            this.dwContext.append(text);
         } else if (ctx.NUMBER() != null) {
             this.dwContext.currentScriptContext.currentType = DWUtils.NUMBER;
-            this.dwContext.append(ctx.NUMBER().getText()); // Return number value
+            this.dwContext.append(ctx.NUMBER().getText());
         } else if (ctx.BOOLEAN() != null) {
             this.dwContext.currentScriptContext.currentType = DWUtils.BOOLEAN;
-            this.dwContext.append(ctx.BOOLEAN().getText()); // Return boolean value
+            this.dwContext.append(ctx.BOOLEAN().getText());
         } else if (ctx.DATE() != null) {
             this.dwContext.currentScriptContext.currentType = DWUtils.DATE;
             this.data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME,
@@ -174,13 +212,16 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             this.dwContext.append(")");
         } else {
             this.dwContext.currentScriptContext.currentType = DWUtils.NULL;
-            this.dwContext.append("()"); // Default case
+            this.dwContext.append("()");
         }
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitFunctionCall(DataWeaveParser.FunctionCallContext ctx) {
+        dwContext.totalNodes++;
+        dwContext.addUnsupportedComment(ctx.getText());
         List<String> arguments = new ArrayList<>();
         for (var expr : ctx.expression()) {
             visit(expr);
@@ -190,7 +231,16 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     }
 
     @Override
+    public Void visitTypeExpression(DataWeaveParser.TypeExpressionContext ctx) {
+        dwContext.totalNodes++;
+        super.visitTypeExpression(ctx);
+        dwContext.addUnsupportedComment(ctx.getText());
+        return null;
+    }
+
+    @Override
     public Void visitSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx) {
+        dwContext.totalNodes++;
         visit(ctx.expression());
         if (Objects.equals(dwContext.currentScriptContext.inputType, LexerTerminals.JSON)) {
             String varName = DWUtils.VAR_PREFIX + varCount++;
@@ -198,10 +248,12 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             dwContext.currentScriptContext.statements.add(new BallerinaModel.BallerinaStatement(castStatement));
             dwContext.append(varName).append(".length()");
             dwContext.currentScriptContext.currentType = DWUtils.NUMBER;
+            dwContext.convertedNodes++;
             return null;
         }
         dwContext.parentStatements.add(new BallerinaModel.BallerinaStatement(
                 ConversionUtils.wrapElementInUnsupportedBlockComment(DWUtils.DW_FUNCTION_SIZE_OF)));
+        dwContext.convertedNodes++;
         return null;
     }
 
@@ -217,6 +269,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitMapExpression(DataWeaveParser.MapExpressionContext ctx) {
+        dwContext.totalNodes++;
         if (Objects.equals(dwContext.currentScriptContext.inputType, LexerTerminals.JSON)) {
             visit((((DataWeaveParser.DefaultExpressionWrapperContext) ctx.getParent()).logicalOrExpression()));
             String varName = DWUtils.VAR_PREFIX + varCount++;
@@ -232,13 +285,23 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                     DataWeaveParser.DefaultExpressionEndContext)) {
                 visit(ctx.defaultExpressionRest());
             }
+            dwContext.convertedNodes++;
             return null;
         }
+        dwContext.addUnsupportedComment(ctx.getText());
+        return null;
+    }
+
+    @Override
+    public Void visitGroupByExpression(DataWeaveParser.GroupByExpressionContext ctx) {
+        dwContext.totalNodes++;
+        dwContext.addUnsupportedComment(ctx.getText());
         return null;
     }
 
     @Override
     public Void visitFilterExpression(DataWeaveParser.FilterExpressionContext ctx) {
+        dwContext.totalNodes++;
         if (Objects.equals(dwContext.currentScriptContext.inputType, LexerTerminals.JSON)) {
             visit((((DataWeaveParser.DefaultExpressionWrapperContext) ctx.getParent()).logicalOrExpression()));
             String varName = DWUtils.VAR_PREFIX + varCount++;
@@ -254,13 +317,16 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                     DataWeaveParser.DefaultExpressionEndContext)) {
                 visit(ctx.defaultExpressionRest());
             }
+            dwContext.convertedNodes++;
             return null;
         }
+        dwContext.addUnsupportedComment(ctx.getText());
         return null;
     }
 
     @Override
     public Void visitReplaceExpression(DataWeaveParser.ReplaceExpressionContext ctx) {
+        dwContext.totalNodes++;
         String regexVar = "_pattern_";
         String statement = "string:RegExp " + regexVar + " = re `" + ctx.REGEX().getText() + "`;";
         dwContext.currentScriptContext.statements.add(new BallerinaModel.BallerinaStatement(statement));
@@ -273,11 +339,13 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         dwContext.append(", ");
         visit(ctx.expression());
         dwContext.append(")");
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitConcatExpression(DataWeaveParser.ConcatExpressionContext ctx) {
+        dwContext.totalNodes++;
         visit((((DataWeaveParser.DefaultExpressionWrapperContext) ctx.getParent()).logicalOrExpression()));
         String leftExpr = dwContext.getExpression();
         visit(ctx.expression());
@@ -304,18 +372,15 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                         new BallerinaModel.BallerinaStatement(leftMapStatement));
                 dwContext.append(rightExpr.replaceFirst("\\{", "{ " + leftMap + ", "));
         }
+        dwContext.convertedNodes++;
         return null;
-    }
-
-
-    @Override
-    public Void visitGrouped(DataWeaveParser.GroupedContext ctx) {
-        return visit(ctx.expression());
     }
 
     @Override
     public Void visitLogicalOrExpression(DataWeaveParser.LogicalOrExpressionContext ctx) {
+        dwContext.totalNodes++;
         if (ctx.logicalAndExpression().size() == 1) {
+            dwContext.convertedNodes++;
             return visit(ctx.logicalAndExpression(0));
         }
         visit(ctx.logicalAndExpression(0));
@@ -326,12 +391,15 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             statement.append(dwContext.getExpression());
         }
         this.dwContext.append(statement.toString());
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitLogicalAndExpression(DataWeaveParser.LogicalAndExpressionContext ctx) {
+        dwContext.totalNodes++;
         if (ctx.equalityExpression().size() == 1) {
+            dwContext.convertedNodes++;
             return visit(ctx.equalityExpression(0));
         }
         visit(ctx.equalityExpression(0));
@@ -342,23 +410,28 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             statement.append(dwContext.getExpression());
         }
         this.dwContext.append(statement.toString());
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitImplicitLambdaExpression(DataWeaveParser.ImplicitLambdaExpressionContext ctx) {
+        dwContext.totalNodes++;
         String expr = ctx.expression().getText();
         dwContext.append(DWUtils.ELEMENT_ARG).append("=>");
         if (expr.contains(DWUtils.DW_VALUE_IDENTIFIER)) {
             dwContext.commonArgs.put(DWUtils.DW_VALUE_IDENTIFIER, DWUtils.ELEMENT_ARG);
         }
         visit(ctx.expression());
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitEqualityExpression(DataWeaveParser.EqualityExpressionContext ctx) {
+        dwContext.totalNodes++;
         if (ctx.relationalExpression().size() == 1) {
+            dwContext.convertedNodes++;
             return visit(ctx.relationalExpression(0));
         }
         visit(ctx.relationalExpression(0));
@@ -369,12 +442,15 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             statement.append(dwContext.getExpression());
         }
         this.dwContext.append(statement.toString());
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitRelationalExpression(DataWeaveParser.RelationalExpressionContext ctx) {
+        dwContext.totalNodes++;
         if (ctx.additiveExpression().size() == 1) {
+            dwContext.convertedNodes++;
             return visit(ctx.additiveExpression(0));
         }
         visit(ctx.additiveExpression(0));
@@ -385,12 +461,15 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             statement.append(dwContext.getExpression());
         }
         this.dwContext.append(statement.toString());
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitAdditiveExpression(DataWeaveParser.AdditiveExpressionContext ctx) {
+        dwContext.totalNodes++;
         if (ctx.multiplicativeExpression().size() == 1) {
+            dwContext.convertedNodes++;
             return visit(ctx.multiplicativeExpression(0));
         }
         visit(ctx.multiplicativeExpression(0));
@@ -402,12 +481,15 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             expression.append(" ").append(operator).append(" ").append(rightExpression);
         }
         dwContext.append(expression.toString());
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitMultiplicativeExpression(DataWeaveParser.MultiplicativeExpressionContext ctx) {
+        dwContext.totalNodes++;
         if (ctx.typeCoercionExpression().size() == 1) {
+            dwContext.convertedNodes++;
             return visit(ctx.typeCoercionExpression(0));
         }
         visit(ctx.typeCoercionExpression(0));
@@ -419,72 +501,139 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             expression.append(" ").append(operator).append(" ").append(rightExpression);
         }
         dwContext.append(expression.toString());
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitTypeCoercionExpression(DataWeaveParser.TypeCoercionExpressionContext ctx) {
+        dwContext.totalNodes++;
         if (ctx.typeExpression() == null) {
+            dwContext.convertedNodes++;
             return visit(ctx.unaryExpression());
         }
         visit(ctx.unaryExpression());
         if (ctx.typeExpression() != null) {
             visit(ctx.typeExpression());
         }
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitSingleValueSelector(DataWeaveParser.SingleValueSelectorContext ctx) {
+        dwContext.totalNodes++;
         if (!Objects.equals(dwContext.currentScriptContext.inputType, LexerTerminals.JSON)) {
             dwContext.append("[").append(ctx.IDENTIFIER().getText()).append("]");
         } else {
             dwContext.append(".").append(ctx.IDENTIFIER().getText());
         }
         dwContext.addCheckExpr();
+        dwContext.convertedNodes++;
+        return null;
+    }
+
+    @Override
+    public Void visitMultiValueSelector(DataWeaveParser.MultiValueSelectorContext ctx) {
+        dwContext.totalNodes++;
+        dwContext.addUnsupportedComment(ctx.getText());
+        return null;
+    }
+
+    @Override
+    public Void visitDescendantsSelector(DataWeaveParser.DescendantsSelectorContext ctx) {
+        dwContext.totalNodes++;
+        dwContext.addUnsupportedComment(ctx.getText());
+        return null;
+    }
+
+    @Override
+    public Void visitIndexedSelector(DataWeaveParser.IndexedSelectorContext ctx) {
+        dwContext.totalNodes++;
+        dwContext.addUnsupportedComment(ctx.getText());
+        return null;
+    }
+
+    @Override
+    public Void visitAttributeSelector(DataWeaveParser.AttributeSelectorContext ctx) {
+        dwContext.totalNodes++;
+        dwContext.addUnsupportedComment(ctx.getText());
+        return null;
+    }
+
+    @Override
+    public Void visitExistenceQuerySelector(DataWeaveParser.ExistenceQuerySelectorContext ctx) {
+        dwContext.totalNodes++;
+        dwContext.addUnsupportedComment(ctx.getText());
         return null;
     }
 
     @Override
     public Void visitIdentifierExpression(DataWeaveParser.IdentifierExpressionContext ctx) {
+        dwContext.totalNodes++;
         this.dwContext.append(ctx.IDENTIFIER().getText());
+        dwContext.convertedNodes++;
+        return null;
+    }
+
+    @Override
+    public Void visitFunctionCallExpression(DataWeaveParser.FunctionCallExpressionContext ctx) {
+        dwContext.totalNodes++;
+        dwContext.addUnsupportedComment(ctx.getText());
         return null;
     }
 
     @Override
     public Void visitValueIdentifierExpression(DataWeaveParser.ValueIdentifierExpressionContext ctx) {
+        dwContext.totalNodes++;
         this.dwContext.append(this.dwContext.commonArgs.get(DWUtils.DW_VALUE_IDENTIFIER));
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitIndexIdentifierExpression(DataWeaveParser.IndexIdentifierExpressionContext ctx) {
+        dwContext.totalNodes++;
         this.dwContext.append(this.dwContext.currentScriptContext.varNames.get(
                         DWUtils.DW_INDEX_IDENTIFIER))
                 .append(".indexOf(").append(DWUtils.ELEMENT_ARG).append(")");
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitUpperExpression(DataWeaveParser.UpperExpressionContext ctx) {
+        dwContext.totalNodes++;
         visit(ctx.expression());
         this.dwContext.append(".toUpperAscii()");
         this.dwContext.currentScriptContext.currentType = DWUtils.STRING;
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitLowerExpression(DataWeaveParser.LowerExpressionContext ctx) {
+        dwContext.totalNodes++;
         visit(ctx.expression());
         this.dwContext.append(".toLowerAscii()");
         this.dwContext.currentScriptContext.currentType = DWUtils.STRING;
+        dwContext.convertedNodes++;
         return null;
     }
 
     @Override
     public Void visitWhenCondition(DataWeaveParser.WhenConditionContext ctx) {
+        dwContext.totalNodes++;
         List<DataWeaveParser.DefaultExpressionContext> contexts = ctx.defaultExpression();
         dwContext.currentScriptContext.statements.add(buildWhenCondition(contexts));
+        dwContext.convertedNodes++;
+        return null;
+    }
+
+    @Override
+    public Void visitUnlessCondition(DataWeaveParser.UnlessConditionContext ctx) {
+        dwContext.totalNodes++;
+        dwContext.addUnsupportedComment(ctx.getText());
         return null;
     }
 
@@ -523,4 +672,13 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         return builder.getStatement();
     }
 
+    @Override
+    public Void visitTerminal(TerminalNode terminalNode) {
+        return null;
+    }
+
+    @Override
+    public Void visitErrorNode(ErrorNode errorNode) {
+        return null;
+    }
 }

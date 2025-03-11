@@ -6,6 +6,7 @@ import picocli.CommandLine;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,6 +18,7 @@ import static converter.MuleToBalConverter.convertToBallerina;
 
 public class MigrationTool {
 
+    private static final PrintStream OUT = System.out;
     private static final Logger logger = Logger.getLogger(MigrationTool.class.getName());
     public static final String MULE_DEFAULT_APP_DIR_NAME = "app";
     public static final String BAL_PROJECT_SUFFIX = "-ballerina";
@@ -74,6 +76,10 @@ public class MigrationTool {
             System.exit(1);
         }
 
+        int totalBlockCount = 0;
+        int unsupportedBlockCount = 0;
+        int totalDWNodesCount = 0;
+        int convertedDWNodesCount = 0;
         for (File xmlFile : xmlFiles) {
             Path relativePath = sourceFolderPath.relativize(xmlFile.toPath());
             String balFileName = relativePath.toString().replace(File.separator, ".").replace(".xml", ".bal");
@@ -82,7 +88,12 @@ public class MigrationTool {
 
             SyntaxTree syntaxTree;
             try {
-                syntaxTree = convertToBallerina(xmlFile.getPath());
+                MuleToBalConverter.Data data = new MuleToBalConverter.Data();
+                syntaxTree = convertToBallerina(xmlFile.getPath(), data);
+                totalBlockCount += data.totalBlockCount;
+                unsupportedBlockCount += data.unsupportedBlockCount;
+                totalDWNodesCount += data.totalDWNodesCount;
+                convertedDWNodesCount += data.convertedDWNodesCount;
             } catch (Exception e) {
                 logger.severe(String.format("Error converting the file: %s%n%s", xmlFile.getName(), e.getMessage()));
                 continue;
@@ -94,6 +105,15 @@ public class MigrationTool {
                 logger.severe("Error writing to file: " + e.getMessage());
             }
         }
+
+        OUT.println("________________________________________________________________");
+        OUT.println("Project conversion rate: " +
+                (totalBlockCount - unsupportedBlockCount) * 100 / totalBlockCount + "%");
+        if (totalDWNodesCount > 0) {
+            OUT.println("DataWeave conversion rate: " +
+                    convertedDWNodesCount * 100 / totalDWNodesCount + "%");
+        }
+        OUT.println("________________________________________________________________");
     }
 
     private static void collectXmlFiles(File folder, List<File> xmlFiles) {

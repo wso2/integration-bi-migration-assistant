@@ -125,9 +125,19 @@ public class MuleToBalConverter {
         }
 
         // Data analyze attributes
+        int totalBlockCount = 0;
+        int unsupportedBlockCount = 0;
+        int totalDWNodesCount = 0;
+        int convertedDWNodesCount = 0;
+
         Map<String, FlowInfo> flowInfoMap = new HashMap<>();
         Map<String, Function> flowToGenMethodMap = new HashMap<>();
         FlowInfo currentFlowInfo = null;
+
+        public void updateDataweaveCoverage(int totalNodes, int convertedNodes) {
+            totalDWNodesCount += totalNodes;
+            convertedDWNodesCount += convertedNodes;
+        }
 
         static class FlowInfo {
             final String flowName;
@@ -167,6 +177,11 @@ public class MuleToBalConverter {
         return new CodeGenerator(ballerinaModel).generateBalCode();
     }
 
+    public static SyntaxTree convertToBallerina(String xmlFilePath, Data data) {
+        BallerinaModel ballerinaModel = getBallerinaModel(xmlFilePath, data);
+        return new CodeGenerator(ballerinaModel).generateBalCode();
+    }
+
     public static BallerinaModel getBallerinaModel(String xmlFilePath) {
         Data data = new Data();
         return getBallerinaModel(xmlFilePath, data);
@@ -193,6 +208,7 @@ public class MuleToBalConverter {
             Element element = (Element) node;
             String elementTagName = element.getTagName();
 
+            data.totalBlockCount++;
             if (Constants.FLOW.equals(elementTagName)) {
                 Flow flow = readFlow(data, element);
                 flows.add(flow);
@@ -459,6 +475,7 @@ public class MuleToBalConverter {
     }
 
     private static MuleRecord readBlock(Data data, Element element) {
+        data.totalBlockCount++;
         switch (element.getTagName()) {
             case Constants.LOGGER -> {
                 return readLogger(data, element);
@@ -998,6 +1015,7 @@ public class MuleToBalConverter {
     }
 
     private static UnsupportedBlock readUnsupportedBlock(Data data, Element element) {
+        data.unsupportedBlockCount++;
         String xmlBlock = ConversionUtils.elementToString(element);
         return new UnsupportedBlock(xmlBlock);
     }

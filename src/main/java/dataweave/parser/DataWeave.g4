@@ -25,7 +25,7 @@ VALUE_IDENTIFIER: '$';
 URL: [a-zA-Z]+ '://' [a-zA-Z0-9./_-]+;
 MEDIA_TYPE: [a-z]+ '/' [a-z0-9.+-]+;
 NUMBER: [0-9]+('.'[0-9]+)?; // Matches integers and decimals
-STRING: '"' .*? '"' | '\'' .*? '\''; // Support for single and double-quoted strings
+STRING: '"' .*? '"' | '\'' .*? '\'';
 DATE: '|' .*? '|'; // ISO-8601 enclosed in "|"
 REGEX: '/' .*? '/';
 DOT: '.';
@@ -104,7 +104,7 @@ defaultExpression
 defaultExpressionRest
     : 'filter' implicitLambdaExpression defaultExpressionRest  # filterExpression
     | 'map' implicitLambdaExpression defaultExpressionRest     # mapExpression
-    | 'groupBy' expression defaultExpressionRest               # groupByExpression
+    | 'groupBy' implicitLambdaExpression defaultExpressionRest # groupByExpression
     | 'replace' REGEX 'with' expression                        # replaceExpression
     | '++' expression                                          # concatExpression
     | /* epsilon (empty) */                                    # defaultExpressionEnd

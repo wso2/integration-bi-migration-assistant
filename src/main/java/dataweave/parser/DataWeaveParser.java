@@ -1646,8 +1646,8 @@ public class DataWeaveParser extends Parser {
 
     @SuppressWarnings("CheckReturnValue")
     public static class GroupByExpressionContext extends DefaultExpressionRestContext {
-        public ExpressionContext expression() {
-            return getRuleContext(ExpressionContext.class, 0);
+        public ImplicitLambdaExpressionContext implicitLambdaExpression() {
+            return getRuleContext(ImplicitLambdaExpressionContext.class, 0);
         }
 
         public DefaultExpressionRestContext defaultExpressionRest() {
@@ -1774,7 +1774,7 @@ public class DataWeaveParser extends Parser {
                     setState(196);
                     match(T__7);
                     setState(197);
-                    expression();
+                    implicitLambdaExpression();
                     setState(198);
                     defaultExpressionRest();
                 }
@@ -4186,8 +4186,8 @@ public class DataWeaveParser extends Parser {
                     "\u00be\u0003\u0018\f\u0000\u00be\u00bf\u0003 \u0010\u0000\u00bf\u00d0" +
                     "\u0001\u0000\u0000\u0000\u00c0\u00c1\u0005\u0007\u0000\u0000\u00c1\u00c2" +
                     "\u0003\u0018\f\u0000\u00c2\u00c3\u0003 \u0010\u0000\u00c3\u00d0\u0001" +
-                    "\u0000\u0000\u0000\u00c4\u00c5\u0005\b\u0000\u0000\u00c5\u00c6\u0003\u0014" +
-                    "\n\u0000\u00c6\u00c7\u0003 \u0010\u0000\u00c7\u00d0\u0001\u0000\u0000" +
+                    "\u0000\u0000\u0000\u00c4\u00c5\u0005\b\u0000\u0000\u00c5\u00c6\u0003\u0018" +
+                    "\f\u0000\u00c6\u00c7\u0003 \u0010\u0000\u00c7\u00d0\u0001\u0000\u0000" +
                     "\u0000\u00c8\u00c9\u0005\t\u0000\u0000\u00c9\u00ca\u0005(\u0000\u0000" +
                     "\u00ca\u00cb\u0005\n\u0000\u0000\u00cb\u00d0\u0003\u0014\n\u0000\u00cc" +
                     "\u00cd\u0005\u000b\u0000\u0000\u00cd\u00d0\u0003\u0014\n\u0000\u00ce\u00d0" +
