@@ -67,8 +67,7 @@ public class CodeGenerator {
             }
 
             for (ModuleVar moduleVar : textDocument.moduleVars()) {
-                ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(
-                        String.format("%s %s = %s;", moduleVar.type(), moduleVar.name(), moduleVar.expr().expr()));
+                ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(moduleVar.toString());
                 moduleMembers.add(member);
             }
 
@@ -131,6 +130,16 @@ public class CodeGenerator {
                     functionDefinitionNode = generateBallerinaExternalFunction(f, funcParamString, methodName);
                 }
                 moduleMembers.add(functionDefinitionNode);
+            }
+
+            for (String f : textDocument.intrinsics()) {
+                FunctionDefinitionNode fd = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(f);
+                moduleMembers.add(fd);
+            }
+
+            for (String f : textDocument.intrinsics()) {
+                FunctionDefinitionNode fd = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(f);
+                moduleMembers.add(fd);
             }
 
             NodeList<ImportDeclarationNode> importDecls = NodeFactory.createNodeList(imports);

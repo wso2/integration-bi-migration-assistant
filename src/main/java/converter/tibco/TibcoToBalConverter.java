@@ -26,11 +26,15 @@ import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 import tibco.TibcoModel;
 
-import java.io.IOException;
-import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class TibcoToBalConverter {
@@ -38,7 +42,7 @@ public class TibcoToBalConverter {
     private TibcoToBalConverter() {
     }
 
-    public static SyntaxTree convertToBallerina(String xmlFilePath) {
+    public static SyntaxTree convertFile(String xmlFilePath) {
         Element root;
         try {
             root = parseXmlFile(xmlFilePath);
@@ -48,11 +52,36 @@ public class TibcoToBalConverter {
         }
         TibcoModel.Process process = XmlToTibcoModelConverter.parseProcess(root);
         BallerinaModel.Module ballerinaModule =
-                TibcoToBallerinaModelConverter.convertProcess(new TibcoToBallerinaModelConverter.Context(),
-                        process);
+                ProcessConverter.convertProcess(process);
         BallerinaModel ballerinaModel = new BallerinaModel(new BallerinaModel.DefaultPackage("tibco", "sample", "0.1"),
                 List.of(ballerinaModule));
         return new CodeGenerator(ballerinaModel).generateBalCode();
+    }
+
+    public static BallerinaModel.Module convertProject(String projectPath) {
+        List<TibcoModel.Process> processes = new ArrayList<>();
+        try {
+            for (String s : getBwpFiles(projectPath)) {
+                Element element = parseXmlFile(s);
+                TibcoModel.Process parseProcess = XmlToTibcoModelConverter.parseProcess(element);
+                processes.add(parseProcess);
+            }
+        } catch (IOException | SAXException | ParserConfigurationException e) {
+            throw new RuntimeException("Error while parsing the XML file: ", e);
+        }
+
+        return ProcessConverter.convertProcesses(processes);
+    }
+
+
+    private static List<String> getBwpFiles(String projectPath) throws IOException {
+        try (var pathStream = Files.walk(Paths.get(projectPath))) {
+            return pathStream
+                    .filter(Files::isRegularFile)
+                    .map(Path::toString)
+                    .filter(string -> string.endsWith(".bwp"))
+                    .toList();
+        }
     }
 
     public static Element parseXmlFile(String xmlFilePath)

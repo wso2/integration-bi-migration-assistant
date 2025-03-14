@@ -2,6 +2,7 @@ package converter;
 
 import ballerina.BallerinaModel;
 import ballerina.CodeGenerator;
+import converter.tibco.TibcoToBalConverter;
 import dataweave.converter.DWConversionStats;
 import io.ballerina.cli.cmd.NewCommand;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
@@ -16,7 +17,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import io.ballerina.cli.cmd.NewCommand;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
 
 import static converter.HtmlReportWriter.writeHtmlReport;
 import static converter.MuleToBalConverter.convertProjectXMLFileToBallerina;
@@ -33,12 +38,120 @@ public class MigrationTool {
     public static final String MIGRATION_REPORT_NAME = "migration_summary.html";
 
     public static void main(String[] args) {
-        if (args.length != 1) {
+        if (args.length < 1) {
             logger.severe("Usage: java -jar mule-to-bi-migration-assistant.jar " +
                     "<mule-xml-config-file-or-project-directory>");
             System.exit(1);
         }
 
+        if (args[0].equals("--tibco") || args[0].equals("-t")) {
+            migrateTibco(args);
+            return;
+        }
+
+        migrateMuleProject(args);
+    }
+
+    private static void migrateTibco(String[] args) {
+        if (args.length < 2) {
+            logger.severe(
+                    "Usage: java -jar mule_to_bal_converter.jar --tibco <path to bwp file or project> [-o <output path>]");
+            System.exit(1);
+        }
+        Path inputPath = Paths.get(args[1]);
+        String outputPath = null;
+        if (args.length >= 4 && args[2].equals("-o")) {
+            outputPath = args[3];
+        }
+
+        if (Files.isRegularFile(inputPath)) {
+            SyntaxTree syntaxTree = TibcoToBalConverter.convertFile(inputPath.toString());
+            String ballerinaCode = syntaxTree.toSourceCode();
+            String outputBalFilePath;
+            if (outputPath != null) {
+                outputBalFilePath = outputPath;
+            } else {
+                outputBalFilePath = inputPath.toString().replaceAll("\\.bwp$", ".bal");
+            }
+            Path outputFilePath = Paths.get(outputBalFilePath);
+            try {
+                Files.writeString(outputFilePath, ballerinaCode);
+                logger.info("Conversion successful. Output written to " + outputBalFilePath);
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Error writing output to file: " + outputBalFilePath, e);
+                System.exit(1);
+            }
+        } else if (Files.isDirectory(inputPath)) {
+            String targetPath = outputPath != null ? outputPath : inputPath + "_converted";
+            migrateTibcoProject(inputPath.toString(), targetPath);
+        } else {
+            logger.severe("Invalid path: " + inputPath);
+            System.exit(1);
+        }
+    }
+
+    private static void migrateTibcoProject(String projectPath, String targetPath) {
+        Path targetDir = Paths.get(targetPath);
+        try {
+            createTargetDirectoryIfNeeded(targetDir);
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Error creating target directory: " + targetDir, e);
+            System.exit(1);
+        }
+
+        BallerinaModel.Module module = TibcoToBalConverter.convertProject(projectPath);
+        BallerinaModel.DefaultPackage balPackage = new BallerinaModel.DefaultPackage("tibco", "sample", "0.1");
+        for (BallerinaModel.TextDocument textDocument : module.textDocuments()) {
+            try {
+                writeTextDocument(module, balPackage, textDocument, targetDir);
+            } catch (IOException e) {
+                logger.log(Level.SEVERE, "Failed to create output file" + textDocument.documentName(), e);
+            }
+        }
+        try {
+            addProjectArtifacts(targetPath);
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Error adding project artifacts", e);
+        }
+    }
+
+    private static void writeTextDocument(BallerinaModel.Module module, BallerinaModel.DefaultPackage balPackage,
+                                          BallerinaModel.TextDocument textDocument, Path targetDir) throws IOException {
+        BallerinaModel.Module tmpModule = new BallerinaModel.Module(module.name(), List.of(textDocument));
+        BallerinaModel ballerinaModel = new BallerinaModel(balPackage, List.of(tmpModule));
+        SyntaxTree st = new CodeGenerator(ballerinaModel).generateBalCode();
+        Path filePath = Path.of(targetDir + "/" + textDocument.documentName());
+        Files.writeString(filePath, st.toSourceCode());
+    }
+
+    private static void createTargetDirectoryIfNeeded(Path targetDir) throws IOException {
+        if (Files.exists(targetDir)) {
+            return;
+        }
+        Files.createDirectories(targetDir);
+        logger.info("Created target directory: " + targetDir);
+    }
+
+    private static void addProjectArtifacts(String targetPath) throws IOException {
+        String org = "converter";
+        String name = Paths.get(targetPath).getFileName().toString();
+        String version = "0.1.0";
+        String distribution = "2201.12.0";
+
+        Path tomlPath = Paths.get(targetPath, "Ballerina.toml");
+        String tomlContent = "[package]\n" +
+                "org = \"" + org + "\"\n" +
+                "name = \"" + name + "\"\n" +
+                "version = \"" + version + "\"\n" +
+                "distribution = \"" + distribution + "\"\n\n" +
+                "[build-options]\n" +
+                "observabilityIncluded = true";
+
+        Files.writeString(tomlPath, tomlContent);
+        logger.info("Created Ballerina.toml file at: " + tomlPath);
+    }
+
+    private static void migrateMuleProject(String[] args) {
         String inputPath = args[0];
         boolean standaloneFile = inputPath.endsWith(".xml");
         if (standaloneFile) {
@@ -112,7 +225,8 @@ public class MigrationTool {
      * @param xmlFile           xml file to be converted
      * @param muleXMLNavigator  MuleXMLNavigator instance to navigate the XML file
      * @param sharedProjectData shared project data
-     * @param targetFilePath    path to the target file where the Ballerina code will be written
+     * @param targetFilePath    path to the target file where the Ballerina code
+     *                          will be written
      */
     private static void genAndWriteBalFileFromXMLFile(File xmlFile, MuleXMLNavigator muleXMLNavigator,
                                                       SharedProjectData sharedProjectData, Path targetFilePath) {
@@ -134,8 +248,10 @@ public class MigrationTool {
     /**
      * Generate and write the internal-types.bal file.
      *
-     * @param sharedProjectData shared project data containing context type definitions and imports
-     * @param targetFolderPath  path to the target folder where the internal-types.bal file will be created
+     * @param sharedProjectData shared project data containing context type
+     *                          definitions and imports
+     * @param targetFolderPath  path to the target folder where the
+     *                          internal-types.bal file will be created
      */
     private static void genAndWriteInternalTypesBalFile(SharedProjectData sharedProjectData, String targetFolderPath) {
         createContextInfoHoldingDataStructures(sharedProjectData);

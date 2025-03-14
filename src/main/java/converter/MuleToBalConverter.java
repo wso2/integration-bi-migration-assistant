@@ -1,6 +1,11 @@
 package converter;
 
 import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.Statement.DoStatement;
+import ballerina.BallerinaModel.Statement.ElseIfClause;
+import ballerina.BallerinaModel.Statement.NamedWorkerDecl;
+import ballerina.BallerinaModel.Statement.OnFailClause;
+import ballerina.BallerinaModel.Statement.TypeBindingPattern;
 import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import ballerina.CodeGenerator;
 import converter.MuleXMLNavigator.MuleElement;
@@ -35,8 +40,6 @@ import static ballerina.BallerinaModel.BallerinaExpression;
 import static ballerina.BallerinaModel.BallerinaStatement;
 import static ballerina.BallerinaModel.BlockFunctionBody;
 import static ballerina.BallerinaModel.DefaultPackage;
-import static ballerina.BallerinaModel.DoStatement;
-import static ballerina.BallerinaModel.ElseIfClause;
 import static ballerina.BallerinaModel.Function;
 import static ballerina.BallerinaModel.IfElseStatement;
 import static ballerina.BallerinaModel.Import;
@@ -45,14 +48,11 @@ import static ballerina.BallerinaModel.ListenerType;
 import static ballerina.BallerinaModel.Module;
 import static ballerina.BallerinaModel.ModuleTypeDef;
 import static ballerina.BallerinaModel.ModuleVar;
-import static ballerina.BallerinaModel.OnFailClause;
 import static ballerina.BallerinaModel.Parameter;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
 import static ballerina.BallerinaModel.Statement;
 import static ballerina.BallerinaModel.TextDocument;
-import static ballerina.BallerinaModel.TypeBindingPattern;
-import static ballerina.BallerinaModel.NamedWorkerDecl;
 import static converter.Constants.BAL_ANYDATA_TYPE;
 import static converter.Constants.BAL_ERROR_TYPE;
 import static converter.Constants.BAL_STRING_TYPE;
@@ -971,7 +971,7 @@ public class MuleToBalConverter {
             }
             case ChoiceExceptionStrategy choiceExceptionStrategy -> {
                 List<Statement> onFailBody = getChoiceExceptionBody(data, choiceExceptionStrategy);
-                TypeBindingPattern typeBindingPattern = new BallerinaModel.TypeBindingPattern(BAL_ERROR_TYPE, "e");
+                TypeBindingPattern typeBindingPattern = new TypeBindingPattern(BAL_ERROR_TYPE, "e");
                 OnFailClause onFailClause = new OnFailClause(onFailBody, typeBindingPattern);
                 DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
                 statementList.add(doStatement);
@@ -1099,25 +1099,14 @@ public class MuleToBalConverter {
         data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_LOG));
         String message = element.getAttribute("message");
         String level = element.getAttribute("level");
-        LogLevel logLevel;
-        switch (level) {
-            case "DEBUG" -> {
-                logLevel = LogLevel.DEBUG;
-            }
-            case "ERROR" -> {
-                logLevel = LogLevel.ERROR;
-            }
-            case "INFO" -> {
-                logLevel = LogLevel.INFO;
-            }
-            case "TRACE" -> {
-                logLevel = LogLevel.TRACE;
-            }
-            case "WARN" -> {
-                logLevel = LogLevel.WARN;
-            }
+        LogLevel logLevel = switch (level) {
+            case "DEBUG" -> LogLevel.DEBUG;
+            case "ERROR" -> LogLevel.ERROR;
+            case "INFO" -> LogLevel.INFO;
+            case "TRACE" -> LogLevel.TRACE;
+            case "WARN" -> LogLevel.WARN;
             default -> throw new IllegalStateException();
-        }
+        };
         return new Logger(message, logLevel);
     }
 

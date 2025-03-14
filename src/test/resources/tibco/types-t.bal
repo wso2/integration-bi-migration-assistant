@@ -1,79 +1,16 @@
 import ballerina/http;
 
-type ErrorReport record {
-    string StackTrace;
-    string Msg;
-    string FullClass;
-    string Class;
-    string ProcessStack;
-    string MsgCode;
-    anydata Data;
-};
+const string client_404_RecordNotFound = "Record Not Found";
+listener http:Listener com_test_Test_listener = new (8080, {host: "localhost"});
 
-type OptionalErrorReport record {
-    string StackTrace;
-    string Msg;
-    string FullClass;
-    string Class;
-    string ProcessStack;
-    string MsgCode;
-    anydata Data;
-};
+service /y54cuadtcxtfstqs3rux2gfdaxppoqgc on com_test_Test_listener {
+    resource function post creditscore(GiveNewSchemaNameHere input) returns SuccessSchema|http:NotFound|http:InternalServerError|client_404_RecordNotFound {
+        return com_test_Test_start(input);
+    }
+}
 
-type FaultDetail record {
-    string ActivityName;
-    anydata Data;
-    string Msg;
-    string MsgCode;
-    string ProcessStack;
-    string StackTrace;
-    string FullClass;
-    string Class;
-};
-
-type ProcessContext record {
-    string JobId;
-    string ApplicationName;
-    string EngineName;
-    string ProcessInstanceId;
-    string CustomJobId;
-    string TrackingInfo;
-};
-
-type anydatarecord {|
-...anydata
-|};
-type OptionalErrorReport OptionalErrorReport;
-
-type ErrorReport ErrorReport;
-
-type FaultDetail FaultDetail;
-
-type ProcessContext ProcessContext;
-
-type CorrelationValue string;
-
-type ActivityExceptionType record {
-    string msg;
-    string msgCode;
-};
-
-type ActivityTimedOutExceptionType record {
-    include ActivityExceptionType
-};
-
-type DuplicateKeyExceptionType record {
-    include ActivityExceptionType
-    string duplicateKey;
-    string previousJobID;
-};
-
-type ActivityException ActivityExceptionType;
-
-type ActivityTimedOutException ActivityTimedOutExceptionType;
-
-type DuplicateKeyException DuplicateKeyExceptionType;
-
-type ActivityErrorDataType ActivityTimedOutException|()|NOT_FOUND|INTERNAL_SERVER_ERROR;
-
-type ActivityErrorData ActivityErrorDataType;
+service / on com_test_Test_listener {
+    resource function post creditscore(GiveNewSchemaNameHere input) returns SuccessSchema|http:NotFound|http:InternalServerError {
+        return com_test_Test_start(input);
+    }
+}

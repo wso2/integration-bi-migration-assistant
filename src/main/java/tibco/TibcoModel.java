@@ -29,7 +29,9 @@ import java.util.Set;
 public class TibcoModel {
 
     public record Process(String name, Collection<Type> types, ProcessInfo processInfo,
-                          Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope) {
+                          Optional<ProcessInterface> processInterface,
+                          Optional<ProcessTemplateConfigurations> processTemplateConfigurations,
+                          Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Optional<Scope> scope) {
 
         public Process {
             assert name != null;
@@ -56,7 +58,7 @@ public class TibcoModel {
 
         record WSDLDefinition(Map<String, String> namespaces, PartnerLinkType partnerLinkType,
                               Collection<NameSpace> imports, Collection<Message> messages,
-                              Collection<PortType> portTypes) implements Type {
+                              Collection<PortType> portType) implements Type {
 
             public record PartnerLinkType(String name, Role role) {
 
@@ -67,12 +69,22 @@ public class TibcoModel {
 
             public record Message(String name, List<Part> parts) {
 
-                public record Part(String name, Optional<NameSpaceValue> element, boolean hasMultipleNamespaces) {
+                public sealed interface Part {
 
+                    String name();
+
+                    record Reference(String name, NameSpaceValue element, boolean hasMultipleNamespaces)
+                            implements Part {
+
+                    }
+
+                    record InlineError(String name, String value, String type) implements Part {
+
+                    }
                 }
             }
 
-            public record PortType(String name, String apiPath, Operation operation) {
+            public record PortType(String name, String apiPath, String basePath, Operation operation) {
 
                 public record Operation(String name, Input input, Output output, Collection<Fault> faults) {
 
@@ -101,6 +113,10 @@ public class TibcoModel {
 
             public record TibcoType(String name) {
 
+                public TibcoType {
+                    assert name != null && !name.isEmpty();
+                }
+
                 private static final HashMap<String, TibcoType> TYPES = new HashMap<>();
 
                 public static TibcoType of(String name) {
@@ -120,7 +136,7 @@ public class TibcoModel {
 
                 }
 
-                public record Choice(Collection<Element> elements) implements Body {
+                public record Choice(Collection<Element> elements) implements Body, SequenceBody.Member {
 
                     public record Element(int maxOccurs, int minOccurs, TibcoType ref) {
 
@@ -133,10 +149,16 @@ public class TibcoModel {
 
                         record Element(String name, TibcoType type) implements Member {
 
+                            public Element {
+                                assert name != null && !name.isEmpty();
+                            }
                         }
 
-                        record Rest(boolean isLax) implements Member {
+                        record Rest(boolean isLax, Optional<TibcoType> type) implements Member {
 
+                            public Rest(boolean isLax) {
+                                this(isLax, Optional.empty());
+                            }
                         }
                     }
                 }
@@ -156,6 +178,15 @@ public class TibcoModel {
         }
     }
 
+    public record ProcessInterface(String context, String input, String output) {
+
+    }
+
+    // TODO: fill this
+    public record ProcessTemplateConfigurations() {
+
+    }
+
     public record ProcessInfo(boolean callable, boolean extraErrorVars, Set<Modifier> modifiers, boolean scalable,
                               boolean singleton, boolean stateless, Type type) {
 
@@ -172,7 +203,7 @@ public class TibcoModel {
 
     }
 
-    public record PartnerLink(String name, Binding Binding) {
+    public record PartnerLink(String name, Optional<Binding> binding) {
 
         public record Binding(Path path, Connector connector, Operation operation) {
 
@@ -199,7 +230,7 @@ public class TibcoModel {
                     POST;
 
                     public static Method from(String value) {
-                        if (value.equals("POST")) {
+                        if (value.equalsIgnoreCase("post")) {
                             return POST;
                         }
                         throw new IllegalArgumentException("Unknown method: " + value);
@@ -251,6 +282,17 @@ public class TibcoModel {
 
             public sealed interface Activity {
 
+                sealed interface ActivityWithSources extends Activity {
+
+                    Collection<Source> sources();
+                }
+
+                sealed interface ActivityWithTargets extends Activity {
+
+                    Collection<Target> targets();
+
+                }
+
                 sealed interface Expression {
 
                     record XSLT(String expression) implements Expression {
@@ -258,25 +300,95 @@ public class TibcoModel {
                     }
                 }
 
-                record ReceiveEvent(boolean createInstance, float eventTimeout, String variable,
-                                    Collection<Source> sources) implements Activity {
+                record Reply(String name, PartnerLink.Binding.Operation.Method operation, String partnerLink,
+                             String portType, List<InputBinding> inputBindings, Collection<Target> targets)
+                        implements Activity, ActivityWithTargets {
 
-                    public record Source(String linkName) {
+                }
+
+                record Empty(String name) implements Activity {
+
+                }
+
+                record Pick(boolean createInstance, OnMessage onMessage) implements Activity {
+
+                    public record OnMessage(PartnerLink.Binding.Operation.Method operation, String partnerLink,
+                                            String portType, String variable, Scope scope) {
 
                     }
                 }
 
-                record ActivityExtension(Expression expression, String inputVariable, Collection<Target> targets,
-                                         Collection<InputBinding> inputBindings, Config config) implements Activity {
+                record ReceiveEvent(boolean createInstance, float eventTimeout, String variable,
+                                    Collection<Source> sources) implements Activity, ActivityWithSources {
 
-                    public record Config() {
+                }
+
+                record ExtActivity(Expression expression, String inputVariable, String outputVariable,
+                                   Collection<Source> sources, List<InputBinding> inputBindings,
+                                   CallProcess callProcess) implements Activity, ActivityWithSources {
+
+                    public record CallProcess(String subprocessName) {
 
                     }
+                }
+
+                record ActivityExtension(Expression expression, String inputVariable, Optional<String> outputVariable,
+                                         Collection<Target> targets, Collection<Source> sources,
+                                         List<InputBinding> inputBindings, Config config)
+                        implements Activity, ActivityWithTargets, ActivityWithSources {
+
+                    public sealed interface Config {
+
+                        ExtensionKind kind();
+
+                        record End() implements Config {
+
+                            @Override
+                            public ExtensionKind kind() {
+                                return ExtensionKind.END;
+                            }
+                        }
+
+                        record HTTPSend() implements Config {
+
+                            @Override
+                            public ExtensionKind kind() {
+                                return ExtensionKind.HTTP_SEND;
+                            }
+                        }
+
+                        record JSON_OPERATION(ExtensionKind kind, Type.Schema.TibcoType type) implements Config {
+
+                            public JSON_OPERATION {
+                                assert kind == ExtensionKind.JSON_PARSER || kind == ExtensionKind.JSON_RENDER;
+                                assert type != null;
+                            }
+                        }
+
+                        enum ExtensionKind {
+                            END,
+                            HTTP_SEND,
+                            JSON_RENDER,
+                            JSON_PARSER;
+
+                            public static ExtensionKind fromTypeId(String typeId) {
+                                return switch (typeId) {
+                                    case "bw.internal.end" -> END;
+                                    case "bw.http.sendHTTPRequest" -> HTTP_SEND;
+                                    case "bw.restjson.JsonRender" -> JSON_RENDER;
+                                    case "bw.restjson.JsonParser" -> JSON_PARSER;
+                                    default -> throw new IllegalArgumentException("Unknown extension kind: " + typeId);
+                                };
+                            }
+
+                        }
+                    }
+
                 }
 
                 record Invoke(String inputVariable, String outputVariable, Operation operation, String partnerLink,
                               List<InputBinding> inputBindings, Collection<Target> targets, Collection<Source> sources)
-                        implements Activity {
+                        implements Activity, ActivityWithSources, ActivityWithTargets {
 
                     public enum Operation {
                         POST
@@ -294,6 +406,12 @@ public class TibcoModel {
 
                 record InputBinding(Expression expression) {
 
+                    public Expression.XSLT xslt() {
+                        if (expression instanceof Expression.XSLT xslt) {
+                            return xslt;
+                        }
+                        throw new IllegalStateException("Not an XSLT expression: " + expression);
+                    }
                 }
 
             }

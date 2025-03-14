@@ -1,6 +1,7 @@
 package dataweave.converter.builder;
 
 import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.Statement.ElseIfClause;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,7 +9,7 @@ import java.util.List;
 public class IfStatementBuilder extends StatementBuilder {
     private BallerinaModel.BallerinaExpression ifCondition;
     private final List<BallerinaModel.Statement> ifBody = new ArrayList<>();
-    private final List<BallerinaModel.ElseIfClause> elseIfClauses = new ArrayList<>();
+    private final List<ElseIfClause> elseIfClauses = new ArrayList<>();
     private final List<BallerinaModel.Statement> elseBody = new ArrayList<>();
     public String resultVar;
 
@@ -22,7 +23,7 @@ public class IfStatementBuilder extends StatementBuilder {
 
     public void addElseIfClause(BallerinaModel.BallerinaExpression condition,
                                 List<BallerinaModel.Statement> body) {
-        this.elseIfClauses.add(new BallerinaModel.ElseIfClause(condition, body));
+        this.elseIfClauses.add(new ElseIfClause(condition, body));
     }
 
     public void addElseBody(BallerinaModel.Statement statement) {
