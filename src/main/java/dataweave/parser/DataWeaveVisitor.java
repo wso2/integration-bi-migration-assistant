@@ -271,6 +271,14 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
     T visitTypeCoercionExpression(DataWeaveParser.TypeCoercionExpressionContext ctx);
 
     /**
+     * Visit a parse tree produced by {@link DataWeaveParser#formatOption}.
+     *
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    T visitFormatOption(DataWeaveParser.FormatOptionContext ctx);
+
+    /**
      * Visit a parse tree produced by the {@code sizeOfExpression}
      * labeled alternative in {@link DataWeaveParser#unaryExpression}.
      *

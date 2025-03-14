@@ -33,16 +33,16 @@ public class DWUtils {
     public static final String TEXT_PLAIN = "text/plain";
 
     // DataWeave Types
-    public static final String ARRAY = "Array";
-    public static final String BOOLEAN = "Boolean";
-    public static final String DATE = "Date";
-    public static final String DATETIME = "DateTime";
-    public static final String FUNCTION = "Function";
-    public static final String NULL = "Null";
-    public static final String NUMBER = "Number";
-    public static final String OBJECT = "Object";
-    public static final String STRING = "String";
-    public static final String TIME = "Time";
+    public static final String ARRAY = "array";
+    public static final String BOOLEAN = "boolean";
+    public static final String DATE = "date";
+    public static final String DATETIME = "dateTime";
+    public static final String FUNCTION = "function";
+    public static final String NULL = "null";
+    public static final String NUMBER = "number";
+    public static final String OBJECT = "object";
+    public static final String STRING = "string";
+    public static final String TIME = "time";
 
     // DataWeave Built-in functions
     public static final String DW_FUNCTION_MAP = "map";
