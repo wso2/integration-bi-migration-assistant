@@ -54,6 +54,7 @@ public class Constants {
     public static final String MODULE_MYSQL = "mysql";
     public static final String MODULE_MYSQL_DRIVER = "mysql.driver";
     public static final String MODULE_TIME = "time";
+    public static final String MODULE_INT = "lang.'int";
 
     // Variable/Method Names
     public static final String VAR_RESPONSE = "_response_";

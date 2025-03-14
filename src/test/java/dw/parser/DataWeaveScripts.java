@@ -327,4 +327,22 @@ public class DataWeaveScripts {
             ---
             "Hello" ++ "World"
             """;
+    public static final String SCRIPT_TYPE_COERCION = """
+            %dw 1.0
+            %output application/json
+            ---
+            10 as :string
+            """;
+    public static final String SCRIPT_TYPE_COERCION_WITH_FORMAT = """
+            %dw 1.0
+            %output application/json
+            ---
+            10 as :string {format: "##,#"}
+            """;
+    public static final String SCRIPT_TYPE_COERCION_WITH_CLASS = """
+            %dw 1.0
+            %output application/json
+            ---
+            10 as :object {class : "soa.sfabs.SOAResponseInfoType\\$ServiceInfo"}
+            """;
 }

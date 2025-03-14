@@ -465,6 +465,20 @@ public interface DataWeaveListener extends ParseTreeListener {
     void exitTypeCoercionExpression(DataWeaveParser.TypeCoercionExpressionContext ctx);
 
     /**
+     * Enter a parse tree produced by {@link DataWeaveParser#formatOption}.
+     *
+     * @param ctx the parse tree
+     */
+    void enterFormatOption(DataWeaveParser.FormatOptionContext ctx);
+
+    /**
+     * Exit a parse tree produced by {@link DataWeaveParser#formatOption}.
+     *
+     * @param ctx the parse tree
+     */
+    void exitFormatOption(DataWeaveParser.FormatOptionContext ctx);
+
+    /**
      * Enter a parse tree produced by the {@code sizeOfExpression}
      * labeled alternative in {@link DataWeaveParser#unaryExpression}.
      *

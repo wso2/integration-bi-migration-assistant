@@ -305,9 +305,18 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         if (Objects.equals(dwContext.currentScriptContext.inputType, LexerTerminals.JSON)) {
             visit((((DataWeaveParser.DefaultExpressionWrapperContext) ctx.getParent()).logicalOrExpression()));
             String varName = DWUtils.VAR_PREFIX + varCount++;
-            String castStatement = "var " + varName + " = " + dwContext.getExpression() + ";";
-            dwContext.currentScriptContext.varTypes.put(varName, "var");
-            dwContext.currentScriptContext.varTypes.put(DWUtils.ELEMENT_ARG, "var");
+            String expression = dwContext.getExpression();
+            String castStatement;
+            if (!this.dwContext.currentScriptContext.currentType.equals(DWUtils.ARRAY)) {
+                castStatement = "json[] " + varName + " = check (" + expression + ").ensureType();";
+                dwContext.currentScriptContext.containsCheck = true;
+                dwContext.currentScriptContext.varTypes.put(varName, "json[]");
+                dwContext.currentScriptContext.varTypes.put(DWUtils.ELEMENT_ARG, "json");
+            } else {
+                castStatement = "var " + varName + " = " + expression + ";";
+                dwContext.currentScriptContext.varTypes.put(varName, "var");
+                dwContext.currentScriptContext.varTypes.put(DWUtils.ELEMENT_ARG, "var");
+            }
             dwContext.currentScriptContext.varNames.put(DWUtils.DW_INDEX_IDENTIFIER, varName);
             dwContext.currentScriptContext.statements.add(new BallerinaModel.BallerinaStatement(castStatement));
             dwContext.append(varName).append(".filter(");
@@ -513,8 +522,22 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             return visit(ctx.unaryExpression());
         }
         visit(ctx.unaryExpression());
-        if (ctx.typeExpression() != null) {
-            visit(ctx.typeExpression());
+        String type = ctx.typeExpression().IDENTIFIER().getText();
+        String balType = DWUtils.getBallerinaType(type, data);
+        switch (balType) {
+            case "string":
+                this.dwContext.currentScriptContext.exprBuilder.append(".toString()");
+                break;
+            case "int":
+                String expression = this.dwContext.getExpression();
+                if (this.dwContext.currentScriptContext.currentType.equals(DWUtils.STRING)) {
+                    this.dwContext.currentScriptContext.exprBuilder.append("check int:fromString(")
+                            .append(expression).append(")");
+                    this.dwContext.currentScriptContext.containsCheck = true;
+                }
+                break;
+            default:
+                this.dwContext.currentScriptContext.exprBuilder.append(".ensureType(").append(balType).append(")");
         }
         dwContext.convertedNodes++;
         return null;

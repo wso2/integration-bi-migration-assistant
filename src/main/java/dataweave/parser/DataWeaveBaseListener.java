@@ -576,6 +576,24 @@ public class DataWeaveBaseListener implements DataWeaveListener {
      * <p>The default implementation does nothing.</p>
      */
     @Override
+    public void enterFormatOption(DataWeaveParser.FormatOptionContext ctx) {
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation does nothing.</p>
+     */
+    @Override
+    public void exitFormatOption(DataWeaveParser.FormatOptionContext ctx) {
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation does nothing.</p>
+     */
+    @Override
     public void enterSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx) {
     }
 
