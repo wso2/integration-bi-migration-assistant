@@ -18,23 +18,33 @@
 
 package converter.tibco;
 
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import tibco.TibcoModel;
 
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import java.io.StringWriter;
-import java.util.*;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 public final class XmlToTibcoModelConverter {
 
@@ -548,7 +558,7 @@ public final class XmlToTibcoModelConverter {
         return members;
     }
 
-    private static TibcoModel.Type.Schema parseSchema(Element element) {
+    static TibcoModel.Type.Schema parseSchema(Element element) {
         List<TibcoModel.Type.Schema.ComplexType> types = new ArrayList<>();
         List<TibcoModel.Type.Schema.Element> elements = new ArrayList<>();
         List<TibcoModel.NameSpace> imports = new ArrayList<>();
@@ -558,10 +568,20 @@ public final class XmlToTibcoModelConverter {
                 case "element" -> elements.add(parseSchemaElement(each));
                 case "complexType" -> types.add(parseType(each));
                 case "import" -> imports.add(parseImport(each));
+                case "simpleType" -> {
+                    elements.add(parseSimpleType(each));
+                }
                 default -> throw new ParserException("Unsupported schema element tag: " + tag, element);
             }
         }
         return new TibcoModel.Type.Schema(types, elements, imports);
+    }
+
+    private static TibcoModel.Type.Schema.Element parseSimpleType(Element element) {
+        String name = element.getAttribute("name");
+        Element restriction = getFirstChildWithTag(element, "restriction");
+        String baseType = restriction.getAttribute("base");
+        return new TibcoModel.Type.Schema.Element(name, TibcoModel.Type.Schema.TibcoType.of(baseType));
     }
 
     private static TibcoModel.NameSpace parseImport(Element each) {
@@ -571,6 +591,9 @@ public final class XmlToTibcoModelConverter {
     private static TibcoModel.Type.Schema.Element parseSchemaElement(Element each) {
         String name = each.getAttribute("name");
         String typeName = each.getAttribute("type");
+        if (typeName.isEmpty()) {
+            typeName = "null";
+        }
         return new TibcoModel.Type.Schema.Element(name, TibcoModel.Type.Schema.TibcoType.of(typeName));
     }
 

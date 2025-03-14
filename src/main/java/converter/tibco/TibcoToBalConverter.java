@@ -20,21 +20,22 @@ package converter.tibco;
 
 import ballerina.BallerinaModel;
 import ballerina.CodeGenerator;
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
 import tibco.TibcoModel;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
 
 
 public class TibcoToBalConverter {
@@ -60,26 +61,41 @@ public class TibcoToBalConverter {
 
     public static BallerinaModel.Module convertProject(String projectPath) {
         List<TibcoModel.Process> processes = new ArrayList<>();
+        List<TibcoModel.Type.Schema> types = new ArrayList<>();
         try {
             for (String s : getBwpFiles(projectPath)) {
                 Element element = parseXmlFile(s);
                 TibcoModel.Process parseProcess = XmlToTibcoModelConverter.parseProcess(element);
                 processes.add(parseProcess);
             }
+
+            for (String s : getXSDFiles(projectPath)) {
+                Element element = parseXmlFile(s);
+                TibcoModel.Type.Schema schema = XmlToTibcoModelConverter.parseSchema(element);
+                types.add(schema);
+            }
         } catch (IOException | SAXException | ParserConfigurationException e) {
             throw new RuntimeException("Error while parsing the XML file: ", e);
         }
 
-        return ProcessConverter.convertProcesses(processes);
+        return ProcessConverter.convertProcesses(processes, types);
     }
 
+    private static List<String> getXSDFiles(String projectPath) throws IOException {
+        return getFilesWithExtension(projectPath, "xsd");
+    }
 
     private static List<String> getBwpFiles(String projectPath) throws IOException {
+        return getFilesWithExtension(projectPath, "bwp");
+    }
+
+    private static List<String> getFilesWithExtension(String projectPath, String extension) throws IOException {
+        String extensionWithDot = "." + extension;
         try (var pathStream = Files.walk(Paths.get(projectPath))) {
             return pathStream
                     .filter(Files::isRegularFile)
                     .map(Path::toString)
-                    .filter(string -> string.endsWith(".bwp"))
+                    .filter(string -> string.endsWith(extensionWithDot))
                     .toList();
         }
     }

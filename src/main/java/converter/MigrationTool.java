@@ -90,7 +90,7 @@ public class MigrationTool {
         }
     }
 
-    private static void migrateTibcoProject(String projectPath, String targetPath) {
+    static void migrateTibcoProject(String projectPath, String targetPath) {
         Path targetDir = Paths.get(targetPath);
         try {
             createTargetDirectoryIfNeeded(targetDir);
@@ -116,7 +116,7 @@ public class MigrationTool {
     }
 
     private static void writeTextDocument(BallerinaModel.Module module, BallerinaModel.DefaultPackage balPackage,
-                                          BallerinaModel.TextDocument textDocument, Path targetDir) throws IOException {
+            BallerinaModel.TextDocument textDocument, Path targetDir) throws IOException {
         BallerinaModel.Module tmpModule = new BallerinaModel.Module(module.name(), List.of(textDocument));
         BallerinaModel ballerinaModel = new BallerinaModel(balPackage, List.of(tmpModule));
         SyntaxTree st = new CodeGenerator(ballerinaModel).generateBalCode();
@@ -182,7 +182,7 @@ public class MigrationTool {
         Path balProjectPath = muleProjectPath.resolve(balProjectName);
 
         // create ballerina project
-        String[] args = {balProjectPath.toString()};
+        String[] args = { balProjectPath.toString() };
         NewCommand newCommand = new NewCommand(System.out, false);
         new CommandLine(newCommand).parseArgs(args);
         newCommand.execute();

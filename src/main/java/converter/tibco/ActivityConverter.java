@@ -41,7 +41,7 @@ class ActivityConverter {
     private ActivityConverter() {
     }
 
-    public static BallerinaModel.Function convertActivity(ProjectContext.ProcessContext cx,
+    public static BallerinaModel.Function convertActivity(ProcessContext cx,
                                                           TibcoModel.Scope.Flow.Activity activity) {
         return convertActivity(new ActivityContext(cx, activity), activity);
     }

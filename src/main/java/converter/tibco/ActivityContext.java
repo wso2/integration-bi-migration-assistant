@@ -18,17 +18,17 @@
 
 package converter.tibco;
 
+import ballerina.BallerinaModel;
+import tibco.TibcoModel;
+
 import java.util.List;
 import java.util.Optional;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 
-import ballerina.BallerinaModel;
-import tibco.TibcoModel;
-
 class ActivityContext {
 
-    public final ProjectContext.ProcessContext processContext;
+    public final ProcessContext processContext;
     private final TibcoModel.Scope.Flow.Activity activity;
     private final String INPUT_VAR_NAME = "input";
     private int varCounter = 0;
@@ -37,7 +37,7 @@ class ActivityContext {
         return "var" + varCounter++;
     }
 
-    ActivityContext(ProjectContext.ProcessContext processContext, TibcoModel.Scope.Flow.Activity activity) {
+    ActivityContext(ProcessContext processContext, TibcoModel.Scope.Flow.Activity activity) {
         this.activity = activity;
         this.processContext = processContext;
     }
