@@ -87,6 +87,8 @@ The following DataWeave transformations and their corresponding Ballerina implem
 - [Single Selector Expression](Dataweave_samples.md#single-selector-expression)
 - [Sizeof Expression](Dataweave_samples.md#sizeof-expression)
 - [String Return Expression](Dataweave_samples.md#string-return-expression)
+- [Type Coercion Number Expression](Dataweave_samples.md#type-coercion-number-expression)
+- [Type Coercion String Expression](Dataweave_samples.md#type-coercion-string-expression)
 - [Upper Expression](Dataweave_samples.md#upper-expression)
 - [When Otherwise Expression](Dataweave_samples.md#when-otherwise-expression)
 - [When Otherwise Nested Expression](Dataweave_samples.md#when-otherwise-nested-expression)
