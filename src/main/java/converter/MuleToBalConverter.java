@@ -882,7 +882,7 @@ public class MuleToBalConverter {
         while (muleElement.peekChild() != null) {
             MuleElement child = muleElement.consumeChild();
             Element childElement = child.getElement();
-            if (childElement.getTagName().equals("when")) {
+            if (childElement.getTagName().equals(MuleXMLTag.WHEN.tag())) {
                 String condition = childElement.getAttribute("expression");
                 List<MuleRecord> whenProcess = new ArrayList<>();
 
@@ -895,7 +895,7 @@ public class MuleToBalConverter {
                 WhenInChoice whenInChoice = new WhenInChoice(condition, whenProcess);
                 whens.add(whenInChoice);
             } else {
-                assert childElement.getTagName().equals("otherwise");
+                assert childElement.getTagName().equals(MuleXMLTag.OTHERWISE.tag());
                 assert otherwiseProcess == null;
                 otherwiseProcess = new ArrayList<>();
                 while (child.peekChild() != null) {
