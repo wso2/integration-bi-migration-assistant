@@ -95,6 +95,164 @@ service /mule3 on config {
 
 ```
 
+## Choice
+
+- ### Basic Choice
+
+**Input (basic_choice.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+    <flow name="muleProject">
+        <choice doc:name="Choice">
+            <when expression="condition">
+                <logger message="xxx: when condition invoked" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <logger message="xxx: default condition invoked" level="INFO" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+    </flow>
+</mule>
+
+```
+**Output (basic_choice.bal):**
+```ballerina
+import ballerina/log;
+
+function muleProject() {
+    if ("condition") {
+        log:printInfo("xxx: when condition invoked");
+    } else {
+        log:printInfo("xxx: default condition invoked");
+    }
+}
+
+```
+
+- ### Choice With Http Listener Source
+
+**Input (choice_with_http_listener_source.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule3"/>
+    <flow name="muleProject">
+        <http:listener config-ref="config" path="/"  doc:name="HTTP" allowedMethods="GET"/>
+        <choice doc:name="Choice">
+            <when expression="condition1">
+                <logger message="xxx: first when condition invoked" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="condition2">
+                <logger message="xxx: second when condition invoked" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="condition3">
+                <logger message="xxx: third when condition invoked" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <logger message="xxx: default condition invoked" level="INFO" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+    </flow>
+</mule>
+
+```
+**Output (choice_with_http_listener_source.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /mule3 on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        if ("condition1") {
+            log:printInfo("xxx: first when condition invoked");
+        } else if ("condition2") {
+            log:printInfo("xxx: second when condition invoked");
+        } else if ("condition3") {
+            log:printInfo("xxx: third when condition invoked");
+        } else {
+            log:printInfo("xxx: default condition invoked");
+        }
+        return _response_;
+    }
+}
+
+```
+
+- ### Choice With Multiple Conditions
+
+**Input (choice_with_multiple_conditions.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+    <flow name="muleProject">
+        <choice doc:name="Choice">
+            <when expression="condition1">
+                <logger message="xxx: first when condition invoked" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="condition2">
+                <logger message="xxx: second when condition invoked" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="condition3">
+                <logger message="xxx: third when condition invoked" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <logger message="xxx: default condition invoked" level="INFO" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+    </flow>
+</mule>
+
+```
+**Output (choice_with_multiple_conditions.bal):**
+```ballerina
+import ballerina/log;
+
+function muleProject() {
+    if ("condition1") {
+        log:printInfo("xxx: first when condition invoked");
+    } else if ("condition2") {
+        log:printInfo("xxx: second when condition invoked");
+    } else if ("condition3") {
+        log:printInfo("xxx: third when condition invoked");
+    } else {
+        log:printInfo("xxx: default condition invoked");
+    }
+}
+
+```
+
 ## Database
 
 - ### Basic Db Select
