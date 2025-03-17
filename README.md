@@ -67,7 +67,8 @@ java -jar build/libs/mule-to-ballerina-migration-assistant.jar <mule-xml-config-
 - **Mule Project Directory**: A new Ballerina package is created with the same name as the input project directory, appended with a `-ballerina` suffix. This new package is located inside the given project directory path, and a `.bal` file is created for each Mule XML file within the project.
 
 ## Sending Changes
-Before sending changes, ensure you have Python 3 installed. Then, run the following command to automatically generate the relevant sections in `README.md` and `SAMPLES.md` files:
+Before sending changes, ensure you have Python 3 installed.
+Then, run the following command to automatically generate [MULE_COMPONENT_SAMPLES.md](samples/MULE_COMPONENT_SAMPLES.md), [MULE_DATAWEAVE_SAMPLES.md](samples/MULE_DATAWEAVE_SAMPLES.md) and the relevant sections in [README.md](README.md):
 
 ```sh
 python3 scripts/generate_samples_md.py
@@ -120,5 +121,5 @@ The migration tool currently supports the following DataWeave transformations an
 
 ## Sample Input and Output
 
-For detailed sample input and output files, please refer to the [SAMPLES.md](SAMPLES.md) file.
+For detailed XML input and ballerina output samples, please refer to [MULE_COMPONENT_SAMPLES.md](samples/MULE_COMPONENT_SAMPLES.md) and [MULE_DATAWEAVE_SAMPLES.md](samples/MULE_DATAWEAVE_SAMPLES.md).
 
