@@ -30,7 +30,7 @@ class ActivityContext {
 
     public final ProcessContext processContext;
     private final TibcoModel.Scope.Flow.Activity activity;
-    private final String INPUT_VAR_NAME = "input";
+    private static final String INPUT_VAR_NAME = "input";
     private int varCounter = 0;
 
     String getAnnonVarName() {

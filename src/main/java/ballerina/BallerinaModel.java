@@ -23,8 +23,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
         public TextDocument(String documentName, List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
                             List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
-                            List<Function> functions, List<String> Comments) {
-            this(documentName, imports, moduleTypeDefs, moduleVars, listeners, services, functions, Comments,
+                            List<Function> functions, List<String> comments) {
+            this(documentName, imports, moduleTypeDefs, moduleVars, listeners, services, functions, comments,
                     List.of());
         }
     }
@@ -162,7 +162,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     }
 
-    // FIXME: expr must be optional
+    // TODO: expr must be optional
     public record ModuleVar(String name, String type, BallerinaExpression expr, boolean isConstant,
                             boolean isConfigurable) {
 
@@ -375,7 +375,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                 this(functionName, args.stream().map(Objects::toString).toArray(String[]::new));
             }
 
-            // FIXME: replace this with the list
+            // TODO: replace this with the list
             public FunctionCall(String functionName, Expression[] args) {
                 this(functionName, Arrays.stream(args).map(Objects::toString).toArray(String[]::new));
             }

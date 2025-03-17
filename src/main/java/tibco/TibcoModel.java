@@ -357,9 +357,9 @@ public class TibcoModel {
                             }
                         }
 
-                        record JSON_OPERATION(ExtensionKind kind, Type.Schema.TibcoType type) implements Config {
+                        record JsonOperation(ExtensionKind kind, Type.Schema.TibcoType type) implements Config {
 
-                            public JSON_OPERATION {
+                            public JsonOperation {
                                 assert kind == ExtensionKind.JSON_PARSER || kind == ExtensionKind.JSON_RENDER;
                                 assert type != null;
                             }

@@ -20,6 +20,10 @@ package converter.tibco;
 
 import ballerina.BallerinaModel;
 import ballerina.CodeGenerator;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
 import tibco.TibcoModel;
 
 import java.io.IOException;
@@ -28,15 +32,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
-
 
 public class TibcoToBalConverter {
 

@@ -46,7 +46,7 @@ dependencies {
 }
 
 checkstyle {
-    toolVersion = '10.3.4'
+    toolVersion = '10.12.5'
     config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
 }
 

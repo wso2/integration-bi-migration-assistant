@@ -18,6 +18,9 @@
 
 package converter.tibco;
 
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import tibco.TibcoModel;
 
 import java.io.StringWriter;
@@ -35,16 +38,13 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 public final class XmlToTibcoModelConverter {
 
@@ -247,8 +247,6 @@ public final class XmlToTibcoModelConverter {
         if (language.contains("xslt")) {
             return parseXSLTExpression(node);
         } else {
-//            throw new ParserException("Unsupported expression language: " + language, node);
-            // FIXME:
             return new TibcoModel.Scope.Flow.Activity.Expression.XSLT("UNSUPPORTED");
         }
     }
@@ -378,10 +376,10 @@ public final class XmlToTibcoModelConverter {
         return switch (kind) {
             case END -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.End();
             case HTTP_SEND -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.HTTPSend();
-            case JSON_RENDER -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.JSON_OPERATION(
+            case JSON_RENDER -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.JsonOperation(
                     TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.ExtensionKind.JSON_RENDER,
                     TibcoModel.Type.Schema.TibcoType.of("nil"));
-            case JSON_PARSER -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.JSON_OPERATION(
+            case JSON_PARSER -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.JsonOperation(
                     TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.ExtensionKind.JSON_PARSER,
                     TibcoModel.Type.Schema.TibcoType.of("nil"));
         };
@@ -821,7 +819,6 @@ public final class XmlToTibcoModelConverter {
                 throw new ParserException("Unsupported complex content extension tag: " + tag, element);
             }
         }
-        // FIXME:
         return new TibcoModel.Type.Schema.ComplexType.ComplexContent.Extension(base,
                 elements.stream().map(each -> (TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Element) each)
                         .toList());

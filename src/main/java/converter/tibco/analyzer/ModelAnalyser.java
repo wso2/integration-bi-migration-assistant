@@ -18,6 +18,9 @@
 
 package converter.tibco.analyzer;
 
+import converter.tibco.ConversionUtils;
+import tibco.TibcoModel;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,9 +30,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
-
-import converter.tibco.ConversionUtils;
-import tibco.TibcoModel;
 
 public class ModelAnalyser {
 

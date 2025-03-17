@@ -37,7 +37,6 @@ class TypeConverter {
 
     private static Optional<BallerinaModel.ModuleTypeDef> convertTypeAlias(ContextWithFile cx,
             TibcoModel.Type.Schema.Element element) {
-        // FIXME: handle namespaces
         String name = XmlToTibcoModelConverter.getTagNameWithoutNameSpace(element.name());
         BallerinaModel.TypeDesc ref = cx.getTypeByName(element.type().name());
         BallerinaModel.ModuleTypeDef defn = new BallerinaModel.ModuleTypeDef(name, ref);
@@ -58,21 +57,24 @@ class TypeConverter {
         return typeDef;
     }
 
-    private static BallerinaModel.TypeDesc.RecordTypeDesc convertTypeInclusion(ContextWithFile cx,
+    private static BallerinaModel.TypeDesc.RecordTypeDesc convertTypeInclusion(
+            ContextWithFile cx,
             TibcoModel.Type.Schema.ComplexType.ComplexContent complexContent) {
         List<BallerinaModel.TypeDesc> inclusions = List.of(cx.getTypeByName(complexContent.extension().base().name()));
         RecordBody body = getRecordBody(cx, complexContent.extension().elements());
         return new BallerinaModel.TypeDesc.RecordTypeDesc(inclusions, body.fields(), body.rest().orElse(NEVER));
     }
 
-    private static BallerinaModel.TypeDesc.RecordTypeDesc convertSequenceBody(ContextWithFile cx,
+    private static BallerinaModel.TypeDesc.RecordTypeDesc convertSequenceBody(
+            ContextWithFile cx,
             TibcoModel.Type.Schema.ComplexType.SequenceBody sequenceBody) {
         Collection<TibcoModel.Type.Schema.ComplexType.SequenceBody.Member> members = sequenceBody.elements();
         RecordBody body = getRecordBody(cx, members);
         return new BallerinaModel.TypeDesc.RecordTypeDesc(List.of(), body.fields(), body.rest().orElse(NEVER));
     }
 
-    private static RecordBody getRecordBody(ContextWithFile cx,
+    private static RecordBody getRecordBody(
+            ContextWithFile cx,
             Collection<? extends TibcoModel.Type.Schema.ComplexType.SequenceBody.Member> members) {
         List<BallerinaModel.TypeDesc.RecordTypeDesc.RecordField> fields = new ArrayList<>();
         Optional<BallerinaModel.TypeDesc> rest = Optional.empty();
@@ -80,15 +82,10 @@ class TypeConverter {
             switch (member) {
                 case TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Element element -> {
                     BallerinaModel.TypeDesc typeDesc = cx.getTypeByName(element.type().name());
-                    // FIXME: this is not going to get mapped correctly
-                    // -- Can we escape in our names
                     String name = ConversionUtils.sanitizes(element.name());
                     fields.add(new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField(name, typeDesc));
                 }
-                case TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Rest ignored -> // FIXME: handle this
-                                                                                            // properly
-                    rest = Optional.of(ANYDATA);
-                // FIXME:
+                case TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Rest ignored -> rest = Optional.of(ANYDATA);
                 case TibcoModel.Type.Schema.ComplexType.Choice choice ->
                     rest = Optional.of(convertTypeChoice(cx, choice));
             }
@@ -173,7 +170,8 @@ class TypeConverter {
                 List.of(), List.of());
     }
 
-    private static BallerinaModel.Resource convertOperation(ProcessContext cx,
+    private static BallerinaModel.Resource convertOperation(
+            ProcessContext cx,
             String apiPath, Map<String, String> messageTypes,
             TibcoModel.Type.WSDLDefinition.PortType.Operation operation) {
         String resourceMethodName = operation.name();

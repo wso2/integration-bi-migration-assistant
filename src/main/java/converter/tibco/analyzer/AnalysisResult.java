@@ -18,13 +18,13 @@
 
 package converter.tibco.analyzer;
 
+import ballerina.BallerinaModel;
+import tibco.TibcoModel;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import ballerina.BallerinaModel;
-import tibco.TibcoModel;
 
 public final class AnalysisResult {
 

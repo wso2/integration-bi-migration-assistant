@@ -13,11 +13,18 @@ import dataweave.converter.DWConversionStats;
 import dataweave.converter.DWReader;
 import dataweave.converter.DWUtils;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.MuleModel;
 import mule.MuleXMLTag;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
+import org.w3c.dom.CDATASection;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -32,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -244,8 +252,8 @@ public class MuleToBalConverter {
     }
 
     public static SyntaxTree convertProjectXMLFileToBallerina(MuleXMLNavigator muleXMLNavigator,
-                                                              SharedProjectData sharedProjectData,
-                                                              String xmlFilePath) {
+            SharedProjectData sharedProjectData,
+            String xmlFilePath) {
         MuleToBalConverter.Data data = new MuleToBalConverter.Data(sharedProjectData);
         SyntaxTree syntaxTree = convertXMLFileToBallerina(muleXMLNavigator, xmlFilePath, data);
         sharedProjectData.sharedHttpListenerConfigsMap.putAll(data.globalHttpListenerConfigsMap);
@@ -256,7 +264,7 @@ public class MuleToBalConverter {
     }
 
     private static SyntaxTree convertXMLFileToBallerina(MuleXMLNavigator muleXMLNavigator, String xmlFilePath,
-                                                        Data data) {
+            Data data) {
         BallerinaModel ballerinaModel = getBallerinaModel(muleXMLNavigator, data, xmlFilePath);
         return new CodeGenerator(ballerinaModel).generateBalCode();
     }
@@ -427,7 +435,7 @@ public class MuleToBalConverter {
     }
 
     private static void genVMInboundEndpointSource(Data data, Flow flow, VMInboundEndpoint vmInboundEndpoint,
-                                                   Set<Function> functions) {
+            Set<Function> functions) {
         String path = vmInboundEndpoint.path();
         String funcName = data.sharedProjectData.vmPathToBalFuncMap.get(path);
         if (funcName == null) {
@@ -455,8 +463,8 @@ public class MuleToBalConverter {
 
         // gen init function
         ModuleTypeDef moduleTypeDef = data.sharedProjectData.contextTypeDefMap.get(Constants.CONTEXT_RECORD_TYPE);
-        BallerinaModel.TypeDesc.RecordTypeDesc contextRecord =
-                (BallerinaModel.TypeDesc.RecordTypeDesc) moduleTypeDef.typeDesc();
+        BallerinaModel.TypeDesc.RecordTypeDesc contextRecord = (BallerinaModel.TypeDesc.RecordTypeDesc) moduleTypeDef
+                .typeDesc();
         String recordInitValue = getRecordInitValue(contextRecord);
         List<Statement> initBody = Collections.singletonList(stmtFrom(
                 String.format("self.%s = %s;", Constants.CONTEXT_REFERENCE, recordInitValue)));
@@ -479,8 +487,8 @@ public class MuleToBalConverter {
             for (SharedProjectData.TypeAndNamePair tnp : sharedProjectData.flowVars) {
                 flowVarRecFields.add(new RecordField(tnp.name, typeFrom(tnp.type), true));
             }
-            BallerinaModel.TypeDesc.RecordTypeDesc flowVarsRecord =
-                    BallerinaModel.TypeDesc.RecordTypeDesc.closedRecord(flowVarRecFields);
+            BallerinaModel.TypeDesc.RecordTypeDesc flowVarsRecord = BallerinaModel.TypeDesc.RecordTypeDesc
+                    .closedRecord(flowVarRecFields);
             sharedProjectData.contextTypeDefMap.put("FlowVars", new ModuleTypeDef("FlowVars", flowVarsRecord));
         }
 
@@ -491,8 +499,8 @@ public class MuleToBalConverter {
             for (SharedProjectData.TypeAndNamePair tnp : sharedProjectData.sessionVars) {
                 sessionVarRecFields.add(new RecordField(tnp.name, typeFrom(tnp.type), true));
             }
-            BallerinaModel.TypeDesc.RecordTypeDesc sessionVarsRecord =
-                    BallerinaModel.TypeDesc.RecordTypeDesc.closedRecord(sessionVarRecFields);
+            BallerinaModel.TypeDesc.RecordTypeDesc sessionVarsRecord = BallerinaModel.TypeDesc.RecordTypeDesc
+                    .closedRecord(sessionVarRecFields);
             sharedProjectData.contextTypeDefMap.put("SessionVars", new ModuleTypeDef("SessionVars", sessionVarsRecord));
         }
 
@@ -503,20 +511,20 @@ public class MuleToBalConverter {
             for (SharedProjectData.TypeAndNamePair tnp : sharedProjectData.inboundProperties) {
                 inboundPropRecordFields.add(new RecordField(tnp.name, typeFrom(tnp.type), false));
             }
-            BallerinaModel.TypeDesc.RecordTypeDesc inboundPropertiesRecord =
-                    BallerinaModel.TypeDesc.RecordTypeDesc.closedRecord(inboundPropRecordFields);
+            BallerinaModel.TypeDesc.RecordTypeDesc inboundPropertiesRecord = BallerinaModel.TypeDesc.RecordTypeDesc
+                    .closedRecord(inboundPropRecordFields);
             sharedProjectData.contextTypeDefMap.put(Constants.INBOUND_PROPERTIES_TYPE,
                     new ModuleTypeDef(Constants.INBOUND_PROPERTIES_TYPE, inboundPropertiesRecord));
         }
 
-        BallerinaModel.TypeDesc.RecordTypeDesc contextRecord =
-                BallerinaModel.TypeDesc.RecordTypeDesc.closedRecord(contextRecFields);
+        BallerinaModel.TypeDesc.RecordTypeDesc contextRecord = BallerinaModel.TypeDesc.RecordTypeDesc
+                .closedRecord(contextRecFields);
         sharedProjectData.contextTypeDefMap.put(Constants.CONTEXT_RECORD_TYPE, new ModuleTypeDef(
                 Constants.CONTEXT_RECORD_TYPE, contextRecord));
     }
 
     private static void genBalFuncForGlobalExceptionStrategy(Data data, MuleRecord muleRecord,
-                                                             Set<Function> functions) {
+            Set<Function> functions) {
         List<Statement> body;
         String name;
         if (muleRecord instanceof CatchExceptionStrategy catchExceptionStrategy) {
@@ -544,7 +552,7 @@ public class MuleToBalConverter {
     }
 
     private static void genBalFuncForPrivateOrSubFlow(Data data, Set<Function> functions, String flowName,
-                                                      List<MuleRecord> flowBlocks) {
+            List<MuleRecord> flowBlocks) {
         putFlowInfoIfAbsent(data, flowName);
         data.sharedProjectData.currentFlowInfo = data.sharedProjectData.flowInfoMap.get(flowName);
 
@@ -680,9 +688,9 @@ public class MuleToBalConverter {
     }
 
     protected static BallerinaModel createBallerinaModel(List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
-                                                         List<ModuleVar> moduleVars, List<Listener> listeners,
-                                                         List<Service> services, List<Function> functions,
-                                                         List<String> comments) {
+            List<ModuleVar> moduleVars, List<Listener> listeners,
+            List<Service> services, List<Function> functions,
+            List<String> comments) {
         // TODO: figure out package, module names properly
         String projectName = "muleDemoProject";
         String moduleName = "muleDemoModule";

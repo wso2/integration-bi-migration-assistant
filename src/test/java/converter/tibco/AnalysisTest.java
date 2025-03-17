@@ -23,12 +23,15 @@ import org.testng.annotations.Test;
 import org.xml.sax.SAXException;
 import tibco.TibcoModel;
 
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 
-import static org.testng.Assert.*;
+import javax.xml.parsers.ParserConfigurationException;
+
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
 
 public class AnalysisTest {
 
@@ -39,23 +42,24 @@ public class AnalysisTest {
         var process = XmlToTibcoModelConverter.parseProcess(element);
         var analysisData = ModelAnalyser.analyseProcess(process);
         assertFalse(analysisData.endActivities(process).isEmpty());
-        TibcoModel.Scope.Flow.Link FICOScoreTopostOut = new TibcoModel.Scope.Flow.Link("FICOScoreTopostOut");
 
-        Collection<TibcoModel.Scope.Flow.Activity> sources = analysisData.sources(FICOScoreTopostOut);
+        TibcoModel.Scope.Flow.Link fICOScoreTopostOut = new TibcoModel.Scope.Flow.Link("FICOScoreTopostOut");
+
+        Collection<TibcoModel.Scope.Flow.Activity> sources = analysisData.sources(fICOScoreTopostOut);
         assertEquals(sources.size(), 1);
         TibcoModel.Scope.Flow.Activity source = sources.iterator().next();
         assertTrue(source instanceof TibcoModel.Scope.Flow.Activity.ExtActivity);
 
-        TibcoModel.Scope.Flow.Link ExperianScoreTopostOut = new TibcoModel.Scope.Flow.Link("ExperianScoreTopostOut");
-        sources = analysisData.sources(ExperianScoreTopostOut);
+        TibcoModel.Scope.Flow.Link experianScoreTopostOut = new TibcoModel.Scope.Flow.Link("ExperianScoreTopostOut");
+        sources = analysisData.sources(experianScoreTopostOut);
         assertEquals(sources.size(), 1);
         source = sources.iterator().next();
         assertTrue(source instanceof TibcoModel.Scope.Flow.Activity.ExtActivity);
 
-        Collection<TibcoModel.Scope.Flow.Activity> destinations = analysisData.destinations(FICOScoreTopostOut);
+        Collection<TibcoModel.Scope.Flow.Activity> destinations = analysisData.destinations(fICOScoreTopostOut);
         assertEquals(destinations.size(), 1);
         assertTrue(destinations.stream().allMatch(each -> each instanceof TibcoModel.Scope.Flow.Activity.Reply));
         assertTrue(destinations.stream().flatMap(each -> analysisData.sources(each).stream())
-                .allMatch(link -> link.equals(FICOScoreTopostOut) || link.equals(ExperianScoreTopostOut)));
+                .allMatch(link -> link.equals(fICOScoreTopostOut) || link.equals(experianScoreTopostOut)));
     }
 }
