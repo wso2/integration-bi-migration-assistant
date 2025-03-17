@@ -5,13 +5,14 @@
 - [Setting Up the Prerequisites](#setting-up-the-prerequisites)
 - [Building the Source](#building-the-source)
 - [Running the Migration Tool](#running-the-migration-tool)
+- [Sending Changes](#sending-changes)
 - [Mule Version Support](#mule-version-support)
 - [DataWeave Transformations](#dataweave-transformations)
 - [Supported Mule Components](#supported-mule-components)
 - [Sample Input and Output](#sample-input-and-output)
 
 ## Overview
-The integrator-bi-migration-assistant is a comprehensive tool designed to convert Mule XML configuration files into Ballerina code. It facilitates the migration of Mule applications to Ballerina by automating the conversion process. The tool reads Mule XML configuration files and generates equivalent Ballerina code, ensuring a seamless transition with minimal manual effort.
+The integrator-bi-migration-assistant is a comprehensive tool designed to convert Mule XML configuration files into Ballerina code. It facilitates the migration of Mule projects to Ballerina by automating the conversion process. The tool reads Mule XML configuration files and generates equivalent Ballerina code, ensuring a seamless transition with minimal manual effort.
 
 ## Setting Up the Prerequisites
 
@@ -64,6 +65,13 @@ java -jar build/libs/mule-to-ballerina-migration-assistant.jar <mule-xml-config-
 **Output:**
 - **Mule XML Config File**: A standalone `.bal` file is generated with the same name as the input file but with a `.bal` extension. This file is located in the same directory as the input file.
 - **Mule Project Directory**: A new Ballerina package is created with the same name as the input project directory, appended with a `-ballerina` suffix. This new package is located inside the given project directory path, and a `.bal` file is created for each Mule XML file within the project.
+
+## Sending Changes
+Before sending changes, ensure you have Python 3 installed. Then, run the following command to automatically generate the relevant sections in `README.md` and `SAMPLES.md` files:
+
+```sh
+python3 scripts/generate_samples_md.py
+```
 
 ## Mule Version Support
 For now, Mule 3.x is supported. Support for Mule 4.x is expected to be added later.
