@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mule to Ballerina Converter</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<h1>Mule to Ballerina Converter</h1>
+<p class="notice">Note: This page is not yet fully functional. The conversion feature will be available later.</p>
+<form id="uploadForm">
+    <label for="inputType">Select Input Type:</label>
+    <select id="inputType">
+        <option value="file">File Upload</option>
+        <option value="text">Paste XML Text</option>
+    </select>
+    <div id="fileInputDiv">
+        <label for="fileInput">Upload Mule XML Configuration File:</label>
+        <input type="file" id="fileInput" accept=".xml">
+    </div>
+    <div id="textInputDiv" style="display: none;">
+        <label for="textInput">Paste Mule XML Configuration Text:</label>
+        <textarea id="textInput" rows="10" cols="30"></textarea>
+    </div>
+    <button type="submit">Convert</button>
+</form>
+<h2>Generated Ballerina Code:</h2>
+<pre id="output"></pre>
+<button id="downloadButton" style="display: none;">Download .bal File</button>
+
+<script>
+    document.getElementById('inputType').addEventListener('change', function() {
+        const inputType = document.getElementById('inputType').value;
+        if (inputType === 'file') {
+            document.getElementById('fileInputDiv').style.display = 'block';
+            document.getElementById('textInputDiv').style.display = 'none';
+        } else {
+            document.getElementById('fileInputDiv').style.display = 'none';
+            document.getElementById('textInputDiv').style.display = 'block';
+        }
+    });
+
+    document.getElementById('uploadForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const inputType = document.getElementById('inputType').value;
+        let xmlContent = '';
+
+        if (inputType === 'file') {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            xmlContent = await file.text();
+        } else {
+            xmlContent = document.getElementById('textInput').value;
+        }
+
+        const ballerinaCode = await convertXmlToBallerina(xmlContent);
+        document.getElementById('output').textContent = ballerinaCode;
+        document.getElementById('downloadButton').style.display = 'block';
+    });
+
+    async function convertXmlToBallerina(xmlContent) {
+        const response = await fetch('path/to/java/application', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ xmlContent })
+        });
+
+        const result = await response.text();
+        return result;
+    }
+
+    document.getElementById('downloadButton').addEventListener('click', function() {
+        const ballerinaCode = document.getElementById('output').textContent;
+        const blob = new Blob([ballerinaCode], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'converted.bal';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+name: Verify Auto-Generated Markdown File Contents
+on:
+  push:
+    branches:
+      - main
+      - dev-3.x
+  pull_request:
+    branches:
+      - main
+      - dev-3.x
+
+jobs:
+  generate-samples:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Generate samples
+        run: python3 scripts/generate_samples_md.py
+
+      - name: Print git diff
+        run: git diff
+
+      - name: Check for uncommitted changes
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "Uncommitted changes to README.md/SAMPLES.md detected. Please commit the changes."
+            exit 1
+          fi
