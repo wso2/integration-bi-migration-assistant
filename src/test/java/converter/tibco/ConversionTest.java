@@ -18,20 +18,14 @@
 
 package converter.tibco;
 
-import ballerina.BallerinaModel;
-import ballerina.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
-import org.w3c.dom.Element;
-import tibco.TibcoModel;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.stream.Stream;
 
 import static converter.tibco.TibcoToBalConverter.parseXmlFile;
 
@@ -57,17 +51,6 @@ public class ConversionTest {
                 throw new AssertionError("Parsing failed for a valid input: " + path, e);
             }
         }
-    }
-
-    private static TibcoModel.Process parse(Path path) {
-        Element root;
-        try {
-            root = parseXmlFile(path.toString());
-            assert root != null;
-        } catch (Exception e) {
-            throw new RuntimeException("Error while parsing the XML file: " + path, e);
-        }
-        return XmlToTibcoModelConverter.parseProcess(root);
     }
 
     @Test(groups = {"tibco", "converter"}, dataProvider = "testCaseProvider")

@@ -26,6 +26,7 @@ import tibco.TibcoModel;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Map;
 
 import javax.xml.parsers.ParserConfigurationException;
 
@@ -61,5 +62,15 @@ public class AnalysisTest {
         assertTrue(destinations.stream().allMatch(each -> each instanceof TibcoModel.Scope.Flow.Activity.Reply));
         assertTrue(destinations.stream().flatMap(each -> analysisData.sources(each).stream())
                 .allMatch(link -> link.equals(fICOScoreTopostOut) || link.equals(experianScoreTopostOut)));
+
+        // Clear static state after test
+        try {
+            Class<?> contextClass = Class.forName("converter.tibco.analyzer.ModelAnalyser$ProcessAnalysisContext");
+            java.lang.reflect.Field field = contextClass.getDeclaredField("activityFunctionNames");
+            field.setAccessible(true);
+            ((Map<?, ?>) field.get(null)).clear();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to clear activityFunctionNames", e);
+        }
     }
 }
