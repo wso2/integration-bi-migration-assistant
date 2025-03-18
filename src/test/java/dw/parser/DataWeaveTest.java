@@ -22,6 +22,8 @@ public class DataWeaveTest {
                 {DataWeaveScripts.SCRIPT_FUNCTION_VAR, "src/test/resources/parser/expected/dw_function_var.json"},
                 {DataWeaveScripts.SCRIPT_FUNCTION, "src/test/resources/parser/expected/dw_function.json"},
                 {DataWeaveScripts.SCRIPT_SIMPLE_STRING, "src/test/resources/parser/expected/dw_simple_string.json"},
+                {DataWeaveScripts.SCRIPT_SIMPLE_STRING_SINGLE_QUOTED,
+                        "src/test/resources/parser/expected/dw_simple_string_single_quote.json"},
                 {DataWeaveScripts.SCRIPT_SIMPLE_BOOLEAN, "src/test/resources/parser/expected/dw_simple_boolean.json"},
                 {DataWeaveScripts.SCRIPT_SIMPLE_NUMBER, "src/test/resources/parser/expected/dw_simple_number.json"},
                 {DataWeaveScripts.SCRIPT_SIMPLE_NUMBER_DECIMAL,

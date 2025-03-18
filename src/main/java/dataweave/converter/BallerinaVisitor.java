@@ -60,7 +60,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     public Void visitVariableDeclaration(DataWeaveParser.VariableDeclarationContext ctx) {
         String expression = ctx.expression().getText();
         String dwType = DWUtils.getVarTypeFromExpression(expression);
-        String ballerinaType = DWUtils.getBallerinaType(dwType);
+        String ballerinaType = DWUtils.getBallerinaType(dwType, data);
         visit(ctx.expression());
         String valueExpr = this.dwContext.getExpression();
         ballerinaType = dwType.equals(DWUtils.NUMBER) ? refineNumberType(valueExpr, ballerinaType) : ballerinaType;
@@ -156,13 +156,17 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     public Void visitLiteral(DataWeaveParser.LiteralContext ctx) {
         if (ctx.STRING() != null) {
             this.dwContext.currentScriptContext.currentType = DWUtils.STRING;
-            this.dwContext.append(ctx.STRING().getText()); // Return string value
+            String text = ctx.STRING().getText();
+            if (text.startsWith("'")) {
+                text = "\"" + text.substring(1, text.length() - 1) + "\"";
+            }
+            this.dwContext.append(text);
         } else if (ctx.NUMBER() != null) {
             this.dwContext.currentScriptContext.currentType = DWUtils.NUMBER;
-            this.dwContext.append(ctx.NUMBER().getText()); // Return number value
+            this.dwContext.append(ctx.NUMBER().getText());
         } else if (ctx.BOOLEAN() != null) {
             this.dwContext.currentScriptContext.currentType = DWUtils.BOOLEAN;
-            this.dwContext.append(ctx.BOOLEAN().getText()); // Return boolean value
+            this.dwContext.append(ctx.BOOLEAN().getText());
         } else if (ctx.DATE() != null) {
             this.dwContext.currentScriptContext.currentType = DWUtils.DATE;
             this.data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME,
@@ -174,7 +178,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             this.dwContext.append(")");
         } else {
             this.dwContext.currentScriptContext.currentType = DWUtils.NULL;
-            this.dwContext.append("()"); // Default case
+            this.dwContext.append("()");
         }
         return null;
     }

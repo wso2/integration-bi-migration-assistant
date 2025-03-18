@@ -1,8 +1,11 @@
 package dataweave.converter;
 
 import ballerina.BallerinaModel;
+import converter.MuleToBalConverter;
+import mule.Constants;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -18,8 +21,8 @@ public class DWUtils {
     public static final String CURLY_START_BRACKET = "{";
     public static final String CURLY_END_BRACKET = "}";
     public static final String DATAWEAVE_OUTPUT_VARIABLE_NAME = "_dwOutput_";
-    public static final  String DW_INDEX_IDENTIFIER = "$$";
-    public static final  String DW_VALUE_IDENTIFIER = "$";
+    public static final String DW_INDEX_IDENTIFIER = "$$";
+    public static final String DW_VALUE_IDENTIFIER = "$";
 
     // IO Types
     public static final String APPLICATION_JAVA = "application/java";
@@ -96,7 +99,7 @@ public class DWUtils {
         throw new BallerinaDWException("Unsupported type: " + expression);
     }
 
-    public static String getBallerinaType(String dwType) {
+    public static String getBallerinaType(String dwType, MuleToBalConverter.Data data) {
         return switch (dwType) {
             case DWUtils.ARRAY -> "anydata[]";
             case DWUtils.BOOLEAN -> "boolean";
@@ -105,6 +108,11 @@ public class DWUtils {
             case DWUtils.NUMBER -> "int";
             case DWUtils.OBJECT -> "map<anydata>";
             case DWUtils.STRING -> "string";
+            case DWUtils.DATE -> {
+                data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME,
+                        Optional.empty()));
+                yield "time:Date";
+            }
             default -> "any";
         };
     }

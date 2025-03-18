@@ -92,6 +92,12 @@ public class DataWeaveScripts {
             ---
             "Hello World"
             """;
+    public static final String SCRIPT_SIMPLE_STRING_SINGLE_QUOTED = """
+            %dw 2.0
+            %output application/json
+            ---
+            'Hello'
+            """;
     public static final String SCRIPT_SIMPLE_BOOLEAN = """
             %dw 2.0
             %output application/json

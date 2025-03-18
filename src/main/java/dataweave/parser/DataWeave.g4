@@ -104,7 +104,7 @@ defaultExpression
 defaultExpressionRest
     : 'filter' implicitLambdaExpression defaultExpressionRest  # filterExpression
     | 'map' implicitLambdaExpression defaultExpressionRest     # mapExpression
-    | 'groupBy' expression defaultExpressionRest               # groupByExpression
+    | 'groupBy' implicitLambdaExpression defaultExpressionRest # groupByExpression
     | 'replace' REGEX 'with' expression                        # replaceExpression
     | '++' expression                                          # concatExpression
     | /* epsilon (empty) */                                    # defaultExpressionEnd
