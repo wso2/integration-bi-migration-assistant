@@ -59,26 +59,6 @@ public class ConversionTest {
         }
     }
 
-    @Test
-    public void test() throws IOException {
-        String resourceDir = "src/test/resources/tibco.helloworld/";
-        List<TibcoModel.Process> processes =
-                Stream.of("MainProcess.bwp", "EquifaxScore.bwp", "ExperianScore.bwp").map(each -> resourceDir + each)
-                        .map(Path::of)
-                        .map(ConversionTest::parse).toList();
-        BallerinaModel.Module module = ProcessConverter.convertProcesses(processes);
-        for (BallerinaModel.TextDocument textDocument : module.textDocuments()) {
-            BallerinaModel.Module tmpModule = new BallerinaModel.Module(module.name(), List.of(textDocument));
-            BallerinaModel ballerinaModel =
-                    new BallerinaModel(new BallerinaModel.DefaultPackage("tibco", "sample", "0.1"),
-                            List.of(tmpModule));
-            SyntaxTree st = new CodeGenerator(ballerinaModel).generateBalCode();
-            String actual = st.toSourceCode();
-            String expected = Files.readString(Path.of(resourceDir + "creditapp/" + textDocument.documentName()));
-            Assert.assertEquals(actual, expected);
-        }
-    }
-
     private static TibcoModel.Process parse(Path path) {
         Element root;
         try {

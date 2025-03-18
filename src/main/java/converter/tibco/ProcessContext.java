@@ -31,8 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 
 public class ProcessContext implements ContextWithFile {
@@ -51,6 +53,8 @@ public class ProcessContext implements ContextWithFile {
     public final ProjectContext projectContext;
     public final AnalysisResult analysisResult;
     private BallerinaModel.Expression.VariableReference contextRef;
+
+    private static final Logger logger = Logger.getLogger(ProcessContext.class.getName());
 
     ProcessContext(ProjectContext projectContext, TibcoModel.Process process) {
         this.projectContext = projectContext;
@@ -90,6 +94,11 @@ public class ProcessContext implements ContextWithFile {
 
     public boolean addModuleTypeDef(String name, BallerinaModel.ModuleTypeDef moduleTypeDef) {
         return this.projectContext.addModuleTypeDef(name, moduleTypeDef);
+    }
+
+    @Override
+    public ProjectContext getProjectContext() {
+        return projectContext;
     }
 
     public BallerinaModel.TypeDesc getTypeByName(String name) {
@@ -138,9 +147,26 @@ public class ProcessContext implements ContextWithFile {
                 moduleVars, listeners, processServices.stream().toList(), functions, List.of());
     }
 
-    public ProjectContext.FunctionData getProcessStartFunction() {
-        return new ProjectContext.FunctionData(ConversionUtils.sanitizes(process.name()) + "_start", processInputType,
+    ProjectContext.FunctionData getProcessStartFunction() {
+
+        if (processInputType == null || processReturnType == null) {
+            logger.warning(String.format(
+                    "Can't determine input/output type for process start function %s, " +
+                            "maybe failed to handle start activity?",
+                    getProcessStartFunctionName()));
+            if (processInputType == null) {
+                processInputType = ANYDATA;
+            }
+            if (processReturnType == null) {
+                processReturnType = ANYDATA;
+            }
+        }
+        return new ProjectContext.FunctionData(getProcessStartFunctionName(), processInputType,
                 processReturnType);
+    }
+
+    public String getProcessStartFunctionName() {
+        return ConversionUtils.sanitizes(process.name()) + "_start";
     }
 
     public String getProcessFunction() {

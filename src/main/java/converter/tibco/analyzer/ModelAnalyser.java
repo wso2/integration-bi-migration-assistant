@@ -26,12 +26,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 
 public class ModelAnalyser {
+
+    private static final Logger logger = Logger.getLogger(ModelAnalyser.class.getName());
 
     private ModelAnalyser() {
 
@@ -49,6 +53,10 @@ public class ModelAnalyser {
         Map<TibcoModel.Scope.Flow.Link, String> workerNames = cx.workerNames();
         Map<String, TibcoModel.PartnerLink.Binding> partnerLinkBindings =
                 Collections.unmodifiableMap(cx.partnerLinkBindings);
+
+        logger.info(String.format("Process Statistics - Name: %s, Total Activities: %d, Unhandled Activities: %d",
+                process.name(), cx.totalActivityCount, cx.unhandledActivityCount));
+
         return new AnalysisResult(cx.destinationMap, cx.sourceMap, startActivities, endActivities, workerNames,
                 activityData, partnerLinkBindings);
     }
@@ -117,8 +125,11 @@ public class ModelAnalyser {
 
     private static class ProcessAnalysisContext {
 
-        private final Collection<TibcoModel.Scope.Flow.Activity> startActivities = new HashSet<>();
-        private final Collection<TibcoModel.Scope.Flow.Activity> endActivities = new HashSet<>();
+        public int unhandledActivityCount = 0;
+        public int totalActivityCount = 0;
+        // We are using order preserving sets purely for tests
+        private final Collection<TibcoModel.Scope.Flow.Activity> startActivities = new LinkedHashSet<>();
+        private final Collection<TibcoModel.Scope.Flow.Activity> endActivities = new LinkedHashSet<>();
         // places where data added to the link ends up
         private final Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap =
                 new HashMap<>();
@@ -155,6 +166,7 @@ public class ModelAnalyser {
             if (activityFunctionNames.containsKey(activity)) {
                 return;
             }
+            totalActivityCount++;
             String prefix = switch (activity) {
                 case TibcoModel.Scope.Flow.Activity.ActivityExtension ignored -> "activityExtension";
                 case TibcoModel.Scope.Flow.Activity.Empty ignored -> "empty";
@@ -163,6 +175,10 @@ public class ModelAnalyser {
                 case TibcoModel.Scope.Flow.Activity.Pick ignored -> "pick";
                 case TibcoModel.Scope.Flow.Activity.ReceiveEvent ignored -> "receiveEvent";
                 case TibcoModel.Scope.Flow.Activity.Reply ignored -> "reply";
+                case TibcoModel.Scope.Flow.Activity.UnhandledActivity ignored -> {
+                    unhandledActivityCount++;
+                    yield "unhandled";
+                }
             };
             String activityName = ConversionUtils.getSanitizedUniqueName(prefix, activityFunctionNames.values());
             activityFunctionNames.put(activity, activityName);

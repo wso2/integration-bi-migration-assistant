@@ -29,9 +29,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
@@ -56,7 +58,11 @@ public class ProjectContext {
     private String jsonToXMLFunction = null;
     private String toHttpConfigFunction = null;
     private int nextPort = 8080;
+    private int typeCount = 0;
+    private int typeAliasCount = 0;
+    private int unhandledTypeCount = 0;
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
+    private static final Logger logger = Logger.getLogger(ProjectContext.class.getName());
 
     ProcessContext getProcessContext(TibcoModel.Process process) {
         return processContextMap.computeIfAbsent(process, p -> new ProcessContext(this, p));
@@ -69,6 +75,8 @@ public class ProjectContext {
     public BallerinaModel.Module serialize(Collection<BallerinaModel.TextDocument> textDocuments) {
         List<BallerinaModel.TextDocument> combinedTextDocuments = Stream.concat(textDocuments.stream(),
                 Stream.of(typesFile(), utilsFile())).toList();
+        logger.info(String.format("Type Statistics - Total Types: %d, Type Aliases: %d, Unhandled Types: %d",
+                typeCount, typeAliasCount, unhandledTypeCount));
         return new BallerinaModel.Module("tibco", combinedTextDocuments);
     }
 
@@ -168,11 +176,13 @@ public class ProjectContext {
 
     private BallerinaModel.TextDocument typesFile() {
         List<BallerinaModel.ModuleTypeDef> typeDefs = new ArrayList<>();
-        for (var entry : moduleTypeDefs.entrySet()) {
+        for (Map.Entry<String, Optional<BallerinaModel.ModuleTypeDef>> entry : moduleTypeDefs.entrySet()) {
             if (entry.getValue().isPresent()) {
                 typeDefs.add(entry.getValue().get());
             } else {
-                throw new IllegalStateException("Type definition not found for " + entry.getKey());
+                logger.warning(
+                        String.format("Type definition not found for %s using `anydata` as fallback", entry.getKey()));
+                typeDefs.add(new BallerinaModel.ModuleTypeDef(entry.getKey(), ANYDATA));
             }
         }
         List<BallerinaModel.Import> imports = typeCx.imports.stream().toList();
@@ -230,10 +240,11 @@ public class ProjectContext {
     private Optional<BallerinaModel.TypeDesc.BuiltinType> mapToBuiltinType(String name) {
         return switch (name) {
             case "string" -> Optional.of(BallerinaModel.TypeDesc.BuiltinType.STRING);
-            case "integer", "int" -> Optional.of(BallerinaModel.TypeDesc.BuiltinType.INT);
+            case "integer", "int", "long" -> Optional.of(BallerinaModel.TypeDesc.BuiltinType.INT);
             case "anydata" -> Optional.of(BallerinaModel.TypeDesc.BuiltinType.ANYDATA);
             case "xml" -> Optional.of(XML);
             case "null" -> Optional.of(NIL);
+            case "boolean" -> Optional.of(BOOLEAN);
             // TODO: handle base64Binary
             case "base64Binary" -> Optional.of(BallerinaModel.TypeDesc.BuiltinType.INT);
             default -> Optional.empty();
@@ -251,6 +262,20 @@ public class ProjectContext {
         }
         this.moduleTypeDefs.put(name, Optional.of(moduleTypeDef));
         return true;
+    }
+
+    public void incrementTypeCount() {
+        typeCount++;
+    }
+
+    public void incrementUnhandledTypeCount() {
+        incrementTypeCount();
+        unhandledTypeCount++;
+    }
+
+    public void incrementTypeAliasCount() {
+        incrementTypeCount();
+        typeAliasCount++;
     }
 
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
@@ -289,6 +314,11 @@ public class ProjectContext {
         @Override
         public boolean addModuleTypeDef(String name, BallerinaModel.ModuleTypeDef defn) {
             return cx.addModuleTypeDef(name, defn);
+        }
+
+        @Override
+        public ProjectContext getProjectContext() {
+            return cx;
         }
     }
 }

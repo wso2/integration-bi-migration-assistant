@@ -29,4 +29,6 @@ interface ContextWithFile {
     BallerinaModel.TypeDesc getTypeByName(String name);
 
     boolean addModuleTypeDef(String name, BallerinaModel.ModuleTypeDef defn);
+
+    ProjectContext getProjectContext();
 }

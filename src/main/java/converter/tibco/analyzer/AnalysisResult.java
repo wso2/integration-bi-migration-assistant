@@ -70,8 +70,9 @@ public final class AnalysisResult {
 
     public Collection<TibcoModel.Scope.Flow.Activity> sources(TibcoModel.Scope.Flow.Link link) {
         var sources = sourceMap.get(link);
+        // this can happen for invalid activities
         if (sources == null) {
-            throw new IllegalArgumentException("No sources found for link: " + link);
+            return List.of();
         }
         return sources;
     }

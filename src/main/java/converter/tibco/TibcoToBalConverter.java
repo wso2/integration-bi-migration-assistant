@@ -30,8 +30,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -59,8 +60,8 @@ public class TibcoToBalConverter {
     }
 
     public static BallerinaModel.Module convertProject(String projectPath) {
-        List<TibcoModel.Process> processes = new ArrayList<>();
-        List<TibcoModel.Type.Schema> types = new ArrayList<>();
+        Set<TibcoModel.Process> processes = new HashSet<>();
+        Set<TibcoModel.Type.Schema> types = new HashSet<>();
         try {
             for (String s : getBwpFiles(projectPath)) {
                 Element element = parseXmlFile(s);

@@ -36,6 +36,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -48,6 +49,7 @@ import javax.xml.transform.stream.StreamResult;
 
 public final class XmlToTibcoModelConverter {
 
+    private static final Logger logger = Logger.getLogger(XmlToTibcoModelConverter.class.getName());
     private XmlToTibcoModelConverter() {
     }
 
@@ -140,22 +142,60 @@ public final class XmlToTibcoModelConverter {
         List<TibcoModel.Scope.Flow.Activity> activities = new ArrayList<>();
         for (Element element : ElementIterable.of(flow)) {
             String tag = getTagNameWithoutNameSpace(element);
-            switch (tag) {
-                case "links" -> {
-                    if (links != null) {
-                        throw new ParserException("Multiple links elements found in the XML", flow);
-                    }
-                    links = parseLinks(element);
+            if (tag.equals("links")) {
+                if (links != null) {
+                    throw new ParserException("Multiple links elements found in the XML", flow);
                 }
-                case "extensionActivity" -> activities.add(parseExtensionActivity(element));
-                case "invoke" -> activities.add(parseInvoke(element));
-                case "pick" -> activities.add(parsePick(element));
-                case "empty" -> activities.add(parseEmpty(element));
-                case "reply" -> activities.add(parseReply(element));
-                default -> throw new ParserException("Unsupported flow member tag: " + tag, flow);
+                links = parseLinks(element);
+            } else {
+                activities.add(tryParseActivity(element));
             }
         }
+        if (links == null) {
+            logger.warning(
+                    String.format("Failed to find any links in the flow: %s, maybe failed to parse all activities",
+                            name));
+            links = List.of();
+        }
         return new TibcoModel.Scope.Flow(name, links, activities);
+    }
+
+    private static TibcoModel.Scope.Flow.Activity tryParseActivity(Element element) {
+        try {
+            return parseActivity(element);
+        } catch (Exception ex) {
+            return parseUnhandledActivity(element, ex.getMessage());
+        }
+    }
+
+    private static TibcoModel.Scope.Flow.Activity parseActivity(Element element) {
+        String tag = getTagNameWithoutNameSpace(element);
+        return switch (tag) {
+            case "extensionActivity" -> parseExtensionActivity(element);
+            case "invoke" -> parseInvoke(element);
+            case "pick" -> parsePick(element);
+            case "empty" -> parseEmpty(element);
+            case "reply" -> parseReply(element);
+            default -> throw new ParserException("Unsupported activity tag: " + tag, element);
+        };
+    }
+
+    private static TibcoModel.Scope.Flow.Activity parseUnhandledActivity(Element element, String reason) {
+        Collection<TibcoModel.Scope.Flow.Activity.Target> targets = new ArrayList<>();
+        Collection<TibcoModel.Scope.Flow.Activity.Source> sources = new ArrayList<>();
+
+        for (Element child : ElementIterable.of(element)) {
+            String tag = getTagNameWithoutNameSpace(child);
+            switch (tag) {
+                case "targets" -> targets.addAll(parseTargets(child));
+                case "sources" -> sources.addAll(ElementIterable.of(child).stream()
+                        .map(XmlToTibcoModelConverter::parseSource).toList());
+                default -> {
+                }
+            }
+        }
+
+        return new TibcoModel.Scope.Flow.Activity.UnhandledActivity(reason, elementToString(element), sources, targets);
     }
 
     private static TibcoModel.Scope.Flow.Activity.Reply parseReply(Element element) {
@@ -247,7 +287,7 @@ public final class XmlToTibcoModelConverter {
         if (language.contains("xslt")) {
             return parseXSLTExpression(node);
         } else {
-            return new TibcoModel.Scope.Flow.Activity.Expression.XSLT("UNSUPPORTED");
+            throw new ParserException("Unsupported expression language: " + language, node);
         }
     }
 
@@ -334,7 +374,6 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static TibcoModel.Scope.Flow.Activity.ActivityExtension parseActivityExtension(Element activity) {
-        TibcoModel.Scope.Flow.Activity.Expression expression = parseExpressionNode(activity);
         String inputVariable = activity.getAttribute("inputVariable");
         var outputVariable = tryGetAttributeIgnoringNamespace(activity, "outputVariable");
         Optional<Element> targetsElement = tryGetFirstChildWithTag(activity, "targets");
@@ -354,8 +393,7 @@ public final class XmlToTibcoModelConverter {
                         .toList();
         TibcoModel.Scope.Flow.Activity.ActivityExtension.Config config =
                 parseActivityExtensionConfig(getFirstChildWithTag(activity, "config"));
-        return new TibcoModel.Scope.Flow.Activity.ActivityExtension(expression, inputVariable, outputVariable, targets,
-                sources,
+        return new TibcoModel.Scope.Flow.Activity.ActivityExtension(inputVariable, outputVariable, targets, sources,
                 inputBindings, config);
     }
 
@@ -549,7 +587,7 @@ public final class XmlToTibcoModelConverter {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
                 case "schema" -> members.add(parseSchema(child));
-                case "definitions" -> members.add(parseWSDLDefinition(child));
+                case "definitions" -> tryParseWSDLDefinition(child).ifPresent(members::add);
                 default -> throw new ParserException("Unsupported types member tag: " + tag, element);
             }
         }
@@ -560,19 +598,42 @@ public final class XmlToTibcoModelConverter {
         List<TibcoModel.Type.Schema.ComplexType> types = new ArrayList<>();
         List<TibcoModel.Type.Schema.Element> elements = new ArrayList<>();
         List<TibcoModel.NameSpace> imports = new ArrayList<>();
+        List<TibcoModel.Type.Schema.UnhandledType> unhandledTypes = new ArrayList<>();
         for (Element each : ElementIterable.of(element)) {
-            String tag = getTagNameWithoutNameSpace(each);
-            switch (tag) {
-                case "element" -> elements.add(parseSchemaElement(each));
-                case "complexType" -> types.add(parseType(each));
-                case "import" -> imports.add(parseImport(each));
-                case "simpleType" -> {
-                    elements.add(parseSimpleType(each));
-                }
-                default -> throw new ParserException("Unsupported schema element tag: " + tag, element);
+            tryParseSchemaElement(each, elements, types, imports, unhandledTypes);
+        }
+        return new TibcoModel.Type.Schema(types, elements, imports, unhandledTypes);
+    }
+
+    private static void tryParseSchemaElement(Element each, List<TibcoModel.Type.Schema.Element> elements,
+                                              List<TibcoModel.Type.Schema.ComplexType> types,
+                                              List<TibcoModel.NameSpace> imports,
+                                              List<TibcoModel.Type.Schema.UnhandledType> unhandledTypes) {
+        try {
+            parseSchemaElementInner(each, elements, types, imports);
+        } catch (Exception e) {
+            unhandledTypes.add(parseUnhandledType(each, e.getMessage()));
+        }
+    }
+
+    private static void parseSchemaElementInner(Element each, List<TibcoModel.Type.Schema.Element> elements,
+                                                List<TibcoModel.Type.Schema.ComplexType> types,
+                                                List<TibcoModel.NameSpace> imports) {
+
+        String tag = getTagNameWithoutNameSpace(each);
+        switch (tag) {
+            case "element" -> elements.add(parseSchemaElement(each));
+            case "complexType" -> types.add(parseType(each));
+            case "import" -> imports.add(parseImport(each));
+            case "simpleType" -> {
+                elements.add(parseSimpleType(each));
             }
         }
-        return new TibcoModel.Type.Schema(types, elements, imports);
+    }
+
+    private static TibcoModel.Type.Schema.UnhandledType parseUnhandledType(Element element, String reason) {
+        String name = element.getAttribute("name");
+        return new TibcoModel.Type.Schema.UnhandledType(name, reason, elementToString(element));
     }
 
     private static TibcoModel.Type.Schema.Element parseSimpleType(Element element) {
@@ -639,7 +700,9 @@ public final class XmlToTibcoModelConverter {
         String elementName = element.getAttribute("name");
         String typeName = element.hasAttribute("type") ? element.getAttribute("type") : element.getAttribute("ref");
         if (elementName.isEmpty()) {
-            assert expectIntAttribute(element, "minOccurs") == 0;
+            if (expectIntAttribute(element, "minOccurs") != 0) {
+                throw new ParserException("Element name is empty and minOccurs is not 0", element);
+            }
             return new TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Rest(false,
                     Optional.of(TibcoModel.Type.Schema.TibcoType.of(typeName)));
         }
@@ -666,6 +729,17 @@ public final class XmlToTibcoModelConverter {
                 TibcoModel.Type.Schema.TibcoType.of(typeName));
     }
 
+    private static Optional<TibcoModel.Type.WSDLDefinition> tryParseWSDLDefinition(Element element) {
+        try {
+            return Optional.of(parseWSDLDefinition(element));
+        } catch (Exception e) {
+            logger.warning(String.format(
+                    "Failed to parse WSDL definition due to %s, resulting process may be missing services",
+                    e.getMessage()));
+            return Optional.empty();
+        }
+    }
+
     private static TibcoModel.Type.WSDLDefinition parseWSDLDefinition(Element element) {
         Map<String, String> namespaces = new HashMap<>();
         TibcoModel.Type.WSDLDefinition.PartnerLinkType partnerLinkType = null;
@@ -687,7 +761,9 @@ public final class XmlToTibcoModelConverter {
                 default -> throw new ParserException("Unsupported WSDL definition tag: " + tag, element);
             }
         }
-        assert partnerLinkType != null;
+        if (partnerLinkType == null) {
+            throw new ParserException("PartnerLinkType not found in WSDL definition", element);
+        }
         return new TibcoModel.Type.WSDLDefinition(namespaces, partnerLinkType, imports, messages, portTypes);
     }
 
@@ -790,7 +866,7 @@ public final class XmlToTibcoModelConverter {
         if (parts.length == 1) {
             return parts[0];
         }
-        assert parts.length == 2;
+        assert parts.length == 2 && !parts[1].isEmpty();
         return parts[1];
     }
 

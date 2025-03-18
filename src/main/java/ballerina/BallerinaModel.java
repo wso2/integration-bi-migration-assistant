@@ -1,11 +1,14 @@
 package ballerina;
 
+import ballerina.BallerinaModel.Statement.Comment;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules) {
 
@@ -42,8 +45,21 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
     }
 
-    public record ModuleTypeDef(String name, TypeDesc typeDesc) {
+    public record ModuleTypeDef(String name, TypeDesc typeDesc, List<Comment> comments) {
 
+        public ModuleTypeDef(String name, TypeDesc typeDesc) {
+            this(name, typeDesc, List.of());
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            for (Comment comment : comments) {
+                sb.append(comment);
+            }
+            sb.append("public type ").append(name).append(" ").append(typeDesc).append(";");
+            return sb.toString();
+        }
     }
 
     public sealed interface TypeDesc {
@@ -146,6 +162,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
         enum BuiltinType implements TypeDesc {
             ANYDATA("anydata"), NEVER("never"), JSON("json"), NIL("()"), STRING("string"), INT("int"), XML("xml"),
+            BOOLEAN("boolean"),
             ;
 
             private final String name;

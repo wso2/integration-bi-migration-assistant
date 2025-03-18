@@ -33,8 +33,23 @@ public class TibcoModel {
                           Optional<ProcessTemplateConfigurations> processTemplateConfigurations,
                           Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Optional<Scope> scope) {
 
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof Process other)) {
+                return false;
+            }
+            return other.name().equals(name);
+        }
+
+        @Override
+        public int hashCode() {
+            return name.hashCode();
+        }
+
         public Process {
-            assert name != null;
+            if (name == null) {
+                throw new IllegalArgumentException("Name cannot be null");
+            }
             if (types == null) {
                 types = List.of();
             } else {
@@ -104,7 +119,8 @@ public class TibcoModel {
 
         }
 
-        record Schema(Collection<ComplexType> types, Collection<Element> elements, Collection<NameSpace> imports)
+        record Schema(Collection<ComplexType> types, Collection<Element> elements, Collection<NameSpace> imports,
+                      Collection<UnhandledType> unhandledTypes)
                 implements Type {
 
             public record Element(String name, TibcoType type) {
@@ -114,7 +130,9 @@ public class TibcoModel {
             public record TibcoType(String name) {
 
                 public TibcoType {
-                    assert name != null && !name.isEmpty();
+                    if (name == null || name.isEmpty()) {
+                        throw new IllegalArgumentException("Name cannot be null or empty");
+                    }
                 }
 
                 private static final HashMap<String, TibcoType> TYPES = new HashMap<>();
@@ -125,11 +143,24 @@ public class TibcoModel {
 
             }
 
+            public record UnhandledType(String name, String reason, String elementAsString) {
+
+                public UnhandledType {
+                    if (name == null || name.isEmpty()) {
+                        throw new IllegalArgumentException("Name cannot be null or empty");
+                    }
+                }
+            }
+
             public record ComplexType(String name, Body body) {
 
                 public ComplexType {
-                    assert name != null;
-                    assert body != null;
+                    if (name == null) {
+                        throw new IllegalArgumentException("Name cannot be null");
+                    }
+                    if (body == null) {
+                        throw new IllegalArgumentException("Body cannot be null");
+                    }
                 }
 
                 public sealed interface Body {
@@ -150,7 +181,9 @@ public class TibcoModel {
                         record Element(String name, TibcoType type) implements Member {
 
                             public Element {
-                                assert name != null && !name.isEmpty();
+                                if (name == null || name.isEmpty()) {
+                                    throw new IllegalArgumentException("Name cannot be null or empty");
+                                }
                             }
                         }
 
@@ -168,7 +201,9 @@ public class TibcoModel {
                     public record Extension(TibcoType base, Collection<SequenceBody.Member.Element> elements) {
 
                         public Extension {
-                            assert base != null;
+                            if (base == null) {
+                                throw new IllegalArgumentException("Base cannot be null");
+                            }
                             elements = Collections.unmodifiableCollection(elements);
                         }
                     }
@@ -276,6 +311,12 @@ public class TibcoModel {
 
         public record Flow(String name, Collection<Link> links, List<Activity> activities) {
 
+            public Flow {
+                assert name != null;
+                assert links != null;
+                assert activities != null;
+            }
+
             public record Link(String name) {
 
             }
@@ -298,6 +339,12 @@ public class TibcoModel {
                     record XSLT(String expression) implements Expression {
 
                     }
+                }
+
+                record UnhandledActivity(String reason, String elementAsString, Collection<Source> sources,
+                        Collection<Target> targets) implements Activity, ActivityWithSources,
+                        ActivityWithTargets {
+
                 }
 
                 record Reply(String name, PartnerLink.Binding.Operation.Method operation, String partnerLink,
@@ -332,7 +379,8 @@ public class TibcoModel {
                     }
                 }
 
-                record ActivityExtension(Expression expression, String inputVariable, Optional<String> outputVariable,
+                record ActivityExtension(String inputVariable,
+                                         Optional<String> outputVariable,
                                          Collection<Target> targets, Collection<Source> sources,
                                          List<InputBinding> inputBindings, Config config)
                         implements Activity, ActivityWithTargets, ActivityWithSources {
@@ -360,8 +408,13 @@ public class TibcoModel {
                         record JsonOperation(ExtensionKind kind, Type.Schema.TibcoType type) implements Config {
 
                             public JsonOperation {
-                                assert kind == ExtensionKind.JSON_PARSER || kind == ExtensionKind.JSON_RENDER;
-                                assert type != null;
+                                if (!(kind == ExtensionKind.JSON_PARSER || kind == ExtensionKind.JSON_RENDER)) {
+                                    throw new IllegalArgumentException(
+                                            "Kind must be either JSON_PARSER or JSON_RENDER");
+                                }
+                                if (type == null) {
+                                    throw new IllegalArgumentException("Type cannot be null");
+                                }
                             }
                         }
 

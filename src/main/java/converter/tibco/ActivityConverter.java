@@ -19,6 +19,7 @@
 package converter.tibco;
 
 import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.Statement.Comment;
 import ballerina.BallerinaModel.Statement.Return;
 import ballerina.BallerinaModel.Statement.VarAssignStatement;
 import ballerina.BallerinaModel.Statement.VarDeclStatment;
@@ -58,8 +59,18 @@ class ActivityConverter {
                         case TibcoModel.Scope.Flow.Activity.ReceiveEvent receiveEvent ->
                                 convertReceiveEvent(cx, receiveEvent);
                         case TibcoModel.Scope.Flow.Activity.Reply reply -> convertReply(cx, reply);
+                        case TibcoModel.Scope.Flow.Activity.UnhandledActivity unhandledActivity ->
+                                convertUnhandledActivity(cx, unhandledActivity);
                 };
                 return new BallerinaModel.Function(cx.functionName(), cx.parameters(), cx.returnType(), body);
+        }
+
+        private static List<BallerinaModel.Statement> convertUnhandledActivity(
+                ActivityContext cx,
+                TibcoModel.Scope.Flow.Activity.UnhandledActivity unhandledActivity) {
+                // TODO: implement this
+                BallerinaModel.Expression.VariableReference inputXml = cx.getInputAsXml();
+                return List.of(new Comment(unhandledActivity.reason()), new Return<>(inputXml));
         }
 
         private static List<BallerinaModel.Statement> convertReply(ActivityContext cx,

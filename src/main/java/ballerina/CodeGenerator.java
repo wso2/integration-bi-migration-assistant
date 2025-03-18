@@ -63,7 +63,7 @@ public class CodeGenerator {
             for (ModuleTypeDef moduleTypeDef : textDocument.moduleTypeDefs()) {
                 // TODO: handle visibility qualifier properly
                 TypeDefinitionNode typeDefinitionNode = (TypeDefinitionNode) NodeParser.parseModuleMemberDeclaration(
-                        String.format("public type %s %s;", moduleTypeDef.name(), moduleTypeDef.typeDesc()));
+                        moduleTypeDef.toString());
                 moduleMembers.add(typeDefinitionNode);
             }
 
