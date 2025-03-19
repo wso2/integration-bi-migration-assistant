@@ -104,8 +104,11 @@ public class CodeGenerator {
                     String funcParamString = constructFunctionParameterString(function.parameters(), false);
                     FunctionDefinitionNode functionDefinitionNode;
                     if (function.body() instanceof BallerinaModel.BlockFunctionBody) {
-                        functionDefinitionNode = generateBallerinaFunction(function, funcParamString,
-                                function.methodName());
+                        functionDefinitionNode = (FunctionDefinitionNode) NodeParser.parseObjectMember(
+                                String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(
+                                        function.visibilityQualifier()), function.methodName(), funcParamString,
+                                        getReturnTypeDescriptor(function.returnType())));
+                        functionDefinitionNode = generateBallerinaFunction(functionDefinitionNode, function.body());
                     } else {
                         functionDefinitionNode = generateBallerinaExternalFunction(function, funcParamString,
                                 function.methodName());
@@ -123,7 +126,10 @@ public class CodeGenerator {
                 String methodName = ConversionUtils.escapeSpecialCharacters(f.methodName());
                 FunctionDefinitionNode functionDefinitionNode;
                 if (f.body() instanceof BallerinaModel.BlockFunctionBody) {
-                    functionDefinitionNode = generateBallerinaFunction(f, funcParamString, methodName);
+                    FunctionDefinitionNode fd = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
+                            String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(f.visibilityQualifier()),
+                                    methodName, funcParamString, getReturnTypeDescriptor(f.returnType())));
+                    functionDefinitionNode = generateBallerinaFunction(fd, f.body());
                 } else {
                     functionDefinitionNode = generateBallerinaExternalFunction(f, funcParamString, methodName);
                 }
@@ -179,11 +185,8 @@ public class CodeGenerator {
         return s.append("\n").toString();
     }
 
-    private FunctionDefinitionNode generateBallerinaFunction(Function f, String funcParamString, String methodName) {
-        FunctionDefinitionNode fd = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
-                String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(f.visibilityQualifier()),
-                        methodName, funcParamString, getReturnTypeDescriptor(f.returnType())));
-        BallerinaModel.FunctionBody body = f.body();
+    private FunctionDefinitionNode generateBallerinaFunction(FunctionDefinitionNode fd,
+                                                             BallerinaModel.FunctionBody body) {
         FunctionBodyBlockNode funcBodyBlock = constructFunctionBodyBlock(((BallerinaModel.BlockFunctionBody)
                 body).statements());
         return fd.modify().withFunctionBody(funcBodyBlock).apply();
