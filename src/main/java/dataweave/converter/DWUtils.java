@@ -23,6 +23,7 @@ public class DWUtils {
     public static final String DATAWEAVE_OUTPUT_VARIABLE_NAME = "_dwOutput_";
     public static final String DW_INDEX_IDENTIFIER = "$$";
     public static final String DW_VALUE_IDENTIFIER = "$";
+    public static final String DW_NOW_IDENTIFIER = "now";
 
     // IO Types
     public static final String APPLICATION_JAVA = "application/java";
@@ -46,6 +47,7 @@ public class DWUtils {
     public static final String OBJECT = "object";
     public static final String STRING = "string";
     public static final String TIME = "time";
+    public static final String IDENTIFIER = "identifier";
 
     // DataWeave Built-in functions
     public static final String DW_FUNCTION_MAP = "map";
@@ -53,6 +55,18 @@ public class DWUtils {
     public static final String DW_FUNCTION_FLATTEN = "flatten";
     public static final String DW_FUNCTION_SIZE_OF = "sizeOf";
 
+    // Ballerina util functions
+    public static final String INT_TO_STRING = "intToString";
+    public static final String GET_FORMATTED_STRING_FROM_NUMBER = "getFormattedStringFromNumber";
+    public static final String NEW_DECIMAL_FORMAT = "newDecimalFormat";
+    public static final String GET_CURRENT_TIME_STRING = "getCurrentTimeString";
+    public static final String FORMAT_DATE_TIME_STRING = "formatDateTimeString";
+    public static final String FORMAT_DATE_TIME = "formatDateTime";
+    public static final String GET_DATE_TIME_FORMATTER = "getDateTimeFormatter";
+    public static final String GET_ZONE_ID = "getZoneId";
+    public static final String GET_DATE_TIME = "getDateTime";
+    public static final String PARSE_INSTANT = "parseInstant";
+    public static final String GET_FORMATTED_STRING_FROM_DATE = "getFormattedStringFromDate";
 
     // Ballerina Identifiers
     public static final String DW_FUNCTION_NAME = "_dwMethod%s_";

@@ -345,4 +345,14 @@ public class DataWeaveScripts {
             ---
             10 as :object {class : "soa.sfabs.SOAResponseInfoType\\$ServiceInfo"}
             """;
+    public static final String SCRIPT_TYPE_COERCION_STRING_WITH_DIFFERENT_FORMATS = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+              a: 1 as :string {format: "##,#"},
+              b: now as :string {format: "yyyy-MM-dd"},
+              c: true as :string
+            }
+            """;
 }

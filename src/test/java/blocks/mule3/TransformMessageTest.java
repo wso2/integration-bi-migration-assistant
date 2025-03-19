@@ -64,6 +64,8 @@ public class TransformMessageTest extends AbstractBlockTest {
                         "transform-message/dataweave-bal-files/transform_message_with_type_coercion_string.bal"},
                 {"transform-message/dataweave-files/transform_message_with_type_coercion_number.dwl",
                         "transform-message/dataweave-bal-files/transform_message_with_type_coercion_number.bal"},
+                {"transform-message/dataweave-files/transform_message_with_type_coercion_format.dwl",
+                        "transform-message/dataweave-bal-files/transform_message_with_type_coercion_format.bal"},
         };
     }
 

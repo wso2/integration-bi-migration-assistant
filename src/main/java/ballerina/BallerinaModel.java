@@ -44,8 +44,17 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record Function(Optional<String> visibilityQualifier, String methodName, List<Parameter> parameters,
-                           Optional<String> returnType,
-                           List<Statement> body) {
+                           Optional<String> returnType, FunctionBody body) {
+    }
+
+    public interface FunctionBody {
+    }
+
+    public record BlockFunctionBody(List<Statement> statements) implements FunctionBody {
+    }
+
+    public record ExternFunctionBody(String className, Optional<String> javaMethodName, String annotation,
+                                     Optional<List<String>> paramTypes) implements FunctionBody {
     }
 
     public record Parameter(String name, String type, Optional<BallerinaExpression> defaultExpr) {

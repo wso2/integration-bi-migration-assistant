@@ -72,6 +72,8 @@ public class DataWeaveTest {
                         "dw_type_coercion_with_format.json"},
                 {DataWeaveScripts.SCRIPT_TYPE_COERCION_WITH_CLASS, "src/test/resources/parser/expected/" +
                         "dw_type_coercion_with_class.json"},
+                {DataWeaveScripts.SCRIPT_TYPE_COERCION_STRING_WITH_DIFFERENT_FORMATS, "src/test/resources/parser" +
+                        "/expected/dw_type_coercion_string_with_different_formats.json"},
         };
     }
 }
