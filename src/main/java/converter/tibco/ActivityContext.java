@@ -87,4 +87,16 @@ class ActivityContext {
     public String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
         return processContext.getConvertToTypeFunction(targetType);
     }
+
+    public String getAddToContextFn() {
+        return processContext.getAddToContextFn();
+    }
+
+    public String getTransformXSLTFn() {
+        return processContext.getTransformXSLTFn();
+    }
+
+    void addLibraryImport(Library library) {
+        processContext.addLibraryImport(library);
+    }
 }

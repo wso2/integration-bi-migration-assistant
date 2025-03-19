@@ -1,8 +1,8 @@
 import ballerina/xslt;
 
 function activityExtension(xml input, map<xml> context) returns xml {
-    xml var0 = checkpanic xslt:transform(input, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns2="http://www.example.org/LogResult" version="2.0"><xsl:template name="End-input" match="/"><tns2:result><xsl:value-of select="'Logging Done'"/></tns2:result></xsl:template></xsl:stylesheet>`, context);
+    xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns2="http://www.example.org/LogResult" version="2.0"><xsl:template name="End-input" match="/"><tns2:result><xsl:value-of select="'Logging Done'"/></tns2:result></xsl:template></xsl:stylesheet>`), context);
     return var0;
 }
 
@@ -15,7 +15,7 @@ function loggingservice_LogProcess_start(anydata input) returns anydata {
 
 function process_loggingservice_LogProcess(xml input) returns xml {
     map<xml> context = {};
-    context["post.item"] = input;
+    addToContext(context, "post.item", input);
     worker start_worker {
         xml result0 = receiveEvent(input, context);
         result0 -> StartToLog;

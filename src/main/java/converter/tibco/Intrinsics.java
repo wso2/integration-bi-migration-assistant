@@ -29,6 +29,48 @@ public enum Intrinsics {
                     "    return base + \"?\" + \"&\".'join(...from string key in config.parameters.keys()\n" +
                     "        select key + \"=\" + config.parameters.get(key));\n" +
                     "}\n"
+    ),
+    ADD_TO_CONTEXT(
+            "addToContext",
+            "function addToContext(map<xml> context, string varName, xml value){\n" +
+                    "    xml children = value/*;\n" +
+                    "    xml transformed = xml `<root>${children}</root>`;\n" +
+                    "    context[varName] = transformed;\n" +
+                    "}\n"
+    ),
+    TRANSFORM_XSLT(
+            "transformXSLT",
+            "function transformXSLT(xml input) returns xml {\n" +
+                    "    xmlns \"http://www.w3.org/1999/XSL/Transform\" as xsl;\n" +
+                    "    xml<xml:Element> values = input/**/<xsl:value\\-of>;\n" +
+                    "    foreach xml:Element item in values {\n" +
+                    "        map<string> attributes = item.getAttributes();\n" +
+                    "        string selectPath = attributes.get(\"select\");\n" +
+                    "        int? index = selectPath.indexOf(\"/\");\n" +
+                    "        string path;\n" +
+                    "        if index == () {\n" +
+                    "            path = selectPath;\n" +
+                    "        } else {\n" +
+                    "            path = selectPath.substring(0, index) + \"/root\" + selectPath.substring(index);\n" +
+                    "        }\n" +
+                    "        attributes[\"select\"] = path;\n" +
+                    "    }\n" +
+                    "    xml<xml:Element> test = input/**/<xsl:'if>;\n" +
+                    "    foreach xml:Element item in test {\n" +
+                    "        map<string> attributes = item.getAttributes();\n" +
+                    "        string selectPath = attributes.get(\"test\");\n" +
+                    "        int? index = selectPath.indexOf(\"/\");\n" +
+                    "        string path;\n" +
+                    "        if index == () {\n" +
+                    "            path = selectPath;\n" +
+                    "        } else {\n" +
+                    "            path = selectPath.substring(0, index) + \"/root\" + selectPath.substring(index);\n"
+                    +
+                    "        }\n" +
+                    "        attributes[\"test\"] = path;\n" +
+                    "    }\n" +
+                    "    return input;\n" +
+                    "}\n"
     );
     public final String body;
     public final String name;

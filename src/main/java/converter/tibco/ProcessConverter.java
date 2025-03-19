@@ -19,6 +19,9 @@
 package converter.tibco;
 
 import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.Expression.FunctionCall;
+import ballerina.BallerinaModel.Expression.StringConstant;
+import ballerina.BallerinaModel.Statement.CallStatement;
 import converter.tibco.analyzer.AnalysisResult;
 import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
@@ -158,7 +161,7 @@ public class ProcessConverter {
         VarDeclStatment inputVarDecl = new VarDeclStatment(XML, combinedInput, new VariableReference(inputVar));
         body.add(inputVarDecl);
 
-        BallerinaModel.Expression.FunctionCall callExpr = genereateActivityFunctionCall(cx, activity,
+        FunctionCall callExpr = genereateActivityFunctionCall(cx, activity,
                 new VariableReference(inputVarDecl.varName()));
         String outputVarName = "output";
         VarDeclStatment outputVarDecl = new VarDeclStatment(XML, outputVarName, callExpr);
@@ -177,12 +180,12 @@ public class ProcessConverter {
         return Optional.of(new NamedWorkerDecl(workerName, body));
     }
 
-    private static BallerinaModel.Expression.FunctionCall genereateActivityFunctionCall(
+    private static FunctionCall genereateActivityFunctionCall(
             ProcessContext cx, TibcoModel.Scope.Flow.Activity activity,
             VariableReference inputVar) {
         AnalysisResult analysisResult = cx.analysisResult;
         String activityFunction = analysisResult.from(activity).functionName();
-        return new BallerinaModel.Expression.FunctionCall(activityFunction,
+        return new FunctionCall(activityFunction,
                 new BallerinaModel.Expression[] { inputVar, cx.getContextRef() });
     }
 
@@ -204,7 +207,7 @@ public class ProcessConverter {
             int index, List<BallerinaModel.Statement> body) {
         String result = "result" + index;
         AnalysisResult analysisResult = cx.analysisResult;
-        BallerinaModel.Expression.FunctionCall callExpr = genereateActivityFunctionCall(cx, startActivity,
+        FunctionCall callExpr = genereateActivityFunctionCall(cx, startActivity,
                 new VariableReference("input"));
         VarDeclStatment outputVarDecl = new VarDeclStatment(XML, result, callExpr);
         body.add(outputVarDecl);
@@ -274,7 +277,7 @@ public class ProcessConverter {
         List<BallerinaModel.Statement> body = new ArrayList<>();
         var startFuncData = cx.getProcessStartFunction();
         String inputVariable = "input";
-        BallerinaModel.Expression.FunctionCall toXMLCall = new BallerinaModel.Expression.FunctionCall(
+        FunctionCall toXMLCall = new FunctionCall(
                 cx.getToXmlFunction(), new String[] { inputVariable });
         String inputXML = "inputXML";
         VarDeclStatment inputXMLVar = new VarDeclStatment(XML, inputXML, toXMLCall);
@@ -282,13 +285,13 @@ public class ProcessConverter {
 
         String processFunction = cx.getProcessFunction();
         VarDeclStatment xmlResult = new VarDeclStatment(XML, "xmlResult",
-                new BallerinaModel.Expression.FunctionCall(processFunction, new String[] { inputXML }));
+                new FunctionCall(processFunction, new String[]{inputXML}));
         body.add(xmlResult);
 
         BallerinaModel.TypeDesc returnType = startFuncData.returnType();
         String convertToTypeFunction = cx.getConvertToTypeFunction(returnType);
         VarDeclStatment result = new VarDeclStatment(returnType, "result",
-                new BallerinaModel.Expression.FunctionCall(convertToTypeFunction, new String[] { "xmlResult" }));
+                new FunctionCall(convertToTypeFunction, new String[]{"xmlResult"}));
         body.add(result);
 
         Return<VariableReference> returnStatement = new Return<>(Optional.of(new VariableReference("result")));
@@ -385,8 +388,10 @@ public class ProcessConverter {
         Collection<TibcoModel.Scope.Flow.Activity> startActivity = cx.analysisResult.startActivities(process);
         List<BallerinaModel.Statement> body = new ArrayList<>();
         body.add(cx.initContextVar());
-        body.add(new VarAssignStatement(new MemberAccess(cx.contextVarRef(), "post.item"),
-                new VariableReference("input")));
+        String addToContextFn = cx.getAddToContextFn();
+        body.add(new CallStatement(new FunctionCall(addToContextFn, List.of(cx.contextVarRef(),
+                new StringConstant("post.item"),
+                new VariableReference("input")))));
         body.add(generateWorkerForStartActions(cx, startActivity));
         analysisResult.links().stream().sorted(Comparator.comparing(link -> analysisResult.from(link).workerName()))
                 .map(link -> generateLink(cx, link)).forEach(body::add);

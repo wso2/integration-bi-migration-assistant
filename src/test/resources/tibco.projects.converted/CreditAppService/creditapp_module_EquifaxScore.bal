@@ -17,7 +17,7 @@ service / on creditapp_module_EquifaxScore_listener {
 }
 
 function activityExtension_16(xml input, map<xml> context) returns xml {
-    xml var0 = checkpanic xslt:transform(input, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
     <xsl:param name="post.item"/>
     <xsl:template name="End-input" match="/">
@@ -39,7 +39,7 @@ function activityExtension_16(xml input, map<xml> context) returns xml {
             </xsl:if>
         </tns3:SuccessSchema>
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`), context);
     return var0;
 }
 
@@ -54,13 +54,13 @@ function invoke(xml input, map<xml> context) returns xml {
     http:Client var0 = checkpanic new ("/");
     json var1 = checkpanic var0->post("/creditscore", input);
     xml var2 = fromJson(var1);
-    context["post"] = var2;
+    addToContext(context, "post", var2);
     return var2;
 }
 
 function process_creditapp_module_EquifaxScore(xml input) returns xml {
     map<xml> context = {};
-    context["post.item"] = input;
+    addToContext(context, "post.item", input);
     worker start_worker {
         xml result0 = receiveEvent_15(input, context);
         result0 -> StartTopost;

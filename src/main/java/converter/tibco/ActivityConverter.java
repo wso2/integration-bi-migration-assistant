@@ -20,7 +20,10 @@ package converter.tibco;
 
 import ballerina.BallerinaModel;
 import ballerina.BallerinaModel.Comment;
+import ballerina.BallerinaModel.Expression.FunctionCall;
+import ballerina.BallerinaModel.Expression.StringConstant;
 import ballerina.BallerinaModel.Expression.VariableReference;
+import ballerina.BallerinaModel.Statement.CallStatement;
 import ballerina.BallerinaModel.Statement.Return;
 import ballerina.BallerinaModel.Statement.VarAssignStatement;
 import ballerina.BallerinaModel.Statement.VarDeclStatment;
@@ -131,7 +134,7 @@ class ActivityConverter {
         List<BallerinaModel.Statement> body = new ArrayList<>();
         BallerinaModel.TypeDesc dataType = ConversionUtils.createQueryInputType(cx, sql);
         VarDeclStatment dataDecl = new VarDeclStatment(dataType, "data",
-                new BallerinaModel.Expression.FunctionCall(cx.getConvertToTypeFunction(dataType),
+                new FunctionCall(cx.getConvertToTypeFunction(dataType),
                         List.of(inputVar)));
         body.add(dataDecl);
         VariableReference paramData = new VariableReference(dataDecl.varName());
@@ -173,7 +176,7 @@ class ActivityConverter {
                 String parseFn = cx.getParseHttpConfigFunction();
                 List<BallerinaModel.Statement> body = new ArrayList<>();
                 BallerinaModel.TypeDesc.TypeReference httpConfigType = cx.getHttpConfigType();
-                BallerinaModel.Expression.FunctionCall parseCall = new BallerinaModel.Expression.FunctionCall(parseFn,
+            FunctionCall parseCall = new FunctionCall(parseFn,
                                 new String[] { configVar.varName() });
                 VarDeclStatment configVarDecl = new VarDeclStatment(httpConfigType, cx.getAnnonVarName(), parseCall);
                 body.add(configVarDecl);
@@ -185,7 +188,7 @@ class ActivityConverter {
                 VarDeclStatment client = createHTTPClientWithBasePath(cx, configurableHost);
                 body.add(client);
 
-                BallerinaModel.Expression.FunctionCall pathGetFunctionCall = new BallerinaModel.Expression.FunctionCall(
+            FunctionCall pathGetFunctionCall = new FunctionCall(
                                 Intrinsics.CREATE_HTTP_REQUEST_PATH_FROM_CONFIG.name,
                                 List.of(configVarRef));
                 VarDeclStatment requestURI = new VarDeclStatment(STRING, cx.getAnnonVarName(), pathGetFunctionCall);
@@ -203,7 +206,7 @@ class ActivityConverter {
                 body.add(responseDecl);
 
                 String jsonToXmlFunction = cx.processContext.getJsonToXMLFunction();
-                BallerinaModel.Expression.FunctionCall jsonToXmlFunctionCall = new BallerinaModel.Expression.FunctionCall(
+            FunctionCall jsonToXmlFunctionCall = new FunctionCall(
                                 jsonToXmlFunction, new String[] { responseDecl.varName() });
                 VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), jsonToXmlFunctionCall);
                 body.add(resultDecl);
@@ -241,7 +244,7 @@ class ActivityConverter {
                                 cx.getInputAsXml());
                 body.add(bindingCallResult);
                 String jsonToXMLFunction = cx.processContext.getJsonToXMLFunction();
-                BallerinaModel.Expression.FunctionCall jsonToXMLFunctionCall = new BallerinaModel.Expression.FunctionCall(
+            FunctionCall jsonToXMLFunctionCall = new FunctionCall(
                                 jsonToXMLFunction,
                                 new String[] { bindingCallResult.varName() });
                 VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), jsonToXMLFunctionCall);
@@ -262,7 +265,7 @@ class ActivityConverter {
                 assert binding.operation().method() == TibcoModel.PartnerLink.Binding.Operation.Method.POST;
                 BallerinaModel.Action.RemoteMethodCallAction call = new BallerinaModel.Action.RemoteMethodCallAction(
                                 client, "post",
-                                List.of(new BallerinaModel.Expression.StringConstant(path), value));
+                        List.of(new StringConstant(path), value));
                 BallerinaModel.Expression.CheckPanic checkPanic = new BallerinaModel.Expression.CheckPanic(call);
                 return new VarDeclStatment(JSON, cx.getAnnonVarName(), checkPanic);
         }
@@ -270,7 +273,7 @@ class ActivityConverter {
         private static VarDeclStatment createClientForBinding(ActivityContext cx,
                         TibcoModel.PartnerLink.Binding binding) {
                 String basePath = binding.path().basePath();
-                return createHTTPClientWithBasePath(cx, new BallerinaModel.Expression.StringConstant(basePath));
+            return createHTTPClientWithBasePath(cx, new StringConstant(basePath));
         }
 
         private static VarDeclStatment createHTTPClientWithBasePath(ActivityContext cx,
@@ -297,12 +300,12 @@ class ActivityConverter {
                 var startFunction = cx.getProcessStartFunctionName(extActivity.callProcess().subprocessName());
 
                 String convertToTypeFunction = cx.processContext.getConvertToTypeFunction(startFunction.inputType());
-                BallerinaModel.Expression.FunctionCall convertToTypeFunctionCall = new BallerinaModel.Expression.FunctionCall(
+            FunctionCall convertToTypeFunctionCall = new FunctionCall(
                                 convertToTypeFunction, new String[] { result.varName() });
 
-                BallerinaModel.Expression.FunctionCall startFunctionCall = new BallerinaModel.Expression.FunctionCall(
+            FunctionCall startFunctionCall = new FunctionCall(
                                 startFunction.name(), List.of(convertToTypeFunctionCall));
-                BallerinaModel.Expression.FunctionCall convertToXmlCall = new BallerinaModel.Expression.FunctionCall(
+            FunctionCall convertToXmlCall = new FunctionCall(
                                 cx.processContext.getToXmlFunction(),
                                 List.of(startFunctionCall));
                 VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), convertToXmlCall);
@@ -332,21 +335,26 @@ class ActivityConverter {
         private static VarDeclStatment xsltTransform(ActivityContext cx,
                                                      VariableReference inputVariable,
                         TibcoModel.Scope.Flow.Activity.Expression.XSLT xslt) {
-                cx.processContext.addLibraryImport(Library.XSLT);
-                BallerinaModel.Expression.FunctionCall callExpr = new BallerinaModel.Expression.FunctionCall(
+            cx.addLibraryImport(Library.XSLT);
+            String stylesheetTransformer = cx.getTransformXSLTFn();
+            FunctionCall transformerCall = new FunctionCall(
+                    stylesheetTransformer,
+                    List.of(new BallerinaModel.Expression.XMLTemplate(xslt.expression())));
+            FunctionCall callExpr = new FunctionCall(
                                 "xslt:transform",
                                 new BallerinaModel.Expression[] { inputVariable,
-                                                new BallerinaModel.Expression.XMLTemplate(xslt.expression()),
+                                        transformerCall,
                                                 cx.contextVarRef() });
                 BallerinaModel.Expression.CheckPanic checkPanic = new BallerinaModel.Expression.CheckPanic(callExpr);
                 return new VarDeclStatment(XML, cx.getAnnonVarName(), checkPanic);
         }
 
-        private static VarAssignStatement addToContext(ActivityContext cx,
-                                                       VariableReference value,
+    private static BallerinaModel.Statement addToContext(ActivityContext cx,
+                                                         BallerinaModel.Expression.VariableReference value,
                         String key) {
                 assert !key.isEmpty();
-                return new VarAssignStatement(new BallerinaModel.Expression.MemberAccess(cx.contextVarRef(), key),
-                                value);
-        }
+        String addToContextFn = cx.getAddToContextFn();
+        return new CallStatement(
+                new FunctionCall(addToContextFn, List.of(cx.contextVarRef(), new StringConstant(key), value)));
+    }
 }

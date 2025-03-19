@@ -2,7 +2,7 @@ import ballerina/sql;
 import ballerina/xslt;
 
 function activityExtension(xml input, map<xml> context) returns xml {
-    xml var0 = checkpanic xslt:transform(input, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns2="/T1535753828744Converted/JsonSchema" version="2.0">
     <xsl:param name="QueryRecords"/>
     <xsl:template name="End-input" match="/">
@@ -24,13 +24,13 @@ function activityExtension(xml input, map<xml> context) returns xml {
             </xsl:if>
         </tns2:Response>
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`), context);
     return var0;
 }
 
 function activityExtension_7(xml input, map<xml> context) returns xml {
-    xml var0 = checkpanic xslt:transform(input, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input" xmlns:tns1="http://www.example.com/namespaces/tns/1535845694732" version="2.0"><xsl:param name="Start"/><xsl:template name="JDBCQuery-input" match="/"><tns:jdbcQueryActivityInput><ssn><xsl:value-of select="$Start/tns1:ssn"/></ssn></tns:jdbcQueryActivityInput></xsl:template></xsl:stylesheet>`, context);
+    xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input" xmlns:tns1="http://www.example.com/namespaces/tns/1535845694732" version="2.0"><xsl:param name="Start"/><xsl:template name="JDBCQuery-input" match="/"><tns:jdbcQueryActivityInput><ssn><xsl:value-of select="$Start/tns1:ssn"/></ssn></tns:jdbcQueryActivityInput></xsl:template></xsl:stylesheet>`), context);
     QueryData0 data = convertToQueryData0(var0);
     sql:ParameterizedQuery var1 = `select * from public.creditscore where ssn like ${data.ssn}`;
     sql:ExecutionResult var2 = checkpanic jdbcProperty->execute(var1);
@@ -38,7 +38,7 @@ function activityExtension_7(xml input, map<xml> context) returns xml {
 }
 
 function activityExtension_8(xml input, map<xml> context) returns xml {
-    xml var0 = checkpanic xslt:transform(input, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://www.tibco.com/namespaces/tnt/plugins/jdbc+21902290-4882-46a2-8795-b85989c9d7c0+input" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tns1="http://www.example.com/namespaces/tns/1535845694732" version="2.0">
     <xsl:param name="Start"/>
     <xsl:param name="QueryRecords"/>
@@ -52,7 +52,7 @@ function activityExtension_8(xml input, map<xml> context) returns xml {
             </ssn>
         </tns3:jdbcUpdateActivityInput>
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`), context);
     QueryData1 data = convertToQueryData1(var0);
     sql:ParameterizedQuery var1 = `UPDATE creditscore
   SET numofpulls = ${data.noOfPulls}
@@ -70,7 +70,7 @@ function creditcheckservice_LookupDatabase_start(anydata input) returns anydata 
 
 function process_creditcheckservice_LookupDatabase(xml input) returns xml {
     map<xml> context = {};
-    context["post.item"] = input;
+    addToContext(context, "post.item", input);
     worker start_worker {
         xml result0 = receiveEvent(input, context);
         result0 -> StartToEnd;

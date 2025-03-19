@@ -8,7 +8,7 @@ function creditcheckservice_Process_start(anydata input) returns anydata {
 }
 
 function extActivity(xml input, map<xml> context) returns xml {
-    xml var0 = checkpanic xslt:transform(input, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns2="/T1535753828744Converted/JsonSchema" xmlns:tns3="http://www.example.com/namespaces/tns/1535845694732" version="2.0">
     <xsl:param name="post.item"/>
     <xsl:template name="LookupDatabase-input" match="/">
@@ -18,9 +18,9 @@ function extActivity(xml input, map<xml> context) returns xml {
             </tns3:ssn>
         </tns3:Element>
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`), context);
     xml var1 = toXML(creditcheckservice_LookupDatabase_start(convertToanydata(var0)));
-    context["LookupDatabase"] = var1;
+    addToContext(context, "LookupDatabase", var1);
     return var1;
 }
 
@@ -30,7 +30,7 @@ function pick(xml input, map<xml> context) returns xml {
 
 function process_creditcheckservice_Process(xml input) returns xml {
     map<xml> context = {};
-    context["post.item"] = input;
+    addToContext(context, "post.item", input);
     worker start_worker {
         xml result0 = unhandled(input, context);
         xml result1 = unhandled_3(input, context);
@@ -53,7 +53,7 @@ function process_creditcheckservice_Process(xml input) returns xml {
 }
 
 function reply(xml input, map<xml> context) returns xml {
-    xml var0 = checkpanic xslt:transform(input, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://xmlns.example.com/20180831151624PLT" xmlns:tns2="/T1535753828744Converted/JsonSchema" version="2.0">
     <xsl:param name="LookupDatabase"/>
     <xsl:template name="postOut-input" match="/">
@@ -75,9 +75,9 @@ function reply(xml input, map<xml> context) returns xml {
             </xsl:if>
         </tns2:Response>
     </xsl:template>
-</xsl:stylesheet>`, context);
-    xml var1 = checkpanic xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://xmlns.example.com/20180831151624PLT" xmlns:tns2="/T1535753828744Converted/JsonSchema" version="2.0"><xsl:param name="LookupDatabase"/><xsl:template name="postOut-input" match="/"><tns1:postResponse><item><tns2:Response><xsl:if test="$LookupDatabase/tns2:FICOScore"><tns2:FICOScore><xsl:value-of select="$LookupDatabase/tns2:FICOScore"/></tns2:FICOScore></xsl:if><xsl:if test="$LookupDatabase/tns2:Rating"><tns2:Rating><xsl:value-of select="$LookupDatabase/tns2:Rating"/></tns2:Rating></xsl:if><xsl:if test="$LookupDatabase/tns2:NoOfInquiries"><tns2:NoOfInquiries><xsl:value-of select="$LookupDatabase/tns2:NoOfInquiries"/></tns2:NoOfInquiries></xsl:if></tns2:Response></item></tns1:postResponse></xsl:template></xsl:stylesheet>`, context);
+</xsl:stylesheet>`), context);
+    xml var1 = checkpanic xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://xmlns.example.com/20180831151624PLT" xmlns:tns2="/T1535753828744Converted/JsonSchema" version="2.0"><xsl:param name="LookupDatabase"/><xsl:template name="postOut-input" match="/"><tns1:postResponse><item><tns2:Response><xsl:if test="$LookupDatabase/tns2:FICOScore"><tns2:FICOScore><xsl:value-of select="$LookupDatabase/tns2:FICOScore"/></tns2:FICOScore></xsl:if><xsl:if test="$LookupDatabase/tns2:Rating"><tns2:Rating><xsl:value-of select="$LookupDatabase/tns2:Rating"/></tns2:Rating></xsl:if><xsl:if test="$LookupDatabase/tns2:NoOfInquiries"><tns2:NoOfInquiries><xsl:value-of select="$LookupDatabase/tns2:NoOfInquiries"/></tns2:NoOfInquiries></xsl:if></tns2:Response></item></tns1:postResponse></xsl:template></xsl:stylesheet>`), context);
     return var1;
 }
 

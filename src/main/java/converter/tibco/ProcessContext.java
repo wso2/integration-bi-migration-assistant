@@ -113,7 +113,7 @@ public class ProcessContext implements ContextWithFile {
         BallerinaModel.TypeDesc td = getTypeByName(type);
         assert td == BallerinaModel.TypeDesc.BuiltinType.STRING;
         String expr = "\"" + valueRepr + "\"";
-        var prev = constants.put(name,
+        constants.put(name,
                 BallerinaModel.ModuleVar.constant(name, td, new BallerinaModel.BallerinaExpression(expr)));
         return name;
     }
@@ -123,6 +123,7 @@ public class ProcessContext implements ContextWithFile {
         return constants.containsKey(name);
     }
 
+    @Override
     public void addLibraryImport(Library library) {
         imports.add(new BallerinaModel.Import(library.orgName, library.moduleName, Optional.empty()));
     }
@@ -207,4 +208,11 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.dbClient(sharedResourcePropertyName);
     }
 
+    public String getAddToContextFn() {
+        return projectContext.getAddToContextFn();
+    }
+
+    public String getTransformXSLTFn() {
+        return projectContext.getTransformXSLTFn();
+    }
 }
