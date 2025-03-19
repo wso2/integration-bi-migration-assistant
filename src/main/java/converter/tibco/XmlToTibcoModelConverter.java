@@ -316,6 +316,8 @@ public final class XmlToTibcoModelConverter {
         result = result.replaceAll("&lt;", "<");
         result = result.replaceAll("&gt;", ">");
 
+        result = result.replaceAll("&#xa;", "\n");
+
         return result;
     }
 
@@ -420,7 +422,33 @@ public final class XmlToTibcoModelConverter {
             case JSON_PARSER -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.JsonOperation(
                     TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.ExtensionKind.JSON_PARSER,
                     TibcoModel.Type.Schema.TibcoType.of("nil"));
+            case SQL -> parasSqlActivityExtension(config);
         };
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL parasSqlActivityExtension(
+            Element config) {
+        Element properties = getFirstChildWithTag(
+                getFirstChildWithTag(getFirstChildWithTag(config, "BWActivity"),
+                        "activityConfig"), "properties");
+        Element value = getFirstChildWithTag(properties, "value");
+        String sharedResourceProperty = value.getAttribute("sharedResourceProperty");
+        assert !sharedResourceProperty.isEmpty();
+        String query = unEscapeXml(value.getAttribute("sqlStatement"));
+        List<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.SQLParameter> parameters =
+                getChildrenWithTag(value, "PreparedParameters")
+                        .map(XmlToTibcoModelConverter::parseSqlParameter).toList();
+        return new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL(sharedResourceProperty, query,
+                parameters);
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.SQLParameter parseSqlParameter(
+            Element preparedParameters
+    ) {
+        return new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.SQLParameter(
+                preparedParameters.getAttribute("ParameterName"),
+                TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.SQLParameter.SQLType.fromString(
+                        preparedParameters.getAttribute("DataTypeDisplayValue")));
     }
 
     private static TibcoModel.Scope.Flow.Activity.ReceiveEvent parseReceiveEvent(Element activity) {
@@ -560,6 +588,10 @@ public final class XmlToTibcoModelConverter {
         // TODO: use predicate things we have already implemented
         return ElementIterable.of(element).stream().filter(child -> getTagNameWithoutNameSpace(child).equals(tag))
                 .findFirst();
+    }
+
+    private static Stream<Element> getChildrenWithTag(Element element, String tag) {
+        return ElementIterable.of(element).stream().filter(child -> getTagNameWithoutNameSpace(child).equals(tag));
     }
 
     private static TibcoModel.ProcessInfo parseProcessInfo(Element element) {

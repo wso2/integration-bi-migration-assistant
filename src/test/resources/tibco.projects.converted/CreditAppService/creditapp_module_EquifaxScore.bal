@@ -16,7 +16,7 @@ service / on creditapp_module_EquifaxScore_listener {
     }
 }
 
-function activityExtension_6(xml input, map<xml> context) returns xml {
+function activityExtension_16(xml input, map<xml> context) returns xml {
     xml var0 = checkpanic xslt:transform(input, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
     <xsl:param name="post.item"/>
@@ -62,7 +62,7 @@ function process_creditapp_module_EquifaxScore(xml input) returns xml {
     map<xml> context = {};
     context["post.item"] = input;
     worker start_worker {
-        xml result0 = receiveEvent_5(input, context);
+        xml result0 = receiveEvent_15(input, context);
         result0 -> StartTopost;
     }
     worker StartTopost {
@@ -71,12 +71,12 @@ function process_creditapp_module_EquifaxScore(xml input) returns xml {
     }
     worker postToEnd {
         xml result0 = <- invoke_worker;
-        result0 -> activityExtension_6_worker;
+        result0 -> activityExtension_16_worker;
     }
-    worker activityExtension_6_worker {
+    worker activityExtension_16_worker {
         xml input0 = <- postToEnd;
         xml combinedInput = input0;
-        xml output = activityExtension_6(combinedInput, context);
+        xml output = activityExtension_16(combinedInput, context);
         output -> function;
     }
     worker invoke_worker {
@@ -85,11 +85,11 @@ function process_creditapp_module_EquifaxScore(xml input) returns xml {
         xml output = invoke(combinedInput, context);
         output -> postToEnd;
     }
-    xml result0 = <- activityExtension_6_worker;
+    xml result0 = <- activityExtension_16_worker;
     xml result = result0;
     return result;
 }
 
-function receiveEvent_5(xml input, map<xml> context) returns xml {
+function receiveEvent_15(xml input, map<xml> context) returns xml {
     return input;
 }

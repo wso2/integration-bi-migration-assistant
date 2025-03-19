@@ -35,6 +35,7 @@ public final class AnalysisResult {
     private final Map<TibcoModel.Scope.Flow.Link, String> workerNames;
     private final Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData;
     private final Map<String, TibcoModel.PartnerLink.Binding> partnerlinkBindings;
+    private final Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex;
 
     AnalysisResult(Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap,
                    Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap,
@@ -42,7 +43,8 @@ public final class AnalysisResult {
                    Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> endActivities,
                    Map<TibcoModel.Scope.Flow.Link, String> workerNames,
                    Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData,
-                   Map<String, TibcoModel.PartnerLink.Binding> partnerlinkBindings) {
+                   Map<String, TibcoModel.PartnerLink.Binding> partnerlinkBindings,
+                   Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.startActivities = startActivities;
@@ -50,6 +52,7 @@ public final class AnalysisResult {
         this.workerNames = workerNames;
         this.activityData = activityData;
         this.partnerlinkBindings = partnerlinkBindings;
+        this.queryIndex = queryIndex;
     }
 
     public Collection<TibcoModel.Scope.Flow.Activity> startActivities(TibcoModel.Process process) {
@@ -108,6 +111,13 @@ public final class AnalysisResult {
                     .toList();
         }
         return List.of();
+    }
+
+    public int queryIndex(TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql) {
+        if (!queryIndex.containsKey(sql)) {
+            throw new IllegalArgumentException("No query index found for: " + sql);
+        }
+        return queryIndex.get(sql);
     }
 
     public Collection<TibcoModel.Scope.Flow.Link> destinations(TibcoModel.Scope.Flow.Activity activity) {

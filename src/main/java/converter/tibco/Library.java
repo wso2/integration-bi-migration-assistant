@@ -19,13 +19,17 @@
 package converter.tibco;
 
 enum Library {
-    HTTP("http"),
-    XSLT("xslt"),
-    XML_DATA("data.xmldata");
+    HTTP("ballerina", "http"),
+    XSLT("ballerina", "xslt"),
+    XML_DATA("ballerina", "data.xmldata"),
+    JDBC("ballerinax", "jdbc"),
+    SQL("ballerina", "sql");
 
-    public final String value;
+    public final String moduleName;
+    public final String orgName;
 
-    Library(String value) {
-        this.value = value;
+    Library(String orgName, String moduleName) {
+        this.moduleName = moduleName;
+        this.orgName = orgName;
     }
 }

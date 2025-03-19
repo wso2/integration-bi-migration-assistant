@@ -1,7 +1,7 @@
 package converter.tibco;
 
 import ballerina.BallerinaModel;
-import ballerina.BallerinaModel.Statement.Comment;
+import ballerina.BallerinaModel.Comment;
 import tibco.TibcoModel;
 
 import java.util.ArrayList;

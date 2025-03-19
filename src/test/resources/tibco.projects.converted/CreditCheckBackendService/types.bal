@@ -135,12 +135,21 @@ type jdbcUpdateActivityInput ();
 
 type httpResponseHeaders httpTransportResponseHeaders;
 
+type QueryData1 record {
+    int noOfPulls;
+    string ssn;
+};
+
 type tmessageBody string;
 
 type SuccessSchema record {
     int FICOScore;
     string Rating;
     int NoOfInquiries;
+};
+
+type QueryData0 record {
+    string ssn;
 };
 
 type client4XXError client4XXErrorType;

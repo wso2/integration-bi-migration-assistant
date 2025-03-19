@@ -418,11 +418,65 @@ public class TibcoModel {
                             }
                         }
 
+                        record SQL(String sharedResourcePropertyName, String query,
+                                   List<SQLParameter> parameters) implements Config {
+
+                            @Override
+                            public ExtensionKind kind() {
+                                return ExtensionKind.SQL;
+                            }
+
+                            public record SQLParameter(String name, SQLType type) {
+
+                                public enum SQLType {
+                                    INTEGER,
+                                    BIGINT,
+                                    SMALLINT,
+                                    DECIMAL,
+                                    NUMERIC,
+                                    REAL,
+                                    DOUBLE,
+                                    VARCHAR,
+                                    CHAR,
+                                    TEXT,
+                                    DATE,
+                                    TIME,
+                                    TIMESTAMP,
+                                    BOOLEAN,
+                                    BLOB,
+                                    CLOB;
+
+                                    public static SQLType fromString(String type) {
+                                        return switch (type.toUpperCase()) {
+                                            case "INTEGER", "INT", "INT4" -> INTEGER;
+                                            case "BIGINT", "INT8" -> BIGINT;
+                                            case "SMALLINT", "INT2" -> SMALLINT;
+                                            case "DECIMAL", "DEC" -> DECIMAL;
+                                            case "NUMERIC", "NUMBER" -> NUMERIC;
+                                            case "REAL", "FLOAT4" -> REAL;
+                                            case "DOUBLE", "FLOAT8" -> DOUBLE;
+                                            case "VARCHAR", "VARCHAR2", "NVARCHAR" -> VARCHAR;
+                                            case "CHAR", "CHARACTER" -> CHAR;
+                                            case "TEXT" -> TEXT;
+                                            case "DATE" -> DATE;
+                                            case "TIME" -> TIME;
+                                            case "TIMESTAMP", "DATETIME" -> TIMESTAMP;
+                                            case "BOOLEAN", "BOOL" -> BOOLEAN;
+                                            case "BLOB", "BINARY LARGE OBJECT" -> BLOB;
+                                            case "CLOB", "CHARACTER LARGE OBJECT" -> CLOB;
+                                            default -> throw new IllegalArgumentException("Unknown SQL type: " + type);
+                                        };
+                                    }
+                                }
+                            }
+                        }
+
                         enum ExtensionKind {
                             END,
                             HTTP_SEND,
                             JSON_RENDER,
-                            JSON_PARSER;
+                            JSON_PARSER,
+                            SQL;
 
                             public static ExtensionKind fromTypeId(String typeId) {
                                 return switch (typeId) {
@@ -430,8 +484,15 @@ public class TibcoModel {
                                     case "bw.http.sendHTTPRequest" -> HTTP_SEND;
                                     case "bw.restjson.JsonRender" -> JSON_RENDER;
                                     case "bw.restjson.JsonParser" -> JSON_PARSER;
-                                    default -> throw new IllegalArgumentException("Unknown extension kind: " + typeId);
+                                    default -> patternMatch(typeId);
                                 };
+                            }
+
+                            private static ExtensionKind patternMatch(String typeId) {
+                                if (typeId.contains("jdbc")) {
+                                    return SQL;
+                                }
+                                throw new IllegalArgumentException("Unknown extension kind: " + typeId);
                             }
 
                         }

@@ -25,6 +25,7 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static converter.MigrationTool.migrateTibcoProject;
@@ -44,7 +45,24 @@ public class TibcoProjectConversionTest {
         } finally {
             // Clean up temporary directory
             deleteDirectory(tempDir);
+
+            // Clear static state after test
+            try {
+                Class<?> contextClass = Class.forName("converter.tibco.analyzer.ModelAnalyser$ProcessAnalysisContext");
+                java.lang.reflect.Field field = contextClass.getDeclaredField("activityFunctionNames");
+                field.setAccessible(true);
+                ((Map<?, ?>) field.get(null)).clear();
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to clear activityFunctionNames", e);
+            }
         }
+    }
+
+    @Test
+    public void test() throws IOException {
+        Path tempDir = Files.createTempDirectory("test");
+        Path projectTestCaseDir = Path.of("src", "test", "resources", "tibco.projects", "CreditCheckBackendService");
+        migrateTibcoProject(projectTestCaseDir.toString(), tempDir.toString());
     }
 
     private void compareDirectories(Path actual, Path expected) throws IOException {

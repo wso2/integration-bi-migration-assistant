@@ -23,6 +23,7 @@ import tibco.TibcoModel;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -51,8 +52,12 @@ public class ProjectContext {
 
     private final Map<TibcoModel.Process, ProcessContext> processContextMap = new HashMap<>();
     private final Map<String, Optional<BallerinaModel.ModuleTypeDef>> moduleTypeDefs = new HashMap<>();
+
     private final List<BallerinaModel.Function> utilityFunctions = new ArrayList<>();
     private final Set<BallerinaModel.Import> utilityFunctionImports = new HashSet<>();
+    private final List<BallerinaModel.ModuleVar> utilityConstants = new ArrayList<>();
+
+    private final Map<String, BallerinaModel.Expression.VariableReference> dbClients = new HashMap<>();
     private final List<String> typeIntrinsics = new ArrayList<>();
     private String toXMLFunction = null;
     private String jsonToXMLFunction = null;
@@ -61,6 +66,7 @@ public class ProjectContext {
     private int typeCount = 0;
     private int typeAliasCount = 0;
     private int unhandledTypeCount = 0;
+
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
     private static final Logger logger = Logger.getLogger(ProjectContext.class.getName());
 
@@ -151,7 +157,7 @@ public class ProjectContext {
     }
 
     private void importLibraryIfNeeded(Library library) {
-        utilityFunctionImports.add(new BallerinaModel.Import("ballerina", library.value, Optional.empty()));
+        utilityFunctionImports.add(new BallerinaModel.Import(library.orgName, library.moduleName, Optional.empty()));
     }
 
     String createConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
@@ -170,8 +176,14 @@ public class ProjectContext {
 
     private BallerinaModel.TextDocument utilsFile() {
         List<BallerinaModel.Import> imports = utilityFunctionImports.stream().toList();
-        return new BallerinaModel.TextDocument("utils.bal", imports, List.of(), List.of(), List.of(), List.of(),
-                utilityFunctions, List.of());
+        List<BallerinaModel.ModuleVar> sortedConstants = utilityConstants.stream()
+                .sorted(Comparator.comparing(BallerinaModel.ModuleVar::name))
+                .toList();
+        List<BallerinaModel.Function> sortedFunctions = utilityFunctions.stream()
+                .sorted(Comparator.comparing(BallerinaModel.Function::functionName))
+                .toList();
+        return new BallerinaModel.TextDocument("utils.bal", imports, List.of(), sortedConstants,
+                List.of(), List.of(), sortedFunctions, List.of());
     }
 
     private BallerinaModel.TextDocument typesFile() {
@@ -228,13 +240,15 @@ public class ProjectContext {
             case "client4XXError" -> Optional.of(getLibraryType(cx, Library.HTTP, "NotFound"));
             case "server5XXError" -> Optional.of(getLibraryType(cx, Library.HTTP, "InternalServerError"));
             case "Client" -> Optional.of(getLibraryType(cx, Library.HTTP, "Client"));
+            case "ParameterizedQuery" -> Optional.of(getLibraryType(cx, Library.SQL, "ParameterizedQuery"));
+            case "ExecutionResult" -> Optional.of(getLibraryType(cx, Library.SQL, "ExecutionResult"));
             default -> Optional.empty();
         };
     }
 
     private BallerinaModel.TypeDesc.TypeReference getLibraryType(ContextWithFile cx, Library library, String typeName) {
         cx.addLibraryImport(library);
-        return new BallerinaModel.TypeDesc.TypeReference(library.value + ":" + typeName);
+        return new BallerinaModel.TypeDesc.TypeReference(library.moduleName + ":" + typeName);
     }
 
     private Optional<BallerinaModel.TypeDesc.BuiltinType> mapToBuiltinType(String name) {
@@ -287,6 +301,22 @@ public class ProjectContext {
         }
     }
 
+    public BallerinaModel.Expression.VariableReference dbClient(String sharedResourcePropertyName) {
+        return dbClients.computeIfAbsent(sharedResourcePropertyName, this::createDbClient);
+    }
+
+    private BallerinaModel.Expression.VariableReference createDbClient(String name) {
+        // TODO: handle configurations
+        importLibraryIfNeeded(Library.JDBC);
+        BallerinaModel.ModuleVar moduleVar = BallerinaModel.ModuleVar.constant(ConversionUtils.sanitizes(name),
+                new BallerinaModel.TypeDesc.TypeReference("jdbc:Client"),
+                new BallerinaModel.Expression.CheckPanic(
+                        new BallerinaModel.Expression.NewExpression(
+                                List.of(new BallerinaModel.Expression.StringConstant(name)))));
+        utilityConstants.add(moduleVar);
+        return new BallerinaModel.Expression.VariableReference(moduleVar.name());
+    }
+
     private static class ContextWrapperForTypeFile implements ContextWithFile {
 
         final Set<BallerinaModel.Import> imports = new HashSet<>();
@@ -303,7 +333,7 @@ public class ProjectContext {
 
         @Override
         public void addLibraryImport(Library library) {
-            imports.add(new BallerinaModel.Import("ballerina", library.value, Optional.empty()));
+            imports.add(new BallerinaModel.Import("ballerina", library.moduleName, Optional.empty()));
         }
 
         @Override

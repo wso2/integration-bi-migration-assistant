@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,7 +58,7 @@ public class ModelAnalyser {
                 process.name(), cx.totalActivityCount, cx.unhandledActivityCount));
 
         return new AnalysisResult(cx.destinationMap, cx.sourceMap, startActivities, endActivities, workerNames,
-                activityData, partnerLinkBindings);
+                activityData, partnerLinkBindings, cx.queryIndex);
     }
 
     private static void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
@@ -112,6 +113,16 @@ public class ModelAnalyser {
         if (!(activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithTargets)) {
             cx.addStartActivity(activity);
         }
+        if (activity instanceof TibcoModel.Scope.Flow.Activity.ActivityExtension activityExtension) {
+            analyseActivityExtensionConfig(cx, activityExtension.config());
+        }
+    }
+
+    private static void analyseActivityExtensionConfig(ProcessAnalysisContext cx,
+                                                       TibcoModel.Scope.Flow.Activity.ActivityExtension.Config config) {
+        if (config instanceof TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql) {
+            cx.allocateIndexForQuery(sql);
+        }
     }
 
     private static void analysePick(ProcessAnalysisContext cx, TibcoModel.Scope.Flow.Activity.Pick pick) {
@@ -143,6 +154,8 @@ public class ModelAnalyser {
 
         private static final Map<TibcoModel.Scope.Flow.Activity, String> activityFunctionNames =
                 new ConcurrentHashMap<>();
+        public Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex =
+                new IdentityHashMap<>();
 
         public void addEndActivity(TibcoModel.Scope.Flow.Activity activity) {
             endActivities.add(activity);
@@ -204,6 +217,10 @@ public class ModelAnalyser {
 
         public Map<TibcoModel.Scope.Flow.Link, String> workerNames() {
             return Collections.unmodifiableMap(linkWorkerNames);
+        }
+
+        public void allocateIndexForQuery(TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql) {
+            queryIndex.put(sql, queryIndex.size());
         }
     }
 }

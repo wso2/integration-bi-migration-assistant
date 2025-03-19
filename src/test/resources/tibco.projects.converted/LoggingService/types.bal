@@ -295,11 +295,9 @@ type complexTypeFault record {
     string msgCode;
 };
 
-// comment
 //FIXME: Failed to convert type due to [ParseError] : Expected 1 children, but found: 0
-// comment
 //<complexType name="RemoveActivityConfigClass" xmlns="http://www.w3.org/2001/XMLSchema"/>
-// comment
+
 //<complexType name="RemoveActivityConfigClass" xmlns="http://www.w3.org/2001/XMLSchema"/>
 type RemoveActivityConfigClass anydata;
 

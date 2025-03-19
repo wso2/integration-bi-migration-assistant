@@ -1,6 +1,5 @@
 package ballerina;
 
-import ballerina.BallerinaModel.Statement.Comment;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -8,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules) {
@@ -163,7 +163,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         enum BuiltinType implements TypeDesc {
             ANYDATA("anydata"), NEVER("never"), JSON("json"), NIL("()"), STRING("string"), INT("int"), XML("xml"),
             BOOLEAN("boolean"),
-            ;
+            DECIMAL("decimal");
 
             private final String name;
 
@@ -180,7 +180,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     // TODO: expr must be optional
-    public record ModuleVar(String name, String type, BallerinaExpression expr, boolean isConstant,
+    public record ModuleVar(String name, String type, Expression expr, boolean isConstant,
                             boolean isConfigurable) {
 
         public ModuleVar {
@@ -191,11 +191,11 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             this(name, type, expr, false, false);
         }
 
-        public static ModuleVar constant(String name, TypeDesc typeDesc, BallerinaExpression expr) {
+        public static ModuleVar constant(String name, TypeDesc typeDesc, Expression expr) {
             return new ModuleVar(name, typeDesc.toString(), expr, true, false);
         }
 
-        public static ModuleVar configurable(String name, TypeDesc typeDesc, BallerinaExpression expr) {
+        public static ModuleVar configurable(String name, TypeDesc typeDesc, Expression expr) {
             return new ModuleVar(name, typeDesc.toString(), expr, true, true);
         }
 
@@ -212,8 +212,13 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                 sb.append("const ");
             }
             sb.append(type).append(" ").append(name);
-            if (!expr.expr().isEmpty()) {
-                sb.append(" ").append("=").append(" ").append(expr.expr);
+            Expression expr = expr();
+            if (expr instanceof BallerinaExpression(String content)) {
+                if (!content.isEmpty()) {
+                    sb.append(" ").append("=").append(" ").append(content);
+                }
+            } else {
+                sb.append(" ").append("=").append(" ").append(expr);
             }
             sb.append(";\n");
             return sb.toString();
@@ -315,6 +320,19 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                     : String.format("else { %s }",
                     String.join("", elseBody.stream().map(Object::toString).toList()));
             return ifBlock + elseIfs + elseBlock;
+        }
+    }
+
+    public record Comment(String comment) implements Statement {
+
+        public Comment {
+            comment = comment.trim();
+        }
+
+        @Override
+        public String toString() {
+            return "\n//" + comment.lines().filter(Predicate.not(String::isBlank)).collect(Collectors.joining("\n//")) +
+                    "\n";
         }
     }
 
@@ -459,15 +477,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
-        public record Comment(String comment) implements Statement {
-
-            @Override
-            public String toString() {
-                return "//" + comment + "\n";
-            }
-        }
-
-        public record ElseIfClause(BallerinaExpression condition, List<Statement> elseIfBody) {
+        record ElseIfClause(BallerinaExpression condition, List<Statement> elseIfBody) {
 
             @Override
             public String toString() {
@@ -476,7 +486,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
-        public record DoStatement(List<Statement> doBody, Optional<OnFailClause> onFailClause) implements Statement {
+        record DoStatement(List<Statement> doBody, Optional<OnFailClause> onFailClause) implements Statement {
 
             public DoStatement(List<Statement> doBody) {
                 this(doBody, Optional.empty());

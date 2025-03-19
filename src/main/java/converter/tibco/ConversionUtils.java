@@ -18,7 +18,16 @@
 
 package converter.tibco;
 
+import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.Statement.VarDeclStatment;
+import converter.tibco.analyzer.AnalysisResult;
+import tibco.TibcoModel;
+
 import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NEVER;
 
 public final class ConversionUtils {
 
@@ -40,5 +49,55 @@ public final class ConversionUtils {
             nameToCheck = sanitized + "_" + allocatedNames.size();
         }
         return nameToCheck;
+    }
+
+    public static BallerinaModel.TypeDesc.BuiltinType from(
+            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.SQLParameter.SQLType sqlType) {
+        return switch (sqlType) {
+            case INTEGER, BIGINT, SMALLINT -> BallerinaModel.TypeDesc.BuiltinType.INT;
+            case DECIMAL, NUMERIC, REAL, DOUBLE -> BallerinaModel.TypeDesc.BuiltinType.DECIMAL;
+            case VARCHAR, CHAR, TEXT, DATE, TIME, TIMESTAMP -> BallerinaModel.TypeDesc.BuiltinType.STRING;
+            case BOOLEAN -> BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
+            case BLOB, CLOB -> BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
+        };
+    }
+
+    static BallerinaModel.TypeDesc createQueryInputType(
+            ActivityContext cx,
+            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql
+    ) {
+        ProcessContext processContext = cx.processContext;
+        AnalysisResult analysisResult = processContext.analysisResult;
+        String typeName = "QueryData" + analysisResult.queryIndex(sql);
+        List<BallerinaModel.TypeDesc.RecordTypeDesc.RecordField> fields = sql.parameters().stream()
+                .map(each -> new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField(
+                        each.name(),
+                        from(each.type())))
+                .toList();
+        BallerinaModel.TypeDesc.RecordTypeDesc recordTy =
+                new BallerinaModel.TypeDesc.RecordTypeDesc(List.of(), fields, NEVER);
+        processContext.addModuleTypeDef(typeName, new BallerinaModel.ModuleTypeDef(typeName, recordTy));
+        return processContext.getTypeByName(typeName);
+    }
+
+    static VarDeclStatment createQueryDecl(ActivityContext cx, BallerinaModel.Expression.VariableReference paramData,
+                                           TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL query) {
+        int paramIndex = 0;
+        StringBuilder sb = new StringBuilder();
+        String queryStr = query.query();
+        sb.append("`");
+        for (int i = 0; i < queryStr.length(); i++) {
+            char c = queryStr.charAt(i);
+            if (c == '?') {
+                sb.append("${").append(paramData.varName()).append(".")
+                        .append(query.parameters().get(paramIndex++).name()).append("}");
+            } else {
+                sb.append(c);
+            }
+        }
+        sb.append("`");
+        BallerinaModel.BallerinaExpression templateExpr = new BallerinaModel.BallerinaExpression(sb.toString());
+        return new VarDeclStatment(cx.processContext.getTypeByName("sql:ParameterizedQuery"), cx.getAnnonVarName(),
+                templateExpr);
     }
 }

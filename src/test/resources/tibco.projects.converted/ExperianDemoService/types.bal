@@ -43,31 +43,14 @@ type ContextType record {
 
 type ResponseActivityInput ActivityInputType;
 
-// comment
 //FIXME: Failed to convert type due to [ParseError] : Element name is empty and minOccurs is not 0
-// comment
 //<element minOccurs="1" ref="tns:CertificateChain" xmlns="http://www.w3.org/2001/XMLSchema"/>
-// comment
+
 //<complexType name="CertificateTokenType" xmlns="http://www.w3.org/2001/XMLSchema">
-// comment
-//                    
-// comment
 //    <sequence>
-// comment
-//                            
-// comment
 //        <element minOccurs="0" name="CipherSuite" type="string"/>
-// comment
-//                            
-// comment
 //        <element minOccurs="1" ref="tns:CertificateChain"/>
-// comment
-//                        
-// comment
 //    </sequence>
-// comment
-//                
-// comment
 //</complexType>
 type CertificateTokenType anydata;
 
@@ -180,51 +163,19 @@ type UnsupportedEncodingExceptionType record {
 
 type JDBCPluginException JDBCPluginExceptionType;
 
-// comment
 //FIXME: Failed to convert type due to [ParseError] : Unsupported complex type body tag: all
-// comment
 //<complexType name="SecurityContextType" xmlns="http://www.w3.org/2001/XMLSchema">
-// comment
-//                    
-// comment
 //    <all>
-// comment
-//                            
-// comment
 //        <element maxOccurs="1" minOccurs="0" ref="tns:CertificateToken"/>
-// comment
-//                            
-// comment
 //        <element maxOccurs="1" minOccurs="0" ref="tns:UsernamePasswordToken"/>
-// comment
-//                        
-// comment
 //    </all>
-// comment
-//                
-// comment
 //</complexType>
-// comment
+
 //<complexType name="SecurityContextType" xmlns="http://www.w3.org/2001/XMLSchema">
-// comment
-//                    
-// comment
 //    <all>
-// comment
-//                            
-// comment
 //        <element maxOccurs="1" minOccurs="0" ref="tns:CertificateToken"/>
-// comment
-//                            
-// comment
 //        <element maxOccurs="1" minOccurs="0" ref="tns:UsernamePasswordToken"/>
-// comment
-//                        
-// comment
 //    </all>
-// comment
-//                
-// comment
 //</complexType>
 type SecurityContextType anydata;
 
@@ -363,39 +314,16 @@ type JDBCConnectionNotFoundExceptionType record {
     string jdbcConnection;
 };
 
-// comment
 //FIXME: Failed to convert type due to [ParseError] : Element name is empty and minOccurs is not 0
-// comment
 //<element minOccurs="1" ref="tns:X509Certificate" xmlns="http://www.w3.org/2001/XMLSchema"/>
-// comment
+
 //<complexType name="CertificateType" xmlns="http://www.w3.org/2001/XMLSchema">
-// comment
-//                    
-// comment
 //    <sequence>
-// comment
-//                            
-// comment
 //        <element minOccurs="0" name="SubjectDN" type="string"/>
-// comment
-//                            
-// comment
 //        <element minOccurs="0" name="IssuerDN" type="string"/>
-// comment
-//                            
-// comment
 //        <element minOccurs="0" name="Fingerprint" type="base64Binary"/>
-// comment
-//                            
-// comment
 //        <element minOccurs="1" ref="tns:X509Certificate"/>
-// comment
-//                        
-// comment
 //    </sequence>
-// comment
-//                
-// comment
 //</complexType>
 type CertificateType anydata;
 
@@ -412,6 +340,10 @@ type LoginTimedOutExceptionType record {
 type CertificateChainType record {|
     anydata...;
 |};
+
+type QueryData0 record {
+    string ssn;
+};
 
 type HTTPEventSourceOutputType record {|
     string Method;
@@ -454,61 +386,21 @@ type DuplicateKeyExceptionType record {
     string previousJobID;
 };
 
-// comment
 //FIXME: Failed to convert type due to Name cannot be null or empty
-// comment
+
 //<complexType name="UsernamePasswordTokenType" xmlns="http://www.w3.org/2001/XMLSchema">
-// comment
-//                    
-// comment
 //    <sequence>
-// comment
-//                            
-// comment
 //        <element maxOccurs="1" minOccurs="1" name="Username" type="string"/>
-// comment
-//                            
-// comment
 //        <element minOccurs="0" name="Password">
-// comment
-//                                    
-// comment
 //            <complexType>
-// comment
-//                                            
-// comment
 //                <simpleContent>
-// comment
-//                                                    
-// comment
 //                    <extension base="string">
-// comment
-//                                                            
-// comment
 //                        <attribute name="type" type="string"/>
-// comment
-//                                                        
-// comment
 //                    </extension>
-// comment
-//                                                
-// comment
 //                </simpleContent>
-// comment
-//                                        
-// comment
 //            </complexType>
-// comment
-//                                
-// comment
 //        </element>
-// comment
-//                        
-// comment
 //    </sequence>
-// comment
-//                
-// comment
 //</complexType>
 type UsernamePasswordTokenType anydata;
 

@@ -16,7 +16,7 @@ function creditapp_module_MainProcess_start(GiveNewSchemaNameHere input) returns
     return result;
 }
 
-function extActivity(xml input, map<xml> context) returns xml {
+function extActivity_20(xml input, map<xml> context) returns xml {
     xml var0 = checkpanic xslt:transform(input, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
     <xsl:param name="post.item"/>
@@ -50,7 +50,7 @@ function extActivity(xml input, map<xml> context) returns xml {
     return var1;
 }
 
-function extActivity_11(xml input, map<xml> context) returns xml {
+function extActivity_21(xml input, map<xml> context) returns xml {
     xml var0 = checkpanic xslt:transform(input, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://xmlns.example.com/Creditscore/parameters" xmlns:tns="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
     <xsl:param name="post.item"/>
@@ -84,7 +84,7 @@ function extActivity_11(xml input, map<xml> context) returns xml {
     return var1;
 }
 
-function pick(xml input, map<xml> context) returns xml {
+function pick_18(xml input, map<xml> context) returns xml {
     return input;
 }
 
@@ -92,32 +92,32 @@ function process_creditapp_module_MainProcess(xml input) returns xml {
     map<xml> context = {};
     context["post.item"] = input;
     worker start_worker {
-        xml result0 = extActivity(input, context);
+        xml result0 = extActivity_20(input, context);
         result0 -> FICOScoreTopostOut;
-        xml result1 = extActivity_11(input, context);
+        xml result1 = extActivity_21(input, context);
         result1 -> ExperianScoreTopostOut;
     }
     worker ExperianScoreTopostOut {
         xml result0 = <- start_worker;
-        result0 -> reply_worker;
+        result0 -> reply_19_worker;
     }
     worker FICOScoreTopostOut {
         xml result0 = <- start_worker;
-        result0 -> reply_worker;
+        result0 -> reply_19_worker;
     }
-    worker reply_worker {
+    worker reply_19_worker {
         xml input0 = <- FICOScoreTopostOut;
         xml input1 = <- ExperianScoreTopostOut;
         xml combinedInput = input0 + input1;
-        xml output = reply(combinedInput, context);
+        xml output = reply_19(combinedInput, context);
         output -> function;
     }
-    xml result0 = <- reply_worker;
+    xml result0 = <- reply_19_worker;
     xml result = result0;
     return result;
 }
 
-function reply(xml input, map<xml> context) returns xml {
+function reply_19(xml input, map<xml> context) returns xml {
     xml var0 = checkpanic xslt:transform(input, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://xmlns.example.com/20180827160122PLT" xmlns:tns="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" xmlns:tns2="http://tns.tibco.com/bw/json/1535671685533" version="2.0">
     <xsl:param name="EquifaxScore"/>
