@@ -119,7 +119,8 @@ public class TibcoModel {
 
         }
 
-        record Schema(Collection<ComplexType> types, Collection<Element> elements, Collection<NameSpace> imports,
+        record Schema(NameSpace targetNamespace, Collection<ComplexType> types, Collection<Element> elements,
+                      Collection<NameSpace> imports,
                       Collection<UnhandledType> unhandledTypes)
                 implements Type {
 
@@ -532,8 +533,15 @@ public class TibcoModel {
         }
     }
 
-    public record NameSpace(String nameSpace) {
+    public record NameSpace(Optional<String> prefix, String uri) {
 
+        public NameSpace(String nameSpace) {
+            this(Optional.empty(), nameSpace);
+        }
+
+        public NameSpace(String prefix, String nameSpace) {
+            this(Optional.of(prefix), nameSpace);
+        }
     }
 
     public record NameSpaceValue(NameSpace nameSpace, String value) {

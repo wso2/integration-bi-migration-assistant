@@ -634,7 +634,24 @@ public final class XmlToTibcoModelConverter {
         for (Element each : ElementIterable.of(element)) {
             tryParseSchemaElement(each, elements, types, imports, unhandledTypes);
         }
-        return new TibcoModel.Type.Schema(types, elements, imports, unhandledTypes);
+        return new TibcoModel.Type.Schema(getTargetNamespace(element), types, elements, imports, unhandledTypes);
+    }
+
+    static TibcoModel.NameSpace getTargetNamespace(Element element) {
+        String targetNamespace = element.getAttribute("targetNamespace");
+        // Look for xmlns:* attributes to find matching prefix
+        for (int i = 0; i < element.getAttributes().getLength(); i++) {
+            String attrName = element.getAttributes().item(i).getNodeName();
+            if (attrName.startsWith("xmlns:")) {
+                String prefix = attrName.substring(6); // Remove "xmlns:" prefix
+                String namespace = element.getAttribute(attrName);
+                if (namespace.equals(targetNamespace)) {
+                    return new TibcoModel.NameSpace(prefix, targetNamespace);
+                }
+            }
+        }
+        // If no matching prefix found, return without prefix
+        return new TibcoModel.NameSpace(targetNamespace);
     }
 
     private static void tryParseSchemaElement(Element each, List<TibcoModel.Type.Schema.Element> elements,

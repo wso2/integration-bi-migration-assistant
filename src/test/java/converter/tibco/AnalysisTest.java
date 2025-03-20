@@ -38,7 +38,9 @@ public class AnalysisTest {
 
     @Test
     public void test() throws IOException, ParserConfigurationException, SAXException {
-        Path path = Path.of("src/test/resources/tibco.helloworld/MainProcess.bwp");
+        Path path =
+                Path.of("src/test/resources/tibco.projects/CreditAppService/" +
+                        "CreditApp.module/Processes/creditapp/module/MainProcess.bwp");
         var element = TibcoToBalConverter.parseXmlFile(path.toString());
         var process = XmlToTibcoModelConverter.parseProcess(element);
         var analysisData = ModelAnalyser.analyseProcess(process);

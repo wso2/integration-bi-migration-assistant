@@ -64,8 +64,7 @@ public final class ConversionUtils {
 
     static BallerinaModel.TypeDesc createQueryInputType(
             ActivityContext cx,
-            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql
-    ) {
+            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql) {
         ProcessContext processContext = cx.processContext;
         AnalysisResult analysisResult = processContext.analysisResult;
         String typeName = "QueryData" + analysisResult.queryIndex(sql);
@@ -74,14 +73,14 @@ public final class ConversionUtils {
                         each.name(),
                         from(each.type())))
                 .toList();
-        BallerinaModel.TypeDesc.RecordTypeDesc recordTy =
-                new BallerinaModel.TypeDesc.RecordTypeDesc(List.of(), fields, NEVER);
+        BallerinaModel.TypeDesc.RecordTypeDesc recordTy = new BallerinaModel.TypeDesc.RecordTypeDesc(List.of(), fields,
+                NEVER);
         processContext.addModuleTypeDef(typeName, new BallerinaModel.ModuleTypeDef(typeName, recordTy));
         return processContext.getTypeByName(typeName);
     }
 
     static VarDeclStatment createQueryDecl(ActivityContext cx, BallerinaModel.Expression.VariableReference paramData,
-                                           TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL query) {
+            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL query) {
         int paramIndex = 0;
         StringBuilder sb = new StringBuilder();
         String queryStr = query.query();
@@ -99,5 +98,9 @@ public final class ConversionUtils {
         BallerinaModel.BallerinaExpression templateExpr = new BallerinaModel.BallerinaExpression(sb.toString());
         return new VarDeclStatment(cx.processContext.getTypeByName("sql:ParameterizedQuery"), cx.getAnnonVarName(),
                 templateExpr);
+    }
+
+    static BallerinaModel.TypeDesc.RecordTypeDesc.Namespace createNamespace(TibcoModel.NameSpace nameSpace) {
+        return new BallerinaModel.TypeDesc.RecordTypeDesc.Namespace(nameSpace.prefix(), nameSpace.uri());
     }
 }

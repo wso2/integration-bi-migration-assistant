@@ -53,7 +53,7 @@ public class ProcessConverter {
     }
 
     static BallerinaModel.Module convertProcesses(Collection<TibcoModel.Process> processes,
-                                                  Collection<TibcoModel.Type.Schema> types) {
+            Collection<TibcoModel.Type.Schema> types) {
         ProjectContext cx = new ProjectContext();
         record ProcessResult(TibcoModel.Process process, TypeConversionResult result) {
 
@@ -285,13 +285,13 @@ public class ProcessConverter {
 
         String processFunction = cx.getProcessFunction();
         VarDeclStatment xmlResult = new VarDeclStatment(XML, "xmlResult",
-                new FunctionCall(processFunction, new String[]{inputXML}));
+                new FunctionCall(processFunction, new String[] { inputXML }));
         body.add(xmlResult);
 
         BallerinaModel.TypeDesc returnType = startFuncData.returnType();
         String convertToTypeFunction = cx.getConvertToTypeFunction(returnType);
         VarDeclStatment result = new VarDeclStatment(returnType, "result",
-                new FunctionCall(convertToTypeFunction, new String[]{"xmlResult"}));
+                new FunctionCall(convertToTypeFunction, new String[] { "xmlResult" }));
         body.add(result);
 
         Return<VariableReference> returnStatement = new Return<>(Optional.of(new VariableReference("result")));

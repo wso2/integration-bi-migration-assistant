@@ -1,6 +1,5 @@
 package ballerina;
 
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -57,6 +56,9 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             for (Comment comment : comments) {
                 sb.append(comment);
             }
+            if (typeDesc instanceof TypeDesc.RecordTypeDesc recordTypeDesc) {
+                recordTypeDesc.namespace().ifPresent(ns -> sb.append(ns.annotation()));
+            }
             sb.append("public type ").append(name).append(" ").append(typeDesc).append(";");
             return sb.toString();
         }
@@ -80,11 +82,16 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
-        record RecordTypeDesc(List<TypeDesc> inclusions, List<RecordField> fields, TypeDesc rest)
+        record RecordTypeDesc(List<TypeDesc> inclusions, List<RecordField> fields, TypeDesc rest,
+                              Optional<Namespace> namespace)
                 implements TypeDesc {
 
             public RecordTypeDesc(List<RecordField> fields) {
                 this(List.of(), fields, BuiltinType.NEVER);
+            }
+
+            public RecordTypeDesc(List<TypeDesc> inclusions, List<RecordField> fields, TypeDesc rest) {
+                this(inclusions, fields, rest, Optional.empty());
             }
 
             private static final String INDENT = "  ";
@@ -112,29 +119,50 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
 
             public record RecordField(String name, TypeDesc typeDesc, boolean isOptional,
-                                      Optional<Expression> defaultValue) {
+                                      Optional<Expression> defaultValue, Optional<Namespace> namespace) {
 
-                public RecordField(String name, TypeDesc typeDesc, Optional<Expression> defaultValue) {
-                    this(name, typeDesc, false, defaultValue);
+                public RecordField(String name, TypeDesc typeDesc, Optional<Expression> defaultValue,
+                                   Optional<Namespace> namespace) {
+                    this(name, typeDesc, false, defaultValue, namespace);
+                }
+
+                public RecordField(String name, TypeDesc typeDesc, Expression defaultValue) {
+                    this(name, typeDesc, Optional.of(defaultValue), Optional.empty());
                 }
 
                 public RecordField(String name, TypeDesc typeDesc) {
-                    this(name, typeDesc, false, Optional.empty());
+                    this(name, typeDesc, false, Optional.empty(), Optional.empty());
                 }
 
                 public RecordField(String name, TypeDesc typeDesc, boolean isOptional) {
-                    this(name, typeDesc, isOptional, Optional.empty());
+                    this(name, typeDesc, isOptional, Optional.empty(), Optional.empty());
+                }
+
+                public RecordField(String name, TypeDesc typeDesc, Namespace namespace) {
+                    this(name, typeDesc, Optional.empty(), Optional.of(namespace));
                 }
 
                 @Override
                 public String toString() {
                     StringBuilder sb = new StringBuilder();
+                    namespace.ifPresent(ns -> sb.append(ns.annotation()));
                     sb.append(typeDesc).append(" ").append(name);
                     defaultValue.ifPresent(expression -> sb.append(" = ").append(expression));
                     if (isOptional) {
                         sb.append("?");
                     }
                     sb.append(";");
+                    return sb.toString();
+                }
+            }
+
+            public record Namespace(Optional<String> prefix, String uri) {
+
+                String annotation() {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("@xmldata:Namespace {");
+                    prefix.ifPresent(p -> sb.append(" prefix: \"").append(p).append("\","));
+                    sb.append(" uri: \"").append(uri).append("\" }");
                     return sb.toString();
                 }
             }

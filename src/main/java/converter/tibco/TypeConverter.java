@@ -24,12 +24,18 @@ class TypeConverter {
     private TypeConverter() {
     }
 
+    private record TypeConversionContext(ContextWithFile fileCx,
+            BallerinaModel.TypeDesc.RecordTypeDesc.Namespace namespace) {
+
+    }
+
     static Collection<BallerinaModel.ModuleTypeDef> convertSchema(ContextWithFile cx,
             TibcoModel.Type.Schema schema) {
         // TODO: (may be) handle namespaces
+        var tcx = new TypeConversionContext(cx, ConversionUtils.createNamespace(schema.targetNamespace()));
         Stream<BallerinaModel.ModuleTypeDef> newTypeDefinitions = schema.types().stream()
                 .filter(type -> !type.name().equals("anydata"))
-                .map(type -> convertComplexType(cx, type));
+                .map(type -> convertComplexType(tcx, type));
         Stream<BallerinaModel.ModuleTypeDef> typeAliases = schema.elements().stream()
                 .map(element -> convertTypeAlias(cx, element))
                 .filter(Optional::isPresent).map(Optional::get);
@@ -59,7 +65,7 @@ class TypeConverter {
         return cx.addModuleTypeDef(name, defn) ? Optional.of(defn) : Optional.empty();
     }
 
-    private static BallerinaModel.ModuleTypeDef convertComplexType(ContextWithFile cx,
+    private static BallerinaModel.ModuleTypeDef convertComplexType(TypeConversionContext cx,
             TibcoModel.Type.Schema.ComplexType complexType) {
         BallerinaModel.TypeDesc typeDesc = switch (complexType.body()) {
             case TibcoModel.Type.Schema.ComplexType.Choice choice -> convertTypeChoice(cx, choice);
@@ -69,38 +75,41 @@ class TypeConverter {
         };
         String name = complexType.name();
         BallerinaModel.ModuleTypeDef typeDef = new BallerinaModel.ModuleTypeDef(name, typeDesc);
-        cx.addModuleTypeDef(name, typeDef);
-        cx.getProjectContext().incrementTypeCount();
+        cx.fileCx.addModuleTypeDef(name, typeDef);
+        cx.fileCx.getProjectContext().incrementTypeCount();
         return typeDef;
     }
 
     private static BallerinaModel.TypeDesc.RecordTypeDesc convertTypeInclusion(
-            ContextWithFile cx,
+            TypeConversionContext cx,
             TibcoModel.Type.Schema.ComplexType.ComplexContent complexContent) {
-        List<BallerinaModel.TypeDesc> inclusions = List.of(cx.getTypeByName(complexContent.extension().base().name()));
+        List<BallerinaModel.TypeDesc> inclusions = List
+                .of(cx.fileCx.getTypeByName(complexContent.extension().base().name()));
         RecordBody body = getRecordBody(cx, complexContent.extension().elements());
-        return new BallerinaModel.TypeDesc.RecordTypeDesc(inclusions, body.fields(), body.rest().orElse(NEVER));
+        return new BallerinaModel.TypeDesc.RecordTypeDesc(inclusions, body.fields(), body.rest().orElse(NEVER),
+                Optional.of(cx.namespace));
     }
 
     private static BallerinaModel.TypeDesc.RecordTypeDesc convertSequenceBody(
-            ContextWithFile cx,
+            TypeConversionContext cx,
             TibcoModel.Type.Schema.ComplexType.SequenceBody sequenceBody) {
         Collection<TibcoModel.Type.Schema.ComplexType.SequenceBody.Member> members = sequenceBody.elements();
         RecordBody body = getRecordBody(cx, members);
-        return new BallerinaModel.TypeDesc.RecordTypeDesc(List.of(), body.fields(), body.rest().orElse(NEVER));
+        return new BallerinaModel.TypeDesc.RecordTypeDesc(List.of(), body.fields(), body.rest().orElse(NEVER),
+                Optional.of(cx.namespace));
     }
 
     private static RecordBody getRecordBody(
-            ContextWithFile cx,
+            TypeConversionContext cx,
             Collection<? extends TibcoModel.Type.Schema.ComplexType.SequenceBody.Member> members) {
         List<BallerinaModel.TypeDesc.RecordTypeDesc.RecordField> fields = new ArrayList<>();
         Optional<BallerinaModel.TypeDesc> rest = Optional.empty();
         for (TibcoModel.Type.Schema.ComplexType.SequenceBody.Member member : members) {
             switch (member) {
                 case TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Element element -> {
-                    BallerinaModel.TypeDesc typeDesc = cx.getTypeByName(element.type().name());
+                    BallerinaModel.TypeDesc typeDesc = cx.fileCx.getTypeByName(element.type().name());
                     String name = ConversionUtils.sanitizes(element.name());
-                    fields.add(new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField(name, typeDesc));
+                    fields.add(new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField(name, typeDesc, cx.namespace));
                 }
                 case TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Rest ignored -> rest = Optional.of(ANYDATA);
                 case TibcoModel.Type.Schema.ComplexType.Choice choice ->
@@ -111,10 +120,10 @@ class TypeConverter {
     }
 
     private static BallerinaModel.TypeDesc.UnionTypeDesc convertTypeChoice(
-            ContextWithFile cx,
+            TypeConversionContext cx,
             TibcoModel.Type.Schema.ComplexType.Choice choice) {
         List<? extends BallerinaModel.TypeDesc> types = choice.elements().stream().map(element -> {
-            BallerinaModel.TypeDesc typeDesc = cx.getTypeByName(element.ref().name());
+            BallerinaModel.TypeDesc typeDesc = cx.fileCx.getTypeByName(element.ref().name());
             assert element.maxOccurs() == 1;
             if (element.minOccurs() == 0) {
                 return BallerinaModel.TypeDesc.UnionTypeDesc.of(typeDesc, BallerinaModel.TypeDesc.BuiltinType.NIL);
@@ -166,9 +175,7 @@ class TypeConverter {
                 String constantName = inlineError.name();
                 yield cx.declareConstant(constantName, inlineError.value(), inlineError.type());
             }
-            case TibcoModel.Type.WSDLDefinition.Message.Part.Reference ref -> {
-                yield ref.element().value();
-            }
+            case TibcoModel.Type.WSDLDefinition.Message.Part.Reference ref -> ref.element().value();
         };
         return Optional.of(typeName);
     }
