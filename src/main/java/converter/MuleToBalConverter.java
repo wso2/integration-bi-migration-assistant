@@ -50,6 +50,7 @@ import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
 import static ballerina.BallerinaModel.Statement;
 import static ballerina.BallerinaModel.TextDocument;
+import static ballerina.BallerinaModel.TypeBindingPattern;
 import static converter.ConversionUtils.convertToBallerinaExpression;
 import static converter.ConversionUtils.genQueryParam;
 import static converter.ConversionUtils.getAllowedMethods;
@@ -58,6 +59,7 @@ import static converter.ConversionUtils.getBallerinaResourcePath;
 import static converter.ConversionUtils.insertLeadingSlash;
 import static converter.ConversionUtils.processQueryParams;
 import static mule.MuleModel.CatchExceptionStrategy;
+import static mule.MuleModel.ChoiceExceptionStrategy;
 import static mule.MuleModel.Choice;
 import static mule.MuleModel.DbInParam;
 import static mule.MuleModel.DbMSQLConfig;
@@ -333,8 +335,7 @@ public class MuleToBalConverter {
 
         String methodName = ConversionUtils.escapeSpecialCharacters(flowName);
         HashSet<Parameter> parameters = data.functionParamMap.computeIfAbsent(methodName, k -> new HashSet<>());
-        Function function = new Function(Optional.empty(), methodName, parameters.stream().toList(),
-                Optional.empty(), body);
+        Function function = new Function(methodName, parameters.stream().toList(), body);
         functions.add(function);
         data.flowToGenMethodMap.put(flowName, function);
     }
@@ -499,6 +500,9 @@ public class MuleToBalConverter {
             case Constants.CATCH_EXCEPTION_STRATEGY -> {
                 return readCatchExceptionStrategy(data, element);
             }
+            case Constants.CHOICE_EXCEPTION_STRATEGY -> {
+                return readChoiceExceptionStrategy(data, element);
+            }
             default -> {
                 return readUnsupportedBlock(data, element);
             }
@@ -660,15 +664,45 @@ public class MuleToBalConverter {
                 }
             }
             case CatchExceptionStrategy catchExceptionStrategy -> {
-                List<Statement> onFailBody = new ArrayList<>();
-
-                for (MuleRecord catchBlock : catchExceptionStrategy.catchBlocks()) {
-                    List<Statement> s = convertToStatements(data, catchBlock);
-                    onFailBody.addAll(s);
-                }
+                List<Statement> stmts = convertMuleRecToBalStatements(data, catchExceptionStrategy.catchBlocks());
+                List<Statement> onFailBody = new ArrayList<>(stmts);
 
                 OnFailClause onFailClause = new OnFailClause(onFailBody);
-                DoStatement doStatement = new DoStatement(Collections.emptyList(), Optional.of(onFailClause));
+                DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
+                statementList.add(doStatement);
+            }
+            case ChoiceExceptionStrategy choiceExceptionStrategy -> {
+                List<CatchExceptionStrategy> catchExceptionStrategies =
+                        choiceExceptionStrategy.catchExceptionStrategyList();
+                assert !catchExceptionStrategies.isEmpty();
+
+                CatchExceptionStrategy firstCatch = catchExceptionStrategies.getFirst();
+                BallerinaExpression ifCondition = new BallerinaExpression(firstCatch.when());
+                List<Statement> ifBody = convertMuleRecToBalStatements(data, firstCatch.catchBlocks());
+
+                List<ElseIfClause> elseIfClauses = new ArrayList<>();
+                for (int i = 1; i < catchExceptionStrategies.size() - 1; i++) {
+                    CatchExceptionStrategy catchExpStrgy = catchExceptionStrategies.get(i);
+                    List<Statement> elseIfBody = convertMuleRecToBalStatements(data, catchExpStrgy.catchBlocks());
+                    ElseIfClause elseIfClause = new ElseIfClause(new BallerinaExpression(catchExpStrgy.when()),
+                            elseIfBody);
+                    elseIfClauses.add(elseIfClause);
+                }
+
+                List<Statement> elseBody;
+                if (catchExceptionStrategies.size() > 1) {
+                    CatchExceptionStrategy lastCatch = catchExceptionStrategies.getLast();
+                    elseBody = convertMuleRecToBalStatements(data, lastCatch.catchBlocks());
+                } else {
+                    elseBody = Collections.emptyList();
+                }
+
+                IfElseStatement ifElseStmt = new IfElseStatement(ifCondition, ifBody, elseIfClauses, elseBody);
+                List<Statement> onFailBody = Collections.singletonList(ifElseStmt);
+
+                TypeBindingPattern typeBindingPattern = new BallerinaModel.TypeBindingPattern("error", "e");
+                OnFailClause onFailClause = new OnFailClause(onFailBody, typeBindingPattern);
+                DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
                 statementList.add(doStatement);
             }
             case Database database -> {
@@ -718,6 +752,15 @@ public class MuleToBalConverter {
         }
 
         return statementList;
+    }
+
+    private static List<Statement> convertMuleRecToBalStatements(Data data, List<MuleRecord> muleRecords) {
+        List<Statement> statements = new ArrayList<>();
+        for (MuleRecord muleRecord : muleRecords) {
+            List<Statement> stmts = convertToStatements(data, muleRecord);
+            statements.addAll(stmts);
+        }
+        return statements;
     }
 
     private static String getBallerinaLogFunction(LogLevel logLevel) {
@@ -892,6 +935,7 @@ public class MuleToBalConverter {
 
     // Error handling
     private static CatchExceptionStrategy readCatchExceptionStrategy(Data data, Element element) {
+        String when = element.getAttribute("when");
         NodeList children = element.getChildNodes();
 
         List<MuleRecord> catchBlocks = new ArrayList<>();
@@ -906,7 +950,27 @@ public class MuleToBalConverter {
             catchBlocks.add(muleRec);
         }
 
-        return new CatchExceptionStrategy(catchBlocks);
+        return new CatchExceptionStrategy(catchBlocks, when);
+    }
+
+    private static ChoiceExceptionStrategy readChoiceExceptionStrategy(Data data, Element element) {
+        NodeList children = element.getChildNodes();
+
+        List<CatchExceptionStrategy> catchExceptionStrategyList = new ArrayList<>();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+
+            Element e = (Element) child;
+            // TODO: only catch-exp-strategy is supported for now
+            assert e.getTagName().equals(Constants.CATCH_EXCEPTION_STRATEGY);
+            CatchExceptionStrategy catchExceptionStrategy = readCatchExceptionStrategy(data, e);
+            catchExceptionStrategyList.add(catchExceptionStrategy);
+        }
+
+        return new ChoiceExceptionStrategy(catchExceptionStrategyList);
     }
 
     // HTTP Module

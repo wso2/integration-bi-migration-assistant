@@ -55,6 +55,7 @@ For now, Mule 3.x is supported. Support for Mule 4.x is expected to be added lat
 The migration tool currently supports the following Mule components:
 
 - [Catch Exception Strategy](SAMPLES.md#catch-exception-strategy)
+- [Choice Exception Strategy](SAMPLES.md#choice-exception-strategy)
 - [Database](SAMPLES.md#database)
 - [Flow](SAMPLES.md#flow)
 - [Http Listener](SAMPLES.md#http-listener)
