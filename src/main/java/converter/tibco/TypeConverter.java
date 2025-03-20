@@ -109,11 +109,18 @@ class TypeConverter {
                 case TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Element element -> {
                     BallerinaModel.TypeDesc typeDesc = cx.fileCx.getTypeByName(element.type().name());
                     String name = ConversionUtils.sanitizes(element.name());
-                    fields.add(new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField(name, typeDesc, cx.namespace));
+                    fields.add(new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField(name, typeDesc, cx.namespace,
+                            element.optional()));
                 }
                 case TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Rest ignored -> rest = Optional.of(ANYDATA);
                 case TibcoModel.Type.Schema.ComplexType.Choice choice ->
                     rest = Optional.of(convertTypeChoice(cx, choice));
+                case TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.ElementArray elementArray -> {
+                    BallerinaModel.TypeDesc typeDesc = new BallerinaModel.TypeDesc.ListType(
+                            cx.fileCx.getTypeByName(elementArray.elementType().name()));
+                    String name = ConversionUtils.sanitizes(elementArray.name());
+                    fields.add(new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField(name, typeDesc, cx.namespace));
+                }
             }
         }
         return new RecordBody(fields, rest);

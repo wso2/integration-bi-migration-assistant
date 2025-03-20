@@ -50,6 +50,7 @@ import javax.xml.transform.stream.StreamResult;
 public final class XmlToTibcoModelConverter {
 
     private static final Logger logger = Logger.getLogger(XmlToTibcoModelConverter.class.getName());
+    private static int anonFieldCount = 0;
     private XmlToTibcoModelConverter() {
     }
 
@@ -717,11 +718,17 @@ public final class XmlToTibcoModelConverter {
             case "sequence" -> parseComplexTypeSequence(child);
             case "complexContent" -> parseComplexContent(child);
             case "choice" -> parseComplexTypeChoice(child);
+            case "all" -> parseComplexTypeAll(child);
             default ->
                     throw new ParserException("Unsupported complex type body tag: " + getTagNameWithoutNameSpace(child),
                             element);
         };
         return new TibcoModel.Type.Schema.ComplexType(name, body);
+    }
+
+    private static TibcoModel.Type.Schema.ComplexType.Body parseComplexTypeAll(Element sequence) {
+        // Records are anyway unordered
+        return parseComplexTypeSequence(sequence);
     }
 
     private static TibcoModel.Type.Schema.ComplexType.Body parseComplexTypeSequence(Element sequence) {
@@ -737,7 +744,7 @@ public final class XmlToTibcoModelConverter {
             case "element" -> parseComplexTypeElement(element);
             case "any" -> {
                 boolean isLax = Boolean.parseBoolean(element.getAttribute("processContents"));
-                yield new TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Rest(isLax);
+                yield new TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Rest();
             }
             case "choice" -> parseComplexTypeChoice(element);
             default -> throw new ParserException("Unsupported complex type element tag: " + tag, element);
@@ -749,14 +756,28 @@ public final class XmlToTibcoModelConverter {
         String elementName = element.getAttribute("name");
         String typeName = element.hasAttribute("type") ? element.getAttribute("type") : element.getAttribute("ref");
         if (elementName.isEmpty()) {
-            if (expectIntAttribute(element, "minOccurs") != 0) {
-                throw new ParserException("Element name is empty and minOccurs is not 0", element);
-            }
-            return new TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Rest(false,
-                    Optional.of(TibcoModel.Type.Schema.TibcoType.of(typeName)));
+            elementName = anonFieldName();
+        }
+        int minOccurs = nOccurs("minOccurs", element);
+        int maxOccurs = nOccurs("maxOccurs", element);
+        boolean isOptional = minOccurs == 0;
+        if (maxOccurs > 1) {
+            return new TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.ElementArray(elementName,
+                    TibcoModel.Type.Schema.TibcoType.of(typeName), minOccurs, maxOccurs);
         }
         return new TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Element(elementName,
-                TibcoModel.Type.Schema.TibcoType.of(typeName));
+                TibcoModel.Type.Schema.TibcoType.of(typeName), isOptional);
+    }
+
+    private static int nOccurs(String fieldName, Element element) {
+        if (!element.hasAttribute(fieldName)) {
+            return 1;
+        }
+        String value = element.getAttribute(fieldName);
+        if (value.equals("unbounded")) {
+            return Integer.MAX_VALUE;
+        }
+        return Integer.parseInt(value);
     }
 
     private static TibcoModel.Type.Schema.ComplexType.ComplexContent parseComplexContent(Element element) {
@@ -1068,5 +1089,9 @@ public final class XmlToTibcoModelConverter {
             super("[ParseError] : " + message + "\n" + elementToString(element));
         }
 
+    }
+
+    private static String anonFieldName() {
+        return "anon" + anonFieldCount++;
     }
 }

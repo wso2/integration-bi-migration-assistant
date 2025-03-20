@@ -56,7 +56,7 @@ type ProcessContext record {
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     string CustomJobId;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string TrackingInfo;
+    string[] TrackingInfo;
 };
 
 type resultSet ();
@@ -101,7 +101,7 @@ type DefaultFault ();
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
 type dynamicHeadersType record {
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    dynamicHeadersTypeDetails Header;
+    dynamicHeadersTypeDetails[] Header;
 };
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
@@ -160,7 +160,7 @@ type JDBCConnectionNotFoundExceptionType record {
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
 type unknownResultset record {
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    row row;
+    row[] row;
 };
 
 type InvalidSQLTypeException InvalidSQLTypeExceptionType;
@@ -211,6 +211,8 @@ type QueryData1 record {
     string ssn;
 };
 
+type tmessageBody string;
+
 @xmldata:Namespace {prefix: "tns", uri: "/T1535753828744Converted/JsonSchema"}
 type SuccessSchema record {
     @xmldata:Namespace {prefix: "tns", uri: "/T1535753828744Converted/JsonSchema"}
@@ -220,8 +222,6 @@ type SuccessSchema record {
     @xmldata:Namespace {prefix: "tns", uri: "/T1535753828744Converted/JsonSchema"}
     int NoOfInquiries;
 };
-
-type tmessageBody string;
 
 type QueryData0 record {
     string ssn;
@@ -307,7 +307,7 @@ type OptionalErrorReport record {
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
 type row record {
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    column column;
+    column[] column;
 };
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/WriteToLogActivitySchema"}
@@ -340,9 +340,9 @@ type ActivityExceptionType record {
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
 type jdbcGeneralActivityOutput record {
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    int noOfUpdates;
+    int[] noOfUpdates;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    unknownResultset unknownResultset;
+    unknownResultset[] unknownResultset;
 };
 
 @xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}

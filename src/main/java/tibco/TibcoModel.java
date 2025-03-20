@@ -179,7 +179,11 @@ public class TibcoModel {
 
                     public sealed interface Member {
 
-                        record Element(String name, TibcoType type) implements Member {
+                        record ElementArray(String name, TibcoType elementType, int min, int max) implements Member {
+
+                        }
+
+                        record Element(String name, TibcoType type, boolean optional) implements Member {
 
                             public Element {
                                 if (name == null || name.isEmpty()) {
@@ -188,10 +192,14 @@ public class TibcoModel {
                             }
                         }
 
-                        record Rest(boolean isLax, Optional<TibcoType> type) implements Member {
+                        record Rest(Optional<TibcoType> type) implements Member {
 
-                            public Rest(boolean isLax) {
-                                this(isLax, Optional.empty());
+                            public Rest(TibcoType type) {
+                                this(Optional.of(type));
+                            }
+
+                            public Rest() {
+                                this(Optional.empty());
                             }
                         }
                     }

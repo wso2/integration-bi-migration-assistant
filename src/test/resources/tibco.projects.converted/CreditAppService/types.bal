@@ -60,7 +60,7 @@ type server5XXErrorType record {
 type creditscoreGetParameters ();
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
-type RequestActivityOutput record {|
+type RequestActivityOutput record {
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
     string Header;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
@@ -75,8 +75,9 @@ type RequestActivityOutput record {|
     outputHeadersType Headers;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
     DynamicHeaders DynamicHeaders;
-    anydata...;
-|};
+    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
+    mimeEnvelopeElement anon1;
+};
 
 type InputElement ();
 
@@ -99,7 +100,7 @@ type CorrelationValue string;
 @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/encodings/mime"}
 type mimeEnvelopeElementType record {
     @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/encodings/mime"}
-    mimePartType mimePart;
+    mimePartType[] mimePart;
 };
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
@@ -115,7 +116,7 @@ type ProcessContext record {
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     string CustomJobId;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string TrackingInfo;
+    string[] TrackingInfo;
 };
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
@@ -167,7 +168,7 @@ type JSONTransformExceptionType record {
 };
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput"}
-type RequestActivityInput record {|
+type RequestActivityInput record {
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput"}
     string Host;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput"}
@@ -188,13 +189,14 @@ type RequestActivityInput record {|
     DynamicHeaders DynamicHeaders;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput"}
     parametersType parameters;
-    anydata...;
-|};
+    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput"}
+    mimeEnvelopeElement anon0;
+};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
 type dynamicHeadersType record {
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    dynamicHeadersTypeDetails Header;
+    dynamicHeadersTypeDetails[] Header;
 };
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
@@ -273,7 +275,7 @@ type outputHeadersType record {
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
     string Location;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
-    string Set_Cookie;
+    string[] Set_Cookie;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
     string Pragma;
 };
@@ -337,7 +339,7 @@ type inputHeadersType record {
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
 type DynamicHeaders record {
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
-    Header Header;
+    Header[] Header;
 };
 
 type httpResponseHeaders httpTransportResponseHeaders;

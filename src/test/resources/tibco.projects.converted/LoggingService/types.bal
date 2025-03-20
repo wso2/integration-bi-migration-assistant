@@ -67,7 +67,7 @@ type ProcessContext record {
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     string CustomJobId;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string TrackingInfo;
+    string[] TrackingInfo;
 };
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
@@ -251,7 +251,7 @@ type XMLTransformException XMLTransformExceptionType;
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
 type files record {
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-    fileInfoType fileInfo;
+    fileInfoType[] fileInfo;
 };
 
 type IllegalRenameException IllegalRenameExceptionType;

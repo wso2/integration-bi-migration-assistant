@@ -8,7 +8,7 @@ type JSONParserExceptionType record {
 };
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput"}
-type ActivityInputType record {|
+type ActivityInputType record {
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput"}
     int binaryContent;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput"}
@@ -17,8 +17,9 @@ type ActivityInputType record {|
     headersType Headers;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput"}
     dynamicHeadersType DynamicHeaders;
-    anydata...;
-|};
+    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput"}
+    mimeEnvelopeElement anon8;
+};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/JSONActivitiesExceptions"}
 type JSONActivityException record {
@@ -50,7 +51,7 @@ type JSONTransformExceptionType record {
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
 type dynamicHeadersType record {
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    dynamicHeadersTypeDetails Header;
+    dynamicHeadersTypeDetails[] Header;
 };
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/httpreceiver+c9689e27-ed49-43a7-9902-684c436e3a8a+ActivityOutputType"}
@@ -61,16 +62,13 @@ type ContextType record {
 
 type ResponseActivityInput ActivityInputType;
 
-//FIXME: Failed to convert type due to [ParseError] : Element name is empty and minOccurs is not 0
-//<element minOccurs="1" ref="tns:CertificateChain" xmlns="http://www.w3.org/2001/XMLSchema"/>
-
-//<complexType name="CertificateTokenType" xmlns="http://www.w3.org/2001/XMLSchema">
-//    <sequence>
-//        <element minOccurs="0" name="CipherSuite" type="string"/>
-//        <element minOccurs="1" ref="tns:CertificateChain"/>
-//    </sequence>
-//</complexType>
-type CertificateTokenType anydata;
+@xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/bw/security/tokens"}
+type CertificateTokenType record {
+    @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/bw/security/tokens"}
+    string CipherSuite;
+    @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/bw/security/tokens"}
+    CertificateChain anon3;
+};
 
 type X509Certificate X509CertificateType;
 
@@ -225,21 +223,13 @@ type UnsupportedEncodingExceptionType record {
 
 type JDBCPluginException JDBCPluginExceptionType;
 
-//FIXME: Failed to convert type due to [ParseError] : Unsupported complex type body tag: all
-//<complexType name="SecurityContextType" xmlns="http://www.w3.org/2001/XMLSchema">
-//    <all>
-//        <element maxOccurs="1" minOccurs="0" ref="tns:CertificateToken"/>
-//        <element maxOccurs="1" minOccurs="0" ref="tns:UsernamePasswordToken"/>
-//    </all>
-//</complexType>
-
-//<complexType name="SecurityContextType" xmlns="http://www.w3.org/2001/XMLSchema">
-//    <all>
-//        <element maxOccurs="1" minOccurs="0" ref="tns:CertificateToken"/>
-//        <element maxOccurs="1" minOccurs="0" ref="tns:UsernamePasswordToken"/>
-//    </all>
-//</complexType>
-type SecurityContextType anydata;
+@xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/bw/security/tokens"}
+type SecurityContextType record {
+    @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/bw/security/tokens"}
+    CertificateToken anon5;
+    @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/bw/security/tokens"}
+    UsernamePasswordToken anon6;
+};
 
 @xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
 type DuplicatedFieldNameExceptionType record {
@@ -304,7 +294,7 @@ type CorrelationValue string;
 @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/encodings/mime"}
 type mimeEnvelopeElementType record {
     @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/encodings/mime"}
-    mimePartType mimePart;
+    mimePartType[] mimePart;
 };
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
@@ -320,7 +310,7 @@ type ProcessContext record {
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     string CustomJobId;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string TrackingInfo;
+    string[] TrackingInfo;
 };
 
 type resultSet ();
@@ -440,18 +430,17 @@ type JDBCConnectionNotFoundExceptionType record {
     string jdbcConnection;
 };
 
-//FIXME: Failed to convert type due to [ParseError] : Element name is empty and minOccurs is not 0
-//<element minOccurs="1" ref="tns:X509Certificate" xmlns="http://www.w3.org/2001/XMLSchema"/>
-
-//<complexType name="CertificateType" xmlns="http://www.w3.org/2001/XMLSchema">
-//    <sequence>
-//        <element minOccurs="0" name="SubjectDN" type="string"/>
-//        <element minOccurs="0" name="IssuerDN" type="string"/>
-//        <element minOccurs="0" name="Fingerprint" type="base64Binary"/>
-//        <element minOccurs="1" ref="tns:X509Certificate"/>
-//    </sequence>
-//</complexType>
-type CertificateType anydata;
+@xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/bw/security/tokens"}
+type CertificateType record {
+    @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/bw/security/tokens"}
+    string SubjectDN;
+    @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/bw/security/tokens"}
+    string IssuerDN;
+    @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/bw/security/tokens"}
+    int Fingerprint;
+    @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/bw/security/tokens"}
+    X509Certificate anon4;
+};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
 type HttpMessageType record {
@@ -469,16 +458,17 @@ type LoginTimedOutExceptionType record {
 };
 
 @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/bw/security/tokens"}
-type CertificateChainType record {|
-    anydata...;
-|};
+type CertificateChainType record {
+    @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/bw/security/tokens"}
+    Certificate[] anon2;
+};
 
 type QueryData0 record {
     string ssn;
 };
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/httpreceiver+c9689e27-ed49-43a7-9902-684c436e3a8a+ActivityOutputType"}
-type HTTPEventSourceOutputType record {|
+type HTTPEventSourceOutputType record {
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/httpreceiver+c9689e27-ed49-43a7-9902-684c436e3a8a+ActivityOutputType"}
     string Method;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/httpreceiver+c9689e27-ed49-43a7-9902-684c436e3a8a+ActivityOutputType"}
@@ -500,9 +490,10 @@ type HTTPEventSourceOutputType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/httpreceiver+c9689e27-ed49-43a7-9902-684c436e3a8a+ActivityOutputType"}
     dynamicHeadersType DynamicHeaders;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/httpreceiver+c9689e27-ed49-43a7-9902-684c436e3a8a+ActivityOutputType"}
+    mimeEnvelopeElement anon7;
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/httpreceiver+c9689e27-ed49-43a7-9902-684c436e3a8a+ActivityOutputType"}
     ContextType Context;
-    anydata...;
-|};
+};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
 type StatusLineType record {

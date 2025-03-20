@@ -34,6 +34,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NEVER;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 
@@ -346,10 +347,12 @@ public class ProcessConverter {
                 }
                 case TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Rest ignored -> {
                     // TODO: handle this properly
-                    rest = Optional.of(PredefinedTypes.ANYDATA);
+                    rest = Optional.of(ANYDATA);
                 }
                 case TibcoModel.Type.Schema.ComplexType.Choice choice -> {
                     rest = Optional.of(convertTypeChoice(cx, choice));
+                }
+                case TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.ElementArray elementArray -> {
                 }
             }
         }
@@ -406,8 +409,4 @@ public class ProcessConverter {
                 Optional.of(XML.toString()), body);
     }
 
-    static class PredefinedTypes {
-
-        private static final BallerinaModel.TypeDesc.BuiltinType ANYDATA = BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
-    }
 }

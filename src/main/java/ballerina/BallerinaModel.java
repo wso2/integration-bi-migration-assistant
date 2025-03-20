@@ -74,6 +74,41 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
+        record ListType(List<TypeDesc> required, Optional<TypeDesc> rest) implements TypeDesc {
+
+            public ListType {
+                if (required.isEmpty() && rest.isEmpty()) {
+                    throw new IllegalArgumentException("ListType must have at least one required type or a rest type");
+                }
+            }
+
+            public ListType(TypeDesc rest) {
+                this(List.of(), Optional.of(rest));
+            }
+
+            public ListType(List<TypeDesc> required) {
+                this(required, Optional.empty());
+            }
+
+            public ListType(List<TypeDesc> required, TypeDesc rest) {
+                this(required, Optional.of(rest));
+            }
+
+            @Override
+            public String toString() {
+                if (required.isEmpty()) {
+                    assert rest.isPresent();
+                    return rest().get() + "[]";
+                }
+                StringBuilder sb = new StringBuilder();
+                sb.append("[");
+                sb.append(String.join(", ", required.stream().map(Objects::toString).toList()));
+                rest.ifPresent(typeDesc -> sb.append(", ...").append(typeDesc));
+                sb.append("]");
+                return sb.toString();
+            }
+        }
+
         record BallerinaType(String value) implements TypeDesc {
 
             @Override
@@ -121,13 +156,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             public record RecordField(String name, TypeDesc typeDesc, boolean isOptional,
                                       Optional<Expression> defaultValue, Optional<Namespace> namespace) {
 
-                public RecordField(String name, TypeDesc typeDesc, Optional<Expression> defaultValue,
-                                   Optional<Namespace> namespace) {
-                    this(name, typeDesc, false, defaultValue, namespace);
-                }
-
                 public RecordField(String name, TypeDesc typeDesc, Expression defaultValue) {
-                    this(name, typeDesc, Optional.of(defaultValue), Optional.empty());
+                    this(name, typeDesc, false, Optional.of(defaultValue), Optional.empty());
                 }
 
                 public RecordField(String name, TypeDesc typeDesc) {
@@ -139,7 +169,11 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                 }
 
                 public RecordField(String name, TypeDesc typeDesc, Namespace namespace) {
-                    this(name, typeDesc, Optional.empty(), Optional.of(namespace));
+                    this(name, typeDesc, false, Optional.empty(), Optional.of(namespace));
+                }
+
+                public RecordField(String name, TypeDesc typeDesc, Namespace namespace, boolean optional) {
+                    this(name, typeDesc, optional, Optional.empty(), Optional.of(namespace));
                 }
 
                 @Override
