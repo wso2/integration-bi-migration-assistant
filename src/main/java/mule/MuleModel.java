@@ -70,6 +70,12 @@ public record MuleModel() {
         }
     }
 
+    public record ReferenceExceptionStrategy(Kind kind, String refName) implements MuleRecord {
+        public ReferenceExceptionStrategy(String flowName) {
+            this(Kind.REFERENCE_EXCEPTION_STRATEGY, flowName);
+        }
+    }
+
     public record HttpRequest(Kind kind, String method, String url, String path, Map<String, String> queryParams)
             implements MuleRecord {
         public HttpRequest(String method, String url, String path, Map<String, String> queryParams) {
@@ -142,16 +148,17 @@ public record MuleModel() {
     }
 
     // Error handling
-    public record CatchExceptionStrategy(Kind kind, List<MuleRecord> catchBlocks, String when) implements MuleRecord {
-        public CatchExceptionStrategy(List<MuleRecord> catchBlocks, String when) {
-            this(Kind.CATCH_EXCEPTION_STRATEGY, catchBlocks, when);
+    public record CatchExceptionStrategy(Kind kind, List<MuleRecord> catchBlocks, String when, String name)
+            implements MuleRecord {
+        public CatchExceptionStrategy(List<MuleRecord> catchBlocks, String when, String name) {
+            this(Kind.CATCH_EXCEPTION_STRATEGY, catchBlocks, when, name);
         }
     }
 
-    public record ChoiceExceptionStrategy(Kind kind, List<CatchExceptionStrategy> catchExceptionStrategyList)
-            implements MuleRecord {
-        public ChoiceExceptionStrategy(List<CatchExceptionStrategy> catchExceptionStrategyList) {
-            this(Kind.CHOICE_EXCEPTION_STRATEGY, catchExceptionStrategyList);
+    public record ChoiceExceptionStrategy(Kind kind, List<CatchExceptionStrategy> catchExceptionStrategyList,
+                                          String name) implements MuleRecord {
+        public ChoiceExceptionStrategy(List<CatchExceptionStrategy> catchExceptionStrategyList, String name) {
+            this(Kind.CHOICE_EXCEPTION_STRATEGY, catchExceptionStrategyList, name);
         }
     }
 
@@ -229,6 +236,7 @@ public record MuleModel() {
         MESSAGE_ENRICHER,
         CATCH_EXCEPTION_STRATEGY,
         CHOICE_EXCEPTION_STRATEGY,
+        REFERENCE_EXCEPTION_STRATEGY,
         UNSUPPORTED_BLOCK
     }
 

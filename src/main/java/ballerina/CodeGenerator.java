@@ -1,6 +1,5 @@
 package ballerina;
 
-import converter.ConversionUtils;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
@@ -120,10 +119,9 @@ public class CodeGenerator {
 
             for (Function f : textDocument.functions()) {
                 String funcParamString = constructFunctionParameterString(f.parameters(), false);
-                String methodName = ConversionUtils.escapeSpecialCharacters(f.methodName());
                 FunctionDefinitionNode fd = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
                         String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(f.visibilityQualifier()),
-                                methodName, funcParamString, getReturnTypeDescriptor(f.returnType())));
+                                f.methodName(), funcParamString, getReturnTypeDescriptor(f.returnType())));
                 FunctionBodyBlockNode funcBodyBlock = constructFunctionBodyBlock(f.body());
                 fd = fd.modify().withFunctionBody(funcBodyBlock).apply();
                 moduleMembers.add(fd);
