@@ -1,3 +1,6 @@
+import ballerina/data.xmldata;
+import ballerina/http;
+
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/JSONActivitiesExceptions"}
 type JSONParserExceptionType record {
     *JSONActivityException;

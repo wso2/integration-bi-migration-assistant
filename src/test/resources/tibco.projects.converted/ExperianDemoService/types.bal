@@ -1,3 +1,5 @@
+import ballerina/data.xmldata;
+
 type DuplicatedFieldNameException DuplicatedFieldNameExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/JSONActivitiesExceptions"}

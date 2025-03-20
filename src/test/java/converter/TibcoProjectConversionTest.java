@@ -58,13 +58,6 @@ public class TibcoProjectConversionTest {
         }
     }
 
-    @Test
-    public void test() throws IOException {
-        Path tempDir = Files.createTempDirectory("test");
-        Path projectTestCaseDir = Path.of("src", "test", "resources", "tibco.projects", "CreditCheckBackendService");
-        migrateTibcoProject(projectTestCaseDir.toString(), tempDir.toString());
-    }
-
     private void compareDirectories(Path actual, Path expected) throws IOException {
         // First check if both directories exist
         Assert.assertTrue(Files.isDirectory(actual), "Actual path is not a directory: " + actual);
