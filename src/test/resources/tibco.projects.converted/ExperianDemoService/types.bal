@@ -530,23 +530,13 @@ type DuplicateKeyExceptionType record {
     string previousJobID;
 };
 
-//FIXME: Failed to convert type due to Name cannot be null or empty
-
-//<complexType name="UsernamePasswordTokenType" xmlns="http://www.w3.org/2001/XMLSchema">
-//    <sequence>
-//        <element maxOccurs="1" minOccurs="1" name="Username" type="string"/>
-//        <element minOccurs="0" name="Password">
-//            <complexType>
-//                <simpleContent>
-//                    <extension base="string">
-//                        <attribute name="type" type="string"/>
-//                    </extension>
-//                </simpleContent>
-//            </complexType>
-//        </element>
-//    </sequence>
-//</complexType>
-type UsernamePasswordTokenType anydata;
+@xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/bw/security/tokens"}
+type UsernamePasswordTokenType record {
+    @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/bw/security/tokens"}
+    string Username;
+    @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/bw/security/tokens"}
+    string Password;
+};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
 type HeadersType record {|

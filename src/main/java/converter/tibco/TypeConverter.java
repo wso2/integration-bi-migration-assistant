@@ -72,6 +72,9 @@ class TypeConverter {
             case TibcoModel.Type.Schema.ComplexType.SequenceBody sequenceBody -> convertSequenceBody(cx, sequenceBody);
             case TibcoModel.Type.Schema.ComplexType.ComplexContent complexContent ->
                 convertTypeInclusion(cx, complexContent);
+
+            case TibcoModel.Type.Schema.ComplexType.SimpleContent simpleContent ->
+                cx.fileCx.getTypeByName(simpleContent.base().name());
         };
         String name = complexType.name();
         BallerinaModel.ModuleTypeDef typeDef = new BallerinaModel.ModuleTypeDef(name, typeDesc);

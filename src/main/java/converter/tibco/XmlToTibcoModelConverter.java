@@ -719,11 +719,18 @@ public final class XmlToTibcoModelConverter {
             case "complexContent" -> parseComplexContent(child);
             case "choice" -> parseComplexTypeChoice(child);
             case "all" -> parseComplexTypeAll(child);
+            case "simpleContent" -> parseSimpleContent(child);
             default ->
                     throw new ParserException("Unsupported complex type body tag: " + getTagNameWithoutNameSpace(child),
                             element);
         };
         return new TibcoModel.Type.Schema.ComplexType(name, body);
+    }
+
+    private static TibcoModel.Type.Schema.ComplexType.SimpleContent parseSimpleContent(Element child) {
+        Element extension = getFirstChildWithTag(child, "extension");
+        String baseTypeName = extension.getAttribute("base");
+        return new TibcoModel.Type.Schema.ComplexType.SimpleContent(TibcoModel.Type.Schema.TibcoType.of(baseTypeName));
     }
 
     private static TibcoModel.Type.Schema.ComplexType.Body parseComplexTypeAll(Element sequence) {
@@ -754,7 +761,7 @@ public final class XmlToTibcoModelConverter {
     static TibcoModel.Type.Schema.ComplexType.SequenceBody.Member parseComplexTypeElement(
             Element element) {
         String elementName = element.getAttribute("name");
-        String typeName = element.hasAttribute("type") ? element.getAttribute("type") : element.getAttribute("ref");
+        TibcoModel.Type.Schema.TibcoType actualType = parseActualType(element);
         if (elementName.isEmpty()) {
             elementName = anonFieldName();
         }
@@ -763,10 +770,26 @@ public final class XmlToTibcoModelConverter {
         boolean isOptional = minOccurs == 0;
         if (maxOccurs > 1) {
             return new TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.ElementArray(elementName,
-                    TibcoModel.Type.Schema.TibcoType.of(typeName), minOccurs, maxOccurs);
+                    actualType, minOccurs, maxOccurs);
         }
         return new TibcoModel.Type.Schema.ComplexType.SequenceBody.Member.Element(elementName,
-                TibcoModel.Type.Schema.TibcoType.of(typeName), isOptional);
+                actualType, isOptional);
+    }
+
+    // TODO: need to think of a better representation for these.
+    private static TibcoModel.Type.Schema.TibcoType parseActualType(Element element) {
+        String typeName = element.hasAttribute("type") ? element.getAttribute("type") : element.getAttribute("ref");
+        if (!typeName.isEmpty()) {
+            return TibcoModel.Type.Schema.TibcoType.of(typeName);
+        }
+        // TODO: we are ignoring things like attributes here
+        TibcoModel.Type.Schema.ComplexType wrapper = parseComplexType(getFirstChildWithTag(element, "complexType"));
+        if (!(wrapper.body() instanceof TibcoModel.Type.Schema.ComplexType.SimpleContent(
+                TibcoModel.Type.Schema.TibcoType base
+        ))) {
+            throw new ParserException("Only simple content is supported for anonymous types", element);
+        }
+        return base;
     }
 
     private static int nOccurs(String fieldName, Element element) {

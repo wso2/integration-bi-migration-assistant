@@ -218,6 +218,9 @@ public class TibcoModel {
                     }
                 }
 
+                public record SimpleContent(TibcoType base) implements Body {
+
+                }
             }
         }
     }
