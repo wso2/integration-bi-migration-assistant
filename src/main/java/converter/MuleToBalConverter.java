@@ -50,6 +50,7 @@ import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
 import static ballerina.BallerinaModel.Statement;
 import static ballerina.BallerinaModel.TextDocument;
+import static ballerina.BallerinaModel.TypeBindingPattern;
 import static converter.ConversionUtils.convertToBallerinaExpression;
 import static converter.ConversionUtils.genQueryParam;
 import static converter.ConversionUtils.getAllowedMethods;
@@ -58,6 +59,7 @@ import static converter.ConversionUtils.getBallerinaResourcePath;
 import static converter.ConversionUtils.insertLeadingSlash;
 import static converter.ConversionUtils.processQueryParams;
 import static mule.MuleModel.CatchExceptionStrategy;
+import static mule.MuleModel.ChoiceExceptionStrategy;
 import static mule.MuleModel.Choice;
 import static mule.MuleModel.DbInParam;
 import static mule.MuleModel.DbMSQLConfig;
@@ -77,6 +79,7 @@ import static mule.MuleModel.ObjectToJson;
 import static mule.MuleModel.ObjectToString;
 import static mule.MuleModel.Payload;
 import static mule.MuleModel.QueryType;
+import static mule.MuleModel.ReferenceExceptionStrategy;
 import static mule.MuleModel.SetVariable;
 import static mule.MuleModel.SetSessionVariable;
 import static mule.MuleModel.SubFlow;
@@ -93,6 +96,7 @@ public class MuleToBalConverter {
         HashMap<String, DbMSQLConfig> globalDbMySQLConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbTemplateQuery> globalDbTemplateQueryMap = new LinkedHashMap<>();
         List<UnsupportedBlock> globalUnsupportedBlocks = new ArrayList<>();
+        List<MuleRecord> globalExceptionStrategies = new ArrayList<>();
 
         // Ballerina global elements
         public HashSet<Import> imports = new LinkedHashSet<>();
@@ -234,6 +238,12 @@ public class MuleToBalConverter {
         } else if (Constants.DB_TEMPLATE_QUERY.equals(elementTagName)) {
             DbTemplateQuery dbTemplateQuery = readDbTemplateQuery(data, element);
             data.globalDbTemplateQueryMap.put(dbTemplateQuery.name(), dbTemplateQuery);
+        } else if (Constants.CATCH_EXCEPTION_STRATEGY.equals(elementTagName)) {
+            CatchExceptionStrategy catchExceptionStrategy = readCatchExceptionStrategy(data, element);
+            data.globalExceptionStrategies.add(catchExceptionStrategy);
+        } else if (Constants.CHOICE_EXCEPTION_STRATEGY.equals(elementTagName)) {
+            ChoiceExceptionStrategy choiceExceptionStrategy = readChoiceExceptionStrategy(data, element);
+            data.globalExceptionStrategies.add(choiceExceptionStrategy);
         } else {
             UnsupportedBlock unsupportedBlock = readUnsupportedBlock(data, element);
             data.globalUnsupportedBlocks.add(unsupportedBlock);
@@ -272,6 +282,11 @@ public class MuleToBalConverter {
         genBalFuncsFromSubFlows(data, subFlows, functions);
         functions.addAll(data.functions);
 
+        // Create functions for global exception strategies
+        for (MuleRecord exceptionStrategy : data.globalExceptionStrategies) {
+            genBalFuncForGlobalExceptionStrategy(data, exceptionStrategy, functions);
+        }
+
         // Add global listeners
         List<Listener> listeners = new ArrayList<>();
         for (HTTPListenerConfig httpListenerConfig : data.globalHttpListenerConfigsMap.values()) {
@@ -295,6 +310,7 @@ public class MuleToBalConverter {
 
         moduleVars.addAll(data.moduleVarMap.values());
 
+        // Global comments at the end of file
         List<String> comments = new ArrayList<>();
         for (UnsupportedBlock unsupportedBlock : data.globalUnsupportedBlocks) {
             String comment = ConversionUtils.wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());
@@ -317,6 +333,28 @@ public class MuleToBalConverter {
                 moduleVars, listeners, services, funcs, comments);
     }
 
+    private static void genBalFuncForGlobalExceptionStrategy(Data data, MuleRecord muleRecord,
+                                                             Set<Function> functions) {
+        List<Statement> body;
+        String name;
+        if (muleRecord instanceof CatchExceptionStrategy catchExceptionStrategy) {
+            name = catchExceptionStrategy.name();
+            body = getCatchExceptionBody(data, (CatchExceptionStrategy) muleRecord);
+        } else if (muleRecord instanceof ChoiceExceptionStrategy choiceExceptionStrategy) {
+            name = choiceExceptionStrategy.name();
+            body = getChoiceExceptionBody(data, (ChoiceExceptionStrategy) muleRecord);
+        } else {
+            throw new UnsupportedOperationException("exception strategy not supported");
+        }
+
+        String methodName = ConversionUtils.escapeSpecialCharacters(name);
+        // TODO: consider passing down context
+        List<Parameter> parameters = new ArrayList<>();
+        parameters.add(new Parameter("e", "error"));
+        Function function = new Function(methodName, parameters.stream().toList(), body);
+        functions.add(function);
+    }
+
     private static void genBalFuncsFromSubFlows(Data data, List<SubFlow> subFlows, Set<Function> functions) {
         for (SubFlow subFlow : subFlows) {
             genBalFuncForPrivateOrSubFlow(data, functions, subFlow.name(), subFlow.flowBlocks());
@@ -333,8 +371,7 @@ public class MuleToBalConverter {
 
         String methodName = ConversionUtils.escapeSpecialCharacters(flowName);
         HashSet<Parameter> parameters = data.functionParamMap.computeIfAbsent(methodName, k -> new HashSet<>());
-        Function function = new Function(Optional.empty(), methodName, parameters.stream().toList(),
-                Optional.empty(), body);
+        Function function = new Function(methodName, parameters.stream().toList(), body);
         functions.add(function);
         data.flowToGenMethodMap.put(flowName, function);
     }
@@ -499,6 +536,12 @@ public class MuleToBalConverter {
             case Constants.CATCH_EXCEPTION_STRATEGY -> {
                 return readCatchExceptionStrategy(data, element);
             }
+            case Constants.CHOICE_EXCEPTION_STRATEGY -> {
+                return readChoiceExceptionStrategy(data, element);
+            }
+            case Constants.REFERENCE_EXCEPTION_STRATEGY -> {
+                return readReferenceExceptionStrategy(data, element);
+            }
             default -> {
                 return readUnsupportedBlock(data, element);
             }
@@ -660,15 +703,26 @@ public class MuleToBalConverter {
                 }
             }
             case CatchExceptionStrategy catchExceptionStrategy -> {
-                List<Statement> onFailBody = new ArrayList<>();
-
-                for (MuleRecord catchBlock : catchExceptionStrategy.catchBlocks()) {
-                    List<Statement> s = convertToStatements(data, catchBlock);
-                    onFailBody.addAll(s);
-                }
-
+                List<Statement> onFailBody = getCatchExceptionBody(data, catchExceptionStrategy);
                 OnFailClause onFailClause = new OnFailClause(onFailBody);
-                DoStatement doStatement = new DoStatement(Collections.emptyList(), Optional.of(onFailClause));
+                DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
+                statementList.add(doStatement);
+            }
+            case ChoiceExceptionStrategy choiceExceptionStrategy -> {
+                List<Statement> onFailBody = getChoiceExceptionBody(data, choiceExceptionStrategy);
+                TypeBindingPattern typeBindingPattern = new BallerinaModel.TypeBindingPattern("error", "e");
+                OnFailClause onFailClause = new OnFailClause(onFailBody, typeBindingPattern);
+                DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
+                statementList.add(doStatement);
+            }
+            case ReferenceExceptionStrategy referenceExceptionStrategy -> {
+                String refName = referenceExceptionStrategy.refName();
+                String funcRef = ConversionUtils.escapeSpecialCharacters(refName);
+                BallerinaStatement funcCallStmt = new BallerinaStatement(String.format("%s(%s);", funcRef, "e"));
+                List<Statement> onFailBody = Collections.singletonList(funcCallStmt);
+                TypeBindingPattern typeBindingPattern = new TypeBindingPattern("error", "e");
+                OnFailClause onFailClause = new OnFailClause(onFailBody, typeBindingPattern);
+                DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
                 statementList.add(doStatement);
             }
             case Database database -> {
@@ -718,6 +772,49 @@ public class MuleToBalConverter {
         }
 
         return statementList;
+    }
+
+    private static List<Statement> getCatchExceptionBody(Data data, CatchExceptionStrategy catchExceptionStrategy) {
+        return convertMuleRecToBalStatements(data, catchExceptionStrategy.catchBlocks());
+    }
+
+    private static List<Statement> getChoiceExceptionBody(Data data, ChoiceExceptionStrategy choiceExceptionStrategy) {
+        List<CatchExceptionStrategy> catchExceptionStrategies =
+                choiceExceptionStrategy.catchExceptionStrategyList();
+        assert !catchExceptionStrategies.isEmpty();
+
+        CatchExceptionStrategy firstCatch = catchExceptionStrategies.getFirst();
+        BallerinaExpression ifCondition = new BallerinaExpression(firstCatch.when());
+        List<Statement> ifBody = convertMuleRecToBalStatements(data, firstCatch.catchBlocks());
+
+        List<ElseIfClause> elseIfClauses = new ArrayList<>();
+        for (int i = 1; i < catchExceptionStrategies.size() - 1; i++) {
+            CatchExceptionStrategy catchExpStrgy = catchExceptionStrategies.get(i);
+            List<Statement> elseIfBody = convertMuleRecToBalStatements(data, catchExpStrgy.catchBlocks());
+            ElseIfClause elseIfClause = new ElseIfClause(new BallerinaExpression(catchExpStrgy.when()),
+                    elseIfBody);
+            elseIfClauses.add(elseIfClause);
+        }
+
+        List<Statement> elseBody;
+        if (catchExceptionStrategies.size() > 1) {
+            CatchExceptionStrategy lastCatch = catchExceptionStrategies.getLast();
+            elseBody = convertMuleRecToBalStatements(data, lastCatch.catchBlocks());
+        } else {
+            elseBody = Collections.emptyList();
+        }
+
+        IfElseStatement ifElseStmt = new IfElseStatement(ifCondition, ifBody, elseIfClauses, elseBody);
+        return Collections.singletonList(ifElseStmt);
+    }
+
+    private static List<Statement> convertMuleRecToBalStatements(Data data, List<MuleRecord> muleRecords) {
+        List<Statement> statements = new ArrayList<>();
+        for (MuleRecord muleRecord : muleRecords) {
+            List<Statement> stmts = convertToStatements(data, muleRecord);
+            statements.addAll(stmts);
+        }
+        return statements;
     }
 
     private static String getBallerinaLogFunction(LogLevel logLevel) {
@@ -892,8 +989,10 @@ public class MuleToBalConverter {
 
     // Error handling
     private static CatchExceptionStrategy readCatchExceptionStrategy(Data data, Element element) {
-        NodeList children = element.getChildNodes();
+        String name = element.getAttribute("name");
+        String when = element.getAttribute("when");
 
+        NodeList children = element.getChildNodes();
         List<MuleRecord> catchBlocks = new ArrayList<>();
         for (int i = 0; i < children.getLength(); i++) {
             Node child = children.item(i);
@@ -906,7 +1005,33 @@ public class MuleToBalConverter {
             catchBlocks.add(muleRec);
         }
 
-        return new CatchExceptionStrategy(catchBlocks);
+        return new CatchExceptionStrategy(catchBlocks, when, name);
+    }
+
+    private static ChoiceExceptionStrategy readChoiceExceptionStrategy(Data data, Element element) {
+        String name = element.getAttribute("name");
+
+        NodeList children = element.getChildNodes();
+        List<CatchExceptionStrategy> catchExceptionStrategyList = new ArrayList<>();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+
+            Element e = (Element) child;
+            // TODO: only catch-exp-strategy is supported for now
+            assert e.getTagName().equals(Constants.CATCH_EXCEPTION_STRATEGY);
+            CatchExceptionStrategy catchExceptionStrategy = readCatchExceptionStrategy(data, e);
+            catchExceptionStrategyList.add(catchExceptionStrategy);
+        }
+
+        return new ChoiceExceptionStrategy(catchExceptionStrategyList, name);
+    }
+
+    private static ReferenceExceptionStrategy readReferenceExceptionStrategy(Data data, Element element) {
+        String refName = element.getAttribute("ref");
+        return new ReferenceExceptionStrategy(refName);
     }
 
     // HTTP Module

@@ -129,7 +129,7 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 import ballerina/log;
 
 function muleProject() {
-    if ("condition") {
+    if "condition" {
         log:printInfo("xxx: when condition invoked");
     } else {
         log:printInfo("xxx: default condition invoked");
@@ -187,11 +187,11 @@ service /mule3 on config {
 
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
-        if ("condition1") {
+        if "condition1" {
             log:printInfo("xxx: first when condition invoked");
-        } else if ("condition2") {
+        } else if "condition2" {
             log:printInfo("xxx: second when condition invoked");
-        } else if ("condition3") {
+        } else if "condition3" {
             log:printInfo("xxx: third when condition invoked");
         } else {
             log:printInfo("xxx: default condition invoked");
@@ -240,14 +240,129 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 import ballerina/log;
 
 function muleProject() {
-    if ("condition1") {
+    if "condition1" {
         log:printInfo("xxx: first when condition invoked");
-    } else if ("condition2") {
+    } else if "condition2" {
         log:printInfo("xxx: second when condition invoked");
-    } else if ("condition3") {
+    } else if "condition3" {
         log:printInfo("xxx: third when condition invoked");
     } else {
         log:printInfo("xxx: default condition invoked");
+    }
+}
+
+```
+
+## Choice Exception Strategy
+
+- ### Basic Choice Exception Strategy
+
+**Input (basic_choice_exception_strategy.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <flow name="demoFlow">
+        <logger message="xxx: main flow logger invoked" level="INFO" doc:name="Logger"/>
+        <choice-exception-strategy doc:name="Choice Exception Strategy">
+            <catch-exception-strategy doc:name="Catch Exception Strategy" when="condition1">
+                <logger message="xxx: first catch condition invoked" level="INFO" doc:name="Logger"/>
+            </catch-exception-strategy>
+            <catch-exception-strategy doc:name="Catch Exception Strategy" when="condition2">
+                <logger message="xxx: second catch condition invoked" level="INFO" doc:name="Logger"/>
+            </catch-exception-strategy>
+            <catch-exception-strategy doc:name="Catch Exception Strategy">
+                <logger message="xxx: generic catch condition invoked" level="INFO" doc:name="Logger"/>
+            </catch-exception-strategy>
+        </choice-exception-strategy>
+    </flow>
+</mule>
+
+```
+**Output (basic_choice_exception_strategy.bal):**
+```ballerina
+import ballerina/log;
+
+function demoFlow() {
+    do {
+        log:printInfo("xxx: main flow logger invoked");
+    } on fail error e {
+        if condition1 {
+            log:printInfo("xxx: first catch condition invoked");
+        } else if condition2 {
+            log:printInfo("xxx: second catch condition invoked");
+        } else {
+            log:printInfo("xxx: generic catch condition invoked");
+        }
+    }
+}
+
+```
+
+- ### Choice Exception With Http Listener Source
+
+**Input (choice_exception_with_http_listener_source.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule3"/>
+    <flow name="demoFlow">
+        <http:listener config-ref="config" path="/"  doc:name="HTTP" allowedMethods="GET"/>
+        <logger message="xxx: logger invoked via http end point" level="INFO" doc:name="Logger"/>
+        <choice-exception-strategy doc:name="Choice Exception Strategy">
+            <catch-exception-strategy doc:name="Catch Exception Strategy" when="condition1">
+                <logger message="xxx: first catch condition invoked" level="INFO" doc:name="Logger"/>
+            </catch-exception-strategy>
+            <catch-exception-strategy doc:name="Catch Exception Strategy" when="condition2">
+                <logger message="xxx: second catch condition invoked" level="INFO" doc:name="Logger"/>
+            </catch-exception-strategy>
+            <catch-exception-strategy doc:name="Catch Exception Strategy">
+                <logger message="xxx: generic catch condition invoked" level="INFO" doc:name="Logger"/>
+            </catch-exception-strategy>
+        </choice-exception-strategy>
+    </flow>
+</mule>
+
+```
+**Output (choice_exception_with_http_listener_source.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+listener http:Listener config = new (8081, {host: "0.0.0.0"});
+
+service /mule3 on config {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        do {
+            log:printInfo("xxx: logger invoked via http end point");
+        } on fail error e {
+            if condition1 {
+                log:printInfo("xxx: first catch condition invoked");
+            } else if condition2 {
+                log:printInfo("xxx: second catch condition invoked");
+            } else {
+                log:printInfo("xxx: generic catch condition invoked");
+            }
+        }
+        return _response_;
     }
 }
 
@@ -1229,6 +1344,103 @@ service /mule3 on config {
         _response_.setPayload(_to_string0_);
         return _response_;
     }
+}
+
+```
+
+## Reference Exception Strategy
+
+- ### Basic Reference Exception Strategy
+
+**Input (basic_reference_exception_strategy.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <catch-exception-strategy name="catch-exception-strategy">
+        <logger level="INFO" doc:name="Logger" message="xxx: inside catch exception strategy"/>
+    </catch-exception-strategy>
+    <flow name="muleProject">
+        <logger level="INFO" doc:name="Logger" message="xxx: end of flow reached"/>
+        <exception-strategy ref="catch-exception-strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+</mule>
+
+```
+**Output (basic_reference_exception_strategy.bal):**
+```ballerina
+import ballerina/log;
+
+function catch\-exception\-strategy(error e) {
+    log:printInfo("xxx: inside catch exception strategy");
+}
+
+function muleProject() {
+    do {
+        log:printInfo("xxx: end of flow reached");
+    } on fail error e {
+        catch\-exception\-strategy(e);
+    }
+}
+
+```
+
+- ### Reference Exception With Http Listener Source
+
+**Input (reference_exception_with_http_listener_source.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <http:listener-config name="httpConfig" host="0.0.0.0" port="8081" basePath="/" doc:name="HTTP Listener Configuration"/>
+    <catch-exception-strategy name="catch-exception-strategy">
+        <logger level="INFO" doc:name="Logger" message="xxx: inside catch exception strategy"/>
+    </catch-exception-strategy>
+    <flow name="muleProject">
+        <http:listener config-ref="httpConfig" path="/" doc:name="HTTP" allowedMethods="GET"/>
+        <logger level="INFO" doc:name="Logger" message="xxx: end of flow reached"/>
+        <exception-strategy ref="catch-exception-strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+</mule>
+
+```
+**Output (reference_exception_with_http_listener_source.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+listener http:Listener httpConfig = new (8081, {host: "0.0.0.0"});
+
+service / on httpConfig {
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_();
+    }
+
+    private function _invokeEndPoint0_() returns http:Response|error {
+        http:Response _response_ = new;
+        do {
+            log:printInfo("xxx: end of flow reached");
+        } on fail error e {
+            catch\-exception\-strategy(e);
+        }
+        return _response_;
+    }
+}
+
+function catch\-exception\-strategy(error e) {
+    log:printInfo("xxx: inside catch exception strategy");
 }
 
 ```

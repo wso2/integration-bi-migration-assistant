@@ -1,6 +1,5 @@
 package ballerina;
 
-import converter.ConversionUtils;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
@@ -34,6 +33,7 @@ import static ballerina.BallerinaModel.Listener;
 import static ballerina.BallerinaModel.Module;
 import static ballerina.BallerinaModel.ModuleTypeDef;
 import static ballerina.BallerinaModel.ModuleVar;
+import static ballerina.BallerinaModel.OnFailClause;
 import static ballerina.BallerinaModel.Parameter;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
@@ -119,10 +119,9 @@ public class CodeGenerator {
 
             for (Function f : textDocument.functions()) {
                 String funcParamString = constructFunctionParameterString(f.parameters(), false);
-                String methodName = ConversionUtils.escapeSpecialCharacters(f.methodName());
                 FunctionDefinitionNode fd = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
                         String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(f.visibilityQualifier()),
-                                methodName, funcParamString, getReturnTypeDescriptor(f.returnType())));
+                                f.methodName(), funcParamString, getReturnTypeDescriptor(f.returnType())));
                 FunctionBodyBlockNode funcBodyBlock = constructFunctionBodyBlock(f.body());
                 fd = fd.modify().withFunctionBody(funcBodyBlock).apply();
                 moduleMembers.add(fd);
@@ -222,33 +221,47 @@ public class CodeGenerator {
         if (stmt instanceof BallerinaStatement balStmt) {
             return balStmt.stmt();
         } else if (stmt instanceof DoStatement doStatement) {
-            // TODO: check for optional on-fail
-            return String.format("do { %s } on fail { %s }",
-                    String.join("", doStatement.doBody().stream()
-                            .map(CodeGenerator::constructBallerinaStatements).toList()),
-                    String.join("", doStatement.onFailClause().get().onFailBody().stream()
-                            .map(CodeGenerator::constructBallerinaStatements).toList()));
+            return constructDoStatement(doStatement);
         } else if (stmt instanceof IfElseStatement ifElseStmt) {
-            StringBuilder stringBuilder = new StringBuilder();
+            StringBuilder elseIfStringBuilder = new StringBuilder();
             for (ElseIfClause elseIfClause : ifElseStmt.elseIfClauses()) {
-                stringBuilder.append(
-                        String.format("else if(%s) { %s }",
+                elseIfStringBuilder.append(
+                        String.format("else if %s { %s }",
                                 elseIfClause.condition().expr(),
                                 String.join("", elseIfClause.elseIfBody().stream()
                                         .map(CodeGenerator::constructBallerinaStatements).toList())
                         ));
             }
 
-            return String.format("if (%s) { %s } %s else { %s }",
+            List<Statement> elseBody = ifElseStmt.elseBody();
+            String elseString = elseBody.isEmpty() ? "" :
+                    String.format("else { %s }", String.join("", elseBody.stream()
+                            .map(CodeGenerator::constructBallerinaStatements).toList()));
+
+            return String.format("if %s { %s } %s %s",
                     ifElseStmt.ifCondition().expr(),
                     String.join("", ifElseStmt.ifBody().stream()
-                            .map(CodeGenerator::constructBallerinaStatements).toList()),
-                    stringBuilder,
-                    String.join("", ifElseStmt.elseBody().stream()
-                            .map(CodeGenerator::constructBallerinaStatements).toList()));
+                            .map(CodeGenerator::constructBallerinaStatements).toList()), elseIfStringBuilder,
+                    elseString);
         } else {
             throw new IllegalStateException();
         }
+    }
+
+    private static String constructDoStatement(DoStatement doStatement) {
+        String doBlock = String.format("do { %s }", String.join("", doStatement.doBody().stream()
+                .map(CodeGenerator::constructBallerinaStatements).toList()));
+        if (doStatement.onFailClause().isEmpty()) {
+            return doBlock;
+        }
+
+        OnFailClause onFailClause = doStatement.onFailClause().get();
+        String typeBindingPattern = onFailClause.typeBindingPattern().map(tbp -> String.format("%s %s", tbp.type(),
+                tbp.variableName())).orElse("");
+
+        String onFailBody = String.join("", onFailClause.onFailBody().stream()
+                .map(CodeGenerator::constructBallerinaStatements).toList());
+        return String.format("%s on fail %s { %s }", doBlock, typeBindingPattern, onFailBody);
     }
 
     private static String constructImportDeclaration(Import importDeclaration) {

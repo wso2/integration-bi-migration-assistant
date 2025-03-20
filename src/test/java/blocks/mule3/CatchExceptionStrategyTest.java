@@ -6,7 +6,7 @@ import org.testng.annotations.Test;
 public class CatchExceptionStrategyTest extends AbstractBlockTest {
 
     @Test
-    public void testCatchExceptionStrategy() {
+    public void testBasicCatchExceptionStrategy() {
         testMule3ToBal("catch-exception-strategy/basic_catch_exception_strategy.xml",
                 "catch-exception-strategy/basic_catch_exception_strategy.bal");
     }

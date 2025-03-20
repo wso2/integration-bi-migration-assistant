@@ -10,11 +10,11 @@ service /mule3 on config {
 
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
-        if ("condition1") {
+        if "condition1" {
             log:printInfo("xxx: first when condition invoked");
-        } else if ("condition2") {
+        } else if "condition2" {
             log:printInfo("xxx: second when condition invoked");
-        } else if ("condition3") {
+        } else if "condition3" {
             log:printInfo("xxx: third when condition invoked");
         } else {
             log:printInfo("xxx: default condition invoked");
