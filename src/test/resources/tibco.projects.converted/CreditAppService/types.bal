@@ -57,7 +57,17 @@ type server5XXErrorType record {
     string message;
 };
 
-type creditscoreGetParameters ();
+@xmldata:Namespace {prefix: "tns", uri: "http://xmlns.example.com/Creditscore/parameters"}
+type creditscoreGetParameters record {
+    @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.example.com/Creditscore/parameters"}
+    string DOB;
+    @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.example.com/Creditscore/parameters"}
+    string FirstName;
+    @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.example.com/Creditscore/parameters"}
+    string LastName;
+    @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.example.com/Creditscore/parameters"}
+    string SSN;
+};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
 type RequestActivityOutput record {
@@ -79,7 +89,17 @@ type RequestActivityOutput record {
     mimeEnvelopeElement anon1;
 };
 
-type InputElement ();
+@xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
+type InputElement record {
+    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
+    string dob;
+    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
+    string firstName;
+    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
+    string lastName;
+    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
+    string ssn;
+};
 
 type httpHeaders httpTransportHeaders;
 
@@ -142,7 +162,9 @@ type ErrorReport record {
     anydata Data;
 };
 
-type getcreditdetailGetParameters ();
+@xmldata:Namespace {prefix: "tns", uri: "http://xmlns.example.com/GetCreditDetail/parameters"}
+type getcreditdetailGetParameters record {
+};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
 type BaseExceptionType record {
@@ -449,7 +471,9 @@ type ExperianResponseSchemaElement ExperianResponseSchemaElementType;
 
 type ActivityErrorDataType ActivityTimedOutException|()|http:NotFound|http:InternalServerError;
 
-type creditscorePostParameters ();
+@xmldata:Namespace {prefix: "tns", uri: "http://xmlns.example.com/Creditscore/parameters"}
+type creditscorePostParameters record {
+};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
 type httpTransportHeaders record {

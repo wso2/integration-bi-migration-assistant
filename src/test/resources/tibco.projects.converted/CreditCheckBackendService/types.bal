@@ -59,7 +59,41 @@ type ProcessContext record {
     string[] TrackingInfo;
 };
 
-type resultSet ();
+//FIXME: Failed to convert type due to [ParseError] : Only simple content is supported for anonymous types
+//<element maxOccurs="unbounded" minOccurs="0" name="Record" xmlns="http://www.w3.org/2001/XMLSchema">
+//    <complexType>
+//        <sequence>
+//            <element maxOccurs="1" minOccurs="0" name="firstname" nillable="false" type="string"/>
+//            <element maxOccurs="1" minOccurs="0" name="lastname" nillable="false" type="string"/>
+//            <element maxOccurs="1" minOccurs="0" name="ssn" nillable="false" type="string"/>
+//            <element maxOccurs="1" minOccurs="0" name="dateofBirth" nillable="false" type="string"/>
+//            <element maxOccurs="1" minOccurs="0" name="ficoscore" nillable="false" type="int"/>
+//            <element maxOccurs="1" minOccurs="0" name="rating" nillable="false" type="string"/>
+//            <element maxOccurs="1" minOccurs="0" name="numofpulls" nillable="false" type="int"/>
+//        </sequence>
+//    </complexType>
+//</element>
+
+//<element name="resultSet" xmlns="http://www.w3.org/2001/XMLSchema">
+//    <complexType>
+//        <sequence>
+//            <element maxOccurs="unbounded" minOccurs="0" name="Record">
+//                <complexType>
+//                    <sequence>
+//                        <element maxOccurs="1" minOccurs="0" name="firstname" nillable="false" type="string"/>
+//                        <element maxOccurs="1" minOccurs="0" name="lastname" nillable="false" type="string"/>
+//                        <element maxOccurs="1" minOccurs="0" name="ssn" nillable="false" type="string"/>
+//                        <element maxOccurs="1" minOccurs="0" name="dateofBirth" nillable="false" type="string"/>
+//                        <element maxOccurs="1" minOccurs="0" name="ficoscore" nillable="false" type="int"/>
+//                        <element maxOccurs="1" minOccurs="0" name="rating" nillable="false" type="string"/>
+//                        <element maxOccurs="1" minOccurs="0" name="numofpulls" nillable="false" type="int"/>
+//                    </sequence>
+//                </complexType>
+//            </element>
+//        </sequence>
+//    </complexType>
+//</element>
+type resultSet anydata;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
 type ErrorReport record {
@@ -79,7 +113,17 @@ type ErrorReport record {
     anydata Data;
 };
 
-type jdbcQueryActivityInput ();
+@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input"}
+type jdbcQueryActivityInput record {
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input"}
+    string ssn;
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input"}
+    string ServerTimeZone;
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input"}
+    int timeout;
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input"}
+    int maxRows;
+};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
 type statusLineType record {
@@ -96,7 +140,13 @@ type InvalidSQLTypeExceptionType record {
 
 type jdbcUpdateActivityOutput jdbcUpdateOutput;
 
-type DefaultFault ();
+@xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/basic/6.0/Exceptions"}
+type DefaultFault record {
+    @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/basic/6.0/Exceptions"}
+    string message;
+    @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/basic/6.0/Exceptions"}
+    string msgCode;
+};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
 type dynamicHeadersType record {
@@ -202,7 +252,17 @@ type FaultDetail record {
     string Class;
 };
 
-type jdbcUpdateActivityInput ();
+@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+21902290-4882-46a2-8795-b85989c9d7c0+input"}
+type jdbcUpdateActivityInput record {
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+21902290-4882-46a2-8795-b85989c9d7c0+input"}
+    int noOfPulls;
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+21902290-4882-46a2-8795-b85989c9d7c0+input"}
+    string ssn;
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+21902290-4882-46a2-8795-b85989c9d7c0+input"}
+    string ServerTimeZone;
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+21902290-4882-46a2-8795-b85989c9d7c0+input"}
+    int timeout;
+};
 
 type httpResponseHeaders httpTransportResponseHeaders;
 
@@ -256,7 +316,11 @@ type DuplicateKeyExceptionType record {
     string previousJobID;
 };
 
-type Element ();
+@xmldata:Namespace {prefix: "tns", uri: "http://www.example.com/namespaces/tns/1535845694732"}
+type Element record {
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.example.com/namespaces/tns/1535845694732"}
+    string ssn;
+};
 
 type JDBCSQLException JDBCSQLExceptionType;
 

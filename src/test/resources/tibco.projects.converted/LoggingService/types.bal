@@ -42,7 +42,17 @@ type MissingByteCountExceptionType record {
     *XMLExceptionType;
 };
 
-type InputElement ();
+@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/xml/render/example"}
+type InputElement record {
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/xml/render/example"}
+    string level;
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/xml/render/example"}
+    string message;
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/xml/render/example"}
+    string logger;
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/xml/render/example"}
+    string timestamp;
+};
 
 type CorrelationValue string;
 
@@ -392,7 +402,17 @@ type OptionalErrorReport record {
     anydata Data;
 };
 
-type term ();
+//FIXME: Failed to convert type due to [ParseError] : Unsupported complex type body tag: attribute
+//<xsd:complexType xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+//    <xsd:attribute name="ref" type="xsd:IDREF"/>
+//</xsd:complexType>
+
+//<xsd:element name="term" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+//    <xsd:complexType>
+//        <xsd:attribute name="ref" type="xsd:IDREF"/>
+//    </xsd:complexType>
+//</xsd:element>
+type term anydata;
 
 type FileIOException FileIOExceptionType;
 

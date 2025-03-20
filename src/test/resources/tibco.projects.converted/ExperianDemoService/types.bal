@@ -39,7 +39,17 @@ type X509CertificateType record {
 
 type ActivityInputClass ActivityInputClassType;
 
-type jdbcQueryActivityInput ();
+@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+1d5225ab-4bc8-4898-8f74-01e4317c3e29+input"}
+type jdbcQueryActivityInput record {
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+1d5225ab-4bc8-4898-8f74-01e4317c3e29+input"}
+    string ssn;
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+1d5225ab-4bc8-4898-8f74-01e4317c3e29+input"}
+    string ServerTimeZone;
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+1d5225ab-4bc8-4898-8f74-01e4317c3e29+input"}
+    int timeout;
+    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+1d5225ab-4bc8-4898-8f74-01e4317c3e29+input"}
+    int maxRows;
+};
 
 type HttpClientException HttpClientExceptionType;
 
@@ -285,7 +295,17 @@ type server5XXErrorType record {
     string message;
 };
 
-type InputElement ();
+@xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
+type InputElement record {
+    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
+    string dob;
+    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
+    string firstName;
+    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
+    string lastName;
+    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
+    string ssn;
+};
 
 type httpHeaders httpTransportHeaders;
 
@@ -313,7 +333,41 @@ type ProcessContext record {
     string[] TrackingInfo;
 };
 
-type resultSet ();
+//FIXME: Failed to convert type due to [ParseError] : Only simple content is supported for anonymous types
+//<element maxOccurs="unbounded" minOccurs="0" name="Record" xmlns="http://www.w3.org/2001/XMLSchema">
+//    <complexType>
+//        <sequence>
+//            <element maxOccurs="1" minOccurs="0" name="firstname" nillable="false" type="string"/>
+//            <element maxOccurs="1" minOccurs="0" name="lastname" nillable="false" type="string"/>
+//            <element maxOccurs="1" minOccurs="0" name="ssn" nillable="false" type="string"/>
+//            <element maxOccurs="1" minOccurs="0" name="dateofBirth" nillable="false" type="string"/>
+//            <element maxOccurs="1" minOccurs="0" name="ficoscore" nillable="false" type="int"/>
+//            <element maxOccurs="1" minOccurs="0" name="rating" nillable="false" type="string"/>
+//            <element maxOccurs="1" minOccurs="0" name="numofpulls" nillable="false" type="int"/>
+//        </sequence>
+//    </complexType>
+//</element>
+
+//<element name="resultSet" xmlns="http://www.w3.org/2001/XMLSchema">
+//    <complexType>
+//        <sequence>
+//            <element maxOccurs="unbounded" minOccurs="0" name="Record">
+//                <complexType>
+//                    <sequence>
+//                        <element maxOccurs="1" minOccurs="0" name="firstname" nillable="false" type="string"/>
+//                        <element maxOccurs="1" minOccurs="0" name="lastname" nillable="false" type="string"/>
+//                        <element maxOccurs="1" minOccurs="0" name="ssn" nillable="false" type="string"/>
+//                        <element maxOccurs="1" minOccurs="0" name="dateofBirth" nillable="false" type="string"/>
+//                        <element maxOccurs="1" minOccurs="0" name="ficoscore" nillable="false" type="int"/>
+//                        <element maxOccurs="1" minOccurs="0" name="rating" nillable="false" type="string"/>
+//                        <element maxOccurs="1" minOccurs="0" name="numofpulls" nillable="false" type="int"/>
+//                    </sequence>
+//                </complexType>
+//            </element>
+//        </sequence>
+//    </complexType>
+//</element>
+type resultSet anydata;
 
 type UsernamePasswordToken UsernamePasswordTokenType;
 

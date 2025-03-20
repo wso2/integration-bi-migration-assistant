@@ -18,6 +18,7 @@
 
 package converter.tibco;
 
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -672,13 +673,23 @@ public final class XmlToTibcoModelConverter {
 
         String tag = getTagNameWithoutNameSpace(each);
         switch (tag) {
-            case "element" -> elements.add(parseSchemaElement(each));
             case "complexType" -> types.add(parseType(each));
             case "import" -> imports.add(parseImport(each));
-            case "simpleType" -> {
-                elements.add(parseSimpleType(each));
+            case "simpleType" -> elements.add(parseSimpleType(each));
+            case "element" -> {
+                if (complexElement(each)) {
+                    String name = each.getAttribute("name");
+                    Element body = getFirstChildWithTag(each, "complexType");
+                    types.add(parseComplexTypeInner(body, name));
+                } else {
+                    elements.add(parseSchemaElement(each));
+                }
             }
         }
+    }
+
+    private static boolean complexElement(Element element) {
+        return tryGetFirstChildWithTag(element, "complexType").isPresent();
     }
 
     private static TibcoModel.Type.Schema.UnhandledType parseUnhandledType(Element element, String reason) {
@@ -713,6 +724,10 @@ public final class XmlToTibcoModelConverter {
 
     private static TibcoModel.Type.Schema.ComplexType parseComplexType(Element element) {
         String name = element.getAttribute("name");
+        return parseComplexTypeInner(element, name);
+    }
+
+    private static TibcoModel.Type.Schema.@NotNull ComplexType parseComplexTypeInner(Element element, String name) {
         Element child = expectNChildren(element, 1).iterator().next();
         TibcoModel.Type.Schema.ComplexType.Body body = switch (getTagNameWithoutNameSpace(child)) {
             case "sequence" -> parseComplexTypeSequence(child);
@@ -761,7 +776,7 @@ public final class XmlToTibcoModelConverter {
     static TibcoModel.Type.Schema.ComplexType.SequenceBody.Member parseComplexTypeElement(
             Element element) {
         String elementName = element.getAttribute("name");
-        TibcoModel.Type.Schema.TibcoType actualType = parseActualType(element);
+        var actualType = parseActualType(element);
         if (elementName.isEmpty()) {
             elementName = anonFieldName();
         }
