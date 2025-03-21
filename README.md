@@ -84,6 +84,7 @@ The migration tool currently supports the following Mule components:
 
 - [Catch Exception Strategy](samples/MULE_COMPONENT_SAMPLES.md#catch-exception-strategy)
 - [Choice](samples/MULE_COMPONENT_SAMPLES.md#choice)
+- [Choice Exception Strategy](samples/MULE_COMPONENT_SAMPLES.md#choice-exception-strategy)
 - [Database](samples/MULE_COMPONENT_SAMPLES.md#database)
 - [Flow](samples/MULE_COMPONENT_SAMPLES.md#flow)
 - [Http Listener](samples/MULE_COMPONENT_SAMPLES.md#http-listener)
@@ -91,6 +92,7 @@ The migration tool currently supports the following Mule components:
 - [Message Enricher](samples/MULE_COMPONENT_SAMPLES.md#message-enricher)
 - [Object To Json](samples/MULE_COMPONENT_SAMPLES.md#object-to-json)
 - [Object To String](samples/MULE_COMPONENT_SAMPLES.md#object-to-string)
+- [Reference Exception Strategy](samples/MULE_COMPONENT_SAMPLES.md#reference-exception-strategy)
 - [Session Variable](samples/MULE_COMPONENT_SAMPLES.md#session-variable)
 - [Set Payload](samples/MULE_COMPONENT_SAMPLES.md#set-payload)
 - [Sub Flow](samples/MULE_COMPONENT_SAMPLES.md#sub-flow)
