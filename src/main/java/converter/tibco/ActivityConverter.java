@@ -122,6 +122,8 @@ class ActivityConverter {
                                 createJsonOperation(cx, result, jsonOperation, activityExtension.outputVariable());
                     case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql ->
                             createSQLOperation(cx, result, sql);
+                    case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SendHTTPResponse ignored ->
+                            List.of(new Return<>(result));
                 };
                 body.addAll(rest);
                 return body;
@@ -355,6 +357,7 @@ class ActivityConverter {
                 assert !key.isEmpty();
         String addToContextFn = cx.getAddToContextFn();
         return new CallStatement(
-                new FunctionCall(addToContextFn, List.of(cx.contextVarRef(), new StringConstant(key), value)));
+                new FunctionCall(addToContextFn,
+                        List.of(cx.contextVarRef(), new StringConstant(key), value)));
     }
 }

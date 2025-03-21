@@ -430,6 +430,14 @@ public class TibcoModel {
                             }
                         }
 
+                        record SendHTTPResponse() implements Config {
+
+                            @Override
+                            public ExtensionKind kind() {
+                                return ExtensionKind.SEND_HTTP_RESPONSE;
+                            }
+                        }
+
                         record SQL(String sharedResourcePropertyName, String query,
                                    List<SQLParameter> parameters) implements Config {
 
@@ -488,6 +496,7 @@ public class TibcoModel {
                             HTTP_SEND,
                             JSON_RENDER,
                             JSON_PARSER,
+                            SEND_HTTP_RESPONSE,
                             SQL;
 
                             public static ExtensionKind fromTypeId(String typeId) {
@@ -496,6 +505,7 @@ public class TibcoModel {
                                     case "bw.http.sendHTTPRequest" -> HTTP_SEND;
                                     case "bw.restjson.JsonRender" -> JSON_RENDER;
                                     case "bw.restjson.JsonParser" -> JSON_PARSER;
+                                    case "bw.http.sendHTTPResponse" -> SEND_HTTP_RESPONSE;
                                     default -> patternMatch(typeId);
                                 };
                             }

@@ -12,6 +12,12 @@ service /Creditscore on experianservice_module_Process_listener {
 
 function activityExtension(xml input, map<xml> context) returns xml {
     xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput" version="2.0"><xsl:param name="RenderJSON"/><xsl:template name="SendHTTPResponse-input" match="/"><tns1:ResponseActivityInput><asciiContent><xsl:value-of select="$RenderJSON/jsonString"/></asciiContent><Headers><Content-Type><xsl:value-of select="'application/json'"/></Content-Type></Headers></tns1:ResponseActivityInput></xsl:template></xsl:stylesheet>`), context);
+    return var0;
+}
+
+function activityExtension_2(xml input, map<xml> context) returns xml {
+    xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns2="http://www.tibco.com/namespaces/tnt/plugins/jdbc+1d5225ab-4bc8-4898-8f74-01e4317c3e29+input" xmlns:tns="http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367" version="2.0"><xsl:param name="ParseJSON"/><xsl:template name="JDBCQuery-input" match="/"><tns2:jdbcQueryActivityInput><ssn><xsl:value-of select="$ParseJSON/tns:ssn"/></ssn></tns2:jdbcQueryActivityInput></xsl:template></xsl:stylesheet>`), context);
     QueryData0 data = convertToQueryData0(var0);
     sql:ParameterizedQuery var1 = `SELECT *
@@ -48,19 +54,28 @@ function process_experianservice_module_Process(xml input) returns xml {
     worker start_worker {
         xml result0 = receiveEvent(input, context);
         result0 -> HTTPReceiverToSendHTTPResponse;
-        xml result1 = unhandled(input, context);
     }
     worker HTTPReceiverToSendHTTPResponse {
         xml result0 = <- start_worker;
         result0 -> activityExtension_3_worker;
     }
     worker JDBCQueryToSendHTTPResponse {
-        xml result0 = <- activityExtension_worker;
+        xml result0 = <- activityExtension_2_worker;
         result0 -> activityExtension_4_worker;
     }
     worker ParseJSONToJDBCQuery {
         xml result0 = <- activityExtension_3_worker;
+        result0 -> activityExtension_2_worker;
+    }
+    worker RenderJSONToSendHTTPResponse {
+        xml result0 = <- activityExtension_4_worker;
         result0 -> activityExtension_worker;
+    }
+    worker activityExtension_2_worker {
+        xml input0 = <- ParseJSONToJDBCQuery;
+        xml combinedInput = input0;
+        xml output = activityExtension_2(combinedInput, context);
+        output -> JDBCQueryToSendHTTPResponse;
     }
     worker activityExtension_3_worker {
         xml input0 = <- HTTPReceiverToSendHTTPResponse;
@@ -75,21 +90,16 @@ function process_experianservice_module_Process(xml input) returns xml {
         output -> RenderJSONToSendHTTPResponse;
     }
     worker activityExtension_worker {
-        xml input0 = <- ParseJSONToJDBCQuery;
+        xml input0 = <- RenderJSONToSendHTTPResponse;
         xml combinedInput = input0;
         xml output = activityExtension(combinedInput, context);
-        output -> JDBCQueryToSendHTTPResponse;
+        output -> function;
     }
-    xml result0 = <- unhandled_worker;
+    xml result0 = <- activityExtension_worker;
     xml result = result0;
     return result;
 }
 
 function receiveEvent(xml input, map<xml> context) returns xml {
-    return input;
-}
-
-function unhandled(xml input, map<xml> context) returns xml {
-    //Unknown extension kind: bw.http.sendHTTPResponse
     return input;
 }
