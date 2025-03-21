@@ -438,6 +438,14 @@ public class TibcoModel {
                             }
                         }
 
+                        record FileWrite() implements Config {
+
+                            @Override
+                            public ExtensionKind kind() {
+                                return ExtensionKind.FILE_WRITE;
+                            }
+                        }
+
                         record SQL(String sharedResourcePropertyName, String query,
                                    List<SQLParameter> parameters) implements Config {
 
@@ -493,9 +501,10 @@ public class TibcoModel {
 
                         enum ExtensionKind {
                             END,
+                            FILE_WRITE,
                             HTTP_SEND,
-                            JSON_RENDER,
                             JSON_PARSER,
+                            JSON_RENDER,
                             SEND_HTTP_RESPONSE,
                             SQL;
 
@@ -506,6 +515,7 @@ public class TibcoModel {
                                     case "bw.restjson.JsonRender" -> JSON_RENDER;
                                     case "bw.restjson.JsonParser" -> JSON_PARSER;
                                     case "bw.http.sendHTTPResponse" -> SEND_HTTP_RESPONSE;
+                                    case "bw.file.write" -> FILE_WRITE;
                                     default -> patternMatch(typeId);
                                 };
                             }

@@ -1,8 +1,29 @@
+import ballerina/io;
 import ballerina/xslt;
 
 function activityExtension(xml input, map<xml> context) returns xml {
     xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns2="http://www.example.org/LogResult" version="2.0"><xsl:template name="End-input" match="/"><tns2:result><xsl:value-of select="'Logging Done'"/></tns2:result></xsl:template></xsl:stylesheet>`), context);
+    return var0;
+}
+
+function activityExtension_3(xml input, map<xml> context) returns xml {
+    xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://www.tibco.com/namespaces/tnt/plugins/file" xmlns:tns1="http://www.example.org/LogSchema" xmlns:bw="http://www.tibco.com/bw/xpath/bw-custom-functions" version="2.0"><xsl:param name="Start"/><xsl:template name="WriteFile-input" match="/"><tns3:WriteActivityInputTextClass><fileName><xsl:value-of select="concat(concat(bw:getModuleProperty('fileDir'), $Start/tns1:loggerName), '.txt')"/></fileName><textContent><xsl:value-of select="$Start/tns1:message"/></textContent></tns3:WriteActivityInputTextClass></xsl:template></xsl:stylesheet>`), context);
+    WriteActivityInputTextClass var1 = convertToWriteActivityInputTextClass(var0);
+    string var2 = var1.fileName;
+    string var3 = var1.textContent;
+    checkpanic io:fileWriteString(var2, var3);
+    return var0;
+}
+
+function activityExtension_5(xml input, map<xml> context) returns xml {
+    xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://www.tibco.com/namespaces/tnt/plugins/file" xmlns:tns1="http://www.example.org/LogSchema" xmlns:bw="http://www.tibco.com/bw/xpath/bw-custom-functions" version="2.0"><xsl:param name="RenderXml"/><xsl:param name="Start"/><xsl:template name="XMLFile-input" match="/"><tns3:WriteActivityInputTextClass><fileName><xsl:value-of select="concat(concat(bw:getModuleProperty('fileDir'), $Start/tns1:loggerName), '.xml')"/></fileName><textContent><xsl:value-of select="$RenderXml"/></textContent></tns3:WriteActivityInputTextClass></xsl:template></xsl:stylesheet>`), context);
+    WriteActivityInputTextClass var1 = convertToWriteActivityInputTextClass(var0);
+    string var2 = var1.fileName;
+    string var3 = var1.textContent;
+    checkpanic io:fileWriteString(var2, var3);
     return var0;
 }
 
@@ -22,15 +43,35 @@ function process_loggingservice_LogProcess(xml input) returns xml {
         result0 -> StartToWriteFile;
         result0 -> StartToRenderXml;
         xml result1 = unhandled(input, context);
-        xml result2 = unhandled_3(input, context);
-        xml result3 = unhandled_4(input, context);
-        xml result4 = unhandled_5(input, context);
+        xml result2 = unhandled_4(input, context);
     }
     worker LogToEnd {
     }
+    worker RenderXmlToWriteFile1 {
+    }
+    worker StartToWriteFile {
+        xml result0 = <- start_worker;
+        result0 -> activityExtension_3_worker;
+    }
     worker WriteFileToEnd {
+        xml result0 = <- activityExtension_3_worker;
+        result0 -> activityExtension_worker;
     }
     worker XMLFileToEnd {
+        xml result0 = <- activityExtension_5_worker;
+        result0 -> activityExtension_worker;
+    }
+    worker activityExtension_3_worker {
+        xml input0 = <- StartToWriteFile;
+        xml combinedInput = input0;
+        xml output = activityExtension_3(combinedInput, context);
+        output -> WriteFileToEnd;
+    }
+    worker activityExtension_5_worker {
+        xml input0 = <- RenderXmlToWriteFile1;
+        xml combinedInput = input0;
+        xml output = activityExtension_5(combinedInput, context);
+        output -> XMLFileToEnd;
     }
     worker activityExtension_worker {
         xml input0 = <- LogToEnd;
@@ -42,10 +83,8 @@ function process_loggingservice_LogProcess(xml input) returns xml {
     }
     xml result0 = <- activityExtension_worker;
     xml result1 = <- unhandled_worker;
-    xml result2 = <- unhandled_3_worker;
-    xml result3 = <- unhandled_4_worker;
-    xml result4 = <- unhandled_5_worker;
-    xml result = result0 + result1 + result2 + result3 + result4;
+    xml result2 = <- unhandled_4_worker;
+    xml result = result0 + result1 + result2;
     return result;
 }
 
@@ -58,17 +97,7 @@ function unhandled(xml input, map<xml> context) returns xml {
     return input;
 }
 
-function unhandled_3(xml input, map<xml> context) returns xml {
-    //Unknown extension kind: bw.file.write
-    return input;
-}
-
 function unhandled_4(xml input, map<xml> context) returns xml {
     //Unknown extension kind: bw.xml.renderxml
-    return input;
-}
-
-function unhandled_5(xml input, map<xml> context) returns xml {
-    //Unknown extension kind: bw.file.write
     return input;
 }

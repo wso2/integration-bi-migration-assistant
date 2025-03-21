@@ -23,6 +23,7 @@ enum Library {
     XSLT("ballerina", "xslt"),
     XML_DATA("ballerina", "data.xmldata"),
     JDBC("ballerinax", "jdbc"),
+    IO("ballerina", "io"),
     SQL("ballerina", "sql");
 
     public final String moduleName;

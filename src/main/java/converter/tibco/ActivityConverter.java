@@ -124,10 +124,47 @@ class ActivityConverter {
                             createSQLOperation(cx, result, sql);
                     case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SendHTTPResponse ignored ->
                             List.of(new Return<>(result));
+                    case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.FileWrite fileWrite ->
+                            createFileWriteOperation(cx, result, fileWrite);
                 };
                 body.addAll(rest);
                 return body;
         }
+
+    private static List<BallerinaModel.Statement> createFileWriteOperation(
+            ActivityContext cx,
+            BallerinaModel.Expression.VariableReference result,
+            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.FileWrite fileWrite) {
+        List<BallerinaModel.Statement> body = new ArrayList<>();
+        BallerinaModel.TypeDesc dataType = cx.getFileWriteConfigType();
+        VarDeclStatment dataDecl = new VarDeclStatment(dataType, cx.getAnnonVarName(),
+                new FunctionCall(cx.getConvertToTypeFunction(dataType), List.of(result)));
+        body.add(dataDecl);
+
+        VarDeclStatment fileNameDecl = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                new BallerinaModel.Expression.FieldAccess(
+                        new BallerinaModel.Expression.VariableReference(dataDecl.varName()), "fileName"));
+        body.add(fileNameDecl);
+
+        VarDeclStatment textContentDecl = new VarDeclStatment(STRING,
+                cx.getAnnonVarName(),
+                new BallerinaModel.Expression.FieldAccess(
+                        new BallerinaModel.Expression.VariableReference(dataDecl.varName()),
+                        "textContent"));
+        body.add(textContentDecl);
+
+        CallStatement callStatement = new CallStatement(
+                new BallerinaModel.Expression.CheckPanic(new FunctionCall(
+                        cx.getFileWriteFunction(),
+                        List.of(new BallerinaModel.Expression.VariableReference(
+                                        fileNameDecl.varName()),
+                                new BallerinaModel.Expression.VariableReference(
+                                        textContentDecl.varName())))));
+        body.add(callStatement);
+
+        body.add(new Return<>(result));
+        return body;
+    }
 
     private static List<BallerinaModel.Statement> createSQLOperation(
             ActivityContext cx,
@@ -165,7 +202,7 @@ class ActivityConverter {
                         TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.JsonOperation jsonOperation,
                         Optional<String> outputVarName) {
                 // TODO: how to implement this
-                return outputVarName.<List<BallerinaModel.Statement>>map(
+            return outputVarName.map(
                                 s -> List.of(addToContext(cx, inputVar, s), new Return<>(inputVar)))
                                 .orElseGet(() -> List.of(new Return<>(inputVar)));
         }

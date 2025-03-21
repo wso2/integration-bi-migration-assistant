@@ -20,12 +20,12 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record TextDocument(String documentName, List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
-                               List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
-                               List<Function> functions, List<String> Comments, List<String> intrinsics) {
+            List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
+            List<Function> functions, List<String> Comments, List<String> intrinsics) {
 
         public TextDocument(String documentName, List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
-                            List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
-                            List<Function> functions, List<String> comments) {
+                List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
+                List<Function> functions, List<String> comments) {
             this(documentName, imports, moduleTypeDefs, moduleVars, listeners, services, functions, comments,
                     List.of());
         }
@@ -118,7 +118,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
 
         record RecordTypeDesc(List<TypeDesc> inclusions, List<RecordField> fields, TypeDesc rest,
-                              Optional<Namespace> namespace)
+                Optional<Namespace> namespace)
                 implements TypeDesc {
 
             public RecordTypeDesc(List<RecordField> fields) {
@@ -154,7 +154,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
 
             public record RecordField(String name, TypeDesc typeDesc, boolean isOptional,
-                                      Optional<Expression> defaultValue, Optional<Namespace> namespace) {
+                    Optional<Expression> defaultValue, Optional<Namespace> namespace) {
 
                 public RecordField(String name, TypeDesc typeDesc, Expression defaultValue) {
                     this(name, typeDesc, false, Optional.of(defaultValue), Optional.empty());
@@ -243,7 +243,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     // TODO: expr must be optional
     public record ModuleVar(String name, String type, Expression expr, boolean isConstant,
-                            boolean isConfigurable) {
+            boolean isConfigurable) {
 
         public ModuleVar {
             assert !isConfigurable || isConstant;
@@ -288,8 +288,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record Service(String basePath, List<String> listenerRefs, Optional<Function> initFunc,
-                          List<Resource> resources, List<Function> functions, List<String> pathParams,
-                          List<String> queryParams, List<ObjectField> fields) {
+            List<Resource> resources, List<Function> functions, List<String> pathParams,
+            List<String> queryParams, List<ObjectField> fields) {
 
     }
 
@@ -307,15 +307,15 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record Resource(String resourceMethodName, String path, List<Parameter> parameters,
-                           Optional<String> returnType, List<Statement> body) {
+            Optional<String> returnType, List<Statement> body) {
 
     }
 
     public record Function(Optional<String> visibilityQualifier, String functionName, List<Parameter> parameters,
-                           Optional<String> returnType, FunctionBody body) {
+            Optional<String> returnType, FunctionBody body) {
 
         public Function(String funcName, List<Parameter> parameters, Optional<String> returnType,
-                        List<Statement> body) {
+                List<Statement> body) {
             this(Optional.empty(), funcName, parameters, returnType, new BlockFunctionBody(body));
         }
 
@@ -343,7 +343,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record ExternFunctionBody(String className, Optional<String> javaMethodName, String annotation,
-                                     Optional<List<String>> paramTypes) implements FunctionBody {
+            Optional<List<String>> paramTypes) implements FunctionBody {
 
     }
 
@@ -371,7 +371,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record IfElseStatement(BallerinaExpression ifCondition, List<Statement> ifBody,
-                                  List<ElseIfClause> elseIfClauses, List<Statement> elseBody) implements Statement {
+            List<ElseIfClause> elseIfClauses, List<Statement> elseBody) implements Statement {
 
         @Override
         public String toString() {
@@ -380,7 +380,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             String elseIfs = String.join("", elseIfClauses.stream().map(Object::toString).toList());
             String elseBlock = elseBody.isEmpty() ? ""
                     : String.format("else { %s }",
-                    String.join("", elseBody.stream().map(Object::toString).toList()));
+                            String.join("", elseBody.stream().map(Object::toString).toList()));
             return ifBlock + elseIfs + elseBlock;
         }
     }
@@ -519,7 +519,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     public sealed interface Statement {
 
-        record CallStatement(Expression.FunctionCall callExpr) implements Statement {
+        record CallStatement(Expression callExpr) implements Statement {
 
             @Override
             public String toString() {
@@ -571,7 +571,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
         // Note: should be placed at the beginning of a function-body-block
         record NamedWorkerDecl(String name, Optional<TypeDesc> returnType,
-                               List<Statement> statements) implements Statement {
+                List<Statement> statements) implements Statement {
 
             public NamedWorkerDecl(String name, List<Statement> statements) {
                 this(name, Optional.empty(), statements);

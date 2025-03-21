@@ -39,6 +39,7 @@ import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static converter.tibco.Library.IO;
 
 import ballerina.BallerinaModel;
 import ballerina.BallerinaModel.Statement;
@@ -124,6 +125,11 @@ public class ProjectContext {
         return toHttpConfigFunction;
     }
 
+    BallerinaModel.TypeDesc getFileWriteConfigType() {
+        return getTypeByName("WriteActivityInputTextClass", typeCx);
+    }
+
+    // TODO: We can get rid of this with an equivalent type similar to file types
     BallerinaModel.TypeDesc.TypeReference getHttpConfigType() {
         // type HTTPRequestConfig record {
         // string Method;
@@ -289,6 +295,11 @@ public class ProjectContext {
     public void incrementTypeAliasCount() {
         incrementTypeCount();
         typeAliasCount++;
+    }
+
+    public String getFileWriteFunction(ContextWithFile contextWithFile) {
+        contextWithFile.addLibraryImport(IO);
+        return "io:fileWriteString";
     }
 
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {

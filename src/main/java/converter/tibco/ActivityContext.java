@@ -99,4 +99,12 @@ class ActivityContext {
     void addLibraryImport(Library library) {
         processContext.addLibraryImport(library);
     }
+
+    public BallerinaModel.TypeDesc getFileWriteConfigType() {
+        return processContext.getFileWriteConfigType();
+    }
+
+    public String getFileWriteFunction() {
+        return processContext.getFileWriteFunction();
+    }
 }

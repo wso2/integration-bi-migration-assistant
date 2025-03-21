@@ -1,5 +1,9 @@
 import ballerina/data.xmldata;
 
+function convertToWriteActivityInputTextClass(xml input) returns WriteActivityInputTextClass {
+    return checkpanic xmldata:parseAsType(input);
+}
+
 function convertToanydata(xml input) returns anydata {
     return checkpanic xmldata:parseAsType(input);
 }

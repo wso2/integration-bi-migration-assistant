@@ -417,6 +417,7 @@ public final class XmlToTibcoModelConverter {
                 TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.ExtensionKind.fromTypeId(activityTypeID);
         return switch (kind) {
             case END -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.End();
+            case FILE_WRITE -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.FileWrite();
             case HTTP_SEND -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.HTTPSend();
             case JSON_RENDER -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.JsonOperation(
                     TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.ExtensionKind.JSON_RENDER,
