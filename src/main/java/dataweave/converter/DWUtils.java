@@ -1,8 +1,11 @@
 package dataweave.converter;
 
 import ballerina.BallerinaModel;
+import converter.MuleToBalConverter;
+import mule.Constants;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -18,8 +21,9 @@ public class DWUtils {
     public static final String CURLY_START_BRACKET = "{";
     public static final String CURLY_END_BRACKET = "}";
     public static final String DATAWEAVE_OUTPUT_VARIABLE_NAME = "_dwOutput_";
-    public static final  String DW_INDEX_IDENTIFIER = "$$";
-    public static final  String DW_VALUE_IDENTIFIER = "$";
+    public static final String DW_INDEX_IDENTIFIER = "$$";
+    public static final String DW_VALUE_IDENTIFIER = "$";
+    public static final String DW_NOW_IDENTIFIER = "now";
 
     // IO Types
     public static final String APPLICATION_JAVA = "application/java";
@@ -33,16 +37,17 @@ public class DWUtils {
     public static final String TEXT_PLAIN = "text/plain";
 
     // DataWeave Types
-    public static final String ARRAY = "Array";
-    public static final String BOOLEAN = "Boolean";
-    public static final String DATE = "Date";
-    public static final String DATETIME = "DateTime";
-    public static final String FUNCTION = "Function";
-    public static final String NULL = "Null";
-    public static final String NUMBER = "Number";
-    public static final String OBJECT = "Object";
-    public static final String STRING = "String";
-    public static final String TIME = "Time";
+    public static final String ARRAY = "array";
+    public static final String BOOLEAN = "boolean";
+    public static final String DATE = "date";
+    public static final String DATETIME = "dateTime";
+    public static final String FUNCTION = "function";
+    public static final String NULL = "null";
+    public static final String NUMBER = "number";
+    public static final String OBJECT = "object";
+    public static final String STRING = "string";
+    public static final String TIME = "time";
+    public static final String IDENTIFIER = "identifier";
 
     // DataWeave Built-in functions
     public static final String DW_FUNCTION_MAP = "map";
@@ -50,6 +55,18 @@ public class DWUtils {
     public static final String DW_FUNCTION_FLATTEN = "flatten";
     public static final String DW_FUNCTION_SIZE_OF = "sizeOf";
 
+    // Ballerina util functions
+    public static final String INT_TO_STRING = "intToString";
+    public static final String GET_FORMATTED_STRING_FROM_NUMBER = "getFormattedStringFromNumber";
+    public static final String NEW_DECIMAL_FORMAT = "newDecimalFormat";
+    public static final String GET_CURRENT_TIME_STRING = "getCurrentTimeString";
+    public static final String FORMAT_DATE_TIME_STRING = "formatDateTimeString";
+    public static final String FORMAT_DATE_TIME = "formatDateTime";
+    public static final String GET_DATE_TIME_FORMATTER = "getDateTimeFormatter";
+    public static final String GET_ZONE_ID = "getZoneId";
+    public static final String GET_DATE_TIME = "getDateTime";
+    public static final String PARSE_INSTANT = "parseInstant";
+    public static final String GET_FORMATTED_STRING_FROM_DATE = "getFormattedStringFromDate";
 
     // Ballerina Identifiers
     public static final String DW_FUNCTION_NAME = "_dwMethod%s_";
@@ -96,7 +113,7 @@ public class DWUtils {
         throw new BallerinaDWException("Unsupported type: " + expression);
     }
 
-    public static String getBallerinaType(String dwType) {
+    public static String getBallerinaType(String dwType, MuleToBalConverter.Data data) {
         return switch (dwType) {
             case DWUtils.ARRAY -> "anydata[]";
             case DWUtils.BOOLEAN -> "boolean";
@@ -105,6 +122,11 @@ public class DWUtils {
             case DWUtils.NUMBER -> "int";
             case DWUtils.OBJECT -> "map<anydata>";
             case DWUtils.STRING -> "string";
+            case DWUtils.DATE -> {
+                data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME,
+                        Optional.empty()));
+                yield "time:Date";
+            }
             default -> "any";
         };
     }

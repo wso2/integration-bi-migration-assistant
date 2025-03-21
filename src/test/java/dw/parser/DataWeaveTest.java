@@ -22,6 +22,8 @@ public class DataWeaveTest {
                 {DataWeaveScripts.SCRIPT_FUNCTION_VAR, "src/test/resources/parser/expected/dw_function_var.json"},
                 {DataWeaveScripts.SCRIPT_FUNCTION, "src/test/resources/parser/expected/dw_function.json"},
                 {DataWeaveScripts.SCRIPT_SIMPLE_STRING, "src/test/resources/parser/expected/dw_simple_string.json"},
+                {DataWeaveScripts.SCRIPT_SIMPLE_STRING_SINGLE_QUOTED,
+                        "src/test/resources/parser/expected/dw_simple_string_single_quote.json"},
                 {DataWeaveScripts.SCRIPT_SIMPLE_BOOLEAN, "src/test/resources/parser/expected/dw_simple_boolean.json"},
                 {DataWeaveScripts.SCRIPT_SIMPLE_NUMBER, "src/test/resources/parser/expected/dw_simple_number.json"},
                 {DataWeaveScripts.SCRIPT_SIMPLE_NUMBER_DECIMAL,
@@ -64,6 +66,14 @@ public class DataWeaveTest {
                         "dw_replace_with.json"},
                 {DataWeaveScripts.SCRIPT_CONCAT_STRING, "src/test/resources/parser/expected/" +
                         "dw_concat_string.json"},
+                {DataWeaveScripts.SCRIPT_TYPE_COERCION, "src/test/resources/parser/expected/" +
+                        "dw_type_coercion_string.json"},
+                {DataWeaveScripts.SCRIPT_TYPE_COERCION_WITH_FORMAT, "src/test/resources/parser/expected/" +
+                        "dw_type_coercion_with_format.json"},
+                {DataWeaveScripts.SCRIPT_TYPE_COERCION_WITH_CLASS, "src/test/resources/parser/expected/" +
+                        "dw_type_coercion_with_class.json"},
+                {DataWeaveScripts.SCRIPT_TYPE_COERCION_STRING_WITH_DIFFERENT_FORMATS, "src/test/resources/parser" +
+                        "/expected/dw_type_coercion_string_with_different_formats.json"},
         };
     }
 }

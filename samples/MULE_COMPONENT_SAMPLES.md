@@ -1825,7 +1825,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 %input payload application/json
 %var conversionRate=13.15
 ---
-{s: "Hello World", n: 1.23, b: true, a:[1,2,3], o:{ name:  "Anne" }}]]></dw:set-payload>
+{s1: "Hello World", s2: 'Hello World', n: 1.23, b: true, a:[1,2,3], o:{ name:  "Anne" }}]]></dw:set-payload>
         </dw:transform-message>
     </flow>
 </mule>
@@ -1852,7 +1852,7 @@ service /foo on config {
 
 function _dwMethod0_(json payload) returns json|error {
     float conversionRate = 13.15;
-    return {"s": "Hello World", "n": 1.23, "b": true, "a": check [1, 2, 3].ensureType(json), "o": check {"name": "Anne"}.ensureType(json)};
+    return {"s1": "Hello World", "s2": "Hello World", "n": 1.23, "b": true, "a": check [1, 2, 3].ensureType(json), "o": check {"name": "Anne"}.ensureType(json)};
 }
 
 ```

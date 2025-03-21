@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import dataweave.parser.DataWeaveBaseVisitor;
 import dataweave.parser.DataWeaveParser;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -406,9 +407,12 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
         }
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put("type", "TypeCoercionExpression");
-        objectNode.set("left", visit(ctx.unaryExpression()));
+        objectNode.set("expression", visit(ctx.unaryExpression()));
         objectNode.put("operator", ctx.OPERATOR_TYPE_COERCION().getText());
-        objectNode.set("right", visit(ctx.typeExpression()));
+        objectNode.set("type", visit(ctx.typeExpression()));
+        if (ctx.formatOption() != null) {
+            objectNode.set("format", visit(ctx.formatOption()));
+        }
         return objectNode;
     }
 
@@ -454,4 +458,19 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
         }
         return node;
     }
+
+    @Override
+    public JsonNode visitTypeExpression(DataWeaveParser.TypeExpressionContext ctx) {
+        return new TextNode(ctx.IDENTIFIER().getText());
+    }
+
+    @Override
+    public JsonNode visitFormatOption(DataWeaveParser.FormatOptionContext ctx) {
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "FormatOption");
+        objectNode.put("key", ctx.IDENTIFIER().getText());
+        objectNode.put("value", ctx.STRING().getText());
+        return objectNode;
+    }
+
 }

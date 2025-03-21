@@ -92,6 +92,12 @@ public class DataWeaveScripts {
             ---
             "Hello World"
             """;
+    public static final String SCRIPT_SIMPLE_STRING_SINGLE_QUOTED = """
+            %dw 2.0
+            %output application/json
+            ---
+            'Hello'
+            """;
     public static final String SCRIPT_SIMPLE_BOOLEAN = """
             %dw 2.0
             %output application/json
@@ -320,5 +326,33 @@ public class DataWeaveScripts {
             %output application/json
             ---
             "Hello" ++ "World"
+            """;
+    public static final String SCRIPT_TYPE_COERCION = """
+            %dw 1.0
+            %output application/json
+            ---
+            10 as :string
+            """;
+    public static final String SCRIPT_TYPE_COERCION_WITH_FORMAT = """
+            %dw 1.0
+            %output application/json
+            ---
+            10 as :string {format: "##,#"}
+            """;
+    public static final String SCRIPT_TYPE_COERCION_WITH_CLASS = """
+            %dw 1.0
+            %output application/json
+            ---
+            10 as :object {class : "soa.sfabs.SOAResponseInfoType\\$ServiceInfo"}
+            """;
+    public static final String SCRIPT_TYPE_COERCION_STRING_WITH_DIFFERENT_FORMATS = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+              a: 1 as :string {format: "##,#"},
+              b: now as :string {format: "yyyy-MM-dd"},
+              c: true as :string
+            }
             """;
 }

@@ -361,6 +361,17 @@ public class DataWeaveBaseVisitor<T> extends AbstractParseTreeVisitor<T> impleme
      * {@link #visitChildren} on {@code ctx}.</p>
      */
     @Override
+    public T visitFormatOption(DataWeaveParser.FormatOptionContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     */
+    @Override
     public T visitSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx) {
         return visitChildren(ctx);
     }

@@ -104,7 +104,7 @@ defaultExpression
 defaultExpressionRest
     : 'filter' implicitLambdaExpression defaultExpressionRest  # filterExpression
     | 'map' implicitLambdaExpression defaultExpressionRest     # mapExpression
-    | 'groupBy' expression defaultExpressionRest               # groupByExpression
+    | 'groupBy' implicitLambdaExpression defaultExpressionRest # groupByExpression
     | 'replace' REGEX 'with' expression                        # replaceExpression
     | '++' expression                                          # concatExpression
     | /* epsilon (empty) */                                    # defaultExpressionEnd
@@ -142,7 +142,12 @@ multiplicativeExpression
 
 // Level 2: Type Coercion (`as`)
 typeCoercionExpression
-    : unaryExpression (OPERATOR_TYPE_COERCION typeExpression)?
+    : unaryExpression (OPERATOR_TYPE_COERCION typeExpression formatOption?)?
+    ;
+
+// Formatting options within `{}`
+formatOption
+    : '{' IDENTIFIER ':' STRING '}'
     ;
 
 // Level 1: Unary Operators (-, not)
@@ -205,4 +210,4 @@ keyValue: IDENTIFIER COLON expression;
 functionCall: IDENTIFIER '(' (expression (COMMA expression)*)? ')';
 
 typeExpression
-    : IDENTIFIER;
+    : ':' IDENTIFIER;

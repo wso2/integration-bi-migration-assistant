@@ -104,6 +104,7 @@ public class MuleToBalConverter {
         HashMap<String, ModuleTypeDef> typeDefMap = new LinkedHashMap<>();
         HashMap<String, ModuleVar> moduleVarMap = new LinkedHashMap<>();
         public List<Function> functions = new ArrayList<>();
+        public List<String> utilFunctions = new ArrayList<>();
 
         // Internal variable/method count
         public int dwMethodCount = 0;
@@ -367,20 +368,21 @@ public class MuleToBalConverter {
         data.currentFlowInfo = data.flowInfoMap.get(flowName);
 
         List<Statement> body = genFuncBodyStatements(data, flowBlocks);
-        addEndOfMethodStatements(data.currentFlowInfo, body);
+        addEndOfMethodStatements(data.currentFlowInfo,  new BallerinaModel.BlockFunctionBody(body));
 
         String methodName = ConversionUtils.escapeSpecialCharacters(flowName);
         HashSet<Parameter> parameters = data.functionParamMap.computeIfAbsent(methodName, k -> new HashSet<>());
+
         Function function = new Function(methodName, parameters.stream().toList(), body);
         functions.add(function);
         data.flowToGenMethodMap.put(flowName, function);
     }
 
-    private static void addEndOfMethodStatements(Data.FlowInfo flowInfo, List<Statement> body) {
+    private static void addEndOfMethodStatements(Data.FlowInfo flowInfo, BallerinaModel.BlockFunctionBody body) {
         if (flowInfo.context == Context.HTTP_LISTENER) {
             if (flowInfo.currentPayload != DEFAULT_PAYLOAD) {
                 // the payload has been updated
-                body.add(new BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
+                body.statements().add(new BallerinaStatement(String.format("%s.setPayload(%s);", Constants.VAR_RESPONSE,
                         getSetPayloadArg(flowInfo.currentPayload))));
 
             }
@@ -442,7 +444,7 @@ public class MuleToBalConverter {
         // Add service functions
         List<Function> functions = new ArrayList<>();
         functions.add(new Function(Optional.of("private"), invokeEndPointMethodName, queryPrams,
-                Optional.of(returnType), body));
+                Optional.of(returnType),  new BallerinaModel.BlockFunctionBody(body)));
 
         return new Service(basePath, listenerRefs, resources, functions, Collections.emptyList(),
                 Collections.emptyList());
@@ -663,7 +665,8 @@ public class MuleToBalConverter {
                         // Means we have analyzed the flow already
                         Data.FlowInfo flowInfo = data.flowInfoMap.get(flowName);
                         flowInfo.context = Context.HTTP_LISTENER;
-                        addEndOfMethodStatements(flowInfo, data.flowToGenMethodMap.get(flowName).body());
+                        addEndOfMethodStatements(flowInfo, (BallerinaModel.BlockFunctionBody)
+                                data.flowToGenMethodMap.get(flowName).body());
                     }
                 }
 
@@ -693,7 +696,7 @@ public class MuleToBalConverter {
 
                     List<Statement> enricherStmts = convertToStatements(data, enricher.innerBlock().get());
                     Function func = new Function(Optional.empty(), methodName, Collections.emptyList(),
-                            Optional.of("string"), enricherStmts);
+                            Optional.of("string"),  new BallerinaModel.BlockFunctionBody(enricherStmts));
                     data.functions.add(func);
 
                     enricherStmts.add(new BallerinaStatement(String.format("return %s;", sourceArgName)));

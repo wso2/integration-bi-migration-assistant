@@ -9,13 +9,12 @@ service /foo on config {
 
     private function _invokeEndPoint0_() returns http:Response|error {
         http:Response _response_ = new;
-        json _dwOutput_ = check _dwMethod0_(payload);
+        json _dwOutput_ = check _dwMethod0_();
         _response_.setPayload(_dwOutput_);
         return _response_;
     }
 }
 
-function _dwMethod0_(json payload) returns json|error {
-    float conversionRate = 13.15;
-    return {"s1": "Hello World", "s2": "Hello World", "n": 1.23, "b": true, "a": check [1, 2, 3].ensureType(json), "o": check {"name": "Anne"}.ensureType(json)};
+function _dwMethod0_() returns json|error {
+    return check int:fromString("10");
 }
