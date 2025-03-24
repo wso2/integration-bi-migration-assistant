@@ -454,6 +454,14 @@ public class TibcoModel {
                             }
                         }
 
+                        record RenderXML() implements Config {
+
+                            @Override
+                            public ExtensionKind kind() {
+                                return ExtensionKind.RENDER_XML;
+                            }
+                        }
+
                         record SQL(String sharedResourcePropertyName, String query,
                                    List<SQLParameter> parameters) implements Config {
 
@@ -514,6 +522,7 @@ public class TibcoModel {
                             JSON_PARSER,
                             JSON_RENDER,
                             LOG,
+                            RENDER_XML,
                             SEND_HTTP_RESPONSE,
                             SQL;
 
@@ -526,6 +535,7 @@ public class TibcoModel {
                                     case "bw.http.sendHTTPResponse" -> SEND_HTTP_RESPONSE;
                                     case "bw.file.write" -> FILE_WRITE;
                                     case "bw.generalactivities.log" -> LOG;
+                                    case "bw.xml.renderxml" -> RENDER_XML;
                                     default -> patternMatch(typeId);
                                 };
                             }

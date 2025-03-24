@@ -25,6 +25,12 @@ function activityExtension_3(xml input, map<xml> context) returns xml {
     return var0;
 }
 
+function activityExtension_4(xml input, map<xml> context) returns xml {
+    xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://www.example.org/LogSchema" xmlns:tns="http://www.tibco.com/xml/render/example" version="2.0"><xsl:param name="Start"/><xsl:template name="RenderXml-input" match="/"><tns:InputElement><level><xsl:value-of select="$Start/tns1:level"/></level><message><xsl:value-of select="$Start/tns1:message"/></message><logger><xsl:value-of select="$Start/tns1:loggerName"/></logger><timestamp><xsl:value-of select="current-dateTime()"/></timestamp></tns:InputElement></xsl:template></xsl:stylesheet>`), context);
+    return var0;
+}
+
 function activityExtension_5(xml input, map<xml> context) returns xml {
     xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://www.tibco.com/namespaces/tnt/plugins/file" xmlns:tns1="http://www.example.org/LogSchema" xmlns:bw="http://www.tibco.com/bw/xpath/bw-custom-functions" version="2.0"><xsl:param name="RenderXml"/><xsl:param name="Start"/><xsl:template name="XMLFile-input" match="/"><tns3:WriteActivityInputTextClass><fileName><xsl:value-of select="concat(concat(bw:getModuleProperty('fileDir'), $Start/tns1:loggerName), '.xml')"/></fileName><textContent><xsl:value-of select="$RenderXml"/></textContent></tns3:WriteActivityInputTextClass></xsl:template></xsl:stylesheet>`), context);
@@ -50,17 +56,22 @@ function process_loggingservice_LogProcess(xml input) returns xml {
         result0 -> StartToLog;
         result0 -> StartToWriteFile;
         result0 -> StartToRenderXml;
-        xml result1 = unhandled(input, context);
     }
     worker LogToEnd {
         xml result0 = <- activityExtension_2_worker;
         result0 -> activityExtension_worker;
     }
     worker RenderXmlToWriteFile1 {
+        xml result0 = <- activityExtension_4_worker;
+        result0 -> activityExtension_5_worker;
     }
     worker StartToLog {
         xml result0 = <- start_worker;
         result0 -> activityExtension_2_worker;
+    }
+    worker StartToRenderXml {
+        xml result0 = <- start_worker;
+        result0 -> activityExtension_4_worker;
     }
     worker StartToWriteFile {
         xml result0 = <- start_worker;
@@ -86,6 +97,12 @@ function process_loggingservice_LogProcess(xml input) returns xml {
         xml output = activityExtension_3(combinedInput, context);
         output -> WriteFileToEnd;
     }
+    worker activityExtension_4_worker {
+        xml input0 = <- StartToRenderXml;
+        xml combinedInput = input0;
+        xml output = activityExtension_4(combinedInput, context);
+        output -> RenderXmlToWriteFile1;
+    }
     worker activityExtension_5_worker {
         xml input0 = <- RenderXmlToWriteFile1;
         xml combinedInput = input0;
@@ -101,16 +118,10 @@ function process_loggingservice_LogProcess(xml input) returns xml {
         output -> function;
     }
     xml result0 = <- activityExtension_worker;
-    xml result1 = <- unhandled_worker;
-    xml result = result0 + result1;
+    xml result = result0;
     return result;
 }
 
 function receiveEvent(xml input, map<xml> context) returns xml {
-    return input;
-}
-
-function unhandled(xml input, map<xml> context) returns xml {
-    //Unknown extension kind: bw.xml.renderxml
     return input;
 }

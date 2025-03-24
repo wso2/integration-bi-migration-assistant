@@ -426,6 +426,7 @@ public final class XmlToTibcoModelConverter {
                     TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.ExtensionKind.JSON_PARSER,
                     TibcoModel.Type.Schema.TibcoType.of("nil"));
             case LOG -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.Log();
+            case RENDER_XML -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.RenderXML();
             case SEND_HTTP_RESPONSE -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SendHTTPResponse();
             case SQL -> parasSqlActivityExtension(config);
         };

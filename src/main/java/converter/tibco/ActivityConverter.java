@@ -128,10 +128,19 @@ class ActivityConverter {
                             createFileWriteOperation(cx, result, fileWrite);
                     case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.Log log ->
                             createLogOperation(cx, result, log);
+                    case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.RenderXML renderXML ->
+                            createRenderXml(cx, result, renderXML);
                 };
                 body.addAll(rest);
                 return body;
         }
+
+    private static List<BallerinaModel.Statement> createRenderXml(
+            ActivityContext cx,
+            BallerinaModel.Expression.VariableReference result,
+            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.RenderXML renderXML) {
+        return List.of(new Return<>(result));
+    }
 
     private static List<BallerinaModel.Statement> createLogOperation(
             ActivityContext cx,
