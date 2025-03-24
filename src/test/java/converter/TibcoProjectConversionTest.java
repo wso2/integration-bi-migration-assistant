@@ -38,10 +38,10 @@ public class TibcoProjectConversionTest {
         Path tempDir = Files.createTempDirectory("tibco-conversion-test");
         try {
             // Run the conversion
-            migrateTibcoProject(tibcoProject.toString(), expectedBallerinaProject.toString());
+            migrateTibcoProject(tibcoProject.toString(), tempDir.toString());
 
             // Compare the directories
-            compareDirectories(tempDir, tempDir);
+            compareDirectories(tempDir, expectedBallerinaProject);
         } finally {
             // Clean up temporary directory
             deleteDirectory(tempDir);

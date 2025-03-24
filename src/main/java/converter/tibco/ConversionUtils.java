@@ -39,7 +39,14 @@ public final class ConversionUtils {
         while (!Character.isAlphabetic(sanitized.charAt(0))) {
             sanitized = sanitized.substring(1);
         }
+        if (isReserved(sanitized)) {
+            sanitized = "'" + name;
+        }
         return sanitized;
+    }
+
+    private static boolean isReserved(String name) {
+        return name.equals("type");
     }
 
     public static String getSanitizedUniqueName(String name, Collection<String> allocatedNames) {
