@@ -1,7 +1,7 @@
 import ballerina/sql;
 import ballerina/xslt;
 
-function activityExtension(xml input, map<xml> context) returns xml {
+function activityExtension_6(xml input, map<xml> context) returns xml {
     xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns2="/T1535753828744Converted/JsonSchema" version="2.0">
     <xsl:param name="QueryRecords"/>
@@ -81,7 +81,7 @@ function process_creditcheckservice_LookupDatabase(xml input) returns xml {
     }
     worker JDBCUpdateToEnd {
         xml result0 = <- activityExtension_8_worker;
-        result0 -> activityExtension_worker;
+        result0 -> activityExtension_6_worker;
     }
     worker QueryRecordsToThrow {
         xml result0 = <- activityExtension_7_worker;
@@ -90,6 +90,12 @@ function process_creditcheckservice_LookupDatabase(xml input) returns xml {
     worker StartToEnd {
         xml result0 = <- start_worker;
         result0 -> activityExtension_7_worker;
+    }
+    worker activityExtension_6_worker {
+        xml input0 = <- JDBCUpdateToEnd;
+        xml combinedInput = input0;
+        xml output = activityExtension_6(combinedInput, context);
+        output -> function;
     }
     worker activityExtension_7_worker {
         xml input0 = <- StartToEnd;
@@ -104,19 +110,13 @@ function process_creditcheckservice_LookupDatabase(xml input) returns xml {
         xml output = activityExtension_8(combinedInput, context);
         output -> JDBCUpdateToEnd;
     }
-    worker activityExtension_worker {
-        xml input0 = <- JDBCUpdateToEnd;
-        xml combinedInput = input0;
-        xml output = activityExtension(combinedInput, context);
-        output -> function;
-    }
     worker unhandled_9_worker {
         xml input0 = <- QueryRecordsToThrow;
         xml combinedInput = input0;
         xml output = unhandled_9(combinedInput, context);
         output -> function;
     }
-    xml result0 = <- activityExtension_worker;
+    xml result0 = <- activityExtension_6_worker;
     xml result1 = <- unhandled_9_worker;
     xml result = result0 + result1;
     return result;

@@ -446,6 +446,14 @@ public class TibcoModel {
                             }
                         }
 
+                        record Log() implements Config {
+
+                            @Override
+                            public ExtensionKind kind() {
+                                return ExtensionKind.LOG;
+                            }
+                        }
+
                         record SQL(String sharedResourcePropertyName, String query,
                                    List<SQLParameter> parameters) implements Config {
 
@@ -505,6 +513,7 @@ public class TibcoModel {
                             HTTP_SEND,
                             JSON_PARSER,
                             JSON_RENDER,
+                            LOG,
                             SEND_HTTP_RESPONSE,
                             SQL;
 
@@ -516,6 +525,7 @@ public class TibcoModel {
                                     case "bw.restjson.JsonParser" -> JSON_PARSER;
                                     case "bw.http.sendHTTPResponse" -> SEND_HTTP_RESPONSE;
                                     case "bw.file.write" -> FILE_WRITE;
+                                    case "bw.generalactivities.log" -> LOG;
                                     default -> patternMatch(typeId);
                                 };
                             }

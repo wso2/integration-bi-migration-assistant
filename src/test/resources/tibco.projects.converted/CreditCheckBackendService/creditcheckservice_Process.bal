@@ -1,5 +1,13 @@
 import ballerina/xslt;
 
+function activityExtension(xml input, map<xml> context) returns xml {
+    xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" version="2.0"><xsl:template name="LogSuccess-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'Invoation Successful'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`), context);
+    LogParametersType var1 = convertToLogParametersType(var0);
+    logWrapper(var1);
+    return var0;
+}
+
 function creditcheckservice_Process_start(anydata input) returns anydata {
     xml inputXML = toXML(input);
     xml xmlResult = process_creditcheckservice_Process(inputXML);
@@ -33,11 +41,22 @@ function process_creditcheckservice_Process(xml input) returns xml {
     addToContext(context, "post.item", input);
     worker start_worker {
         xml result0 = unhandled(input, context);
-        xml result1 = unhandled_3(input, context);
-        xml result2 = extActivity(input, context);
-        result2 -> LookupDatabaseToLogSuccess_Name;
+        xml result1 = extActivity(input, context);
+        result1 -> LookupDatabaseToLogSuccess_Name;
     }
     worker LogTopostOut {
+        xml result0 = <- activityExtension_worker;
+        result0 -> reply_worker;
+    }
+    worker LookupDatabaseToLogSuccess_Name {
+        xml result0 = <- start_worker;
+        result0 -> activityExtension_worker;
+    }
+    worker activityExtension_worker {
+        xml input0 = <- LookupDatabaseToLogSuccess_Name;
+        xml combinedInput = input0;
+        xml output = activityExtension(combinedInput, context);
+        output -> LogTopostOut;
     }
     worker reply_worker {
         xml input0 = <- LogTopostOut;
@@ -47,8 +66,7 @@ function process_creditcheckservice_Process(xml input) returns xml {
     }
     xml result0 = <- unhandled_worker;
     xml result1 = <- reply_worker;
-    xml result2 = <- unhandled_3_worker;
-    xml result = result0 + result1 + result2;
+    xml result = result0 + result1;
     return result;
 }
 
@@ -122,10 +140,5 @@ function unhandled(xml input, map<xml> context) returns xml {
     //        </bpws:flow>
     //    </bpws:scope>
     //</bpws:catchAll>
-    return input;
-}
-
-function unhandled_3(xml input, map<xml> context) returns xml {
-    //Unknown extension kind: bw.generalactivities.log
     return input;
 }

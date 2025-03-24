@@ -126,10 +126,35 @@ class ActivityConverter {
                             List.of(new Return<>(result));
                     case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.FileWrite fileWrite ->
                             createFileWriteOperation(cx, result, fileWrite);
+                    case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.Log log ->
+                            createLogOperation(cx, result, log);
                 };
                 body.addAll(rest);
                 return body;
         }
+
+    private static List<BallerinaModel.Statement> createLogOperation(
+            ActivityContext cx,
+            BallerinaModel.Expression.VariableReference result,
+            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.Log log) {
+        List<BallerinaModel.Statement> body = new ArrayList<>();
+
+        BallerinaModel.TypeDesc dataType = cx.getLogInputType();
+        VarDeclStatment dataDecl = new VarDeclStatment(dataType,
+                cx.getAnnonVarName(),
+                new BallerinaModel.Expression.FunctionCall(cx.getConvertToTypeFunction(dataType),
+                        List.of(result)));
+        body.add(dataDecl);
+
+        CallStatement callStatement = new CallStatement(
+                new BallerinaModel.Expression.FunctionCall(cx.getLogFunction(), List.of(
+                        new BallerinaModel.Expression.VariableReference(dataDecl.varName()))));
+        body.add(callStatement);
+
+        body.add(new Return<>(result));
+
+        return body;
+    }
 
     private static List<BallerinaModel.Statement> createFileWriteOperation(
             ActivityContext cx,
@@ -143,7 +168,8 @@ class ActivityConverter {
 
         VarDeclStatment fileNameDecl = new VarDeclStatment(STRING, cx.getAnnonVarName(),
                 new BallerinaModel.Expression.FieldAccess(
-                        new BallerinaModel.Expression.VariableReference(dataDecl.varName()), "fileName"));
+                        new BallerinaModel.Expression.VariableReference(dataDecl.varName()),
+                        "fileName"));
         body.add(fileNameDecl);
 
         VarDeclStatment textContentDecl = new VarDeclStatment(STRING,

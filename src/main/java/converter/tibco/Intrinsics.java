@@ -21,56 +21,86 @@ package converter.tibco;
 public enum Intrinsics {
     CREATE_HTTP_REQUEST_PATH_FROM_CONFIG(
             "getRequestPath",
-            "function getRequestPath(HTTPRequestConfig config) returns string {\n" +
-                    "    string base = config.RequestURI;\n" +
-                    "    if (config.parameters.length() == 0) {\n" +
-                    "        return base;\n" +
-                    "    }\n" +
-                    "    return base + \"?\" + \"&\".'join(...from string key in config.parameters.keys()\n" +
-                    "        select key + \"=\" + config.parameters.get(key));\n" +
-                    "}\n"
+            """
+                    function getRequestPath(HTTPRequestConfig config) returns string {
+                        string base = config.RequestURI;
+                        if (config.parameters.length() == 0) {
+                            return base;
+                        }
+                        return base + "?" + "&".'join(...from string key in config.parameters.keys()
+                            select key + "=" + config.parameters.get(key));
+                    }
+                    """
     ),
     ADD_TO_CONTEXT(
             "addToContext",
-            "function addToContext(map<xml> context, string varName, xml value){\n" +
-                    "    xml children = value/*;\n" +
-                    "    xml transformed = xml `<root>${children}</root>`;\n" +
-                    "    context[varName] = transformed;\n" +
-                    "}\n"
+            """
+                    function addToContext(map<xml> context, string varName, xml value){
+                        xml children = value/*;
+                        xml transformed = xml `<root>${children}</root>`;
+                        context[varName] = transformed;
+                    }
+                    """
+    ),
+    LOG_WRAPPER(
+            "logWrapper",
+            """
+                    function logWrapper(LogParametersType input) {
+                        match (input) {
+                            {message: var m, logLevel: "info"} => {
+                                log:printInfo(m);
+                            }
+                            {message: var m, logLevel: "debug"} => {
+                                log:printDebug(m);
+                            }
+                            {message: var m, logLevel: "warn"} => {
+                                log:printWarn(m);
+                            }
+                            {message: var m, logLevel: "error"} => {
+                                log:printError(m);
+                            }
+                            {message: var m} => {
+                                log:printInfo(m);
+                            }
+                        }
+                    }
+                    
+                    """
     ),
     TRANSFORM_XSLT(
             "transformXSLT",
-            "function transformXSLT(xml input) returns xml {\n" +
-                    "    xmlns \"http://www.w3.org/1999/XSL/Transform\" as xsl;\n" +
-                    "    xml<xml:Element> values = input/**/<xsl:value\\-of>;\n" +
-                    "    foreach xml:Element item in values {\n" +
-                    "        map<string> attributes = item.getAttributes();\n" +
-                    "        string selectPath = attributes.get(\"select\");\n" +
-                    "        int? index = selectPath.indexOf(\"/\");\n" +
-                    "        string path;\n" +
-                    "        if index == () {\n" +
-                    "            path = selectPath;\n" +
-                    "        } else {\n" +
-                    "            path = selectPath.substring(0, index) + \"/root\" + selectPath.substring(index);\n" +
-                    "        }\n" +
-                    "        attributes[\"select\"] = path;\n" +
-                    "    }\n" +
-                    "    xml<xml:Element> test = input/**/<xsl:'if>;\n" +
-                    "    foreach xml:Element item in test {\n" +
-                    "        map<string> attributes = item.getAttributes();\n" +
-                    "        string selectPath = attributes.get(\"test\");\n" +
-                    "        int? index = selectPath.indexOf(\"/\");\n" +
-                    "        string path;\n" +
-                    "        if index == () {\n" +
-                    "            path = selectPath;\n" +
-                    "        } else {\n" +
-                    "            path = selectPath.substring(0, index) + \"/root\" + selectPath.substring(index);\n"
-                    +
-                    "        }\n" +
-                    "        attributes[\"test\"] = path;\n" +
-                    "    }\n" +
-                    "    return input;\n" +
-                    "}\n"
+            """
+                    function transformXSLT(xml input) returns xml {
+                        xmlns "http://www.w3.org/1999/XSL/Transform" as xsl;
+                        xml<xml:Element> values = input/**/<xsl:value\\-of>;
+                        foreach xml:Element item in values {
+                            map<string> attributes = item.getAttributes();
+                            string selectPath = attributes.get("select");
+                            int? index = selectPath.indexOf("/");
+                            string path;
+                            if index == () {
+                                path = selectPath;
+                            } else {
+                                path = selectPath.substring(0, index) + "/root" + selectPath.substring(index);
+                            }
+                            attributes["select"] = path;
+                        }
+                        xml<xml:Element> test = input/**/<xsl:'if>;
+                        foreach xml:Element item in test {
+                            map<string> attributes = item.getAttributes();
+                            string selectPath = attributes.get("test");
+                            int? index = selectPath.indexOf("/");
+                            string path;
+                            if index == () {
+                                path = selectPath;
+                            } else {
+                                path = selectPath.substring(0, index) + "/root" + selectPath.substring(index);
+                            }
+                            attributes["test"] = path;
+                        }
+                        return input;
+                    }
+                    """
     );
     public final String body;
     public final String name;

@@ -107,4 +107,12 @@ class ActivityContext {
     public String getFileWriteFunction() {
         return processContext.getFileWriteFunction();
     }
+
+    BallerinaModel.TypeDesc getLogInputType() {
+        return processContext.getLogInputType();
+    }
+
+    String getLogFunction() {
+        return processContext.getLogFunction();
+    }
 }

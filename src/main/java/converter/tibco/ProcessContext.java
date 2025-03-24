@@ -223,4 +223,12 @@ public class ProcessContext implements ContextWithFile {
     public String getFileWriteFunction() {
         return projectContext.getFileWriteFunction(this);
     }
+
+    BallerinaModel.TypeDesc getLogInputType() {
+        return projectContext.getLogInputType();
+    }
+
+    String getLogFunction() {
+        return projectContext.getLogFunction();
+    }
 }

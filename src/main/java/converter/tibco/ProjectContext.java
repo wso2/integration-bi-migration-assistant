@@ -40,6 +40,7 @@ import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static converter.tibco.Library.IO;
+import static converter.tibco.Library.LOG;
 
 import ballerina.BallerinaModel;
 import ballerina.BallerinaModel.Statement;
@@ -63,6 +64,7 @@ public class ProjectContext {
     private String toXMLFunction = null;
     private String jsonToXMLFunction = null;
     private String toHttpConfigFunction = null;
+    private String logFunction = null;
     private int nextPort = 8080;
     private int typeCount = 0;
     private int typeAliasCount = 0;
@@ -127,6 +129,21 @@ public class ProjectContext {
 
     BallerinaModel.TypeDesc getFileWriteConfigType() {
         return getTypeByName("WriteActivityInputTextClass", typeCx);
+    }
+
+    BallerinaModel.TypeDesc getLogInputType() {
+        return getTypeByName("LogParametersType", typeCx);
+    }
+
+    String getLogFunction() {
+        if (logFunction != null) {
+            return logFunction;
+        }
+        importLibraryIfNeededToUtility(LOG);
+        Intrinsics intrinsic = Intrinsics.LOG_WRAPPER;
+        utilityIntrinsics.add(intrinsic);
+        logFunction = intrinsic.name;
+        return logFunction;
     }
 
     // TODO: We can get rid of this with an equivalent type similar to file types
