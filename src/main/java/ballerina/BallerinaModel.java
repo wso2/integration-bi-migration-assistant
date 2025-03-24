@@ -400,6 +400,14 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     public sealed interface Expression {
 
+        record TypeCast(TypeDesc typeDesc, Expression expression) implements Expression {
+
+            @Override
+            public String toString() {
+                return "<" + typeDesc + ">" + expression;
+            }
+        }
+
         record FieldAccess(Expression expression, String fieldName) implements Expression {
 
             @Override

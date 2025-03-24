@@ -19,7 +19,7 @@ function activityExtension_3(xml input, map<xml> context) returns xml {
     xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://www.tibco.com/namespaces/tnt/plugins/file" xmlns:tns1="http://www.example.org/LogSchema" xmlns:bw="http://www.tibco.com/bw/xpath/bw-custom-functions" version="2.0"><xsl:param name="Start"/><xsl:template name="WriteFile-input" match="/"><tns3:WriteActivityInputTextClass><fileName><xsl:value-of select="concat(concat(bw:getModuleProperty('fileDir'), $Start/tns1:loggerName), '.txt')"/></fileName><textContent><xsl:value-of select="$Start/tns1:message"/></textContent></tns3:WriteActivityInputTextClass></xsl:template></xsl:stylesheet>`), context);
     WriteActivityInputTextClass var1 = convertToWriteActivityInputTextClass(var0);
-    string var2 = var1.fileName;
+    string var2 = <string>var1.fileName;
     string var3 = var1.textContent;
     checkpanic io:fileWriteString(var2, var3);
     return var0;
@@ -35,7 +35,7 @@ function activityExtension_5(xml input, map<xml> context) returns xml {
     xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://www.tibco.com/namespaces/tnt/plugins/file" xmlns:tns1="http://www.example.org/LogSchema" xmlns:bw="http://www.tibco.com/bw/xpath/bw-custom-functions" version="2.0"><xsl:param name="RenderXml"/><xsl:param name="Start"/><xsl:template name="XMLFile-input" match="/"><tns3:WriteActivityInputTextClass><fileName><xsl:value-of select="concat(concat(bw:getModuleProperty('fileDir'), $Start/tns1:loggerName), '.xml')"/></fileName><textContent><xsl:value-of select="$RenderXml"/></textContent></tns3:WriteActivityInputTextClass></xsl:template></xsl:stylesheet>`), context);
     WriteActivityInputTextClass var1 = convertToWriteActivityInputTextClass(var0);
-    string var2 = var1.fileName;
+    string var2 = <string>var1.fileName;
     string var3 = var1.textContent;
     checkpanic io:fileWriteString(var2, var3);
     return var0;

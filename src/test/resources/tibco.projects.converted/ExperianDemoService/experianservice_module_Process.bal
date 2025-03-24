@@ -2,7 +2,7 @@ import ballerina/http;
 import ballerina/sql;
 import ballerina/xslt;
 
-listener http:Listener experianservice_module_Process_listener = new (8080, {host: "localhost"});
+public listener http:Listener experianservice_module_Process_listener = new (8080, {host: "localhost"});
 
 service /Creditscore on experianservice_module_Process_listener {
     resource function post creditscore(InputElement input) returns ExperianResponseSchemaElement|http:NotFound|http:InternalServerError {

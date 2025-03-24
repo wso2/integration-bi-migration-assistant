@@ -2,17 +2,17 @@ import ballerina/data.xmldata;
 import ballerina/http;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/JSONActivitiesExceptions"}
-type JSONParserExceptionType record {
+public type JSONParserExceptionType record {|
     *JSONActivityException;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/JSONActivitiesExceptions"}
-type JSONRenderExceptionType record {
+public type JSONRenderExceptionType record {|
     *JSONActivityException;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-type httpTransportResponseHeaders record {
+public type httpTransportResponseHeaders record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
     string Content_Length?;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
@@ -29,36 +29,36 @@ type httpTransportResponseHeaders record {
     string Content_Type?;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
     dynamicHeadersType DynamicHeaders?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
-type HttpClientExceptionType record {
+public type HttpClientExceptionType record {|
     *HttpResponseExceptionType;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/JSONActivitiesExceptions"}
-type JSONActivityException record {
+public type JSONActivityException record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/JSONActivitiesExceptions"}
     string msg;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/JSONActivitiesExceptions"}
     string msgCode?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
-type ActivityTimedOutExceptionType record {
+public type ActivityTimedOutExceptionType record {|
     *ActivityExceptionType;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-type server5XXErrorType record {
+public type server5XXErrorType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
     int statusCode;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
     string message?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.example.com/Creditscore/parameters"}
-type creditscoreGetParameters record {
+public type creditscoreGetParameters record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.example.com/Creditscore/parameters"}
     string DOB?;
     @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.example.com/Creditscore/parameters"}
@@ -67,10 +67,10 @@ type creditscoreGetParameters record {
     string LastName?;
     @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.example.com/Creditscore/parameters"}
     string SSN?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
-type RequestActivityOutput record {
+public type RequestActivityOutput record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
     string Header?;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
@@ -87,10 +87,10 @@ type RequestActivityOutput record {
     DynamicHeaders DynamicHeaders?;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
     mimeEnvelopeElement anon1?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
-type InputElement record {
+public type InputElement record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
     string dob;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
@@ -99,12 +99,12 @@ type InputElement record {
     string lastName;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
     string ssn;
-};
+|};
 
-type httpHeaders httpTransportHeaders;
+public type httpHeaders httpTransportHeaders;
 
 @xmldata:Namespace {prefix: "tns", uri: "/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema"}
-type GiveNewSchemaNameHere record {
+public type GiveNewSchemaNameHere record {|
     @xmldata:Namespace {prefix: "tns", uri: "/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema"}
     string DOB?;
     @xmldata:Namespace {prefix: "tns", uri: "/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema"}
@@ -113,18 +113,18 @@ type GiveNewSchemaNameHere record {
     string LastName?;
     @xmldata:Namespace {prefix: "tns", uri: "/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema"}
     string SSN?;
-};
+|};
 
-type CorrelationValue string;
+public type CorrelationValue string;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/encodings/mime"}
-type mimeEnvelopeElementType record {
+public type mimeEnvelopeElementType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/encodings/mime"}
     mimePartType[] mimePart;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-type ProcessContext record {
+public type ProcessContext record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     string JobId;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
@@ -137,15 +137,15 @@ type ProcessContext record {
     string CustomJobId?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     string[] TrackingInfo;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
-type HttpCommunicationExceptionType record {
+public type HttpCommunicationExceptionType record {|
     *BaseExceptionType;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-type ErrorReport record {
+public type ErrorReport record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     string StackTrace;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
@@ -160,37 +160,37 @@ type ErrorReport record {
     string MsgCode?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     anydata Data?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.example.com/GetCreditDetail/parameters"}
-type getcreditdetailGetParameters record {
-};
+public type getcreditdetailGetParameters record {|
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
-type BaseExceptionType record {
+public type BaseExceptionType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
     string msg;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
     string msgCode;
-};
+|};
 
-type ActivityInputClass ActivityInputClassType;
+public type ActivityInputClass ActivityInputClassType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-type statusLineType record {
+public type statusLineType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
     int statusCode;
-};
+|};
 
-type HttpClientException HttpClientExceptionType;
+public type HttpClientException HttpClientExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/JSONActivitiesExceptions"}
-type JSONTransformExceptionType record {
+public type JSONTransformExceptionType record {|
     *JSONActivityException;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput"}
-type RequestActivityInput record {
+public type RequestActivityInput record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput"}
     string Host?;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput"}
@@ -213,16 +213,16 @@ type RequestActivityInput record {
     parametersType parameters?;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput"}
     mimeEnvelopeElement anon0?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-type dynamicHeadersType record {
+public type dynamicHeadersType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
     dynamicHeadersTypeDetails[] Header;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-type httpTransportFaultHeaders record {
+public type httpTransportFaultHeaders record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
     string Content_Length?;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
@@ -239,51 +239,51 @@ type httpTransportFaultHeaders record {
     string Content_Type?;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
     dynamicHeadersType DynamicHeaders?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-type dynamicHeadersTypeDetails record {
+public type dynamicHeadersTypeDetails record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
     string Name;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
     string Value;
-};
+|};
 
-type messageBody tmessageBody;
+public type messageBody tmessageBody;
 
-type HttpCommunicationException HttpCommunicationExceptionType;
+public type HttpCommunicationException HttpCommunicationExceptionType;
 
-type HTTPRequestConfig record {
+public type HTTPRequestConfig record {|
     string Method;
     string RequestURI;
     json PostData = "";
     map<string> Headers = {};
     map<string> parameters = {};
-};
+|};
 
-type ActivityException ActivityExceptionType;
+public type ActivityException ActivityExceptionType;
 
-type UnsupportedEncodingException UnsupportedEncodingExceptionType;
+public type UnsupportedEncodingException UnsupportedEncodingExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.example.com/GetCreditDetail/headerParameters"}
-type getcreditdetailGetHeaderType record {
+public type getcreditdetailGetHeaderType record {|
     *httpTransportHeaders;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/json/1535671685533"}
-type ExperianResponseSchemaElementType record {
+public type ExperianResponseSchemaElementType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/json/1535671685533"}
     int fiCOScore?;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/json/1535671685533"}
     string rating?;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/json/1535671685533"}
     int noOfInquiries?;
-};
+|};
 
-type JSONTransformException JSONTransformExceptionType;
+public type JSONTransformException JSONTransformExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
-type outputHeadersType record {
+public type outputHeadersType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
     string Allow?;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
@@ -300,30 +300,30 @@ type outputHeadersType record {
     string[] Set_Cookie;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
     string Pragma?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
-type HttpMessageType record {
+public type HttpMessageType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
     HeadersType headers;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
     int binaryContent?;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
     string asciiContent?;
-};
+|};
 
-type JSONParserException JSONParserExceptionType;
+public type JSONParserException JSONParserExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
-type Header record {
+public type Header record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
     string Name;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
     string Value;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-type FaultDetail record {
+public type FaultDetail record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     string ActivityName;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
@@ -340,10 +340,10 @@ type FaultDetail record {
     string FullClass;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     string Class;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput"}
-type inputHeadersType record {
+public type inputHeadersType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput"}
     string Accept?;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput"}
@@ -356,55 +356,55 @@ type inputHeadersType record {
     string Cookie?;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput"}
     string Pragma?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
-type DynamicHeaders record {
+public type DynamicHeaders record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"}
     Header[] Header;
-};
+|};
 
-type httpResponseHeaders httpTransportResponseHeaders;
+public type httpResponseHeaders httpTransportResponseHeaders;
 
 @xmldata:Namespace {prefix: "tns", uri: "/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema"}
-type SuccessSchema record {
+public type SuccessSchema record {|
     @xmldata:Namespace {prefix: "tns", uri: "/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema"}
     int FICOScore?;
     @xmldata:Namespace {prefix: "tns", uri: "/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema"}
     int NoOfInquiries?;
     @xmldata:Namespace {prefix: "tns", uri: "/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema"}
     string Rating?;
-};
+|};
 
-type tmessageBody string;
+public type tmessageBody string;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
-type StatusLineType record {
+public type StatusLineType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
     string httpVersion;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
     int statusCode;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
     string reasonPhrase;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
-type HttpExceptionType record {
+public type HttpExceptionType record {|
     *BaseExceptionType;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "activity.jsonRender.output+b4f6a2ce-0fe1-42dd-b664-1220acad7966+ActivityOutputType"}
-type ActivityOutputClassType record {
+public type ActivityOutputClassType record {|
     @xmldata:Namespace {prefix: "tns", uri: "activity.jsonRender.output+b4f6a2ce-0fe1-42dd-b664-1220acad7966+ActivityOutputType"}
     string jsonString;
-};
+|};
 
-type client4XXError client4XXErrorType;
+public type client4XXError client4XXErrorType;
 
-type ActivityTimedOutException ActivityTimedOutExceptionType;
+public type ActivityTimedOutException ActivityTimedOutExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/encodings/mime"}
-type mimeHeadersType record {|
+public type mimeHeadersType record {
     @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/encodings/mime"}
     string content_disposition?;
     @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/encodings/mime"}
@@ -413,70 +413,68 @@ type mimeHeadersType record {|
     string content_transfer_encoding?;
     @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/encodings/mime"}
     string content_id?;
-    anydata...;
-|};
+};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/encodings/mime"}
-type mimePartType record {|
+public type mimePartType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.tibco.com/encodings/mime"}
     mimeHeadersType mimeHeaders;
-    int|string...;
+...int|string
 |};
 
-type statusLine statusLineType;
+public type statusLine statusLineType;
 
-type ValidationException ValidationExceptionType;
+public type ValidationException ValidationExceptionType;
 
-type JSONRenderException JSONRenderExceptionType;
+public type JSONRenderException JSONRenderExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
-type DuplicateKeyExceptionType record {
+public type DuplicateKeyExceptionType record {|
     *ActivityExceptionType;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
     string duplicateKey;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
     string previousJobID?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/JSONActivitiesExceptions"}
-type ValidationExceptionType record {
+public type ValidationExceptionType record {|
     *JSONActivityException;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
-type HttpResponseExceptionType record {
+public type HttpResponseExceptionType record {|
     *BaseExceptionType;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
     StatusLineType statusLine;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
     HttpMessageType httpMessage?;
-};
-
-@xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
-type HeadersType record {|
-    anydata...;
 |};
 
-type HttpResponseException HttpResponseExceptionType;
+@xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
+public type HeadersType record {
+};
+
+public type HttpResponseException HttpResponseExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "activity.jsonParser.input+a3fa07a6-0270-48b7-ba84-7de6924acb3d+ActivityInputType"}
-type ActivityInputClassType record {
+public type ActivityInputClassType record {|
     @xmldata:Namespace {prefix: "tns", uri: "activity.jsonParser.input+a3fa07a6-0270-48b7-ba84-7de6924acb3d+ActivityInputType"}
     string jsonString;
-};
+|};
 
-type JSONRestException JSONRestExceptionType;
+public type JSONRestException JSONRestExceptionType;
 
-type ExperianResponseSchemaElement ExperianResponseSchemaElementType;
+public type ExperianResponseSchemaElement ExperianResponseSchemaElementType;
 
-type ActivityErrorDataType ActivityTimedOutException|()|http:NotFound|http:InternalServerError;
+public type ActivityErrorDataType ActivityTimedOutException|()|http:NotFound|http:InternalServerError;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://xmlns.example.com/Creditscore/parameters"}
-type creditscorePostParameters record {
-};
+public type creditscorePostParameters record {|
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-type httpTransportHeaders record {
+public type httpTransportHeaders record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
     string Accept?;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
@@ -497,10 +495,10 @@ type httpTransportHeaders record {
     string Authorization?;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
     dynamicHeadersType DynamicHeaders?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-type OptionalErrorReport record {
+public type OptionalErrorReport record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     string StackTrace?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
@@ -515,74 +513,83 @@ type OptionalErrorReport record {
     string MsgCode?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     anydata Data?;
-};
+|};
 
-type HttpException HttpExceptionType;
+public type HttpException HttpExceptionType;
 
-type mimeEnvelopeElement mimeEnvelopeElementType;
+public type mimeEnvelopeElement mimeEnvelopeElementType;
 
-type HttpServerException HttpServerExceptionType;
+public type HttpServerException HttpServerExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput"}
-type parametersType record {
+public type parametersType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput"}
     string ssn?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
-type ActivityExceptionType record {
+public type ActivityExceptionType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
     string msg;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
     string msgCode?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/JSONActivitiesExceptions"}
-type JSONRestExceptionType record {
+public type JSONRestExceptionType record {|
     *JSONActivityException;
-};
+|};
 
-type ActivityOutputClass ActivityOutputClassType;
+public type ActivityOutputClass ActivityOutputClassType;
 
-type getcreditdetailGetHeader getcreditdetailGetHeaderType;
+public type getcreditdetailGetHeader getcreditdetailGetHeaderType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/http/5.0/httpExceptions"}
-type HttpServerExceptionType record {
+public type HttpServerExceptionType record {|
     *HttpResponseExceptionType;
-};
+|};
 
-type server5XXError server5XXErrorType;
+public type server5XXError server5XXErrorType;
 
-type DuplicateKeyException DuplicateKeyExceptionType;
+public type DuplicateKeyException DuplicateKeyExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema"}
-type CreditScoreSuccessSchema record {
+public type CreditScoreSuccessSchema record {|
     @xmldata:Namespace {prefix: "tns", uri: "/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema"}
     SuccessSchema EquifaxResponse?;
     @xmldata:Namespace {prefix: "tns", uri: "/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema"}
     SuccessSchema ExperianResponse?;
     @xmldata:Namespace {prefix: "tns", uri: "/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema"}
     SuccessSchema TransUnionResponse?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/JSONActivitiesExceptions"}
-type UnsupportedEncodingExceptionType record {
+public type UnsupportedEncodingExceptionType record {|
     *JSONActivityException;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/JSONActivitiesExceptions"}
     string encoding;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-type client4XXErrorType record {
+public type client4XXErrorType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
     int statusCode;
     @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
     string message?;
-};
+|};
 
-type ActivityErrorData ActivityErrorDataType;
+public type ActivityErrorData ActivityErrorDataType;
 
-type httpFaultHeaders httpTransportFaultHeaders;
+public type httpFaultHeaders httpTransportFaultHeaders;
+
+function getRequestPath(HTTPRequestConfig config) returns string {
+    string base = config.RequestURI;
+    if (config.parameters.length() == 0) {
+        return base;
+    }
+    return base + "?" + "&".'join(...from string key in config.parameters.keys()
+        select key + "=" + config.parameters.get(key));
+}
 
 function getRequestPath(HTTPRequestConfig config) returns string {
     string base = config.RequestURI;

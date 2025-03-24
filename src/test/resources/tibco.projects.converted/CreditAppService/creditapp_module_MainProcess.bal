@@ -1,7 +1,7 @@
 import ballerina/http;
 import ballerina/xslt;
 
-listener http:Listener creditapp_module_MainProcess_listener = new (8082, {host: "localhost"});
+public listener http:Listener creditapp_module_MainProcess_listener = new (8082, {host: "localhost"});
 
 service /CreditDetails on creditapp_module_MainProcess_listener {
     resource function post creditdetails(GiveNewSchemaNameHere input) returns CreditScoreSuccessSchema|http:NotFound|http:InternalServerError {

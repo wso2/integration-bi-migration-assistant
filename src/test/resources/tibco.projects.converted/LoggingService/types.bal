@@ -1,12 +1,12 @@
 import ballerina/data.xmldata;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/xmlExceptions"}
-type XMLTransformExceptionType record {
+public type XMLTransformExceptionType record {|
     *XMLExceptionType;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type CreateActivityConfigClass record {
+public type CreateActivityConfigClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     boolean override?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
@@ -15,35 +15,35 @@ type CreateActivityConfigClass record {
     boolean createMissingDirectories?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     boolean overwrite?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
-type ActivityTimedOutExceptionType record {
+public type ActivityTimedOutExceptionType record {|
     *ActivityExceptionType;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
-type FileAlreadyExistsExceptionType record {
+public type FileAlreadyExistsExceptionType record {|
     *FileExceptionType;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
     string fileName;
-};
+|};
 
-type FileNotFoundException FileNotFoundExceptionType;
+public type FileNotFoundException FileNotFoundExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type RemoveActivityOutputClass record {
+public type RemoveActivityOutputClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     fileInfoType fileInfo;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/xmlExceptions"}
-type MissingByteCountExceptionType record {
+public type MissingByteCountExceptionType record {|
     *XMLExceptionType;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/xml/render/example"}
-type InputElement record {
+public type InputElement record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/xml/render/example"}
     string level;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/xml/render/example"}
@@ -52,20 +52,20 @@ type InputElement record {
     string logger;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/xml/render/example"}
     string timestamp;
-};
+|};
 
-type CorrelationValue string;
+public type CorrelationValue string;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
-type FileExceptionType record {
+public type FileExceptionType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
     string msg;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
     string msgCode?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-type ProcessContext record {
+public type ProcessContext record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     string JobId;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
@@ -78,10 +78,10 @@ type ProcessContext record {
     string CustomJobId?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     string[] TrackingInfo;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-type ErrorReport record {
+public type ErrorReport record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     string StackTrace;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
@@ -96,46 +96,46 @@ type ErrorReport record {
     string MsgCode?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     anydata Data?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type ReadActivityConfigClass record {
+public type ReadActivityConfigClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     boolean excludeContent?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string encoding?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
-type FileNotFoundExceptionType record {
+public type FileNotFoundExceptionType record {|
     *FileExceptionType;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
     string fileName;
-};
+|};
 
-type validateInput boolean;
+public type validateInput boolean;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
-type IllegalCopyExceptionType record {
+public type IllegalCopyExceptionType record {|
     *FileExceptionType;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
     string fromFileName;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
     string toFileName;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type WriteActivityInputBinaryClass record {
+public type WriteActivityInputBinaryClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string fileName?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     int binaryContent;
-};
+|};
 
-type cdataSections string;
+public type cdataSections string;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.example.org/LogSchema"}
-type LogMessageType record {
+public type LogMessageType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.example.org/LogSchema"}
     string level;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.example.org/LogSchema"}
@@ -148,21 +148,21 @@ type LogMessageType record {
     string loggerName?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.example.org/LogSchema"}
     string handler?;
-};
+|};
 
-type renderDefaultPrefix string;
+public type renderDefaultPrefix string;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
-type IllegalRenameExceptionType record {
+public type IllegalRenameExceptionType record {|
     *FileExceptionType;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
     string fromFileName;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
     string toFileName;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type fileInfoType record {
+public type fileInfoType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string fullName;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
@@ -181,49 +181,49 @@ type fileInfoType record {
     int size;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string lastModified;
-};
+|};
 
-type textEncoding string;
+public type textEncoding string;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type EventSourceOuputNoContentClass record {
+public type EventSourceOuputNoContentClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string action;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     int timeOccurred;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     fileInfoType fileInfo;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type RenameActivityOutput record {
+public type RenameActivityOutput record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     fileInfoType fileInfo;
-};
+|};
 
-type CopyActivityConfig CopyActivityInputClass;
+public type CopyActivityConfig CopyActivityInputClass;
 
-type ActivityException ActivityExceptionType;
+public type ActivityException ActivityExceptionType;
 
-type UnsupportedEncodingException UnsupportedEncodingExceptionType;
+public type UnsupportedEncodingException UnsupportedEncodingExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
-type FileIOExceptionType record {
+public type FileIOExceptionType record {|
     *FileExceptionType;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type fileContentTypeTextClass record {
+public type fileContentTypeTextClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string textContent;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string encoding?;
-};
+|};
 
-type xmlBytes int;
+public type xmlBytes int;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type EventSourceOuputBinaryClass record {
+public type EventSourceOuputBinaryClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string action;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
@@ -232,12 +232,12 @@ type EventSourceOuputBinaryClass record {
     fileInfoType fileInfo;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     fileContentTypeBinary fileContent;
-};
+|};
 
-type input WaitForFileChangeActivityInput;
+public type input WaitForFileChangeActivityInput;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-type FaultDetail record {
+public type FaultDetail record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     string ActivityName;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
@@ -254,22 +254,22 @@ type FaultDetail record {
     string FullClass;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     string Class;
-};
+|};
 
-type XMLTransformException XMLTransformExceptionType;
+public type XMLTransformException XMLTransformExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type files record {
+public type files record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     fileInfoType[] fileInfo;
-};
+|};
 
-type IllegalRenameException IllegalRenameExceptionType;
+public type IllegalRenameException IllegalRenameExceptionType;
 
-type writeXsiTypes boolean;
+public type writeXsiTypes boolean;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type WriteActivityInputTextClass record {
+public type WriteActivityInputTextClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string fileName?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
@@ -278,114 +278,114 @@ type WriteActivityInputTextClass record {
     boolean addLineSeparator?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string encoding?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/xmlExceptions"}
-type XMLRenderExceptionType record {
+public type XMLRenderExceptionType record {|
     *XMLExceptionType;
-};
+|};
 
-type ActivityTimedOutException complexTypeFault;
+public type ActivityTimedOutException complexTypeFault;
 
-type byteEncoding string;
+public type byteEncoding string;
 
-type FileAlreadyExistsException FileAlreadyExistsExceptionType;
+public type FileAlreadyExistsException FileAlreadyExistsExceptionType;
 
-type ValidationException ValidationExceptionType;
+public type ValidationException ValidationExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
-type DuplicateKeyExceptionType record {
+public type DuplicateKeyExceptionType record {|
     *ActivityExceptionType;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
     string duplicateKey;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
     string previousJobID?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type CopyActivityInputClass record {
+public type CopyActivityInputClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string fromFileName?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string toFileName?;
-};
+|};
 
-type xmlString string;
+public type xmlString string;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/xmlExceptions"}
-type ValidationExceptionType record {
+public type ValidationExceptionType record {|
     *XMLExceptionType;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type ListFilesActivityInputClass record {
+public type ListFilesActivityInputClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string fileName?;
-};
+|};
 
-type ReadFileFaultData ReadFileFaultDataType;
+public type ReadFileFaultData ReadFileFaultDataType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type ReadActivityOutputTextClass record {
+public type ReadActivityOutputTextClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     fileInfoType fileInfo;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     fileContentTypeTextClass fileContent;
-};
+|};
 
-type MissingByteCountException MissingByteCountExceptionType;
+public type MissingByteCountException MissingByteCountExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type ReadActivityInputClass record {
+public type ReadActivityInputClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string fileName?;
-};
+|};
 
-type result string;
+public type result string;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type RenameActivityInputClass record {
+public type RenameActivityInputClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string fromFileName?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string toFileName?;
-};
+|};
 
-type renderAsText boolean;
+public type renderAsText boolean;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type fileContentTypeBinary record {
+public type fileContentTypeBinary record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     int binaryContent;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type ReadActivityOutputBinaryClass record {
+public type ReadActivityOutputBinaryClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     fileInfoType fileInfo;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     fileContentTypeBinary fileContent;
-};
+|};
 
-type ActivityErrorDataType XMLRenderException|()|UnsupportedEncodingException|MissingByteCountException;
+public type ActivityErrorDataType XMLRenderException|()|UnsupportedEncodingException|MissingByteCountException;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/xmlExceptions"}
-type XMLParseExceptionType record {
+public type XMLParseExceptionType record {|
     *XMLExceptionType;
-};
+|};
 
-type XMLRenderException XMLRenderExceptionType;
+public type XMLRenderException XMLRenderExceptionType;
 
-type RenameActivityConfig RenameActivityInputClass;
+public type RenameActivityConfig RenameActivityInputClass;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type ReadActivityOutputNoContentClass record {
+public type ReadActivityOutputNoContentClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     fileInfoType fileInfo;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-type OptionalErrorReport record {
+public type OptionalErrorReport record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     string StackTrace?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
@@ -400,7 +400,7 @@ type OptionalErrorReport record {
     string MsgCode?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
     anydata Data?;
-};
+|};
 
 //FIXME: Failed to convert type due to [ParseError] : Unsupported complex type body tag: attribute
 //<xsd:complexType xmlns:xsd="http://www.w3.org/2001/XMLSchema">
@@ -412,12 +412,12 @@ type OptionalErrorReport record {
 //        <xsd:attribute name="ref" type="xsd:IDREF"/>
 //    </xsd:complexType>
 //</xsd:element>
-type term anydata;
+public type term anydata;
 
-type FileIOException FileIOExceptionType;
+public type FileIOException FileIOExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/WriteToLogActivitySchema"}
-type LogParametersType record {
+public type LogParametersType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/WriteToLogActivitySchema"}
     string msgCode?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/WriteToLogActivitySchema"}
@@ -426,12 +426,12 @@ type LogParametersType record {
     string logLevel?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/WriteToLogActivitySchema"}
     string message;
-};
+|};
 
-type XMLParseException XMLParseExceptionType;
+public type XMLParseException XMLParseExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type EventSourceConfigClass record {
+public type EventSourceConfigClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string fileName;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
@@ -452,52 +452,52 @@ type EventSourceConfigClass record {
     string sortorder?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string sortby?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
-type complexTypeFault record {
+public type complexTypeFault record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
     string msg;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions"}
     string msgCode?;
-};
+|};
 
 //FIXME: Failed to convert type due to [ParseError] : Expected 1 children, but found: 0
 //<complexType name="RemoveActivityConfigClass" xmlns="http://www.w3.org/2001/XMLSchema"/>
 
 //<complexType name="RemoveActivityConfigClass" xmlns="http://www.w3.org/2001/XMLSchema"/>
-type RemoveActivityConfigClass anydata;
+public type RemoveActivityConfigClass anydata;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type WaitForFileChangeActivityInput record {
+public type WaitForFileChangeActivityInput record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string key?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     int processTimeout?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
-type ActivityExceptionType record {
+public type ActivityExceptionType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
     string msg;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
     string msgCode?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type CreateActivityInputClass record {
+public type CreateActivityInputClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string fileName?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type WriteActivityOutputClass record {
+public type WriteActivityOutputClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     fileInfoType fileInfo;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type EventSourceOuputTextClass record {
+public type EventSourceOuputTextClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string action;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
@@ -506,53 +506,53 @@ type EventSourceOuputTextClass record {
     fileInfoType fileInfo;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     fileContentTypeTextClass fileContent;
-};
+|};
 
-type DuplicateKeyException DuplicateKeyExceptionType;
+public type DuplicateKeyException DuplicateKeyExceptionType;
 
-type ListFilesActivityConfig ListFilesActivityInputClass;
+public type ListFilesActivityConfig ListFilesActivityInputClass;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/xmlExceptions"}
-type UnsupportedEncodingExceptionType record {
+public type UnsupportedEncodingExceptionType record {|
     *XMLExceptionType;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/xmlExceptions"}
     string encoding;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/xmlExceptions"}
-type XMLExceptionType record {
+public type XMLExceptionType record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/xmlExceptions"}
     string msg;
     @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/xml/5.0/xmlExceptions"}
     string msgCode?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type CreateActivityOutputClass record {
+public type CreateActivityOutputClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     fileInfoType fileInfo;
-};
+|};
 
-type XMLException XMLExceptionType;
+public type XMLException XMLExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type RemoveActivityInputClass record {
+public type RemoveActivityInputClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string fileName?;
-};
+|};
 
-type ReadFileFaultDataType FileNotFoundException|UnsupportedEncodingException|FileIOException;
+public type ReadFileFaultDataType FileNotFoundException|UnsupportedEncodingException|FileIOException;
 
-type FileException FileExceptionType;
+public type FileException FileExceptionType;
 
-type ActivityErrorData ActivityErrorDataType;
+public type ActivityErrorData ActivityErrorDataType;
 
-type LogMessage LogMessageType;
+public type LogMessage LogMessageType;
 
-type IllegalCopyException IllegalCopyExceptionType;
+public type IllegalCopyException IllegalCopyExceptionType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type WriteActivityConfigClass record {
+public type WriteActivityConfigClass record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     boolean createNewFile?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
@@ -561,12 +561,12 @@ type WriteActivityConfigClass record {
     string encoding?;
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     string compressFile?;
-};
+|};
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
-type ListFilesActivityOutput record {
+public type ListFilesActivityOutput record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/file"}
     files files;
-};
+|};
 
-type ActivityInput LogParametersType;
+public type ActivityInput LogParametersType;
