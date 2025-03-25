@@ -414,6 +414,8 @@ public type PluginExceptionType record {|
     *ActivityExceptionType;
 |};
 
+type Request RequestType;
+
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
 public type column record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}

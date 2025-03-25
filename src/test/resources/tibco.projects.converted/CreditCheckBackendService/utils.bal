@@ -16,6 +16,10 @@ function convertToQueryData1(xml input) returns QueryData1 {
     return checkpanic xmldata:parseAsType(input);
 }
 
+function convertToResponse(xml input) returns Response {
+    return checkpanic xmldata:parseAsType(input);
+}
+
 function convertToanydata(xml input) returns anydata {
     return checkpanic xmldata:parseAsType(input);
 }

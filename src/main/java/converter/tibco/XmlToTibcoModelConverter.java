@@ -854,7 +854,7 @@ public final class XmlToTibcoModelConverter {
 
     private static TibcoModel.Type.WSDLDefinition parseWSDLDefinition(Element element) {
         Map<String, String> namespaces = new HashMap<>();
-        TibcoModel.Type.WSDLDefinition.PartnerLinkType partnerLinkType = null;
+        Collection<TibcoModel.Type.WSDLDefinition.PartnerLinkType> partnerLinkTypes = new ArrayList<>();
         List<TibcoModel.NameSpace> imports = new ArrayList<>();
         List<TibcoModel.Type.WSDLDefinition.Message> messages = new ArrayList<>();
         List<TibcoModel.Type.WSDLDefinition.PortType> portTypes = new ArrayList<>();
@@ -862,10 +862,7 @@ public final class XmlToTibcoModelConverter {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
                 case "partnerLinkType" -> {
-                    if (partnerLinkType != null) {
-                        throw new ParserException("Multiple partnerLinkType elements found in the XML", element);
-                    }
-                    partnerLinkType = parsePartnerLinkType(child);
+                    partnerLinkTypes.add(parsePartnerLinkType(child));
                 }
                 case "import" -> imports.add(parseImport(child));
                 case "message" -> messages.add(parseMessage(child));
@@ -873,10 +870,10 @@ public final class XmlToTibcoModelConverter {
                 default -> throw new ParserException("Unsupported WSDL definition tag: " + tag, element);
             }
         }
-        if (partnerLinkType == null) {
+        if (partnerLinkTypes.isEmpty()) {
             throw new ParserException("PartnerLinkType not found in WSDL definition", element);
         }
-        return new TibcoModel.Type.WSDLDefinition(namespaces, partnerLinkType, imports, messages, portTypes);
+        return new TibcoModel.Type.WSDLDefinition(namespaces, partnerLinkTypes, imports, messages, portTypes);
     }
 
     private static TibcoModel.Type.WSDLDefinition.PortType parsePortType(Element element) {

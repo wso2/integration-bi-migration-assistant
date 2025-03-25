@@ -71,7 +71,7 @@ public class TibcoModel {
 
     public sealed interface Type {
 
-        record WSDLDefinition(Map<String, String> namespaces, PartnerLinkType partnerLinkType,
+        record WSDLDefinition(Map<String, String> namespaces, Collection<PartnerLinkType> partnerLinkTypes,
                               Collection<NameSpace> imports, Collection<Message> messages,
                               Collection<PortType> portType) implements Type {
 

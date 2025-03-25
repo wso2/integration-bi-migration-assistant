@@ -1,4 +1,20 @@
+import ballerina/http;
 import ballerina/xslt;
+
+const string client_404_NotFound = "Not Found";
+listener http:Listener creditcheckservice_Process_listener = new (8080, {host: "localhost"});
+
+service /CreditScore on creditcheckservice_Process_listener {
+    resource function post creditscore(Request input) returns Response|http:NotFound|http:InternalServerError|client_404_NotFound {
+        return creditcheckservice_Process_start(input);
+    }
+}
+
+service / on creditcheckservice_Process_listener {
+    resource function get creditscore(httpHeaders input) returns Response|http:NotFound|http:InternalServerError {
+        return creditcheckservice_Process_start(input);
+    }
+}
 
 function activityExtension(xml input, map<xml> context) returns xml {
     xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
@@ -8,10 +24,10 @@ function activityExtension(xml input, map<xml> context) returns xml {
     return var0;
 }
 
-function creditcheckservice_Process_start(anydata input) returns anydata {
+function creditcheckservice_Process_start(httpHeaders input) returns Response {
     xml inputXML = toXML(input);
     xml xmlResult = process_creditcheckservice_Process(inputXML);
-    anydata result = convertToanydata(xmlResult);
+    Response result = convertToResponse(xmlResult);
     return result;
 }
 
