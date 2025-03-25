@@ -319,6 +319,11 @@ public class ProjectContext {
         return "io:fileWriteString";
     }
 
+    public String getPredicateTestFunction() {
+        utilityIntrinsics.add(Intrinsics.XPATH_PREDICATE);
+        return Intrinsics.XPATH_PREDICATE.name;
+    }
+
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
 
         FunctionData {

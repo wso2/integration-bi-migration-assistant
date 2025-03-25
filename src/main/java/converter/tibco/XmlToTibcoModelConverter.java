@@ -184,7 +184,7 @@ public final class XmlToTibcoModelConverter {
 
     private static TibcoModel.Scope.Flow.Activity parseUnhandledActivity(Element element, String reason) {
         Collection<TibcoModel.Scope.Flow.Activity.Target> targets = new ArrayList<>();
-        Collection<TibcoModel.Scope.Flow.Activity.Source> sources = new ArrayList<>();
+        List<TibcoModel.Scope.Flow.Activity.Source> sources = new ArrayList<>();
 
         for (Element child : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(child);
@@ -250,7 +250,7 @@ public final class XmlToTibcoModelConverter {
         String partnerLink = element.getAttribute("partnerLink");
         List<TibcoModel.Scope.Flow.Activity.InputBinding> inputBindings = new ArrayList<>();
         Collection<TibcoModel.Scope.Flow.Activity.Target> targets = new ArrayList<>();
-        Collection<TibcoModel.Scope.Flow.Activity.Source> sources = new ArrayList<>();
+        List<TibcoModel.Scope.Flow.Activity.Source> sources = new ArrayList<>();
         for (Element each : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(each);
             switch (tag) {
@@ -345,7 +345,7 @@ public final class XmlToTibcoModelConverter {
         TibcoModel.Scope.Flow.Activity.Expression expression = parseExpressionNode(element);
         String inputVariable = element.getAttribute("inputVariable");
         String outputVariable = element.getAttribute("outputVariable");
-        Collection<TibcoModel.Scope.Flow.Activity.Source> sources = null;
+        List<TibcoModel.Scope.Flow.Activity.Source> sources = null;
         List<TibcoModel.Scope.Flow.Activity.InputBinding> inputBindings = new ArrayList<>();
         TibcoModel.Scope.Flow.Activity.ExtActivity.CallProcess callProcess = null;
         for (Element each : ElementIterable.of(element)) {
@@ -387,7 +387,7 @@ public final class XmlToTibcoModelConverter {
                         .orElse(List.of());
 
         Optional<Element> sourcesElement = tryGetFirstChildWithTag(activity, "sources");
-        Collection<TibcoModel.Scope.Flow.Activity.Source> sources =
+        List<TibcoModel.Scope.Flow.Activity.Source> sources =
                 sourcesElement.map(ElementIterable::of).map(ElementIterable::stream)
                         .map(s -> s.map(XmlToTibcoModelConverter::parseSource).toList())
                         .orElse(List.of());
@@ -461,16 +461,35 @@ public final class XmlToTibcoModelConverter {
         boolean createInstance = activity.getAttribute("createInstance").equals("yes");
         float eventTimeout = expectFloatAttribute(activity, "eventTimeout");
         String variable = activity.getAttribute("variable");
-        Collection<TibcoModel.Scope.Flow.Activity.Source> sources =
+        List<TibcoModel.Scope.Flow.Activity.Source> sources =
                 ElementIterable.of(getFirstChildWithTag(activity, "sources")).stream()
                         .map(XmlToTibcoModelConverter::parseSource).toList();
 
         return new TibcoModel.Scope.Flow.Activity.ReceiveEvent(createInstance, eventTimeout, variable, sources);
     }
 
-    private static TibcoModel.Scope.Flow.Activity.Source parseSource(Element each) {
-        return new TibcoModel.Scope.Flow.Activity.ReceiveEvent.Source(
-                each.getAttribute("linkName"));
+    private static TibcoModel.Scope.Flow.Activity.Source parseSource(Element element) {
+        String linkName = element.getAttribute("linkName");
+        Optional<TibcoModel.Scope.Flow.Activity.Source.Predicate> predicate =
+                tryGetFirstChildWithTag(element, "transitionCondition").map(XmlToTibcoModelConverter::parseCondition);
+        return new TibcoModel.Scope.Flow.Activity.ReceiveEvent.Source(linkName, predicate);
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.Source.Predicate parseCondition(Element cond) {
+        String body = cond.getTextContent();
+        if (body.contains("##otherwise##")) {
+            return new TibcoModel.Scope.Flow.Activity.Source.Predicate.Else();
+        } else {
+            return parseXPath(cond);
+        }
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.Expression.XPath parseXPath(Element element) {
+        String expressionLanguage = element.getAttribute("expressionLanguage");
+        if (!expressionLanguage.contains("xpath")) {
+            throw new ParserException("Unsupported expression language: " + expressionLanguage, element);
+        }
+        return new TibcoModel.Scope.Flow.Activity.Expression.XPath(element.getTextContent());
     }
 
     private static Collection<TibcoModel.Scope.Flow.Link> parseLinks(Element element) {

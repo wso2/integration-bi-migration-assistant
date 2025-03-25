@@ -37,9 +37,9 @@ public type server5XXErrorType record {|
     string message?;
 |};
 
-public type InvalidTimeZoneException InvalidTimeZoneExceptionType;
-
 public type httpHeaders httpTransportHeaders;
+
+public type InvalidTimeZoneException InvalidTimeZoneExceptionType;
 
 public type CorrelationValue string;
 
@@ -414,7 +414,7 @@ public type PluginExceptionType record {|
     *ActivityExceptionType;
 |};
 
-type Request RequestType;
+public type Request RequestType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
 public type column record {|
@@ -423,8 +423,6 @@ public type column record {|
     @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
     anyType value;
 |};
-
-public type Request RequestType;
 
 @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
 public type jdbcCallActivityOutput record {|

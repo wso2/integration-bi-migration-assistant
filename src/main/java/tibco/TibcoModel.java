@@ -337,7 +337,7 @@ public class TibcoModel {
 
                 sealed interface ActivityWithSources extends Activity {
 
-                    Collection<Source> sources();
+                    List<Source> sources();
                 }
 
                 sealed interface ActivityWithTargets extends Activity {
@@ -351,9 +351,13 @@ public class TibcoModel {
                     record XSLT(String expression) implements Expression {
 
                     }
+
+                    record XPath(String expression) implements Expression, Source.Predicate {
+
+                    }
                 }
 
-                record UnhandledActivity(String reason, String elementAsString, Collection<Source> sources,
+                record UnhandledActivity(String reason, String elementAsString, List<Source> sources,
                         Collection<Target> targets) implements Activity, ActivityWithSources,
                         ActivityWithTargets {
 
@@ -378,12 +382,12 @@ public class TibcoModel {
                 }
 
                 record ReceiveEvent(boolean createInstance, float eventTimeout, String variable,
-                                    Collection<Source> sources) implements Activity, ActivityWithSources {
+                                    List<Source> sources) implements Activity, ActivityWithSources {
 
                 }
 
                 record ExtActivity(Expression expression, String inputVariable, String outputVariable,
-                                   Collection<Source> sources, List<InputBinding> inputBindings,
+                                   List<Source> sources, List<InputBinding> inputBindings,
                                    CallProcess callProcess) implements Activity, ActivityWithSources {
 
                     public record CallProcess(String subprocessName) {
@@ -393,7 +397,7 @@ public class TibcoModel {
 
                 record ActivityExtension(String inputVariable,
                                          Optional<String> outputVariable,
-                                         Collection<Target> targets, Collection<Source> sources,
+                                         Collection<Target> targets, List<Source> sources,
                                          List<InputBinding> inputBindings, Config config)
                         implements Activity, ActivityWithTargets, ActivityWithSources {
 
@@ -553,7 +557,7 @@ public class TibcoModel {
                 }
 
                 record Invoke(String inputVariable, String outputVariable, Operation operation, String partnerLink,
-                              List<InputBinding> inputBindings, Collection<Target> targets, Collection<Source> sources)
+                              List<InputBinding> inputBindings, Collection<Target> targets, List<Source> sources)
                         implements Activity, ActivityWithSources, ActivityWithTargets {
 
                     public enum Operation {
@@ -566,8 +570,18 @@ public class TibcoModel {
 
                 }
 
-                record Source(String linkName) {
+                record Source(String linkName, Optional<Predicate> condition) {
 
+                    public Source(String linkName) {
+                        this(linkName, Optional.empty());
+                    }
+
+                    public interface Predicate {
+
+                        record Else() implements Predicate {
+
+                        }
+                    }
                 }
 
                 record InputBinding(Expression expression) {

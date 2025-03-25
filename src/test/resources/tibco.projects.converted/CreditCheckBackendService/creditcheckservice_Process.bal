@@ -2,7 +2,7 @@ import ballerina/http;
 import ballerina/xslt;
 
 const string client_404_NotFound = "Not Found";
-listener http:Listener creditcheckservice_Process_listener = new (8080, {host: "localhost"});
+public listener http:Listener creditcheckservice_Process_listener = new (8080, {host: "localhost"});
 
 service /CreditScore on creditcheckservice_Process_listener {
     resource function post creditscore(Request input) returns Response|http:NotFound|http:InternalServerError|client_404_NotFound {

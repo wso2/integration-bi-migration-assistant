@@ -89,6 +89,11 @@ function transformXSLT(xml input) returns xml {
     return input;
 }
 
+function test(xml input, string xpath) returns boolean {
+    // TODO: support XPath
+    return false;
+}
+
 function addToContext(map<xml> context, string varName, xml value) {
     xml children = value/*;
     xml transformed = xml `<root>${children}</root>`;
@@ -144,4 +149,9 @@ function transformXSLT(xml input) returns xml {
         attributes["test"] = path;
     }
     return input;
+}
+
+function test(xml input, string xpath) returns boolean {
+    // TODO: support XPath
+    return false;
 }

@@ -53,9 +53,15 @@ function process_loggingservice_LogProcess(xml input) returns xml {
     addToContext(context, "post.item", input);
     worker start_worker {
         xml result0 = receiveEvent(input, context);
-        result0 -> StartToLog;
-        result0 -> StartToWriteFile;
-        result0 -> StartToRenderXml;
+        if test(result0, "matches($Start/ns0:handler, " console ")") {
+            result0 -> StartToLog;
+        }
+        if test(result0, "matches($Start/ns0:handler, " file ") and matches($Start/ns0:formatter, " text ")") {
+            result0 -> StartToWriteFile;
+        }
+        if test(result0, "matches($Start/ns0:handler, " file ") and matches($Start/ns0:formatter, " xml  ")") {
+            result0 -> StartToRenderXml;
+        }
     }
     worker LogToEnd {
         xml result0 = <- activityExtension_2_worker;

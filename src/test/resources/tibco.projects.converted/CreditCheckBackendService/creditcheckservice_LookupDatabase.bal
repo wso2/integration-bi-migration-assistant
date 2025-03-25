@@ -101,8 +101,11 @@ function process_creditcheckservice_LookupDatabase(xml input) returns xml {
         xml input0 = <- StartToEnd;
         xml combinedInput = input0;
         xml output = activityExtension_7(combinedInput, context);
-        output -> JDBCQueryToEnd;
-        output -> QueryRecordsToThrow;
+        if test(output, "string-length($QueryRecords/Record[1]/rating)>0") {
+            output -> JDBCQueryToEnd;
+        } else {
+            output -> QueryRecordsToThrow;
+        }
     }
     worker activityExtension_8_worker {
         xml input0 = <- JDBCQueryToEnd;

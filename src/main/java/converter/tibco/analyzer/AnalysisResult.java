@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public final class AnalysisResult {
 
@@ -120,11 +121,11 @@ public final class AnalysisResult {
         return queryIndex.get(sql);
     }
 
-    public Collection<TibcoModel.Scope.Flow.Link> destinations(TibcoModel.Scope.Flow.Activity activity) {
+    public List<TransitionData> destinations(TibcoModel.Scope.Flow.Activity activity) {
         if (activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithSources activityWithSources) {
             return activityWithSources.sources().stream()
-                    .map(TibcoModel.Scope.Flow.Activity.Source::linkName)
-                    .map(TibcoModel.Scope.Flow.Link::new)
+                    .map(source ->
+                            new TransitionData(new TibcoModel.Scope.Flow.Link(source.linkName()), source.condition()))
                     .toList();
         }
         return List.of();
@@ -132,6 +133,11 @@ public final class AnalysisResult {
 
     public TibcoModel.PartnerLink.Binding getBinding(String partnerLinkName) {
         return Objects.requireNonNull(partnerlinkBindings.get(partnerLinkName));
+    }
+
+    public record TransitionData(TibcoModel.Scope.Flow.Link target,
+                                 Optional<TibcoModel.Scope.Flow.Activity.Source.Predicate> predicate) {
+
     }
 
     public record LinkData(String workerName, Collection<TibcoModel.Scope.Flow.Activity> sourceActivities,

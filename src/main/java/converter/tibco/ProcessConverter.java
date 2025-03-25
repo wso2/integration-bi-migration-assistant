@@ -159,11 +159,9 @@ public class ProcessConverter {
         String outputVarName = "output";
         VarDeclStatment outputVarDecl = new VarDeclStatment(XML, outputVarName, callExpr);
         body.add(outputVarDecl);
-        Collection<TibcoModel.Scope.Flow.Link> destinations = analysisResult.destinations(activity);
-        for (TibcoModel.Scope.Flow.Link destination : destinations) {
-            body.add(generateSendToWorker(cx, destination, outputVarName));
-        }
-        if (destinations.isEmpty()) {
+        addTransitionsToDestination(cx, body, activity,
+                new BallerinaModel.Expression.VariableReference(outputVarDecl.varName()));
+        if (analysisResult.destinations(activity).isEmpty()) {
             BallerinaModel.Action.WorkerSendAction sendAction = new BallerinaModel.Action.WorkerSendAction(
                     new VariableReference(outputVarName), "function");
             // FIXME:
@@ -199,15 +197,44 @@ public class ProcessConverter {
             TibcoModel.Scope.Flow.Activity startActivity,
             int index, List<BallerinaModel.Statement> body) {
         String result = "result" + index;
-        AnalysisResult analysisResult = cx.analysisResult;
         FunctionCall callExpr = genereateActivityFunctionCall(cx, startActivity,
                 new VariableReference("input"));
         VarDeclStatment outputVarDecl = new VarDeclStatment(XML, result, callExpr);
         body.add(outputVarDecl);
+        addTransitionsToDestination(cx, body, startActivity, new BallerinaModel.Expression.VariableReference(result));
+    }
 
-        Collection<TibcoModel.Scope.Flow.Link> destinationLinks = analysisResult.destinations(startActivity);
-        for (TibcoModel.Scope.Flow.Link destinationLink : destinationLinks) {
-            body.add(generateSendToWorker(cx, destinationLink, result));
+    private static void addTransitionsToDestination(ProcessContext cx, List<BallerinaModel.Statement> body,
+                                                    TibcoModel.Scope.Flow.Activity activity,
+                                                    BallerinaModel.Expression.VariableReference value) {
+        AnalysisResult analysisResult = cx.analysisResult;
+        List<AnalysisResult.TransitionData> destinations = analysisResult.destinations(activity);
+        for (int i = 0; i < destinations.size(); i++) {
+            var destination = destinations.get(i);
+            if (destination.predicate().isEmpty()) {
+                body.add(generateSendToWorker(cx, destination.target(), value.varName()));
+                continue;
+            }
+            TibcoModel.Scope.Flow.Activity.Source.Predicate predicate = destination.predicate().get();
+            if (!(predicate instanceof TibcoModel.Scope.Flow.Activity.Expression.XPath(String expression))) {
+                throw new UnsupportedOperationException("Only XPath predicates are supported");
+            }
+            String predicateTestFn = cx.getPredicateTestFunction();
+            var xPathExpr = new BallerinaModel.Expression.StringConstant(expression);
+            BallerinaModel.Expression.FunctionCall predicateTestCall = new BallerinaModel.Expression.FunctionCall(
+                    predicateTestFn, List.of(value, xPathExpr));
+            boolean hasElse = i < destinations.size() - 1 && destinations.get(i + 1).predicate().stream()
+                    .anyMatch(p -> p instanceof TibcoModel.Scope.Flow.Activity.Source.Predicate.Else);
+            if (!hasElse) {
+                body.add(new BallerinaModel.IfElseStatement(predicateTestCall,
+                        List.of(generateSendToWorker(cx, destination.target(), value.varName())), List.of(),
+                        List.of()));
+            } else {
+                var elseDest = destinations.get(++i);
+                body.add(new BallerinaModel.IfElseStatement(predicateTestCall,
+                        List.of(generateSendToWorker(cx, destination.target(), value.varName())),
+                        List.of(), List.of(generateSendToWorker(cx, elseDest.target(), value.varName()))));
+            }
         }
     }
 

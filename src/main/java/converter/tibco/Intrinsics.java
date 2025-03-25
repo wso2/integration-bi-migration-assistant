@@ -67,6 +67,15 @@ public enum Intrinsics {
                     
                     """
     ),
+    XPATH_PREDICATE(
+            "test",
+            """
+                    function test(xml input, string xpath) returns boolean {
+                        // TODO: support XPath
+                        return false;
+                    }
+                    """
+    ),
     TRANSFORM_XSLT(
             "transformXSLT",
             """

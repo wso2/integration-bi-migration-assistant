@@ -370,18 +370,28 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
     }
 
-    public record IfElseStatement(BallerinaExpression ifCondition, List<Statement> ifBody,
+    public record IfElseStatement(Expression ifCondition, List<Statement> ifBody,
             List<ElseIfClause> elseIfClauses, List<Statement> elseBody) implements Statement {
 
         @Override
         public String toString() {
-            String ifBlock = String.format("if %s { %s }", ifCondition, String.join("",
-                    ifBody.stream().map(Object::toString).toList()));
-            String elseIfs = String.join("", elseIfClauses.stream().map(Object::toString).toList());
-            String elseBlock = elseBody.isEmpty() ? ""
-                    : String.format("else { %s }",
-                            String.join("", elseBody.stream().map(Object::toString).toList()));
-            return ifBlock + elseIfs + elseBlock;
+            StringBuilder sb = new StringBuilder();
+            sb.append("if ").append(ifCondition).append(" {\n");
+            for (Statement statement : ifBody) {
+                sb.append(statement).append("\n");
+            }
+            sb.append("}");
+            for (ElseIfClause elseIfClause : elseIfClauses) {
+                sb.append(elseIfClause);
+            }
+            if (!elseBody.isEmpty()) {
+                sb.append("else {\n");
+                for (Statement statement : elseBody) {
+                    sb.append(statement).append("\n");
+                }
+                sb.append("}");
+            }
+            return sb.toString();
         }
     }
 
@@ -556,7 +566,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
-        record DoStatement(List<Statement> doBody, Optional<OnFailClause> onFailClause) implements Statement {
+        public record DoStatement(List<Statement> doBody, Optional<OnFailClause> onFailClause) implements Statement {
 
             public DoStatement(List<Statement> doBody) {
                 this(doBody, Optional.empty());
