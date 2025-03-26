@@ -84,11 +84,11 @@ function process_creditapp_module_EquifaxScore(xml input) returns xml {
         input -> activityExtension_6_worker;
     }
     worker activityExtension_6_worker {
-        error:NoMessage|xml input = <- postToEnd;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- postToEnd;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = activityExtension_6(input, context);
+        xml|error output = activityExtension_6(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -96,11 +96,11 @@ function process_creditapp_module_EquifaxScore(xml input) returns xml {
         output -> function;
     }
     worker invoke_worker {
-        error:NoMessage|xml input = <- StartTopost;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- StartTopost;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = invoke(input, context);
+        xml|error output = invoke(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;

@@ -107,11 +107,11 @@ function process_creditapp_module_ExperianScore(xml input) returns xml {
         input -> activityExtension_3_worker;
     }
     worker activityExtension_2_worker {
-        error:NoMessage|xml input = <- RenderJSONToSendHTTPRequest;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- RenderJSONToSendHTTPRequest;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = activityExtension_2(input, context);
+        xml|error output = activityExtension_2(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -119,11 +119,11 @@ function process_creditapp_module_ExperianScore(xml input) returns xml {
         output -> SendHTTPRequestToEnd;
     }
     worker activityExtension_3_worker {
-        error:NoMessage|xml input = <- StartToSendHTTPRequest;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- StartToSendHTTPRequest;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = activityExtension_3(input, context);
+        xml|error output = activityExtension_3(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -131,11 +131,11 @@ function process_creditapp_module_ExperianScore(xml input) returns xml {
         output -> RenderJSONToSendHTTPRequest;
     }
     worker activityExtension_4_worker {
-        error:NoMessage|xml input = <- SendHTTPRequestToEnd;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- SendHTTPRequestToEnd;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = activityExtension_4(input, context);
+        xml|error output = activityExtension_4(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -143,11 +143,11 @@ function process_creditapp_module_ExperianScore(xml input) returns xml {
         output -> ParseJSONToEnd;
     }
     worker activityExtension_worker {
-        error:NoMessage|xml input = <- ParseJSONToEnd;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- ParseJSONToEnd;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = activityExtension(input, context);
+        xml|error output = activityExtension(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;

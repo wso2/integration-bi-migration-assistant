@@ -117,11 +117,11 @@ function process_loggingservice_LogProcess(xml input) returns xml {
         input -> activityExtension_worker;
     }
     worker activityExtension_2_worker {
-        error:NoMessage|xml input = <- StartToLog;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- StartToLog;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = activityExtension_2(input, context);
+        xml|error output = activityExtension_2(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -129,11 +129,11 @@ function process_loggingservice_LogProcess(xml input) returns xml {
         output -> LogToEnd;
     }
     worker activityExtension_3_worker {
-        error:NoMessage|xml input = <- StartToWriteFile;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- StartToWriteFile;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = activityExtension_3(input, context);
+        xml|error output = activityExtension_3(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -141,11 +141,11 @@ function process_loggingservice_LogProcess(xml input) returns xml {
         output -> WriteFileToEnd;
     }
     worker activityExtension_4_worker {
-        error:NoMessage|xml input = <- StartToRenderXml;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- StartToRenderXml;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = activityExtension_4(input, context);
+        xml|error output = activityExtension_4(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -153,11 +153,11 @@ function process_loggingservice_LogProcess(xml input) returns xml {
         output -> RenderXmlToWriteFile1;
     }
     worker activityExtension_5_worker {
-        error:NoMessage|xml input = <- RenderXmlToWriteFile1;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- RenderXmlToWriteFile1;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = activityExtension_5(input, context);
+        xml|error output = activityExtension_5(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -165,11 +165,11 @@ function process_loggingservice_LogProcess(xml input) returns xml {
         output -> XMLFileToEnd;
     }
     worker activityExtension_worker {
-        error:NoMessage|xml input = <- LogToEnd | WriteFileToEnd | XMLFileToEnd;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- LogToEnd | WriteFileToEnd | XMLFileToEnd;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = activityExtension(input, context);
+        xml|error output = activityExtension(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;

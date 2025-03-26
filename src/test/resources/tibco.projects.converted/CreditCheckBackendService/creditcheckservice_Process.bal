@@ -97,11 +97,11 @@ function process_creditcheckservice_Process(xml input) returns xml {
         input -> activityExtension_worker;
     }
     worker activityExtension_worker {
-        error:NoMessage|xml input = <- LookupDatabaseToLogSuccess_Name;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- LookupDatabaseToLogSuccess_Name;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = activityExtension(input, context);
+        xml|error output = activityExtension(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -109,11 +109,11 @@ function process_creditcheckservice_Process(xml input) returns xml {
         output -> LogTopostOut;
     }
     worker reply_6_worker {
-        error:NoMessage|xml input = <- LogToReply;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- LogToReply;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = reply_6(input, context);
+        xml|error output = reply_6(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -121,11 +121,11 @@ function process_creditcheckservice_Process(xml input) returns xml {
         output -> function;
     }
     worker reply_worker {
-        error:NoMessage|xml input = <- LogTopostOut;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- LogTopostOut;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = reply(input, context);
+        xml|error output = reply(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;

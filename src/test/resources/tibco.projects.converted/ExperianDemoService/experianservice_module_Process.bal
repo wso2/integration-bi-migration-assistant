@@ -88,11 +88,11 @@ function process_experianservice_module_Process(xml input) returns xml {
         input -> activityExtension_worker;
     }
     worker activityExtension_2_worker {
-        error:NoMessage|xml input = <- ParseJSONToJDBCQuery;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- ParseJSONToJDBCQuery;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = activityExtension_2(input, context);
+        xml|error output = activityExtension_2(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -100,11 +100,11 @@ function process_experianservice_module_Process(xml input) returns xml {
         output -> JDBCQueryToSendHTTPResponse;
     }
     worker activityExtension_3_worker {
-        error:NoMessage|xml input = <- HTTPReceiverToSendHTTPResponse;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- HTTPReceiverToSendHTTPResponse;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = activityExtension_3(input, context);
+        xml|error output = activityExtension_3(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -112,11 +112,11 @@ function process_experianservice_module_Process(xml input) returns xml {
         output -> ParseJSONToJDBCQuery;
     }
     worker activityExtension_4_worker {
-        error:NoMessage|xml input = <- JDBCQueryToSendHTTPResponse;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- JDBCQueryToSendHTTPResponse;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = activityExtension_4(input, context);
+        xml|error output = activityExtension_4(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -124,11 +124,11 @@ function process_experianservice_module_Process(xml input) returns xml {
         output -> RenderJSONToSendHTTPResponse;
     }
     worker activityExtension_worker {
-        error:NoMessage|xml input = <- RenderJSONToSendHTTPResponse;
-        if input is error:NoMessage {
+        error:NoMessage|xml inputVal = <- RenderJSONToSendHTTPResponse;
+        if inputVal is error:NoMessage {
             return;
         }
-        xml|error output = activityExtension(input, context);
+        xml|error output = activityExtension(inputVal, context);
         if output is error {
             output -> errorHandler;
             return;

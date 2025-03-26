@@ -158,7 +158,7 @@ public class ProcessConverter {
         List<BallerinaModel.Statement> body = new ArrayList<>();
         VarDeclStatment inputDecl = createAlternateReceiveFromWorkers(
                 sources.stream().map(analysisResult::from).map(AnalysisResult.LinkData::workerName),
-                "input");
+                "inputVal");
         body.add(inputDecl);
         handleNoMessage(cx, inputDecl.ref(), body);
         BallerinaModel.Expression.FunctionCall callExpr = genereateActivityFunctionCall(cx, activity,
