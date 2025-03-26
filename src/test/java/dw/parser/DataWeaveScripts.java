@@ -355,4 +355,22 @@ public class DataWeaveScripts {
               c: true as :string
             }
             """;
+    public static final String SCRIPT_TYPE_COERCION_NUMBER_WITH_DATE_FORMATS = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+              mydate1: |2005-06-02T15:10:16Z| as :number {unit: "seconds"},
+              mydate2: |2005-06-02T15:10:16Z| as :number {unit: "milliseconds"}
+            }
+            """;
+    public static final String SCRIPT_TYPE_COERCION_TO_DATE = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+              a: 1436287232 as :datetime,
+              b: "2015-10-07 16:40:32.000" as :localdatetime {format: "yyyy-MM-dd HH:mm:ss.SSS"}
+            }
+            """;
 }
