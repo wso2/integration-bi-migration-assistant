@@ -12,8 +12,6 @@ import mule.MuleXMLTag;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -1086,18 +1084,6 @@ public class MuleToBalConverter {
 
             queryType = getQueryType(child.getElement().getTagName());
             query = readQuery(data, child, queryType);
-        }
-
-        NodeList childNodes = element.getChildNodes();
-        for (int i = 0; i < childNodes.getLength(); i++) {
-            Node node = childNodes.item(i);
-            if (node.getNodeType() != Node.ELEMENT_NODE) {
-                continue;
-            }
-
-
-            Element childElement = (Element) node;
-
         }
 
         if (queryType == null) {
