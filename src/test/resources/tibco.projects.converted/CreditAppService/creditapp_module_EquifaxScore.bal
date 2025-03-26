@@ -70,18 +70,18 @@ function process_creditapp_module_EquifaxScore(xml input) returns xml {
         result0 -> StartTopost;
     }
     worker StartTopost {
-        error:NoMessage|xml result0 = <- start_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- start_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> invoke_worker;
+        input -> invoke_worker;
     }
     worker postToEnd {
-        error:NoMessage|xml result0 = <- invoke_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- invoke_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> activityExtension_6_worker;
+        input -> activityExtension_6_worker;
     }
     worker activityExtension_6_worker {
         error:NoMessage|xml input0 = <- postToEnd;

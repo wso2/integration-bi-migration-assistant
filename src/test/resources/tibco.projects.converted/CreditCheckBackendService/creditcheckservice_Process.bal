@@ -76,25 +76,25 @@ function process_creditcheckservice_Process(xml input) returns xml {
         result0 -> LookupDatabaseToLogSuccess_Name;
     }
     worker LogToReply {
-        error:NoMessage|xml result0 = <- errorHandler;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- errorHandler;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> reply_6_worker;
+        input -> reply_6_worker;
     }
     worker LogTopostOut {
-        error:NoMessage|xml result0 = <- activityExtension_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- activityExtension_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> reply_worker;
+        input -> reply_worker;
     }
     worker LookupDatabaseToLogSuccess_Name {
-        error:NoMessage|xml result0 = <- start_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- start_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> activityExtension_worker;
+        input -> activityExtension_worker;
     }
     worker activityExtension_worker {
         error:NoMessage|xml input0 = <- LookupDatabaseToLogSuccess_Name;

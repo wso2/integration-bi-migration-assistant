@@ -106,18 +106,18 @@ function process_creditapp_module_MainProcess(xml input) returns xml {
         result1 -> ExperianScoreTopostOut;
     }
     worker ExperianScoreTopostOut {
-        error:NoMessage|xml result0 = <- start_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- start_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> reply_worker;
+        input -> reply_worker;
     }
     worker FICOScoreTopostOut {
-        error:NoMessage|xml result0 = <- start_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- start_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> reply_worker;
+        input -> reply_worker;
     }
     worker reply_worker {
         error:NoMessage|xml input0 = <- FICOScoreTopostOut;

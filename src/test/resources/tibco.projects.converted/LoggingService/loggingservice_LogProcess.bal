@@ -68,53 +68,53 @@ function process_loggingservice_LogProcess(xml input) returns xml {
         }
     }
     worker LogToEnd {
-        error:NoMessage|xml result0 = <- activityExtension_2_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- activityExtension_2_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> activityExtension_worker;
+        input -> activityExtension_worker;
     }
     worker RenderXmlToWriteFile1 {
-        error:NoMessage|xml result0 = <- activityExtension_4_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- activityExtension_4_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> activityExtension_5_worker;
+        input -> activityExtension_5_worker;
     }
     worker StartToLog {
-        error:NoMessage|xml result0 = <- start_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- start_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> activityExtension_2_worker;
+        input -> activityExtension_2_worker;
     }
     worker StartToRenderXml {
-        error:NoMessage|xml result0 = <- start_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- start_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> activityExtension_4_worker;
+        input -> activityExtension_4_worker;
     }
     worker StartToWriteFile {
-        error:NoMessage|xml result0 = <- start_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- start_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> activityExtension_3_worker;
+        input -> activityExtension_3_worker;
     }
     worker WriteFileToEnd {
-        error:NoMessage|xml result0 = <- activityExtension_3_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- activityExtension_3_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> activityExtension_worker;
+        input -> activityExtension_worker;
     }
     worker XMLFileToEnd {
-        error:NoMessage|xml result0 = <- activityExtension_5_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- activityExtension_5_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> activityExtension_worker;
+        input -> activityExtension_worker;
     }
     worker activityExtension_2_worker {
         error:NoMessage|xml input0 = <- StartToLog;

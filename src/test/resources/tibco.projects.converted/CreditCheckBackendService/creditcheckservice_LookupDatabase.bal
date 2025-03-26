@@ -80,32 +80,32 @@ function process_creditcheckservice_LookupDatabase(xml input) returns xml {
         result0 -> StartToEnd;
     }
     worker JDBCQueryToEnd {
-        error:NoMessage|xml result0 = <- activityExtension_9_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- activityExtension_9_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> activityExtension_10_worker;
+        input -> activityExtension_10_worker;
     }
     worker JDBCUpdateToEnd {
-        error:NoMessage|xml result0 = <- activityExtension_10_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- activityExtension_10_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> activityExtension_8_worker;
+        input -> activityExtension_8_worker;
     }
     worker QueryRecordsToThrow {
-        error:NoMessage|xml result0 = <- activityExtension_9_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- activityExtension_9_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> throw_worker;
+        input -> throw_worker;
     }
     worker StartToEnd {
-        error:NoMessage|xml result0 = <- start_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- start_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> activityExtension_9_worker;
+        input -> activityExtension_9_worker;
     }
     worker activityExtension_10_worker {
         error:NoMessage|xml input0 = <- JDBCQueryToEnd;

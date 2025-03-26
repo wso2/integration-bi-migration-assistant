@@ -60,32 +60,32 @@ function process_experianservice_module_Process(xml input) returns xml {
         result0 -> HTTPReceiverToSendHTTPResponse;
     }
     worker HTTPReceiverToSendHTTPResponse {
-        error:NoMessage|xml result0 = <- start_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- start_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> activityExtension_3_worker;
+        input -> activityExtension_3_worker;
     }
     worker JDBCQueryToSendHTTPResponse {
-        error:NoMessage|xml result0 = <- activityExtension_2_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- activityExtension_2_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> activityExtension_4_worker;
+        input -> activityExtension_4_worker;
     }
     worker ParseJSONToJDBCQuery {
-        error:NoMessage|xml result0 = <- activityExtension_3_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- activityExtension_3_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> activityExtension_2_worker;
+        input -> activityExtension_2_worker;
     }
     worker RenderJSONToSendHTTPResponse {
-        error:NoMessage|xml result0 = <- activityExtension_4_worker;
-        if result0 is error:NoMessage {
+        error:NoMessage|xml input = <- activityExtension_4_worker;
+        if input is error:NoMessage {
             return;
         }
-        result0 -> activityExtension_worker;
+        input -> activityExtension_worker;
     }
     worker activityExtension_2_worker {
         error:NoMessage|xml input0 = <- ParseJSONToJDBCQuery;
