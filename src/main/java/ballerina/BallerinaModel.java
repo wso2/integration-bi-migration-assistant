@@ -225,7 +225,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         enum BuiltinType implements TypeDesc {
             ANYDATA("anydata"), NEVER("never"), JSON("json"), NIL("()"), STRING("string"), INT("int"), XML("xml"),
             BOOLEAN("boolean"),
-            DECIMAL("decimal");
+            ERROR("error"), DECIMAL("decimal");
 
             private final String name;
 
@@ -275,7 +275,9 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
             sb.append(type).append(" ").append(name);
             Expression expr = expr();
-            if (expr instanceof BallerinaExpression(String content)) {
+            if (expr instanceof
+
+                    BallerinaExpression(String content)) {
                 if (!content.isEmpty()) {
                     sb.append(" ").append("=").append(" ").append(content);
                 }
@@ -518,6 +520,22 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
+        record Trap(Expression expr) implements Expression {
+
+            @Override
+            public String toString() {
+                return "trap " + expr;
+            }
+        }
+
+        record Check(Expression callExpr) implements Expression {
+
+            @Override
+            public String toString() {
+                return "check " + callExpr;
+            }
+        }
+
         record TypeCheckExpression(VariableReference variableReference, TypeDesc td) implements Expression {
 
             @Override
@@ -535,8 +553,16 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
     }
 
+
     public sealed interface Statement {
 
+        record PanicStatement(Expression expression) implements Statement {
+
+            @Override
+            public String toString() {
+                return "panic " + expression + ";";
+            }
+        }
         record CallStatement(Expression callExpr) implements Statement {
 
             @Override
@@ -545,7 +571,11 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
-        record Return<E extends Expression>(Optional<E> value) implements Statement {
+        public record Return<E extends Expression>(Optional<E> value) implements Statement {
+
+            public Return() {
+                this(Optional.empty());
+            }
 
             public Return(E value) {
                 this(Optional.of(value));

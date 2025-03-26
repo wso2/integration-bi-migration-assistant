@@ -19,6 +19,8 @@
 package converter.tibco;
 
 import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.Expression.FunctionCall;
+import ballerina.BallerinaModel.TypeDesc.UnionTypeDesc;
 import tibco.TibcoModel;
 
 import java.util.ArrayList;
@@ -35,6 +37,7 @@ import java.util.stream.Stream;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
@@ -95,10 +98,10 @@ public class ProjectContext {
             String functionName = "toXML";
             utilityFunctions.add(new BallerinaModel.Function(functionName,
                     List.of(new BallerinaModel.Parameter("data", new BallerinaModel.TypeDesc.MapTypeDesc(ANYDATA))),
-                    Optional.of("xml"), List.of(new Return<>(
-                            Optional.of(new BallerinaModel.Expression.CheckPanic(
-                                    new BallerinaModel.Expression.FunctionCall("xmldata:toXml",
-                                            new String[] { "data" })))))));
+                    Optional.of(new UnionTypeDesc(List.of(ERROR, XML)).toString()),
+                    List.of(new Return<>(
+                            Optional.of(new FunctionCall("xmldata:toXml",
+                                    new String[]{"data"}))))));
             toXMLFunction = functionName;
         }
         return toXMLFunction;
@@ -110,10 +113,8 @@ public class ProjectContext {
             String functionName = "fromJson";
             utilityFunctions.add(
                     new BallerinaModel.Function(functionName, List.of(new BallerinaModel.Parameter("data", JSON)),
-                            "xml", List.of(new Return<>(Optional.of(
-                                    new BallerinaModel.Expression.CheckPanic(
-                                            new BallerinaModel.Expression.FunctionCall("xmldata:fromJson",
-                                                    new String[] { "data" })))))));
+                            Optional.of(new UnionTypeDesc(List.of(ERROR, XML)).toString()),
+                            List.of(new Return<>(new FunctionCall("xmldata:fromJson", new String[]{"data"})))));
             jsonToXMLFunction = functionName;
         }
         return jsonToXMLFunction;
@@ -186,7 +187,7 @@ public class ProjectContext {
     String createConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
         String functionName = "convertTo" + ConversionUtils.sanitizes(targetType.toString());
         importLibraryIfNeededToUtility(Library.XML_DATA);
-        BallerinaModel.Expression.FunctionCall parseAsTypeCall = new BallerinaModel.Expression.FunctionCall(
+        FunctionCall parseAsTypeCall = new FunctionCall(
                 "xmldata:parseAsType", new String[] { "input" });
         BallerinaModel.Expression.CheckPanic checkPanic = new BallerinaModel.Expression.CheckPanic(parseAsTypeCall);
         Return<BallerinaModel.Expression.CheckPanic> returnStmt = new Return<>(Optional.of(checkPanic));
@@ -411,7 +412,7 @@ public class ProjectContext {
         // Need to revisit this and
         // properly fix this.
         private void addMissingImports(BallerinaModel.TypeDesc td) {
-            if (td instanceof BallerinaModel.TypeDesc.UnionTypeDesc(Collection<? extends BallerinaModel.TypeDesc> members)) {
+            if (td instanceof UnionTypeDesc(Collection<? extends BallerinaModel.TypeDesc> members)) {
                 boolean isHttp = members.stream()
                         .filter(member -> member instanceof BallerinaModel.TypeDesc.TypeReference)
                         .map(member -> ((BallerinaModel.TypeDesc.TypeReference) member).name())

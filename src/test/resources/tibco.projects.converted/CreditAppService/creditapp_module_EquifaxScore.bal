@@ -16,8 +16,8 @@ service / on creditapp_module_EquifaxScore_listener {
     }
 }
 
-function activityExtension_6(xml input, map<xml> context) returns xml {
-    xml var0 = checkpanic xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+function activityExtension_6(xml input, map<xml> context) returns xml|error {
+    xml var0 = check xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
     <xsl:param name="post.item"/>
     <xsl:template name="End-input" match="/">
@@ -44,16 +44,16 @@ function activityExtension_6(xml input, map<xml> context) returns xml {
 }
 
 function creditapp_module_EquifaxScore_start(GiveNewSchemaNameHere input) returns SuccessSchema {
-    xml inputXML = toXML(input);
+    xml inputXML = checkpanic toXML(input);
     xml xmlResult = process_creditapp_module_EquifaxScore(inputXML);
     SuccessSchema result = convertToSuccessSchema(xmlResult);
     return result;
 }
 
-function invoke(xml input, map<xml> context) returns xml {
-    http:Client var0 = checkpanic new ("/");
-    json var1 = checkpanic var0->post("/creditscore", input);
-    xml var2 = fromJson(var1);
+function invoke(xml input, map<xml> context) returns xml|error {
+    http:Client var0 = check new ("/");
+    json var1 = check var0->post("/creditscore", input);
+    xml var2 = check fromJson(var1);
     addToContext(context, "post", var2);
     return var2;
 }
@@ -62,34 +62,62 @@ function process_creditapp_module_EquifaxScore(xml input) returns xml {
     map<xml> context = {};
     addToContext(context, "post.item", input);
     worker start_worker {
-        xml result0 = receiveEvent_5(input, context);
+        xml|error result0 = receiveEvent_5(input, context);
+        if result0 is error {
+            result0 -> errorHandler;
+            return;
+        }
         result0 -> StartTopost;
     }
     worker StartTopost {
-        xml result0 = <- start_worker;
+        error:NoMessage|xml result0 = <- start_worker;
+        if result0 is error:NoMessage {
+            return;
+        }
         result0 -> invoke_worker;
     }
     worker postToEnd {
-        xml result0 = <- invoke_worker;
+        error:NoMessage|xml result0 = <- invoke_worker;
+        if result0 is error:NoMessage {
+            return;
+        }
         result0 -> activityExtension_6_worker;
     }
     worker activityExtension_6_worker {
-        xml input0 = <- postToEnd;
+        error:NoMessage|xml input0 = <- postToEnd;
+        if input0 is error:NoMessage {
+            return;
+        }
         xml combinedInput = input0;
-        xml output = activityExtension_6(combinedInput, context);
+        xml|error output = activityExtension_6(combinedInput, context);
+        if output is error {
+            output -> errorHandler;
+            return;
+        }
         output -> function;
     }
     worker invoke_worker {
-        xml input0 = <- StartTopost;
+        error:NoMessage|xml input0 = <- StartTopost;
+        if input0 is error:NoMessage {
+            return;
+        }
         xml combinedInput = input0;
-        xml output = invoke(combinedInput, context);
+        xml|error output = invoke(combinedInput, context);
+        if output is error {
+            output -> errorHandler;
+            return;
+        }
         output -> postToEnd;
     }
-    xml result0 = <- activityExtension_6_worker;
-    xml result = result0;
-    return result;
+    worker errorHandler {
+        error result = <- activityExtension_6_worker | invoke_worker | receiveEvent_5_worker;
+        panic result;
+    }
+    error:NoMessage|xml result = <- activityExtension_6_worker;
+    xml result_clean = result is error ? xml `` : result;
+    return result_clean;
 }
 
-function receiveEvent_5(xml input, map<xml> context) returns xml {
+function receiveEvent_5(xml input, map<xml> context) returns xml|error {
     return input;
 }

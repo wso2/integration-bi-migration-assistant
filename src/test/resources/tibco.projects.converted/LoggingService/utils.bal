@@ -13,8 +13,8 @@ function convertToanydata(xml input) returns anydata {
     return checkpanic xmldata:parseAsType(input);
 }
 
-function toXML(map<anydata> data) returns xml {
-    return checkpanic xmldata:toXml(data);
+function toXML(map<anydata> data) returns error|xml {
+    return xmldata:toXml(data);
 }
 
 function addToContext(map<xml> context, string varName, xml value) {

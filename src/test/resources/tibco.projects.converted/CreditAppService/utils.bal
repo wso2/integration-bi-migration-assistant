@@ -20,12 +20,12 @@ function convertToSuccessSchema(xml input) returns SuccessSchema {
     return checkpanic xmldata:parseAsType(input);
 }
 
-function fromJson(json data) returns xml {
-    return checkpanic xmldata:fromJson(data);
+function fromJson(json data) returns error|xml {
+    return xmldata:fromJson(data);
 }
 
-function toXML(map<anydata> data) returns xml {
-    return checkpanic xmldata:toXml(data);
+function toXML(map<anydata> data) returns error|xml {
+    return xmldata:toXml(data);
 }
 
 function addToContext(map<xml> context, string varName, xml value) {

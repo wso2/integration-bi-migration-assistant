@@ -319,7 +319,11 @@ public class TibcoModel {
 
     }
 
-    public record Scope(String name, Collection<Flow> flows) {
+    public record Scope(String name, Collection<Flow> flows, Collection<FaultHandler> faultHandlers) {
+
+        public sealed interface FaultHandler extends Flow.Activity {
+
+        }
 
         public record Flow(String name, Collection<Link> links, List<Activity> activities) {
 
@@ -340,6 +344,11 @@ public class TibcoModel {
                     List<Source> sources();
                 }
 
+                sealed interface ActivityWithScope extends Activity {
+
+                    Scope scope();
+                }
+
                 sealed interface ActivityWithTargets extends Activity {
 
                     Collection<Target> targets();
@@ -357,6 +366,10 @@ public class TibcoModel {
                     }
                 }
 
+                record CatchAll(Scope scope) implements FaultHandler, ActivityWithScope {
+
+                }
+
                 record UnhandledActivity(String reason, String elementAsString, List<Source> sources,
                         Collection<Target> targets) implements Activity, ActivityWithSources,
                         ActivityWithTargets {
@@ -369,11 +382,21 @@ public class TibcoModel {
 
                 }
 
+                record Throw(List<InputBinding> inputBindings, Collection<Target> targets)
+                        implements Activity, ActivityWithTargets {
+
+                }
+
                 record Empty(String name) implements Activity {
 
                 }
 
-                record Pick(boolean createInstance, OnMessage onMessage) implements Activity {
+                record Pick(boolean createInstance, OnMessage onMessage) implements Activity, ActivityWithScope {
+
+                    @Override
+                    public Scope scope() {
+                        return onMessage().scope();
+                    }
 
                     public record OnMessage(PartnerLink.Binding.Operation.Method operation, String partnerLink,
                                             String portType, String variable, Scope scope) {

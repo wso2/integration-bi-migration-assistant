@@ -32,6 +32,7 @@ public final class AnalysisResult {
     private final Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap;
     private final Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap;
     private final Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> startActivities;
+    private final Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> faultHanlderStartActivities;
     private final Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> endActivities;
     private final Map<TibcoModel.Scope.Flow.Link, String> workerNames;
     private final Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData;
@@ -41,6 +42,7 @@ public final class AnalysisResult {
     AnalysisResult(Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap,
                    Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap,
                    Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> startActivities,
+                   Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> faultHandlerStartActivities,
                    Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> endActivities,
                    Map<TibcoModel.Scope.Flow.Link, String> workerNames,
                    Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData,
@@ -49,6 +51,7 @@ public final class AnalysisResult {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.startActivities = startActivities;
+        this.faultHanlderStartActivities = faultHandlerStartActivities;
         this.endActivities = endActivities;
         this.workerNames = workerNames;
         this.activityData = activityData;
@@ -58,6 +61,10 @@ public final class AnalysisResult {
 
     public Collection<TibcoModel.Scope.Flow.Activity> startActivities(TibcoModel.Process process) {
         return startActivities.get(process);
+    }
+
+    public Collection<TibcoModel.Scope.Flow.Activity> faultHandlerStartActivities(TibcoModel.Process process) {
+        return faultHanlderStartActivities.get(process);
     }
 
     public Collection<TibcoModel.Scope.Flow.Activity> endActivities(TibcoModel.Process process) {

@@ -46,6 +46,8 @@ public class ModelAnalyser {
         analyseProcess(cx, process);
         Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> startActivities =
                 Map.of(process, cx.startActivities);
+        Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> faultHandlerStartActivities =
+                Map.of(process, cx.faultHandlerStartActivities);
 
         Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> endActivities =
                 Map.of(process, cx.endActivities);
@@ -57,8 +59,8 @@ public class ModelAnalyser {
         logger.info(String.format("Process Statistics - Name: %s, Total Activities: %d, Unhandled Activities: %d",
                 process.name(), cx.totalActivityCount, cx.unhandledActivityCount));
 
-        return new AnalysisResult(cx.destinationMap, cx.sourceMap, startActivities, endActivities, workerNames,
-                activityData, partnerLinkBindings, cx.queryIndex);
+        return new AnalysisResult(cx.destinationMap, cx.sourceMap, startActivities, faultHandlerStartActivities,
+                endActivities, workerNames, activityData, partnerLinkBindings, cx.queryIndex);
     }
 
     private static void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
@@ -73,6 +75,7 @@ public class ModelAnalyser {
 
     private static void analyseScope(ProcessAnalysisContext cx, TibcoModel.Scope scope) {
         scope.flows().forEach(flow -> analyseFlow(cx, flow));
+        scope.faultHandlers().forEach(faultHandler -> analyseActivity(cx, faultHandler));
     }
 
     private static void analyseFlow(ProcessAnalysisContext cx, TibcoModel.Scope.Flow flow) {
@@ -101,9 +104,19 @@ public class ModelAnalyser {
             targets.stream().map(TibcoModel.Scope.Flow.Activity.Target::linkName).map(
                     TibcoModel.Scope.Flow.Link::new).forEach(link -> cx.addDestination(link, activity));
         }
+        boolean isFaultHandler = activity instanceof TibcoModel.Scope.FaultHandler;
+        if (isFaultHandler) {
+            cx.inFaultHandler = true;
+        }
+        analyseActivityInner(cx, activity);
+        if (isFaultHandler) {
+            cx.inFaultHandler = false;
+        }
+    }
 
-        if (activity instanceof TibcoModel.Scope.Flow.Activity.Pick pick) {
-            analysePick(cx, pick);
+    private static void analyseActivityInner(ProcessAnalysisContext cx, TibcoModel.Scope.Flow.Activity activity) {
+        if (activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithScope activityWithScope) {
+            analyseScope(cx, activityWithScope.scope());
             return;
         }
         if (!(activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithSources)) {
@@ -125,10 +138,6 @@ public class ModelAnalyser {
         }
     }
 
-    private static void analysePick(ProcessAnalysisContext cx, TibcoModel.Scope.Flow.Activity.Pick pick) {
-        analyseScope(cx, pick.onMessage().scope());
-    }
-
     private static void analyseLink(ProcessAnalysisContext cx, TibcoModel.Scope.Flow.Link link) {
         cx.allocateWorkerIfNeeded(link);
     }
@@ -137,8 +146,10 @@ public class ModelAnalyser {
 
         public int unhandledActivityCount = 0;
         public int totalActivityCount = 0;
+        public boolean inFaultHandler = false;
         // We are using order preserving sets purely for tests
         private final Collection<TibcoModel.Scope.Flow.Activity> startActivities = new LinkedHashSet<>();
+        private final Collection<TibcoModel.Scope.Flow.Activity> faultHandlerStartActivities = new LinkedHashSet<>();
         private final Collection<TibcoModel.Scope.Flow.Activity> endActivities = new LinkedHashSet<>();
         // places where data added to the link ends up
         private final Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap =
@@ -162,7 +173,11 @@ public class ModelAnalyser {
         }
 
         public void addStartActivity(TibcoModel.Scope.Flow.Activity activity) {
-            startActivities.add(activity);
+            if (inFaultHandler) {
+                faultHandlerStartActivities.add(activity);
+            } else {
+                startActivities.add(activity);
+            }
         }
 
         public void allocateWorkerIfNeeded(TibcoModel.Scope.Flow.Link link) {
@@ -187,6 +202,8 @@ public class ModelAnalyser {
                 case TibcoModel.Scope.Flow.Activity.Pick ignored -> "pick";
                 case TibcoModel.Scope.Flow.Activity.ReceiveEvent ignored -> "receiveEvent";
                 case TibcoModel.Scope.Flow.Activity.Reply ignored -> "reply";
+                case TibcoModel.Scope.Flow.Activity.CatchAll ignored -> "faultHandler";
+                case TibcoModel.Scope.Flow.Activity.Throw ignored -> "throw";
                 case TibcoModel.Scope.Flow.Activity.UnhandledActivity ignored -> {
                     unhandledActivityCount++;
                     yield "unhandled";

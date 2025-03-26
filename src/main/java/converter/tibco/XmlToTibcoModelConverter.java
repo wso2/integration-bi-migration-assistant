@@ -134,8 +134,35 @@ public final class XmlToTibcoModelConverter {
 
     private static TibcoModel.Scope parseScope(Element element) {
         String name = element.getAttribute("name");
-        return new TibcoModel.Scope(name,
-                ElementIterable.of(element).stream().map(XmlToTibcoModelConverter::parseFlow).toList());
+        Collection<TibcoModel.Scope.Flow> flows =
+                ElementIterable.of(element).stream()
+                        .filter(each -> getTagNameWithoutNameSpace(each).equals("flow"))
+                        .map(XmlToTibcoModelConverter::parseFlow).toList();
+        Collection<TibcoModel.Scope.FaultHandler> faultHandlers =
+                ElementIterable.of(element).stream()
+                        .filter(each -> getTagNameWithoutNameSpace(each).equals("faultHandlers"))
+                        .flatMap(XmlToTibcoModelConverter::parseFaultHandlers).toList();
+        return new TibcoModel.Scope(name, flows, faultHandlers);
+    }
+
+    private static Stream<TibcoModel.Scope.FaultHandler> parseFaultHandlers(Element element) {
+        return ElementIterable.of(element).stream().map(XmlToTibcoModelConverter::parseFaultHandler);
+    }
+
+    private static TibcoModel.Scope.FaultHandler parseFaultHandler(Element element) {
+        String tag = getTagNameWithoutNameSpace(element);
+        return switch (tag) {
+            case "catchAll" -> parseCatchAll(element);
+            default -> throw new ParserException("Unsupported fault handler " + tag, element);
+        };
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.CatchAll parseCatchAll(Element element) {
+        Element scope = expectNChildren(element, 1).iterator().next();
+        if (!getTagNameWithoutNameSpace(scope).equals("scope")) {
+            throw new ParserException("Expected a scope", element);
+        }
+        return new TibcoModel.Scope.Flow.Activity.CatchAll(parseScope(scope));
     }
 
     private static TibcoModel.Scope.Flow parseFlow(Element flow) {
@@ -178,8 +205,33 @@ public final class XmlToTibcoModelConverter {
             case "pick" -> parsePick(element);
             case "empty" -> parseEmpty(element);
             case "reply" -> parseReply(element);
+            case "throw" -> parseThrow(element);
             default -> throw new ParserException("Unsupported activity tag: " + tag, element);
         };
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.Throw parseThrow(Element element) {
+        ActivityInputOutput result = getActivityInputOutput(element);
+        return new TibcoModel.Scope.Flow.Activity.Throw(result.inputBindings(), result.targets());
+    }
+
+    private static @NotNull ActivityInputOutput getActivityInputOutput(Element element) {
+        List<TibcoModel.Scope.Flow.Activity.InputBinding> inputBindings = new ArrayList<>();
+        List<TibcoModel.Scope.Flow.Activity.Target> targets = new ArrayList<>();
+        for (Element each : ElementIterable.of(element)) {
+            String tag = getTagNameWithoutNameSpace(each);
+            switch (tag) {
+                case "inputBindings", "inputBinding" -> inputBindings.addAll(parseInputBindings(each));
+                case "targets" -> targets.addAll(parseTargets(each));
+                default -> throw new ParserException("Unsupported reply element tag: " + tag, element);
+            }
+        }
+        return new ActivityInputOutput(inputBindings, targets);
+    }
+
+    private record ActivityInputOutput(List<TibcoModel.Scope.Flow.Activity.InputBinding> inputBindings,
+                                       List<TibcoModel.Scope.Flow.Activity.Target> targets) {
+
     }
 
     private static TibcoModel.Scope.Flow.Activity parseUnhandledActivity(Element element, String reason) {
@@ -205,17 +257,9 @@ public final class XmlToTibcoModelConverter {
         var operation = TibcoModel.PartnerLink.Binding.Operation.Method.from(element.getAttribute("operation"));
         String partnerLink = element.getAttribute("partnerLink");
         String portType = element.getAttribute("portType");
-        List<TibcoModel.Scope.Flow.Activity.InputBinding> inputBindings = new ArrayList<>();
-        List<TibcoModel.Scope.Flow.Activity.Target> targets = new ArrayList<>();
-        for (Element each : ElementIterable.of(element)) {
-            String tag = getTagNameWithoutNameSpace(each);
-            switch (tag) {
-                case "inputBindings", "inputBinding" -> inputBindings.addAll(parseInputBindings(each));
-                case "targets" -> targets.addAll(parseTargets(each));
-                default -> throw new ParserException("Unsupported reply element tag: " + tag, element);
-            }
-        }
-        return new TibcoModel.Scope.Flow.Activity.Reply(name, operation, partnerLink, portType, inputBindings, targets);
+        ActivityInputOutput result = getActivityInputOutput(element);
+        return new TibcoModel.Scope.Flow.Activity.Reply(name, operation, partnerLink, portType, result.inputBindings,
+                result.targets);
     }
 
     private static TibcoModel.Scope.Flow.Activity.Empty parseEmpty(Element element) {

@@ -22,8 +22,8 @@ import ballerina.BallerinaModel;
 import tibco.TibcoModel;
 
 import java.util.List;
-import java.util.Optional;
 
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 
 class ActivityContext {
@@ -59,8 +59,8 @@ class ActivityContext {
                 new BallerinaModel.Parameter(ProcessContext.CONTEXT_VAR_NAME, ProcessContext.contextType()));
     }
 
-    public Optional<String> returnType() {
-        return Optional.of(XML.toString());
+    public static BallerinaModel.TypeDesc returnType() {
+        return new BallerinaModel.TypeDesc.UnionTypeDesc(List.of(XML, ERROR));
     }
 
     public String getParseHttpConfigFunction() {

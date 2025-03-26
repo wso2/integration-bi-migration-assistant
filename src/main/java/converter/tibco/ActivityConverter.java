@@ -20,8 +20,10 @@ package converter.tibco;
 
 import ballerina.BallerinaModel;
 import ballerina.BallerinaModel.Comment;
+import ballerina.BallerinaModel.Expression.Check;
 import ballerina.BallerinaModel.Expression.FunctionCall;
 import ballerina.BallerinaModel.Expression.StringConstant;
+import ballerina.BallerinaModel.Expression.Trap;
 import ballerina.BallerinaModel.Expression.VariableReference;
 import ballerina.BallerinaModel.Statement.CallStatement;
 import ballerina.BallerinaModel.Statement.Return;
@@ -36,6 +38,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
@@ -60,13 +63,45 @@ class ActivityConverter {
                                 convertExtActivity(cx, extActivity);
                         case TibcoModel.Scope.Flow.Activity.Invoke invoke -> convertInvoke(cx, invoke);
                         case TibcoModel.Scope.Flow.Activity.Pick pick -> convertPickAction(cx, pick);
+                    case TibcoModel.Scope.Flow.Activity.CatchAll catchAll -> convertCatchAll(cx, catchAll);
                         case TibcoModel.Scope.Flow.Activity.ReceiveEvent receiveEvent ->
                                 convertReceiveEvent(cx, receiveEvent);
                         case TibcoModel.Scope.Flow.Activity.Reply reply -> convertReply(cx, reply);
                         case TibcoModel.Scope.Flow.Activity.UnhandledActivity unhandledActivity ->
                                 convertUnhandledActivity(cx, unhandledActivity);
+                    case TibcoModel.Scope.Flow.Activity.Throw throwActivity -> convertThrowActivity(cx, throwActivity);
                 };
-                return new BallerinaModel.Function(cx.functionName(), cx.parameters(), cx.returnType(), body);
+            return new BallerinaModel.Function(cx.functionName(), cx.parameters(),
+                    Optional.of(ActivityContext.returnType().toString()), body);
+        }
+
+    private static List<BallerinaModel.Statement> convertThrowActivity(
+            ActivityContext cx,
+            TibcoModel.Scope.Flow.Activity.Throw throwActivity) {
+        List<BallerinaModel.Statement> body = new ArrayList<>();
+        BallerinaModel.Expression.VariableReference input = cx.getInputAsXml();
+        BallerinaModel.Expression.VariableReference result;
+        if (throwActivity.inputBindings().isEmpty()) {
+            result = input;
+        } else {
+            List<VarDeclStatment> inputBindings = convertInputBindings(cx, input,
+                    throwActivity.inputBindings());
+            body.addAll(inputBindings);
+            result = inputBindings.getLast().ref();
+        }
+        // TODO: set the body correctly
+        VarDeclStatment errorValue = new VarDeclStatment(ERROR,
+                cx.getAnnonVarName(),
+                new BallerinaModel.BallerinaExpression("error(\"TODO: create error value\")"));
+        body.add(errorValue);
+        body.add(new BallerinaModel.BallerinaStatement("panic " + errorValue.varName() + ";"));
+
+        return body;
+    }
+
+    private static List<BallerinaModel.Statement> convertCatchAll(ActivityContext cx,
+                                                                  TibcoModel.Scope.Flow.Activity.CatchAll catchAll) {
+        return convertEmptyAction(cx);
         }
 
         private static List<BallerinaModel.Statement> convertUnhandledActivity(
@@ -151,12 +186,12 @@ class ActivityConverter {
                 BallerinaModel.TypeDesc dataType = cx.getLogInputType();
                 VarDeclStatment dataDecl = new VarDeclStatment(dataType,
                                 cx.getAnnonVarName(),
-                                new BallerinaModel.Expression.FunctionCall(cx.getConvertToTypeFunction(dataType),
+                        new FunctionCall(cx.getConvertToTypeFunction(dataType),
                                                 List.of(result)));
                 body.add(dataDecl);
 
                 CallStatement callStatement = new CallStatement(
-                                new BallerinaModel.Expression.FunctionCall(cx.getLogFunction(), List.of(
+                        new FunctionCall(cx.getLogFunction(), List.of(
                                                 new BallerinaModel.Expression.VariableReference(dataDecl.varName()))));
                 body.add(callStatement);
 
@@ -235,13 +270,13 @@ class ActivityConverter {
 
         private static List<BallerinaModel.Statement> createJsonOperation(
                         ActivityContext cx,
-                        VariableReference inputVar,
+                        BallerinaModel.Expression.VariableReference inputVar,
                         TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.JsonOperation jsonOperation,
                         Optional<String> outputVarName) {
                 // TODO: how to implement this
                 return outputVarName.map(
                                 s -> List.of(addToContext(cx, inputVar, s), new Return<>(inputVar)))
-                                .orElseGet(() -> List.of(new Return<>(inputVar)));
+                        .orElseGet(() -> List.of(new Return<>(inputVar)));
         }
 
         private static List<BallerinaModel.Statement> createHttpSend(
@@ -277,14 +312,15 @@ class ActivityConverter {
                                 "/" + requestURI.varName() + ".post",
                                 List.of(new BallerinaModel.Expression.FieldAccess(configVarRef, "PostData"),
                                                 new BallerinaModel.Expression.FieldAccess(configVarRef, "Headers")));
-                BallerinaModel.Expression.CheckPanic checkPanic = new BallerinaModel.Expression.CheckPanic(call);
-                VarDeclStatment responseDecl = new VarDeclStatment(JSON, cx.getAnnonVarName(), checkPanic);
+            VarDeclStatment responseDecl = new VarDeclStatment(JSON, cx.getAnnonVarName(),
+                    new Check(call));
                 body.add(responseDecl);
 
                 String jsonToXmlFunction = cx.processContext.getJsonToXMLFunction();
                 FunctionCall jsonToXmlFunctionCall = new FunctionCall(
                                 jsonToXmlFunction, new String[] { responseDecl.varName() });
-                VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), jsonToXmlFunctionCall);
+            VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                    new Check(jsonToXmlFunctionCall));
                 body.add(resultDecl);
                 VariableReference result = new VariableReference(
                                 resultDecl.varName());
@@ -323,7 +359,8 @@ class ActivityConverter {
                 FunctionCall jsonToXMLFunctionCall = new FunctionCall(
                                 jsonToXMLFunction,
                                 new String[] { bindingCallResult.varName() });
-                VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), jsonToXMLFunctionCall);
+            VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                    new Check(jsonToXMLFunctionCall));
                 body.add(resultDecl);
                 VariableReference result = new VariableReference(
                                 resultDecl.varName());
@@ -342,8 +379,8 @@ class ActivityConverter {
                 BallerinaModel.Action.RemoteMethodCallAction call = new BallerinaModel.Action.RemoteMethodCallAction(
                                 client, "post",
                                 List.of(new StringConstant(path), value));
-                BallerinaModel.Expression.CheckPanic checkPanic = new BallerinaModel.Expression.CheckPanic(call);
-                return new VarDeclStatment(JSON, cx.getAnnonVarName(), checkPanic);
+            return new VarDeclStatment(JSON, cx.getAnnonVarName(),
+                    new Check(call));
         }
 
         private static VarDeclStatment createClientForBinding(ActivityContext cx,
@@ -352,14 +389,14 @@ class ActivityConverter {
                 return createHTTPClientWithBasePath(cx, new StringConstant(basePath));
         }
 
-        private static VarDeclStatment createHTTPClientWithBasePath(ActivityContext cx,
+    private static VarDeclStatment createHTTPClientWithBasePath(
+            ActivityContext cx,
                         BallerinaModel.Expression basePath) {
                 BallerinaModel.Expression.NewExpression newExpression = new BallerinaModel.Expression.NewExpression(
                                 List.of(basePath));
-                BallerinaModel.Expression.CheckPanic checkPanic = new BallerinaModel.Expression.CheckPanic(
-                                newExpression);
-                return new VarDeclStatment(cx.processContext.getTypeByName("http:Client"), cx.getAnnonVarName(),
-                                checkPanic);
+        return new VarDeclStatment(cx.processContext.getTypeByName("http:Client"),
+                cx.getAnnonVarName(),
+                new Check(newExpression));
         }
 
         private static List<BallerinaModel.Statement> convertExtActivity(
@@ -379,17 +416,13 @@ class ActivityConverter {
                 FunctionCall convertToTypeFunctionCall = new FunctionCall(
                                 convertToTypeFunction, new String[] { result.varName() });
 
-                FunctionCall startFunctionCall = new FunctionCall(
-                                startFunction.name(), List.of(convertToTypeFunctionCall));
-                FunctionCall convertToXmlCall = new FunctionCall(
-                                cx.processContext.getToXmlFunction(),
-                                List.of(startFunctionCall));
-                VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), convertToXmlCall);
+            VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), new Check(
+                    new FunctionCall(cx.processContext.getToXmlFunction(), List.of(new Check(
+                            new Trap(new FunctionCall(startFunction.name(), List.of(convertToTypeFunctionCall))))))));
                 body.add(resultDecl);
-                VariableReference resultRef = new VariableReference(
-                                resultDecl.varName());
+            BallerinaModel.Expression.VariableReference resultRef = resultDecl.ref();
                 body.add(addToContext(cx, resultRef, extActivity.outputVariable()));
-                body.add(new Return<>(resultRef));
+            body.add(new Return<>(resultRef));
                 return body;
         }
 
@@ -421,8 +454,8 @@ class ActivityConverter {
                                 new BallerinaModel.Expression[] { inputVariable,
                                                 transformerCall,
                                                 cx.contextVarRef() });
-                BallerinaModel.Expression.CheckPanic checkPanic = new BallerinaModel.Expression.CheckPanic(callExpr);
-                return new VarDeclStatment(XML, cx.getAnnonVarName(), checkPanic);
+            return new VarDeclStatment(XML, cx.getAnnonVarName(),
+                    new Check(callExpr));
         }
 
         private static BallerinaModel.Statement addToContext(ActivityContext cx,
