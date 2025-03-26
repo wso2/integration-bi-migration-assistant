@@ -906,7 +906,7 @@ public final class XmlToTibcoModelConverter {
 
     private static Optional<TibcoModel.Type.WSDLDefinition> tryParseWSDLDefinition(Element element) {
         try {
-            return Optional.of(parseWSDLDefinition(element));
+            return parseWSDLDefinition(element);
         } catch (Exception e) {
             logger.warning(String.format(
                     "Failed to parse WSDL definition due to %s, resulting process may be missing services",
@@ -915,7 +915,10 @@ public final class XmlToTibcoModelConverter {
         }
     }
 
-    private static TibcoModel.Type.WSDLDefinition parseWSDLDefinition(Element element) {
+    private static Optional<TibcoModel.Type.WSDLDefinition> parseWSDLDefinition(Element element) {
+        if (element.getChildNodes().getLength() == 0) {
+            return Optional.empty();
+        }
         Map<String, String> namespaces = new HashMap<>();
         Collection<TibcoModel.Type.WSDLDefinition.PartnerLinkType> partnerLinkTypes = new ArrayList<>();
         List<TibcoModel.NameSpace> imports = new ArrayList<>();
@@ -936,7 +939,8 @@ public final class XmlToTibcoModelConverter {
         if (partnerLinkTypes.isEmpty()) {
             throw new ParserException("PartnerLinkType not found in WSDL definition", element);
         }
-        return new TibcoModel.Type.WSDLDefinition(namespaces, partnerLinkTypes, imports, messages, portTypes);
+        return Optional.of(
+                new TibcoModel.Type.WSDLDefinition(namespaces, partnerLinkTypes, imports, messages, portTypes));
     }
 
     private static TibcoModel.Type.WSDLDefinition.PortType parsePortType(Element element) {

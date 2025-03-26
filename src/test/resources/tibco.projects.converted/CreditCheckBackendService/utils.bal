@@ -4,6 +4,10 @@ import ballerinax/jdbc;
 
 const jdbc:Client jdbcProperty = checkpanic new ("jdbcProperty");
 
+function convertToElement(xml input) returns Element {
+    return checkpanic xmldata:parseAsType(input);
+}
+
 function convertToLogParametersType(xml input) returns LogParametersType {
     return checkpanic xmldata:parseAsType(input);
 }
@@ -20,11 +24,7 @@ function convertToResponse(xml input) returns Response {
     return checkpanic xmldata:parseAsType(input);
 }
 
-function convertToanydata(xml input) returns anydata {
-    return checkpanic xmldata:parseAsType(input);
-}
-
-function convertToanydata(xml input) returns anydata {
+function convertToResponse(xml input) returns Response {
     return checkpanic xmldata:parseAsType(input);
 }
 

@@ -9,7 +9,7 @@ function convertToWriteActivityInputTextClass(xml input) returns WriteActivityIn
     return checkpanic xmldata:parseAsType(input);
 }
 
-function convertToanydata(xml input) returns anydata {
+function convertToresult(xml input) returns result {
     return checkpanic xmldata:parseAsType(input);
 }
 

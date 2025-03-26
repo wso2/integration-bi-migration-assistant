@@ -49,8 +49,6 @@ public class ProcessContext implements ContextWithFile {
     private final Map<BallerinaModel.TypeDesc, String> typeConversionFunction = new HashMap<>();
     public String startWorkerName;
     public final TibcoModel.Process process;
-    public BallerinaModel.TypeDesc processInputType;
-    public BallerinaModel.TypeDesc processReturnType;
 
     public final ProjectContext projectContext;
     public final AnalysisResult analysisResult;
@@ -154,20 +152,14 @@ public class ProcessContext implements ContextWithFile {
 
     ProjectContext.FunctionData getProcessStartFunction() {
 
-        if (processInputType == null || processReturnType == null) {
+        if (getProcessInputType() == ANYDATA || getProcessOutputType() == ANYDATA) {
             logger.warning(String.format(
                     "Can't determine input/output type for process start function %s, " +
                             "maybe failed to handle start activity?",
                     getProcessStartFunctionName()));
-            if (processInputType == null) {
-                processInputType = ANYDATA;
-            }
-            if (processReturnType == null) {
-                processReturnType = ANYDATA;
-            }
         }
-        return new ProjectContext.FunctionData(getProcessStartFunctionName(), processInputType,
-                processReturnType);
+        return new ProjectContext.FunctionData(getProcessStartFunctionName(), getProcessInputType(),
+                getProcessOutputType());
     }
 
     public String getProcessStartFunctionName() {
@@ -248,5 +240,21 @@ public class ProcessContext implements ContextWithFile {
 
     public Set<TibcoModel.Scope.Flow.Activity> activitiesWithErrorTransitions() {
         return Collections.unmodifiableSet(activitiesWithErrorTransitions);
+    }
+
+    public BallerinaModel.TypeDesc getProcessInputType() {
+        String typeName = analysisResult.inputTypeName(process);
+        if (Objects.equals(typeName, "UNKNOWN")) {
+            return ANYDATA;
+        }
+        return getTypeByName(typeName);
+    }
+
+    public BallerinaModel.TypeDesc getProcessOutputType() {
+        String typeName = analysisResult.outputTypeName(process);
+        if (Objects.equals(typeName, "UNKNOWN")) {
+            return ANYDATA;
+        }
+        return getTypeByName(typeName);
     }
 }

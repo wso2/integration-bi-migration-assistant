@@ -38,6 +38,8 @@ public final class AnalysisResult {
     private final Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData;
     private final Map<String, TibcoModel.PartnerLink.Binding> partnerlinkBindings;
     private final Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex;
+    private final Map<TibcoModel.Process, String> inputTypeName;
+    private final Map<TibcoModel.Process, String> outputTypeName;
 
     AnalysisResult(Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap,
                    Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap,
@@ -47,7 +49,8 @@ public final class AnalysisResult {
                    Map<TibcoModel.Scope.Flow.Link, String> workerNames,
                    Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData,
                    Map<String, TibcoModel.PartnerLink.Binding> partnerlinkBindings,
-                   Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex) {
+                   Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex,
+                   Map<TibcoModel.Process, String> inputTypeName, Map<TibcoModel.Process, String> outputTypeName) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.startActivities = startActivities;
@@ -57,6 +60,16 @@ public final class AnalysisResult {
         this.activityData = activityData;
         this.partnerlinkBindings = partnerlinkBindings;
         this.queryIndex = queryIndex;
+        this.inputTypeName = inputTypeName;
+        this.outputTypeName = outputTypeName;
+    }
+
+    public String inputTypeName(TibcoModel.Process process) {
+        return inputTypeName.get(process);
+    }
+
+    public String outputTypeName(TibcoModel.Process process) {
+        return outputTypeName.get(process);
     }
 
     public Collection<TibcoModel.Scope.Flow.Activity> startActivities(TibcoModel.Process process) {

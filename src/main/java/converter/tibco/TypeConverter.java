@@ -212,7 +212,6 @@ class TypeConverter {
         String resourceMethodName = operation.name();
         String path = apiPath.startsWith("/") ? apiPath.substring(1) : apiPath;
         BallerinaModel.TypeDesc inputType = cx.getTypeByName(messageTypes.get(operation.input().message().value()));
-        cx.processInputType = inputType;
         List<BallerinaModel.Parameter> parameters = List.of(new BallerinaModel.Parameter("input", inputType));
         List<BallerinaModel.TypeDesc> returnTypeMembers = Stream.concat(
                 Stream.of(operation.output().message()),
@@ -222,7 +221,6 @@ class TypeConverter {
         BallerinaModel.TypeDesc returnType = returnTypeMembers.size() == 1
                 ? returnTypeMembers.getFirst()
                 : new BallerinaModel.TypeDesc.UnionTypeDesc(returnTypeMembers);
-        cx.processReturnType = cx.getTypeByName(messageTypes.get(operation.output().message().value()));
         var startFunction = cx.getProcessStartFunction();
         List<BallerinaModel.Statement> body = List.of(new Return<>(Optional.of(
                 new BallerinaModel.Expression.FunctionCall(startFunction.name(), new String[] { "input" }))));

@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
@@ -58,14 +59,87 @@ public class ModelAnalyser {
 
         logger.info(String.format("Process Statistics - Name: %s, Total Activities: %d, Unhandled Activities: %d",
                 process.name(), cx.totalActivityCount, cx.unhandledActivityCount));
-
+        Map<TibcoModel.Process, String> inputTypeName = Map.of(process, cx.getInputTypeName());
+        Map<TibcoModel.Process, String> outputTypeName = Map.of(process, cx.getOutputTypeName());
         return new AnalysisResult(cx.destinationMap, cx.sourceMap, startActivities, faultHandlerStartActivities,
-                endActivities, workerNames, activityData, partnerLinkBindings, cx.queryIndex);
+                endActivities, workerNames, activityData, partnerLinkBindings, cx.queryIndex, inputTypeName,
+                outputTypeName);
     }
 
     private static void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
         process.scope().ifPresent(s -> analyseScope(cx, s));
         analysePartnerLinks(cx, process.partnerLinks());
+        analyseTypes(cx, process.types());
+        process.processInterface().ifPresent(i -> analyzeProcessInterface(cx, i));
+    }
+
+    private static void analyzeProcessInterface(ProcessAnalysisContext cx,
+                                                TibcoModel.ProcessInterface processInterface) {
+        String inputType = sanitizeTypeName(processInterface.input());
+        if (!inputType.isEmpty()) {
+            cx.setInputTypeName(inputType);
+        }
+        String outputType = sanitizeTypeName(processInterface.output());
+        if (!outputType.isEmpty()) {
+            cx.setOutputTypeName(outputType);
+        }
+    }
+
+    private static String sanitizeTypeName(String typeName) {
+        if (typeName == null) {
+            return "";
+        }
+        if (typeName.contains("{") && typeName.contains("}")) {
+            typeName = typeName.substring(typeName.indexOf("}") + 1);
+        }
+        return typeName;
+    }
+
+    private static void analyseTypes(ProcessAnalysisContext cx, Collection<TibcoModel.Type> types) {
+        types.forEach(type -> {
+            if (type instanceof TibcoModel.Type.WSDLDefinition wsdlDefinition) {
+                analyseWSDLDefinition(cx, wsdlDefinition);
+            }
+        });
+    }
+
+    private static void analyseWSDLDefinition(ProcessAnalysisContext cx,
+                                              TibcoModel.Type.WSDLDefinition wsdlDefinition) {
+        var messageTypes = getMessageTypeDefinitions(wsdlDefinition);
+        wsdlDefinition.portType().forEach(portType -> {
+            var operation = portType.operation();
+            cx.setInputTypeName(messageTypes.get(operation.input().message().value()));
+            cx.setOutputTypeName(messageTypes.get(operation.output().message().value()));
+        });
+    }
+
+    private static Map<String, String> getMessageTypeDefinitions(TibcoModel.Type.WSDLDefinition wsdlDefinition) {
+        Map<String, String> result = new HashMap<>();
+        for (TibcoModel.Type.WSDLDefinition.Message message : wsdlDefinition.messages()) {
+            Optional<String> referredTypeName = getMessageTypeName(message);
+            if (referredTypeName.isEmpty()) {
+                continue;
+            }
+            result.put(message.name(), referredTypeName.get());
+        }
+        return result;
+    }
+
+    private static Optional<String> getMessageTypeName(TibcoModel.Type.WSDLDefinition.Message message) {
+        Optional<TibcoModel.Type.WSDLDefinition.Message.Part> part;
+        if (message.parts().size() == 1) {
+            part = Optional.ofNullable(message.parts().getFirst());
+        } else {
+            part = message.parts().stream().filter(each -> each.name().equals("item")).findFirst();
+        }
+        if (part.isEmpty()) {
+            return Optional.empty();
+        }
+        String typeName = switch (part.get()) {
+            case TibcoModel.Type.WSDLDefinition.Message.Part.InlineError inlineError -> inlineError.name();
+            case TibcoModel.Type.WSDLDefinition.Message.Part.Reference ref -> ref.element().value();
+        };
+        return Optional.of(typeName);
     }
 
     private static void analysePartnerLinks(ProcessAnalysisContext cx, Collection<TibcoModel.PartnerLink> links) {
@@ -167,6 +241,8 @@ public class ModelAnalyser {
                 new ConcurrentHashMap<>();
         public Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex =
                 new IdentityHashMap<>();
+        private String inputTypeName;
+        private String outputTypeName;
 
         public void addEndActivity(TibcoModel.Scope.Flow.Activity activity) {
             endActivities.add(activity);
@@ -238,6 +314,28 @@ public class ModelAnalyser {
 
         public void allocateIndexForQuery(TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql) {
             queryIndex.put(sql, queryIndex.size());
+        }
+
+        public void setInputTypeName(String inputTypeName) {
+            this.inputTypeName = inputTypeName;
+        }
+
+        public String getInputTypeName() {
+            if (inputTypeName == null) {
+                return "UNKNOWN";
+            }
+            return inputTypeName;
+        }
+
+        public void setOutputTypeName(String outputTypeName) {
+            this.outputTypeName = outputTypeName;
+        }
+
+        public String getOutputTypeName() {
+            if (outputTypeName == null) {
+                return "UNKNOWN";
+            }
+            return outputTypeName;
         }
     }
 }

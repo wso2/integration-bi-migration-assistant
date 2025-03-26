@@ -41,10 +41,10 @@ function activityExtension_5(xml input, map<xml> context) returns xml|error {
     return var0;
 }
 
-function loggingservice_LogProcess_start(anydata input) returns anydata {
+function loggingservice_LogProcess_start(LogMessage input) returns result {
     xml inputXML = checkpanic toXML(input);
     xml xmlResult = process_loggingservice_LogProcess(inputXML);
-    anydata result = convertToanydata(xmlResult);
+    result result = convertToresult(xmlResult);
     return result;
 }
 

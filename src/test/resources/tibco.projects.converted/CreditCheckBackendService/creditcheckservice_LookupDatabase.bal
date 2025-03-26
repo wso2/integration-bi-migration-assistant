@@ -61,10 +61,10 @@ function activityExtension_9(xml input, map<xml> context) returns xml|error {
     return var0;
 }
 
-function creditcheckservice_LookupDatabase_start(anydata input) returns anydata {
+function creditcheckservice_LookupDatabase_start(Element input) returns Response {
     xml inputXML = checkpanic toXML(input);
     xml xmlResult = process_creditcheckservice_LookupDatabase(inputXML);
-    anydata result = convertToanydata(xmlResult);
+    Response result = convertToResponse(xmlResult);
     return result;
 }
 
