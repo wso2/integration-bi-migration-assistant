@@ -6,6 +6,7 @@ import picocli.CommandLine;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -13,13 +14,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-import static converter.MuleToBalConverter.convertToBallerina;
+import static converter.HtmlReportWriter.writeHtmlReport;
+import static converter.MuleToBalConverter.convertProjectXMLFileToBallerina;
 
 public class MigrationTool {
 
+    private static final PrintStream OUT = System.out;
     private static final Logger logger = Logger.getLogger(MigrationTool.class.getName());
     public static final String MULE_DEFAULT_APP_DIR_NAME = "app";
     public static final String BAL_PROJECT_SUFFIX = "-ballerina";
+    public static final String MIGRATION_REPORT_NAME = "migration_summary.html";
 
     public static void main(String[] args) {
         if (args.length != 1) {
@@ -39,7 +43,7 @@ public class MigrationTool {
 
     public static void convertMuleXmlFile(String inputXmlFilePath) {
         String outputBalFilePath = inputXmlFilePath.replace(".xml", ".bal");
-        SyntaxTree syntaxTree = convertToBallerina(inputXmlFilePath);
+        SyntaxTree syntaxTree = MuleToBalConverter.convertStandaloneXMLFileToBallerina(inputXmlFilePath);
         String ballerinaCode = syntaxTree.toSourceCode();
         Path outputPath = Paths.get(outputBalFilePath);
         try {
@@ -74,6 +78,7 @@ public class MigrationTool {
             System.exit(1);
         }
 
+        MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator();
         for (File xmlFile : xmlFiles) {
             Path relativePath = sourceFolderPath.relativize(xmlFile.toPath());
             String balFileName = relativePath.toString().replace(File.separator, ".").replace(".xml", ".bal");
@@ -82,7 +87,7 @@ public class MigrationTool {
 
             SyntaxTree syntaxTree;
             try {
-                syntaxTree = convertToBallerina(xmlFile.getPath());
+                syntaxTree = convertProjectXMLFileToBallerina(muleXMLNavigator, xmlFile.getPath());
             } catch (Exception e) {
                 logger.severe(String.format("Error converting the file: %s%n%s", xmlFile.getName(), e.getMessage()));
                 continue;
@@ -94,6 +99,17 @@ public class MigrationTool {
                 logger.severe("Error writing to file: " + e.getMessage());
             }
         }
+
+        Path reportFilePath = Paths.get(targetFolderPath, MIGRATION_REPORT_NAME);
+        int conversionPercentage = writeHtmlReport(logger, reportFilePath,
+                muleXMLNavigator.getXmlCompatibleTagCountMap(), muleXMLNavigator.getXmlIncompatibleTagCountMap());
+        printConversionPercentage(conversionPercentage);
+    }
+
+    private static void printConversionPercentage(int conversionPercentage) {
+        OUT.println("________________________________________________________________");
+        OUT.println("Project conversion percentage: " + conversionPercentage + "%");
+        OUT.println("________________________________________________________________");
     }
 
     private static void collectXmlFiles(File folder, List<File> xmlFiles) {
