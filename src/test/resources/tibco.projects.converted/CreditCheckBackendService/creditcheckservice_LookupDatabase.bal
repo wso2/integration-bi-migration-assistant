@@ -108,12 +108,11 @@ function process_creditcheckservice_LookupDatabase(xml input) returns xml {
         input -> activityExtension_9_worker;
     }
     worker activityExtension_10_worker {
-        error:NoMessage|xml input0 = <- JDBCQueryToEnd;
-        if input0 is error:NoMessage {
+        error:NoMessage|xml input = <- JDBCQueryToEnd;
+        if input is error:NoMessage {
             return;
         }
-        xml combinedInput = input0;
-        xml|error output = activityExtension_10(combinedInput, context);
+        xml|error output = activityExtension_10(input, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -121,12 +120,11 @@ function process_creditcheckservice_LookupDatabase(xml input) returns xml {
         output -> JDBCUpdateToEnd;
     }
     worker activityExtension_8_worker {
-        error:NoMessage|xml input0 = <- JDBCUpdateToEnd;
-        if input0 is error:NoMessage {
+        error:NoMessage|xml input = <- JDBCUpdateToEnd;
+        if input is error:NoMessage {
             return;
         }
-        xml combinedInput = input0;
-        xml|error output = activityExtension_8(combinedInput, context);
+        xml|error output = activityExtension_8(input, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -134,12 +132,11 @@ function process_creditcheckservice_LookupDatabase(xml input) returns xml {
         output -> function;
     }
     worker activityExtension_9_worker {
-        error:NoMessage|xml input0 = <- StartToEnd;
-        if input0 is error:NoMessage {
+        error:NoMessage|xml input = <- StartToEnd;
+        if input is error:NoMessage {
             return;
         }
-        xml combinedInput = input0;
-        xml|error output = activityExtension_9(combinedInput, context);
+        xml|error output = activityExtension_9(input, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -151,12 +148,11 @@ function process_creditcheckservice_LookupDatabase(xml input) returns xml {
         }
     }
     worker throw_worker {
-        error:NoMessage|xml input0 = <- QueryRecordsToThrow;
-        if input0 is error:NoMessage {
+        error:NoMessage|xml input = <- QueryRecordsToThrow;
+        if input is error:NoMessage {
             return;
         }
-        xml combinedInput = input0;
-        xml|error output = throw(combinedInput, context);
+        xml|error output = throw(input, context);
         if output is error {
             output -> errorHandler;
             return;

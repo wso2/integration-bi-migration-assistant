@@ -88,12 +88,11 @@ function process_experianservice_module_Process(xml input) returns xml {
         input -> activityExtension_worker;
     }
     worker activityExtension_2_worker {
-        error:NoMessage|xml input0 = <- ParseJSONToJDBCQuery;
-        if input0 is error:NoMessage {
+        error:NoMessage|xml input = <- ParseJSONToJDBCQuery;
+        if input is error:NoMessage {
             return;
         }
-        xml combinedInput = input0;
-        xml|error output = activityExtension_2(combinedInput, context);
+        xml|error output = activityExtension_2(input, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -101,12 +100,11 @@ function process_experianservice_module_Process(xml input) returns xml {
         output -> JDBCQueryToSendHTTPResponse;
     }
     worker activityExtension_3_worker {
-        error:NoMessage|xml input0 = <- HTTPReceiverToSendHTTPResponse;
-        if input0 is error:NoMessage {
+        error:NoMessage|xml input = <- HTTPReceiverToSendHTTPResponse;
+        if input is error:NoMessage {
             return;
         }
-        xml combinedInput = input0;
-        xml|error output = activityExtension_3(combinedInput, context);
+        xml|error output = activityExtension_3(input, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -114,12 +112,11 @@ function process_experianservice_module_Process(xml input) returns xml {
         output -> ParseJSONToJDBCQuery;
     }
     worker activityExtension_4_worker {
-        error:NoMessage|xml input0 = <- JDBCQueryToSendHTTPResponse;
-        if input0 is error:NoMessage {
+        error:NoMessage|xml input = <- JDBCQueryToSendHTTPResponse;
+        if input is error:NoMessage {
             return;
         }
-        xml combinedInput = input0;
-        xml|error output = activityExtension_4(combinedInput, context);
+        xml|error output = activityExtension_4(input, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -127,12 +124,11 @@ function process_experianservice_module_Process(xml input) returns xml {
         output -> RenderJSONToSendHTTPResponse;
     }
     worker activityExtension_worker {
-        error:NoMessage|xml input0 = <- RenderJSONToSendHTTPResponse;
-        if input0 is error:NoMessage {
+        error:NoMessage|xml input = <- RenderJSONToSendHTTPResponse;
+        if input is error:NoMessage {
             return;
         }
-        xml combinedInput = input0;
-        xml|error output = activityExtension(combinedInput, context);
+        xml|error output = activityExtension(input, context);
         if output is error {
             output -> errorHandler;
             return;

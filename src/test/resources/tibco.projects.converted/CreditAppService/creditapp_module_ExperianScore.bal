@@ -107,12 +107,11 @@ function process_creditapp_module_ExperianScore(xml input) returns xml {
         input -> activityExtension_3_worker;
     }
     worker activityExtension_2_worker {
-        error:NoMessage|xml input0 = <- RenderJSONToSendHTTPRequest;
-        if input0 is error:NoMessage {
+        error:NoMessage|xml input = <- RenderJSONToSendHTTPRequest;
+        if input is error:NoMessage {
             return;
         }
-        xml combinedInput = input0;
-        xml|error output = activityExtension_2(combinedInput, context);
+        xml|error output = activityExtension_2(input, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -120,12 +119,11 @@ function process_creditapp_module_ExperianScore(xml input) returns xml {
         output -> SendHTTPRequestToEnd;
     }
     worker activityExtension_3_worker {
-        error:NoMessage|xml input0 = <- StartToSendHTTPRequest;
-        if input0 is error:NoMessage {
+        error:NoMessage|xml input = <- StartToSendHTTPRequest;
+        if input is error:NoMessage {
             return;
         }
-        xml combinedInput = input0;
-        xml|error output = activityExtension_3(combinedInput, context);
+        xml|error output = activityExtension_3(input, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -133,12 +131,11 @@ function process_creditapp_module_ExperianScore(xml input) returns xml {
         output -> RenderJSONToSendHTTPRequest;
     }
     worker activityExtension_4_worker {
-        error:NoMessage|xml input0 = <- SendHTTPRequestToEnd;
-        if input0 is error:NoMessage {
+        error:NoMessage|xml input = <- SendHTTPRequestToEnd;
+        if input is error:NoMessage {
             return;
         }
-        xml combinedInput = input0;
-        xml|error output = activityExtension_4(combinedInput, context);
+        xml|error output = activityExtension_4(input, context);
         if output is error {
             output -> errorHandler;
             return;
@@ -146,12 +143,11 @@ function process_creditapp_module_ExperianScore(xml input) returns xml {
         output -> ParseJSONToEnd;
     }
     worker activityExtension_worker {
-        error:NoMessage|xml input0 = <- ParseJSONToEnd;
-        if input0 is error:NoMessage {
+        error:NoMessage|xml input = <- ParseJSONToEnd;
+        if input is error:NoMessage {
             return;
         }
-        xml combinedInput = input0;
-        xml|error output = activityExtension(combinedInput, context);
+        xml|error output = activityExtension(input, context);
         if output is error {
             output -> errorHandler;
             return;

@@ -156,22 +156,13 @@ public class ProcessConverter {
         }
 
         List<BallerinaModel.Statement> body = new ArrayList<>();
-        List<String> inputVars = new ArrayList<>();
-        for (TibcoModel.Scope.Flow.Link source : sources) {
-            String inputVarName = "input" + inputVars.size();
-            var input = addReceiveFromPeerStatement(analysisResult.from(source).workerName(), inputVarName,
-                    body);
-            handleNoMessage(cx, input, body);
-            inputVars.add(input.varName());
-        }
-        // TODO: concat
-        String inputVar = String.join(" + ", inputVars);
-        String combinedInput = "combinedInput";
-        VarDeclStatment inputVarDecl = new VarDeclStatment(XML, combinedInput, new VariableReference(inputVar));
-        body.add(inputVarDecl);
-
+        VarDeclStatment inputDecl = createAlternateReceiveFromWorkers(
+                sources.stream().map(analysisResult::from).map(AnalysisResult.LinkData::workerName),
+                "input");
+        body.add(inputDecl);
+        handleNoMessage(cx, inputDecl.ref(), body);
         BallerinaModel.Expression.FunctionCall callExpr = genereateActivityFunctionCall(cx, activity,
-                new BallerinaModel.Expression.VariableReference(inputVarDecl.varName()));
+                inputDecl.ref());
         BallerinaModel.Expression.VariableReference output = handleErrorValueFromActivity(cx, activity,
                 "output", body, callExpr);
         addTransitionsToDestination(cx, body, activity, output);
