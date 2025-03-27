@@ -9,7 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
-import static converter.MuleToBalConverter.convertToBallerina;
+import static converter.MuleToBalConverter.convertStandaloneXMLFileToBallerina;
 
 public class AbstractBlockTest {
 
@@ -30,7 +30,7 @@ public class AbstractBlockTest {
 
     private static void testMuleToBal(String muleVersionDir, String sourcePath, String targetPath) {
         Path testDir = RESOURCE_DIRECTORY.resolve(BLOCKS_DIRECTORY).resolve(muleVersionDir);
-        SyntaxTree syntaxTree = convertToBallerina(testDir.resolve(sourcePath).toString());
+        SyntaxTree syntaxTree = convertStandaloneXMLFileToBallerina(testDir.resolve(sourcePath).toString());
         String expectedBalCode = getSourceText(testDir.resolve(targetPath));
         String actualBalCode = syntaxTree.toSourceCode();
         updateAssertFile(testDir.resolve(targetPath), actualBalCode);
