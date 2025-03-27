@@ -114,6 +114,7 @@ The migration tool currently supports the following DataWeave transformations an
 - [Map Index Identifier Expression](samples/MULE_DATAWEAVE_SAMPLES.md#map-index-identifier-expression)
 - [Map Index Identifier Only Expression](samples/MULE_DATAWEAVE_SAMPLES.md#map-index-identifier-only-expression)
 - [Map Value Identifier Expression](samples/MULE_DATAWEAVE_SAMPLES.md#map-value-identifier-expression)
+- [Map With Parameters Expression](samples/MULE_DATAWEAVE_SAMPLES.md#map-with-parameters-expression)
 - [Replace With Expression](samples/MULE_DATAWEAVE_SAMPLES.md#replace-with-expression)
 - [Single Selector Expression](samples/MULE_DATAWEAVE_SAMPLES.md#single-selector-expression)
 - [Sizeof Expression](samples/MULE_DATAWEAVE_SAMPLES.md#sizeof-expression)

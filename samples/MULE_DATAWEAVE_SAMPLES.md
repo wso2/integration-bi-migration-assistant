@@ -258,6 +258,29 @@ function _dwMethod0_(json payload) returns json {
 
 ```
 
+## Map With Parameters Expression
+
+**DataWeave Script (transform_message_with_map_with_parameters.dwl):**
+```dataweave
+%dw 1.0
+%output application/json
+---
+["john", "peter", "matt"] map ((firstName, position) -> position ++ ":" ++ upper firstName)
+```
+
+**Ballerina Output (transform_message_with_map_with_parameters.bal):**
+```ballerina
+function sampleFlow() {
+    json _dwOutput_ = _dwMethod0_();
+}
+
+function _dwMethod0_() returns json {
+    var _var_0 = ["john", "peter", "matt"];
+    return _var_0.'map(element => _var_0.indexOf(element).toString() + ":" + element.toUpperAscii());
+}
+
+```
+
 ## Replace With Expression
 
 **DataWeave Script (transform_message_with_replace_with.dwl):**
