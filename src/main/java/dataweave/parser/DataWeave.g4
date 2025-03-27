@@ -86,8 +86,8 @@ conditionalExpression
 
 // Implicit Lambda Expressions (Ensuring `$` or `$$` is inside)
 implicitLambdaExpression
-    : expression
-    | inlineLambda
+    : inlineLambda
+    | expression
     | '(' implicitLambdaExpression ')'
     ;
 

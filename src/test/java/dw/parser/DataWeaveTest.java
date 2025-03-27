@@ -40,6 +40,8 @@ public class DataWeaveTest {
                 {DataWeaveScripts.SCRIPT_BUILTIN_SIZEOF_IN_OBJECT, "src/test/resources/parser/expected/" +
                         "dw_builtin_sizeof_in_object.json"},
                 {DataWeaveScripts.SCRIPT_BUILTIN_MAP, "src/test/resources/parser/expected/dw_builtin_map.json"},
+                {DataWeaveScripts.SCRIPT_MAP_WITH_PARAMS, "src/test/resources/parser/expected/" +
+                        "dw_map_with_params.json"},
                 {DataWeaveScripts.SCRIPT_BUILTIN_UPPER, "src/test/resources/parser/expected/" +
                         "dw_builtin_upper.json"},
                 {DataWeaveScripts.SCRIPT_BUILTIN_LOWER, "src/test/resources/parser/expected/" +
@@ -74,6 +76,10 @@ public class DataWeaveTest {
                         "dw_type_coercion_with_class.json"},
                 {DataWeaveScripts.SCRIPT_TYPE_COERCION_STRING_WITH_DIFFERENT_FORMATS, "src/test/resources/parser" +
                         "/expected/dw_type_coercion_string_with_different_formats.json"},
+                {DataWeaveScripts.SCRIPT_TYPE_COERCION_NUMBER_WITH_DATE_FORMATS, "src/test/resources/parser" +
+                        "/expected/dw_type_coercion_number_with_date_formats.json"},
+                {DataWeaveScripts.SCRIPT_TYPE_COERCION_TO_DATE, "src/test/resources/parser/expected/" +
+                        "dw_type_coercion_to_date.json"},
         };
     }
 }

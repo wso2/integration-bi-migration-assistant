@@ -217,10 +217,10 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
         if (ctx.inlineLambda() != null) {
             return visit(ctx.inlineLambda());
         }
-        if (ctx.implicitLambdaExpression() != null) {
-            return visit(ctx.implicitLambdaExpression());
+        if (ctx.expression() != null) {
+            return visit(ctx.expression());
         }
-        return visit(ctx.expression());
+        return visit(ctx.implicitLambdaExpression());
     }
 
     @Override

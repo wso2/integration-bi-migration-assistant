@@ -1,0 +1,45 @@
+{
+  "type" : "Script",
+  "header" : {
+    "type" : "Header",
+    "directives" : [ {
+      "type" : "Version",
+      "version" : "1.0"
+    }, {
+      "type" : "Output",
+      "output" : "application/json"
+    } ]
+  },
+  "body" : {
+    "type" : "Body",
+    "expression" : {
+      "type" : "Object",
+      "mydate1" : {
+        "type" : "number",
+        "expression" : {
+          "type" : "Literal",
+          "value" : "|2005-06-02T15:10:16Z|"
+        },
+        "operator" : "as",
+        "format" : {
+          "type" : "FormatOption",
+          "key" : "unit",
+          "value" : "\"seconds\""
+        }
+      },
+      "mydate2" : {
+        "type" : "number",
+        "expression" : {
+          "type" : "Literal",
+          "value" : "|2005-06-02T15:10:16Z|"
+        },
+        "operator" : "as",
+        "format" : {
+          "type" : "FormatOption",
+          "key" : "unit",
+          "value" : "\"milliseconds\""
+        }
+      }
+    }
+  }
+}
