@@ -15,7 +15,7 @@ service / on httpConfig {
         commonConfig2Sub_Flow(_response_);
         json scriptVar = check _dwMethod0_(payload);
         json inlineVar = check _dwMethod1_(payload);
-        json _dwOutput_ = check _dwMethod1_(payload);
+        xml _dwOutput_ = _dwMethod2_(payload);
         _response_.setPayload(_dwOutput_);
         log:printInfo("xxx: end of the logger reached");
         return _response_;
@@ -25,6 +25,9 @@ service / on httpConfig {
 function _dwMethod1_(json payload) returns json|error {
     float conversionRate = 13.15;
     return {"s": "Hello World", "n": 1.23, "b": true, "a": check [1, 2, 3].ensureType(json), "o": check {"name": "Anne"}.ensureType(json)};
+}
+
+function _dwMethod2_(xml payload) returns xml {
 }
 
 function _dwMethod0_(json payload) returns json|error {

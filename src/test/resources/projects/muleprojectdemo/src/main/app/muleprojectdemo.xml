@@ -21,7 +21,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 %var conversionRate=13.15
 ---
 {s: "Hello World", n: 1.23, b: true, a:[1,2,3], o:{ name:  "Anne" }}]]></dw:set-variable>
-			<dw:set-payload resource="projects/muleprojectdemo/src/main/resources/dwlFiles/values.dwl"/>
+			<dw:set-payload resource="projects/muleprojectdemo/src/main/resources/dwlFiles/values_unsupport.dwl"/>
 		</dw:transform-message>
 		<logger message="xxx: end of the logger reached" level="INFO" doc:name="Logger"/>
 	</flow>

@@ -112,7 +112,7 @@ public class MigrationTool {
     private static void printDataWeaveConversionSummary(MuleXMLNavigator muleXMLNavigator) {
         DWConversionStats stats = muleXMLNavigator.getDwConversionStats();
         OUT.println("________________________________________________________________");
-        OUT.println("Dataweave conversion percentage: " + stats.getConversionPercentage() + "%");
+        OUT.println("Dataweave conversion percentage: " + String.format("%.2f", stats.getConversionPercentage()) + "%");
         OUT.println("________________________________________________________________");
     }
 
