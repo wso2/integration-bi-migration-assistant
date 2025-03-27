@@ -1,5 +1,6 @@
 package converter;
 
+import dataweave.converter.DWConversionStats;
 import io.ballerina.cli.cmd.NewCommand;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import picocli.CommandLine;
@@ -102,8 +103,17 @@ public class MigrationTool {
 
         Path reportFilePath = Paths.get(targetFolderPath, MIGRATION_REPORT_NAME);
         int conversionPercentage = writeHtmlReport(logger, reportFilePath,
-                muleXMLNavigator.getXmlCompatibleTagCountMap(), muleXMLNavigator.getXmlIncompatibleTagCountMap());
+                muleXMLNavigator.getXmlCompatibleTagCountMap(), muleXMLNavigator.getXmlIncompatibleTagCountMap(),
+                muleXMLNavigator.getDwConversionStats());
         printConversionPercentage(conversionPercentage);
+        printDataWeaveConversionSummary(muleXMLNavigator);
+    }
+
+    private static void printDataWeaveConversionSummary(MuleXMLNavigator muleXMLNavigator) {
+        DWConversionStats stats = muleXMLNavigator.getDwConversionStats();
+        OUT.println("________________________________________________________________");
+        OUT.println("Dataweave conversion percentage: " + stats.getConversionPercentage() + "%");
+        OUT.println("________________________________________________________________");
     }
 
     private static void printConversionPercentage(int conversionPercentage) {

@@ -38,11 +38,11 @@ footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #666; }
 <div class="summary-container">
 <div class="summary-item">
 <span class="summary-bullet">&#8226;</span>
-<p>Compatible XML Element Tag Count: 6</p>
+<p>Compatible XML Element Tag Count: 10</p>
 </div>
 <div class="summary-item">
 <span class="summary-bullet">&#8226;</span>
-<p>Compatible XML Element Tag Weight: 33</p>
+<p>Compatible XML Element Tag Weight: 44</p>
 </div>
 </div>
 <h4 class="drawer-toggle" onclick="toggleDrawer('compatibleTagsDrawer', 'compatibleArrow')">
@@ -56,6 +56,10 @@ footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #666; }
 <tr><td>flow</td><td>3</td><td>2</td><td>6</td></tr>
 <tr><td>http:listener</td><td>4</td><td>1</td><td>4</td></tr>
 <tr><td>flow-ref</td><td>3</td><td>3</td><td>9</td></tr>
+<tr><td>dw:transform-message</td><td>3</td><td>1</td><td>3</td></tr>
+<tr><td>dw:input-payload</td><td>2</td><td>1</td><td>2</td></tr>
+<tr><td>dw:set-variable</td><td>2</td><td>2</td><td>4</td></tr>
+<tr><td>dw:set-payload</td><td>2</td><td>1</td><td>2</td></tr>
 <tr><td>logger</td><td>1</td><td>4</td><td>4</td></tr>
 <tr><td>sub-flow</td><td>3</td><td>2</td><td>6</td></tr>
 </table>
@@ -78,6 +82,35 @@ footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #666; }
 <table>
 <tr><th>Element Tag</th><th>Weight</th><th>Occurrences</th><th>Total Weight</th></tr>
 <tr><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+</table>
+</div>
+<div class="summary-container">
+<div class="summary-item">
+<span class="summary-bullet">&#8226;</span>
+<p>DataWeave XML Element Tag Count: 10</p>
+</div>
+<div class="summary-item">
+<span class="summary-bullet">&#8226;</span>
+<p>DataWeave XML Element Tag Weight: 57</p>
+</div>
+</div>
+<h4 class="drawer-toggle" onclick="toggleDrawer('dwTagsDrawer', 'dwArrow')">
+<span id="dwArrow" class="arrow open"></span>
+<span>DataWeave Constructs</span>
+</h4>
+<div class="drawer open" id="dwTagsDrawer">
+<table class="green-table">
+<tr><th>Construct</th><th>Weight</th><th>Encountered</th><th>Converted</th><th>Total Weight</th><th>Converted Weight</th><th>Success %%</th></tr>
+<tr><td>literal</td><td>1</td><td>13</td><td>13</td><td>13</td><td>13</td><td>100.00%</td></tr>
+<tr><td>identifier</td><td>1</td><td>2</td><td>2</td><td>2</td><td>2</td><td>100.00%</td></tr>
+<tr><td>when</td><td>4</td><td>1</td><td>1</td><td>4</td><td>4</td><td>100.00%</td></tr>
+<tr><td>equality-operator</td><td>3</td><td>2</td><td>2</td><td>6</td><td>6</td><td>100.00%</td></tr>
+<tr><td>input-directive</td><td>3</td><td>2</td><td>2</td><td>6</td><td>6</td><td>100.00%</td></tr>
+<tr><td>object</td><td>2</td><td>5</td><td>5</td><td>10</td><td>10</td><td>100.00%</td></tr>
+<tr><td>output-directive</td><td>3</td><td>2</td><td>2</td><td>6</td><td>6</td><td>100.00%</td></tr>
+<tr><td>single-value-selector</td><td>2</td><td>2</td><td>2</td><td>4</td><td>4</td><td>100.00%</td></tr>
+<tr><td>array</td><td>2</td><td>1</td><td>1</td><td>2</td><td>2</td><td>100.00%</td></tr>
+<tr><td>variable-declaration</td><td>4</td><td>1</td><td>1</td><td>4</td><td>4</td><td>100.00%</td></tr>
 </table>
 </div>
 <h4 class="drawer-toggle" onclick="toggleDrawer('tagWeightsDrawer', 'tagWeightsArrow')">

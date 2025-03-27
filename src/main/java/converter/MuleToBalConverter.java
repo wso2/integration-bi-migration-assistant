@@ -3,6 +3,7 @@ package converter;
 import ballerina.BallerinaModel;
 import ballerina.CodeGenerator;
 import converter.MuleXMLNavigator.MuleElement;
+import dataweave.converter.DWConversionStats;
 import dataweave.converter.DWReader;
 import dataweave.converter.DWUtils;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
@@ -116,9 +117,15 @@ public class MuleToBalConverter {
         public int enricherMethodCount = 0;
         public int payloadVarCount = 0;
 
+        private final DWConversionStats dwConversionStats;
+
         // We don't know all the params passing down to funcs until we fully read the mule config.
         // Therefore, we need to keep a track of the params needed.
         private final HashMap<String, HashSet<Parameter>> functionParamMap = new HashMap<>();
+
+        public Data(MuleXMLNavigator muleXMLNavigator) {
+            this.dwConversionStats = muleXMLNavigator.getDwConversionStats();
+        }
 
         public void addFuncParam(String funcName, Parameter param) {
             HashSet<Parameter> parameters = functionParamMap.get(funcName);
@@ -133,6 +140,10 @@ public class MuleToBalConverter {
         Map<String, FlowInfo> flowInfoMap = new HashMap<>();
         Map<String, Function> flowToGenMethodMap = new HashMap<>();
         FlowInfo currentFlowInfo = null;
+
+        public DWConversionStats getDwConversionStats() {
+            return dwConversionStats;
+        }
 
         static class FlowInfo {
             final String flowName;
@@ -169,12 +180,12 @@ public class MuleToBalConverter {
 
     public static SyntaxTree convertStandaloneXMLFileToBallerina(String xmlFilePath) {
         MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator();
-        Data data = new Data();
+        Data data = new Data(muleXMLNavigator);
         return convertXMLFileToBallerina(muleXMLNavigator, xmlFilePath, data);
     }
 
     public static SyntaxTree convertProjectXMLFileToBallerina(MuleXMLNavigator muleXMLNavigator, String xmlFilePath) {
-        Data data = new Data();
+        Data data = new Data(muleXMLNavigator);
         return convertXMLFileToBallerina(muleXMLNavigator, xmlFilePath, data);
     }
 
@@ -185,8 +196,8 @@ public class MuleToBalConverter {
     }
 
     public static BallerinaModel getBallerinaModel(String xmlFilePath) {
-        Data data = new Data();
         MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator();
+        Data data = new Data(muleXMLNavigator);
         return getBallerinaModel(muleXMLNavigator, data, xmlFilePath);
     }
 

@@ -1,5 +1,7 @@
 package converter;
 
+import dataweave.converter.DWConstruct;
+import dataweave.converter.DWConversionStats;
 import mule.MuleXMLTag;
 
 import java.io.IOException;
@@ -15,35 +17,48 @@ public class HtmlReportWriter {
 
     public static int writeHtmlReport(Logger logger, Path reportFilePath,
                                       LinkedHashMap<String, Integer> xmlCompatibleTagCountMap,
-                                      LinkedHashMap<String, Integer> xmlIncompatibleTagCountMap) {
+                                      LinkedHashMap<String, Integer> xmlIncompatibleTagCountMap,
+                                      DWConversionStats dwStats) {
         String htmlHeader = generateHtmlHeader();
 
         /// Percentage calculation
         int totalCompatibleTagWeight = calculateTotalWeight(xmlCompatibleTagCountMap);
         int totalIncompatibleTagWeight = calculateTotalWeight(xmlIncompatibleTagCountMap);
-        int totalTagWeight = totalCompatibleTagWeight + totalIncompatibleTagWeight;
-        int percentage = totalTagWeight == 0 ? 0 : totalCompatibleTagWeight * 100 / totalTagWeight;
+        int xmlTotalWeight = totalCompatibleTagWeight + totalIncompatibleTagWeight;
+
+        int dwTotalWeight = dwStats.getTotalWeight();
+        int dwConvertedWeight = dwStats.getConvertedWeight();
+
+        // Overall weight and conversion %
+        int combinedTotalWeight = xmlTotalWeight + dwTotalWeight;
+        int combinedConvertedWeight = totalCompatibleTagWeight + dwConvertedWeight;
+        int percentage = combinedTotalWeight == 0 ? 0 : combinedConvertedWeight * 100 / combinedTotalWeight;
 
         String conversionPercentageSection = generateConversionPercentageSection(percentage);
 
-        int compatibleTagCount = xmlCompatibleTagCountMap.keySet().size();
-        int incompatibleTagCount = xmlIncompatibleTagCountMap.keySet().size();
-
+        int compatibleTagCount = xmlCompatibleTagCountMap.size();
+        int incompatibleTagCount = xmlIncompatibleTagCountMap.size();
         String compatibleSummarySection = generateSummarySection(COMPATIBLE_TAG_TYPE, compatibleTagCount,
                 totalCompatibleTagWeight);
         String compatibleTagTable = generateTagsSection(COMPATIBLE_TAG_TYPE, xmlCompatibleTagCountMap,
                 "compatibleTagsDrawer", "compatibleArrow", true);
-
         String incompatibleSummarySection = generateSummarySection(INCOMPATIBLE_TAG_TYPE, incompatibleTagCount,
                 totalIncompatibleTagWeight);
         String incompatibleTagTable = generateTagsSection(INCOMPATIBLE_TAG_TYPE, xmlIncompatibleTagCountMap,
                 "incompatibleTagsDrawer", "incompatibleArrow", false);
 
+        String dwSummarySection = generateSummarySection("DataWeave", dwStats.getEncountered().size(),
+                dwTotalWeight);
+        String dwTagsTable = generateDataWeaveTagsSection(dwStats);
+
         String tagWeightsSection = generateTagWeightReferenceTableSection();
         String htmlFooter = generateHtmlFooter();
 
-        String reportContent = htmlHeader + conversionPercentageSection + compatibleSummarySection +
-                compatibleTagTable + incompatibleSummarySection + incompatibleTagTable + tagWeightsSection + htmlFooter;
+        String reportContent = htmlHeader + conversionPercentageSection +
+                compatibleSummarySection + compatibleTagTable +
+                incompatibleSummarySection + incompatibleTagTable +
+                dwSummarySection + dwTagsTable +
+                tagWeightsSection + htmlFooter;
 
         try {
             Files.writeString(reportFilePath, reportContent);
@@ -153,9 +168,8 @@ public class HtmlReportWriter {
                 .append("<table class=\"blue-table\">\n")
                 .append("<tr><th>Tag</th><th>Weight</th></tr>\n");
 
-        MuleXMLTag.TAG_WEIGHTS_MAP.forEach((tag, weight) -> {
-            sb.append(String.format("<tr><td>%s</td><td>%d</td></tr>\n", tag, weight));
-        });
+        MuleXMLTag.TAG_WEIGHTS_MAP.forEach((tag, weight) ->
+                sb.append(String.format("<tr><td>%s</td><td>%d</td></tr>\n", tag, weight)));
 
         sb.append("</table>\n").append("</div>\n").append("</div>\n");
         return sb.toString();
@@ -185,4 +199,37 @@ public class HtmlReportWriter {
                 .mapToInt(entry -> MuleXMLTag.getWeightFromTag(entry.getKey()) * entry.getValue())
                 .sum();
     }
+
+    private static String generateDataWeaveTagsSection(DWConversionStats stats) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("<h4 class=\"drawer-toggle\" onclick=\"toggleDrawer('%s', '%s')\">\n", "dwTagsDrawer",
+                        "dwArrow"))
+                .append(String.format("<span id=\"%s\" class=\"arrow open\"></span>\n", "dwArrow"))
+                .append("<span>DataWeave Constructs</span>\n")
+                .append("</h4>\n")
+                .append(String.format("<div class=\"drawer open\" id=\"%s\">\n", "dwTagsDrawer"))
+                .append("<table class=\"green-table\">\n")
+                .append("<tr><th>Construct</th><th>Weight</th><th>Encountered</th><th>Converted</th><th>Total " +
+                        "Weight</th><th>Converted Weight</th><th>Success %%</th></tr>\n");
+
+        for (DWConstruct construct : stats.getEncountered().keySet()) {
+            int encountered = stats.getEncountered().getOrDefault(construct, 0);
+            int converted = stats.getConverted().getOrDefault(construct, 0);
+            int weight = construct.weight();
+            int totalWeight = encountered * weight;
+            int convertedWeight = converted * weight;
+            double success = encountered == 0 ? 0 : (converted * 100.0 / encountered);
+            sb.append(String.format("<tr><td>%s</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td>" +
+                            "<td>%.2f%%</td></tr>\n",
+                    construct.component(), weight, encountered, converted, totalWeight, convertedWeight, success));
+        }
+
+        if (stats.getEncountered().isEmpty()) {
+            sb.append("<tr><td colspan='7'>No DataWeave constructs found</td></tr>\n");
+        }
+
+        sb.append("</table>\n</div>\n");
+        return sb.toString();
+    }
+
 }
