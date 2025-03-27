@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.logging.Logger;
 
 public class HtmlReportWriter {
@@ -51,7 +52,8 @@ public class HtmlReportWriter {
                 dwTotalWeight);
         String dwTagsTable = generateDataWeaveTagsSection(dwStats);
 
-        String tagWeightsSection = generateTagWeightReferenceTableSection();
+        String tagWeightsSection = generateTagWeightReferenceTableSection() +
+                generateDWConstructWeightReferenceTableSection();
         String htmlFooter = generateHtmlFooter();
 
         String reportContent = htmlHeader + conversionPercentageSection +
@@ -231,5 +233,27 @@ public class HtmlReportWriter {
         sb.append("</table>\n</div>\n");
         return sb.toString();
     }
+
+    private static String generateDWConstructWeightReferenceTableSection() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<h4 class=\"drawer-toggle\" onclick=\"toggleDrawer('dwConstructWeightsDrawer', " +
+                        "'dwConstructWeightsArrow')\">\n")
+                .append("<span id=\"dwConstructWeightsArrow\" class=\"arrow open\"></span>\n")
+                .append("<span>DataWeave Construct Weight Map</span>\n")
+                .append("</h4>\n")
+                .append("<div class=\"drawer\" id=\"dwConstructWeightsDrawer\">\n")
+                .append("<div class=\"scrollable-table\">\n")
+                .append("<table class=\"blue-table\">\n")
+                .append("<tr><th>Construct</th><th>Weight</th></tr>\n");
+
+        for (DWConstruct construct : DWConstruct.values()) {
+            sb.append(String.format("<tr><td>%s</td><td>%d</td></tr>\n",
+                    construct.component().toUpperCase(Locale.ROOT), construct.weight()));
+        }
+
+        sb.append("</table>\n</div>\n</div>\n");
+        return sb.toString();
+    }
+
 
 }

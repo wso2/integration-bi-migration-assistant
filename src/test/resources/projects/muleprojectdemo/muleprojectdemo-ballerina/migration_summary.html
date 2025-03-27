@@ -101,16 +101,16 @@ footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #666; }
 <div class="drawer open" id="dwTagsDrawer">
 <table class="green-table">
 <tr><th>Construct</th><th>Weight</th><th>Encountered</th><th>Converted</th><th>Total Weight</th><th>Converted Weight</th><th>Success %%</th></tr>
-<tr><td>object</td><td>2</td><td>5</td><td>5</td><td>10</td><td>10</td><td>100.00%</td></tr>
-<tr><td>single-value-selector</td><td>2</td><td>2</td><td>2</td><td>4</td><td>4</td><td>100.00%</td></tr>
-<tr><td>identifier</td><td>1</td><td>2</td><td>2</td><td>2</td><td>2</td><td>100.00%</td></tr>
-<tr><td>when</td><td>2</td><td>1</td><td>1</td><td>2</td><td>2</td><td>100.00%</td></tr>
-<tr><td>variable-declaration</td><td>4</td><td>1</td><td>1</td><td>4</td><td>4</td><td>100.00%</td></tr>
-<tr><td>output-directive</td><td>3</td><td>2</td><td>2</td><td>6</td><td>6</td><td>100.00%</td></tr>
 <tr><td>array</td><td>2</td><td>1</td><td>1</td><td>2</td><td>2</td><td>100.00%</td></tr>
-<tr><td>equality-operator</td><td>3</td><td>2</td><td>2</td><td>6</td><td>6</td><td>100.00%</td></tr>
 <tr><td>literal</td><td>1</td><td>13</td><td>13</td><td>13</td><td>13</td><td>100.00%</td></tr>
 <tr><td>input-directive</td><td>3</td><td>2</td><td>2</td><td>6</td><td>6</td><td>100.00%</td></tr>
+<tr><td>output-directive</td><td>3</td><td>2</td><td>2</td><td>6</td><td>6</td><td>100.00%</td></tr>
+<tr><td>when</td><td>2</td><td>1</td><td>1</td><td>2</td><td>2</td><td>100.00%</td></tr>
+<tr><td>single-value-selector</td><td>2</td><td>2</td><td>2</td><td>4</td><td>4</td><td>100.00%</td></tr>
+<tr><td>equality-operator</td><td>3</td><td>2</td><td>2</td><td>6</td><td>6</td><td>100.00%</td></tr>
+<tr><td>object</td><td>2</td><td>5</td><td>5</td><td>10</td><td>10</td><td>100.00%</td></tr>
+<tr><td>identifier</td><td>1</td><td>2</td><td>2</td><td>2</td><td>2</td><td>100.00%</td></tr>
+<tr><td>variable-declaration</td><td>4</td><td>1</td><td>1</td><td>4</td><td>4</td><td>100.00%</td></tr>
 </table>
 </div>
 <h4 class="drawer-toggle" onclick="toggleDrawer('tagWeightsDrawer', 'tagWeightsArrow')">
@@ -167,6 +167,44 @@ footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #666; }
 <tr><td>choice</td><td>3</td></tr>
 <tr><td>db:insert</td><td>2</td></tr>
 <tr><td>smtp:connector</td><td>4</td></tr>
+</table>
+</div>
+</div>
+<h4 class="drawer-toggle" onclick="toggleDrawer('dwConstructWeightsDrawer', 'dwConstructWeightsArrow')">
+<span id="dwConstructWeightsArrow" class="arrow open"></span>
+<span>DataWeave Construct Weight Map</span>
+</h4>
+<div class="drawer" id="dwConstructWeightsDrawer">
+<div class="scrollable-table">
+<table class="blue-table">
+<tr><th>Construct</th><th>Weight</th></tr>
+<tr><td>LITERAL</td><td>1</td></tr>
+<tr><td>FUNCTION-CALL</td><td>3</td></tr>
+<tr><td>MAP</td><td>3</td></tr>
+<tr><td>FILTER</td><td>3</td></tr>
+<tr><td>OBJECT</td><td>2</td></tr>
+<tr><td>ARRAY</td><td>2</td></tr>
+<tr><td>WHEN</td><td>2</td></tr>
+<tr><td>IDENTIFIER</td><td>1</td></tr>
+<tr><td>CONCAT</td><td>2</td></tr>
+<tr><td>REPLACE</td><td>2</td></tr>
+<tr><td>SIZE-OF</td><td>2</td></tr>
+<tr><td>TYPE-COERCION</td><td>4</td></tr>
+<tr><td>UNSUPPORTED</td><td>1000</td></tr>
+<tr><td>LOWER</td><td>3</td></tr>
+<tr><td>UPPER</td><td>3</td></tr>
+<tr><td>SINGLE-VALUE-SELECTOR</td><td>2</td></tr>
+<tr><td>MULTIPLICATIVE-OPERATOR</td><td>3</td></tr>
+<tr><td>ADDITIVE-OPERATOR</td><td>3</td></tr>
+<tr><td>RELATIONAL-OPERATOR</td><td>3</td></tr>
+<tr><td>EQUALITY-OPERATOR</td><td>3</td></tr>
+<tr><td>LAMBDA-EXPRESSION</td><td>4</td></tr>
+<tr><td>AND-OPERATOR</td><td>3</td></tr>
+<tr><td>OR-OPERATOR</td><td>3</td></tr>
+<tr><td>GROUPED</td><td>1</td></tr>
+<tr><td>VARIABLE-DECLARATION</td><td>4</td></tr>
+<tr><td>INPUT-DIRECTIVE</td><td>3</td></tr>
+<tr><td>OUTPUT-DIRECTIVE</td><td>3</td></tr>
 </table>
 </div>
 </div>
