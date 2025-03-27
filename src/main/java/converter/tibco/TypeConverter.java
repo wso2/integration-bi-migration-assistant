@@ -29,9 +29,9 @@ class TypeConverter {
 
     }
 
-    static Collection<BallerinaModel.ModuleTypeDef> convertSchema(ContextWithFile cx,
+    static void convertSchema(ContextWithFile cx,
             TibcoModel.Type.Schema schema) {
-        // TODO: (may be) handle namespaces
+        // FIXME:
         var tcx = new TypeConversionContext(cx, ConversionUtils.createNamespace(schema.targetNamespace()));
         Stream<BallerinaModel.ModuleTypeDef> newTypeDefinitions = schema.types().stream()
                 .filter(type -> !type.name().equals("anydata"))
@@ -41,7 +41,7 @@ class TypeConverter {
                 .filter(Optional::isPresent).map(Optional::get);
         Stream<BallerinaModel.ModuleTypeDef> unhandledTypes = schema.unhandledTypes().stream()
                 .map(ty -> convertUnhandledTypes(cx, ty));
-        return Stream.of(newTypeDefinitions, typeAliases, unhandledTypes)
+        var list = Stream.of(newTypeDefinitions, typeAliases, unhandledTypes)
                 .flatMap(s -> s).toList();
     }
 

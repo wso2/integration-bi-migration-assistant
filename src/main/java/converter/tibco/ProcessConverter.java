@@ -100,20 +100,18 @@ public class ProcessConverter {
     }
 
     private static TypeConversionResult convertTypes(ProcessContext cx, TibcoModel.Process process) {
-        List<BallerinaModel.ModuleTypeDef> moduleTypeDefs = new ArrayList<>();
         List<BallerinaModel.Service> services = new ArrayList<>();
         for (TibcoModel.Type type : process.types()) {
             switch (type) {
-                case TibcoModel.Type.Schema schema -> moduleTypeDefs.addAll(TypeConverter.convertSchema(cx, schema));
+                case TibcoModel.Type.Schema schema -> TypeConverter.convertSchema(cx, schema);
                 case TibcoModel.Type.WSDLDefinition wsdlDefinition ->
                         services.addAll(TypeConverter.convertWsdlDefinition(cx, wsdlDefinition));
             }
         }
-        return new TypeConversionResult(moduleTypeDefs, services);
+        return new TypeConversionResult(services);
     }
 
-    private record TypeConversionResult(Collection<BallerinaModel.ModuleTypeDef> moduleTypeDefs,
-                                        Collection<BallerinaModel.Service> service) {
+    private record TypeConversionResult(Collection<BallerinaModel.Service> service) {
 
     }
 

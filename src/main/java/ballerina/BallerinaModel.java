@@ -9,6 +9,8 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+
 public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules) {
 
     public record DefaultPackage(String org, String name, String version) {
@@ -21,13 +23,14 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     public record TextDocument(String documentName, List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
             List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
-            List<Function> functions, List<String> Comments, List<String> intrinsics) {
+            List<Function> functions, List<String> Comments, List<String> intrinsics,
+            List<ModuleMemberDeclarationNode> astNodes) {
 
         public TextDocument(String documentName, List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
                 List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
                 List<Function> functions, List<String> comments) {
             this(documentName, imports, moduleTypeDefs, moduleVars, listeners, services, functions, comments,
-                    List.of());
+                    List.of(), List.of());
         }
     }
 
@@ -277,7 +280,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             Expression expr = expr();
             if (expr instanceof
 
-                    BallerinaExpression(String content)) {
+            BallerinaExpression(String content)) {
                 if (!content.isEmpty()) {
                     sb.append(" ").append("=").append(" ").append(content);
                 }
@@ -553,7 +556,6 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
     }
 
-
     public sealed interface Statement {
 
         record PanicStatement(Expression expression) implements Statement {
@@ -563,6 +565,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                 return "panic " + expression + ";";
             }
         }
+
         record CallStatement(Expression callExpr) implements Statement {
 
             @Override

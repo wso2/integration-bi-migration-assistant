@@ -58,7 +58,7 @@ public class CodeGenerator {
                 imports.add(importDeclarationNode);
             }
 
-            List<ModuleMemberDeclarationNode> moduleMembers = new ArrayList<>();
+            List<ModuleMemberDeclarationNode> moduleMembers = new ArrayList<>(textDocument.astNodes());
 
             for (ModuleTypeDef moduleTypeDef : textDocument.moduleTypeDefs()) {
                 // TODO: handle visibility qualifier properly
