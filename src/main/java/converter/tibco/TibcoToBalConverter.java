@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -59,7 +60,7 @@ public class TibcoToBalConverter {
         return new CodeGenerator(ballerinaModel).generateBalCode();
     }
 
-    public static BallerinaModel.Module convertProject(String projectPath) {
+    public static BallerinaModel.Module convertProject(ProjectConversionContext cx, String projectPath) {
         Set<TibcoModel.Process> processes = new HashSet<>();
         Set<TibcoModel.Type.Schema> types = new HashSet<>();
         try {
@@ -78,7 +79,7 @@ public class TibcoToBalConverter {
             throw new RuntimeException("Error while parsing the XML file: ", e);
         }
 
-        return ProcessConverter.convertProcesses(processes, types);
+        return ProcessConverter.convertProcesses(cx, processes, types);
     }
 
     private static List<String> getXSDFiles(String projectPath) throws IOException {
@@ -113,4 +114,24 @@ public class TibcoToBalConverter {
         return document.getDocumentElement();
     }
 
+    public enum JavaDependencies {
+        JDBC("""
+                [[platform.java17.dependency]]
+                artifactId = "h2"
+                version = "2.0.206"
+                groupId = "com.h2database"
+                """);
+        public final String dependencyParam;
+
+        JavaDependencies(String dependencyParam) {
+            this.dependencyParam = dependencyParam;
+        }
+    }
+
+    public record ProjectConversionContext(List<JavaDependencies> javaDependencies) {
+
+        public ProjectConversionContext() {
+            this(new ArrayList<>());
+        }
+    }
 }

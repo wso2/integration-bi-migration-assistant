@@ -136,7 +136,7 @@ function process_experianservice_module_Process(xml input) returns xml {
         output -> function;
     }
     worker errorHandler {
-        error result = <- activityExtension_2_worker | activityExtension_3_worker | activityExtension_4_worker | activityExtension_worker | receiveEvent_worker;
+        error result = <- start_worker | activityExtension_2_worker | activityExtension_3_worker | activityExtension_4_worker | activityExtension_worker;
         panic result;
     }
     error:NoMessage|xml result = <- activityExtension_worker;

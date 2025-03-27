@@ -108,7 +108,7 @@ function process_creditapp_module_EquifaxScore(xml input) returns xml {
         output -> postToEnd;
     }
     worker errorHandler {
-        error result = <- activityExtension_6_worker | invoke_worker | receiveEvent_5_worker;
+        error result = <- start_worker | activityExtension_6_worker | invoke_worker;
         panic result;
     }
     error:NoMessage|xml result = <- activityExtension_6_worker;

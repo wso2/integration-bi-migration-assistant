@@ -101,8 +101,8 @@ public class MigrationTool {
             logger.log(Level.SEVERE, "Error creating target directory: " + targetDir, e);
             System.exit(1);
         }
-
-        BallerinaModel.Module module = TibcoToBalConverter.convertProject(projectPath);
+        TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext();
+        BallerinaModel.Module module = TibcoToBalConverter.convertProject(cx, projectPath);
         BallerinaModel.DefaultPackage balPackage = new BallerinaModel.DefaultPackage("tibco", "sample", "0.1");
         for (BallerinaModel.TextDocument textDocument : module.textDocuments()) {
             try {
@@ -112,7 +112,7 @@ public class MigrationTool {
             }
         }
         try {
-            addProjectArtifacts(targetPath);
+            addProjectArtifacts(cx, targetPath);
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Error adding project artifacts", e);
         }
@@ -135,22 +135,27 @@ public class MigrationTool {
         logger.info("Created target directory: " + targetDir);
     }
 
-    private static void addProjectArtifacts(String targetPath) throws IOException {
+    private static void addProjectArtifacts(TibcoToBalConverter.ProjectConversionContext cx, String targetPath)
+            throws IOException {
         String org = "converter";
         String name = Paths.get(targetPath).getFileName().toString();
         String version = "0.1.0";
         String distribution = "2201.12.0";
 
         Path tomlPath = Paths.get(targetPath, "Ballerina.toml");
-        String tomlContent = "[package]\n" +
+        StringBuilder tomlContent = new StringBuilder("[package]\n" +
                 "org = \"" + org + "\"\n" +
                 "name = \"" + name + "\"\n" +
                 "version = \"" + version + "\"\n" +
                 "distribution = \"" + distribution + "\"\n\n" +
                 "[build-options]\n" +
-                "observabilityIncluded = true";
+                "observabilityIncluded = true");
+        for (var each : cx.javaDependencies()) {
+            tomlContent.append("\n");
+            tomlContent.append(each.dependencyParam);
+        }
 
-        Files.writeString(tomlPath, tomlContent);
+        Files.writeString(tomlPath, tomlContent.toString());
         logger.info("Created Ballerina.toml file at: " + tomlPath);
     }
 

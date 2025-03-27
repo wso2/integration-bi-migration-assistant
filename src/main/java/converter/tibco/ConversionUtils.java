@@ -45,6 +45,13 @@ public final class ConversionUtils {
         return sanitized;
     }
 
+    public static String escapeString(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\"", "\\\"");
+    }
+
     private static boolean isReserved(String name) {
         return name.equals("type");
     }

@@ -1,8 +1,8 @@
 import ballerina/data.xmldata;
 import ballerina/log;
-import ballerinax/jdbc;
+import ballerinax/java.jdbc;
 
-const jdbc:Client jdbcProperty = checkpanic new ("jdbcProperty");
+jdbc:Client jdbcProperty = checkpanic new ("jdbcProperty");
 
 function convertToElement(xml input) returns Element {
     return checkpanic xmldata:parseAsType(input);

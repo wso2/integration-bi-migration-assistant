@@ -133,7 +133,7 @@ function process_creditcheckservice_Process(xml input) returns xml {
         output -> function;
     }
     worker errorHandler {
-        error result = <- activityExtension_worker | extActivity_worker | reply_6_worker | reply_worker;
+        error result = <- start_worker | activityExtension_worker | reply_6_worker | reply_worker;
         xml errorXML = xml `<error>${result.message()}</error>`;
         errorXML -> LogToReply;
     }

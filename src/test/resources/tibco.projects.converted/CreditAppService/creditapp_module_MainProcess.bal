@@ -132,7 +132,7 @@ function process_creditapp_module_MainProcess(xml input) returns xml {
         output -> function;
     }
     worker errorHandler {
-        error result = <- extActivity_11_worker | extActivity_worker | reply_worker;
+        error result = <- start_worker | start_worker | reply_worker;
         panic result;
     }
     error:NoMessage|xml result = <- reply_worker;

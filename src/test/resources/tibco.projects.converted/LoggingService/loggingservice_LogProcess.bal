@@ -57,13 +57,13 @@ function process_loggingservice_LogProcess(xml input) returns xml {
             result0 -> errorHandler;
             return;
         }
-        if test(result0, "matches($Start/ns0:handler, " console ")") {
+        if test(result0, "matches($Start/ns0:handler, \"console\")") {
             result0 -> StartToLog;
         }
-        if test(result0, "matches($Start/ns0:handler, " file ") and matches($Start/ns0:formatter, " text ")") {
+        if test(result0, "matches($Start/ns0:handler, \"file\") and matches($Start/ns0:formatter, \"text\")") {
             result0 -> StartToWriteFile;
         }
-        if test(result0, "matches($Start/ns0:handler, " file ") and matches($Start/ns0:formatter, " xml  ")") {
+        if test(result0, "matches($Start/ns0:handler, \"file\") and matches($Start/ns0:formatter, \"xml\")") {
             result0 -> StartToRenderXml;
         }
     }
@@ -177,7 +177,7 @@ function process_loggingservice_LogProcess(xml input) returns xml {
         output -> function;
     }
     worker errorHandler {
-        error result = <- activityExtension_2_worker | activityExtension_3_worker | activityExtension_4_worker | activityExtension_5_worker | activityExtension_worker | receiveEvent_worker;
+        error result = <- start_worker | activityExtension_2_worker | activityExtension_3_worker | activityExtension_4_worker | activityExtension_5_worker | activityExtension_worker;
         panic result;
     }
     error:NoMessage|xml result = <- activityExtension_worker;

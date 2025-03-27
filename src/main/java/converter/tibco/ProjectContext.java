@@ -43,6 +43,7 @@ import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static converter.tibco.Library.IO;
+import static converter.tibco.Library.JDBC;
 import static converter.tibco.Library.LOG;
 
 import ballerina.BallerinaModel;
@@ -75,6 +76,15 @@ public class ProjectContext {
 
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
     private static final Logger logger = Logger.getLogger(ProjectContext.class.getName());
+    private final Optional<TibcoToBalConverter.ProjectConversionContext> conversionContext;
+
+    public ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext) {
+        this.conversionContext = Optional.of(conversionContext);
+    }
+
+    public ProjectContext() {
+        this.conversionContext = Optional.empty();
+    }
 
     ProcessContext getProcessContext(TibcoModel.Process process) {
         return processContextMap.computeIfAbsent(process, p -> new ProcessContext(this, p));
@@ -181,6 +191,11 @@ public class ProjectContext {
     }
 
     private void importLibraryIfNeededToUtility(Library library) {
+        conversionContext.ifPresent(cx -> {
+            if (library == JDBC) {
+                cx.javaDependencies().add(TibcoToBalConverter.JavaDependencies.JDBC);
+            }
+        });
         utilityFunctionImports.add(new BallerinaModel.Import(library.orgName, library.moduleName, Optional.empty()));
     }
 
@@ -341,11 +356,11 @@ public class ProjectContext {
     private BallerinaModel.Expression.VariableReference createDbClient(String name) {
         // TODO: handle configurations
         importLibraryIfNeededToUtility(Library.JDBC);
-        BallerinaModel.ModuleVar moduleVar = BallerinaModel.ModuleVar.constant(ConversionUtils.sanitizes(name),
-                new BallerinaModel.TypeDesc.TypeReference("jdbc:Client"),
+        BallerinaModel.ModuleVar moduleVar = new BallerinaModel.ModuleVar(ConversionUtils.sanitizes(name),
+                "jdbc:Client",
                 new BallerinaModel.Expression.CheckPanic(
                         new BallerinaModel.Expression.NewExpression(
-                                List.of(new BallerinaModel.Expression.StringConstant(name)))));
+                                List.of(new BallerinaModel.Expression.StringConstant(name)))), false, false);
         utilityConstants.add(moduleVar);
         return new BallerinaModel.Expression.VariableReference(moduleVar.name());
     }

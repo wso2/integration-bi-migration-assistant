@@ -22,7 +22,7 @@ enum Library {
     HTTP("ballerina", "http"),
     XSLT("ballerina", "xslt"),
     XML_DATA("ballerina", "data.xmldata"),
-    JDBC("ballerinax", "jdbc"),
+    JDBC("ballerinax", "java.jdbc"),
     IO("ballerina", "io"),
     LOG("ballerina", "log"),
     SQL("ballerina", "sql");
