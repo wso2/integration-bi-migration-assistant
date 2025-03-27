@@ -2,39 +2,6 @@ package dw.parser;
 
 public class DataWeaveScripts {
 
-    public static final String SCRIPT1 = """
-            %dw 2.0
-            var myRead = read("<car><color>red</color></car>",
-                            "application/xml")
-            output application/json
-            ---
-            {
-            mySelection : myRead.car
-            }""";
-
-    public static final String SCRIPT2 = """
-                            %dw 1.0
-                            %output application/json
-                            ---
-                            {
-                            address1: payload.order.buyer.address,
-                            address2: null,
-                            city: payload.order.buyer.city,
-                            country: payload.order
-            }
-            """;
-    public static final String SCRIPT3 = """
-            %dw 1.0
-            %output application/xml
-            ---
-            {
-              order: {
-                type: "Book",
-                title: payload.title,
-                details: "By " ++ payload.author ++ " (" ++ payload.year ++ ")"
-              }
-            }
-            """;
     public static final String SCRIPT_DW = """
             %dw 1.0
             ---
@@ -176,6 +143,14 @@ public class DataWeaveScripts {
             ---
             [1, 2, 3] map $ + 1
             """;
+    public static final String SCRIPT_MAP_WITH_PARAMS = """
+            %dw 1.0
+            %output application/json
+            %input payload application/json
+            %function addOne(x) x + 1
+            ---
+            ["john", "peter", "matt"] map ((firstName, position) -> position ++ ":" ++ upper firstName)
+            """;
     public static final String SCRIPT_BUILTIN_UPPER = """
             %dw 1.0
             %output application/json
@@ -280,13 +255,6 @@ public class DataWeaveScripts {
                 $.magnitude >= 30 and $.distance_in_miles <= 1) map { count: $.weather_event_id })
             }
             """;
-    public static final String TEST = """
-            %dw 1.0
-            %output application/json
-            ---
-            sizeOf (payload.resultSet1 filter ($.EVENT_TYPE == 'Hail' and  $.magnitude >= 1.5 and
-             $.distance_in_miles <= 5) map { count: $.weather_event_id })
-            """;
     public static final String SCRIPT_WHEN_OTHERWISE = """
             %dw 1.0
             %output application/json
@@ -353,6 +321,24 @@ public class DataWeaveScripts {
               a: 1 as :string {format: "##,#"},
               b: now as :string {format: "yyyy-MM-dd"},
               c: true as :string
+            }
+            """;
+    public static final String SCRIPT_TYPE_COERCION_NUMBER_WITH_DATE_FORMATS = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+              mydate1: |2005-06-02T15:10:16Z| as :number {unit: "seconds"},
+              mydate2: |2005-06-02T15:10:16Z| as :number {unit: "milliseconds"}
+            }
+            """;
+    public static final String SCRIPT_TYPE_COERCION_TO_DATE = """
+            %dw 1.0
+            %output application/json
+            ---
+            {
+              a: 1436287232 as :datetime,
+              b: "2015-10-07 16:40:32.000" as :localdatetime {format: "yyyy-MM-dd HH:mm:ss.SSS"}
             }
             """;
 }

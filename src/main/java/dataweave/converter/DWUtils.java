@@ -40,13 +40,16 @@ public class DWUtils {
     public static final String ARRAY = "array";
     public static final String BOOLEAN = "boolean";
     public static final String DATE = "date";
-    public static final String DATETIME = "dateTime";
+    public static final String DATETIME = "datetime";
     public static final String FUNCTION = "function";
     public static final String NULL = "null";
     public static final String NUMBER = "number";
     public static final String OBJECT = "object";
     public static final String STRING = "string";
     public static final String TIME = "time";
+    public static final String LOCAL_DATE_TIME = "localdatetime";
+    public static final String TIME_ZONE = "timeZone";
+    public static final String PERIOD = "period";
     public static final String IDENTIFIER = "identifier";
 
     // DataWeave Built-in functions
@@ -77,6 +80,12 @@ public class DWUtils {
             " '%s'. MANUAL CASTING REQUIRED.\n";
     public static final String TYPE_CAST_COMMENT_COMPARISON = "\n// TODO: AMBIGUOUS TYPE FOUND FOR COMPARISON " +
             "OPERATOR '%s'. MANUAL CASTING REQUIRED.\n";
+    public static final String MILLISECONDS = "\"milliseconds\"";
+    public static final String UTC_VAR = "_utcValue_";
+    public static final String PARSE_DATE_TIME = "parseDateTime";
+    public static final String TO_INSTANT = "toInstant";
+    public static final String UTC_ZONE_OFFSET = "UTC";
+    public static final String GET_DATE_FROM_FORMATTED_STRING = "getDateFromFormattedString";
 
     public static String findBallerinaType(String mediaType) {
         return switch (mediaType) {
@@ -126,6 +135,21 @@ public class DWUtils {
                 data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME,
                         Optional.empty()));
                 yield "time:Date";
+            }
+            case DWUtils.DATETIME, DWUtils.LOCAL_DATE_TIME, DWUtils.PERIOD -> {
+                data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME,
+                        Optional.empty()));
+                yield "time:Civil";
+            }
+            case DWUtils.TIME -> {
+                data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME,
+                        Optional.empty()));
+                yield "time:TimeOfDayFields";
+            }
+            case DWUtils.TIME_ZONE -> {
+                data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME,
+                        Optional.empty()));
+                yield "time:ZoneOffset";
             }
             default -> "any";
         };

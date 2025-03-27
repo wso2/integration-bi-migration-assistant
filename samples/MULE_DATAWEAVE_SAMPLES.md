@@ -19,27 +19,14 @@ This section provides examples of DataWeave scripts and their corresponding Ball
 
 **Ballerina Output (transform_message_with_concat_array.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = check _dwMethod0_();
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
-}
-
 function _dwMethod0_() returns json|error {
     any[] _var_0 = [0, 1, 2];
     var _var_1 = [3, 4, 5];
     return {"a": check _var_0.push(..._var_1).ensureType(json)};
+}
+
+function sampleFlow() {
+    json _dwOutput_ = check _dwMethod0_();
 }
 
 ```
@@ -57,21 +44,8 @@ concat: {aa: "a"} ++ {cc: "c"}
 
 **Ballerina Output (transform_message_with_concat_object.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = check _dwMethod0_();
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
+function sampleFlow() {
+    json _dwOutput_ = check _dwMethod0_();
 }
 
 function _dwMethod0_() returns json|error {
@@ -96,21 +70,8 @@ function _dwMethod0_() returns json|error {
 
 **Ballerina Output (transform_message_with_concat_string.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = _dwMethod0_();
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
+function sampleFlow() {
+    json _dwOutput_ = _dwMethod0_();
 }
 
 function _dwMethod0_() returns json {
@@ -138,26 +99,14 @@ function _dwMethod0_() returns json {
 
 **Ballerina Output (transform_message_with_date_type.bal):**
 ```ballerina
-import ballerina/http;
 import ballerina/time;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = check _dwMethod0_();
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
-}
 
 function _dwMethod0_() returns json|error {
     return {"date": check time:civilFromString("2021-01-01").ensureType(json), "time": check time:civilFromString("23:59:56").ensureType(json), "timeZone": check time:civilFromString("-08:00").ensureType(json), "dateTime": check time:civilFromString("2003-10-01T23:57:59-03:00").ensureType(json), "localDateTime": check time:civilFromString("2003-10-01T23:57:59").ensureType(json)};
+}
+
+function sampleFlow() {
+    json _dwOutput_ = check _dwMethod0_();
 }
 
 ```
@@ -176,26 +125,13 @@ function _dwMethod0_() returns json|error {
 
 **Ballerina Output (transform_message_with_filter_value_identifier.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = _dwMethod0_(payload);
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
-}
-
 function _dwMethod0_(json payload) returns json {
     var _var_0 = [1, 2, 3, 4];
     return _var_0.filter(element => element > 2);
+}
+
+function sampleFlow() {
+    json _dwOutput_ = _dwMethod0_(payload);
 }
 
 ```
@@ -213,21 +149,8 @@ lower "APPLE"
 
 **Ballerina Output (transform_message_with_lower.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = _dwMethod0_();
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
+function sampleFlow() {
+    json _dwOutput_ = _dwMethod0_();
 }
 
 function _dwMethod0_() returns json {
@@ -249,21 +172,8 @@ users: ["john", "peter", "matt"] map  upper $
 
 **Ballerina Output (transform_message_with_map_combination.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = _dwMethod0_();
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
+function sampleFlow() {
+    json _dwOutput_ = _dwMethod0_();
 }
 
 function _dwMethod0_() returns json {
@@ -287,26 +197,13 @@ function _dwMethod0_() returns json {
 
 **Ballerina Output (transform_message_with_map_index_identifier.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = _dwMethod0_(payload);
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
-}
-
 function _dwMethod0_(json payload) returns json {
     var _var_0 = [1, 2, 3, 4];
     return _var_0.'map(element => element + _var_0.indexOf(element));
+}
+
+function sampleFlow() {
+    json _dwOutput_ = _dwMethod0_(payload);
 }
 
 ```
@@ -325,21 +222,8 @@ function _dwMethod0_(json payload) returns json {
 
 **Ballerina Output (transform_message_with_map_index_identifier_only.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = _dwMethod0_(payload);
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
+function sampleFlow() {
+    json _dwOutput_ = _dwMethod0_(payload);
 }
 
 function _dwMethod0_(json payload) returns json {
@@ -363,26 +247,36 @@ function _dwMethod0_(json payload) returns json {
 
 **Ballerina Output (transform_message_with_map_value_identifier.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = _dwMethod0_(payload);
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
+function sampleFlow() {
+    json _dwOutput_ = _dwMethod0_(payload);
 }
 
 function _dwMethod0_(json payload) returns json {
     var _var_0 = [1, 2, 3, 4];
     return _var_0.'map(element => element + 1);
+}
+
+```
+
+## Map With Parameters Expression
+
+**DataWeave Script (transform_message_with_map_with_parameters.dwl):**
+```dataweave
+%dw 1.0
+%output application/json
+---
+["john", "peter", "matt"] map ((firstName, position) -> position ++ ":" ++ upper firstName)
+```
+
+**Ballerina Output (transform_message_with_map_with_parameters.bal):**
+```ballerina
+function sampleFlow() {
+    json _dwOutput_ = _dwMethod0_();
+}
+
+function _dwMethod0_() returns json {
+    var _var_0 = ["john", "peter", "matt"];
+    return _var_0.'map(element => _var_0.indexOf(element).toString() + ":" + element.toUpperAscii());
 }
 
 ```
@@ -400,21 +294,8 @@ b: "admin123" replace /(\d+)/ with "ID"
 
 **Ballerina Output (transform_message_with_replace_with.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = _dwMethod0_();
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
+function sampleFlow() {
+    json _dwOutput_ = _dwMethod0_();
 }
 
 function _dwMethod0_() returns json {
@@ -441,21 +322,8 @@ function _dwMethod0_() returns json {
 
 **Ballerina Output (transform_message_with_single_selector.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = check _dwMethod0_(payload);
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
+function sampleFlow() {
+    json _dwOutput_ = check _dwMethod0_(payload);
 }
 
 function _dwMethod0_(json payload) returns json|error {
@@ -480,26 +348,13 @@ function _dwMethod0_(json payload) returns json|error {
 
 **Ballerina Output (transform_message_with_sizeof.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = _dwMethod0_(payload);
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
-}
-
 function _dwMethod0_(json payload) returns json {
     var _var_0 = [1, 2, 3, 4];
     return {"hail1": _var_0.length()};
+}
+
+function sampleFlow() {
+    json _dwOutput_ = _dwMethod0_(payload);
 }
 
 ```
@@ -517,25 +372,42 @@ function _dwMethod0_(json payload) returns json {
 
 **Ballerina Output (transform_message_with_string_return.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        string _dwOutput_ = _dwMethod0_();
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
+function sampleFlow() {
+    string _dwOutput_ = _dwMethod0_();
 }
 
 function _dwMethod0_() returns string {
     return "Hello World";
+}
+
+```
+
+## Type Coercion Date To Number Expression
+
+**DataWeave Script (transform_message_with_type_coercion_date_to_number.dwl):**
+```dataweave
+%dw 1.0
+%output application/json
+---
+{
+  mydate1: |2005-06-02T15:10:16Z| as :number {unit: "seconds"},
+  mydate2: |2005-06-02T15:10:16Z| as :number {unit: "milliseconds"},
+  mydate3: |2005-06-02T15:10:16Z| as :number
+}
+
+```
+
+**Ballerina Output (transform_message_with_type_coercion_date_to_number.bal):**
+```ballerina
+import ballerina/time;
+
+function _dwMethod0_() returns json|error {
+    time:Utc _utcValue_ = check time:utcFromCivil(check time:civilFromString("2005-06-02T15:10:16Z"));
+    return {"mydate1": check (check time:utcFromCivil(check time:civilFromString("2005-06-02T15:10:16Z")))[0].ensureType(json), "mydate2": check (_utcValue_[0] * 1000 + <int>(_utcValue_[1] * 1000)).ensureType(json), "mydate3": check (check time:utcFromCivil(check time:civilFromString("2005-06-02T15:10:16Z")))[0].ensureType(json)};
+}
+
+function sampleFlow() {
+    json _dwOutput_ = check _dwMethod0_();
 }
 
 ```
@@ -557,24 +429,8 @@ function _dwMethod0_() returns string {
 
 **Ballerina Output (transform_message_with_type_coercion_format.bal):**
 ```ballerina
-import ballerina/http;
 import ballerina/jballerina.java;
 import ballerina/time;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = check _dwMethod0_();
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
-}
 
 public function getFormattedStringFromDate(string dateString, string format) returns string {
     handle localDateTime = getDateTime(parseInstant(java:fromString(dateString)),
@@ -608,6 +464,10 @@ public function getZoneId(handle zoneId) returns handle = @java:Method {
     name: "of",
     paramTypes: ["java.lang.String"]
 } external;
+
+function sampleFlow() {
+    json _dwOutput_ = check _dwMethod0_();
+}
 
 public function getFormattedStringFromNumber(handle formatObject, int value) returns handle = @java:Method {
     'class: "java.text.NumberFormat",
@@ -648,21 +508,8 @@ public function getCurrentTimeString() returns string {
 
 **Ballerina Output (transform_message_with_type_coercion_number.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = check _dwMethod0_();
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
+function sampleFlow() {
+    json _dwOutput_ = check _dwMethod0_();
 }
 
 function _dwMethod0_() returns json|error {
@@ -684,25 +531,68 @@ function _dwMethod0_() returns json|error {
 
 **Ballerina Output (transform_message_with_type_coercion_string.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        string _dwOutput_ = _dwMethod0_();
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
-}
-
 function _dwMethod0_() returns string {
     return 10.toString();
+}
+
+function sampleFlow() {
+    string _dwOutput_ = _dwMethod0_();
+}
+
+```
+
+## Type Coercion To Date Expression
+
+**DataWeave Script (transform_message_with_type_coercion_to_date.dwl):**
+```dataweave
+%dw 1.0
+%output application/json
+---
+{
+ a: 1436287232 as :datetime,
+ b: "2015-10-07 16:40:32.000" as :localdatetime {format: "yyyy-MM-dd HH:mm:ss.SSS"}
+}
+
+```
+
+**Ballerina Output (transform_message_with_type_coercion_to_date.bal):**
+```ballerina
+import ballerina/jballerina.java;
+import ballerina/time;
+
+public function UTC() returns handle = @java:FieldGet {
+    'class: "java.time.ZoneOffset",
+    name: "UTC"
+} external;
+
+public function parseDateTime(handle date, handle formatter) returns handle = @java:Method {
+    'class: "java.time.LocalDateTime",
+    name: "parse",
+    paramTypes: ["java.lang.CharSequence", "java.time.format.DateTimeFormatter"]
+} external;
+
+public function getDateFromFormattedString(string dateString, string format) returns time:Utc|error {
+    handle localDateTime = parseDateTime(java:fromString(dateString), getDateTimeFormatter(java:fromString(format)));
+    return check time:utcFromString(toInstant(localDateTime, UTC()).toString());
+}
+
+public function getDateTimeFormatter(handle format) returns handle = @java:Method {
+    'class: "java.time.format.DateTimeFormatter",
+    name: "ofPattern",
+    paramTypes: ["java.lang.String"]
+} external;
+
+public function toInstant(handle localDateTime, handle zoneOffset) returns handle = @java:Method {
+    'class: "java.time.LocalDateTime",
+    paramTypes: ["java.time.ZoneOffset"]
+} external;
+
+function sampleFlow() {
+    json _dwOutput_ = check _dwMethod0_();
+}
+
+function _dwMethod0_() returns json|error {
+    return {"a": [1436287232, 0], "b": check getDateFromFormattedString("2015-10-07 16:40:32.000", "yyyy-MM-dd HH:mm:ss.SSS")};
 }
 
 ```
@@ -720,21 +610,8 @@ upper "apple"
 
 **Ballerina Output (transform_message_with_upper.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = _dwMethod0_();
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
+function sampleFlow() {
+    json _dwOutput_ = _dwMethod0_();
 }
 
 function _dwMethod0_() returns json {
@@ -763,23 +640,6 @@ otherwise
 
 **Ballerina Output (transform_message_with_when_otherwise.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = check _dwMethod0_(payload);
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
-}
-
 function _dwMethod0_(json payload) returns json|error {
     json _var_0;
     if check payload.country == "USA" {
@@ -788,6 +648,10 @@ function _dwMethod0_(json payload) returns json|error {
         _var_0 = {"currency": "EUR"};
     }
     return _var_0;
+}
+
+function sampleFlow() {
+    json _dwOutput_ = check _dwMethod0_(payload);
 }
 
 ```
@@ -815,21 +679,8 @@ otherwise
 
 **Ballerina Output (transform_message_with_when_otherwise_nested.bal):**
 ```ballerina
-import ballerina/http;
-
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
-
-service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
-    }
-
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = check _dwMethod0_(payload);
-        _response_.setPayload(_dwOutput_);
-        return _response_;
-    }
+function sampleFlow() {
+    json _dwOutput_ = check _dwMethod0_(payload);
 }
 
 function _dwMethod0_(json payload) returns json|error {

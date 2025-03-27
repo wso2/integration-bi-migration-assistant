@@ -4,5 +4,5 @@ function sampleFlow() {
 
 function _dwMethod0_() returns json {
     var _var_0 = ["john", "peter", "matt"];
-    return {"users": _var_0.'map(element => element.toUpperAscii())};
+    return _var_0.'map(element => _var_0.indexOf(element).toString() + ":" + element.toUpperAscii());
 }

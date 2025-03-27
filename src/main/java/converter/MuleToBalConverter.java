@@ -777,8 +777,10 @@ public class MuleToBalConverter {
             }
             case TransformMessage transformMessage -> {
                 DWReader.processDWElements(transformMessage.children(), data, statementList);
-                statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);",
-                        Constants.VAR_RESPONSE, DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME)));
+                if (data.currentFlowInfo.context.equals(Context.HTTP_LISTENER)) {
+                    statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);",
+                            Constants.VAR_RESPONSE, DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME)));
+                }
             }
             case UnsupportedBlock unsupportedBlock -> {
                 String comment = ConversionUtils.wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());
