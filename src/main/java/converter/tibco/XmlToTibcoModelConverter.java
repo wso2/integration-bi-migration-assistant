@@ -24,7 +24,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import tibco.TibcoModel;
 
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,13 +39,6 @@ import java.util.function.Predicate;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 
 public final class XmlToTibcoModelConverter {
 
@@ -249,7 +241,8 @@ public final class XmlToTibcoModelConverter {
             }
         }
 
-        return new TibcoModel.Scope.Flow.Activity.UnhandledActivity(reason, elementToString(element), sources, targets);
+        return new TibcoModel.Scope.Flow.Activity.UnhandledActivity(reason, ConversionUtils.elementToString(element),
+                sources, targets);
     }
 
     private static TibcoModel.Scope.Flow.Activity.Reply parseReply(Element element) {
@@ -696,97 +689,11 @@ public final class XmlToTibcoModelConverter {
     }
 
     static TibcoModel.Type.Schema parseSchema(Element element) {
-        List<TibcoModel.Type.Schema.ComplexType> types = new ArrayList<>();
-        List<TibcoModel.Type.Schema.Element> elements = new ArrayList<>();
-        List<TibcoModel.NameSpace> imports = new ArrayList<>();
-        List<TibcoModel.Type.Schema.UnhandledType> unhandledTypes = new ArrayList<>();
-        for (Element each : ElementIterable.of(element)) {
-            tryParseSchemaElement(each, elements, types, imports, unhandledTypes);
-        }
-        return new TibcoModel.Type.Schema(getTargetNamespace(element), types, elements, imports, unhandledTypes);
-    }
-
-    static TibcoModel.NameSpace getTargetNamespace(Element element) {
-        String targetNamespace = element.getAttribute("targetNamespace");
-        // Look for xmlns:* attributes to find matching prefix
-        for (int i = 0; i < element.getAttributes().getLength(); i++) {
-            String attrName = element.getAttributes().item(i).getNodeName();
-            if (attrName.startsWith("xmlns:")) {
-                String prefix = attrName.substring(6); // Remove "xmlns:" prefix
-                String namespace = element.getAttribute(attrName);
-                if (namespace.equals(targetNamespace)) {
-                    return new TibcoModel.NameSpace(prefix, targetNamespace);
-                }
-            }
-        }
-        // If no matching prefix found, return without prefix
-        return new TibcoModel.NameSpace(targetNamespace);
-    }
-
-    private static void tryParseSchemaElement(Element each, List<TibcoModel.Type.Schema.Element> elements,
-                                              List<TibcoModel.Type.Schema.ComplexType> types,
-                                              List<TibcoModel.NameSpace> imports,
-                                              List<TibcoModel.Type.Schema.UnhandledType> unhandledTypes) {
-        try {
-            parseSchemaElementInner(each, elements, types, imports);
-        } catch (Exception e) {
-            unhandledTypes.add(parseUnhandledType(each, e.getMessage()));
-        }
-    }
-
-    private static void parseSchemaElementInner(Element each, List<TibcoModel.Type.Schema.Element> elements,
-                                                List<TibcoModel.Type.Schema.ComplexType> types,
-                                                List<TibcoModel.NameSpace> imports) {
-
-        String tag = getTagNameWithoutNameSpace(each);
-        switch (tag) {
-            case "complexType" -> types.add(parseType(each));
-            case "import" -> imports.add(parseImport(each));
-            case "simpleType" -> elements.add(parseSimpleType(each));
-            case "element" -> {
-                if (complexElement(each)) {
-                    String name = each.getAttribute("name");
-                    Element body = getFirstChildWithTag(each, "complexType");
-                    types.add(parseComplexTypeInner(body, name));
-                } else {
-                    elements.add(parseSchemaElement(each));
-                }
-            }
-        }
-    }
-
-    private static boolean complexElement(Element element) {
-        return tryGetFirstChildWithTag(element, "complexType").isPresent();
-    }
-
-    private static TibcoModel.Type.Schema.UnhandledType parseUnhandledType(Element element, String reason) {
-        String name = element.getAttribute("name");
-        return new TibcoModel.Type.Schema.UnhandledType(name, reason, elementToString(element));
-    }
-
-    private static TibcoModel.Type.Schema.Element parseSimpleType(Element element) {
-        String name = element.getAttribute("name");
-        Element restriction = getFirstChildWithTag(element, "restriction");
-        String baseType = restriction.getAttribute("base");
-        return new TibcoModel.Type.Schema.Element(name, TibcoModel.Type.Schema.TibcoType.of(baseType));
+        return new TibcoModel.Type.Schema(element);
     }
 
     private static TibcoModel.NameSpace parseImport(Element each) {
         return new TibcoModel.NameSpace(each.getAttribute("namespace"));
-    }
-
-    private static TibcoModel.Type.Schema.Element parseSchemaElement(Element each) {
-        String name = each.getAttribute("name");
-        String typeName = each.getAttribute("type");
-        if (typeName.isEmpty()) {
-            typeName = "null";
-        }
-        return new TibcoModel.Type.Schema.Element(name, TibcoModel.Type.Schema.TibcoType.of(typeName));
-    }
-
-    private static TibcoModel.Type.Schema.ComplexType parseType(Element element) {
-        Element complexType = expectTag(element, "complexType");
-        return parseComplexType(complexType);
     }
 
     private static TibcoModel.Type.Schema.ComplexType parseComplexType(Element element) {
@@ -927,9 +834,7 @@ public final class XmlToTibcoModelConverter {
         for (Element child : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
-                case "partnerLinkType" -> {
-                    partnerLinkTypes.add(parsePartnerLinkType(child));
-                }
+                case "partnerLinkType" -> partnerLinkTypes.add(parsePartnerLinkType(child));
                 case "import" -> imports.add(parseImport(child));
                 case "message" -> messages.add(parseMessage(child));
                 case "portType" -> portTypes.add(parsePortType(child));
@@ -1101,34 +1006,8 @@ public final class XmlToTibcoModelConverter {
         };
     }
 
-    private static Element expectTag(Element element, String tag) {
-        if (!getTagNameWithoutNameSpace(element).equals(tag)) {
-            throw new ParserException("Expected tag: " + tag + ", but found: " + element.getTagName(), element);
-        }
-        return element;
-    }
-
     private static Optional<Element> getFistMatchingChild(Element element, Predicate<Element> predicate) {
         return ElementIterable.of(element).stream().filter(predicate).findFirst();
-    }
-
-    private static String elementToString(Element element) {
-        try {
-            TransformerFactory factory = TransformerFactory.newInstance();
-            Transformer transformer = factory.newTransformer();
-            // Configure the transformer for clean output
-            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-
-            DOMSource source = new DOMSource(element);
-            StringWriter writer = new StringWriter();
-            StreamResult result = new StreamResult(writer);
-
-            transformer.transform(source, result);
-            return writer.toString();
-        } catch (TransformerException e) {
-            throw new RuntimeException("Failed to convertTypes element to string", e);
-        }
     }
 
     private record ElementIterable(Element root) implements Iterable<Element> {
@@ -1192,7 +1071,7 @@ public final class XmlToTibcoModelConverter {
     static class ParserException extends RuntimeException {
 
         public ParserException(String message, Element element) {
-            super("[ParseError] : " + message + "\n" + elementToString(element));
+            super("[ParseError] : " + message + "\n" + ConversionUtils.elementToString(element));
         }
 
     }

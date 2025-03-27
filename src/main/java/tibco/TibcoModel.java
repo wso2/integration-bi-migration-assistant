@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.w3c.dom.Element;
+
 public class TibcoModel {
 
     public record Process(String name, Collection<Type> types, ProcessInfo processInfo,
@@ -119,14 +121,7 @@ public class TibcoModel {
 
         }
 
-        record Schema(NameSpace targetNamespace, Collection<ComplexType> types, Collection<Element> elements,
-                      Collection<NameSpace> imports,
-                      Collection<UnhandledType> unhandledTypes)
-                implements Type {
-
-            public record Element(String name, TibcoType type) {
-
-            }
+        record Schema(Element element) implements Type {
 
             public record TibcoType(String name) {
 

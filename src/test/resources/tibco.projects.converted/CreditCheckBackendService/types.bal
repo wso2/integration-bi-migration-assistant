@@ -1,482 +1,574 @@
-import ballerina/data.xmldata;
-
-public type DuplicatedFieldNameException DuplicatedFieldNameExceptionType;
-
-@xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-public type httpTransportResponseHeaders record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string Content_Length?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string Connection?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string Pragma?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string StatusLine?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string Location?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string Set_Cookie?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string Content_Type?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    dynamicHeadersType DynamicHeaders?;
+@xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
+public type anydatarecord {|@xmldata:Sequence {minOccurs:1,maxOccurs:1}SequenceGroup4 sequenceGroup4;|};
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/palette/internal/activityerror+bw.jdbc.update"}
+public type ActivityErrorData record {|
+    @xmldata:Choice {minOccurs: 1, maxOccurs: 1}
+    ChoiceOption choiceOption;
 |};
 
-public type anyType anydata;
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/palette/internal/activityerror+bw.jdbc.update"}
+public type ActivityErrorDataType record {|
+    @xmldata:Choice {minOccurs: 1, maxOccurs: 1}
+    ChoiceOption choiceOption;
+|};
 
-@xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
+public type ActivityException record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
+public type ActivityExceptionType record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+|};
+
+@xmldata:Namespace {uri: "http://www.tibco.com/pe/WriteToLogActivitySchema"}
+public type ActivityInput record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
+public type ActivityTimedOutException record {|
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
 public type ActivityTimedOutExceptionType record {|
-    *ActivityExceptionType;
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
 |};
 
-@xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-public type server5XXErrorType record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    int statusCode;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string message?;
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/palette/internal/activityerror+bw.jdbc.update"}
+public type ChoiceOption record {|
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/palette/internal/activityerror+bw.jdbc.update"}
+    JDBCConnectionNotFoundException JDBCConnectionNotFoundException?;
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/palette/internal/activityerror+bw.jdbc.update"}
+    InvalidTimeZoneException InvalidTimeZoneException?;
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/palette/internal/activityerror+bw.jdbc.update"}
+    JDBCSQLException JDBCSQLException?;
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/palette/internal/activityerror+bw.jdbc.update"}
+    LoginTimedOutException LoginTimedOutException?;
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/palette/internal/activityerror+bw.jdbc.update"}
+    InvalidSQLTypeException InvalidSQLTypeException?;
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/palette/internal/activityerror+bw.jdbc.update"}
+    ActivityTimedOutException ActivityTimedOutException?;
 |};
 
-public type httpHeaders httpTransportHeaders;
-
-public type InvalidTimeZoneException InvalidTimeZoneExceptionType;
-
-public type CorrelationValue string;
-
-@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-public type ProcessContext record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string JobId;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string ApplicationName;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string EngineName;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string ProcessInstanceId;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string CustomJobId?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string[] TrackingInfo;
+@xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
+public type CorrelationValue record {|
+    string \#content;
 |};
 
-//FIXME: Failed to convert type due to [ParseError] : Only simple content is supported for anonymous types
-//<element maxOccurs="unbounded" minOccurs="0" name="Record" xmlns="http://www.w3.org/2001/XMLSchema">
-//    <complexType>
-//        <sequence>
-//            <element maxOccurs="1" minOccurs="0" name="firstname" nillable="false" type="string"/>
-//            <element maxOccurs="1" minOccurs="0" name="lastname" nillable="false" type="string"/>
-//            <element maxOccurs="1" minOccurs="0" name="ssn" nillable="false" type="string"/>
-//            <element maxOccurs="1" minOccurs="0" name="dateofBirth" nillable="false" type="string"/>
-//            <element maxOccurs="1" minOccurs="0" name="ficoscore" nillable="false" type="int"/>
-//            <element maxOccurs="1" minOccurs="0" name="rating" nillable="false" type="string"/>
-//            <element maxOccurs="1" minOccurs="0" name="numofpulls" nillable="false" type="int"/>
-//        </sequence>
-//    </complexType>
-//</element>
-
-//<element name="resultSet" xmlns="http://www.w3.org/2001/XMLSchema">
-//    <complexType>
-//        <sequence>
-//            <element maxOccurs="unbounded" minOccurs="0" name="Record">
-//                <complexType>
-//                    <sequence>
-//                        <element maxOccurs="1" minOccurs="0" name="firstname" nillable="false" type="string"/>
-//                        <element maxOccurs="1" minOccurs="0" name="lastname" nillable="false" type="string"/>
-//                        <element maxOccurs="1" minOccurs="0" name="ssn" nillable="false" type="string"/>
-//                        <element maxOccurs="1" minOccurs="0" name="dateofBirth" nillable="false" type="string"/>
-//                        <element maxOccurs="1" minOccurs="0" name="ficoscore" nillable="false" type="int"/>
-//                        <element maxOccurs="1" minOccurs="0" name="rating" nillable="false" type="string"/>
-//                        <element maxOccurs="1" minOccurs="0" name="numofpulls" nillable="false" type="int"/>
-//                    </sequence>
-//                </complexType>
-//            </element>
-//        </sequence>
-//    </complexType>
-//</element>
-public type resultSet anydata;
-
-@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-public type ErrorReport record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string StackTrace;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string Msg;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string FullClass;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string Class;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string ProcessStack;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string MsgCode?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    anydata Data?;
-|};
-
-@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input"}
-public type jdbcQueryActivityInput record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input"}
-    string ssn;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input"}
-    string ServerTimeZone?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input"}
-    int timeout?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input"}
-    int maxRows?;
-|};
-
-@xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-public type statusLineType record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    int statusCode;
-|};
-
-@xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-public type InvalidSQLTypeExceptionType record {|
-    *JDBCPluginExceptionType;
-    @xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-    string typeName;
-|};
-
-public type jdbcUpdateActivityOutput jdbcUpdateOutput;
-
-@xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/basic/6.0/Exceptions"}
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/basic/6.0/Exceptions"}
 public type DefaultFault record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/basic/6.0/Exceptions"}
-    string message?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/plugins/basic/6.0/Exceptions"}
-    string msgCode?;
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
 |};
 
-@xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-public type dynamicHeadersType record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    dynamicHeadersTypeDetails[] Header;
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
+public type DuplicateKeyException record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup1 sequenceGroup1;
 |};
 
-@xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-public type httpTransportFaultHeaders record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
+public type DuplicateKeyExceptionType record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup1 sequenceGroup1;
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
+public type DuplicatedFieldNameException record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup3 sequenceGroup3;
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
+public type DuplicatedFieldNameExceptionType record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup3 sequenceGroup3;
+|};
+
+@xmldata:Namespace {uri: "http://www.example.com/namespaces/tns/1535845694732"}
+public type Element record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+|};
+
+@xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
+public type ErrorReport record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+|};
+
+@xmldata:Name {value: "ErrorReport"}
+@xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
+public type ErrorReport1 record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+|};
+
+@xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
+public type FaultDetail record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup2 sequenceGroup2;
+|};
+
+@xmldata:Name {value: "FaultDetail"}
+@xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
+public type FaultDetail1 record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup2 sequenceGroup2;
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
+public type InvalidSQLTypeException record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup1 sequenceGroup1;
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
+public type InvalidSQLTypeExceptionType record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup1 sequenceGroup1;
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
+public type InvalidTimeZoneException record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup4 sequenceGroup4;
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
+public type InvalidTimeZoneExceptionType record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup4 sequenceGroup4;
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
+public type JDBCConnectionNotFoundException record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup2 sequenceGroup2;
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
+public type JDBCConnectionNotFoundExceptionType record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup2 sequenceGroup2;
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
+public type JDBCPluginException record {|
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
+public type JDBCPluginExceptionType record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
+public type JDBCSQLException record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup5 sequenceGroup5;
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
+public type JDBCSQLExceptionType record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup5 sequenceGroup5;
+|};
+
+@xmldata:Namespace {uri: "http://www.tibco.com/pe/WriteToLogActivitySchema"}
+public type LogParametersType record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
+public type LoginTimedOutException record {|
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
+public type LoginTimedOutExceptionType record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+|};
+
+@xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
+public type OptionalErrorReport record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup1 sequenceGroup1;
+|};
+
+@xmldata:Name {value: "OptionalErrorReport"}
+@xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
+public type OptionalErrorReport1 record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup1 sequenceGroup1;
+|};
+
+@xmldata:Namespace {uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
+public type PluginExceptionType record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+|};
+
+@xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
+public type ProcessContext record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup3 sequenceGroup3;
+|};
+
+@xmldata:Name {value: "ProcessContext"}
+@xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
+public type ProcessContext1 record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup3 sequenceGroup3;
+|};
+
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+output"}
+public type Record record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+|};
+
+@xmldata:Namespace {uri: "/T1535753828744Converted/JsonSchema"}
+public type Request record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup1 sequenceGroup1;
+|};
+
+@xmldata:Namespace {uri: "/T1535753828744Converted/JsonSchema"}
+public type RequestType record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup1 sequenceGroup1;
+|};
+
+@xmldata:Namespace {uri: "/T1535753828744Converted/JsonSchema"}
+public type Response record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+|};
+
+@xmldata:Namespace {uri: "/T1535753828744Converted/JsonSchema"}
+public type SequenceGroup record {|
+    @xmldata:Namespace {uri: "/T1535753828744Converted/JsonSchema"}
+    @xmldata:SequenceOrder {value: 1}
+    int FICOScore?;
+    @xmldata:Namespace {uri: "/T1535753828744Converted/JsonSchema"}
+    @xmldata:SequenceOrder {value: 2}
+    string Rating?;
+    @xmldata:Namespace {uri: "/T1535753828744Converted/JsonSchema"}
+    @xmldata:SequenceOrder {value: 3}
+    int NoOfInquiries?;
+|};
+
+@xmldata:Namespace {uri: "/T1535753828744Converted/JsonSchema"}
+public type SequenceGroup1 record {|
+    @xmldata:Namespace {uri: "/T1535753828744Converted/JsonSchema"}
+    @xmldata:SequenceOrder {value: 1}
+    string SSN?;
+    @xmldata:Namespace {uri: "/T1535753828744Converted/JsonSchema"}
+    @xmldata:SequenceOrder {value: 2}
+    string FirstName?;
+    @xmldata:Namespace {uri: "/T1535753828744Converted/JsonSchema"}
+    @xmldata:SequenceOrder {value: 3}
+    string LastName?;
+    @xmldata:Namespace {uri: "/T1535753828744Converted/JsonSchema"}
+    @xmldata:SequenceOrder {value: 4}
+    string DOB?;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type SequenceGroup2 record {|
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:SequenceOrder {value: 1}
     string Content_Length?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:SequenceOrder {value: 2}
     string Connection?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:SequenceOrder {value: 3}
     string Pragma?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:SequenceOrder {value: 4}
     string StatusLine?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:SequenceOrder {value: 5}
     string Location?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:SequenceOrder {value: 6}
     string Set_Cookie?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:SequenceOrder {value: 7}
     string Content_Type?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:SequenceOrder {value: 8}
     dynamicHeadersType DynamicHeaders?;
 |};
 
-@xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-public type dynamicHeadersTypeDetails record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type SequenceGroup3 record {|
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:SequenceOrder {value: 1}
     string Name;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:SequenceOrder {value: 2}
     string Value;
 |};
 
-public type messageBody tmessageBody;
-
-@xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-public type JDBCSQLExceptionType record {|
-    *JDBCPluginExceptionType;
-    @xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-    string sqlState;
-    @xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-    string detailStr;
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type SequenceGroup4 record {|
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:SequenceOrder {value: 1}
+    dynamicHeadersTypeDetails[] Header?;
 |};
 
-public type ActivityException ActivityExceptionType;
-
-@xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-public type JDBCPluginExceptionType record {|
-    *PluginExceptionType;
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type SequenceGroup5 record {|
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:SequenceOrder {value: 1}
+    int statusCode;
 |};
 
-@xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-public type JDBCConnectionNotFoundExceptionType record {|
-    *JDBCPluginExceptionType;
-    @xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-    string jdbcConnection;
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type SequenceGroup6 record {|
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:SequenceOrder {value: 1}
+    int statusCode;
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:SequenceOrder {value: 2}
+    string message?;
 |};
 
-@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-public type unknownResultset record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    row[] row;
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type SequenceGroup7 record {|
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:SequenceOrder {value: 1}
+    int statusCode;
+    @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+    @xmldata:SequenceOrder {value: 2}
+    string message?;
 |};
 
-public type InvalidSQLTypeException InvalidSQLTypeExceptionType;
+@xmldata:Namespace {uri: "/T1535753828744Converted/JsonSchema"}
+public type SuccessSchema record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+|};
 
-@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type client4XXError record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup6 sequenceGroup6;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type client4XXErrorType record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup6 sequenceGroup6;
+|};
+
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
+public type column record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup2 sequenceGroup2;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type dynamicHeadersType record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup4 sequenceGroup4;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type dynamicHeadersTypeDetails record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup3 sequenceGroup3;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type httpFaultHeaders record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup2 sequenceGroup2;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type httpHeaders record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type httpResponseHeaders record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup1 sequenceGroup1;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type httpTransportFaultHeaders record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup2 sequenceGroup2;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type httpTransportHeaders record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type httpTransportResponseHeaders record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup1 sequenceGroup1;
+|};
+
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
 public type jdbcCallActivityInput record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    anyType inputSet?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    string ServerTimeZone?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    int timeout?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    int maxRows?;
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
 |};
 
-@xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-public type LoginTimedOutExceptionType record {|
-    *JDBCPluginExceptionType;
+@xmldata:Name {value: "jdbcCallActivityInput"}
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
+public type jdbcCallActivityInput1 record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
 |};
 
-@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-public type FaultDetail record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string ActivityName;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    anydata Data?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string Msg;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string MsgCode;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string ProcessStack;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string StackTrace;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string FullClass;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string Class;
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
+public type jdbcCallActivityOutput record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup1 sequenceGroup1;
 |};
 
-@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+21902290-4882-46a2-8795-b85989c9d7c0+input"}
+@xmldata:Name {value: "jdbcCallActivityOutput"}
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
+public type jdbcCallActivityOutput1 record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup1 sequenceGroup1;
+|};
+
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
+public type jdbcGeneralActivityInput record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup3 sequenceGroup3;
+|};
+
+@xmldata:Name {value: "jdbcGeneralActivityInput"}
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
+public type jdbcGeneralActivityInput1 record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup3 sequenceGroup3;
+|};
+
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
+public type jdbcGeneralActivityOutput record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup4 sequenceGroup4;
+|};
+
+@xmldata:Name {value: "jdbcGeneralActivityOutput"}
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
+public type jdbcGeneralActivityOutput1 record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup4 sequenceGroup4;
+|};
+
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input"}
+public type jdbcQueryActivityInput record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
+|};
+
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+21902290-4882-46a2-8795-b85989c9d7c0+input"}
 public type jdbcUpdateActivityInput record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+21902290-4882-46a2-8795-b85989c9d7c0+input"}
-    int noOfPulls;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+21902290-4882-46a2-8795-b85989c9d7c0+input"}
-    string ssn;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+21902290-4882-46a2-8795-b85989c9d7c0+input"}
-    string ServerTimeZone?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+21902290-4882-46a2-8795-b85989c9d7c0+input"}
-    int timeout?;
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup sequenceGroup;
 |};
 
-public type httpResponseHeaders httpTransportResponseHeaders;
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
+public type jdbcUpdateActivityOutput record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup7 sequenceGroup7;
+|};
+
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
+public type jdbcUpdateOutput record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup7 sequenceGroup7;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type messageBody record {|
+    string \#content;
+|};
+
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+output"}
+public type resultSet record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup1 sequenceGroup1;
+|};
+
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
+public type row record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup5 sequenceGroup5;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type server5XXError record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup7 sequenceGroup7;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type server5XXErrorType record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup7 sequenceGroup7;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type statusLine record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup5 sequenceGroup5;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type statusLineType record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup5 sequenceGroup5;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
+public type tmessageBody string;
+
+@xmldata:Namespace {uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
+public type unknownResultset record {|
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+    SequenceGroup6 sequenceGroup6;
+|};
 
 public type QueryData1 record {|
     int noOfPulls;
     string ssn;
 |};
 
-public type tmessageBody string;
-
-@xmldata:Namespace {prefix: "tns", uri: "/T1535753828744Converted/JsonSchema"}
-public type SuccessSchema record {|
-    @xmldata:Namespace {prefix: "tns", uri: "/T1535753828744Converted/JsonSchema"}
-    int FICOScore?;
-    @xmldata:Namespace {prefix: "tns", uri: "/T1535753828744Converted/JsonSchema"}
-    string Rating?;
-    @xmldata:Namespace {prefix: "tns", uri: "/T1535753828744Converted/JsonSchema"}
-    int NoOfInquiries?;
-|};
-
 public type QueryData0 record {|
     string ssn;
 |};
-
-public type client4XXError client4XXErrorType;
-
-@xmldata:Namespace {prefix: "tns", uri: "/T1535753828744Converted/JsonSchema"}
-public type RequestType record {|
-    @xmldata:Namespace {prefix: "tns", uri: "/T1535753828744Converted/JsonSchema"}
-    string SSN?;
-    @xmldata:Namespace {prefix: "tns", uri: "/T1535753828744Converted/JsonSchema"}
-    string FirstName?;
-    @xmldata:Namespace {prefix: "tns", uri: "/T1535753828744Converted/JsonSchema"}
-    string LastName?;
-    @xmldata:Namespace {prefix: "tns", uri: "/T1535753828744Converted/JsonSchema"}
-    string DOB?;
-|};
-
-public type ActivityTimedOutException ActivityTimedOutExceptionType;
-
-public type JDBCConnectionNotFoundException JDBCConnectionNotFoundExceptionType;
-
-public type statusLine statusLineType;
-
-@xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
-public type DuplicateKeyExceptionType record {|
-    *ActivityExceptionType;
-    @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
-    string duplicateKey;
-    @xmldata:Namespace {prefix: "tns", uri: "http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions"}
-    string previousJobID?;
-|};
-
-@xmldata:Namespace {prefix: "tns", uri: "http://www.example.com/namespaces/tns/1535845694732"}
-public type Element record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.example.com/namespaces/tns/1535845694732"}
-    string ssn;
-|};
-
-public type JDBCSQLException JDBCSQLExceptionType;
-
-public type ActivityErrorDataType JDBCConnectionNotFoundException|()|InvalidTimeZoneException|JDBCSQLException|LoginTimedOutException|InvalidSQLTypeException|ActivityTimedOutException;
-
-@xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-public type httpTransportHeaders record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string Accept?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string Accept_Charset?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string Accept_Encoding?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string Content_Type?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string Content_Length?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string Connection?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string Cookie?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string Pragma?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string Authorization?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    dynamicHeadersType DynamicHeaders?;
-|};
-
-@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-public type OptionalErrorReport record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string StackTrace?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string Msg?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string FullClass?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string Class?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string ProcessStack?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    string MsgCode?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/EngineTypes"}
-    anydata Data?;
-|};
-
-@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-public type row record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    column[] column;
-|};
-
-@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/WriteToLogActivitySchema"}
-public type LogParametersType record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/WriteToLogActivitySchema"}
-    string msgCode?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/WriteToLogActivitySchema"}
-    string loggerName?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/WriteToLogActivitySchema"}
-    string logLevel?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/pe/WriteToLogActivitySchema"}
-    string message;
-|};
-
-@xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-public type InvalidTimeZoneExceptionType record {|
-    *JDBCPluginExceptionType;
-    @xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-    string timeZone;
-|};
-
-@xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-public type ActivityExceptionType record {|
-    @xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-    string msg;
-    @xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-    string msgCode?;
-|};
-
-@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-public type jdbcGeneralActivityOutput record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    int[] noOfUpdates;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    unknownResultset[] unknownResultset;
-|};
-
-@xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-public type PluginExceptionType record {|
-    *ActivityExceptionType;
-|};
-
-public type Request RequestType;
-
-@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-public type column record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    string name;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    anyType value;
-|};
-
-@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-public type jdbcCallActivityOutput record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    string outputSet?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    string UnResolvedResultSets?;
-|};
-
-public type server5XXError server5XXErrorType;
-
-public type DuplicateKeyException DuplicateKeyExceptionType;
-
-public type LoginTimedOutException LoginTimedOutExceptionType;
-
-@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-public type jdbcUpdateOutput record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    int noOfUpdates;
-|};
-
-public type Response SuccessSchema;
-
-@xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-public type client4XXErrorType record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    int statusCode;
-    @xmldata:Namespace {prefix: "tns", uri: "http://tns.tibco.com/bw/REST"}
-    string message?;
-|};
-
-public type JDBCPluginException JDBCPluginExceptionType;
-
-public type ActivityErrorData ActivityErrorDataType;
-
-@xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-public type jdbcGeneralActivityInput record {|
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    string statement;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    string ServerTimeZone?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    int timeout?;
-    @xmldata:Namespace {prefix: "tns", uri: "http://www.tibco.com/namespaces/tnt/plugins/jdbc"}
-    int maxRows?;
-|};
-
-public type ActivityInput LogParametersType;
-
-@xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-public type DuplicatedFieldNameExceptionType record {|
-    *JDBCPluginExceptionType;
-    @xmldata:Namespace {prefix: "tns2", uri: "http://schemas.tibco.com/bw/plugins/jdbc/5.0/jdbcExceptions"}
-    string fieldName;
-|};
-
-public type httpFaultHeaders httpTransportFaultHeaders;

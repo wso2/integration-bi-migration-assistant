@@ -23,11 +23,20 @@ import ballerina.BallerinaModel.Statement.VarDeclStatment;
 import converter.tibco.analyzer.AnalysisResult;
 import tibco.TibcoModel;
 
+import java.io.StringWriter;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NEVER;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+import org.w3c.dom.Element;
 
 public final class ConversionUtils {
 
@@ -116,5 +125,24 @@ public final class ConversionUtils {
 
     static BallerinaModel.TypeDesc.RecordTypeDesc.Namespace createNamespace(TibcoModel.NameSpace nameSpace) {
         return new BallerinaModel.TypeDesc.RecordTypeDesc.Namespace(nameSpace.prefix(), nameSpace.uri());
+    }
+
+    public static String elementToString(Element element) {
+        try {
+            TransformerFactory factory = TransformerFactory.newInstance();
+            Transformer transformer = factory.newTransformer();
+            // Configure the transformer for clean output
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+
+            DOMSource source = new DOMSource(element);
+            StringWriter writer = new StringWriter();
+            StreamResult result = new StreamResult(writer);
+
+            transformer.transform(source, result);
+            return writer.toString();
+        } catch (TransformerException e) {
+            throw new RuntimeException("Failed to convertTypes element to string", e);
+        }
     }
 }
