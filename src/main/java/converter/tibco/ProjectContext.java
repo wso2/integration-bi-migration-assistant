@@ -35,6 +35,8 @@ import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
@@ -326,6 +328,10 @@ public class ProjectContext {
         return Intrinsics.XPATH_PREDICATE.name;
     }
 
+    public void addTypeAstNode(String name, ModuleMemberDeclarationNode node) {
+        typeCx.addTypeAstNode(name, node);
+    }
+
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
 
         FunctionData {
@@ -373,6 +379,7 @@ public class ProjectContext {
         final Set<BallerinaModel.Import> imports = new HashSet<>();
         private final Map<String, Optional<BallerinaModel.ModuleTypeDef>> moduleTypeDefs = new HashMap<>();
         private final List<String> typeIntrinsics = new ArrayList<>();
+        private final List<ModuleMemberDeclarationNode> astNodes = new ArrayList<>();
         final ProjectContext cx;
 
         private ContextWrapperForTypeFile(ProjectContext cx) {
@@ -448,6 +455,11 @@ public class ProjectContext {
             return cx;
         }
 
+        @Override
+        public void addTypeAstNode(String name, ModuleMemberDeclarationNode node) {
+            astNodes.add(node);
+        }
+
         public BallerinaModel.TextDocument serialize() {
             List<BallerinaModel.ModuleTypeDef> typeDefs = new ArrayList<>();
             for (Map.Entry<String, Optional<BallerinaModel.ModuleTypeDef>> entry : moduleTypeDefs.entrySet()) {
@@ -461,7 +473,7 @@ public class ProjectContext {
                 }
             }
             return new BallerinaModel.TextDocument("types.bal", this.imports.stream().toList(), typeDefs, List.of(),
-                    List.of(), List.of(), List.of(), List.of(), typeIntrinsics, List.of());
+                    List.of(), List.of(), List.of(), List.of(), typeIntrinsics, astNodes);
         }
     }
 }

@@ -20,6 +20,8 @@ package converter.tibco;
 
 import ballerina.BallerinaModel;
 
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+
 interface ContextWithFile {
 
     boolean hasConstantWithName(String name);
@@ -31,4 +33,6 @@ interface ContextWithFile {
     boolean addModuleTypeDef(String name, BallerinaModel.ModuleTypeDef defn);
 
     ProjectContext getProjectContext();
+
+    void addTypeAstNode(String name, ModuleMemberDeclarationNode node);
 }

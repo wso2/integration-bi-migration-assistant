@@ -36,6 +36,8 @@ import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 
@@ -94,6 +96,7 @@ public class ProcessContext implements ContextWithFile {
     }
 
     // TODO: getting name here is redundant
+    @Override
     public boolean addModuleTypeDef(String name, BallerinaModel.ModuleTypeDef moduleTypeDef) {
         assert Objects.equals(name, moduleTypeDef.name());
         return this.projectContext.addModuleTypeDef(name, moduleTypeDef);
@@ -102,6 +105,11 @@ public class ProcessContext implements ContextWithFile {
     @Override
     public ProjectContext getProjectContext() {
         return projectContext;
+    }
+
+    @Override
+    public void addTypeAstNode(String name, ModuleMemberDeclarationNode node) {
+        this.projectContext.addTypeAstNode(name, node);
     }
 
     public BallerinaModel.TypeDesc getTypeByName(String name) {
