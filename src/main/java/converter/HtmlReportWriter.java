@@ -15,6 +15,7 @@ public class HtmlReportWriter {
 
     private static final String COMPATIBLE_TAG_TYPE = "Compatible";
     private static final String INCOMPATIBLE_TAG_TYPE = "Incompatible";
+    private static final String DATAWEAVE = "Dataweave Constructs";
 
     public static int writeHtmlReport(Logger logger, Path reportFilePath,
                                       LinkedHashMap<String, Integer> xmlCompatibleTagCountMap,
@@ -39,16 +40,16 @@ public class HtmlReportWriter {
 
         int compatibleTagCount = xmlCompatibleTagCountMap.size();
         int incompatibleTagCount = xmlIncompatibleTagCountMap.size();
-        String compatibleSummarySection = generateSummarySection(COMPATIBLE_TAG_TYPE, compatibleTagCount,
-                totalCompatibleTagWeight);
+        String compatibleSummarySection = generateSummarySection(COMPATIBLE_TAG_TYPE + " XML Element Tag",
+                compatibleTagCount, totalCompatibleTagWeight);
         String compatibleTagTable = generateTagsSection(COMPATIBLE_TAG_TYPE, xmlCompatibleTagCountMap,
                 "compatibleTagsDrawer", "compatibleArrow", true);
-        String incompatibleSummarySection = generateSummarySection(INCOMPATIBLE_TAG_TYPE, incompatibleTagCount,
-                totalIncompatibleTagWeight);
+        String incompatibleSummarySection = generateSummarySection(INCOMPATIBLE_TAG_TYPE + " XML Element Tag",
+                incompatibleTagCount, totalIncompatibleTagWeight);
         String incompatibleTagTable = generateTagsSection(INCOMPATIBLE_TAG_TYPE, xmlIncompatibleTagCountMap,
                 "incompatibleTagsDrawer", "incompatibleArrow", false);
 
-        String dwSummarySection = generateSummarySection("DataWeave", dwStats.getEncountered().size(),
+        String dwSummarySection = generateSummarySection(DATAWEAVE, dwStats.getEncountered().size(),
                 dwTotalWeight);
         String dwTagsTable = generateDataWeaveTagsSection(dwStats);
 
@@ -120,11 +121,11 @@ public class HtmlReportWriter {
         return "<div class=\"summary-container\">\n" +
                 "<div class=\"summary-item\">\n" +
                 "<span class=\"summary-bullet\">&#8226;</span>\n" +
-                String.format("<p>%s XML Element Tag Count: %d</p>\n", tagType, tagCount) +
+                String.format("<p>%s Count: %d</p>\n", tagType, tagCount) +
                 "</div>\n" +
                 "<div class=\"summary-item\">\n" +
                 "<span class=\"summary-bullet\">&#8226;</span>\n" +
-                String.format("<p>%s XML Element Tag Weight: %d</p>\n", tagType, totalTagWeight) +
+                String.format("<p>%s Weight: %d</p>\n", tagType, totalTagWeight) +
                 "</div>\n" +
                 "</div>\n";
     }
@@ -212,7 +213,7 @@ public class HtmlReportWriter {
                 .append(String.format("<div class=\"drawer open\" id=\"%s\">\n", "dwTagsDrawer"))
                 .append("<table class=\"green-table\">\n")
                 .append("<tr><th>Construct</th><th>Encountered</th><th>Converted</th><th>Total " +
-                        "Weight</th><th>Converted Weight</th><th>Success %%</th></tr>\n");
+                        "Weight</th><th>Converted Weight</th><th>Success %</th></tr>\n");
 
         for (DWConstruct construct : stats.getEncountered().keySet()) {
             int encountered = stats.getEncountered().getOrDefault(construct, 0);
