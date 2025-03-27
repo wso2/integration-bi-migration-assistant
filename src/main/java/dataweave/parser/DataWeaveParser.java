@@ -1229,12 +1229,12 @@ public class DataWeaveParser extends Parser {
 
     @SuppressWarnings("CheckReturnValue")
     public static class ImplicitLambdaExpressionContext extends ParserRuleContext {
-        public ExpressionContext expression() {
-            return getRuleContext(ExpressionContext.class, 0);
-        }
-
         public InlineLambdaContext inlineLambda() {
             return getRuleContext(InlineLambdaContext.class, 0);
+        }
+
+        public ExpressionContext expression() {
+            return getRuleContext(ExpressionContext.class, 0);
         }
 
         public ImplicitLambdaExpressionContext implicitLambdaExpression() {
@@ -1281,14 +1281,14 @@ public class DataWeaveParser extends Parser {
                     enterOuterAlt(_localctx, 1);
                 {
                     setState(165);
-                    expression();
+                    inlineLambda();
                 }
                 break;
                 case 2:
                     enterOuterAlt(_localctx, 2);
                 {
                     setState(166);
-                    inlineLambda();
+                    expression();
                 }
                 break;
                 case 3:
@@ -4266,7 +4266,7 @@ public class DataWeaveParser extends Parser {
                     "\u0000\u0000\u00a1\u009f\u0001\u0000\u0000\u0000\u00a1\u00a2\u0001\u0000" +
                     "\u0000\u0000\u00a2\u00a4\u0001\u0000\u0000\u0000\u00a3\u008f\u0001\u0000" +
                     "\u0000\u0000\u00a3\u0099\u0001\u0000\u0000\u0000\u00a4\u0017\u0001\u0000" +
-                    "\u0000\u0000\u00a5\u00ac\u0003\u0014\n\u0000\u00a6\u00ac\u0003\u001a\r" +
+                    "\u0000\u0000\u00a5\u00ac\u0003\u001a\r\u0000\u00a6\u00ac\u0003\u0014\n" +
                     "\u0000\u00a7\u00a8\u0005\u0001\u0000\u0000\u00a8\u00a9\u0003\u0018\f\u0000" +
                     "\u00a9\u00aa\u0005\u0002\u0000\u0000\u00aa\u00ac\u0001\u0000\u0000\u0000" +
                     "\u00ab\u00a5\u0001\u0000\u0000\u0000\u00ab\u00a6\u0001\u0000\u0000\u0000" +

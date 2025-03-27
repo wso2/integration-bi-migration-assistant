@@ -293,10 +293,14 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     public Void visitConcatExpression(DataWeaveParser.ConcatExpressionContext ctx) {
         visit((((DataWeaveParser.DefaultExpressionWrapperContext) ctx.getParent()).logicalOrExpression()));
         String leftExpr = dwContext.getExpression();
+        String leftType = dwContext.currentScriptContext.currentType;
         visit(ctx.expression());
         String rightExpr = dwContext.getExpression();
         switch (dwContext.currentScriptContext.currentType) {
             case DWUtils.STRING:
+                if (!leftType.equals(DWUtils.STRING)) {
+                    leftExpr += ".toString()";
+                }
                 dwContext.append(leftExpr).append(" + ").append(rightExpr);
                 break;
             case DWUtils.ARRAY:
@@ -360,14 +364,38 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitImplicitLambdaExpression(DataWeaveParser.ImplicitLambdaExpressionContext ctx) {
-        String expr = ctx.expression().getText();
         dwContext.append(DWUtils.ELEMENT_ARG).append("=>");
-        if (expr.contains(DWUtils.DW_VALUE_IDENTIFIER)) {
-            dwContext.commonArgs.put(DWUtils.DW_VALUE_IDENTIFIER, DWUtils.ELEMENT_ARG);
+        String expr;
+        if (ctx.inlineLambda() != null) {
+            expr = ctx.inlineLambda().getText();
+            if (expr.contains(DWUtils.DW_VALUE_IDENTIFIER)) {
+                dwContext.commonArgs.put(DWUtils.DW_VALUE_IDENTIFIER, DWUtils.ELEMENT_ARG);
+            }
+            visit(ctx.inlineLambda());
+        } else if (ctx.expression() != null) {
+            expr = ctx.expression().getText();
+            if (expr.contains(DWUtils.DW_VALUE_IDENTIFIER)) {
+                dwContext.commonArgs.put(DWUtils.DW_VALUE_IDENTIFIER, DWUtils.ELEMENT_ARG);
+            }
+            visit(ctx.expression());
         }
-        visit(ctx.expression());
         return null;
     }
+
+    @Override
+    public Void visitInlineLambda(DataWeaveParser.InlineLambdaContext ctx) {
+        List<TerminalNode> identifiers = ctx.functionParameters().IDENTIFIER();
+        if (identifiers.size() == 1) {
+            this.dwContext.currentScriptContext.varNames.put(identifiers.getFirst().getText(), DWUtils.ELEMENT_ARG);
+        } else {
+            this.dwContext.currentScriptContext.varNames.put(identifiers.getFirst().getText(), DWUtils.ELEMENT_ARG);
+            this.dwContext.currentScriptContext.varNames.put(identifiers.get(1).getText(),
+                    this.dwContext.currentScriptContext.varNames.get(DWUtils.DW_INDEX_IDENTIFIER) + ".indexOf(" +
+                            DWUtils.ELEMENT_ARG + ")");
+        }
+        return visit(ctx.expression());
+    }
+
 
     @Override
     public Void visitEqualityExpression(DataWeaveParser.EqualityExpressionContext ctx) {
@@ -699,7 +727,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     @Override
     public Void visitIdentifierExpression(DataWeaveParser.IdentifierExpressionContext ctx) {
         this.dwContext.currentScriptContext.currentType = DWUtils.IDENTIFIER;
-        if (ctx.IDENTIFIER().getText().equals(DWUtils.DW_NOW_IDENTIFIER)) {
+        String identifier = ctx.IDENTIFIER().getText();
+        if (identifier.equals(DWUtils.DW_NOW_IDENTIFIER)) {
             if (!this.data.utilFunctions.contains(DWUtils.GET_CURRENT_TIME_STRING)) {
                 this.data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA,
                         Constants.MODULE_TIME, Optional.empty()));
@@ -709,7 +738,11 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             this.dwContext.append(DWUtils.GET_CURRENT_TIME_STRING).append("()");
             return null;
         }
-        this.dwContext.append(ctx.IDENTIFIER().getText());
+        if (this.dwContext.currentScriptContext.varNames.containsKey(identifier)) {
+            this.dwContext.append(this.dwContext.currentScriptContext.varNames.get(identifier));
+            return null;
+        }
+        this.dwContext.append(identifier);
         return null;
     }
 
