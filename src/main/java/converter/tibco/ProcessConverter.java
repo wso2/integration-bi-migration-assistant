@@ -143,8 +143,16 @@ public class ProcessConverter {
             String varName,
             Stream<TibcoModel.Scope.Flow.Activity> activities) {
         var analysisResult = cx.analysisResult;
-        return createAlternateReceiveFromWorkers(
+        return createAlternateReceiveFromWorkers(cx,
                 activities.map(analysisResult::from).map(AnalysisResult.ActivityData::workerName),
+                varName);
+    }
+
+    private static VarDeclStatment createAlternateReceiveFromWorkers(ProcessContext cx,
+                                                                     Stream<String> workers,
+                                                                     String varName) {
+        AnalysisResult analysisResult = cx.analysisResult;
+        return receiveVarFromPeer(analysisResult.sortWorkers(workers).collect(Collectors.joining(" | ")),
                 varName);
     }
 
@@ -158,7 +166,7 @@ public class ProcessConverter {
         }
 
         List<BallerinaModel.Statement> body = new ArrayList<>();
-        VarDeclStatment inputDecl = createAlternateReceiveFromWorkers(
+        VarDeclStatment inputDecl = createAlternateReceiveFromWorkers(cx,
                 sources.stream().map(analysisResult::from).map(AnalysisResult.LinkData::workerName),
                 "inputVal");
         body.add(inputDecl);
@@ -202,6 +210,7 @@ public class ProcessConverter {
                                                                           TibcoModel.Process process) {
         List<BallerinaModel.Statement> body = new ArrayList<>();
         String receiver = String.join(" | ", cx.workersWithErrorTransitions());
+
         VarDeclStatment resultDecl = receiveVarFromPeer(receiver, "result", ERROR);
         body.add(resultDecl);
 
@@ -331,7 +340,8 @@ public class ProcessConverter {
         var analysisResult = cx.analysisResult;
         Collection<TibcoModel.Scope.Flow.Activity> inputActivities = analysisResult.sources(link);
         VarDeclStatment input = createAlternateReceiveFromWorkers(
-                inputActivities.stream().map(each -> sourceWorker(cx, each)),
+                cx, inputActivities.stream()
+                        .map(each -> sourceWorker(cx, each)),
                 "input");
         body.add(input);
         handleNoMessage(cx, input.ref(), body);

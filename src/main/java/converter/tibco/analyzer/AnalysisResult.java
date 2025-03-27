@@ -22,10 +22,12 @@ import ballerina.BallerinaModel;
 import tibco.TibcoModel;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 public final class AnalysisResult {
 
@@ -40,6 +42,7 @@ public final class AnalysisResult {
     private final Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex;
     private final Map<TibcoModel.Process, String> inputTypeName;
     private final Map<TibcoModel.Process, String> outputTypeName;
+    private final Graph<String> workerDependencies;
 
     AnalysisResult(Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap,
                    Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap,
@@ -50,7 +53,8 @@ public final class AnalysisResult {
                    Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData,
                    Map<String, TibcoModel.PartnerLink.Binding> partnerlinkBindings,
                    Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex,
-                   Map<TibcoModel.Process, String> inputTypeName, Map<TibcoModel.Process, String> outputTypeName) {
+                   Map<TibcoModel.Process, String> inputTypeName, Map<TibcoModel.Process, String> outputTypeName,
+                   Graph<String> workerDependencies) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.startActivities = startActivities;
@@ -62,6 +66,7 @@ public final class AnalysisResult {
         this.queryIndex = queryIndex;
         this.inputTypeName = inputTypeName;
         this.outputTypeName = outputTypeName;
+        this.workerDependencies = workerDependencies;
     }
 
     public String inputTypeName(TibcoModel.Process process) {
@@ -149,6 +154,21 @@ public final class AnalysisResult {
                     .toList();
         }
         return List.of();
+    }
+
+    public Stream<String> sortWorkers(Stream<String> workers) {
+        // TODO: avoid repeated calculations
+        List<String> sortedWorkers = workerDependencies.topologicalSort();
+        record WorkerData(String name, int index) {
+
+        }
+        return workers.map(each -> {
+            if (sortedWorkers.contains(each)) {
+                return new WorkerData(each, sortedWorkers.indexOf(each) + 1);
+            } else {
+                return new WorkerData(each, 0);
+            }
+        }).sorted(Comparator.comparing(WorkerData::index)).map(WorkerData::name);
     }
 
     public TibcoModel.PartnerLink.Binding getBinding(String partnerLinkName) {

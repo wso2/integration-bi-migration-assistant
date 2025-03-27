@@ -120,7 +120,7 @@ function process_creditapp_module_MainProcess(xml input) returns xml {
         input -> reply_worker;
     }
     worker reply_worker {
-        error:NoMessage|xml inputVal = <- ExperianScoreTopostOut | FICOScoreTopostOut;
+        error:NoMessage|xml inputVal = <- FICOScoreTopostOut | ExperianScoreTopostOut;
         if inputVal is error:NoMessage {
             return;
         }

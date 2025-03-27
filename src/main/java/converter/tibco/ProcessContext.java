@@ -26,7 +26,6 @@ import tibco.TibcoModel;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -240,7 +239,7 @@ public class ProcessContext implements ContextWithFile {
     }
 
     public Collection<String> workersWithErrorTransitions() {
-        return Collections.unmodifiableList(workersWithErrorTransitions);
+        return analysisResult.sortWorkers(workersWithErrorTransitions.stream()).toList();
     }
 
     public BallerinaModel.TypeDesc getProcessInputType() {

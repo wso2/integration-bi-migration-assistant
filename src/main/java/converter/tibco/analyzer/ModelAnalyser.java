@@ -63,7 +63,7 @@ public class ModelAnalyser {
         Map<TibcoModel.Process, String> outputTypeName = Map.of(process, cx.getOutputTypeName());
         return new AnalysisResult(cx.destinationMap, cx.sourceMap, startActivities, faultHandlerStartActivities,
                 endActivities, workerNames, activityData, partnerLinkBindings, cx.queryIndex, inputTypeName,
-                outputTypeName);
+                outputTypeName, cx.workerDependencyGraph);
     }
 
     private static void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
@@ -218,6 +218,7 @@ public class ModelAnalyser {
 
     private static class ProcessAnalysisContext {
 
+        public final Graph<String> workerDependencyGraph = new Graph<>();
         public int unhandledActivityCount = 0;
         public int totalActivityCount = 0;
         public boolean inFaultHandler = false;
@@ -254,6 +255,7 @@ public class ModelAnalyser {
             } else {
                 startActivities.add(activity);
             }
+            workerDependencyGraph.addRoot(workerName(activity));
         }
 
         public void allocateWorkerIfNeeded(TibcoModel.Scope.Flow.Link link) {
@@ -290,12 +292,22 @@ public class ModelAnalyser {
             activityWorkerNames.put(activity, activityName + "_worker");
         }
 
-        public void addDestination(TibcoModel.Scope.Flow.Link source, TibcoModel.Scope.Flow.Activity activity) {
-            destinationMap.computeIfAbsent(source, (ignored) -> new ArrayList<>()).add(activity);
+        public void addDestination(TibcoModel.Scope.Flow.Link source, TibcoModel.Scope.Flow.Activity destination) {
+            workerDependencyGraph.addEdge(workerName(source), workerName(destination));
+            destinationMap.computeIfAbsent(source, (ignored) -> new ArrayList<>()).add(destination);
         }
 
         public void addSource(TibcoModel.Scope.Flow.Activity source, TibcoModel.Scope.Flow.Link destination) {
+            workerDependencyGraph.addEdge(workerName(source), workerName(destination));
             sourceMap.computeIfAbsent(destination, (ignored) -> new ArrayList<>()).add(source);
+        }
+
+        private String workerName(TibcoModel.Scope.Flow.Activity activity) {
+            return activityWorkerNames.get(activity);
+        }
+
+        private String workerName(TibcoModel.Scope.Flow.Link link) {
+            return linkWorkerNames.get(link);
         }
 
         public Map<TibcoModel.Scope.Flow.Activity, AnalysisResult.ActivityData> activityData() {

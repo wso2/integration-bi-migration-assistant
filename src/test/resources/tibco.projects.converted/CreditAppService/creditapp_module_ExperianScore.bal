@@ -155,7 +155,7 @@ function process_creditapp_module_ExperianScore(xml input) returns xml {
         output -> function;
     }
     worker errorHandler {
-        error result = <- start_worker | activityExtension_2_worker | activityExtension_3_worker | activityExtension_4_worker | activityExtension_worker;
+        error result = <- start_worker | activityExtension_3_worker | activityExtension_2_worker | activityExtension_4_worker | activityExtension_worker;
         panic result;
     }
     error:NoMessage|xml result = <- activityExtension_worker;

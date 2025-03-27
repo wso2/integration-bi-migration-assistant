@@ -160,10 +160,10 @@ function process_creditcheckservice_LookupDatabase(xml input) returns xml {
         output -> function;
     }
     worker errorHandler {
-        error result = <- start_worker | activityExtension_10_worker | activityExtension_8_worker | activityExtension_9_worker | throw_worker;
+        error result = <- start_worker | activityExtension_9_worker | activityExtension_10_worker | throw_worker | activityExtension_8_worker;
         panic result;
     }
-    error:NoMessage|xml result = <- activityExtension_8_worker | throw_worker;
+    error:NoMessage|xml result = <- throw_worker | activityExtension_8_worker;
     xml result_clean = result is error ? xml `` : result;
     return result_clean;
 }
