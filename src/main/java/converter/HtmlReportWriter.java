@@ -211,7 +211,7 @@ public class HtmlReportWriter {
                 .append("</h4>\n")
                 .append(String.format("<div class=\"drawer open\" id=\"%s\">\n", "dwTagsDrawer"))
                 .append("<table class=\"green-table\">\n")
-                .append("<tr><th>Construct</th><th>Weight</th><th>Encountered</th><th>Converted</th><th>Total " +
+                .append("<tr><th>Construct</th><th>Encountered</th><th>Converted</th><th>Total " +
                         "Weight</th><th>Converted Weight</th><th>Success %%</th></tr>\n");
 
         for (DWConstruct construct : stats.getEncountered().keySet()) {
@@ -221,9 +221,9 @@ public class HtmlReportWriter {
             int totalWeight = encountered * weight;
             int convertedWeight = converted * weight;
             double success = encountered == 0 ? 0 : (converted * 100.0 / encountered);
-            sb.append(String.format("<tr><td>%s</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td>" +
+            sb.append(String.format("<tr><td>%s</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td>" +
                             "<td>%.2f%%</td></tr>\n",
-                    construct.component(), weight, encountered, converted, totalWeight, convertedWeight, success));
+                    construct.component(), encountered, converted, totalWeight, convertedWeight, success));
         }
 
         if (stats.getEncountered().isEmpty()) {
