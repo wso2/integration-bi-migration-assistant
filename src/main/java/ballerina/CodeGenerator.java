@@ -10,6 +10,7 @@ import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeFactory;
 import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.NodeParser;
+import io.ballerina.compiler.syntax.tree.ObjectFieldNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
@@ -24,6 +25,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static ballerina.BallerinaModel.BallerinaStatement;
+import static ballerina.BallerinaModel.BallerinaType;
+import static ballerina.BallerinaModel.ClosedRecordType;
 import static ballerina.BallerinaModel.DoStatement;
 import static ballerina.BallerinaModel.ElseIfClause;
 import static ballerina.BallerinaModel.Function;
@@ -33,12 +36,16 @@ import static ballerina.BallerinaModel.Listener;
 import static ballerina.BallerinaModel.Module;
 import static ballerina.BallerinaModel.ModuleTypeDef;
 import static ballerina.BallerinaModel.ModuleVar;
+import static ballerina.BallerinaModel.ObjectField;
 import static ballerina.BallerinaModel.OnFailClause;
+import static ballerina.BallerinaModel.OpenRecordType;
 import static ballerina.BallerinaModel.Parameter;
+import static ballerina.BallerinaModel.RecordField;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
 import static ballerina.BallerinaModel.Statement;
 import static ballerina.BallerinaModel.TextDocument;
+import static ballerina.BallerinaModel.Type;
 
 public class CodeGenerator {
     private final BallerinaModel ballerinaModel;
@@ -65,7 +72,7 @@ public class CodeGenerator {
 
             for (ModuleTypeDef moduleTypeDef : textDocument.moduleTypeDefs()) {
                 TypeDefinitionNode typeDefinitionNode = (TypeDefinitionNode) NodeParser.parseModuleMemberDeclaration(
-                        String.format("type %s %s;", moduleTypeDef.name(), moduleTypeDef.type()));
+                        String.format("type %s %s;", moduleTypeDef.name(), getType(moduleTypeDef.type())));
                 moduleMembers.add(typeDefinitionNode);
             }
 
@@ -88,6 +95,16 @@ public class CodeGenerator {
                         String.format("service %s on %s { }", service.basePath(), listenerRefs));
 
                 List<Node> members = new ArrayList<>();
+                for (ObjectField field : service.fields()) {
+                    ObjectFieldNode objectFieldNode = (ObjectFieldNode) NodeParser.parseObjectMember(
+                            String.format("%s %s;", field.type(), field.name()));
+                    members.add(objectFieldNode);
+                }
+
+                if (service.initFunc().isPresent()) {
+                    members.add(genFunctionDefinitionNode(service.initFunc().get()));
+                }
+
                 for (Resource resource : service.resources()) {
                     String funcParamStr = constructFunctionParameterString(resource.parameters(), false);
                     FunctionDefinitionNode resourceMethod = (FunctionDefinitionNode) NodeParser.parseObjectMember(
@@ -101,19 +118,8 @@ public class CodeGenerator {
                 }
 
                 for (Function function : service.functions()) {
-                    String funcParamString = constructFunctionParameterString(function.parameters(), false);
-                    FunctionDefinitionNode functionDefinitionNode;
-                    if (function.body() instanceof BallerinaModel.BlockFunctionBody) {
-                        functionDefinitionNode = (FunctionDefinitionNode) NodeParser.parseObjectMember(
-                                String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(
-                                        function.visibilityQualifier()), function.methodName(), funcParamString,
-                                        getReturnTypeDescriptor(function.returnType())));
-                        functionDefinitionNode = generateBallerinaFunction(functionDefinitionNode, function.body());
-                    } else {
-                        functionDefinitionNode = generateBallerinaExternalFunction(function, funcParamString,
-                                function.methodName());
-                    }
-                    members.add(functionDefinitionNode);
+                    FunctionDefinitionNode funcDefn = genFunctionDefinitionNode(function);
+                    members.add(funcDefn);
                 }
 
                 NodeList<Node> nodeList = NodeFactory.createNodeList(members);
@@ -154,6 +160,49 @@ public class CodeGenerator {
 
         // only a single bal file is considered for now
         return syntaxTrees.getFirst();
+    }
+
+    private FunctionDefinitionNode genFunctionDefinitionNode(Function function) {
+        String funcParamString = constructFunctionParameterString(function.parameters(), false);
+        FunctionDefinitionNode functionDefinitionNode;
+        if (function.body() instanceof BallerinaModel.BlockFunctionBody) {
+            functionDefinitionNode = (FunctionDefinitionNode) NodeParser.parseObjectMember(
+                    String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(
+                                    function.visibilityQualifier()), function.methodName(), funcParamString,
+                            getReturnTypeDescriptor(function.returnType())));
+            functionDefinitionNode = generateBallerinaFunction(functionDefinitionNode, function.body());
+        } else {
+            functionDefinitionNode = generateBallerinaExternalFunction(function, funcParamString,
+                    function.methodName());
+        }
+        return functionDefinitionNode;
+    }
+
+    private static String getType(Type type) {
+        switch (type) {
+            case BallerinaType ballerinaType -> {
+                return ballerinaType.type();
+            }
+            case ClosedRecordType closedRecordType -> {
+                StringBuilder fieldsSb = new StringBuilder();
+                for (RecordField recordField : closedRecordType.recordFields()) {
+                    fieldsSb.append(String.format(recordField.isOptional() ? "%s %s?;" : "%s %s;",
+                            recordField.type(), recordField.name()));
+                }
+
+                return String.format("record {| %s %s |}", fieldsSb, closedRecordType.restType().orElse(""));
+            }
+            case OpenRecordType openRecordType -> {
+                StringBuilder fieldsSb = new StringBuilder();
+                for (RecordField recordField : openRecordType.recordFields()) {
+                    fieldsSb.append(String.format(recordField.isOptional() ? "%s %s?;" : "%s %s;",
+                            recordField.type(), recordField.name()));
+                }
+
+                return String.format("record { %s }", fieldsSb);
+            }
+            case null, default -> throw new IllegalStateException();
+        }
     }
 
     private FunctionDefinitionNode generateBallerinaExternalFunction(Function f, String funcParamString,

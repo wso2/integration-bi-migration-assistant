@@ -1,5 +1,7 @@
 package converter;
 
+import ballerina.BallerinaModel;
+import ballerina.CodeGenerator;
 import dataweave.converter.DWConversionStats;
 import io.ballerina.cli.cmd.NewCommand;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
@@ -12,11 +14,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 
 import static converter.HtmlReportWriter.writeHtmlReport;
 import static converter.MuleToBalConverter.convertProjectXMLFileToBallerina;
+import static converter.MuleToBalConverter.createBallerinaModel;
+import static converter.MuleToBalConverter.createContextInfoHoldingDataStructures;
 
 public class MigrationTool {
 
@@ -80,6 +85,8 @@ public class MigrationTool {
         }
 
         MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator();
+        MuleToBalConverter.Data data = new MuleToBalConverter.Data();
+        data.isProject = true;
         for (File xmlFile : xmlFiles) {
             Path relativePath = sourceFolderPath.relativize(xmlFile.toPath());
             String balFileName = relativePath.toString().replace(File.separator, ".").replace(".xml", ".bal");
@@ -88,7 +95,7 @@ public class MigrationTool {
 
             SyntaxTree syntaxTree;
             try {
-                syntaxTree = convertProjectXMLFileToBallerina(muleXMLNavigator, xmlFile.getPath());
+                syntaxTree = convertProjectXMLFileToBallerina(data, muleXMLNavigator, xmlFile.getPath());
             } catch (Exception e) {
                 logger.severe(String.format("Error converting the file: %s%n%s", xmlFile.getName(), e.getMessage()));
                 continue;
@@ -99,6 +106,19 @@ public class MigrationTool {
             } catch (IOException e) {
                 logger.severe("Error writing to file: " + e.getMessage());
             }
+        }
+
+        // Create internal-types.bal
+        createContextInfoHoldingDataStructures(data);
+        Path targetFilePath = Paths.get(targetFolderPath, "internal-types.bal");
+        BallerinaModel ballerinaModel = createBallerinaModel(new ArrayList<>(),
+                data.contextTypeDefMap.values().stream().toList(), Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        SyntaxTree syntaxTree = new CodeGenerator(ballerinaModel).generateBalCode();
+        try {
+            Files.writeString(targetFilePath, syntaxTree.toSourceCode());
+        } catch (IOException e) {
+            logger.severe("Error writing to file: " + e.getMessage());
         }
 
         Path reportFilePath = Paths.get(targetFolderPath, MIGRATION_REPORT_NAME);

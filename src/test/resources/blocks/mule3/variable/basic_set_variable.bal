@@ -1,16 +1,36 @@
 import ballerina/http;
 
+type FlowVars record {|
+    string name?;
+    string age?;
+|};
+
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    FlowVars flowVars;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), flowVars: {}, inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        string name = "lochana";
-        string age = "29";
-        return _response_;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+        ctx.flowVars.name = "lochana";
+        ctx.flowVars.age = "29";
+        return ctx.inboundProperties.response;
     }
 }

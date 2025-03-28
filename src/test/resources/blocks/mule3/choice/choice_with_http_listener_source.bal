@@ -1,24 +1,44 @@
 import ballerina/http;
 import ballerina/log;
 
+type FlowVars record {|
+    int marks?;
+|};
+
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    FlowVars flowVars;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), flowVars: {}, inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        if "condition1" {
-            log:printInfo("xxx: first when condition invoked");
-        } else if "condition2" {
-            log:printInfo("xxx: second when condition invoked");
-        } else if "condition3" {
-            log:printInfo("xxx: third when condition invoked");
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+        ctx.flowVars.marks = 73;
+        if ctx.flowVars.marks > 75 {
+            log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is A.`);
+        } else if ctx.flowVars.marks > 65 {
+            log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is B.`);
+        } else if ctx.flowVars.marks > 55 {
+            log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is C.`);
         } else {
-            log:printInfo("xxx: default condition invoked");
+            log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is F.`);
         }
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }

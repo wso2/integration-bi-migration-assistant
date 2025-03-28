@@ -154,6 +154,7 @@ public class DWReader {
         }
         statement.append(context.functionNames.getLast())
                 .append("(")
+// TODO: fix me       (!paramsString.isEmpty() ? String.format("ctx.%s.toJson()", paramsString) : "")
                 .append(DWUtils.getParamsString(context.currentScriptContext.params))
                 .append(");");
         return statement.toString();

@@ -1,5 +1,8 @@
+import ballerina/http;
 import ballerina/log;
 
-function mainconfigSub_Flow() {
+listener http:Listener httpConfig = new (8081, {host: "0.0.0.0"});
+
+function mainconfigSub_Flow(Context ctx) {
     log:printInfo("xxx: main config logger invoked");
 }

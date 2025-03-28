@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-
 public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules) {
 
     public record DefaultPackage(String org, String name, String version) {
@@ -21,14 +20,42 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     public record Import(String orgName, String moduleName, Optional<String> importPrefix) {
     }
 
-    public record ModuleTypeDef(String name, String type) {
+    public record ModuleTypeDef(Type type, String name) {
+    }
+
+    public interface Type {
+    }
+
+    public record BallerinaType(String type) implements Type {
+    }
+
+    public interface RecordType extends Type {
+        List<RecordField> recordFields();
+    }
+
+    public record ClosedRecordType(List<RecordField> recordFields, Optional<String> restType) implements RecordType {
+        public ClosedRecordType(List<RecordField> recordFields) {
+            this(recordFields, Optional.empty());
+        }
+    }
+
+    public record OpenRecordType(List<RecordField> recordFields) implements RecordType {
+    }
+
+    public record RecordField(String type, String name, boolean isOptional) {
+
     }
 
     public record ModuleVar(String name, String type, BallerinaExpression expr) {
     }
 
-    public record Service(String basePath, List<String> listenerRefs, List<Resource> resources,
-                          List<Function> functions, List<String> pathParams, List<String> queryParams) {
+    public record Service(String basePath, List<String> listenerRefs, Optional<Function> initFunc,
+                          List<Resource> resources, List<Function> functions, List<String> pathParams,
+                          List<String> queryParams, List<ObjectField> fields) {
+    }
+
+    public record ObjectField(String type, String name) {
+
     }
 
     // TODO: move port to config map
@@ -100,7 +127,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
     }
 
-    public record TypeBindingPattern(String type, String variableName) {
+    public record TypeBindingPattern(String type, String variableName) { // TODO: change all string type to Type type
     }
 
     public sealed interface Statement permits BallerinaStatement, IfElseStatement, DoStatement {

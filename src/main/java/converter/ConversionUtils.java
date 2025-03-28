@@ -3,10 +3,12 @@ package converter;
 import org.w3c.dom.Element;
 
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.xml.transform.OutputKeys;
@@ -14,6 +16,9 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+
+import static ballerina.BallerinaModel.RecordField;
+import static ballerina.BallerinaModel.RecordType;
 
 public class ConversionUtils {
 
@@ -110,22 +115,67 @@ public class ConversionUtils {
                 .reduce((a, b) -> a + ", " + b).orElse("");
     }
 
-    static String convertToBallerinaExpression(MuleToBalConverter.Data data, String muleExpr,
-                                               boolean encloseInDoubleQuotes) {
-        // Check if the string contains mule expression in form #[]
-        if (!muleExpr.contains("#[")) {
-            return surroundWithDoubleQuotes(muleExpr);
-        }
-
-        // Replace #[...] with ${...}
-        String replacedExpr = muleExpr.replaceAll("#\\[([^]]+)]", "\\${$1}");
-        return String.format("string `%s`", replacedExpr);
+    public static String convertMuleExprToBal(String melExpression) {
+        return convertMuleExprToBal(melExpression, false);
     }
 
-    private static String surroundWithDoubleQuotes(String str) {
-        // Escape double quotes in the input string
-        String escapedExpr = str.replace("\"", "\\\"");
-        return String.format("\"%s\"", escapedExpr);
+    public static String convertMuleExprToBalStringLiteral(String melExpression) {
+        return convertMuleExprToBal(melExpression, true);
+    }
+
+    public static String convertMuleExprToBal(String melExpression, boolean addToStringCalls) {
+        if (melExpression.startsWith("#[") && melExpression.endsWith("]")) {
+            return convertMELToBal(melExpression, addToStringCalls);
+        }
+
+        String regex = "#\\[([^]]+)]";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(melExpression);
+
+        boolean hasMELParts = false;
+        StringBuilder result = new StringBuilder();
+        while (matcher.find()) {
+            hasMELParts = true;
+            String matchedExpression = matcher.group(0);
+            String replacement = "\\${" + convertMELToBal(matchedExpression, true) + "}";
+            matcher.appendReplacement(result, replacement);
+        }
+        matcher.appendTail(result);
+
+        return hasMELParts ? String.format("string `%s`", result) : "\"" + melExpression.replace("\"", "\\\"") + "\"";
+    }
+
+    private static String convertMELToBal(String melExpression, boolean addToStringCalls) {
+        // Remove #[] wrapper from the MEL expression
+        String result = melExpression.substring(2, melExpression.length() - 1);
+
+        // Replace string literals: 'xxx' --> "xxx"
+        result = result.replaceAll("'(.*?)'", "\"$1\"");
+
+        // Replace payload: payload --> ctx.payload
+        result = result.replaceAll("\\b(payload)\\b", addToStringCalls ? "ctx.$1.toString()" : "ctx.$1");
+
+        // Replace variable references: flowVars.foo --> ctx.flowVars.foo / ctx.flowVars.foo.toString()
+        result = result.replaceAll("\\b(flowVars|sessionVars|message|recordVars)(\\.\\w+)\\b",
+                addToStringCalls ? "ctx.$1$2.toString()" : "ctx.$1$2");
+
+        return result;
+    }
+
+    public static String inferTypeFromBalExpr(String balExpr) {
+        if (balExpr.equals("true") || balExpr.equals("false")) {
+            return "boolean";
+        } else if (balExpr.startsWith("\"") && balExpr.endsWith("\"")) {
+            return "string";
+        } else if (balExpr.startsWith("[") && balExpr.endsWith("]")) {
+            return "anydata[]"; // TODO: infer based on the elements
+        } else if (balExpr.matches("-?\\d+")) {
+            return "int";
+        } else if (balExpr.matches("-?\\d+\\.\\d+")) {
+            return "decimal";
+        } else {
+            return "anydata";
+        }
     }
 
     public static String getSimpleMuleFlowVar(String muleExpr) {
@@ -178,5 +228,35 @@ public class ConversionUtils {
         }
         sb.append("// ------------------------------------------------------------------------\n\n");
         return sb.toString();
+    }
+
+    public static String getRecordInitValue(RecordType recordType) {
+        List<String> requiredFields = new ArrayList<>();
+        for (RecordField recordField : recordType.recordFields()) {
+            if (!recordField.isOptional()) {
+                String value = getRequiredRecFieldDefaultValue(recordField);
+                requiredFields.add(String.format("%s : %s", recordField.name(), value));
+            }
+        }
+        String recordBody = String.join(",", requiredFields);
+        return String.format("{ %s }", recordBody);
+    }
+
+    private static String getRequiredRecFieldDefaultValue(RecordField recordField) {
+        assert !recordField.isOptional();
+        if (recordField.type().equals("anydata")) {
+            return "()";
+        }
+
+        if (recordField.type().equals("FlowVars") || recordField.type().equals("SessionVars")) {
+            return "{}";
+        }
+
+        if (recordField.type().equals("InboundProperties")) {
+            // TODO: handle non-http sources
+            return "{response: new}";
+        }
+
+        throw new IllegalStateException();
     }
 }
