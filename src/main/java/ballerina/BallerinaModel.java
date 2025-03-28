@@ -1,5 +1,7 @@
 package ballerina;
 
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -8,8 +10,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 
 public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules) {
 

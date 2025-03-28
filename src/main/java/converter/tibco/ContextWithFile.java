@@ -19,7 +19,6 @@
 package converter.tibco;
 
 import ballerina.BallerinaModel;
-
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 
 interface ContextWithFile {

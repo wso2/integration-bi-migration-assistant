@@ -21,6 +21,7 @@ package converter.tibco;
 import ballerina.BallerinaModel;
 import ballerina.BallerinaModel.Expression.FunctionCall;
 import ballerina.BallerinaModel.TypeDesc.UnionTypeDesc;
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import tibco.TibcoModel;
 
 import java.util.ArrayList;
@@ -34,8 +35,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
-
-import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
@@ -112,7 +111,7 @@ public class ProjectContext {
                     Optional.of(new UnionTypeDesc(List.of(ERROR, XML)).toString()),
                     List.of(new Return<>(
                             Optional.of(new FunctionCall("xmldata:toXml",
-                                    new String[]{"data"}))))));
+                                    new String[] { "data" }))))));
             toXMLFunction = functionName;
         }
         return toXMLFunction;
@@ -125,7 +124,7 @@ public class ProjectContext {
             utilityFunctions.add(
                     new BallerinaModel.Function(functionName, List.of(new BallerinaModel.Parameter("data", JSON)),
                             Optional.of(new UnionTypeDesc(List.of(ERROR, XML)).toString()),
-                            List.of(new Return<>(new FunctionCall("xmldata:fromJson", new String[]{"data"})))));
+                            List.of(new Return<>(new FunctionCall("xmldata:fromJson", new String[] { "data" })))));
             jsonToXMLFunction = functionName;
         }
         return jsonToXMLFunction;
@@ -352,7 +351,8 @@ public class ProjectContext {
                 "jdbc:Client",
                 new BallerinaModel.Expression.CheckPanic(
                         new BallerinaModel.Expression.NewExpression(
-                                List.of(new BallerinaModel.Expression.StringConstant(name)))), false, false);
+                                List.of(new BallerinaModel.Expression.StringConstant(name)))),
+                false, false);
         utilityConstants.add(moduleVar);
         return new BallerinaModel.Expression.VariableReference(moduleVar.name());
     }

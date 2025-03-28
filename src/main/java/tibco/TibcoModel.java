@@ -18,6 +18,8 @@
 
 package tibco;
 
+import org.w3c.dom.Element;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,8 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import org.w3c.dom.Element;
 
 public class TibcoModel {
 

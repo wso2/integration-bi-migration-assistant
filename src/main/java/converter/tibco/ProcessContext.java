@@ -22,6 +22,7 @@ import ballerina.BallerinaModel;
 import ballerina.BallerinaModel.Statement.VarDeclStatment;
 import converter.tibco.analyzer.AnalysisResult;
 import converter.tibco.analyzer.ModelAnalyser;
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import tibco.TibcoModel;
 
 import java.util.ArrayList;
@@ -35,8 +36,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
-
-import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
