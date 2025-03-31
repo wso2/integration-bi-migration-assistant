@@ -23,6 +23,7 @@ class TypeConverter {
     static void convertSchema(ContextWithFile cx, TibcoModel.Type.Schema schema) {
         String body = ConversionUtils.elementToString(schema.element());
         try {
+            cx.getProjectContext().incrementTypeCount();
             Map<String, ModuleMemberDeclarationNode> result = generateNodes(body);
             result.forEach(cx::addTypeAstNode);
         } catch (Exception e) {

@@ -72,7 +72,6 @@ public class ProjectContext {
     private String logFunction = null;
     private int nextPort = 8080;
     private int typeCount = 0;
-    private int typeAliasCount = 0;
     private int unhandledTypeCount = 0;
 
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
@@ -98,8 +97,8 @@ public class ProjectContext {
     public BallerinaModel.Module serialize(Collection<BallerinaModel.TextDocument> textDocuments) {
         List<BallerinaModel.TextDocument> combinedTextDocuments = Stream.concat(textDocuments.stream(),
                 Stream.of(typesFile(), utilsFile())).toList();
-        logger.info(String.format("Type Statistics - Total Types: %d, Type Aliases: %d, Unhandled Types: %d",
-                typeCount, typeAliasCount, unhandledTypeCount));
+        logger.info(String.format("Type Statistics - Total Types: %d, Unhandled Types: %d",
+                typeCount, unhandledTypeCount));
         return new BallerinaModel.Module("tibco", combinedTextDocuments);
     }
 
@@ -311,11 +310,6 @@ public class ProjectContext {
     public void incrementUnhandledTypeCount() {
         incrementTypeCount();
         unhandledTypeCount++;
-    }
-
-    public void incrementTypeAliasCount() {
-        incrementTypeCount();
-        typeAliasCount++;
     }
 
     public String getFileWriteFunction(ContextWithFile contextWithFile) {
