@@ -123,100 +123,22 @@ public class TibcoModel {
 
         record Schema(Element element) implements Type {
 
-            public record TibcoType(String name) {
+        }
 
-                public TibcoType {
-                    if (name == null || name.isEmpty()) {
-                        throw new IllegalArgumentException("Name cannot be null or empty");
-                    }
-                }
+        record TibcoType(String name) {
 
-                private static final HashMap<String, TibcoType> TYPES = new HashMap<>();
-
-                public static TibcoType of(String name) {
-                    return TYPES.computeIfAbsent(name, TibcoType::new);
-                }
-
-            }
-
-            public record UnhandledType(String name, String reason, String elementAsString) {
-
-                public UnhandledType {
-                    if (name == null || name.isEmpty()) {
-                        throw new IllegalArgumentException("Name cannot be null or empty");
-                    }
+            public TibcoType {
+                if (name == null || name.isEmpty()) {
+                    throw new IllegalArgumentException("Name cannot be null or empty");
                 }
             }
 
-            public record ComplexType(String name, Body body) {
+            private static final HashMap<String, TibcoType> TYPES = new HashMap<>();
 
-                public ComplexType {
-                    if (name == null) {
-                        throw new IllegalArgumentException("Name cannot be null");
-                    }
-                    if (body == null) {
-                        throw new IllegalArgumentException("Body cannot be null");
-                    }
-                }
-
-                public sealed interface Body {
-
-                }
-
-                public record Choice(Collection<Element> elements) implements Body, SequenceBody.Member {
-
-                    public record Element(int maxOccurs, int minOccurs, TibcoType ref) {
-
-                    }
-                }
-
-                public record SequenceBody(Collection<Member> elements) implements Body {
-
-                    public sealed interface Member {
-
-                        record ElementArray(String name, TibcoType elementType, int min, int max) implements Member {
-
-                        }
-
-                        record Element(String name, TibcoType type, boolean optional) implements Member {
-
-                            public Element {
-                                if (name == null || name.isEmpty()) {
-                                    throw new IllegalArgumentException("Name cannot be null or empty");
-                                }
-                            }
-                        }
-
-                        record Rest(Optional<TibcoType> type) implements Member {
-
-                            public Rest(TibcoType type) {
-                                this(Optional.of(type));
-                            }
-
-                            public Rest() {
-                                this(Optional.empty());
-                            }
-                        }
-                    }
-                }
-
-                public record ComplexContent(Extension extension) implements Body {
-
-                    public record Extension(TibcoType base, Collection<SequenceBody.Member.Element> elements) {
-
-                        public Extension {
-                            if (base == null) {
-                                throw new IllegalArgumentException("Base cannot be null");
-                            }
-                            elements = Collections.unmodifiableCollection(elements);
-                        }
-                    }
-                }
-
-                public record SimpleContent(TibcoType base) implements Body {
-
-                }
+            public static TibcoType of(String name) {
+                return TYPES.computeIfAbsent(name, TibcoType::new);
             }
+
         }
     }
 
@@ -439,7 +361,7 @@ public class TibcoModel {
                             }
                         }
 
-                        record JsonOperation(ExtensionKind kind, Type.Schema.TibcoType type) implements Config {
+                        record JsonOperation(ExtensionKind kind, Type.TibcoType type) implements Config {
 
                             public JsonOperation {
                                 if (!(kind == ExtensionKind.JSON_PARSER || kind == ExtensionKind.JSON_RENDER)) {
