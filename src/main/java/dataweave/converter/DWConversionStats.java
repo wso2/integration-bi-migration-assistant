@@ -1,11 +1,11 @@
 package dataweave.converter;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class DWConversionStats {
-    private final Map<DWConstruct, Integer> encountered = new HashMap<>();
-    private final Map<DWConstruct, Integer> converted = new HashMap<>();
+    private final Map<DWConstruct, Integer> encountered = new LinkedHashMap<>();
+    private final Map<DWConstruct, Integer> converted = new LinkedHashMap<>();
 
     public void record(DWConstruct construct, boolean isConverted) {
         encountered.merge(construct, 1, Integer::sum);
