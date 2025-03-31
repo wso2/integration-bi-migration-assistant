@@ -18,6 +18,12 @@ public class TransformMessageTest extends AbstractBlockTest {
                 "transform-message/transform_message_with_components.bal");
     }
 
+    @Test
+    public void testTransformMessageWithUnsupportedComponents() {
+        testMule3ToBal("transform-message/transform_message_with_unsupported_components.xml",
+                "transform-message/transform_message_with_unsupported_components.bal");
+    }
+
     @Test (dataProvider = "provideTestParams")
     public void testTransformMessageWithCustomDataWeave(String dwFile, String balFile) {
         testDataWeaveMule3ToBal(dwFile, balFile);

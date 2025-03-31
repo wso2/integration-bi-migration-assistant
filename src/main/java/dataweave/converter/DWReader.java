@@ -21,51 +21,57 @@ import java.util.List;
 
 public class DWReader {
 
-    public static ParseTree readDWScript(String script) {
-        DataWeaveLexer lexer = new DataWeaveLexer(CharStreams.fromString(script));
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-        DataWeaveParser parser = new DataWeaveParser(tokens);
-        return parser.script();
-    }
-
-    public static ParseTree readDWScriptFromFile(String filePath) {
+    public static ParseTree readDWScriptFromFile(String filePath, DWContext context) {
         Path path = Paths.get(filePath);
         if (Files.exists(path) && Files.isRegularFile(path)) {
-            return parseFromFile(path);
+            return parseFromFile(path, context);
         }
         InputStream inputStream = DWReader.class.getClassLoader().getResourceAsStream(filePath);
         if (inputStream != null) {
-            return parseFromStream(inputStream, filePath);
+            return parseFromStream(inputStream, filePath, context);
         }
         throw new RuntimeException("File not found: " + filePath);
     }
 
-    private static ParseTree parseFromFile(Path path) {
+    private static ParseTree parseFromFile(Path path, DWContext context) {
         if (!path.toString().toLowerCase().endsWith(".dwl")) {
             throw new RuntimeException("Invalid file type. Expected a .dwl file: " + path);
         }
         try {
             String script = Files.readString(path, StandardCharsets.UTF_8);
-            return parseScript(script);
+            return parseScript(script, context);
         } catch (IOException e) {
             throw new RuntimeException("Failed to read file - " + path, e);
         }
     }
 
-    private static ParseTree parseFromStream(InputStream inputStream, String filePath) {
+    private static ParseTree parseFromStream(InputStream inputStream, String filePath, DWContext context) {
         try {
             String script = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-            return parseScript(script);
+            return parseScript(script, context);
         } catch (IOException e) {
             throw new RuntimeException("Failed to read file from resources: " + filePath, e);
         }
     }
 
-    private static ParseTree parseScript(String script) {
+    private static ParseTree parseScript(String script, DWContext context) {
         DataWeaveLexer lexer = new DataWeaveLexer(CharStreams.fromString(script));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         DataWeaveParser parser = new DataWeaveParser(tokens);
-        return parser.script();
+
+        parser.removeErrorListeners();
+        lexer.removeErrorListeners();
+
+        DWParserErrorListener errorListener = new DWParserErrorListener();
+        parser.addErrorListener(errorListener);
+        lexer.addErrorListener(errorListener);
+
+        ParseTree tree = parser.script();
+
+        if (errorListener.hasErrors()) {
+            context.currentScriptContext.errors.add(errorListener.getErrors());
+        }
+        return tree;
     }
 
     public static void processDWElements(List<MuleModel.TransformMessageElement> children, MuleToBalConverter.Data data,
@@ -113,7 +119,7 @@ public class DWReader {
     private static String getFunctionStatement(String script, String resourcePath, DWContext context,
                                                MuleToBalConverter.Data data, String varName) {
         if (script != null) {
-            ParseTree tree = readDWScript(script);
+            ParseTree tree = parseScript(script, context);
             BallerinaVisitor visitor = new BallerinaVisitor(context, data, data.getDwConversionStats());
             visitor.visit(tree);
             context.currentScriptContext.funcName = context.functionNames.getLast();
@@ -123,7 +129,8 @@ public class DWReader {
             context.currentScriptContext = context.scriptCache.get(resourcePath);
             return buildStatement(context, varName);
         }
-        ParseTree tree = readDWScriptFromFile(resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR));
+        ParseTree tree = readDWScriptFromFile(resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR),
+                context);
         BallerinaVisitor visitor = new BallerinaVisitor(context, data, data.getDwConversionStats());
         visitor.visit(tree);
         context.currentScriptContext.funcName = context.functionNames.getLast();
@@ -133,11 +140,22 @@ public class DWReader {
     }
 
     private static String buildStatement(DWContext context, String varName) {
-        String statement = context.currentScriptContext.outputType + " " + varName + " = ";
-        if (context.currentScriptContext.containsCheck) {
-            statement += "check ";
+        boolean isOutputVar = varName.equals(DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME);
+        StringBuilder statement = new StringBuilder();
+        if (isOutputVar && !context.isOutputVarSet) {
+            context.isOutputVarSet = true;
+            statement.append(context.currentScriptContext.outputType).append(" ");
+        } else if (!isOutputVar) {
+            statement.append(context.currentScriptContext.outputType).append(" ");
         }
-        return statement + context.functionNames.getLast() + "(" +
-                DWUtils.getParamsString(context.currentScriptContext.params) + ");";
+        statement.append(varName).append(" = ");
+        if (context.currentScriptContext.containsCheck) {
+            statement.append("check ");
+        }
+        statement.append(context.functionNames.getLast())
+                .append("(")
+                .append(DWUtils.getParamsString(context.currentScriptContext.params))
+                .append(");");
+        return statement.toString();
     }
 }

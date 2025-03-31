@@ -15,6 +15,7 @@ public class DWContext {
     public List<String> functionNames;
     public Map<String, String> commonArgs = new HashMap<>();
     final Map<String, DWScriptContext> scriptCache = new HashMap<>();
+    public boolean isOutputVarSet = false;
 
     public DWContext(List<BallerinaModel.Statement> statementList) {
         this.parentStatements = statementList;
