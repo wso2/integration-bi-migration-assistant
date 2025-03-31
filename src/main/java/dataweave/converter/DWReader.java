@@ -114,7 +114,7 @@ public class DWReader {
                                                MuleToBalConverter.Data data, String varName) {
         if (script != null) {
             ParseTree tree = readDWScript(script);
-            BallerinaVisitor visitor = new BallerinaVisitor(context, data);
+            BallerinaVisitor visitor = new BallerinaVisitor(context, data, data.getDwConversionStats());
             visitor.visit(tree);
             context.currentScriptContext.funcName = context.functionNames.getLast();
             return buildStatement(context, varName);
@@ -124,7 +124,7 @@ public class DWReader {
             return buildStatement(context, varName);
         }
         ParseTree tree = readDWScriptFromFile(resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR));
-        BallerinaVisitor visitor = new BallerinaVisitor(context, data);
+        BallerinaVisitor visitor = new BallerinaVisitor(context, data, data.getDwConversionStats());
         visitor.visit(tree);
         context.currentScriptContext.funcName = context.functionNames.getLast();
         context.scriptCache.put(resourcePath, context.currentScriptContext);

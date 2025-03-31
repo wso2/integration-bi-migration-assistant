@@ -1,5 +1,6 @@
 package converter;
 
+import dataweave.converter.DWConversionStats;
 import mule.MuleXMLTag;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -9,10 +10,16 @@ import java.util.LinkedHashMap;
 public class MuleXMLNavigator {
     private final LinkedHashMap<String, Integer> xmlCompatibleTagCountMap;
     private final LinkedHashMap<String, Integer> xmlIncompatibleTagCountMap;
+    private final DWConversionStats dwConversionStats;
 
     MuleXMLNavigator() {
         this.xmlCompatibleTagCountMap = new LinkedHashMap<>();
         this.xmlIncompatibleTagCountMap = new LinkedHashMap<>();
+        this.dwConversionStats = new DWConversionStats();
+    }
+
+    DWConversionStats getDwConversionStats() {
+        return dwConversionStats;
     }
 
     LinkedHashMap<String, Integer> getXmlCompatibleTagCountMap() {
