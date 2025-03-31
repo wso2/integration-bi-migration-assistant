@@ -46,6 +46,7 @@ import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static converter.tibco.Library.IO;
 import static converter.tibco.Library.JDBC;
 import static converter.tibco.Library.LOG;
+import static converter.tibco.Library.XML_DATA;
 
 import ballerina.BallerinaModel;
 import ballerina.BallerinaModel.Statement;
@@ -457,6 +458,7 @@ public class ProjectContext {
 
         @Override
         public void addTypeAstNode(String name, ModuleMemberDeclarationNode node) {
+            addLibraryImport(XML_DATA);
             astNodes.put(name, node);
         }
 
