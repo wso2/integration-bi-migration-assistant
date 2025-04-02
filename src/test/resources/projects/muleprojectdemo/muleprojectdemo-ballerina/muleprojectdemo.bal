@@ -28,6 +28,7 @@ function _dwMethod1_(json payload) returns json|error {
 }
 
 function _dwMethod2_(xml payload) returns xml {
+    //TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'map$+1' OF TYPE 'xml' FOUND. MANUAL CONVERSION REQUIRED.
 }
 
 function _dwMethod0_(json payload) returns json|error {

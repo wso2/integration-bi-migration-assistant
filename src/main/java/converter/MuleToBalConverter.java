@@ -788,7 +788,7 @@ public class MuleToBalConverter {
             }
             case TransformMessage transformMessage -> {
                 DWReader.processDWElements(transformMessage.children(), data, statementList);
-                if (data.currentFlowInfo.context.equals(Context.HTTP_LISTENER)) {
+                if (!data.currentFlowInfo.context.equals(Context.DEFAULT)) {
                     statementList.add(new BallerinaStatement(String.format("%s.setPayload(%s);",
                             Constants.VAR_RESPONSE, DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME)));
                 }

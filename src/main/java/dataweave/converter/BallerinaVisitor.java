@@ -1,13 +1,13 @@
 package dataweave.converter;
 
 import ballerina.BallerinaModel;
-import converter.ConversionUtils;
 import converter.MuleToBalConverter;
 import dataweave.converter.builder.IfStatementBuilder;
 import dataweave.parser.DataWeaveBaseVisitor;
 import dataweave.parser.DataWeaveParser;
 import io.ballerina.compiler.internal.parser.LexerTerminals;
 import mule.Constants;
+import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.ArrayList;
@@ -62,6 +62,13 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     }
 
     @Override
+    public Void visitNamespaceDirective(DataWeaveParser.NamespaceDirectiveContext ctx) {
+        stats.record(DWConstruct.NAMESPACE_DIRECTIVE, false);
+        dwContext.addUnsupportedComment(ctx.getText());
+        return null;
+    }
+
+    @Override
     public Void visitVariableDeclaration(DataWeaveParser.VariableDeclarationContext ctx) {
         String expression = ctx.expression().getText();
         String dwType = DWUtils.getVarTypeFromExpression(expression);
@@ -75,6 +82,14 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         stats.record(DWConstruct.VARIABLE_DECLARATION, true);
         return null;
     }
+
+    @Override
+    public Void visitFunctionDeclaration(DataWeaveParser.FunctionDeclarationContext ctx) {
+        stats.record(DWConstruct.FUNCTION_DECLARATION, false);
+        dwContext.addUnsupportedComment(ctx.getText());
+        return null;
+    }
+
 
     private String refineNumberType(String valueExpr, String ballerinaType) {
         if (valueExpr.contains(".")) {
@@ -205,6 +220,14 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     }
 
     @Override
+    public Void visitTypeExpression(DataWeaveParser.TypeExpressionContext ctx) {
+        stats.record(DWConstruct.TYPE_EXPRESSION, false);
+        super.visitTypeExpression(ctx);
+        dwContext.addUnsupportedComment(ctx.getText());
+        return null;
+    }
+
+    @Override
     public Void visitSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx) {
         visit(ctx.expression());
         boolean supported = Objects.equals(dwContext.currentScriptContext.inputType, LexerTerminals.JSON);
@@ -215,8 +238,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             dwContext.append(varName).append(".length()");
             dwContext.currentScriptContext.currentType = DWUtils.NUMBER;
         } else {
-            dwContext.parentStatements.add(new BallerinaModel.BallerinaStatement(
-                    ConversionUtils.wrapElementInUnsupportedBlockComment(DWUtils.DW_FUNCTION_SIZE_OF)));
+            dwContext.addUnsupportedCommentWithType(ctx.getText(), dwContext.currentScriptContext.inputType);
         }
         stats.record(DWConstruct.SIZE_OF, supported);
         return null;
@@ -250,8 +272,17 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                     DataWeaveParser.DefaultExpressionEndContext)) {
                 visit(ctx.defaultExpressionRest());
             }
+        } else {
+            stats.record(DWConstruct.MAP, supported);
+            dwContext.addUnsupportedCommentWithType(ctx.getText(), dwContext.currentScriptContext.inputType);
         }
-        stats.record(DWConstruct.MAP, supported);
+        return null;
+    }
+
+    @Override
+    public Void visitGroupByExpression(DataWeaveParser.GroupByExpressionContext ctx) {
+        stats.record(DWConstruct.GROUP_BY, false);
+        dwContext.addUnsupportedComment(ctx.getText());
         return null;
     }
 
@@ -282,8 +313,10 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                     DataWeaveParser.DefaultExpressionEndContext)) {
                 visit(ctx.defaultExpressionRest());
             }
+        } else {
+            dwContext.addUnsupportedCommentWithType(ctx.getText(), dwContext.currentScriptContext.inputType);
+            stats.record(DWConstruct.FILTER, supported);
         }
-        stats.record(DWConstruct.FILTER, supported);
         return null;
     }
 
@@ -619,8 +652,13 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.UTC_ZONE_OFFSET,
                 List.of(), Optional.of(LexerTerminals.HANDLE), body));
 
-        // create getDateFromFormattedString() function
+        // create dateFromFormattedString() function
         data.utilFunctions.add(DWUtils.GET_DATE_FROM_FORMATTED_STRING);
+        BallerinaModel.Function dateFromFormattedString = getGetDateFromFormattedString();
+        data.functions.add(dateFromFormattedString);
+    }
+
+    private static BallerinaModel.Function getGetDateFromFormattedString() {
         List<BallerinaModel.Parameter> params = new ArrayList<>();
         params.add(new BallerinaModel.Parameter("dateString", LexerTerminals.STRING, Optional.empty()));
         params.add(new BallerinaModel.Parameter("format", LexerTerminals.STRING, Optional.empty()));
@@ -629,10 +667,9 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 "parseDateTime(java:fromString(dateString), getDateTimeFormatter(java:fromString(format)));"));
         statements.add(new BallerinaModel.BallerinaStatement("return check time:utcFromString(" +
                 "toInstant(localDateTime, UTC()).toString());"));
-        BallerinaModel.Function getDateFromFormattedString = new BallerinaModel.Function(Optional.of("public"),
+        return new BallerinaModel.Function(Optional.of("public"),
                 DWUtils.GET_DATE_FROM_FORMATTED_STRING, params, Optional.of("time:Utc|error"),
                 new BallerinaModel.BlockFunctionBody(statements));
-        data.functions.add(getDateFromFormattedString);
     }
 
     private BallerinaModel.Function generateFormatDateTimeToStringFunctions() {
@@ -753,6 +790,41 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     }
 
     @Override
+    public Void visitMultiValueSelector(DataWeaveParser.MultiValueSelectorContext ctx) {
+        stats.record(DWConstruct.MULTI_VALUE_SELECTOR, false);
+        dwContext.addUnsupportedComment(ctx.getText());
+        return null;
+    }
+
+    @Override
+    public Void visitDescendantsSelector(DataWeaveParser.DescendantsSelectorContext ctx) {
+        stats.record(DWConstruct.DESCENDANT_SELECTOR, false);
+        dwContext.addUnsupportedComment(ctx.getText());
+        return null;
+    }
+
+    @Override
+    public Void visitIndexedSelector(DataWeaveParser.IndexedSelectorContext ctx) {
+        stats.record(DWConstruct.INDEXED_SELECTOR, false);
+        dwContext.addUnsupportedComment(ctx.getText());
+        return null;
+    }
+
+    @Override
+    public Void visitAttributeSelector(DataWeaveParser.AttributeSelectorContext ctx) {
+        stats.record(DWConstruct.ATTRIBUTE_SELECTOR, false);
+        dwContext.addUnsupportedComment(ctx.getText());
+        return null;
+    }
+
+    @Override
+    public Void visitExistenceQuerySelector(DataWeaveParser.ExistenceQuerySelectorContext ctx) {
+        stats.record(DWConstruct.EXISTENCE_QUERY_SELECTOR, false);
+        dwContext.addUnsupportedComment(ctx.getText());
+        return null;
+    }
+
+    @Override
     public Void visitIdentifierExpression(DataWeaveParser.IdentifierExpressionContext ctx) {
         this.dwContext.currentScriptContext.currentType = DWUtils.IDENTIFIER;
         stats.record(DWConstruct.IDENTIFIER, true);
@@ -857,6 +929,23 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         builder.addElseBody(new BallerinaModel.BallerinaStatement(varName + " = " + dwContext.getExpression() + ";"));
         dwContext.append(" " + varName);
         return builder.getStatement();
+    }
+
+    @Override
+    public Void visitUnlessCondition(DataWeaveParser.UnlessConditionContext ctx) {
+        stats.record(DWConstruct.UNLESS, false);
+        dwContext.addUnsupportedComment(ctx.getText());
+        return null;
+    }
+
+    @Override
+    public Void visitTerminal(TerminalNode terminalNode) {
+        return null;
+    }
+
+    @Override
+    public Void visitErrorNode(ErrorNode errorNode) {
+        return null;
     }
 
 }

@@ -1857,6 +1857,74 @@ function _dwMethod0_(json payload) returns json|error {
 
 ```
 
+- ### Transform Message With Unsupported Components
+
+**Input (transform_message_with_unsupported_components.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <flow name="sampleFlow">
+        <dw:transform-message>
+            <dw:input-payload mimeType="application/json"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%dw 1.0
+%output application/json
+%input payload application/json
+%var conversionRate=13.15
+---
+[1, 2, 3, 4] map ,
+]]></dw:set-payload>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%input payload application/xml
+---
+[1, 2, 3, 4] map $ + 1]]></dw:set-payload>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%input payload application/json
+---
+payload groupBy $.language
+]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_unsupported_components.bal):**
+```ballerina
+function _dwMethod1_(xml payload) returns json {
+    //TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'map$+1' OF TYPE 'xml' FOUND. MANUAL CONVERSION REQUIRED.
+}
+
+function _dwMethod2_(json payload) returns json {
+    //TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'groupBy$.language' FOUND. MANUAL CONVERSION REQUIRED.
+}
+
+function sampleFlow() {
+    json _dwOutput_ = _dwMethod0_(payload);
+    _dwOutput_ = _dwMethod1_(payload);
+    _dwOutput_ = _dwMethod2_(payload);
+}
+
+function _dwMethod0_(json payload) returns json {
+    float conversionRate = 13.15;
+    return [1, 2, 3, 4];
+    // DATAWEAVE PARSING FAILED.
+    // line 7:13 mismatched input 'map' expecting {<EOF>, NEWLINE}
+
+}
+
+```
+
 ## Variable
 
 - ### Basic Set Variable
