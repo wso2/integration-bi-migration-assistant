@@ -120,7 +120,8 @@ public class DWReader {
                                                MuleToBalConverter.Data data, String varName) {
         if (script != null) {
             ParseTree tree = parseScript(script, context);
-            BallerinaVisitor visitor = new BallerinaVisitor(context, data, data.getDwConversionStats());
+            BallerinaVisitor visitor = new BallerinaVisitor(context, data,
+                    data.sharedProjectData.getDwConversionStats());
             visitor.visit(tree);
             context.currentScriptContext.funcName = context.functionNames.getLast();
             return buildStatement(context, varName);
@@ -131,7 +132,7 @@ public class DWReader {
         }
         ParseTree tree = readDWScriptFromFile(resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR),
                 context);
-        BallerinaVisitor visitor = new BallerinaVisitor(context, data, data.getDwConversionStats());
+        BallerinaVisitor visitor = new BallerinaVisitor(context, data, data.sharedProjectData.getDwConversionStats());
         visitor.visit(tree);
         context.currentScriptContext.funcName = context.functionNames.getLast();
         context.scriptCache.put(resourcePath, context.currentScriptContext);
@@ -152,10 +153,10 @@ public class DWReader {
         if (context.currentScriptContext.containsCheck) {
             statement.append("check ");
         }
+        String paramsString = DWUtils.getParamsString(context.currentScriptContext.params);
         statement.append(context.functionNames.getLast())
                 .append("(")
-// TODO: fix me       (!paramsString.isEmpty() ? String.format("ctx.%s.toJson()", paramsString) : "")
-                .append(DWUtils.getParamsString(context.currentScriptContext.params))
+                .append(!paramsString.isEmpty() ? String.format("ctx.%s.toJson()", paramsString) : "")
                 .append(");");
         return statement.toString();
     }

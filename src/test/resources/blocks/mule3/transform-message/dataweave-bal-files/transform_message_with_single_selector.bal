@@ -1,7 +1,11 @@
-function sampleFlow() {
-    json _dwOutput_ = check _dwMethod0_(payload);
-}
+type Context record {|
+    anydata payload;
+|};
 
 function _dwMethod0_(json payload) returns json|error {
     return {"hail1": check payload.resultSet1.ensureType(json)};
+}
+
+function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_(ctx.payload.toJson());
 }

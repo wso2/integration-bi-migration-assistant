@@ -85,8 +85,8 @@ public class MigrationTool {
         }
 
         MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator();
-        MuleToBalConverter.Data data = new MuleToBalConverter.Data();
-        data.isProject = true;
+        MuleToBalConverter.SharedProjectData sharedProjectData =
+                new MuleToBalConverter.SharedProjectData(muleXMLNavigator);
         for (File xmlFile : xmlFiles) {
             Path relativePath = sourceFolderPath.relativize(xmlFile.toPath());
             String balFileName = relativePath.toString().replace(File.separator, ".").replace(".xml", ".bal");
@@ -95,7 +95,7 @@ public class MigrationTool {
 
             SyntaxTree syntaxTree;
             try {
-                syntaxTree = convertProjectXMLFileToBallerina(data, muleXMLNavigator, xmlFile.getPath());
+                syntaxTree = convertProjectXMLFileToBallerina(muleXMLNavigator, sharedProjectData, xmlFile.getPath());
             } catch (Exception e) {
                 logger.severe(String.format("Error converting the file: %s%n%s", xmlFile.getName(), e.getMessage()));
                 continue;
@@ -109,10 +109,11 @@ public class MigrationTool {
         }
 
         // Create internal-types.bal
-        createContextInfoHoldingDataStructures(data);
+        createContextInfoHoldingDataStructures(sharedProjectData);
         Path targetFilePath = Paths.get(targetFolderPath, "internal-types.bal");
         BallerinaModel ballerinaModel = createBallerinaModel(new ArrayList<>(),
-                data.contextTypeDefMap.values().stream().toList(), Collections.emptyList(), Collections.emptyList(),
+                sharedProjectData.contextTypeDefMap.values().stream().toList(), Collections.emptyList(),
+                Collections.emptyList(),
                 Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
         SyntaxTree syntaxTree = new CodeGenerator(ballerinaModel).generateBalCode();
         try {

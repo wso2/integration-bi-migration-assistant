@@ -1,3 +1,7 @@
+type Context record {|
+    anydata payload;
+|};
+
 function _dwMethod0_(json payload) returns json|error {
     json _var_0;
     if check payload.country == "USA" {
@@ -8,6 +12,6 @@ function _dwMethod0_(json payload) returns json|error {
     return _var_0;
 }
 
-function sampleFlow() {
-    json _dwOutput_ = check _dwMethod0_(payload);
+function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_(ctx.payload.toJson());
 }

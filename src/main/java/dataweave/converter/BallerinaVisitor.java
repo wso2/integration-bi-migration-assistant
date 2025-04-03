@@ -100,8 +100,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitBody(DataWeaveParser.BodyContext ctx) {
-        String methodName = String.format(DWUtils.DW_FUNCTION_NAME,
-                data.dwMethodCount++);
+        String methodName = String.format(DWUtils.DW_FUNCTION_NAME, data.sharedProjectData.dwMethodCount++);
         visitChildren(ctx);
         dwContext.finalizeFunction();
         String outputType = dwContext.currentScriptContext.outputType;
