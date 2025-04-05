@@ -41,7 +41,7 @@ dependencies {
     implementation group: 'org.antlr', name: 'antlr4', version: "${antlrVersion}"
     implementation group: 'info.picocli', name: 'picocli', version: "${picocliVersion}"
 
-    implementation group: 'io.ballerina', name: 'xsd-core', version: '1.0.6'
+    implementation group: 'io.ballerina', name: 'xsd-core', version: "${xsdCoreVersion}"
 
     testImplementation group: 'org.testng', name: 'testng', version: "${testngVersion}"
     spotbugs group: 'com.github.spotbugs', name: 'spotbugs', version: "${spotbugsVersion}"

@@ -326,6 +326,10 @@ public class ProjectContext {
         typeCx.addTypeAstNode(name, node);
     }
 
+    public void addTypeDefAsIntrinsic(String content) {
+        typeCx.addTypeDefAsIntrinsic(content);
+    }
+
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
 
         FunctionData {
@@ -454,6 +458,11 @@ public class ProjectContext {
         public void addTypeAstNode(String name, ModuleMemberDeclarationNode node) {
             addLibraryImport(XML_DATA);
             astNodes.put(name, node);
+        }
+
+        @Override
+        public void addTypeDefAsIntrinsic(String content) {
+            typeIntrinsics.add(content);
         }
 
         public BallerinaModel.TextDocument serialize() {

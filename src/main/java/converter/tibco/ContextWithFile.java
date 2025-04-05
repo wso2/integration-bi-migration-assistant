@@ -34,4 +34,6 @@ interface ContextWithFile {
     ProjectContext getProjectContext();
 
     void addTypeAstNode(String name, ModuleMemberDeclarationNode node);
+
+    void addTypeDefAsIntrinsic(String content);
 }

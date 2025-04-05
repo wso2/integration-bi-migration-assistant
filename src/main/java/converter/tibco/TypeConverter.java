@@ -1,8 +1,9 @@
 package converter.tibco;
 
 import ballerina.BallerinaModel;
-import ballerina.BallerinaModel.Statement.Return;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import io.ballerina.xsd.core.Response;
+
 import tibco.TibcoModel;
 
 import java.util.Collection;
@@ -18,6 +19,22 @@ import static io.ballerina.xsd.core.XSDToRecord.generateNodes;
 class TypeConverter {
 
     private TypeConverter() {
+    }
+
+    static void convertSchemas(ContextWithFile cx, Collection<TibcoModel.Type.Schema> schemas) {
+        String[] content = schemas.stream().map(TibcoModel.Type.Schema::element).map(ConversionUtils::elementToString)
+                .toArray(String[]::new);
+        try {
+            for (int i = 0; i < content.length; i++) {
+                cx.getProjectContext().incrementTypeCount();
+            }
+            Response result = generateNodes(content);
+            cx.addTypeDefAsIntrinsic(result.types());
+        } catch (Exception e) {
+            // FIXME:
+            String allSchemas = String.join(",\n", content);
+            throw new RuntimeException("Failed to convert types:\n" + allSchemas + "\n" + e.getMessage());
+        }
     }
 
     static void convertSchema(ContextWithFile cx, TibcoModel.Type.Schema schema) {
@@ -42,13 +59,13 @@ class TypeConverter {
     }
 
     static Collection<BallerinaModel.Service> convertWsdlDefinition(ProcessContext cx,
-            TibcoModel.Type.WSDLDefinition wsdlDefinition) {
+                                                                    TibcoModel.Type.WSDLDefinition wsdlDefinition) {
         Map<String, String> messageTypes = getMessageTypeDefinitions(cx, wsdlDefinition);
         return wsdlDefinition.portType().stream().map(portType -> convertPortType(cx, messageTypes, portType)).toList();
     }
 
     private static Map<String, String> getMessageTypeDefinitions(ProcessContext cx,
-            TibcoModel.Type.WSDLDefinition wsdlDefinition) {
+                                                                 TibcoModel.Type.WSDLDefinition wsdlDefinition) {
         Map<String, String> result = new HashMap<>();
         for (TibcoModel.Type.WSDLDefinition.Message message : wsdlDefinition.messages()) {
             Optional<String> referredTypeName = getMessageTypeName(cx, message);
@@ -61,7 +78,7 @@ class TypeConverter {
     }
 
     private static Optional<String> getMessageTypeName(ProcessContext cx,
-            TibcoModel.Type.WSDLDefinition.Message message) {
+                                                       TibcoModel.Type.WSDLDefinition.Message message) {
         Optional<TibcoModel.Type.WSDLDefinition.Message.Part> part;
         if (message.parts().size() == 1) {
             part = Optional.ofNullable(message.parts().getFirst());
@@ -82,45 +99,47 @@ class TypeConverter {
     }
 
     private static BallerinaModel.Service convertPortType(ProcessContext cx,
-            Map<String, String> messageTypes,
-            TibcoModel.Type.WSDLDefinition.PortType portType) {
+                                                          Map<String, String> messageTypes,
+                                                          TibcoModel.Type.WSDLDefinition.PortType portType) {
         String basePath = portType.basePath();
         if (!basePath.startsWith("/")) {
             basePath = "/" + basePath;
         }
         String apiPath = portType.apiPath();
-        List<BallerinaModel.Resource> resources = List
-                .of(convertOperation(cx, apiPath, messageTypes, portType.operation()));
+        List<BallerinaModel.Resource> resources =
+                List.of(convertOperation(cx, apiPath, messageTypes, portType.operation()));
         List<String> listenerRefs = List.of(cx.getDefaultHttpListenerRef());
-        return new BallerinaModel.Service(basePath, listenerRefs, Optional.empty(), resources, List.of(), List.of(),
-                List.of(), List.of());
+        return new BallerinaModel.Service(basePath, listenerRefs, resources, List.of(), List.of(), List.of());
     }
 
     private static BallerinaModel.Resource convertOperation(
             ProcessContext cx,
             String apiPath, Map<String, String> messageTypes,
-            TibcoModel.Type.WSDLDefinition.PortType.Operation operation) {
+            TibcoModel.Type.WSDLDefinition.PortType.Operation operation
+    ) {
         String resourceMethodName = operation.name();
         String path = apiPath.startsWith("/") ? apiPath.substring(1) : apiPath;
         BallerinaModel.TypeDesc inputType = cx.getTypeByName(messageTypes.get(operation.input().message().value()));
-        List<BallerinaModel.Parameter> parameters = List.of(new BallerinaModel.Parameter("input", inputType));
-        List<BallerinaModel.TypeDesc> returnTypeMembers = Stream.concat(
-                Stream.of(operation.output().message()),
-                operation.faults().stream().map(
-                        TibcoModel.Type.WSDLDefinition.PortType.Operation.Fault::message))
-                .map(message -> cx.getTypeByName(messageTypes.get(message.value()))).toList();
+        List<BallerinaModel.Parameter> parameters =
+                List.of(new BallerinaModel.Parameter(inputType, "input"));
+        List<BallerinaModel.TypeDesc> returnTypeMembers =
+                Stream.concat(
+                                Stream.of(operation.output().message()),
+                                operation.faults().stream().map(
+                                        TibcoModel.Type.WSDLDefinition.PortType.Operation.Fault::message))
+                        .map(message -> cx.getTypeByName(messageTypes.get(message.value()))).toList();
         BallerinaModel.TypeDesc returnType = returnTypeMembers.size() == 1
                 ? returnTypeMembers.getFirst()
                 : new BallerinaModel.TypeDesc.UnionTypeDesc(returnTypeMembers);
         var startFunction = cx.getProcessStartFunction();
-        List<BallerinaModel.Statement> body = List.of(new Return<>(Optional.of(
-                new BallerinaModel.Expression.FunctionCall(startFunction.name(), new String[] { "input" }))));
+        List<BallerinaModel.Statement> body = List.of(new BallerinaModel.Return<>(Optional.of(
+                new BallerinaModel.Expression.FunctionCall(startFunction.name(), new String[]{"input"}))));
         return new BallerinaModel.Resource(resourceMethodName, path, parameters, Optional.of(returnType.toString()),
                 body);
     }
 
     private record RecordBody(List<BallerinaModel.TypeDesc.RecordTypeDesc.RecordField> fields,
-            Optional<BallerinaModel.TypeDesc> rest) {
+                              Optional<BallerinaModel.TypeDesc> rest) {
 
     }
 }

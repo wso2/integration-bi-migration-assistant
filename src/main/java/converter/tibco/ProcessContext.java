@@ -113,6 +113,11 @@ public class ProcessContext implements ContextWithFile {
         this.projectContext.addTypeAstNode(name, node);
     }
 
+    @Override
+    public void addTypeDefAsIntrinsic(String content) {
+        this.projectContext.addTypeDefAsIntrinsic(content);
+    }
+
     public BallerinaModel.TypeDesc getTypeByName(String name) {
         return projectContext.getTypeByName(name, this);
     }
