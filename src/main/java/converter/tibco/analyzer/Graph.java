@@ -19,9 +19,13 @@
 package converter.tibco.analyzer;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 class Graph<E> {
 
@@ -39,42 +43,48 @@ class Graph<E> {
     }
 
     List<E> topologicalSort() {
-        // Create a map to track in-degrees for each node
-        Map<E, Integer> inDegree = new HashMap<>();
+        return topologicalSortWithRoots(roots);
+    }
 
-        // Initialize in-degrees for all nodes
-        for (E node : children.keySet()) {
-            inDegree.put(node, 0);
-        }
-
-        // Calculate in-degrees for all nodes
-        for (List<E> edges : children.values()) {
-            for (E node : edges) {
-                inDegree.merge(node, 1, Integer::sum);
-            }
-        }
-
-        // Initialize result list and queue
+    List<E> topologicalSortWithRoots(Collection<E> roots) {
         List<E> result = new ArrayList<>();
-        List<E> queue = new ArrayList<>(roots);
+        Set<E> visited = new HashSet<>();
+        Set<E> temp = new HashSet<>();
 
-        // Process nodes with zero in-degree
-        while (!queue.isEmpty()) {
-            E node = queue.remove(0);
-            result.add(node);
-
-            // Reduce in-degree for all children and add to queue if in-degree becomes 0
-            List<E> childrenList = children.get(node);
-            if (childrenList != null) {
-                for (E child : childrenList) {
-                    inDegree.merge(child, -1, Integer::sum);
-                    if (inDegree.get(child) == 0) {
-                        queue.add(child);
-                    }
+        for (E root : roots) {
+            if (!visited.contains(root)) {
+                if (!dfsVisit(root, visited, temp, result)) {
+                    throw new IllegalStateException("Graph contains a cycle");
                 }
             }
         }
 
+        Collections.reverse(result);
         return result;
+    }
+
+    private boolean dfsVisit(E node, Set<E> visited, Set<E> temp, List<E> result) {
+        if (temp.contains(node)) {
+            return false; // Cycle detected
+        }
+        if (visited.contains(node)) {
+            return true; // Already processed
+        }
+
+        temp.add(node);
+        visited.add(node);
+
+        List<E> childrenList = children.get(node);
+        if (childrenList != null) {
+            for (E child : childrenList) {
+                if (!dfsVisit(child, visited, temp, result)) {
+                    return false;
+                }
+            }
+        }
+
+        temp.remove(node);
+        result.add(node);
+        return true;
     }
 }

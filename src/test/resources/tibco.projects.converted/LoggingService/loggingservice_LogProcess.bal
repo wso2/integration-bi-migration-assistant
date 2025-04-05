@@ -41,6 +41,35 @@ function activityExtension_5(xml input, map<xml> context) returns xml|error {
     return var0;
 }
 
+function activityRunner_loggingservice_LogProcess(xml input, map<xml> cx) returns xml|error {
+    xml result0 = check receiveEvent(input, cx);
+    xml result1;
+    if predicate_2(result0) {
+        result1 = check activityExtension_4(result0, cx);
+    } else {
+        result1 = result0;
+    }
+    xml result2 = check activityExtension_5(result1, cx);
+    xml result3;
+    if predicate_1(result0) {
+        result3 = check activityExtension_3(result2, cx);
+    } else {
+        result3 = result2;
+    }
+    xml result4;
+    if predicate_0(result0) {
+        result4 = check activityExtension_2(result3, cx);
+    } else {
+        result4 = result3;
+    }
+    xml result5 = check activityExtension(result4, cx);
+    return result5;
+}
+
+function errorHandler_loggingservice_LogProcess(error err, map<xml> cx) returns xml {
+    checkpanic err;
+}
+
 function loggingservice_LogProcess_start(LogMessage input) returns result {
     xml inputXML = checkpanic toXML(input);
     xml xmlResult = process_loggingservice_LogProcess(inputXML);
@@ -48,141 +77,26 @@ function loggingservice_LogProcess_start(LogMessage input) returns result {
     return result;
 }
 
+function predicate_0(xml input) returns boolean {
+    return test(input, "matches($Start/ns0:handler, \"console\")");
+}
+
+function predicate_1(xml input) returns boolean {
+    return test(input, "matches($Start/ns0:handler, \"file\") and matches($Start/ns0:formatter, \"text\")");
+}
+
+function predicate_2(xml input) returns boolean {
+    return test(input, "matches($Start/ns0:handler, \"file\") and matches($Start/ns0:formatter, \"xml\")");
+}
+
 function process_loggingservice_LogProcess(xml input) returns xml {
     map<xml> context = {};
     addToContext(context, "post.item", input);
-    worker start_worker {
-        xml|error result0 = receiveEvent(input, context);
-        if result0 is error {
-            result0 -> errorHandler;
-            return;
-        }
-        if test(result0, "matches($Start/ns0:handler, \"console\")") {
-            result0 -> StartToLog;
-        }
-        if test(result0, "matches($Start/ns0:handler, \"file\") and matches($Start/ns0:formatter, \"text\")") {
-            result0 -> StartToWriteFile;
-        }
-        if test(result0, "matches($Start/ns0:handler, \"file\") and matches($Start/ns0:formatter, \"xml\")") {
-            result0 -> StartToRenderXml;
-        }
+    xml|error result = activityRunner_loggingservice_LogProcess(input, context);
+    if result is error {
+        return errorHandler_loggingservice_LogProcess(result, context);
     }
-    worker LogToEnd {
-        error:NoMessage|xml input = <- activityExtension_2_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> activityExtension_worker;
-    }
-    worker RenderXmlToWriteFile1 {
-        error:NoMessage|xml input = <- activityExtension_4_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> activityExtension_5_worker;
-    }
-    worker StartToLog {
-        error:NoMessage|xml input = <- start_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> activityExtension_2_worker;
-    }
-    worker StartToRenderXml {
-        error:NoMessage|xml input = <- start_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> activityExtension_4_worker;
-    }
-    worker StartToWriteFile {
-        error:NoMessage|xml input = <- start_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> activityExtension_3_worker;
-    }
-    worker WriteFileToEnd {
-        error:NoMessage|xml input = <- activityExtension_3_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> activityExtension_worker;
-    }
-    worker XMLFileToEnd {
-        error:NoMessage|xml input = <- activityExtension_5_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> activityExtension_worker;
-    }
-    worker activityExtension_2_worker {
-        error:NoMessage|xml inputVal = <- StartToLog;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = activityExtension_2(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> LogToEnd;
-    }
-    worker activityExtension_3_worker {
-        error:NoMessage|xml inputVal = <- StartToWriteFile;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = activityExtension_3(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> WriteFileToEnd;
-    }
-    worker activityExtension_4_worker {
-        error:NoMessage|xml inputVal = <- StartToRenderXml;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = activityExtension_4(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> RenderXmlToWriteFile1;
-    }
-    worker activityExtension_5_worker {
-        error:NoMessage|xml inputVal = <- RenderXmlToWriteFile1;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = activityExtension_5(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> XMLFileToEnd;
-    }
-    worker activityExtension_worker {
-        error:NoMessage|xml inputVal = <- LogToEnd | WriteFileToEnd | XMLFileToEnd;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = activityExtension(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> function;
-    }
-    worker errorHandler {
-        error result = <- start_worker | activityExtension_2_worker | activityExtension_3_worker | activityExtension_4_worker | activityExtension_5_worker | activityExtension_worker;
-        panic result;
-    }
-    error:NoMessage|xml result = <- activityExtension_worker;
-    xml result_clean = result is error ? xml `` : result;
-    return result_clean;
+    return result;
 }
 
 function receiveEvent(xml input, map<xml> context) returns xml|error {

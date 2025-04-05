@@ -43,11 +43,22 @@ function activityExtension_6(xml input, map<xml> context) returns xml|error {
     return var0;
 }
 
+function activityRunner_creditapp_module_EquifaxScore(xml input, map<xml> cx) returns xml|error {
+    xml result0 = check receiveEvent_5(input, cx);
+    xml result1 = check invoke(result0, cx);
+    xml result2 = check activityExtension_6(result1, cx);
+    return result2;
+}
+
 function creditapp_module_EquifaxScore_start(GiveNewSchemaNameHere input) returns SuccessSchema {
     xml inputXML = checkpanic toXML(input);
     xml xmlResult = process_creditapp_module_EquifaxScore(inputXML);
     SuccessSchema result = convertToSuccessSchema(xmlResult);
     return result;
+}
+
+function errorHandler_creditapp_module_EquifaxScore(error err, map<xml> cx) returns xml {
+    checkpanic err;
 }
 
 function invoke(xml input, map<xml> context) returns xml|error {
@@ -61,59 +72,11 @@ function invoke(xml input, map<xml> context) returns xml|error {
 function process_creditapp_module_EquifaxScore(xml input) returns xml {
     map<xml> context = {};
     addToContext(context, "post.item", input);
-    worker start_worker {
-        xml|error result0 = receiveEvent_5(input, context);
-        if result0 is error {
-            result0 -> errorHandler;
-            return;
-        }
-        result0 -> StartTopost;
+    xml|error result = activityRunner_creditapp_module_EquifaxScore(input, context);
+    if result is error {
+        return errorHandler_creditapp_module_EquifaxScore(result, context);
     }
-    worker StartTopost {
-        error:NoMessage|xml input = <- start_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> invoke_worker;
-    }
-    worker postToEnd {
-        error:NoMessage|xml input = <- invoke_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> activityExtension_6_worker;
-    }
-    worker activityExtension_6_worker {
-        error:NoMessage|xml inputVal = <- postToEnd;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = activityExtension_6(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> function;
-    }
-    worker invoke_worker {
-        error:NoMessage|xml inputVal = <- StartTopost;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = invoke(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> postToEnd;
-    }
-    worker errorHandler {
-        error result = <- start_worker | invoke_worker | activityExtension_6_worker;
-        panic result;
-    }
-    error:NoMessage|xml result = <- activityExtension_6_worker;
-    xml result_clean = result is error ? xml `` : result;
-    return result_clean;
+    return result;
 }
 
 function receiveEvent_5(xml input, map<xml> context) returns xml|error {

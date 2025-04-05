@@ -41,6 +41,19 @@ function activityExtension_4(xml input, map<xml> context) returns xml|error {
     return var0;
 }
 
+function activityRunner_experianservice_module_Process(xml input, map<xml> cx) returns xml|error {
+    xml result0 = check receiveEvent(input, cx);
+    xml result1 = check activityExtension_3(result0, cx);
+    xml result2 = check activityExtension_2(result1, cx);
+    xml result3 = check activityExtension_4(result2, cx);
+    xml result4 = check activityExtension(result3, cx);
+    return result4;
+}
+
+function errorHandler_experianservice_module_Process(error err, map<xml> cx) returns xml {
+    checkpanic err;
+}
+
 function experianservice_module_Process_start(InputElement input) returns ExperianResponseSchemaElement {
     xml inputXML = checkpanic toXML(input);
     xml xmlResult = process_experianservice_module_Process(inputXML);
@@ -51,97 +64,11 @@ function experianservice_module_Process_start(InputElement input) returns Experi
 function process_experianservice_module_Process(xml input) returns xml {
     map<xml> context = {};
     addToContext(context, "post.item", input);
-    worker start_worker {
-        xml|error result0 = receiveEvent(input, context);
-        if result0 is error {
-            result0 -> errorHandler;
-            return;
-        }
-        result0 -> HTTPReceiverToSendHTTPResponse;
+    xml|error result = activityRunner_experianservice_module_Process(input, context);
+    if result is error {
+        return errorHandler_experianservice_module_Process(result, context);
     }
-    worker HTTPReceiverToSendHTTPResponse {
-        error:NoMessage|xml input = <- start_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> activityExtension_3_worker;
-    }
-    worker JDBCQueryToSendHTTPResponse {
-        error:NoMessage|xml input = <- activityExtension_2_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> activityExtension_4_worker;
-    }
-    worker ParseJSONToJDBCQuery {
-        error:NoMessage|xml input = <- activityExtension_3_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> activityExtension_2_worker;
-    }
-    worker RenderJSONToSendHTTPResponse {
-        error:NoMessage|xml input = <- activityExtension_4_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> activityExtension_worker;
-    }
-    worker activityExtension_2_worker {
-        error:NoMessage|xml inputVal = <- ParseJSONToJDBCQuery;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = activityExtension_2(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> JDBCQueryToSendHTTPResponse;
-    }
-    worker activityExtension_3_worker {
-        error:NoMessage|xml inputVal = <- HTTPReceiverToSendHTTPResponse;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = activityExtension_3(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> ParseJSONToJDBCQuery;
-    }
-    worker activityExtension_4_worker {
-        error:NoMessage|xml inputVal = <- JDBCQueryToSendHTTPResponse;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = activityExtension_4(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> RenderJSONToSendHTTPResponse;
-    }
-    worker activityExtension_worker {
-        error:NoMessage|xml inputVal = <- RenderJSONToSendHTTPResponse;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = activityExtension(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> function;
-    }
-    worker errorHandler {
-        error result = <- start_worker | activityExtension_3_worker | activityExtension_2_worker | activityExtension_4_worker | activityExtension_worker;
-        panic result;
-    }
-    error:NoMessage|xml result = <- activityExtension_worker;
-    xml result_clean = result is error ? xml `` : result;
-    return result_clean;
+    return result;
 }
 
 function receiveEvent(xml input, map<xml> context) returns xml|error {

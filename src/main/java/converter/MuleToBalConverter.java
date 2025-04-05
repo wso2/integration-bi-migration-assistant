@@ -1,11 +1,11 @@
 package converter;
 
 import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.OnFailClause;
 import ballerina.BallerinaModel.Statement.DoStatement;
 import ballerina.BallerinaModel.Statement.ElseIfClause;
 import ballerina.BallerinaModel.Statement.NamedWorkerDecl;
-import ballerina.BallerinaModel.Statement.OnFailClause;
-import ballerina.BallerinaModel.Statement.TypeBindingPattern;
+import ballerina.BallerinaModel.TypeBindingPattern;
 import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import ballerina.CodeGenerator;
 import converter.MuleXMLNavigator.MuleElement;
@@ -13,18 +13,11 @@ import dataweave.converter.DWConversionStats;
 import dataweave.converter.DWReader;
 import dataweave.converter.DWUtils;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.MuleModel;
 import mule.MuleXMLTag;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
-import org.w3c.dom.CDATASection;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;

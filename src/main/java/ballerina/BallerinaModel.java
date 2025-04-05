@@ -415,6 +415,37 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     public sealed interface Expression {
 
+        record Not(Expression expression) implements Expression {
+
+            @Override
+            public String toString() {
+                return "!" + expression;
+            }
+        }
+
+        record BinaryLogical(Expression left, Expression right, Operator operator) implements Expression {
+
+            @Override
+            public String toString() {
+                return left + " " + operator + " " + right;
+            }
+
+            public enum Operator {
+                AND("&&"), OR("||");
+
+                private final String symbol;
+
+                Operator(String symbol) {
+                    this.symbol = symbol;
+                }
+
+                @Override
+                public String toString() {
+                    return symbol;
+                }
+            }
+        }
+
         record TypeCast(TypeDesc typeDesc, Expression expression) implements Expression {
 
             @Override
@@ -620,46 +651,16 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
-        // Note: should be placed at the beginning of a function-body-block
-        record NamedWorkerDecl(String name, Optional<TypeDesc> returnType,
-                List<Statement> statements) implements Statement {
-
-            public NamedWorkerDecl(String name, List<Statement> statements) {
-                this(name, Optional.empty(), statements);
-            }
-
+        public record NamedWorkerDecl(String name, Optional<TypeDesc> returnType,
+                                      List<Statement> statements) implements Statement {
             @Override
             public String toString() {
-                StringBuilder sb = new StringBuilder();
-                sb.append("worker ").append(name);
-                returnType.ifPresent(type -> sb.append(" returns ").append(type));
-                sb.append(" { ");
-                sb.append(String.join("", statements.stream().map(Object::toString).toList()));
-                sb.append(" }");
-                return sb.toString();
+                return String.format("worker %s returns %s { %s }", name, returnType.map(Object::toString).orElse(""),
+                        String.join("", statements.stream().map(Object::toString).toList()));
             }
         }
 
-        public record OnFailClause(List<Statement> onFailBody, Optional<TypeBindingPattern> typeBindingPattern) {
-
-            public OnFailClause(List<Statement> onFailBody) {
-                this(onFailBody, Optional.empty());
-            }
-
-            public OnFailClause(List<Statement> onFailBody, TypeBindingPattern typeBindingPattern) {
-                this(onFailBody, Optional.of(typeBindingPattern));
-            }
-        }
-
-        public record TypeBindingPattern(TypeDesc type, String variableName) {
-
-            @Override
-            public String toString() {
-                return type + " " + variableName;
-            }
-        }
-
-        record VarDeclStatment(TypeDesc type, String varName, Optional<Expression> expr) implements Statement {
+        public record VarDeclStatment(TypeDesc type, String varName, Optional<Expression> expr) implements Statement {
 
             public VarDeclStatment(TypeDesc type, String varName) {
                 this(type, varName, Optional.empty());
@@ -716,6 +717,25 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                 return expression + "->" + methodName + "(" +
                         String.join(", ", args.stream().map(Objects::toString).toList()) + ")";
             }
+        }
+    }
+
+    public record OnFailClause(List<Statement> onFailBody, Optional<TypeBindingPattern> typeBindingPattern) {
+
+        public OnFailClause(List<Statement> onFailBody) {
+            this(onFailBody, Optional.empty());
+        }
+
+        public OnFailClause(List<Statement> onFailBody, TypeBindingPattern typeBindingPattern) {
+            this(onFailBody, Optional.of(typeBindingPattern));
+        }
+    }
+
+    public record TypeBindingPattern(TypeDesc type, String variableName) {
+
+        @Override
+        public String toString() {
+            return type + " " + variableName;
         }
     }
 }

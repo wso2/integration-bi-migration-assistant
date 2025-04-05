@@ -61,6 +61,25 @@ function activityExtension_9(xml input, map<xml> context) returns xml|error {
     return var0;
 }
 
+function activityRunner_creditcheckservice_LookupDatabase(xml input, map<xml> cx) returns xml|error {
+    xml result0 = check receiveEvent(input, cx);
+    xml result1 = check activityExtension_9(result0, cx);
+    xml result2;
+    if predicate_1(result1) {
+        result2 = check throw(result1, cx);
+    } else {
+        result2 = result1;
+    }
+    xml result3;
+    if predicate_0(result1) {
+        result3 = check activityExtension_10(result2, cx);
+    } else {
+        result3 = result2;
+    }
+    xml result4 = check activityExtension_8(result3, cx);
+    return result4;
+}
+
 function creditcheckservice_LookupDatabase_start(Element input) returns Response {
     xml inputXML = checkpanic toXML(input);
     xml xmlResult = process_creditcheckservice_LookupDatabase(inputXML);
@@ -68,104 +87,26 @@ function creditcheckservice_LookupDatabase_start(Element input) returns Response
     return result;
 }
 
+function errorHandler_creditcheckservice_LookupDatabase(error err, map<xml> cx) returns xml {
+    checkpanic err;
+}
+
+function predicate_0(xml input) returns boolean {
+    return test(input, "string-length($QueryRecords/Record[1]/rating)>0");
+}
+
+function predicate_1(xml input) returns boolean {
+    return !test(input, "string-length($QueryRecords/Record[1]/rating)>0");
+}
+
 function process_creditcheckservice_LookupDatabase(xml input) returns xml {
     map<xml> context = {};
     addToContext(context, "post.item", input);
-    worker start_worker {
-        xml|error result0 = receiveEvent(input, context);
-        if result0 is error {
-            result0 -> errorHandler;
-            return;
-        }
-        result0 -> StartToEnd;
+    xml|error result = activityRunner_creditcheckservice_LookupDatabase(input, context);
+    if result is error {
+        return errorHandler_creditcheckservice_LookupDatabase(result, context);
     }
-    worker JDBCQueryToEnd {
-        error:NoMessage|xml input = <- activityExtension_9_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> activityExtension_10_worker;
-    }
-    worker JDBCUpdateToEnd {
-        error:NoMessage|xml input = <- activityExtension_10_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> activityExtension_8_worker;
-    }
-    worker QueryRecordsToThrow {
-        error:NoMessage|xml input = <- activityExtension_9_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> throw_worker;
-    }
-    worker StartToEnd {
-        error:NoMessage|xml input = <- start_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> activityExtension_9_worker;
-    }
-    worker activityExtension_10_worker {
-        error:NoMessage|xml inputVal = <- JDBCQueryToEnd;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = activityExtension_10(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> JDBCUpdateToEnd;
-    }
-    worker activityExtension_8_worker {
-        error:NoMessage|xml inputVal = <- JDBCUpdateToEnd;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = activityExtension_8(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> function;
-    }
-    worker activityExtension_9_worker {
-        error:NoMessage|xml inputVal = <- StartToEnd;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = activityExtension_9(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        if test(output, "string-length($QueryRecords/Record[1]/rating)>0") {
-            output -> JDBCQueryToEnd;
-        } else {
-            output -> QueryRecordsToThrow;
-        }
-    }
-    worker throw_worker {
-        error:NoMessage|xml inputVal = <- QueryRecordsToThrow;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = throw(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> function;
-    }
-    worker errorHandler {
-        error result = <- start_worker | activityExtension_9_worker | activityExtension_10_worker | throw_worker | activityExtension_8_worker;
-        panic result;
-    }
-    error:NoMessage|xml result = <- throw_worker | activityExtension_8_worker;
-    xml result_clean = result is error ? xml `` : result;
-    return result_clean;
+    return result;
 }
 
 function receiveEvent(xml input, map<xml> context) returns xml|error {

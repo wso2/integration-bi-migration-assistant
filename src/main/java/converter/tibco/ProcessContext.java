@@ -55,6 +55,8 @@ public class ProcessContext implements ContextWithFile {
     public final AnalysisResult analysisResult;
     private BallerinaModel.Expression.VariableReference contextRef;
     private final List<String> workersWithErrorTransitions = new ArrayList<>();
+    private final Map<TibcoModel.Scope.Flow.Activity.Source.Predicate, String> predicateToFunctionMap =
+            new HashMap<>();
 
     private static final Logger logger = Logger.getLogger(ProcessContext.class.getName());
 
@@ -177,6 +179,14 @@ public class ProcessContext implements ContextWithFile {
         return "process_" + ConversionUtils.sanitizes(process.name());
     }
 
+    public String getActivityRunnerFunction() {
+        return "activityRunner_" + ConversionUtils.sanitizes(process.name());
+    }
+
+    public String getErrorHandlerFunction() {
+        return "errorHandler_" + ConversionUtils.sanitizes(process.name());
+    }
+
     public String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
         return typeConversionFunction.computeIfAbsent(targetType, this::createConvertToTypeFunction);
     }
@@ -263,5 +273,9 @@ public class ProcessContext implements ContextWithFile {
             return ANYDATA;
         }
         return getTypeByName(typeName);
+    }
+
+    public String predicateFunction(TibcoModel.Scope.Flow.Activity.Source.Predicate predicate) {
+        return predicateToFunctionMap.computeIfAbsent(predicate, p -> "predicate_" + predicateToFunctionMap.size());
     }
 }

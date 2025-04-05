@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public final class AnalysisResult {
@@ -34,15 +35,15 @@ public final class AnalysisResult {
     private final Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap;
     private final Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap;
     private final Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> startActivities;
-    private final Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> faultHanlderStartActivities;
+    private final Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> faultHandlerStartActivities;
     private final Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> endActivities;
     private final Map<TibcoModel.Scope.Flow.Link, String> workerNames;
     private final Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData;
-    private final Map<String, TibcoModel.PartnerLink.Binding> partnerlinkBindings;
+    private final Map<String, TibcoModel.PartnerLink.Binding> partnerLinkBindings;
     private final Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex;
     private final Map<TibcoModel.Process, String> inputTypeName;
     private final Map<TibcoModel.Process, String> outputTypeName;
-    private final Graph<String> workerDependencies;
+    private final Graph<GraphNode> workerDependencies;
 
     AnalysisResult(Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap,
                    Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap,
@@ -51,18 +52,18 @@ public final class AnalysisResult {
                    Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> endActivities,
                    Map<TibcoModel.Scope.Flow.Link, String> workerNames,
                    Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData,
-                   Map<String, TibcoModel.PartnerLink.Binding> partnerlinkBindings,
+                   Map<String, TibcoModel.PartnerLink.Binding> partnerLinkBindings,
                    Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex,
                    Map<TibcoModel.Process, String> inputTypeName, Map<TibcoModel.Process, String> outputTypeName,
-                   Graph<String> workerDependencies) {
+                   Graph<GraphNode> workerDependencies) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.startActivities = startActivities;
-        this.faultHanlderStartActivities = faultHandlerStartActivities;
+        this.faultHandlerStartActivities = faultHandlerStartActivities;
         this.endActivities = endActivities;
         this.workerNames = workerNames;
         this.activityData = activityData;
-        this.partnerlinkBindings = partnerlinkBindings;
+        this.partnerLinkBindings = partnerLinkBindings;
         this.queryIndex = queryIndex;
         this.inputTypeName = inputTypeName;
         this.outputTypeName = outputTypeName;
@@ -82,7 +83,7 @@ public final class AnalysisResult {
     }
 
     public Collection<TibcoModel.Scope.Flow.Activity> faultHandlerStartActivities(TibcoModel.Process process) {
-        return faultHanlderStartActivities.get(process);
+        return faultHandlerStartActivities.get(process);
     }
 
     public Collection<TibcoModel.Scope.Flow.Activity> endActivities(TibcoModel.Process process) {
@@ -146,19 +147,69 @@ public final class AnalysisResult {
         return queryIndex.get(sql);
     }
 
-    public List<TransitionData> destinations(TibcoModel.Scope.Flow.Activity activity) {
-        if (activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithSources activityWithSources) {
-            return activityWithSources.sources().stream()
-                    .map(source ->
-                            new TransitionData(new TibcoModel.Scope.Flow.Link(source.linkName()), source.condition()))
-                    .toList();
+    public Stream<TransitionData> transitionConditions(
+            TibcoModel.Scope.Flow.Activity activity) {
+        if (!(activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithTargets activityWithTargets)) {
+            return Stream.empty();
         }
-        return List.of();
+        Stream.Builder<Stream<TransitionData>> predicateStreams = Stream.builder();
+        for (TibcoModel.Scope.Flow.Activity.Target target : activityWithTargets.targets()) {
+            TibcoModel.Scope.Flow.Link link = new TibcoModel.Scope.Flow.Link(target.linkName());
+            Collection<TibcoModel.Scope.Flow.Activity> sources = sourceMap.get(link);
+            for (TibcoModel.Scope.Flow.Activity source : sources) {
+                predicateStreams.add(transitionCondition(source, link).map(prec ->
+                        new TransitionData(source, prec)));
+            }
+        }
+        return predicateStreams.build().flatMap(Function.identity());
+    }
+
+    public Stream<TibcoModel.Scope.Flow.Activity.Source.Predicate> transitionCondition(
+            TibcoModel.Scope.Flow.Activity activity, TibcoModel.Scope.Flow.Link link) {
+        if (!(activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithSources activityWithSources)) {
+            return Stream.empty();
+        }
+        return activityWithSources.sources().stream()
+                .filter(source -> source.linkName().equals(link.name()))
+                .map(TibcoModel.Scope.Flow.Activity.Source::condition)
+                .flatMap(Optional::stream);
+    }
+
+    public Stream<TibcoModel.Scope.Flow.Activity> sortedActivities(TibcoModel.Process process) {
+        return sortedActivitiesFromRoots(startActivityNodes(process));
+    }
+
+    public Stream<TibcoModel.Scope.Flow.Activity> sortedFaultHandlerActivities(TibcoModel.Process process) {
+        return sortedActivitiesFromRoots(faultHandlerStartActivityNodes(process));
+    }
+
+    public Stream<TibcoModel.Scope.Flow.Activity> sortedActivitiesFromRoots(Collection<GraphNode> roots) {
+        return workerDependencies.topologicalSortWithRoots(roots).stream()
+                .filter(node -> node.kid == GraphNode.Kind.ACTIVITY)
+                .map(node -> (TibcoModel.Scope.Flow.Activity) node.data);
+    }
+
+    private Collection<GraphNode> faultHandlerStartActivityNodes(TibcoModel.Process process) {
+        return graphNodes(faultHandlerStartActivities(process).stream());
+    }
+
+    private Collection<GraphNode> startActivityNodes(TibcoModel.Process process) {
+        return graphNodes(startActivities(process).stream());
+    }
+
+    private Collection<GraphNode> graphNodes(Stream<TibcoModel.Scope.Flow.Activity> activities) {
+        record Data(TibcoModel.Scope.Flow.Activity activity, ActivityData activityData) {
+
+        }
+        return activities
+                .map(activity -> new Data(activity, from(activity)))
+                .map(data -> new GraphNode(data.activityData.workerName, GraphNode.Kind.ACTIVITY, data.activity))
+                .toList();
     }
 
     public Stream<String> sortWorkers(Stream<String> workers) {
         // TODO: avoid repeated calculations
-        List<String> sortedWorkers = workerDependencies.topologicalSort();
+        List<String> sortedWorkers = workerDependencies.topologicalSort().stream().map(GraphNode::name).toList();
         record WorkerData(String name, int index) {
 
         }
@@ -172,12 +223,7 @@ public final class AnalysisResult {
     }
 
     public TibcoModel.PartnerLink.Binding getBinding(String partnerLinkName) {
-        return Objects.requireNonNull(partnerlinkBindings.get(partnerLinkName));
-    }
-
-    public record TransitionData(TibcoModel.Scope.Flow.Link target,
-                                 Optional<TibcoModel.Scope.Flow.Activity.Source.Predicate> predicate) {
-
+        return Objects.requireNonNull(partnerLinkBindings.get(partnerLinkName));
     }
 
     public record LinkData(String workerName, Collection<TibcoModel.Scope.Flow.Activity> sourceActivities,
@@ -188,5 +234,17 @@ public final class AnalysisResult {
     public record ActivityData(String functionName, String workerName, BallerinaModel.TypeDesc argumentType,
                                BallerinaModel.TypeDesc returnType) {
 
+    }
+
+    public record TransitionData(TibcoModel.Scope.Flow.Activity activity,
+                                 TibcoModel.Scope.Flow.Activity.Source.Predicate predicate) {
+
+    }
+
+    public record GraphNode(String name, Kind kid, Object data) {
+
+        public enum Kind {
+            ACTIVITY, LINK
+        }
     }
 }

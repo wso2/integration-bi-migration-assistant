@@ -218,7 +218,7 @@ public class ModelAnalyser {
 
     private static class ProcessAnalysisContext {
 
-        public final Graph<String> workerDependencyGraph = new Graph<>();
+        public final Graph<AnalysisResult.GraphNode> workerDependencyGraph = new Graph<>();
         public int unhandledActivityCount = 0;
         public int totalActivityCount = 0;
         public boolean inFaultHandler = false;
@@ -255,7 +255,7 @@ public class ModelAnalyser {
             } else {
                 startActivities.add(activity);
             }
-            workerDependencyGraph.addRoot(workerName(activity));
+            workerDependencyGraph.addRoot(activityNode(activity));
         }
 
         public void allocateWorkerIfNeeded(TibcoModel.Scope.Flow.Link link) {
@@ -293,12 +293,12 @@ public class ModelAnalyser {
         }
 
         public void addDestination(TibcoModel.Scope.Flow.Link source, TibcoModel.Scope.Flow.Activity destination) {
-            workerDependencyGraph.addEdge(workerName(source), workerName(destination));
+            workerDependencyGraph.addEdge(linkNode(source), activityNode(destination));
             destinationMap.computeIfAbsent(source, (ignored) -> new ArrayList<>()).add(destination);
         }
 
         public void addSource(TibcoModel.Scope.Flow.Activity source, TibcoModel.Scope.Flow.Link destination) {
-            workerDependencyGraph.addEdge(workerName(source), workerName(destination));
+            workerDependencyGraph.addEdge(activityNode(source), linkNode(destination));
             sourceMap.computeIfAbsent(destination, (ignored) -> new ArrayList<>()).add(source);
         }
 
@@ -348,6 +348,16 @@ public class ModelAnalyser {
                 return "UNKNOWN";
             }
             return outputTypeName;
+        }
+
+        private AnalysisResult.GraphNode activityNode(TibcoModel.Scope.Flow.Activity activity) {
+            String name = workerName(activity);
+            return new AnalysisResult.GraphNode(name, AnalysisResult.GraphNode.Kind.ACTIVITY, activity);
+        }
+
+        private AnalysisResult.GraphNode linkNode(TibcoModel.Scope.Flow.Link link) {
+            String name = workerName(link);
+            return new AnalysisResult.GraphNode(name, AnalysisResult.GraphNode.Kind.LINK, link);
         }
     }
 }

@@ -32,11 +32,25 @@ function activityExtension_5(xml input, map<xml> context) returns xml|error {
     return var0;
 }
 
+function activityRunner_creditcheckservice_Process(xml input, map<xml> cx) returns xml|error {
+    xml result0 = check extActivity(input, cx);
+    xml result1 = check activityExtension(result0, cx);
+    xml result2 = check reply(result1, cx);
+    return result2;
+}
+
 function creditcheckservice_Process_start(httpHeaders input) returns Response {
     xml inputXML = checkpanic toXML(input);
     xml xmlResult = process_creditcheckservice_Process(inputXML);
     Response result = convertToResponse(xmlResult);
     return result;
+}
+
+function errorHandler_creditcheckservice_Process(error err, map<xml> cx) returns xml {
+    xml input = xml ``;
+    xml result0 = checkpanic activityExtension_5(input, cx);
+    xml result1 = checkpanic reply_6(result0, cx);
+    return result1;
 }
 
 function extActivity(xml input, map<xml> context) returns xml|error {
@@ -67,79 +81,11 @@ function pick(xml input, map<xml> context) returns xml|error {
 function process_creditcheckservice_Process(xml input) returns xml {
     map<xml> context = {};
     addToContext(context, "post.item", input);
-    worker start_worker {
-        xml|error result0 = extActivity(input, context);
-        if result0 is error {
-            result0 -> errorHandler;
-            return;
-        }
-        result0 -> LookupDatabaseToLogSuccess_Name;
+    xml|error result = activityRunner_creditcheckservice_Process(input, context);
+    if result is error {
+        return errorHandler_creditcheckservice_Process(result, context);
     }
-    worker LogToReply {
-        error:NoMessage|xml input = <- errorHandler;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> reply_6_worker;
-    }
-    worker LogTopostOut {
-        error:NoMessage|xml input = <- activityExtension_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> reply_worker;
-    }
-    worker LookupDatabaseToLogSuccess_Name {
-        error:NoMessage|xml input = <- start_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> activityExtension_worker;
-    }
-    worker activityExtension_worker {
-        error:NoMessage|xml inputVal = <- LookupDatabaseToLogSuccess_Name;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = activityExtension(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> LogTopostOut;
-    }
-    worker reply_6_worker {
-        error:NoMessage|xml inputVal = <- LogToReply;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = reply_6(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> function;
-    }
-    worker reply_worker {
-        error:NoMessage|xml inputVal = <- LogTopostOut;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = reply(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> function;
-    }
-    worker errorHandler {
-        error result = <- start_worker | activityExtension_worker | reply_6_worker | reply_worker;
-        xml errorXML = xml `<error>${result.message()}</error>`;
-        errorXML -> LogToReply;
-    }
-    error:NoMessage|xml result = <- reply_6_worker | reply_worker;
-    xml result_clean = result is error ? xml `` : result;
-    return result_clean;
+    return result;
 }
 
 function reply(xml input, map<xml> context) returns xml|error {

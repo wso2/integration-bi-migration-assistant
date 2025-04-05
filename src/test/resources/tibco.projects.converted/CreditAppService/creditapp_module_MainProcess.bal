@@ -9,11 +9,22 @@ service /CreditDetails on creditapp_module_MainProcess_listener {
     }
 }
 
+function activityRunner_creditapp_module_MainProcess(xml input, map<xml> cx) returns xml|error {
+    xml result0 = check extActivity_11(input, cx);
+    xml result1 = check extActivity(result0, cx);
+    xml result2 = check reply(result1, cx);
+    return result2;
+}
+
 function creditapp_module_MainProcess_start(GiveNewSchemaNameHere input) returns CreditScoreSuccessSchema {
     xml inputXML = checkpanic toXML(input);
     xml xmlResult = process_creditapp_module_MainProcess(inputXML);
     CreditScoreSuccessSchema result = convertToCreditScoreSuccessSchema(xmlResult);
     return result;
+}
+
+function errorHandler_creditapp_module_MainProcess(error err, map<xml> cx) returns xml {
+    checkpanic err;
 }
 
 function extActivity(xml input, map<xml> context) returns xml|error {
@@ -91,53 +102,11 @@ function pick(xml input, map<xml> context) returns xml|error {
 function process_creditapp_module_MainProcess(xml input) returns xml {
     map<xml> context = {};
     addToContext(context, "post.item", input);
-    worker start_worker {
-        xml|error result0 = extActivity(input, context);
-        if result0 is error {
-            result0 -> errorHandler;
-            return;
-        }
-        result0 -> FICOScoreTopostOut;
-        xml|error result1 = extActivity_11(input, context);
-        if result1 is error {
-            result1 -> errorHandler;
-            return;
-        }
-        result1 -> ExperianScoreTopostOut;
+    xml|error result = activityRunner_creditapp_module_MainProcess(input, context);
+    if result is error {
+        return errorHandler_creditapp_module_MainProcess(result, context);
     }
-    worker ExperianScoreTopostOut {
-        error:NoMessage|xml input = <- start_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> reply_worker;
-    }
-    worker FICOScoreTopostOut {
-        error:NoMessage|xml input = <- start_worker;
-        if input is error:NoMessage {
-            return;
-        }
-        input -> reply_worker;
-    }
-    worker reply_worker {
-        error:NoMessage|xml inputVal = <- FICOScoreTopostOut | ExperianScoreTopostOut;
-        if inputVal is error:NoMessage {
-            return;
-        }
-        xml|error output = reply(inputVal, context);
-        if output is error {
-            output -> errorHandler;
-            return;
-        }
-        output -> function;
-    }
-    worker errorHandler {
-        error result = <- start_worker | start_worker | reply_worker;
-        panic result;
-    }
-    error:NoMessage|xml result = <- reply_worker;
-    xml result_clean = result is error ? xml `` : result;
-    return result_clean;
+    return result;
 }
 
 function reply(xml input, map<xml> context) returns xml|error {

@@ -516,7 +516,7 @@ public class TibcoModel {
                         this(linkName, Optional.empty());
                     }
 
-                    public interface Predicate {
+                    public sealed interface Predicate {
 
                         record Else() implements Predicate {
 
