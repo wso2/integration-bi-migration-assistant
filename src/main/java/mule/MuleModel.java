@@ -115,6 +115,12 @@ public record MuleModel() {
         }
     }
 
+    public record Async(Kind kind, List<MuleRecord> flowBlocks) implements MuleRecord {
+        public Async(List<MuleRecord> flowBlocks) {
+            this(Kind.ASYNC, flowBlocks);
+        }
+    }
+
     public record Enricher(Kind kind, String source, String target, Optional<MuleRecord> innerBlock)
             implements MuleRecord {
         public Enricher(String source, String target, Optional<MuleRecord> innerBlock) {
@@ -240,6 +246,7 @@ public record MuleModel() {
         DW_INPUT_PAYLOAD,
         FLOW,
         SUB_FLOW,
+        ASYNC,
         MESSAGE_ENRICHER,
         CATCH_EXCEPTION_STRATEGY,
         CHOICE_EXCEPTION_STRATEGY,

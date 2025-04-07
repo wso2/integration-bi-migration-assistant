@@ -124,7 +124,7 @@ public class CodeGenerator {
 
             for (Function f : textDocument.functions()) {
                 String funcParamString = constructFunctionParameterString(f.parameters(), false);
-                String methodName = f.methodName();
+                String methodName = f.funcName();
                 FunctionDefinitionNode functionDefinitionNode;
                 if (f.body() instanceof BallerinaModel.BlockFunctionBody) {
                     FunctionDefinitionNode fd = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
@@ -163,12 +163,12 @@ public class CodeGenerator {
         if (function.body() instanceof BallerinaModel.BlockFunctionBody) {
             functionDefinitionNode = (FunctionDefinitionNode) NodeParser.parseObjectMember(
                     String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(
-                                    function.visibilityQualifier()), function.methodName(), funcParamString,
+                                    function.visibilityQualifier()), function.funcName(), funcParamString,
                             getReturnTypeDescriptor(function.returnType())));
             functionDefinitionNode = generateBallerinaFunction(functionDefinitionNode, function.body());
         } else {
             functionDefinitionNode = generateBallerinaExternalFunction(function, funcParamString,
-                    function.methodName());
+                    function.funcName());
         }
         return functionDefinitionNode;
     }

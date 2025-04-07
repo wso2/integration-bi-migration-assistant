@@ -4,6 +4,54 @@
 
 The `mule-to-ballerina-migration-assistant` project includes sample input and output files to demonstrate the conversion process. These samples are located in the `src/test/resources/blocks/mule3` directory.
 
+## Async
+
+- ### Simple Async
+
+**Input (simple_async.xml):**
+```xml
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+    <flow name="mainFlow">
+        <set-payload value="Hello" />
+        <async>
+            <logger level="INFO" message="Doing something in background: #[payload]" />
+        </async>
+        <logger level="INFO" message="Main flow continues immediately." />
+    </flow>
+</mule>
+
+```
+**Output (simple_async.bal):**
+```ballerina
+import ballerina/log;
+
+type Context record {|
+    anydata payload;
+|};
+
+function _async0_(Context ctx) {
+    log:printInfo(string `Doing something in background: ${ctx.payload.toString()}`);
+}
+
+function mainFlow(Context ctx) {
+
+    // set payload
+    string _payload0_ = "Hello";
+    ctx.payload = _payload0_;
+
+    // async operation
+    _ = start _async0_(ctx);
+    log:printInfo("Main flow continues immediately.");
+}
+
+```
+
 ## Catch Exception Strategy
 
 - ### Basic Catch Exception Strategy

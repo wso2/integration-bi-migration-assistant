@@ -27,6 +27,7 @@ public enum MuleXMLTag {
     SUB_FLOW("sub-flow", 3),
     FLOW_REFERENCE("flow-ref", 3),
     ENRICHER("enricher", 4),
+    ASYNC("async", 3),
 
     // Transformers
     SET_VARIABLE("set-variable", 1),
@@ -69,7 +70,6 @@ public enum MuleXMLTag {
     FILE_CONNECTOR("file:connector", 5),
     WS_CONSUMER_CONFIG("ws:consumer-config", 4),
     SMTP_CONNECTOR("smtp:connector", 4),
-    ASYNC("async", 3),
     SET_PROPERTY("set-property", 1),
     SMTP_OUTBOUND_ENDPOINT("smtp:outbound-endpoint", 4),
 

@@ -58,6 +58,7 @@ import static ballerina.BallerinaModel.TypeBindingPattern;
 import static converter.Constants.BAL_ANYDATA_TYPE;
 import static converter.Constants.BAL_ERROR_TYPE;
 import static converter.Constants.BAL_STRING_TYPE;
+import static converter.Constants.FUNC_NAME_ASYC_TEMPLATE;
 import static converter.ConversionUtils.exprFrom;
 import static converter.ConversionUtils.stmtFrom;
 import static converter.ConversionUtils.typeFrom;
@@ -71,6 +72,7 @@ import static converter.ConversionUtils.getRecordInitValue;
 import static converter.ConversionUtils.inferTypeFromBalExpr;
 import static converter.ConversionUtils.insertLeadingSlash;
 import static converter.ConversionUtils.processQueryParams;
+import static mule.MuleModel.Async;
 import static mule.MuleModel.CatchExceptionStrategy;
 import static mule.MuleModel.ChoiceExceptionStrategy;
 import static mule.MuleModel.Choice;
@@ -145,7 +147,8 @@ public class MuleToBalConverter {
         public int dbSelectVarCount = 0;
         public int objectToJsonVarCount = 0;
         public int objectToStringVarCount = 0;
-        public int enricherMethodCount = 0;
+        public int enricherFuncCount = 0;
+        public int asyncFuncCount = 0;
         public int payloadVarCount = 0;
 
         private final DWConversionStats dwConversionStats;
@@ -548,7 +551,7 @@ public class MuleToBalConverter {
         // TODO: add test case for query params
 //        String functionArgs = String.join(",", queryPrams.stream()
 //                .map(p -> String.format("%s", p.name())).toList());
-        String invokeEndPointMethodName = String.format(Constants.METHOD_NAME_HTTP_ENDPOINT_TEMPLATE,
+        String invokeEndPointMethodName = String.format(Constants.FUNC_NAME_HTTP_ENDPOINT_TEMPLATE,
                 data.sharedProjectData.invokeEndPointMethodCount++);
         var resourceReturnStmt = stmtFrom(String.format("return self.%s(self.%s);", invokeEndPointMethodName,
                 Constants.CONTEXT_REFERENCE));
@@ -681,6 +684,9 @@ public class MuleToBalConverter {
             }
             case MuleXMLTag.ENRICHER -> {
                 return readEnricher(data, muleElement);
+            }
+            case MuleXMLTag.ASYNC -> {
+                return readAsync(data, muleElement);
             }
             case MuleXMLTag.CATCH_EXCEPTION_STRATEGY -> {
                 return readCatchExceptionStrategy(data, muleElement);
@@ -824,6 +830,16 @@ public class MuleToBalConverter {
 
                 statementList.add(stmtFrom(String.format("%s(%s);", funcRef, Constants.CONTEXT_REFERENCE)));
             }
+            case Async async -> {
+                List<Statement> body = genFuncBodyStatements(data, async.flowBlocks());
+                int asyncFuncId = data.sharedProjectData.asyncFuncCount++;
+                String funcName = String.format(FUNC_NAME_ASYC_TEMPLATE, asyncFuncId);
+                Function function = new Function(funcName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
+                data.functions.add(function);
+
+                statementList.add(stmtFrom("\n\n// async operation\n"));
+                statementList.add(stmtFrom(String.format("_ = start %s(%s);", funcName, Constants.CONTEXT_REFERENCE)));
+            }
             case Enricher enricher -> {
                 // TODO: support no source
                 String source = convertMuleExprToBal(enricher.source());
@@ -846,16 +862,16 @@ public class MuleToBalConverter {
                 } else {
                     List<Statement> enricherStmts = convertToStatements(data, enricher.innerBlock().get());
 
-                    String methodName = String.format(Constants.METHOD_NAME_ENRICHER_TEMPLATE,
-                            data.sharedProjectData.enricherMethodCount);
+                    String methodName = String.format(Constants.FUNC_NAME_ENRICHER_TEMPLATE,
+                            data.sharedProjectData.enricherFuncCount);
                     Function func = new Function(Optional.empty(), methodName, Constants.FUNC_PARAMS_WITH_CONTEXT,
                             Optional.of("string?"),  new BlockFunctionBody(enricherStmts));
                     data.functions.add(func);
 
                     enricherStmts.add(stmtFrom(String.format("return %s;", source)));
                     statementList.add(stmtFrom(String.format("%s = %s(%s.clone());", target,
-                            String.format(Constants.METHOD_NAME_ENRICHER_TEMPLATE,
-                                    data.sharedProjectData.enricherMethodCount++), Constants.CONTEXT_REFERENCE)));
+                            String.format(Constants.FUNC_NAME_ENRICHER_TEMPLATE,
+                                    data.sharedProjectData.enricherFuncCount++), Constants.CONTEXT_REFERENCE)));
                 }
             }
             case CatchExceptionStrategy catchExceptionStrategy -> {
@@ -1109,6 +1125,17 @@ public class MuleToBalConverter {
 
         Optional<MuleRecord> innerBlock = block != null ? Optional.of(block) : Optional.empty();
         return new Enricher(source, target, innerBlock);
+    }
+
+    private static Async readAsync(Data data, MuleElement muleElement) {
+        List<MuleRecord> flowBlocks = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            MuleRecord muleRec = readBlock(data, child);
+            flowBlocks.add(muleRec);
+        }
+
+        return new Async(flowBlocks);
     }
 
     // Transformers
