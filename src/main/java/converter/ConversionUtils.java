@@ -17,8 +17,11 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import static ballerina.BallerinaModel.BallerinaType;
+import static ballerina.BallerinaModel.BallerinaExpression;
 import static ballerina.BallerinaModel.RecordField;
 import static ballerina.BallerinaModel.RecordType;
+import static ballerina.BallerinaModel.BallerinaStatement;
 
 public class ConversionUtils {
 
@@ -123,7 +126,7 @@ public class ConversionUtils {
         return convertMuleExprToBal(melExpression, true);
     }
 
-    public static String convertMuleExprToBal(String melExpression, boolean addToStringCalls) {
+    private static String convertMuleExprToBal(String melExpression, boolean addToStringCalls) {
         if (melExpression.startsWith("#[") && melExpression.endsWith("]")) {
             return convertMELToBal(melExpression, addToStringCalls);
         }
@@ -244,19 +247,31 @@ public class ConversionUtils {
 
     private static String getRequiredRecFieldDefaultValue(RecordField recordField) {
         assert !recordField.isOptional();
-        if (recordField.type().equals("anydata")) {
+        if (recordField.type().toString().equals("anydata")) {
             return "()";
         }
 
-        if (recordField.type().equals("FlowVars") || recordField.type().equals("SessionVars")) {
+        if (recordField.type().toString().equals("FlowVars") || recordField.type().toString().equals("SessionVars")) {
             return "{}";
         }
 
-        if (recordField.type().equals("InboundProperties")) {
+        if (recordField.type().toString().equals("InboundProperties")) {
             // TODO: handle non-http sources
             return "{response: new}";
         }
 
         throw new IllegalStateException();
+    }
+
+    public static BallerinaExpression exprFrom(String expr) {
+        return new BallerinaExpression(expr);
+    }
+
+    public static BallerinaStatement stmtFrom(String stmt) {
+        return new BallerinaStatement(stmt);
+    }
+
+    public static BallerinaType typeFrom(String type) {
+        return new BallerinaType(type);
     }
 }

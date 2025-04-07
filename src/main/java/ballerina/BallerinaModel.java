@@ -30,26 +30,52 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record BallerinaType(String type) implements Type {
+        @Override
+        public String toString() {
+            return type;
+        }
     }
 
     public interface RecordType extends Type {
         List<RecordField> recordFields();
     }
 
-    public record ClosedRecordType(List<RecordField> recordFields, Optional<String> restType) implements RecordType {
+    public record ClosedRecordType(List<RecordField> recordFields, Optional<Type> restType) implements RecordType {
         public ClosedRecordType(List<RecordField> recordFields) {
             this(recordFields, Optional.empty());
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder fieldsSb = new StringBuilder();
+            for (RecordField recordField : recordFields()) {
+                fieldsSb.append(String.format(recordField.isOptional() ? "%s %s?;" : "%s %s;", recordField.type(),
+                        recordField.name()));
+            }
+
+            return String.format("record {| %s %s |}", fieldsSb, restType().map(Object::toString)
+                    .orElse(""));
         }
     }
 
     public record OpenRecordType(List<RecordField> recordFields) implements RecordType {
+        @Override
+        public String toString() {
+            StringBuilder fieldsSb = new StringBuilder();
+            for (RecordField recordField : recordFields()) {
+                fieldsSb.append(String.format(recordField.isOptional() ? "%s %s?;" : "%s %s;",
+                        recordField.type(), recordField.name()));
+            }
+
+            return String.format("record { %s }", fieldsSb);
+        }
     }
 
-    public record RecordField(String type, String name, boolean isOptional) {
+    public record RecordField(Type type, String name, boolean isOptional) {
 
     }
 
-    public record ModuleVar(String name, String type, BallerinaExpression expr) {
+    public record ModuleVar(String name, Type type, BallerinaExpression expr) {
     }
 
     public record Service(String basePath, List<String> listenerRefs, Optional<Function> initFunc,
@@ -57,7 +83,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                           List<String> queryParams, List<ObjectField> fields) {
     }
 
-    public record ObjectField(String type, String name) {
+    public record ObjectField(Type type, String name) {
 
     }
 
@@ -91,8 +117,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                                      Optional<List<String>> paramTypes) implements FunctionBody {
     }
 
-    public record Parameter(String name, String type, Optional<BallerinaExpression> defaultExpr) {
-        public Parameter(String name, String type) {
+    public record Parameter(String name, Type type, Optional<BallerinaExpression> defaultExpr) {
+        public Parameter(String name, Type type) {
             this(name, type, Optional.empty());
         }
     }
@@ -130,7 +156,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
     }
 
-    public record TypeBindingPattern(String type, String variableName) { // TODO: change all string type to Type type
+    public record TypeBindingPattern(Type type, String variableName) {
     }
 
     public sealed interface Statement permits BallerinaStatement, IfElseStatement, DoStatement {

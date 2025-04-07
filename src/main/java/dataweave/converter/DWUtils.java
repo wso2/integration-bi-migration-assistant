@@ -1,8 +1,8 @@
 package dataweave.converter;
 
 import ballerina.BallerinaModel;
+import converter.Constants;
 import converter.MuleToBalConverter;
-import mule.Constants;
 
 import java.util.List;
 import java.util.Optional;

@@ -1,12 +1,12 @@
 package dataweave.converter;
 
 import ballerina.BallerinaModel;
+import converter.Constants;
 import converter.MuleToBalConverter;
 import dataweave.converter.builder.IfStatementBuilder;
 import dataweave.parser.DataWeaveBaseVisitor;
 import dataweave.parser.DataWeaveParser;
 import io.ballerina.compiler.internal.parser.LexerTerminals;
-import mule.Constants;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
@@ -14,6 +14,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
+import static converter.Constants.BAL_HANDLE_TYPE;
+import static converter.Constants.BAL_INT_TYPE;
+import static converter.Constants.BAL_STRING_TYPE;
+import static converter.ConversionUtils.typeFrom;
 
 public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
@@ -55,8 +60,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     @Override
     public Void visitInputDirective(DataWeaveParser.InputDirectiveContext ctx) {
         this.dwContext.currentScriptContext.inputType = DWUtils.findBallerinaType(ctx.MEDIA_TYPE().getText());
-        this.dwContext.currentScriptContext.params.add(new BallerinaModel.Parameter(ctx.IDENTIFIER().getText()
-                , this.dwContext.currentScriptContext.inputType, Optional.empty()));
+        this.dwContext.currentScriptContext.params.add(new BallerinaModel.Parameter(ctx.IDENTIFIER().getText(),
+                typeFrom(this.dwContext.currentScriptContext.inputType), Optional.empty()));
         stats.record(DWConstruct.INPUT_DIRECTIVE, true);
         return null;
     }
@@ -627,10 +632,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 Optional.of("parse"), "@java:Method", Optional.of(List.of("java.lang.CharSequence",
                 "java.time.format.DateTimeFormatter")));
         data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.PARSE_DATE_TIME,
-                List.of(new BallerinaModel.Parameter("date", LexerTerminals.HANDLE,
-                        Optional.empty()),
-                        new BallerinaModel.Parameter("formatter", LexerTerminals.HANDLE,
-                                Optional.empty())
+                List.of(new BallerinaModel.Parameter("date", BAL_HANDLE_TYPE),
+                        new BallerinaModel.Parameter("formatter", BAL_HANDLE_TYPE)
                 ), Optional.of(LexerTerminals.HANDLE), body));
 
         // create toInstant() function
@@ -639,9 +642,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 Optional.empty(), "@java:Method",
                 Optional.of(List.of("java.time.ZoneOffset")));
         data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.TO_INSTANT,
-                List.of(new BallerinaModel.Parameter("localDateTime", LexerTerminals.HANDLE,
-                        Optional.empty()), new BallerinaModel.Parameter("zoneOffset",
-                        LexerTerminals.HANDLE, Optional.empty()))
+                List.of(new BallerinaModel.Parameter("localDateTime", BAL_HANDLE_TYPE),
+                        new BallerinaModel.Parameter("zoneOffset", BAL_HANDLE_TYPE))
                 , Optional.of(LexerTerminals.HANDLE), body));
 
         // create utcZoneOffset() function
@@ -659,8 +661,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     private static BallerinaModel.Function getGetDateFromFormattedString() {
         List<BallerinaModel.Parameter> params = new ArrayList<>();
-        params.add(new BallerinaModel.Parameter("dateString", LexerTerminals.STRING, Optional.empty()));
-        params.add(new BallerinaModel.Parameter("format", LexerTerminals.STRING, Optional.empty()));
+        params.add(new BallerinaModel.Parameter("dateString", BAL_STRING_TYPE, Optional.empty()));
+        params.add(new BallerinaModel.Parameter("format", BAL_STRING_TYPE, Optional.empty()));
         List<BallerinaModel.Statement> statements = new ArrayList<>();
         statements.add(new BallerinaModel.BallerinaStatement("handle localDateTime = " +
                 "parseDateTime(java:fromString(dateString), getDateTimeFormatter(java:fromString(format)));"));
@@ -680,11 +682,9 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         BallerinaModel.ExternFunctionBody body = new BallerinaModel.ExternFunctionBody("java.time.LocalDateTime",
                 Optional.empty(), "@java:Method", Optional.empty());
         data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.FORMAT_DATE_TIME,
-                List.of(new BallerinaModel.Parameter("dateTime", LexerTerminals.HANDLE,
-                                Optional.empty())
-                        , new BallerinaModel.Parameter("formatter", LexerTerminals.HANDLE,
-                                Optional.empty()))
-                , Optional.of(LexerTerminals.HANDLE), body));
+                List.of(new BallerinaModel.Parameter("dateTime", BAL_HANDLE_TYPE),
+                        new BallerinaModel.Parameter("formatter", BAL_HANDLE_TYPE)),
+                Optional.of(LexerTerminals.HANDLE), body));
 
         // create formatDateTimeString() function
         if (!data.utilFunctions.contains(DWUtils.GET_DATE_TIME_FORMATTER)) {
@@ -696,8 +696,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         body = new BallerinaModel.ExternFunctionBody("java.time.ZoneId",
                 Optional.of("of"), "@java:Method", Optional.of(List.of("java.lang.String")));
         data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.GET_ZONE_ID,
-                List.of(new BallerinaModel.Parameter("zoneId", LexerTerminals.HANDLE,
-                        Optional.empty())), Optional.of(LexerTerminals.HANDLE), body));
+                List.of(new BallerinaModel.Parameter("zoneId", BAL_HANDLE_TYPE)), Optional.of(LexerTerminals.HANDLE),
+                body));
 
         // create getDateTime() function
         data.utilFunctions.add(DWUtils.GET_DATE_TIME);
@@ -705,25 +705,23 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 Optional.of("ofInstant"), "@java:Method", Optional.of(List.of("java.time.Instant",
                 "java.time.ZoneId")));
         data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.GET_DATE_TIME,
-                List.of(new BallerinaModel.Parameter("instant", LexerTerminals.HANDLE,
-                        Optional.empty()), new BallerinaModel.Parameter("zoneId",
-                        LexerTerminals.HANDLE, Optional.empty()))
-                , Optional.of(LexerTerminals.HANDLE), body));
+                List.of(new BallerinaModel.Parameter("instant", BAL_HANDLE_TYPE),
+                        new BallerinaModel.Parameter("zoneId", BAL_HANDLE_TYPE)),
+                Optional.of(LexerTerminals.HANDLE), body));
 
         // create parseInstant() function
         data.utilFunctions.add(DWUtils.PARSE_INSTANT);
         body = new BallerinaModel.ExternFunctionBody("java.time.Instant",
                 Optional.of("parse"), "@java:Method", Optional.empty());
         data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.PARSE_INSTANT,
-                List.of(new BallerinaModel.Parameter("instant", LexerTerminals.HANDLE,
-                        Optional.empty()))
-                , Optional.of(LexerTerminals.HANDLE), body));
+                List.of(new BallerinaModel.Parameter("instant", BAL_HANDLE_TYPE)),
+                Optional.of(LexerTerminals.HANDLE), body));
 
         // create getFormattedStringFromDate() function
         data.utilFunctions.add(DWUtils.GET_FORMATTED_STRING_FROM_DATE);
         List<BallerinaModel.Parameter> params = new ArrayList<>();
-        params.add(new BallerinaModel.Parameter("dateString", LexerTerminals.STRING, Optional.empty()));
-        params.add(new BallerinaModel.Parameter("format", LexerTerminals.STRING, Optional.empty()));
+        params.add(new BallerinaModel.Parameter("dateString", BAL_STRING_TYPE));
+        params.add(new BallerinaModel.Parameter("format", BAL_STRING_TYPE));
         List<BallerinaModel.Statement> statements = new ArrayList<>();
         statements.add(new BallerinaModel.BallerinaStatement("handle localDateTime = " +
                 "getDateTime(parseInstant(java:fromString(dateString)), \n" +
@@ -740,8 +738,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 "java.time.format.DateTimeFormatter",
                 Optional.of("ofPattern"), "@java:Method", Optional.of(List.of("java.lang.String")));
         data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.GET_DATE_TIME_FORMATTER,
-                List.of(new BallerinaModel.Parameter("format", LexerTerminals.HANDLE,
-                        Optional.empty())), Optional.of(LexerTerminals.HANDLE), body));
+                List.of(new BallerinaModel.Parameter("format", BAL_HANDLE_TYPE)), Optional.of(LexerTerminals.HANDLE),
+                body));
     }
 
     private BallerinaModel.Function getIntToStringFunction() {
@@ -750,8 +748,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             BallerinaModel.ExternFunctionBody body = new BallerinaModel.ExternFunctionBody("java.text.DecimalFormat",
                     Optional.empty(), "@java:Constructor", Optional.empty());
             data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.NEW_DECIMAL_FORMAT,
-                    List.of(new BallerinaModel.Parameter("format", LexerTerminals.HANDLE,
-                            Optional.empty())), Optional.of(LexerTerminals.HANDLE), body));
+                    List.of(new BallerinaModel.Parameter("format", BAL_HANDLE_TYPE)),
+                    Optional.of(LexerTerminals.HANDLE), body));
         }
         if (!data.utilFunctions.contains(DWUtils.GET_FORMATTED_STRING_FROM_NUMBER)) {
             data.utilFunctions.add(DWUtils.GET_FORMATTED_STRING_FROM_NUMBER);
@@ -759,13 +757,13 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                     Optional.of("format"),  "@java:Method", Optional.of(List.of("long")));
             data.functions.add(new BallerinaModel.Function(Optional.of("public"),
                     DWUtils.GET_FORMATTED_STRING_FROM_NUMBER,
-                    List.of(new BallerinaModel.Parameter("formatObject", LexerTerminals.HANDLE,
-                            Optional.empty()), new BallerinaModel.Parameter("value", LexerTerminals.INT,
+                    List.of(new BallerinaModel.Parameter("formatObject", BAL_HANDLE_TYPE),
+                            new BallerinaModel.Parameter("value", BAL_INT_TYPE,
                             Optional.empty())), Optional.of(LexerTerminals.HANDLE), body));
         }
         List<BallerinaModel.Parameter> params = new ArrayList<>();
-        params.add(new BallerinaModel.Parameter("intValue", "int", Optional.empty()));
-        params.add(new BallerinaModel.Parameter("format", "string", Optional.empty()));
+        params.add(new BallerinaModel.Parameter("intValue", BAL_INT_TYPE));
+        params.add(new BallerinaModel.Parameter("format", BAL_STRING_TYPE));
         List<BallerinaModel.Statement> statements = new ArrayList<>();
         statements.add(new BallerinaModel.BallerinaStatement("handle formatObj = " + DWUtils.NEW_DECIMAL_FORMAT +
                 "(java:fromString(format));"));

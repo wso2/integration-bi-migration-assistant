@@ -25,8 +25,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static ballerina.BallerinaModel.BallerinaStatement;
-import static ballerina.BallerinaModel.BallerinaType;
-import static ballerina.BallerinaModel.ClosedRecordType;
 import static ballerina.BallerinaModel.DoStatement;
 import static ballerina.BallerinaModel.ElseIfClause;
 import static ballerina.BallerinaModel.Function;
@@ -38,14 +36,11 @@ import static ballerina.BallerinaModel.ModuleTypeDef;
 import static ballerina.BallerinaModel.ModuleVar;
 import static ballerina.BallerinaModel.ObjectField;
 import static ballerina.BallerinaModel.OnFailClause;
-import static ballerina.BallerinaModel.OpenRecordType;
 import static ballerina.BallerinaModel.Parameter;
-import static ballerina.BallerinaModel.RecordField;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
 import static ballerina.BallerinaModel.Statement;
 import static ballerina.BallerinaModel.TextDocument;
-import static ballerina.BallerinaModel.Type;
 
 public class CodeGenerator {
     private final BallerinaModel ballerinaModel;
@@ -72,7 +67,7 @@ public class CodeGenerator {
 
             for (ModuleTypeDef moduleTypeDef : textDocument.moduleTypeDefs()) {
                 TypeDefinitionNode typeDefinitionNode = (TypeDefinitionNode) NodeParser.parseModuleMemberDeclaration(
-                        String.format("type %s %s;", moduleTypeDef.name(), getType(moduleTypeDef.type())));
+                        String.format("type %s %s;", moduleTypeDef.name(), moduleTypeDef.type()));
                 moduleMembers.add(typeDefinitionNode);
             }
 
@@ -176,33 +171,6 @@ public class CodeGenerator {
                     function.methodName());
         }
         return functionDefinitionNode;
-    }
-
-    private static String getType(Type type) {
-        switch (type) {
-            case BallerinaType ballerinaType -> {
-                return ballerinaType.type();
-            }
-            case ClosedRecordType closedRecordType -> {
-                StringBuilder fieldsSb = new StringBuilder();
-                for (RecordField recordField : closedRecordType.recordFields()) {
-                    fieldsSb.append(String.format(recordField.isOptional() ? "%s %s?;" : "%s %s;",
-                            recordField.type(), recordField.name()));
-                }
-
-                return String.format("record {| %s %s |}", fieldsSb, closedRecordType.restType().orElse(""));
-            }
-            case OpenRecordType openRecordType -> {
-                StringBuilder fieldsSb = new StringBuilder();
-                for (RecordField recordField : openRecordType.recordFields()) {
-                    fieldsSb.append(String.format(recordField.isOptional() ? "%s %s?;" : "%s %s;",
-                            recordField.type(), recordField.name()));
-                }
-
-                return String.format("record { %s }", fieldsSb);
-            }
-            case null, default -> throw new IllegalStateException();
-        }
     }
 
     private FunctionDefinitionNode generateBallerinaExternalFunction(Function f, String funcParamString,

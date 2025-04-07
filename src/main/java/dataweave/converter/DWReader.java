@@ -1,11 +1,11 @@
 package dataweave.converter;
 
 import ballerina.BallerinaModel;
+import converter.Constants;
 import converter.ConversionUtils;
 import converter.MuleToBalConverter;
 import dataweave.parser.DataWeaveLexer;
 import dataweave.parser.DataWeaveParser;
-import mule.Constants;
 import mule.MuleModel;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
