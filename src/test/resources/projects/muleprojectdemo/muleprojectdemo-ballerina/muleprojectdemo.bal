@@ -4,21 +4,26 @@ import ballerina/log;
 listener http:Listener httpConfig = new (8081, {host: "0.0.0.0"});
 
 service / on httpConfig {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        mainconfigSub_Flow(_response_);
-        commonConfig1Flow(_response_);
-        commonConfig2Sub_Flow(_response_);
-        json scriptVar = check _dwMethod0_(payload);
-        json inlineVar = check _dwMethod1_(payload);
-        xml _dwOutput_ = _dwMethod2_(payload);
-        _response_.setPayload(_dwOutput_);
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+        mainconfigSub_Flow(ctx);
+        commonConfig1Flow(ctx);
+        commonConfig2Sub_Flow(ctx);
+        json scriptVar = check _dwMethod0_(ctx.payload.toJson());
+        json inlineVar = check _dwMethod1_(ctx.payload.toJson());
+        xml _dwOutput_ = _dwMethod2_(ctx.payload.toJson());
+        ctx.inboundProperties.response.setPayload(_dwOutput_);
         log:printInfo("xxx: end of the logger reached");
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 

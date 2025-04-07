@@ -1,6 +1,10 @@
 import ballerina/log;
 
-function demoFlow() {
+type Context record {|
+    anydata payload;
+|};
+
+function demoFlow(Context ctx) {
     do {
         log:printInfo("xxx: logger invoked via http end point");
     } on fail {

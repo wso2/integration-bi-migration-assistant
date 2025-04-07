@@ -1,5 +1,9 @@
-function sampleFlow() {
-    json _dwOutput_ = _dwMethod0_(payload);
+type Context record {|
+    anydata payload;
+|};
+
+function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
 }
 
 function _dwMethod0_(json payload) returns json {

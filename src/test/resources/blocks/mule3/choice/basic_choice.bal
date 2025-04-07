@@ -1,9 +1,19 @@
 import ballerina/log;
 
-function muleProject() {
-    if "condition" {
-        log:printInfo("xxx: when condition invoked");
+type FlowVars record {|
+    int age?;
+|};
+
+type Context record {|
+    anydata payload;
+    FlowVars flowVars;
+|};
+
+function muleProject(Context ctx) {
+    ctx.flowVars.age = 29;
+    if ctx.flowVars.age > 18 {
+        log:printInfo(string `Adult detected: Age is ${ctx.flowVars.age.toString()} years.`);
     } else {
-        log:printInfo("xxx: default condition invoked");
+        log:printInfo("Minor detected: Age is flowVars.age years.");
     }
 }

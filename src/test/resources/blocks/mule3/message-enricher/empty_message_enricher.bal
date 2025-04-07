@@ -1,8 +1,18 @@
 import ballerina/log;
 
-function variableEnricherFlow() {
-    string userId = "st455u";
-    string enrichedUserId = "null";
-    enrichedUserId = userId;
-    log:printInfo(string `User ID: ${flowVars.userId}, Enriched User ID: ${flowVars.enrichedUserId}`);
+type FlowVars record {|
+    string userId?;
+    string enrichedUserId?;
+|};
+
+type Context record {|
+    anydata payload;
+    FlowVars flowVars;
+|};
+
+function variableEnricherFlow(Context ctx) {
+    ctx.flowVars.userId = "st455u";
+    ctx.flowVars.enrichedUserId = "null";
+    ctx.flowVars.enrichedUserId = ctx.flowVars.userId;
+    log:printInfo(string `User ID: ${ctx.flowVars.userId.toString()}, Enriched User ID: ${ctx.flowVars.enrichedUserId.toString()}`);
 }

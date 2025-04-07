@@ -10,6 +10,7 @@ import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeFactory;
 import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.NodeParser;
+import io.ballerina.compiler.syntax.tree.ObjectFieldNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
@@ -33,6 +34,7 @@ import static ballerina.BallerinaModel.Listener;
 import static ballerina.BallerinaModel.Module;
 import static ballerina.BallerinaModel.ModuleTypeDef;
 import static ballerina.BallerinaModel.ModuleVar;
+import static ballerina.BallerinaModel.ObjectField;
 import static ballerina.BallerinaModel.OnFailClause;
 import static ballerina.BallerinaModel.Parameter;
 import static ballerina.BallerinaModel.Resource;
@@ -88,6 +90,16 @@ public class CodeGenerator {
                         String.format("service %s on %s { }", service.basePath(), listenerRefs));
 
                 List<Node> members = new ArrayList<>();
+                for (ObjectField field : service.fields()) {
+                    ObjectFieldNode objectFieldNode = (ObjectFieldNode) NodeParser.parseObjectMember(
+                            String.format("%s %s;", field.type(), field.name()));
+                    members.add(objectFieldNode);
+                }
+
+                if (service.initFunc().isPresent()) {
+                    members.add(genFunctionDefinitionNode(service.initFunc().get()));
+                }
+
                 for (Resource resource : service.resources()) {
                     String funcParamStr = constructFunctionParameterString(resource.parameters(), false);
                     FunctionDefinitionNode resourceMethod = (FunctionDefinitionNode) NodeParser.parseObjectMember(
@@ -101,19 +113,8 @@ public class CodeGenerator {
                 }
 
                 for (Function function : service.functions()) {
-                    String funcParamString = constructFunctionParameterString(function.parameters(), false);
-                    FunctionDefinitionNode functionDefinitionNode;
-                    if (function.body() instanceof BallerinaModel.BlockFunctionBody) {
-                        functionDefinitionNode = (FunctionDefinitionNode) NodeParser.parseObjectMember(
-                                String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(
-                                        function.visibilityQualifier()), function.methodName(), funcParamString,
-                                        getReturnTypeDescriptor(function.returnType())));
-                        functionDefinitionNode = generateBallerinaFunction(functionDefinitionNode, function.body());
-                    } else {
-                        functionDefinitionNode = generateBallerinaExternalFunction(function, funcParamString,
-                                function.methodName());
-                    }
-                    members.add(functionDefinitionNode);
+                    FunctionDefinitionNode funcDefn = genFunctionDefinitionNode(function);
+                    members.add(funcDefn);
                 }
 
                 NodeList<Node> nodeList = NodeFactory.createNodeList(members);
@@ -154,6 +155,22 @@ public class CodeGenerator {
 
         // only a single bal file is considered for now
         return syntaxTrees.getFirst();
+    }
+
+    private FunctionDefinitionNode genFunctionDefinitionNode(Function function) {
+        String funcParamString = constructFunctionParameterString(function.parameters(), false);
+        FunctionDefinitionNode functionDefinitionNode;
+        if (function.body() instanceof BallerinaModel.BlockFunctionBody) {
+            functionDefinitionNode = (FunctionDefinitionNode) NodeParser.parseObjectMember(
+                    String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(
+                                    function.visibilityQualifier()), function.methodName(), funcParamString,
+                            getReturnTypeDescriptor(function.returnType())));
+            functionDefinitionNode = generateBallerinaFunction(functionDefinitionNode, function.body());
+        } else {
+            functionDefinitionNode = generateBallerinaExternalFunction(function, funcParamString,
+                    function.methodName());
+        }
+        return functionDefinitionNode;
     }
 
     private FunctionDefinitionNode generateBallerinaExternalFunction(Function f, String funcParamString,

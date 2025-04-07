@@ -1,13 +1,23 @@
 import ballerina/log;
 
-function muleProject() {
-    if "condition1" {
-        log:printInfo("xxx: first when condition invoked");
-    } else if "condition2" {
-        log:printInfo("xxx: second when condition invoked");
-    } else if "condition3" {
-        log:printInfo("xxx: third when condition invoked");
+type FlowVars record {|
+    int marks?;
+|};
+
+type Context record {|
+    anydata payload;
+    FlowVars flowVars;
+|};
+
+function muleProject(Context ctx) {
+    ctx.flowVars.marks = 73;
+    if ctx.flowVars.marks > 75 {
+        log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is A.`);
+    } else if ctx.flowVars.marks > 65 {
+        log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is B.`);
+    } else if ctx.flowVars.marks > 55 {
+        log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is C.`);
     } else {
-        log:printInfo("xxx: default condition invoked");
+        log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is F.`);
     }
 }

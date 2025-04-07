@@ -9,18 +9,19 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
     <flow name="muleProject">
+        <set-variable variableName="marks" value="#[73]" doc:name="Variable"/>
         <choice doc:name="Choice">
-            <when expression="condition1">
-                <logger message="xxx: first when condition invoked" level="INFO" doc:name="Logger"/>
+            <when expression="#[flowVars.marks > 75]">
+                <logger message="You have scored #[flowVars.marks]. Your grade is A." level="INFO" doc:name="Logger"/>
             </when>
-            <when expression="condition2">
-                <logger message="xxx: second when condition invoked" level="INFO" doc:name="Logger"/>
+            <when expression="#[flowVars.marks > 65]">
+                <logger message="You have scored #[flowVars.marks]. Your grade is B." level="INFO" doc:name="Logger"/>
             </when>
-            <when expression="condition3">
-                <logger message="xxx: third when condition invoked" level="INFO" doc:name="Logger"/>
+            <when expression="#[flowVars.marks > 55]">
+                <logger message="You have scored #[flowVars.marks]. Your grade is C." level="INFO" doc:name="Logger"/>
             </when>
             <otherwise>
-                <logger message="xxx: default condition invoked" level="INFO" doc:name="Logger"/>
+                <logger message="You have scored #[flowVars.marks]. Your grade is F." level="INFO" doc:name="Logger"/>
             </otherwise>
         </choice>
     </flow>

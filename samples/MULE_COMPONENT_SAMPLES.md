@@ -33,7 +33,11 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 ```ballerina
 import ballerina/log;
 
-function demoFlow() {
+type Context record {|
+    anydata payload;
+|};
+
+function demoFlow(Context ctx) {
     do {
         log:printInfo("xxx: logger invoked via http end point");
     } on fail {
@@ -74,22 +78,36 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         do {
             log:printInfo("xxx: logger invoked via http end point");
         } on fail {
             log:printInfo("xxx: exception caught");
             log:printInfo("xxx: end of catch flow reached");
         }
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -112,12 +130,13 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
     <flow name="muleProject">
+        <set-variable variableName="age" value="#[29]" doc:name="Variable"/>
         <choice doc:name="Choice">
-            <when expression="condition">
-                <logger message="xxx: when condition invoked" level="INFO" doc:name="Logger"/>
+            <when expression="#[flowVars.age > 18]">
+                <logger message="Adult detected: Age is #[flowVars.age] years." level="INFO" doc:name="Logger"/>
             </when>
             <otherwise>
-                <logger message="xxx: default condition invoked" level="INFO" doc:name="Logger"/>
+                <logger message="Minor detected: Age is flowVars.age years." level="INFO" doc:name="Logger"/>
             </otherwise>
         </choice>
     </flow>
@@ -128,11 +147,21 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 ```ballerina
 import ballerina/log;
 
-function muleProject() {
-    if "condition" {
-        log:printInfo("xxx: when condition invoked");
+type FlowVars record {|
+    int age?;
+|};
+
+type Context record {|
+    anydata payload;
+    FlowVars flowVars;
+|};
+
+function muleProject(Context ctx) {
+    ctx.flowVars.age = 29;
+    if ctx.flowVars.age > 18 {
+        log:printInfo(string `Adult detected: Age is ${ctx.flowVars.age.toString()} years.`);
     } else {
-        log:printInfo("xxx: default condition invoked");
+        log:printInfo("Minor detected: Age is flowVars.age years.");
     }
 }
 
@@ -155,18 +184,19 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
     <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule3"/>
     <flow name="muleProject">
         <http:listener config-ref="config" path="/"  doc:name="HTTP" allowedMethods="GET"/>
+        <set-variable variableName="marks" value="#[73]" doc:name="Variable"/>
         <choice doc:name="Choice">
-            <when expression="condition1">
-                <logger message="xxx: first when condition invoked" level="INFO" doc:name="Logger"/>
+            <when expression="#[flowVars.marks > 75]">
+                <logger message="You have scored #[flowVars.marks]. Your grade is A." level="INFO" doc:name="Logger"/>
             </when>
-            <when expression="condition2">
-                <logger message="xxx: second when condition invoked" level="INFO" doc:name="Logger"/>
+            <when expression="#[flowVars.marks > 65]">
+                <logger message="You have scored #[flowVars.marks]. Your grade is B." level="INFO" doc:name="Logger"/>
             </when>
-            <when expression="condition3">
-                <logger message="xxx: third when condition invoked" level="INFO" doc:name="Logger"/>
+            <when expression="#[flowVars.marks > 55]">
+                <logger message="You have scored #[flowVars.marks]. Your grade is C." level="INFO" doc:name="Logger"/>
             </when>
             <otherwise>
-                <logger message="xxx: default condition invoked" level="INFO" doc:name="Logger"/>
+                <logger message="You have scored #[flowVars.marks]. Your grade is F." level="INFO" doc:name="Logger"/>
             </otherwise>
         </choice>
     </flow>
@@ -178,25 +208,45 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 import ballerina/http;
 import ballerina/log;
 
+type FlowVars record {|
+    int marks?;
+|};
+
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    FlowVars flowVars;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), flowVars: {}, inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        if "condition1" {
-            log:printInfo("xxx: first when condition invoked");
-        } else if "condition2" {
-            log:printInfo("xxx: second when condition invoked");
-        } else if "condition3" {
-            log:printInfo("xxx: third when condition invoked");
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+        ctx.flowVars.marks = 73;
+        if ctx.flowVars.marks > 75 {
+            log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is A.`);
+        } else if ctx.flowVars.marks > 65 {
+            log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is B.`);
+        } else if ctx.flowVars.marks > 55 {
+            log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is C.`);
         } else {
-            log:printInfo("xxx: default condition invoked");
+            log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is F.`);
         }
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -217,18 +267,19 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
     <flow name="muleProject">
+        <set-variable variableName="marks" value="#[73]" doc:name="Variable"/>
         <choice doc:name="Choice">
-            <when expression="condition1">
-                <logger message="xxx: first when condition invoked" level="INFO" doc:name="Logger"/>
+            <when expression="#[flowVars.marks > 75]">
+                <logger message="You have scored #[flowVars.marks]. Your grade is A." level="INFO" doc:name="Logger"/>
             </when>
-            <when expression="condition2">
-                <logger message="xxx: second when condition invoked" level="INFO" doc:name="Logger"/>
+            <when expression="#[flowVars.marks > 65]">
+                <logger message="You have scored #[flowVars.marks]. Your grade is B." level="INFO" doc:name="Logger"/>
             </when>
-            <when expression="condition3">
-                <logger message="xxx: third when condition invoked" level="INFO" doc:name="Logger"/>
+            <when expression="#[flowVars.marks > 55]">
+                <logger message="You have scored #[flowVars.marks]. Your grade is C." level="INFO" doc:name="Logger"/>
             </when>
             <otherwise>
-                <logger message="xxx: default condition invoked" level="INFO" doc:name="Logger"/>
+                <logger message="You have scored #[flowVars.marks]. Your grade is F." level="INFO" doc:name="Logger"/>
             </otherwise>
         </choice>
     </flow>
@@ -239,15 +290,25 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 ```ballerina
 import ballerina/log;
 
-function muleProject() {
-    if "condition1" {
-        log:printInfo("xxx: first when condition invoked");
-    } else if "condition2" {
-        log:printInfo("xxx: second when condition invoked");
-    } else if "condition3" {
-        log:printInfo("xxx: third when condition invoked");
+type FlowVars record {|
+    int marks?;
+|};
+
+type Context record {|
+    anydata payload;
+    FlowVars flowVars;
+|};
+
+function muleProject(Context ctx) {
+    ctx.flowVars.marks = 73;
+    if ctx.flowVars.marks > 75 {
+        log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is A.`);
+    } else if ctx.flowVars.marks > 65 {
+        log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is B.`);
+    } else if ctx.flowVars.marks > 55 {
+        log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is C.`);
     } else {
-        log:printInfo("xxx: default condition invoked");
+        log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is F.`);
     }
 }
 
@@ -289,13 +350,17 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 ```ballerina
 import ballerina/log;
 
-function demoFlow() {
+type Context record {|
+    anydata payload;
+|};
+
+function demoFlow(Context ctx) {
     do {
         log:printInfo("xxx: main flow logger invoked");
     } on fail error e {
-        if condition1 {
+        if "condition1" {
             log:printInfo("xxx: first catch condition invoked");
-        } else if condition2 {
+        } else if "condition2" {
             log:printInfo("xxx: second catch condition invoked");
         } else {
             log:printInfo("xxx: generic catch condition invoked");
@@ -342,27 +407,41 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         do {
             log:printInfo("xxx: logger invoked via http end point");
         } on fail error e {
-            if condition1 {
+            if "condition1" {
                 log:printInfo("xxx: first catch condition invoked");
-            } else if condition2 {
+            } else if "condition2" {
                 log:printInfo("xxx: second catch condition invoked");
             } else {
                 log:printInfo("xxx: generic catch condition invoked");
             }
         }
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -403,6 +482,15 @@ import ballerina/sql;
 import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 type Record record {
 };
 
@@ -410,20 +498,25 @@ mysql:Client MySQL_Configuration = check new ("localhost", "root", "admin123", "
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
         // database operation
         sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
         stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
         Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
             select _iterator_;
-        _response_.setPayload(_dbSelect0_.toString());
-        return _response_;
+        ctx.inboundProperties.response.setPayload(_dbSelect0_.toString());
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -465,6 +558,15 @@ import ballerina/sql;
 import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 type Record record {
 };
 
@@ -473,20 +575,25 @@ sql:ParameterizedQuery Template_Select_Query = `SELECT * FROM users;`;
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
         // database operation
         sql:ParameterizedQuery _dbQuery0_ = Template_Select_Query;
         stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
         Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
             select _iterator_;
-        _response_.setPayload(_dbSelect0_.toString());
-        return _response_;
+        ctx.inboundProperties.response.setPayload(_dbSelect0_.toString());
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -520,17 +627,31 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         log:printInfo("xxx: logger invoked via http end point");
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -567,23 +688,37 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         log:printInfo("xxx: logger invoked via http end point");
-        demoPrivateFlow(_response_);
+        demoPrivateFlow(ctx);
         log:printInfo("xxx: end of main flow");
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
-function demoPrivateFlow(http:Response _response_) {
+function demoPrivateFlow(Context ctx) {
     log:printInfo("xxx: private flow invoked");
 }
 
@@ -617,49 +752,63 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
+    }
+
     resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+        return self._invokeEndPoint0_(self.ctx);
     }
 
     resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+        return self._invokeEndPoint0_(self.ctx);
     }
 
     resource function put .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+        return self._invokeEndPoint0_(self.ctx);
     }
 
     resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+        return self._invokeEndPoint0_(self.ctx);
     }
 
     resource function patch .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+        return self._invokeEndPoint0_(self.ctx);
     }
 
     resource function head .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+        return self._invokeEndPoint0_(self.ctx);
     }
 
     resource function options .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+        return self._invokeEndPoint0_(self.ctx);
     }
 
     resource function trace .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+        return self._invokeEndPoint0_(self.ctx);
     }
 
     resource function connect .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+        return self._invokeEndPoint0_(self.ctx);
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         log:printInfo("xxx: logger invoked");
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -691,17 +840,31 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function post .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         log:printInfo("xxx: logger invoked");
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -733,25 +896,39 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
+    }
+
     resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+        return self._invokeEndPoint0_(self.ctx);
     }
 
     resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+        return self._invokeEndPoint0_(self.ctx);
     }
 
     resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+        return self._invokeEndPoint0_(self.ctx);
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         log:printInfo("xxx: logger invoked");
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -782,17 +959,31 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get demo() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get demo() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         log:printInfo("xxx: logger invoked");
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -823,17 +1014,31 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service / on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         log:printInfo("xxx: logger invoked");
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -864,17 +1069,31 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service / on config {
-    resource function get demo() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get demo() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         log:printInfo("xxx: logger invoked");
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -905,17 +1124,31 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         log:printInfo("xxx: logger invoked");
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -946,17 +1179,31 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get [string version]/demo/[string id]() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get [string version]/demo/[string id]() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         log:printInfo("xxx: logger invoked");
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -987,17 +1234,31 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule\-3 on config {
-    resource function get v\-1/demo/main\-contract() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get v\-1/demo/main\-contract() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         log:printInfo("xxx: logger invoked");
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -1031,18 +1292,32 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         log:printInfo("xxx: first logger invoked");
         log:printInfo("xxx: second logger invoked");
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -1078,21 +1353,35 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         log:printInfo("xxx: INFO level logger invoked");
         log:printDebug("xxx: DEBUG level logger invoked");
         log:printError("xxx: ERROR level logger invoked");
         log:printWarn("xxx: WARN level logger invoked");
         log:printInfo("xxx: TRACE level logger invoked");
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -1123,11 +1412,21 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 ```ballerina
 import ballerina/log;
 
-function variableEnricherFlow() {
-    string userId = "st455u";
-    string enrichedUserId = "null";
-    enrichedUserId = userId;
-    log:printInfo(string `User ID: ${flowVars.userId}, Enriched User ID: ${flowVars.enrichedUserId}`);
+type FlowVars record {|
+    string userId?;
+    string enrichedUserId?;
+|};
+
+type Context record {|
+    anydata payload;
+    FlowVars flowVars;
+|};
+
+function variableEnricherFlow(Context ctx) {
+    ctx.flowVars.userId = "st455u";
+    ctx.flowVars.enrichedUserId = "null";
+    ctx.flowVars.enrichedUserId = ctx.flowVars.userId;
+    log:printInfo(string `User ID: ${ctx.flowVars.userId.toString()}, Enriched User ID: ${ctx.flowVars.enrichedUserId.toString()}`);
 }
 
 ```
@@ -1161,21 +1460,31 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 ```ballerina
 import ballerina/log;
 
-function variableEnricherFlow() {
-    string userId = "st455u";
-    string enrichedUserId = "null";
-    enrichedUserId = _enricher0_(userId);
-    log:printInfo(string `User ID: ${flowVars.userId}, Enriched User ID: ${flowVars.enrichedUserId}`);
-}
+type FlowVars record {|
+    string userId?;
+    string enrichedUserId?;
+|};
 
-function flow1() {
+type Context record {|
+    anydata payload;
+    FlowVars flowVars;
+|};
+
+function flow1(Context ctx) {
     log:printInfo("xxx: flow1 starting logger invkoed");
     log:printInfo("xxx: end of flow1 reached");
 }
 
-function _enricher0_(string userId) returns string {
-    flow1();
-    return userId;
+function _enricher0_(Context ctx) returns string? {
+    flow1(ctx);
+    return ctx.flowVars.userId;
+}
+
+function variableEnricherFlow(Context ctx) {
+    ctx.flowVars.userId = "st455u";
+    ctx.flowVars.enrichedUserId = "null";
+    ctx.flowVars.enrichedUserId = _enricher0_(ctx.clone());
+    log:printInfo(string `User ID: ${ctx.flowVars.userId.toString()}, Enriched User ID: ${ctx.flowVars.enrichedUserId.toString()}`);
 }
 
 ```
@@ -1204,16 +1513,26 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 ```ballerina
 import ballerina/log;
 
-function variableEnricherFlow() {
-    string userId = "st455u";
-    string enrichedUserId = "null";
-    enrichedUserId = _enricher0_(userId);
-    log:printInfo(string `User ID: ${flowVars.userId}, Enriched User ID: ${flowVars.enrichedUserId}`);
+type FlowVars record {|
+    string userId?;
+    string enrichedUserId?;
+|};
+
+type Context record {|
+    anydata payload;
+    FlowVars flowVars;
+|};
+
+function variableEnricherFlow(Context ctx) {
+    ctx.flowVars.userId = "st455u";
+    ctx.flowVars.enrichedUserId = "null";
+    ctx.flowVars.enrichedUserId = _enricher0_(ctx.clone());
+    log:printInfo(string `User ID: ${ctx.flowVars.userId.toString()}, Enriched User ID: ${ctx.flowVars.enrichedUserId.toString()}`);
 }
 
-function _enricher0_(string userId) returns string {
+function _enricher0_(Context ctx) returns string? {
     log:printInfo("xxx: logger inside the message enricher invoked");
-    return userId;
+    return ctx.flowVars.userId;
 }
 
 ```
@@ -1254,6 +1573,15 @@ import ballerina/sql;
 import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 type Record record {
 };
 
@@ -1261,12 +1589,17 @@ mysql:Client MySQL_Configuration = check new ("localhost", "root", "admin123", "
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
         // database operation
         sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
@@ -1276,8 +1609,8 @@ service /mule3 on config {
 
         // json transformation
         json _to_json0_ = _dbSelect0_.toJson();
-        _response_.setPayload(_to_json0_);
-        return _response_;
+        ctx.inboundProperties.response.setPayload(_to_json0_);
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -1319,6 +1652,15 @@ import ballerina/sql;
 import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 type Record record {
 };
 
@@ -1326,12 +1668,17 @@ mysql:Client MySQL_Configuration = check new ("localhost", "root", "admin123", "
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
         // database operation
         sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
@@ -1341,8 +1688,8 @@ service /mule3 on config {
 
         // string transformation
         string _to_string0_ = _dbSelect0_.toString();
-        _response_.setPayload(_to_string0_);
-        return _response_;
+        ctx.inboundProperties.response.setPayload(_to_string0_);
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -1377,11 +1724,15 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 ```ballerina
 import ballerina/log;
 
+type Context record {|
+    anydata payload;
+|};
+
 function catch\-exception\-strategy(error e) {
     log:printInfo("xxx: inside catch exception strategy");
 }
 
-function muleProject() {
+function muleProject(Context ctx) {
     do {
         log:printInfo("xxx: end of flow reached");
     } on fail error e {
@@ -1421,21 +1772,35 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener httpConfig = new (8081, {host: "0.0.0.0"});
 
 service / on httpConfig {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         do {
             log:printInfo("xxx: end of flow reached");
         } on fail error e {
             catch\-exception\-strategy(e);
         }
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -1474,11 +1839,20 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 ```ballerina
 import ballerina/log;
 
-string sessionVar1 = "this is first session variable";
-string sessionVar2 = "this is second session variable";
+type SessionVars record {|
+    string sessionVar1?;
+    string sessionVar2?;
+|};
 
-function myFlow() {
+type Context record {|
+    anydata payload;
+    SessionVars sessionVars;
+|};
+
+function myFlow(Context ctx) {
     log:printInfo("xxx: flow starting logger invoked");
+    ctx.sessionVars.sessionVar1 = "this is first session variable";
+    ctx.sessionVars.sessionVar2 = "this is second session variable";
     log:printInfo("xxx: end of flow reached");
 }
 
@@ -1525,24 +1899,44 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 import ballerina/http;
 import ballerina/log;
 
-string sessionVarExample = "Initial Value";
+type SessionVars record {|
+    string sessionVarExample?;
+|};
+
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    SessionVars sessionVars;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener HTTP_Config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on HTTP_Config {
-    resource function get session() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), sessionVars: {}, inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        log:printInfo(string `Session Variable (Initial): ${sessionVars.sessionVarExample}`);
-        sessionVarExample = "Modified Value";
-        log:printInfo(string `Session Variable (Modified): ${sessionVars.sessionVarExample}`);
+    resource function get session() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+        ctx.sessionVars.sessionVarExample = "Initial Value";
+        log:printInfo(string `Session Variable (Initial): ${ctx.sessionVars.sessionVarExample.toString()}`);
+        ctx.sessionVars.sessionVarExample = "Modified Value";
+        log:printInfo(string `Session Variable (Modified): ${ctx.sessionVars.sessionVarExample.toString()}`);
 
         // set payload
         string _payload0_ = "{\"message\":\"Check logs for session variable values\"}";
-        _response_.setPayload(_payload0_);
-        return _response_;
+        ctx.payload = _payload0_;
+        ctx.inboundProperties.response.setPayload(_payload0_);
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -1575,11 +1969,19 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 ```ballerina
 import ballerina/log;
 
-string sessionVar1 = "initial value";
+type SessionVars record {|
+    string sessionVar1?;
+|};
 
-function myFlow() {
+type Context record {|
+    anydata payload;
+    SessionVars sessionVars;
+|};
+
+function myFlow(Context ctx) {
     log:printInfo("xxx: flow starting logger invoked");
-    sessionVar1 = "updated value";
+    ctx.sessionVars.sessionVar1 = "initial value";
+    ctx.sessionVars.sessionVar1 = "updated value";
     log:printInfo("xxx: end of flow reached");
 }
 
@@ -1612,20 +2014,35 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 ```ballerina
 import ballerina/http;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
         // set payload
         string _payload0_ = "Hello world!";
-        _response_.setPayload(_payload0_);
-        return _response_;
+        ctx.payload = _payload0_;
+        ctx.inboundProperties.response.setPayload(_payload0_);
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -1658,26 +2075,43 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 ```ballerina
 import ballerina/http;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
         // set payload
         string _payload0_ = "First payload";
+        ctx.payload = _payload0_;
 
         // set payload
         string _payload1_ = "Second payload";
+        ctx.payload = _payload1_;
 
         // set payload
         string _payload2_ = "Third payload";
-        _response_.setPayload(_payload2_);
-        return _response_;
+        ctx.payload = _payload2_;
+        ctx.inboundProperties.response.setPayload(_payload2_);
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -1717,28 +2151,43 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
         log:printInfo("xxx: logger invoked via http end point");
-        demoSub_Flow(_response_);
+        demoSub_Flow(ctx);
         log:printInfo("xxx: logger after flow reference invoked");
-        return _response_;
+        return ctx.inboundProperties.response;
     }
 }
 
-function demoSub_Flow(http:Response _response_) {
+function demoSub_Flow(Context ctx) {
     log:printInfo("xxx: sub flow logger invoked");
 
     // set payload
     string _payload0_ = "This is a sub flow set-payload call";
-    _response_.setPayload(_payload0_);
+    ctx.payload = _payload0_;
+    ctx.inboundProperties.response.setPayload(_payload0_);
 }
 
 ```
@@ -1779,20 +2228,34 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 ```ballerina
 import ballerina/http;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json myVariable = _dwMethod0_(payload);
-        json _dwOutput_ = _dwMethod0_(payload);
-        json mySessionVariable = _dwMethod0_(payload);
-        _response_.setPayload(_dwOutput_);
-        return _response_;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+        json myVariable = _dwMethod0_(ctx.payload.toJson());
+        json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
+        json mySessionVariable = _dwMethod0_(ctx.payload.toJson());
+        ctx.inboundProperties.response.setPayload(_dwOutput_);
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -1835,18 +2298,32 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 ```ballerina
 import ballerina/http;
 
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /foo on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        json _dwOutput_ = check _dwMethod0_(payload);
-        _response_.setPayload(_dwOutput_);
-        return _response_;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+        json _dwOutput_ = check _dwMethod0_(ctx.payload.toJson());
+        ctx.inboundProperties.response.setPayload(_dwOutput_);
+        return ctx.inboundProperties.response;
     }
 }
 
@@ -1901,6 +2378,10 @@ payload groupBy $.language
 ```
 **Output (transform_message_with_unsupported_components.bal):**
 ```ballerina
+type Context record {|
+    anydata payload;
+|};
+
 function _dwMethod1_(xml payload) returns json {
     //TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'map$+1' OF TYPE 'xml' FOUND. MANUAL CONVERSION REQUIRED.
 }
@@ -1909,10 +2390,10 @@ function _dwMethod2_(json payload) returns json {
     //TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'groupBy$.language' FOUND. MANUAL CONVERSION REQUIRED.
 }
 
-function sampleFlow() {
-    json _dwOutput_ = _dwMethod0_(payload);
-    _dwOutput_ = _dwMethod1_(payload);
-    _dwOutput_ = _dwMethod2_(payload);
+function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
+    _dwOutput_ = _dwMethod1_(ctx.payload.toJson());
+    _dwOutput_ = _dwMethod2_(ctx.payload.toJson());
 }
 
 function _dwMethod0_(json payload) returns json {
@@ -1953,18 +2434,38 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 ```ballerina
 import ballerina/http;
 
+type FlowVars record {|
+    string name?;
+    string age?;
+|};
+
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    FlowVars flowVars;
+    InboundProperties inboundProperties;
+|};
+
 listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_();
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), flowVars: {}, inboundProperties: {response: new}};
     }
 
-    private function _invokeEndPoint0_() returns http:Response|error {
-        http:Response _response_ = new;
-        string name = "lochana";
-        string age = "29";
-        return _response_;
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+        ctx.flowVars.name = "lochana";
+        ctx.flowVars.age = "29";
+        return ctx.inboundProperties.response;
     }
 }
 
