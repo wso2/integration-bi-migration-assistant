@@ -1,5 +1,7 @@
 package mule;
 
+import ballerina.BallerinaModel.Import;
+
 public class Constants {
 
     // Ballerina Import
@@ -41,4 +43,6 @@ public class Constants {
     //DataWeave
     public static final String CLASSPATH_DIR = "src/main/resources/";
     public static final String CLASSPATH = "classpath:";
+
+    public static final Import HTTP_MODULE_IMPORT = new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP);
 }

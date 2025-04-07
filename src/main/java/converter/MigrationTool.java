@@ -111,7 +111,7 @@ public class MigrationTool {
         // Create internal-types.bal
         createContextInfoHoldingDataStructures(sharedProjectData);
         Path targetFilePath = Paths.get(targetFolderPath, "internal-types.bal");
-        BallerinaModel ballerinaModel = createBallerinaModel(new ArrayList<>(),
+        BallerinaModel ballerinaModel = createBallerinaModel(sharedProjectData.contextTypeDefImports.stream().toList(),
                 sharedProjectData.contextTypeDefMap.values().stream().toList(), Collections.emptyList(),
                 Collections.emptyList(),
                 Collections.emptyList(), Collections.emptyList(), Collections.emptyList());

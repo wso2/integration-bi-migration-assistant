@@ -1,3 +1,5 @@
+import ballerina/http;
+
 type InboundProperties record {|
     http:Response response;
 |};

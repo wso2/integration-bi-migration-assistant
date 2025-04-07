@@ -18,6 +18,9 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record Import(String orgName, String moduleName, Optional<String> importPrefix) {
+        public Import(String orgName, String moduleName) {
+            this(orgName, moduleName, Optional.empty());
+        }
     }
 
     public record ModuleTypeDef(Type type, String name) {

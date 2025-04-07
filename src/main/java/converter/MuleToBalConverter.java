@@ -126,6 +126,7 @@ public class MuleToBalConverter {
     public static class SharedProjectData {
         boolean isStandaloneBalFile = false;
         HashMap<String, ModuleTypeDef> contextTypeDefMap = new LinkedHashMap<>();
+        HashSet<Import> contextTypeDefImports = new LinkedHashSet<>();
         HashMap<String, HTTPListenerConfig> sharedHttpListenerConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbMSQLConfig> sharedDbMySQLConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbTemplateQuery> sharedDbTemplateQueryMap = new LinkedHashMap<>();
@@ -338,6 +339,7 @@ public class MuleToBalConverter {
 
             data.sharedProjectData.inboundProperties.add(new SharedProjectData.TypeAndNamePair("http:Response",
                     "response"));
+            data.sharedProjectData.contextTypeDefImports.add(Constants.HTTP_MODULE_IMPORT);
 
             // Create a service from the flow
             Service service = genBalService(data, (HttpListener) src, flow.flowBlocks());
@@ -412,6 +414,7 @@ public class MuleToBalConverter {
         if (data.sharedProjectData.isStandaloneBalFile) {
             data.sharedProjectData.contextTypeDefMap.putAll(data.typeDefMap);
             typeDefs = data.sharedProjectData.contextTypeDefMap.values().stream().toList();
+            data.imports.addAll(data.sharedProjectData.contextTypeDefImports);
         } else {
             typeDefs = data.typeDefMap.values().stream().toList();
         }
@@ -546,7 +549,7 @@ public class MuleToBalConverter {
         // Add service resources
         List<Resource> resources = new ArrayList<>();
         String returnType = Constants.HTTP_RESOURCE_RETURN_TYPE_DEFAULT;
-        data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP, Optional.empty()));
+        data.imports.add(Constants.HTTP_MODULE_IMPORT);
         for (String resourceMethodName : resourceMethodNames) {
             resourceMethodName = resourceMethodName.toLowerCase();
             Resource resource = new Resource(resourceMethodName,
