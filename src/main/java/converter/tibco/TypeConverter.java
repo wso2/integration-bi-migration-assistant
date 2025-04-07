@@ -3,7 +3,6 @@ package converter.tibco;
 import ballerina.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.xsd.core.Response;
-
 import tibco.TibcoModel;
 
 import java.util.Collection;
@@ -31,7 +30,7 @@ class TypeConverter {
             Response result = generateNodes(content);
             cx.addTypeDefAsIntrinsic(result.types());
         } catch (Exception e) {
-            // FIXME:
+            // TODO: Handle schema conversion failure
             String allSchemas = String.join(",\n", content);
             throw new RuntimeException("Failed to convert types:\n" + allSchemas + "\n" + e.getMessage());
         }
