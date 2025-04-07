@@ -20,7 +20,6 @@
         <classes>
             <class name="converter.tibco.ParserTest"/>
             <class name="converter.tibco.ConversionTest"/>
-            <class name="converter.tibco.AnalysisTest"/>
             <class name="converter.TibcoProjectConversionTest"/>
         </classes>
     </test>

@@ -25,7 +25,6 @@ import converter.tibco.analyzer.ModelAnalyser;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import tibco.TibcoModel;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,13 +47,11 @@ public class ProcessContext implements ContextWithFile {
     private final Map<String, BallerinaModel.ModuleVar> constants = new HashMap<>();
     private final Map<String, BallerinaModel.ModuleVar> configurables = new HashMap<>();
     private final Map<BallerinaModel.TypeDesc, String> typeConversionFunction = new HashMap<>();
-    public String startWorkerName;
     public final TibcoModel.Process process;
 
     public final ProjectContext projectContext;
     public final AnalysisResult analysisResult;
     private BallerinaModel.Expression.VariableReference contextRef;
-    private final List<String> workersWithErrorTransitions = new ArrayList<>();
     private final Map<TibcoModel.Scope.Flow.Activity.Source.Predicate, String> predicateToFunctionMap =
             new HashMap<>();
 
@@ -75,11 +72,6 @@ public class ProcessContext implements ContextWithFile {
                 new VarDeclStatment(contextType(), "context", new BallerinaModel.BallerinaExpression("{}"));
         this.contextRef = new BallerinaModel.Expression.VariableReference(varDeclStatment.varName());
         return varDeclStatment;
-    }
-
-    public BallerinaModel.Expression.VariableReference getContextRef() {
-        assert contextRef != null;
-        return contextRef;
     }
 
     public BallerinaModel.Expression.VariableReference addConfigurableVariable(BallerinaModel.TypeDesc td,
@@ -250,18 +242,6 @@ public class ProcessContext implements ContextWithFile {
 
     public String getPredicateTestFunction() {
         return projectContext.getPredicateTestFunction();
-    }
-
-    public String errorHandlerWorkerName() {
-        return "errorHandler";
-    }
-
-    public void markAsErrorTransition(String workerName) {
-        workersWithErrorTransitions.add(workerName);
-    }
-
-    public Collection<String> workersWithErrorTransitions() {
-        return analysisResult.sortWorkers(workersWithErrorTransitions.stream()).toList();
     }
 
     public BallerinaModel.TypeDesc getProcessInputType() {

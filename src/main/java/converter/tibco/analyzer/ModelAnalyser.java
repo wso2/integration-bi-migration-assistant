@@ -25,10 +25,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
@@ -50,10 +52,7 @@ public class ModelAnalyser {
         Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> faultHandlerStartActivities =
                 Map.of(process, cx.faultHandlerStartActivities);
 
-        Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> endActivities =
-                Map.of(process, cx.endActivities);
         Map<TibcoModel.Scope.Flow.Activity, AnalysisResult.ActivityData> activityData = cx.activityData();
-        Map<TibcoModel.Scope.Flow.Link, String> workerNames = cx.workerNames();
         Map<String, TibcoModel.PartnerLink.Binding> partnerLinkBindings =
                 Collections.unmodifiableMap(cx.partnerLinkBindings);
 
@@ -62,8 +61,8 @@ public class ModelAnalyser {
         Map<TibcoModel.Process, String> inputTypeName = Map.of(process, cx.getInputTypeName());
         Map<TibcoModel.Process, String> outputTypeName = Map.of(process, cx.getOutputTypeName());
         return new AnalysisResult(cx.destinationMap, cx.sourceMap, startActivities, faultHandlerStartActivities,
-                endActivities, workerNames, activityData, partnerLinkBindings, cx.queryIndex, inputTypeName,
-                outputTypeName, cx.workerDependencyGraph);
+                activityData, partnerLinkBindings, cx.queryIndex, inputTypeName,
+                outputTypeName, cx.dependencyGraph);
     }
 
     private static void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
@@ -213,12 +212,12 @@ public class ModelAnalyser {
     }
 
     private static void analyseLink(ProcessAnalysisContext cx, TibcoModel.Scope.Flow.Link link) {
-        cx.allocateWorkerIfNeeded(link);
+        cx.allocateLinkIfNeeded(link);
     }
 
     private static class ProcessAnalysisContext {
 
-        public final Graph<AnalysisResult.GraphNode> workerDependencyGraph = new Graph<>();
+        public final Graph<AnalysisResult.GraphNode> dependencyGraph = new Graph<>();
         public int unhandledActivityCount = 0;
         public int totalActivityCount = 0;
         public boolean inFaultHandler = false;
@@ -234,8 +233,8 @@ public class ModelAnalyser {
         private final Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap =
                 new HashMap<>();
 
-        private final Map<TibcoModel.Scope.Flow.Link, String> linkWorkerNames = new HashMap<>();
-        private final Map<TibcoModel.Scope.Flow.Activity, String> activityWorkerNames = new HashMap<>();
+        private final Set<TibcoModel.Scope.Flow.Activity> activities = new HashSet<>();
+        private final Set<TibcoModel.Scope.Flow.Link> links = new HashSet<>();
         private final Map<String, TibcoModel.PartnerLink.Binding> partnerLinkBindings = new HashMap<>();
 
         private static final Map<TibcoModel.Scope.Flow.Activity, String> activityFunctionNames =
@@ -255,16 +254,11 @@ public class ModelAnalyser {
             } else {
                 startActivities.add(activity);
             }
-            workerDependencyGraph.addRoot(activityNode(activity));
+            dependencyGraph.addRoot(activityNode(activity));
         }
 
-        public void allocateWorkerIfNeeded(TibcoModel.Scope.Flow.Link link) {
-            if (linkWorkerNames.containsKey(link)) {
-                return;
-            }
-
-            String workerName = ConversionUtils.getSanitizedUniqueName(link.name(), linkWorkerNames.values());
-            linkWorkerNames.put(link, workerName);
+        public void allocateLinkIfNeeded(TibcoModel.Scope.Flow.Link link) {
+            links.add(link);
         }
 
         public void allocateActivityNameIfNeeded(TibcoModel.Scope.Flow.Activity activity) {
@@ -289,39 +283,30 @@ public class ModelAnalyser {
             };
             String activityName = ConversionUtils.getSanitizedUniqueName(prefix, activityFunctionNames.values());
             activityFunctionNames.put(activity, activityName);
-            activityWorkerNames.put(activity, activityName + "_worker");
+            activities.add(activity);
         }
 
         public void addDestination(TibcoModel.Scope.Flow.Link source, TibcoModel.Scope.Flow.Activity destination) {
-            workerDependencyGraph.addEdge(linkNode(source), activityNode(destination));
+            dependencyGraph.addEdge(linkNode(source), activityNode(destination));
             destinationMap.computeIfAbsent(source, (ignored) -> new ArrayList<>()).add(destination);
         }
 
         public void addSource(TibcoModel.Scope.Flow.Activity source, TibcoModel.Scope.Flow.Link destination) {
-            workerDependencyGraph.addEdge(activityNode(source), linkNode(destination));
+            dependencyGraph.addEdge(activityNode(source), linkNode(destination));
             sourceMap.computeIfAbsent(destination, (ignored) -> new ArrayList<>()).add(source);
         }
 
-        private String workerName(TibcoModel.Scope.Flow.Activity activity) {
-            return activityWorkerNames.get(activity);
-        }
-
-        private String workerName(TibcoModel.Scope.Flow.Link link) {
-            return linkWorkerNames.get(link);
+        private String activityNodeName(TibcoModel.Scope.Flow.Activity activity) {
+            return activityFunctionNames.get(activity);
         }
 
         public Map<TibcoModel.Scope.Flow.Activity, AnalysisResult.ActivityData> activityData() {
             Map<TibcoModel.Scope.Flow.Activity, AnalysisResult.ActivityData> data = new HashMap<>();
-            for (var activity : activityWorkerNames.keySet()) {
+            for (var activity : activities) {
                 String functionName = activityFunctionNames.get(activity);
-                String workerName = activityWorkerNames.get(activity);
-                data.put(activity, new AnalysisResult.ActivityData(functionName, workerName, XML, XML));
+                data.put(activity, new AnalysisResult.ActivityData(functionName, XML, XML));
             }
             return Collections.unmodifiableMap(data);
-        }
-
-        public Map<TibcoModel.Scope.Flow.Link, String> workerNames() {
-            return Collections.unmodifiableMap(linkWorkerNames);
         }
 
         public void allocateIndexForQuery(TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql) {
@@ -351,13 +336,12 @@ public class ModelAnalyser {
         }
 
         private AnalysisResult.GraphNode activityNode(TibcoModel.Scope.Flow.Activity activity) {
-            String name = workerName(activity);
+            String name = activityNodeName(activity);
             return new AnalysisResult.GraphNode(name, AnalysisResult.GraphNode.Kind.ACTIVITY, activity);
         }
 
         private AnalysisResult.GraphNode linkNode(TibcoModel.Scope.Flow.Link link) {
-            String name = workerName(link);
-            return new AnalysisResult.GraphNode(name, AnalysisResult.GraphNode.Kind.LINK, link);
+            return new AnalysisResult.GraphNode(link.name(), AnalysisResult.GraphNode.Kind.LINK, link);
         }
     }
 }

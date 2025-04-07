@@ -22,7 +22,6 @@ import ballerina.BallerinaModel;
 import tibco.TibcoModel;
 
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -36,38 +35,32 @@ public final class AnalysisResult {
     private final Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap;
     private final Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> startActivities;
     private final Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> faultHandlerStartActivities;
-    private final Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> endActivities;
-    private final Map<TibcoModel.Scope.Flow.Link, String> workerNames;
     private final Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData;
     private final Map<String, TibcoModel.PartnerLink.Binding> partnerLinkBindings;
     private final Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex;
     private final Map<TibcoModel.Process, String> inputTypeName;
     private final Map<TibcoModel.Process, String> outputTypeName;
-    private final Graph<GraphNode> workerDependencies;
+    private final Graph<GraphNode> dependencyGraph;
 
     AnalysisResult(Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap,
                    Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap,
                    Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> startActivities,
                    Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> faultHandlerStartActivities,
-                   Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> endActivities,
-                   Map<TibcoModel.Scope.Flow.Link, String> workerNames,
                    Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData,
                    Map<String, TibcoModel.PartnerLink.Binding> partnerLinkBindings,
                    Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex,
                    Map<TibcoModel.Process, String> inputTypeName, Map<TibcoModel.Process, String> outputTypeName,
-                   Graph<GraphNode> workerDependencies) {
+                   Graph<GraphNode> dependencyGraph) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.startActivities = startActivities;
         this.faultHandlerStartActivities = faultHandlerStartActivities;
-        this.endActivities = endActivities;
-        this.workerNames = workerNames;
         this.activityData = activityData;
         this.partnerLinkBindings = partnerLinkBindings;
         this.queryIndex = queryIndex;
         this.inputTypeName = inputTypeName;
         this.outputTypeName = outputTypeName;
-        this.workerDependencies = workerDependencies;
+        this.dependencyGraph = dependencyGraph;
     }
 
     public String inputTypeName(TibcoModel.Process process) {
@@ -84,10 +77,6 @@ public final class AnalysisResult {
 
     public Collection<TibcoModel.Scope.Flow.Activity> faultHandlerStartActivities(TibcoModel.Process process) {
         return faultHandlerStartActivities.get(process);
-    }
-
-    public Collection<TibcoModel.Scope.Flow.Activity> endActivities(TibcoModel.Process process) {
-        return endActivities.get(process);
     }
 
     public Collection<TibcoModel.Scope.Flow.Activity> destinations(TibcoModel.Scope.Flow.Link link) {
@@ -108,11 +97,7 @@ public final class AnalysisResult {
     }
 
     public LinkData from(TibcoModel.Scope.Flow.Link link) {
-        String workerName = workerNames.get(link);
-        if (workerName == null) {
-            throw new IllegalArgumentException("No worker name found for link: " + link);
-        }
-        return new LinkData(workerName, sources(link), destinations(link));
+        return new LinkData(sources(link), destinations(link));
     }
 
     public ActivityData from(TibcoModel.Scope.Flow.Activity activity) {
@@ -184,7 +169,7 @@ public final class AnalysisResult {
     }
 
     public Stream<TibcoModel.Scope.Flow.Activity> sortedActivitiesFromRoots(Collection<GraphNode> roots) {
-        return workerDependencies.topologicalSortWithRoots(roots).stream()
+        return dependencyGraph.topologicalSortWithRoots(roots).stream()
                 .filter(node -> node.kid == GraphNode.Kind.ACTIVITY)
                 .map(node -> (TibcoModel.Scope.Flow.Activity) node.data);
     }
@@ -203,35 +188,20 @@ public final class AnalysisResult {
         }
         return activities
                 .map(activity -> new Data(activity, from(activity)))
-                .map(data -> new GraphNode(data.activityData.workerName, GraphNode.Kind.ACTIVITY, data.activity))
+                .map(data -> new GraphNode(data.activityData.functionName, GraphNode.Kind.ACTIVITY, data.activity))
                 .toList();
-    }
-
-    public Stream<String> sortWorkers(Stream<String> workers) {
-        // TODO: avoid repeated calculations
-        List<String> sortedWorkers = workerDependencies.topologicalSort().stream().map(GraphNode::name).toList();
-        record WorkerData(String name, int index) {
-
-        }
-        return workers.map(each -> {
-            if (sortedWorkers.contains(each)) {
-                return new WorkerData(each, sortedWorkers.indexOf(each) + 1);
-            } else {
-                return new WorkerData(each, 0);
-            }
-        }).sorted(Comparator.comparing(WorkerData::index)).map(WorkerData::name);
     }
 
     public TibcoModel.PartnerLink.Binding getBinding(String partnerLinkName) {
         return Objects.requireNonNull(partnerLinkBindings.get(partnerLinkName));
     }
 
-    public record LinkData(String workerName, Collection<TibcoModel.Scope.Flow.Activity> sourceActivities,
+    public record LinkData(Collection<TibcoModel.Scope.Flow.Activity> sourceActivities,
                            Collection<TibcoModel.Scope.Flow.Activity> destinationActivities) {
 
     }
 
-    public record ActivityData(String functionName, String workerName, BallerinaModel.TypeDesc argumentType,
+    public record ActivityData(String functionName, BallerinaModel.TypeDesc argumentType,
                                BallerinaModel.TypeDesc returnType) {
 
     }
