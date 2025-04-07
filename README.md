@@ -86,6 +86,7 @@ The migration tool currently supports the following Mule components:
 - [Choice](samples/MULE_COMPONENT_SAMPLES.md#choice)
 - [Choice Exception Strategy](samples/MULE_COMPONENT_SAMPLES.md#choice-exception-strategy)
 - [Database](samples/MULE_COMPONENT_SAMPLES.md#database)
+- [Expression Component](samples/MULE_COMPONENT_SAMPLES.md#expression-component)
 - [Flow](samples/MULE_COMPONENT_SAMPLES.md#flow)
 - [Http Listener](samples/MULE_COMPONENT_SAMPLES.md#http-listener)
 - [Logger](samples/MULE_COMPONENT_SAMPLES.md#logger)

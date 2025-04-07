@@ -599,6 +599,61 @@ service /mule3 on config {
 
 ```
 
+## Expression Component
+
+- ### Simple Expression Component
+
+**Input (simple_expression_component.xml):**
+```xml
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+    <flow name="combineFlowVarsAndPayloadFlow">
+        <set-variable variableName="name" value="Alice"/>
+        <set-payload value="Welcome"/>
+        <expression-component>
+            <![CDATA[
+                flowVars.name = "Alice";
+                payload = "Hello " + flowVars.name;
+            ]]>
+        </expression-component>
+        <logger message="Message: #[payload]" level="INFO"/>
+    </flow>
+</mule>
+
+```
+**Output (simple_expression_component.bal):**
+```ballerina
+import ballerina/log;
+
+type FlowVars record {|
+    string name?;
+|};
+
+type Context record {|
+    anydata payload;
+    FlowVars flowVars;
+|};
+
+function combineFlowVarsAndPayloadFlow(Context ctx) {
+    ctx.flowVars.name = "Alice";
+
+    // set payload
+    string _payload0_ = "Welcome";
+    ctx.payload = _payload0_;
+
+    ctx.flowVars.name = "Alice";
+    ctx.payload = "Hello " + ctx.flowVars.name;
+
+    log:printInfo(string `Message: ${ctx.payload.toString()}`);
+}
+
+```
+
 ## Flow
 
 - ### Basic Flow

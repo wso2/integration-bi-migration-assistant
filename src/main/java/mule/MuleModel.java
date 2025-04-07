@@ -19,6 +19,12 @@ public record MuleModel() {
         }
     }
 
+    public record ExpressionComponent(Kind kind, String exprCompContent) implements MuleRecord {
+        public ExpressionComponent(String exprCompContent) {
+            this(Kind.EXPRESSION_COMPONENT, exprCompContent);
+        }
+    }
+
     public record TransformMessage(Kind kind, List<TransformMessageElement> children) implements MuleRecord {
         public TransformMessage(List<TransformMessageElement> children) {
             this(Kind.TRANSFORM_MESSAGE, children);
@@ -209,6 +215,7 @@ public record MuleModel() {
     public enum Kind {
         HTTP_LISTENER,
         LOGGER,
+        EXPRESSION_COMPONENT,
         PAYLOAD,
         FLOW_REFERENCE,
         HTTP_REQUEST,

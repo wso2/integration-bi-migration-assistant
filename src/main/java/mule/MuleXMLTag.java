@@ -20,6 +20,7 @@ public enum MuleXMLTag {
     // Components
     LOGGER("logger", 1),
     TRANSFORM_MESSAGE("dw:transform-message", 3),
+    EXPRESSION_COMPONENT("expression-component", 3),
 
     // Scopes
     FLOW("flow", 3),
@@ -71,7 +72,6 @@ public enum MuleXMLTag {
     ASYNC("async", 3),
     SET_PROPERTY("set-property", 1),
     SMTP_OUTBOUND_ENDPOINT("smtp:outbound-endpoint", 4),
-    EXPRESSION_COMPONENT("expression-component", 3),
 
     UNSUPPORTED_TAG("unsupported-tag", 1000);
 

@@ -79,6 +79,7 @@ import static mule.MuleModel.DbMSQLConfig;
 import static mule.MuleModel.DbTemplateQuery;
 import static mule.MuleModel.Database;
 import static mule.MuleModel.Enricher;
+import static mule.MuleModel.ExpressionComponent;
 import static mule.MuleModel.Flow;
 import static mule.MuleModel.FlowReference;
 import static mule.MuleModel.HttpListener;
@@ -645,6 +646,9 @@ public class MuleToBalConverter {
             case MuleXMLTag.LOGGER -> {
                 return readLogger(data, muleElement);
             }
+            case MuleXMLTag.EXPRESSION_COMPONENT -> {
+                return readExpressionComponent(data, muleElement);
+            }
             case MuleXMLTag.SET_VARIABLE -> {
                 return readSetVariable(data, muleElement);
             }
@@ -698,6 +702,10 @@ public class MuleToBalConverter {
         switch (muleRec) {
             case Logger lg -> statementList.add(stmtFrom(String.format("log:%s(%s);",
                     getBallerinaLogFunction(lg.level()), convertMuleExprToBalStringLiteral(lg.message()))));
+            case ExpressionComponent exprComponent -> {
+                String convertedExpr = convertMuleExprToBal(String.format("#[%s]", exprComponent.exprCompContent()));
+                statementList.add(stmtFrom(convertedExpr));
+            }
             case Payload payload -> {
                 statementList.add(stmtFrom("\n\n// set payload\n"));
                 String pyld = convertMuleExprToBal(payload.expr());
@@ -1005,6 +1013,10 @@ public class MuleToBalConverter {
             default -> throw new IllegalStateException();
         }
         return new Logger(message, logLevel);
+    }
+
+    private static MuleRecord readExpressionComponent(Data data, MuleElement muleElement) {
+            return new ExpressionComponent(muleElement.getElement().getTextContent());
     }
 
     // Flow Control
