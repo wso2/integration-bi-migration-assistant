@@ -82,10 +82,10 @@ public record MuleModel() {
         }
     }
 
-    public record HttpRequest(Kind kind, String method, String url, String path, Map<String, String> queryParams)
-            implements MuleRecord {
-        public HttpRequest(String method, String url, String path, Map<String, String> queryParams) {
-            this(Kind.HTTP_REQUEST, method, url, path, queryParams);
+    public record HttpRequest(Kind kind, String configRef, String method, String url, String path,
+                              Map<String, String> queryParams) implements MuleRecord {
+        public HttpRequest(String configRef, String method, String url, String path, Map<String, String> queryParams) {
+            this(Kind.HTTP_REQUEST, configRef, method, url, path, queryParams);
         }
     }
 
@@ -183,6 +183,12 @@ public record MuleModel() {
         }
     }
 
+    public record HTTPRequestConfig(Kind kind, String name, String host, String port) implements MuleRecord {
+        public HTTPRequestConfig(String name, String host, String port) {
+            this(Kind.HTTP_REQUEST_CONFIG, name, host, port);
+        }
+    }
+
     public record DbMSQLConfig(Kind kind, String name, String host, String port, String user, String password,
                                String database) implements MuleRecord {
         public DbMSQLConfig(String name, String host, String port, String user, String password, String database) {
@@ -228,6 +234,7 @@ public record MuleModel() {
         CHOICE,
         WHEN_IN_CHOICE,
         HTTP_LISTENER_CONFIG,
+        HTTP_REQUEST_CONFIG,
         DB_MYSQL_CONFIG,
         DB_TEMPLATE_QUERY,
         DB_INSERT,

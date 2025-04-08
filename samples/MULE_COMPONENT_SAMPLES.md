@@ -1367,6 +1367,162 @@ service /mule\-3 on config {
 
 ```
 
+## Http Request
+
+- ### Basic Http Request
+
+**Input (basic_http_request.xml):**
+```xml
+<mule xmlns:jbossts="http://www.mulesoft.org/schema/mule/jbossts" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/jbossts http://www.mulesoft.org/schema/mule/jbossts/current/mule-jbossts.xsd">
+    <http:request-config name="HTTP_Request_Config" host="jsonplaceholder.typicode.com" port="80" doc:name="HTTP Request Configuration" />
+    <flow name="callExternalApiFlow">
+        <http:request method="GET"
+                      config-ref="HTTP_Request_Config"
+                      path="/posts/latest"
+                      doc:name="Call External API"/>
+        <logger message="Received from external API: #[payload]" level="INFO" />
+    </flow>
+</mule>
+
+```
+**Output (basic_http_request.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+type Context record {|
+    anydata payload;
+|};
+
+function callExternalApiFlow(Context ctx) {
+
+    // http client request
+    http:Client HTTP_Request_Config = check new ("jsonplaceholder.typicode.com:80");
+    http:Response _clientResult0_ = check HTTP_Request_Config->/posts/latest.get();
+    ctx.payload = check _clientResult0_.getJsonPayload();
+    log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
+}
+
+```
+
+- ### Http Request Path With Special Characters
+
+**Input (http_request_path_with_special_characters.xml):**
+```xml
+<mule xmlns:jbossts="http://www.mulesoft.org/schema/mule/jbossts" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/jbossts http://www.mulesoft.org/schema/mule/jbossts/current/mule-jbossts.xsd">
+    <http:request-config name="HTTP_Request_Config" host="jsonplaceholder.typicode.com" port="80" doc:name="HTTP Request Configuration" />
+    <flow name="callExternalApiFlow">
+        <http:request method="GET"
+                      config-ref="HTTP_Request_Config"
+                      path="/car-posts/12/honda-civic/991/latest"
+                      doc:name="Call External API"/>
+        <logger message="Received from external API: #[payload]" level="INFO" />
+    </flow>
+</mule>
+
+```
+**Output (http_request_path_with_special_characters.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+type Context record {|
+    anydata payload;
+|};
+
+function callExternalApiFlow(Context ctx) {
+
+    // http client request
+    http:Client HTTP_Request_Config = check new ("jsonplaceholder.typicode.com:80");
+    http:Response _clientResult0_ = check HTTP_Request_Config->/car\-posts/[12]/honda\-civic/[991]/latest.get();
+    ctx.payload = check _clientResult0_.getJsonPayload();
+    log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
+}
+
+```
+
+- ### Http Request With Http Source
+
+**Input (http_request_with_http_source.xml):**
+```xml
+<mule xmlns:jbossts="http://www.mulesoft.org/schema/mule/jbossts" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/jbossts http://www.mulesoft.org/schema/mule/jbossts/current/mule-jbossts.xsd">
+    <http:listener-config name="HTTP_Listener_Config" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration" basePath="mule3"/>
+    <http:request-config name="HTTP_Request_Config" host="jsonplaceholder.typicode.com" port="80" doc:name="HTTP Request Configuration" />
+    <flow name="callExternalApiFlow">
+        <http:listener config-ref="HTTP_Listener_Config" path="/"  doc:name="HTTP" allowedMethods="GET"/>
+        <http:request method="GET"
+                      config-ref="HTTP_Request_Config"
+                      path="/posts/latest"
+                      doc:name="Call External API"/>
+        <logger message="Received from external API: #[payload]" level="INFO" />
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_http_source.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+type InboundProperties record {|
+    http:Response response;
+|};
+
+type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
+listener http:Listener HTTP_Listener_Config = new (8081, {host: "0.0.0.0"});
+
+service /mule3 on HTTP_Listener_Config {
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
+    }
+
+    resource function get .() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+
+        // http client request
+        http:Client HTTP_Request_Config = check new ("jsonplaceholder.typicode.com:80");
+        http:Response _clientResult0_ = check HTTP_Request_Config->/posts/latest.get();
+        ctx.payload = check _clientResult0_.getJsonPayload();
+        log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
+        return ctx.inboundProperties.response;
+    }
+}
+
+```
+
 ## Logger
 
 - ### Basic Logger

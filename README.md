@@ -90,6 +90,7 @@ The migration tool currently supports the following Mule components:
 - [Expression Component](samples/MULE_COMPONENT_SAMPLES.md#expression-component)
 - [Flow](samples/MULE_COMPONENT_SAMPLES.md#flow)
 - [Http Listener](samples/MULE_COMPONENT_SAMPLES.md#http-listener)
+- [Http Request](samples/MULE_COMPONENT_SAMPLES.md#http-request)
 - [Logger](samples/MULE_COMPONENT_SAMPLES.md#logger)
 - [Message Enricher](samples/MULE_COMPONENT_SAMPLES.md#message-enricher)
 - [Object To Json](samples/MULE_COMPONENT_SAMPLES.md#object-to-json)

@@ -9,6 +9,7 @@ public enum MuleXMLTag {
 
     // Global Elements
     HTTP_LISTENER_CONFIG("http:listener-config", 4),
+    HTTP_REQUEST_CONFIG("http:request-config", 4),
     DB_MYSQL_CONFIG("db:mysql-config", 4),
     DB_TEMPLATE_QUERY("db:template-query", 3),
 

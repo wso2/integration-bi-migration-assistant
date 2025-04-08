@@ -60,6 +60,7 @@ import static converter.Constants.BAL_ERROR_TYPE;
 import static converter.Constants.BAL_STRING_TYPE;
 import static converter.Constants.FUNC_NAME_ASYC_TEMPLATE;
 import static converter.ConversionUtils.exprFrom;
+import static converter.ConversionUtils.getBallerinaClientResourcePath;
 import static converter.ConversionUtils.stmtFrom;
 import static converter.ConversionUtils.typeFrom;
 import static converter.ConversionUtils.convertMuleExprToBal;
@@ -88,6 +89,7 @@ import static mule.MuleModel.HttpListener;
 import static mule.MuleModel.HttpRequest;
 import static mule.MuleModel.Kind;
 import static mule.MuleModel.HTTPListenerConfig;
+import static mule.MuleModel.HTTPRequestConfig;
 import static mule.MuleModel.LogLevel;
 import static mule.MuleModel.Logger;
 import static mule.MuleModel.MuleRecord;
@@ -113,6 +115,7 @@ public class MuleToBalConverter {
 
         // Mule global elements
         HashMap<String, HTTPListenerConfig> globalHttpListenerConfigsMap = new LinkedHashMap<>();
+        HashMap<String, HTTPRequestConfig> globalHttpRequestConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbMSQLConfig> globalDbMySQLConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbTemplateQuery> globalDbTemplateQueryMap = new LinkedHashMap<>();
         List<UnsupportedBlock> globalUnsupportedBlocks = new ArrayList<>();
@@ -136,6 +139,7 @@ public class MuleToBalConverter {
         HashMap<String, ModuleTypeDef> contextTypeDefMap = new LinkedHashMap<>();
         HashSet<Import> contextTypeDefImports = new LinkedHashSet<>();
         HashMap<String, HTTPListenerConfig> sharedHttpListenerConfigsMap = new LinkedHashMap<>();
+        HashMap<String, HTTPRequestConfig> sharedHttpRequestConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbMSQLConfig> sharedDbMySQLConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbTemplateQuery> sharedDbTemplateQueryMap = new LinkedHashMap<>();
 
@@ -150,6 +154,7 @@ public class MuleToBalConverter {
         public int enricherFuncCount = 0;
         public int asyncFuncCount = 0;
         public int payloadVarCount = 0;
+        public int clientResultVarCount = 0;
 
         private final DWConversionStats dwConversionStats;
 
@@ -237,6 +242,7 @@ public class MuleToBalConverter {
         MuleToBalConverter.Data data = new MuleToBalConverter.Data(sharedProjectData);
         SyntaxTree syntaxTree = convertXMLFileToBallerina(muleXMLNavigator, xmlFilePath, data);
         sharedProjectData.sharedHttpListenerConfigsMap.putAll(data.globalHttpListenerConfigsMap);
+        sharedProjectData.sharedHttpRequestConfigsMap.putAll(data.globalHttpRequestConfigsMap);
         sharedProjectData.sharedDbMySQLConfigsMap.putAll(data.globalDbMySQLConfigsMap);
         sharedProjectData.sharedDbTemplateQueryMap.putAll(data.globalDbTemplateQueryMap);
         return syntaxTree;
@@ -308,6 +314,10 @@ public class MuleToBalConverter {
             HTTPListenerConfig httpListenerConfig = readHttpListenerConfig(data, muleElement);
             data.globalHttpListenerConfigsMap.put(httpListenerConfig.name(), httpListenerConfig);
             data.sharedProjectData.sharedHttpListenerConfigsMap.put(httpListenerConfig.name(), httpListenerConfig);
+        } else if (MuleXMLTag.HTTP_REQUEST_CONFIG.tag().equals(elementTagName)) {
+            HTTPRequestConfig httpRequestConfig = readHttpRequestConfig(data, muleElement);
+            data.globalHttpRequestConfigsMap.put(httpRequestConfig.name(), httpRequestConfig);
+            data.sharedProjectData.sharedHttpRequestConfigsMap.put(httpRequestConfig.name(), httpRequestConfig);
         } else if (MuleXMLTag.DB_MYSQL_CONFIG.tag().equals(elementTagName)) {
             DbMSQLConfig dbMSQLConfig = readDbMySQLConfig(data, muleElement);
             data.globalDbMySQLConfigsMap.put(dbMSQLConfig.name(), dbMSQLConfig);
@@ -796,16 +806,20 @@ public class MuleToBalConverter {
             }
             case HttpRequest httpRequest -> {
                 List<Statement> statements = new ArrayList<>();
-                String path = httpRequest.path();
+                String path = getBallerinaClientResourcePath(httpRequest.path());
                 String method = httpRequest.method();
                 String url = httpRequest.url();
                 Map<String, String> queryParams = httpRequest.queryParams();
 
-                statements.add(stmtFrom(String.format("http:Client %s = check new(\"%s\");", Constants.VAR_CLIENT,
+                statementList.add(stmtFrom("\n\n// http client request\n"));
+                statements.add(stmtFrom(String.format("http:Client %s = check new(\"%s\");", httpRequest.configRef(),
                         url)));
-                statements.add(stmtFrom(String.format("http:Response %s = check %s->%s/.%s(%s);",
-                        Constants.VAR_CLIENT_GET, Constants.VAR_CLIENT, path, method.toLowerCase(),
-                        genQueryParam(queryParams))));
+                String clientResultVar = String.format(Constants.VAR_CLIENT_RESULT_TEMPLATE,
+                        data.sharedProjectData.clientResultVarCount++);
+                statements.add(stmtFrom(String.format("http:Response %s = check %s->%s.%s(%s);", clientResultVar,
+                        httpRequest.configRef(), path, method.toLowerCase(), genQueryParam(queryParams))));
+                statements.add(stmtFrom(String.format("%s.payload = check %s.getJsonPayload();",
+                        Constants.CONTEXT_REFERENCE, clientResultVar)));
                 statementList.addAll(statements);
             }
             case FlowReference flowReference -> {
@@ -1217,9 +1231,14 @@ public class MuleToBalConverter {
 
     private static HttpRequest readHttpRequest(Data data, MuleElement muleElement) {
         Element element = muleElement.getElement();
+        String configRef = element.getAttribute("config-ref");
+        HTTPRequestConfig httpRequestConfig = data.sharedProjectData.sharedHttpRequestConfigsMap.get(configRef);
+        String host = httpRequestConfig.host();
+        String port = httpRequestConfig.port();
+        String url = String.format("%s:%s", host, port);
+
         String method = element.getAttribute("method").toLowerCase();
-        String url = element.getAttribute("url").toLowerCase();
-        String path = element.getAttribute("path").toLowerCase();
+        String path = element.getAttribute("path");
 
         Map<String, String> queryParams = new HashMap<>();
         while (muleElement.peekChild() != null) {
@@ -1234,7 +1253,7 @@ public class MuleToBalConverter {
             }
         }
 
-        return new HttpRequest(method, url, path, queryParams);
+        return new HttpRequest(configRef, method, url, path, queryParams);
     }
 
     private static FlowReference readFlowReference(Data data, MuleElement muleElement) {
@@ -1314,13 +1333,22 @@ public class MuleToBalConverter {
     // Global Elements
     private static HTTPListenerConfig readHttpListenerConfig(Data data, MuleElement muleElement) {
         Element element = muleElement.getElement();
-        data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP, Optional.empty()));
+        data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP));
         String listenerName = element.getAttribute("name");
         String host = element.getAttribute("host");
         String port = element.getAttribute("port");
         String basePath = insertLeadingSlash(element.getAttribute("basePath"));
         HashMap<String, String> config = new HashMap<>(Collections.singletonMap("host", host));
         return new HTTPListenerConfig(listenerName, basePath, port, config);
+    }
+
+    private static HTTPRequestConfig readHttpRequestConfig(Data data, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP));
+        String configName = element.getAttribute("name");
+        String host = element.getAttribute("host");
+        String port = element.getAttribute("port");
+        return new HTTPRequestConfig(configName, host, port);
     }
 
     private static DbMSQLConfig readDbMySQLConfig(Data data, MuleElement muleElement) {

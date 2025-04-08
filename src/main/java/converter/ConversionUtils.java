@@ -65,13 +65,36 @@ public class ConversionUtils {
         List<String> list = Arrays.stream(basePath.split("/")).filter(s -> !s.isEmpty())
                 .map(ConversionUtils::escapeSpecialCharacters).toList();
 
-        String absolutePath;
-        if (list.isEmpty()) {
-            absolutePath = "/";
-        } else {
-            absolutePath = "/" + String.join("/", list);
+        return list.isEmpty() ? "/" : "/" + String.join("/", list);
+    }
+
+    /**
+     * Converts mule http request path to a Ballerina client resource path.
+     *
+     * @param basePath mule http request path
+     * @return ballerina client resource path
+     */
+    static String getBallerinaClientResourcePath(String basePath) {
+        List<String> list = Arrays.stream(basePath.split("/")).filter(s -> !s.isEmpty())
+                .map(s -> {
+                    if (isInt(s)) {
+                        return "[" + s + "]";
+                    } else {
+                        return ConversionUtils.escapeSpecialCharacters(s);
+                    }
+
+                }).toList();
+
+        return list.isEmpty() ? "/" : "/" + String.join("/", list);
+    }
+
+    private static boolean isInt(String str) {
+        try {
+            Integer.parseInt(str);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
         }
-        return absolutePath;
     }
 
     /**
@@ -179,32 +202,6 @@ public class ConversionUtils {
         } else {
             return "anydata";
         }
-    }
-
-    public static String getSimpleMuleFlowVar(String muleExpr) {
-        String expr = extractSimpleMuleExpr(muleExpr);
-        return getVariable(null, expr);
-    }
-
-    public static String extractSimpleMuleExpr(String muleExpr) {
-        assert muleExpr.startsWith("#[") && muleExpr.endsWith("]");
-        return muleExpr.substring(2, muleExpr.length() - 1);
-    }
-
-    private static String getVariable(MuleToBalConverter.Data data, String value) {
-        String queryParamPrefix = "attributes.queryParams.";
-        String varPrefix = "flowVars.";
-
-        String v;
-        if (value.startsWith(queryParamPrefix)) {
-            v = value.substring(queryParamPrefix.length());
-            data.queryParams.add(v);
-        } else if (value.startsWith(varPrefix)) {
-            v = value.substring(varPrefix.length());
-        } else {
-            v = value;
-        }
-        return v;
     }
 
     public static String elementToString(Element element) {

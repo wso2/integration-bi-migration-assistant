@@ -24,9 +24,6 @@ public class Constants {
     public static final String MODULE_JAVA = "jballerina.java";
 
     // Variable/Func Names
-    public static final String VAR_RESPONSE = "_response_";
-    public static final String VAR_CLIENT = "_client_";
-    public static final String VAR_CLIENT_GET = "_client_get_";
     public static final String VAR_ITERATOR = "_iterator_";
     public static final String CONTEXT_REFERENCE = "ctx";
     public static final String FLOW_VARS_REF = "flowVars";
@@ -44,8 +41,8 @@ public class Constants {
     public static final String VAR_OBJ_TO_STRING_TEMPLATE = "_to_string%s_";
     public static final String FUNC_NAME_ENRICHER_TEMPLATE = "_enricher%s_";
     public static final String FUNC_NAME_ASYC_TEMPLATE = "_async%s_";
-    public static final String VAR_FUTURE_TEMPLATE = "_future%s_";
     public static final String VAR_PAYLOAD_TEMPLATE = "_payload%s_";
+    public static final String VAR_CLIENT_RESULT_TEMPLATE = "_clientResult%s_";
 
     // Types
     public static final String HTTP_RESPONSE_TYPE = "http:Response";
