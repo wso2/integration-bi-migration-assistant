@@ -1,10 +1,10 @@
 import ballerina/http;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};

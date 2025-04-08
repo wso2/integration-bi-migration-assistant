@@ -1,7 +1,7 @@
 import ballerina/jballerina.java;
 import ballerina/time;
 
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
@@ -9,6 +9,10 @@ public function UTC() returns handle = @java:FieldGet {
     'class: "java.time.ZoneOffset",
     name: "UTC"
 } external;
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_();
+}
 
 public function parseDateTime(handle date, handle formatter) returns handle = @java:Method {
     'class: "java.time.LocalDateTime",
@@ -19,10 +23,6 @@ public function parseDateTime(handle date, handle formatter) returns handle = @j
 public function getDateFromFormattedString(string dateString, string format) returns time:Utc|error {
     handle localDateTime = parseDateTime(java:fromString(dateString), getDateTimeFormatter(java:fromString(format)));
     return check time:utcFromString(toInstant(localDateTime, UTC()).toString());
-}
-
-function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_();
 }
 
 public function getDateTimeFormatter(handle format) returns handle = @java:Method {

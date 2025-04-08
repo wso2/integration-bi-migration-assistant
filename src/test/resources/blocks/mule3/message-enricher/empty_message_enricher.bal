@@ -1,16 +1,16 @@
 import ballerina/log;
 
-type FlowVars record {|
+public type FlowVars record {|
     string userId?;
     string enrichedUserId?;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     FlowVars flowVars;
 |};
 
-function variableEnricherFlow(Context ctx) {
+public function variableEnricherFlow(Context ctx) {
     ctx.flowVars.userId = "st455u";
     ctx.flowVars.enrichedUserId = "null";
     ctx.flowVars.enrichedUserId = ctx.flowVars.userId;

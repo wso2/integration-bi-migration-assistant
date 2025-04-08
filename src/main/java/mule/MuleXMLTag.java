@@ -9,6 +9,7 @@ public enum MuleXMLTag {
 
     // Global Elements
     HTTP_LISTENER_CONFIG("http:listener-config", 4),
+    HTTP_REQUEST_CONFIG("http:request-config", 4),
     DB_MYSQL_CONFIG("db:mysql-config", 4),
     DB_TEMPLATE_QUERY("db:template-query", 3),
 
@@ -20,12 +21,14 @@ public enum MuleXMLTag {
     // Components
     LOGGER("logger", 1),
     TRANSFORM_MESSAGE("dw:transform-message", 3),
+    EXPRESSION_COMPONENT("expression-component", 3),
 
     // Scopes
     FLOW("flow", 3),
     SUB_FLOW("sub-flow", 3),
     FLOW_REFERENCE("flow-ref", 3),
     ENRICHER("enricher", 4),
+    ASYNC("async", 3),
 
     // Transformers
     SET_VARIABLE("set-variable", 1),
@@ -68,10 +71,8 @@ public enum MuleXMLTag {
     FILE_CONNECTOR("file:connector", 5),
     WS_CONSUMER_CONFIG("ws:consumer-config", 4),
     SMTP_CONNECTOR("smtp:connector", 4),
-    ASYNC("async", 3),
     SET_PROPERTY("set-property", 1),
     SMTP_OUTBOUND_ENDPOINT("smtp:outbound-endpoint", 4),
-    EXPRESSION_COMPONENT("expression-component", 3),
 
     UNSUPPORTED_TAG("unsupported-tag", 1000);
 

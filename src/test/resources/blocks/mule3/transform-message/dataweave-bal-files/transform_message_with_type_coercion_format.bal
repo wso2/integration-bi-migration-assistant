@@ -1,7 +1,7 @@
 import ballerina/jballerina.java;
 import ballerina/time;
 
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
@@ -11,14 +11,14 @@ public function getFormattedStringFromDate(string dateString, string format) ret
     return formatDateTime(localDateTime, getDateTimeFormatter(java:fromString(format))).toString();
 }
 
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_();
+}
+
 public function parseInstant(handle instant) returns handle = @java:Method {
     'class: "java.time.Instant",
     name: "parse"
 } external;
-
-function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_();
-}
 
 public function formatDateTime(handle dateTime, handle formatter) returns handle = @java:Method {
     'class: "java.time.LocalDateTime"

@@ -1,21 +1,21 @@
 import ballerina/http;
 import ballerina/log;
 
-type SessionVars record {|
+public type SessionVars record {|
     string sessionVarExample?;
 |};
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     SessionVars sessionVars;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener HTTP_Config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener HTTP_Config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on HTTP_Config {
     Context ctx;

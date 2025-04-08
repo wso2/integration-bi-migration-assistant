@@ -1,4 +1,4 @@
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
@@ -7,6 +7,6 @@ function _dwMethod0_(json payload) returns json {
     return _var_0.'map(element => element + _var_0.indexOf(element));
 }
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
 }

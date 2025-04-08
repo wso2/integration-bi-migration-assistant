@@ -1,15 +1,15 @@
 import ballerina/http;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /foo on config {
     Context ctx;

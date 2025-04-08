@@ -3,21 +3,21 @@ import ballerina/sql;
 import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-type Record record {
+public type Record record {
 };
 
 mysql:Client MySQL_Configuration = check new ("localhost", "root", "admin123", "test_db", 3306);
 sql:ParameterizedQuery Template_Select_Query = `SELECT * FROM users;`;
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;

@@ -1,13 +1,13 @@
 import ballerina/http;
 import ballerina/log;
 
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
-function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) {
 
     // TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.
     // ------------------------------------------------------------------------

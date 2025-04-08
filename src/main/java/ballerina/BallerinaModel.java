@@ -99,10 +99,15 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                            Optional<String> returnType, List<Statement> body) {
     }
 
-    public record Function(Optional<String> visibilityQualifier, String methodName, List<Parameter> parameters,
+    public record Function(Optional<String> visibilityQualifier, String funcName, List<Parameter> parameters,
                            Optional<String> returnType, FunctionBody body) {
-        public Function(String methodName, List<Parameter> parameters, List<Statement> body) {
-            this(Optional.empty(), methodName, parameters, Optional.empty(),
+        public Function(String funcName, List<Parameter> parameters, List<Statement> body) {
+            this(Optional.empty(), funcName, parameters, Optional.empty(),
+                    new BlockFunctionBody(body));
+        }
+
+        public static Function publicFunction(String funcName, List<Parameter> parameters, List<Statement> body) {
+            return new Function(Optional.of("public"), funcName, parameters, Optional.empty(),
                     new BlockFunctionBody(body));
         }
     }

@@ -1,4 +1,4 @@
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
@@ -8,6 +8,6 @@ function _dwMethod0_() returns json|error {
     return {"a": check _var_0.push(..._var_1).ensureType(json)};
 }
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_();
 }
