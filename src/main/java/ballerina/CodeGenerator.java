@@ -66,8 +66,9 @@ public class CodeGenerator {
             List<ModuleMemberDeclarationNode> moduleMembers = new ArrayList<>();
 
             for (ModuleTypeDef moduleTypeDef : textDocument.moduleTypeDefs()) {
+                // TODO: handle visibility qualifier properly
                 TypeDefinitionNode typeDefinitionNode = (TypeDefinitionNode) NodeParser.parseModuleMemberDeclaration(
-                        String.format("type %s %s;", moduleTypeDef.name(), moduleTypeDef.type()));
+                        String.format("public type %s %s;", moduleTypeDef.name(), moduleTypeDef.type()));
                 moduleMembers.add(typeDefinitionNode);
             }
 
@@ -78,8 +79,9 @@ public class CodeGenerator {
             }
 
             for (Listener listener : textDocument.listeners()) {
+                // TODO: handle visibility qualifier properly
                 ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(
-                        String.format("listener http:Listener %s = new (%s, {host: \"%s\"});", listener.name(),
+                        String.format("public listener http:Listener %s = new (%s, {host: \"%s\"});", listener.name(),
                                 listener.port(), listener.config().get("host")));
                 moduleMembers.add(member);
             }

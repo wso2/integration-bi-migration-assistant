@@ -1,16 +1,16 @@
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener HTTP_Listener_Config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener HTTP_Listener_Config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on HTTP_Listener_Config {
     Context ctx;

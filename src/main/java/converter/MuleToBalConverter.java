@@ -499,10 +499,10 @@ public class MuleToBalConverter {
         }
 
         String methodName = ConversionUtils.escapeSpecialCharacters(name);
-        // TODO: consider passing down context
         List<Parameter> parameters = new ArrayList<>();
+        parameters.add(Constants.CONTEXT_FUNC_PARAM);
         parameters.add(new Parameter("e", BAL_ERROR_TYPE));
-        Function function = new Function(methodName, parameters.stream().toList(), body);
+        Function function = Function.publicFunction(methodName, parameters.stream().toList(), body);
         functions.add(function);
     }
 
@@ -521,7 +521,7 @@ public class MuleToBalConverter {
         addEndOfMethodStatements(data.sharedProjectData.currentFlowInfo,  new BlockFunctionBody(body));
 
         String methodName = ConversionUtils.escapeSpecialCharacters(flowName);
-        Function function = new Function(methodName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
+        Function function = Function.publicFunction(methodName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
         functions.add(function);
         data.sharedProjectData.flowToGenMethodMap.put(flowName, function);
     }
@@ -848,7 +848,7 @@ public class MuleToBalConverter {
                 List<Statement> body = genFuncBodyStatements(data, async.flowBlocks());
                 int asyncFuncId = data.sharedProjectData.asyncFuncCount++;
                 String funcName = String.format(FUNC_NAME_ASYC_TEMPLATE, asyncFuncId);
-                Function function = new Function(funcName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
+                Function function = Function.publicFunction(funcName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
                 data.functions.add(function);
 
                 statementList.add(stmtFrom("\n\n// async operation\n"));
@@ -878,7 +878,7 @@ public class MuleToBalConverter {
 
                     String methodName = String.format(Constants.FUNC_NAME_ENRICHER_TEMPLATE,
                             data.sharedProjectData.enricherFuncCount);
-                    Function func = new Function(Optional.empty(), methodName, Constants.FUNC_PARAMS_WITH_CONTEXT,
+                    Function func = new Function(Optional.of("public"), methodName, Constants.FUNC_PARAMS_WITH_CONTEXT,
                             Optional.of("string?"),  new BlockFunctionBody(enricherStmts));
                     data.functions.add(func);
 
@@ -904,7 +904,8 @@ public class MuleToBalConverter {
             case ReferenceExceptionStrategy referenceExceptionStrategy -> {
                 String refName = referenceExceptionStrategy.refName();
                 String funcRef = ConversionUtils.escapeSpecialCharacters(refName);
-                BallerinaStatement funcCallStmt = stmtFrom(String.format("%s(%s);", funcRef, "e"));
+                BallerinaStatement funcCallStmt = stmtFrom(String.format("%s(%s, %s);", funcRef,
+                        Constants.CONTEXT_REFERENCE, "e"));
                 List<Statement> onFailBody = Collections.singletonList(funcCallStmt);
                 TypeBindingPattern typeBindingPattern = new TypeBindingPattern(BAL_ERROR_TYPE, "e");
                 OnFailClause onFailClause = new OnFailClause(onFailBody, typeBindingPattern);

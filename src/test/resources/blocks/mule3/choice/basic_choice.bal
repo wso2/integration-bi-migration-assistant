@@ -1,15 +1,15 @@
 import ballerina/log;
 
-type FlowVars record {|
+public type FlowVars record {|
     int age?;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     FlowVars flowVars;
 |};
 
-function muleProject(Context ctx) {
+public function muleProject(Context ctx) {
     ctx.flowVars.age = 29;
     if ctx.flowVars.age > 18 {
         log:printInfo(string `Adult detected: Age is ${ctx.flowVars.age.toString()} years.`);

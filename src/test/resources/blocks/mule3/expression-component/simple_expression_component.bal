@@ -1,15 +1,15 @@
 import ballerina/log;
 
-type FlowVars record {|
+public type FlowVars record {|
     string name?;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     FlowVars flowVars;
 |};
 
-function combineFlowVarsAndPayloadFlow(Context ctx) {
+public function combineFlowVarsAndPayloadFlow(Context ctx) {
     ctx.flowVars.name = "Alice";
 
     // set payload

@@ -1,10 +1,10 @@
 import ballerina/log;
 
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) {
     do {
         log:printInfo("xxx: main flow logger invoked");
     } on fail error e {

@@ -31,15 +31,11 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 ```ballerina
 import ballerina/log;
 
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function _async0_(Context ctx) {
-    log:printInfo(string `Doing something in background: ${ctx.payload.toString()}`);
-}
-
-function mainFlow(Context ctx) {
+public function mainFlow(Context ctx) {
 
     // set payload
     string _payload0_ = "Hello";
@@ -48,6 +44,10 @@ function mainFlow(Context ctx) {
     // async operation
     _ = start _async0_(ctx);
     log:printInfo("Main flow continues immediately.");
+}
+
+public function _async0_(Context ctx) {
+    log:printInfo(string `Doing something in background: ${ctx.payload.toString()}`);
 }
 
 ```
@@ -81,11 +81,11 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 ```ballerina
 import ballerina/log;
 
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) {
     do {
         log:printInfo("xxx: logger invoked via http end point");
     } on fail {
@@ -126,16 +126,16 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -195,16 +195,16 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 ```ballerina
 import ballerina/log;
 
-type FlowVars record {|
+public type FlowVars record {|
     int age?;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     FlowVars flowVars;
 |};
 
-function muleProject(Context ctx) {
+public function muleProject(Context ctx) {
     ctx.flowVars.age = 29;
     if ctx.flowVars.age > 18 {
         log:printInfo(string `Adult detected: Age is ${ctx.flowVars.age.toString()} years.`);
@@ -256,21 +256,21 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 import ballerina/http;
 import ballerina/log;
 
-type FlowVars record {|
+public type FlowVars record {|
     int marks?;
 |};
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     FlowVars flowVars;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -338,16 +338,16 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 ```ballerina
 import ballerina/log;
 
-type FlowVars record {|
+public type FlowVars record {|
     int marks?;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     FlowVars flowVars;
 |};
 
-function muleProject(Context ctx) {
+public function muleProject(Context ctx) {
     ctx.flowVars.marks = 73;
     if ctx.flowVars.marks > 75 {
         log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is A.`);
@@ -398,11 +398,11 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 ```ballerina
 import ballerina/log;
 
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) {
     do {
         log:printInfo("xxx: main flow logger invoked");
     } on fail error e {
@@ -455,16 +455,16 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -530,20 +530,20 @@ import ballerina/sql;
 import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-type Record record {
+public type Record record {
 };
 
 mysql:Client MySQL_Configuration = check new ("localhost", "root", "admin123", "test_db", 3306);
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -606,21 +606,21 @@ import ballerina/sql;
 import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-type Record record {
+public type Record record {
 };
 
 mysql:Client MySQL_Configuration = check new ("localhost", "root", "admin123", "test_db", 3306);
 sql:ParameterizedQuery Template_Select_Query = `SELECT * FROM users;`;
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -678,16 +678,16 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 ```ballerina
 import ballerina/log;
 
-type FlowVars record {|
+public type FlowVars record {|
     string name?;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     FlowVars flowVars;
 |};
 
-function combineFlowVarsAndPayloadFlow(Context ctx) {
+public function combineFlowVarsAndPayloadFlow(Context ctx) {
     ctx.flowVars.name = "Alice";
 
     // set payload
@@ -730,16 +730,16 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -791,16 +791,16 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -821,7 +821,7 @@ service /mule3 on config {
     }
 }
 
-function demoPrivateFlow(Context ctx) {
+public function demoPrivateFlow(Context ctx) {
     log:printInfo("xxx: private flow invoked");
 }
 
@@ -855,16 +855,16 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -943,16 +943,16 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -999,16 +999,16 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -1062,16 +1062,16 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -1117,16 +1117,16 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service / on config {
     Context ctx;
@@ -1172,16 +1172,16 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service / on config {
     Context ctx;
@@ -1227,16 +1227,16 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -1282,16 +1282,16 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -1337,16 +1337,16 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule\-3 on config {
     Context ctx;
@@ -1398,11 +1398,11 @@ http://www.mulesoft.org/schema/mule/jbossts http://www.mulesoft.org/schema/mule/
 import ballerina/http;
 import ballerina/log;
 
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function callExternalApiFlow(Context ctx) {
+public function callExternalApiFlow(Context ctx) {
 
     // http client request
     http:Client HTTP_Request_Config = check new ("jsonplaceholder.typicode.com:80");
@@ -1442,11 +1442,11 @@ http://www.mulesoft.org/schema/mule/jbossts http://www.mulesoft.org/schema/mule/
 import ballerina/http;
 import ballerina/log;
 
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function callExternalApiFlow(Context ctx) {
+public function callExternalApiFlow(Context ctx) {
 
     // http client request
     http:Client HTTP_Request_Config = check new ("jsonplaceholder.typicode.com:80");
@@ -1488,16 +1488,16 @@ http://www.mulesoft.org/schema/mule/jbossts http://www.mulesoft.org/schema/mule/
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener HTTP_Listener_Config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener HTTP_Listener_Config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on HTTP_Listener_Config {
     Context ctx;
@@ -1551,16 +1551,16 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -1612,16 +1612,16 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -1671,17 +1671,17 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 ```ballerina
 import ballerina/log;
 
-type FlowVars record {|
+public type FlowVars record {|
     string userId?;
     string enrichedUserId?;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     FlowVars flowVars;
 |};
 
-function variableEnricherFlow(Context ctx) {
+public function variableEnricherFlow(Context ctx) {
     ctx.flowVars.userId = "st455u";
     ctx.flowVars.enrichedUserId = "null";
     ctx.flowVars.enrichedUserId = ctx.flowVars.userId;
@@ -1719,31 +1719,31 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 ```ballerina
 import ballerina/log;
 
-type FlowVars record {|
+public type FlowVars record {|
     string userId?;
     string enrichedUserId?;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     FlowVars flowVars;
 |};
 
-function flow1(Context ctx) {
-    log:printInfo("xxx: flow1 starting logger invkoed");
-    log:printInfo("xxx: end of flow1 reached");
-}
-
-function _enricher0_(Context ctx) returns string? {
-    flow1(ctx);
-    return ctx.flowVars.userId;
-}
-
-function variableEnricherFlow(Context ctx) {
+public function variableEnricherFlow(Context ctx) {
     ctx.flowVars.userId = "st455u";
     ctx.flowVars.enrichedUserId = "null";
     ctx.flowVars.enrichedUserId = _enricher0_(ctx.clone());
     log:printInfo(string `User ID: ${ctx.flowVars.userId.toString()}, Enriched User ID: ${ctx.flowVars.enrichedUserId.toString()}`);
+}
+
+public function _enricher0_(Context ctx) returns string? {
+    flow1(ctx);
+    return ctx.flowVars.userId;
+}
+
+public function flow1(Context ctx) {
+    log:printInfo("xxx: flow1 starting logger invkoed");
+    log:printInfo("xxx: end of flow1 reached");
 }
 
 ```
@@ -1772,26 +1772,26 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 ```ballerina
 import ballerina/log;
 
-type FlowVars record {|
+public type FlowVars record {|
     string userId?;
     string enrichedUserId?;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     FlowVars flowVars;
 |};
 
-function variableEnricherFlow(Context ctx) {
+public function _enricher0_(Context ctx) returns string? {
+    log:printInfo("xxx: logger inside the message enricher invoked");
+    return ctx.flowVars.userId;
+}
+
+public function variableEnricherFlow(Context ctx) {
     ctx.flowVars.userId = "st455u";
     ctx.flowVars.enrichedUserId = "null";
     ctx.flowVars.enrichedUserId = _enricher0_(ctx.clone());
     log:printInfo(string `User ID: ${ctx.flowVars.userId.toString()}, Enriched User ID: ${ctx.flowVars.enrichedUserId.toString()}`);
-}
-
-function _enricher0_(Context ctx) returns string? {
-    log:printInfo("xxx: logger inside the message enricher invoked");
-    return ctx.flowVars.userId;
 }
 
 ```
@@ -1832,20 +1832,20 @@ import ballerina/sql;
 import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-type Record record {
+public type Record record {
 };
 
 mysql:Client MySQL_Configuration = check new ("localhost", "root", "admin123", "test_db", 3306);
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -1911,20 +1911,20 @@ import ballerina/sql;
 import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-type Record record {
+public type Record record {
 };
 
 mysql:Client MySQL_Configuration = check new ("localhost", "root", "admin123", "test_db", 3306);
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -1983,20 +1983,20 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 ```ballerina
 import ballerina/log;
 
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function catch\-exception\-strategy(error e) {
-    log:printInfo("xxx: inside catch exception strategy");
-}
-
-function muleProject(Context ctx) {
+public function muleProject(Context ctx) {
     do {
         log:printInfo("xxx: end of flow reached");
     } on fail error e {
-        catch\-exception\-strategy(e);
+        catch\-exception\-strategy(ctx, e);
     }
+}
+
+public function catch\-exception\-strategy(Context ctx, error e) {
+    log:printInfo("xxx: inside catch exception strategy");
 }
 
 ```
@@ -2031,16 +2031,16 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener httpConfig = new (8081, {host: "0.0.0.0"});
+public listener http:Listener httpConfig = new (8081, {host: "0.0.0.0"});
 
 service / on httpConfig {
     Context ctx;
@@ -2057,13 +2057,13 @@ service / on httpConfig {
         do {
             log:printInfo("xxx: end of flow reached");
         } on fail error e {
-            catch\-exception\-strategy(e);
+            catch\-exception\-strategy(ctx, e);
         }
         return ctx.inboundProperties.response;
     }
 }
 
-function catch\-exception\-strategy(error e) {
+public function catch\-exception\-strategy(Context ctx, error e) {
     log:printInfo("xxx: inside catch exception strategy");
 }
 
@@ -2098,17 +2098,17 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 ```ballerina
 import ballerina/log;
 
-type SessionVars record {|
+public type SessionVars record {|
     string sessionVar1?;
     string sessionVar2?;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     SessionVars sessionVars;
 |};
 
-function myFlow(Context ctx) {
+public function myFlow(Context ctx) {
     log:printInfo("xxx: flow starting logger invoked");
     ctx.sessionVars.sessionVar1 = "this is first session variable";
     ctx.sessionVars.sessionVar2 = "this is second session variable";
@@ -2158,21 +2158,21 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 import ballerina/http;
 import ballerina/log;
 
-type SessionVars record {|
+public type SessionVars record {|
     string sessionVarExample?;
 |};
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     SessionVars sessionVars;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener HTTP_Config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener HTTP_Config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on HTTP_Config {
     Context ctx;
@@ -2228,16 +2228,16 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 ```ballerina
 import ballerina/log;
 
-type SessionVars record {|
+public type SessionVars record {|
     string sessionVar1?;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     SessionVars sessionVars;
 |};
 
-function myFlow(Context ctx) {
+public function myFlow(Context ctx) {
     log:printInfo("xxx: flow starting logger invoked");
     ctx.sessionVars.sessionVar1 = "initial value";
     ctx.sessionVars.sessionVar1 = "updated value";
@@ -2273,16 +2273,16 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 ```ballerina
 import ballerina/http;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -2334,16 +2334,16 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 ```ballerina
 import ballerina/http;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -2410,16 +2410,16 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -2440,7 +2440,7 @@ service /mule3 on config {
     }
 }
 
-function demoSub_Flow(Context ctx) {
+public function demoSub_Flow(Context ctx) {
     log:printInfo("xxx: sub flow logger invoked");
 
     // set payload
@@ -2487,16 +2487,16 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 ```ballerina
 import ballerina/http;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /foo on config {
     Context ctx;
@@ -2557,16 +2557,16 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 ```ballerina
 import ballerina/http;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /foo on config {
     Context ctx;
@@ -2637,9 +2637,15 @@ payload groupBy $.language
 ```
 **Output (transform_message_with_unsupported_components.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
+    _dwOutput_ = _dwMethod1_(ctx.payload.toJson());
+    _dwOutput_ = _dwMethod2_(ctx.payload.toJson());
+}
 
 function _dwMethod1_(xml payload) returns json {
     //TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'map$+1' OF TYPE 'xml' FOUND. MANUAL CONVERSION REQUIRED.
@@ -2647,12 +2653,6 @@ function _dwMethod1_(xml payload) returns json {
 
 function _dwMethod2_(json payload) returns json {
     //TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'groupBy$.language' FOUND. MANUAL CONVERSION REQUIRED.
-}
-
-function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
-    _dwOutput_ = _dwMethod1_(ctx.payload.toJson());
-    _dwOutput_ = _dwMethod2_(ctx.payload.toJson());
 }
 
 function _dwMethod0_(json payload) returns json {
@@ -2693,22 +2693,22 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 ```ballerina
 import ballerina/http;
 
-type FlowVars record {|
+public type FlowVars record {|
     string name?;
     string age?;
 |};
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     FlowVars flowVars;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;

@@ -1,11 +1,11 @@
 import ballerina/http;
 import ballerina/log;
 
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function callExternalApiFlow(Context ctx) {
+public function callExternalApiFlow(Context ctx) {
 
     // http client request
     http:Client HTTP_Request_Config = check new ("jsonplaceholder.typicode.com:80");

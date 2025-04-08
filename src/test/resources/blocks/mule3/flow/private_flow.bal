@@ -1,16 +1,16 @@
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;
@@ -31,6 +31,6 @@ service /mule3 on config {
     }
 }
 
-function demoPrivateFlow(Context ctx) {
+public function demoPrivateFlow(Context ctx) {
     log:printInfo("xxx: private flow invoked");
 }

@@ -1,21 +1,21 @@
 import ballerina/http;
 
-type FlowVars record {|
+public type FlowVars record {|
     string name?;
     string age?;
 |};
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     FlowVars flowVars;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081, {host: "0.0.0.0"});
 
 service /mule3 on config {
     Context ctx;

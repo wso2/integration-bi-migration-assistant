@@ -105,6 +105,11 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             this(Optional.empty(), funcName, parameters, Optional.empty(),
                     new BlockFunctionBody(body));
         }
+
+        public static Function publicFunction(String funcName, List<Parameter> parameters, List<Statement> body) {
+            return new Function(Optional.of("public"), funcName, parameters, Optional.empty(),
+                    new BlockFunctionBody(body));
+        }
     }
 
     public interface FunctionBody {

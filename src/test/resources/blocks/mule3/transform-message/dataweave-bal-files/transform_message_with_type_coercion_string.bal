@@ -1,11 +1,11 @@
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function _dwMethod0_() returns string {
-    return 10.toString();
+public function sampleFlow(Context ctx) {
+    string _dwOutput_ = _dwMethod0_();
 }
 
-function sampleFlow(Context ctx) {
-    string _dwOutput_ = _dwMethod0_();
+function _dwMethod0_() returns string {
+    return 10.toString();
 }

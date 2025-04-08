@@ -19,7 +19,7 @@ This section provides examples of DataWeave scripts and their corresponding Ball
 
 **Ballerina Output (transform_message_with_concat_array.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
@@ -29,7 +29,7 @@ function _dwMethod0_() returns json|error {
     return {"a": check _var_0.push(..._var_1).ensureType(json)};
 }
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_();
 }
 
@@ -48,11 +48,11 @@ concat: {aa: "a"} ++ {cc: "c"}
 
 **Ballerina Output (transform_message_with_concat_object.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_();
 }
 
@@ -78,16 +78,16 @@ function _dwMethod0_() returns json|error {
 
 **Ballerina Output (transform_message_with_concat_string.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_();
-}
-
 function _dwMethod0_() returns json {
     return {"name": "Ballerina " + "Conversion"};
+}
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod0_();
 }
 
 ```
@@ -113,16 +113,16 @@ function _dwMethod0_() returns json {
 ```ballerina
 import ballerina/time;
 
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function _dwMethod0_() returns json|error {
-    return {"date": check time:civilFromString("2021-01-01").ensureType(json), "time": check time:civilFromString("23:59:56").ensureType(json), "timeZone": check time:civilFromString("-08:00").ensureType(json), "dateTime": check time:civilFromString("2003-10-01T23:57:59-03:00").ensureType(json), "localDateTime": check time:civilFromString("2003-10-01T23:57:59").ensureType(json)};
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_();
 }
 
-function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_();
+function _dwMethod0_() returns json|error {
+    return {"date": check time:civilFromString("2021-01-01").ensureType(json), "time": check time:civilFromString("23:59:56").ensureType(json), "timeZone": check time:civilFromString("-08:00").ensureType(json), "dateTime": check time:civilFromString("2003-10-01T23:57:59-03:00").ensureType(json), "localDateTime": check time:civilFromString("2003-10-01T23:57:59").ensureType(json)};
 }
 
 ```
@@ -141,7 +141,7 @@ function sampleFlow(Context ctx) {
 
 **Ballerina Output (transform_message_with_filter_value_identifier.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
@@ -150,7 +150,7 @@ function _dwMethod0_(json payload) returns json {
     return _var_0.filter(element => element > 2);
 }
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
 }
 
@@ -169,16 +169,16 @@ lower "APPLE"
 
 **Ballerina Output (transform_message_with_lower.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_();
-}
-
 function _dwMethod0_() returns json {
     return "APPLE".toLowerAscii();
+}
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod0_();
 }
 
 ```
@@ -196,17 +196,17 @@ users: ["john", "peter", "matt"] map  upper $
 
 **Ballerina Output (transform_message_with_map_combination.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
-
-function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_();
-}
 
 function _dwMethod0_() returns json {
     var _var_0 = ["john", "peter", "matt"];
     return {"users": _var_0.'map(element => element.toUpperAscii())};
+}
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod0_();
 }
 
 ```
@@ -225,7 +225,7 @@ function _dwMethod0_() returns json {
 
 **Ballerina Output (transform_message_with_map_index_identifier.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
@@ -234,7 +234,7 @@ function _dwMethod0_(json payload) returns json {
     return _var_0.'map(element => element + _var_0.indexOf(element));
 }
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
 }
 
@@ -254,11 +254,11 @@ function sampleFlow(Context ctx) {
 
 **Ballerina Output (transform_message_with_map_index_identifier_only.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
 }
 
@@ -283,11 +283,11 @@ function _dwMethod0_(json payload) returns json {
 
 **Ballerina Output (transform_message_with_map_value_identifier.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
 }
 
@@ -310,11 +310,11 @@ function _dwMethod0_(json payload) returns json {
 
 **Ballerina Output (transform_message_with_map_with_parameters.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod0_();
 }
 
@@ -338,18 +338,18 @@ b: "admin123" replace /(\d+)/ with "ID"
 
 **Ballerina Output (transform_message_with_replace_with.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
-
-function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_();
-}
 
 function _dwMethod0_() returns json {
     string:RegExp _pattern_ = re `/(\d+)/`;
     var _var_0 = "admin123";
     return {"b": _pattern_.replace(_var_0, "ID")};
+}
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod0_();
 }
 
 ```
@@ -370,7 +370,7 @@ function _dwMethod0_() returns json {
 
 **Ballerina Output (transform_message_with_single_selector.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
@@ -378,7 +378,7 @@ function _dwMethod0_(json payload) returns json|error {
     return {"hail1": check payload.resultSet1.ensureType(json)};
 }
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_(ctx.payload.toJson());
 }
 
@@ -400,7 +400,7 @@ function sampleFlow(Context ctx) {
 
 **Ballerina Output (transform_message_with_sizeof.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
@@ -409,7 +409,7 @@ function _dwMethod0_(json payload) returns json {
     return {"hail1": _var_0.length()};
 }
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
 }
 
@@ -428,11 +428,11 @@ function sampleFlow(Context ctx) {
 
 **Ballerina Output (transform_message_with_string_return.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     string _dwOutput_ = _dwMethod0_();
 }
 
@@ -461,7 +461,7 @@ function _dwMethod0_() returns string {
 ```ballerina
 import ballerina/time;
 
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
@@ -470,7 +470,7 @@ function _dwMethod0_() returns json|error {
     return {"mydate1": check (check time:utcFromCivil(check time:civilFromString("2005-06-02T15:10:16Z")))[0].ensureType(json), "mydate2": check (_utcValue_[0] * 1000 + <int>(_utcValue_[1] * 1000)).ensureType(json), "mydate3": check (check time:utcFromCivil(check time:civilFromString("2005-06-02T15:10:16Z")))[0].ensureType(json)};
 }
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_();
 }
 
@@ -496,7 +496,7 @@ function sampleFlow(Context ctx) {
 import ballerina/jballerina.java;
 import ballerina/time;
 
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
@@ -506,14 +506,14 @@ public function getFormattedStringFromDate(string dateString, string format) ret
     return formatDateTime(localDateTime, getDateTimeFormatter(java:fromString(format))).toString();
 }
 
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_();
+}
+
 public function parseInstant(handle instant) returns handle = @java:Method {
     'class: "java.time.Instant",
     name: "parse"
 } external;
-
-function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_();
-}
 
 public function formatDateTime(handle dateTime, handle formatter) returns handle = @java:Method {
     'class: "java.time.LocalDateTime"
@@ -576,11 +576,11 @@ public function getCurrentTimeString() returns string {
 
 **Ballerina Output (transform_message_with_type_coercion_number.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_();
 }
 
@@ -603,16 +603,16 @@ function _dwMethod0_() returns json|error {
 
 **Ballerina Output (transform_message_with_type_coercion_string.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function _dwMethod0_() returns string {
-    return 10.toString();
+public function sampleFlow(Context ctx) {
+    string _dwOutput_ = _dwMethod0_();
 }
 
-function sampleFlow(Context ctx) {
-    string _dwOutput_ = _dwMethod0_();
+function _dwMethod0_() returns string {
+    return 10.toString();
 }
 
 ```
@@ -636,7 +636,7 @@ function sampleFlow(Context ctx) {
 import ballerina/jballerina.java;
 import ballerina/time;
 
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
@@ -644,6 +644,10 @@ public function UTC() returns handle = @java:FieldGet {
     'class: "java.time.ZoneOffset",
     name: "UTC"
 } external;
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_();
+}
 
 public function parseDateTime(handle date, handle formatter) returns handle = @java:Method {
     'class: "java.time.LocalDateTime",
@@ -654,10 +658,6 @@ public function parseDateTime(handle date, handle formatter) returns handle = @j
 public function getDateFromFormattedString(string dateString, string format) returns time:Utc|error {
     handle localDateTime = parseDateTime(java:fromString(dateString), getDateTimeFormatter(java:fromString(format)));
     return check time:utcFromString(toInstant(localDateTime, UTC()).toString());
-}
-
-function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_();
 }
 
 public function getDateTimeFormatter(handle format) returns handle = @java:Method {
@@ -690,11 +690,11 @@ upper "apple"
 
 **Ballerina Output (transform_message_with_upper.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod0_();
 }
 
@@ -724,7 +724,7 @@ otherwise
 
 **Ballerina Output (transform_message_with_when_otherwise.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
@@ -738,7 +738,7 @@ function _dwMethod0_(json payload) returns json|error {
     return _var_0;
 }
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_(ctx.payload.toJson());
 }
 
@@ -767,7 +767,7 @@ otherwise
 
 **Ballerina Output (transform_message_with_when_otherwise_nested.bal):**
 ```ballerina
-type Context record {|
+public type Context record {|
     anydata payload;
 |};
 
@@ -783,7 +783,7 @@ function _dwMethod0_(json payload) returns json|error {
     return _var_0;
 }
 
-function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_(ctx.payload.toJson());
 }
 

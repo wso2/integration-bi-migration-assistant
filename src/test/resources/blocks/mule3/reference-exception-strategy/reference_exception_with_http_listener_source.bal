@@ -1,16 +1,16 @@
 import ballerina/http;
 import ballerina/log;
 
-type InboundProperties record {|
+public type InboundProperties record {|
     http:Response response;
 |};
 
-type Context record {|
+public type Context record {|
     anydata payload;
     InboundProperties inboundProperties;
 |};
 
-listener http:Listener httpConfig = new (8081, {host: "0.0.0.0"});
+public listener http:Listener httpConfig = new (8081, {host: "0.0.0.0"});
 
 service / on httpConfig {
     Context ctx;
@@ -27,12 +27,12 @@ service / on httpConfig {
         do {
             log:printInfo("xxx: end of flow reached");
         } on fail error e {
-            catch\-exception\-strategy(e);
+            catch\-exception\-strategy(ctx, e);
         }
         return ctx.inboundProperties.response;
     }
 }
 
-function catch\-exception\-strategy(error e) {
+public function catch\-exception\-strategy(Context ctx, error e) {
     log:printInfo("xxx: inside catch exception strategy");
 }
