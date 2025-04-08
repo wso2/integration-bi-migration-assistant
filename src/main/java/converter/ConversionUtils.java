@@ -76,16 +76,39 @@ public class ConversionUtils {
      */
     static String getBallerinaClientResourcePath(String basePath) {
         List<String> list = Arrays.stream(basePath.split("/")).filter(s -> !s.isEmpty())
-                .map(s -> {
-                    if (isInt(s)) {
-                        return "[" + s + "]";
-                    } else {
-                        return ConversionUtils.escapeSpecialCharacters(s);
-                    }
-
-                }).toList();
-
+                .map(s -> isInt(s) ? "[" + s + "]" : ConversionUtils.escapeSpecialCharacters(s)).toList();
         return list.isEmpty() ? "/" : "/" + String.join("/", list);
+    }
+
+    static void processExprCompContent(MuleToBalConverter.SharedProjectData sharedProjectData,
+                                       String convertedBalStmts) {
+        List<String> list =
+                Arrays.stream(convertedBalStmts.split(";")).filter(s -> !s.isEmpty()).map(String::trim).toList();
+        for (String stmt : list) {
+            processStatement(sharedProjectData, stmt);
+        }
+    }
+
+    private static void processStatement(MuleToBalConverter.SharedProjectData sharedProjectData, String statement) {
+        String regex = "ctx\\.(sessionVars|flowVars)\\.(\\w+)\\s*=\\s*(.*)";
+        Pattern pattern = Pattern.compile(regex);
+
+        Matcher matcher = pattern.matcher(statement);
+        if (matcher.find()) {
+            String varCategory = matcher.group(1);
+            String varName = matcher.group(2);
+            String varValue = matcher.group(3);
+
+            if ("sessionVars".equals(varCategory) && !sharedProjectData.existingSessionVar(varName)) {
+                String inferredType = inferTypeFromBalExpr(varValue);
+                sharedProjectData.sessionVars.add(
+                        new MuleToBalConverter.SharedProjectData.TypeAndNamePair(inferredType, varName));
+            } else if ("flowVars".equals(varCategory) && !sharedProjectData.existingFlowVar(varName)) {
+                String inferredType = inferTypeFromBalExpr(varValue);
+                sharedProjectData.flowVars.add(
+                        new MuleToBalConverter.SharedProjectData.TypeAndNamePair(inferredType, varName));
+            }
+        }
     }
 
     private static boolean isInt(String str) {

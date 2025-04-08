@@ -720,6 +720,7 @@ public class MuleToBalConverter {
                     getBallerinaLogFunction(lg.level()), convertMuleExprToBalStringLiteral(lg.message()))));
             case ExpressionComponent exprComponent -> {
                 String convertedExpr = convertMuleExprToBal(String.format("#[%s]", exprComponent.exprCompContent()));
+                ConversionUtils.processExprCompContent(data.sharedProjectData, convertedExpr);
                 statementList.add(stmtFrom(convertedExpr));
             }
             case Payload payload -> {
