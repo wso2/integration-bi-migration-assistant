@@ -1,6 +1,8 @@
 import ballerina/data.xmldata;
 import ballerina/log;
 
+configurable string fileDir = ?;
+
 function convertToLogParametersType(xml input) returns LogParametersType {
     return checkpanic xmldata:parseAsType(input);
 }

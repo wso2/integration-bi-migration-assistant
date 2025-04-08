@@ -47,6 +47,50 @@ public final class XmlToTibcoModelConverter {
     private XmlToTibcoModelConverter() {
     }
 
+    public static TibcoModel.Resource.JDBCResource parseJDBCResource(Element root) {
+        String name = root.getAttribute("name");
+        Element configuration = getFirstChildWithTag(root, "configuration");
+        String username = configuration.getAttribute("username");
+        String password = configuration.getAttribute("password");
+        Element connectionConfig = getFirstChildWithTag(configuration, "connectionConfig");
+        String jdbcDriver = connectionConfig.getAttribute("jdbcDriver");
+        String dbUrl = connectionConfig.getAttribute("dbURL");
+        Collection<TibcoModel.Resource.SubstitutionBinding> substitutionBindings =
+                getChildrenWithTag(connectionConfig, "substitutionBindings")
+                        .map(XmlToTibcoModelConverter::parseSubstitutionBinding).toList();
+        return new TibcoModel.Resource.JDBCResource(name, username, password, jdbcDriver, dbUrl,
+                substitutionBindings);
+    }
+
+    public static TibcoModel.Resource.HTTPConnectionResource parseHTTPConnectionResource(Element root) {
+        String name = root.getAttribute("name");
+        Element configuration = getFirstChildWithTag(root, "configuration");
+        String svcRegServiceName = configuration.getAttribute("svcRegServiceName");
+        Collection<TibcoModel.Resource.SubstitutionBinding> substitutionBindings =
+                getChildrenWithTag(configuration, "substitutionBindings")
+                        .map(XmlToTibcoModelConverter::parseSubstitutionBinding).toList();
+        return new TibcoModel.Resource.HTTPConnectionResource(name, svcRegServiceName, substitutionBindings);
+    }
+
+    public static TibcoModel.Resource.HTTPClientResource parseHTTPClientResource(Element root) {
+        String name = root.getAttribute("name");
+        Element configuration = getFirstChildWithTag(root, "configuration");
+        Element tcpDetails = getFirstChildWithTag(configuration, "tcpDetails");
+        Optional<Integer> port = tcpDetails.hasAttribute("port") ?
+                Optional.of(expectIntAttribute(tcpDetails, "port")) :
+                Optional.empty();
+        Collection<TibcoModel.Resource.SubstitutionBinding> substitutionBindings =
+                getChildrenWithTag(tcpDetails, "substitutionBindings")
+                        .map(XmlToTibcoModelConverter::parseSubstitutionBinding).toList();
+        return new TibcoModel.Resource.HTTPClientResource(name, port, substitutionBindings);
+    }
+
+    private static TibcoModel.Resource.SubstitutionBinding parseSubstitutionBinding(Element element) {
+        String template = element.getAttribute("template");
+        String propName = element.getAttribute("propName");
+        return new TibcoModel.Resource.SubstitutionBinding(template, propName);
+    }
+
     public static TibcoModel.Process parseProcess(Element root) {
         String name = root.getAttribute("name");
         Collection<TibcoModel.Type> types = null;
@@ -455,7 +499,7 @@ public final class XmlToTibcoModelConverter {
         return switch (kind) {
             case END -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.End();
             case FILE_WRITE -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.FileWrite();
-            case HTTP_SEND -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.HTTPSend();
+            case HTTP_SEND -> parseHTTPSend(activity);
             case JSON_RENDER -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.JsonOperation(
                     TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.ExtensionKind.JSON_RENDER,
                     TibcoModel.Type.Schema.TibcoType.of("nil"));
@@ -467,6 +511,14 @@ public final class XmlToTibcoModelConverter {
             case SEND_HTTP_RESPONSE -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SendHTTPResponse();
             case SQL -> parasSqlActivityExtension(config);
         };
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.HTTPSend parseHTTPSend(Element activity) {
+        Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
+        Element properties = getFirstChildWithTag(activityConfig, "properties");
+        Element values = getFirstChildWithTag(properties, "value");
+        String httpClientResource = values.getAttribute("httpClientResource");
+        return new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.HTTPSend(httpClientResource);
     }
 
     private static TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL parasSqlActivityExtension(
@@ -540,9 +592,26 @@ public final class XmlToTibcoModelConverter {
 
     private static TibcoModel.Variable parseVariable(Element element) {
         String name = element.getAttribute("name");
-        Optional<String> internal = tryGetAttributeIgnoringNamespace(element, "internal");
-        boolean isInternal = internal.map(val -> val.equals("true")).orElse(false);
-        return new TibcoModel.Variable(name, isInternal);
+        boolean isProperty =
+                tryGetAttributeIgnoringNamespace(element, "property").map(val -> val.equals("yes")).orElse(false);
+        if (isProperty) {
+            return parsePropertyVariable(element, name);
+        }
+        return new TibcoModel.Variable.DefaultVariable(name);
+    }
+
+    private static TibcoModel.Variable.@NotNull PropertyVariable parsePropertyVariable(Element element, String name) {
+        Optional<Element> from = tryGetFirstChildWithTag(element, "from");
+        if (from.isPresent()) {
+            Optional<Element> literal = tryGetFirstChildWithTag(from.get(), "literal");
+            if (literal.isPresent()) {
+                return new TibcoModel.Variable.PropertyVariable.PropertyReference(name, literal.get().getTextContent());
+            }
+        } else {
+            String propertySource = getAttributeIgnoringNamespace(element, "propertySource");
+            return new TibcoModel.Variable.PropertyVariable.SimpleProperty(name, propertySource);
+        }
+        throw new ParserException("Failed to parse property variable", element);
     }
 
     private static Optional<String> tryGetAttributeIgnoringNamespace(Element element, String attributeName) {
@@ -851,6 +920,14 @@ public final class XmlToTibcoModelConverter {
     private static float expectFloatAttribute(Element element, String attributeName) {
         try {
             return Float.parseFloat(element.getAttribute(attributeName));
+        } catch (NumberFormatException e) {
+            throw new ParserException("Invalid float value for attribute: " + attributeName, element);
+        }
+    }
+
+    private static int expectIntAttribute(Element element, String attributeName) {
+        try {
+            return Integer.parseInt(element.getAttribute(attributeName));
         } catch (NumberFormatException e) {
             throw new ParserException("Invalid float value for attribute: " + attributeName, element);
         }

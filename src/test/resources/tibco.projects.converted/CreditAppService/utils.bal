@@ -1,4 +1,10 @@
 import ballerina/data.xmldata;
+import ballerina/http;
+
+http:Client creditapp_module_HttpClientResource1 = checkpanic new (string `${host}:7080`);
+http:Client creditapp_module_HttpClientResource2 = checkpanic new (string `${host_2}:13080`);
+configurable string host = ?;
+configurable string host_2 = ?;
 
 function convertToCreditScoreSuccessSchema(xml input) returns CreditScoreSuccessSchema {
     return checkpanic xmldata:parseAsType(input);

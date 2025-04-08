@@ -54,6 +54,7 @@ public class ProcessContext implements ContextWithFile {
     private BallerinaModel.Expression.VariableReference contextRef;
     private final Map<TibcoModel.Scope.Flow.Activity.Source.Predicate, String> predicateToFunctionMap =
             new HashMap<>();
+    private final Map<String, String> propertyVariableToResourceMap = new HashMap<>();
 
     private static final Logger logger = Logger.getLogger(ProcessContext.class.getName());
 
@@ -72,6 +73,15 @@ public class ProcessContext implements ContextWithFile {
                 new VarDeclStatment(contextType(), "context", new BallerinaModel.BallerinaExpression("{}"));
         this.contextRef = new BallerinaModel.Expression.VariableReference(varDeclStatment.varName());
         return varDeclStatment;
+    }
+
+    public void addResourceVariable(TibcoModel.Variable.PropertyVariable propertyVariable) {
+        switch (propertyVariable) {
+            case TibcoModel.Variable.PropertyVariable.PropertyReference ref ->
+                    propertyVariableToResourceMap.put(ref.name(), ref.literal());
+            case TibcoModel.Variable.PropertyVariable.SimpleProperty simpleProperty ->
+                    projectContext.addConfigurableVariable(simpleProperty.name(), simpleProperty.source());
+        }
     }
 
     public BallerinaModel.Expression.VariableReference addConfigurableVariable(BallerinaModel.TypeDesc td,
@@ -212,8 +222,12 @@ public class ProcessContext implements ContextWithFile {
         return new BallerinaModel.Expression.VariableReference(CONTEXT_VAR_NAME);
     }
 
-    public BallerinaModel.Expression.VariableReference dbClient(String sharedResourcePropertyName) {
-        return projectContext.dbClient(sharedResourcePropertyName);
+    public BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {
+        String resourceRef = propertyVariableToResourceMap.get(sharedResourcePropertyName);
+        if (resourceRef == null) {
+            throw new RuntimeException("No shared resource found for " + sharedResourcePropertyName);
+        }
+        return projectContext.dbClient(resourceRef);
     }
 
     public String getAddToContextFn() {
@@ -262,5 +276,9 @@ public class ProcessContext implements ContextWithFile {
 
     public String predicateFunction(TibcoModel.Scope.Flow.Activity.Source.Predicate predicate) {
         return predicateToFunctionMap.computeIfAbsent(predicate, p -> "predicate_" + predicateToFunctionMap.size());
+    }
+
+    public String getConfigVarName(String varName) {
+        return projectContext.getConfigVarName(varName);
     }
 }

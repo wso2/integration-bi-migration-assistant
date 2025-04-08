@@ -1,7 +1,7 @@
 import ballerina/data.xmldata;
 import ballerinax/java.jdbc;
 
-jdbc:Client jdbcProperty = checkpanic new ("jdbcProperty");
+jdbc:Client experianservice_module_JDBCConnectionResource = checkpanic new ("jdbc:postgresql://localhost:5432/bookstore", "bwuser", "#!+ZBCsMf2u4acq8mLX/mPA52dceRkuczQ");
 
 function convertToExperianResponseSchemaElement(xml input) returns ExperianResponseSchemaElement {
     return checkpanic xmldata:parseAsType(input);

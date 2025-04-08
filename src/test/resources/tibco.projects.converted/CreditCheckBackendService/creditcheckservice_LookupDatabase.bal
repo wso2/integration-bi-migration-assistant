@@ -21,7 +21,7 @@ function activityExtension_10(xml input, map<xml> context) returns xml|error {
     sql:ParameterizedQuery var1 = `UPDATE creditscore
   SET numofpulls = ${data.noOfPulls}
   WHERE ssn like ${data.ssn}`;
-    sql:ExecutionResult var2 = checkpanic jdbcProperty->execute(var1);
+    sql:ExecutionResult var2 = checkpanic creditcheckservice_JDBCConnectionResource->execute(var1);
     return var0;
 }
 
@@ -57,7 +57,7 @@ function activityExtension_9(xml input, map<xml> context) returns xml|error {
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input" xmlns:tns1="http://www.example.com/namespaces/tns/1535845694732" version="2.0"><xsl:param name="Start"/><xsl:template name="JDBCQuery-input" match="/"><tns:jdbcQueryActivityInput><ssn><xsl:value-of select="$Start/tns1:ssn"/></ssn></tns:jdbcQueryActivityInput></xsl:template></xsl:stylesheet>`), context);
     QueryData0 data = convertToQueryData0(var0);
     sql:ParameterizedQuery var1 = `select * from public.creditscore where ssn like ${data.ssn}`;
-    sql:ExecutionResult var2 = checkpanic jdbcProperty->execute(var1);
+    sql:ExecutionResult var2 = checkpanic creditcheckservice_JDBCConnectionResource->execute(var1);
     return var0;
 }
 

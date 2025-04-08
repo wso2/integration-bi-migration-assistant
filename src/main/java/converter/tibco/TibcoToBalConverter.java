@@ -31,9 +31,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -61,25 +63,67 @@ public class TibcoToBalConverter {
     }
 
     public static BallerinaModel.Module convertProject(ProjectConversionContext cx, String projectPath) {
-        Set<TibcoModel.Process> processes = new HashSet<>();
-        Set<TibcoModel.Type.Schema> types = new HashSet<>();
+        Set<TibcoModel.Process> processes;
+        Set<TibcoModel.Type.Schema> types;
+        Set<TibcoModel.Resource.JDBCResource> jdbcResources;
+        Set<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources;
+        Set<TibcoModel.Resource.HTTPClientResource> httpClientResources;
         try {
-            for (String s : getBwpFiles(projectPath)) {
-                Element element = parseXmlFile(s);
-                TibcoModel.Process parseProcess = XmlToTibcoModelConverter.parseProcess(element);
-                processes.add(parseProcess);
-            }
-
-            for (String s : getXSDFiles(projectPath)) {
-                Element element = parseXmlFile(s);
-                TibcoModel.Type.Schema schema = XmlToTibcoModelConverter.parseSchema(element);
-                types.add(schema);
-            }
+            processes = PROCESS_PARSING_UNIT.parse(projectPath);
+            types = XSD_PARSING_UNIT.parse(projectPath);
+            jdbcResources = JDBC_RESOURCE_PARSING_UNIT.parse(projectPath);
+            httpConnectionResources = HTTP_CONN_RESOURCE_PARSING_UNIT.parse(projectPath);
+            httpClientResources = HTTP_CLIENT_RESOURCE_PARSING_UNIT.parse(projectPath);
         } catch (IOException | SAXException | ParserConfigurationException e) {
             throw new RuntimeException("Error while parsing the XML file: ", e);
         }
 
-        return ProcessConverter.convertProcesses(cx, processes, types);
+        return ProcessConverter.convertProject(cx, processes, types, jdbcResources, httpConnectionResources,
+                httpClientResources);
+    }
+
+    private static final ParsingUnit<TibcoModel.Process> PROCESS_PARSING_UNIT =
+            new ParsingUnit<>(TibcoToBalConverter::getBwpFiles, XmlToTibcoModelConverter::parseProcess);
+    private static final ParsingUnit<TibcoModel.Type.Schema> XSD_PARSING_UNIT =
+            new ParsingUnit<>(TibcoToBalConverter::getXSDFiles, XmlToTibcoModelConverter::parseSchema);
+    private static final ParsingUnit<TibcoModel.Resource.JDBCResource> JDBC_RESOURCE_PARSING_UNIT =
+            new ParsingUnit<>(TibcoToBalConverter::getJDBCResourceFiles, XmlToTibcoModelConverter::parseJDBCResource);
+    private static final ParsingUnit<TibcoModel.Resource.HTTPConnectionResource> HTTP_CONN_RESOURCE_PARSING_UNIT =
+            new ParsingUnit<>(TibcoToBalConverter::getHTTPConnectionResourceFiles,
+                    XmlToTibcoModelConverter::parseHTTPConnectionResource);
+    private static final ParsingUnit<TibcoModel.Resource.HTTPClientResource> HTTP_CLIENT_RESOURCE_PARSING_UNIT =
+            new ParsingUnit<>(TibcoToBalConverter::getHTTPClientResourceFiles,
+                    XmlToTibcoModelConverter::parseHTTPClientResource);
+
+    private record ParsingUnit<E>(FileFinder fileFinder, Function<Element, E> parsingFn) {
+
+        Set<E> parse(String projectPath) throws IOException, ParserConfigurationException, SAXException {
+            Set<E> elements = new HashSet<>();
+            for (String s : fileFinder.findFiles(projectPath)) {
+                Element element = parseXmlFile(s);
+                E parsedElement = parsingFn.apply(element);
+                elements.add(parsedElement);
+            }
+            return elements;
+        }
+    }
+
+    @FunctionalInterface
+    private interface FileFinder {
+
+        Collection<String> findFiles(String projectPath) throws IOException;
+    }
+
+    private static List<String> getJDBCResourceFiles(String projectPath) throws IOException {
+        return getFilesWithExtension(projectPath, "jdbcResource");
+    }
+
+    private static List<String> getHTTPClientResourceFiles(String projectPath) throws IOException {
+        return getFilesWithExtension(projectPath, "httpClientResource");
+    }
+
+    private static List<String> getHTTPConnectionResourceFiles(String projectPath) throws IOException {
+        return getFilesWithExtension(projectPath, "httpConnResource");
     }
 
     private static List<String> getXSDFiles(String projectPath) throws IOException {

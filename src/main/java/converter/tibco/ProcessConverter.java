@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -48,10 +49,16 @@ public class ProcessConverter {
         private ProcessConverter() {
         }
 
-        static BallerinaModel.Module convertProcesses(TibcoToBalConverter.ProjectConversionContext conversionContext,
+        static BallerinaModel.Module convertProject(
+                        TibcoToBalConverter.ProjectConversionContext conversionContext,
                         Collection<TibcoModel.Process> processes,
-                        Collection<TibcoModel.Type.Schema> types) {
+                        Collection<TibcoModel.Type.Schema> types,
+                        Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
+                        Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
+                        Set<TibcoModel.Resource.HTTPClientResource> httpClientResources) {
                 ProjectContext cx = new ProjectContext(conversionContext);
+                convertResources(cx, jdbcResources, httpConnectionResources, httpClientResources);
+
                 record ProcessResult(TibcoModel.Process process, TypeConversionResult result) {
 
                 }
@@ -65,6 +72,21 @@ public class ProcessConverter {
                         return convertBody(cx.getProcessContext(process), process, result.result());
                 }).toList();
                 return cx.serialize(textDocuments);
+        }
+
+        private static void convertResources(ProjectContext cx,
+                        Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
+                        Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
+                        Set<TibcoModel.Resource.HTTPClientResource> httpClientResources) {
+                for (TibcoModel.Resource.JDBCResource resource : jdbcResources) {
+                        ResourceConvertor.convertJDBCResource(cx, resource);
+                }
+                for (TibcoModel.Resource.HTTPConnectionResource resource : httpConnectionResources) {
+                        ResourceConvertor.convertHttpConnectionResource(cx, resource);
+                }
+                for (TibcoModel.Resource.HTTPClientResource resource : httpClientResources) {
+                        ResourceConvertor.convertHttpClientResource(cx, resource);
+                }
         }
 
         static void convertTypes(ProjectContext cx, Collection<TibcoModel.Type.Schema> schemas) {
@@ -86,6 +108,9 @@ public class ProcessConverter {
 
         private static BallerinaModel.TextDocument convertBody(ProcessContext cx, TibcoModel.Process process,
                         TypeConversionResult result) {
+                process.variables().stream().filter(each -> each instanceof TibcoModel.Variable.PropertyVariable)
+                                .forEach(var -> cx.addResourceVariable(
+                                                (TibcoModel.Variable.PropertyVariable) var));
                 List<BallerinaModel.Function> functions = cx.analysisResult.activities().stream()
                                 .map(activity -> ActivityConverter.convertActivity(cx, activity))
                                 .collect(Collectors.toCollection(ArrayList::new));

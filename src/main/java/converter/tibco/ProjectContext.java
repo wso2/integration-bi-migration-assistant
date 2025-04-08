@@ -62,7 +62,7 @@ public class ProjectContext {
 
     private final List<BallerinaModel.Function> utilityFunctions = new ArrayList<>();
     private final Set<BallerinaModel.Import> utilityFunctionImports = new HashSet<>();
-    private final List<BallerinaModel.ModuleVar> utilityConstants = new ArrayList<>();
+    private final Map<String, BallerinaModel.ModuleVar> utilityVars = new HashMap<>();
     private final Set<Intrinsics> utilityIntrinsics = new HashSet<>();
 
     private final Map<String, BallerinaModel.Expression.VariableReference> dbClients = new HashMap<>();
@@ -77,6 +77,7 @@ public class ProjectContext {
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
     private static final Logger logger = Logger.getLogger(ProjectContext.class.getName());
     private final Optional<TibcoToBalConverter.ProjectConversionContext> conversionContext;
+    private final Map<String, String> generatedResources = new HashMap<>();
 
     public ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext) {
         this.conversionContext = Optional.of(conversionContext);
@@ -214,7 +215,7 @@ public class ProjectContext {
 
     private BallerinaModel.TextDocument utilsFile() {
         List<BallerinaModel.Import> imports = utilityFunctionImports.stream().toList();
-        List<BallerinaModel.ModuleVar> sortedConstants = utilityConstants.stream()
+        List<BallerinaModel.ModuleVar> sortedConstants = utilityVars.values().stream()
                 .sorted(Comparator.comparing(BallerinaModel.ModuleVar::name))
                 .toList();
         List<BallerinaModel.Function> sortedFunctions = utilityFunctions.stream()
@@ -330,6 +331,27 @@ public class ProjectContext {
         typeCx.addTypeDefAsIntrinsic(content);
     }
 
+    public void addConfigurableVariable(String name, String source) {
+        BallerinaModel.ModuleVar var = BallerinaModel.ModuleVar.configurable(source, STRING);
+        utilityVars.put(name, var);
+    }
+
+    public BallerinaModel.Expression.VariableReference getConfigurableVariable(String name) {
+        BallerinaModel.ModuleVar var = utilityVars.get(name);
+        if (var == null) {
+            throw new RuntimeException("Failed to find configurable variable for " + name);
+        }
+        return new BallerinaModel.Expression.VariableReference(var.name());
+    }
+
+    public String getConfigVarName(String varName) {
+        var varDecl = utilityVars.get(varName);
+        if (varDecl == null) {
+            throw new RuntimeException("Failed to find configurable variable for " + varName);
+        }
+        return varDecl.name();
+    }
+
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
 
         FunctionData {
@@ -340,20 +362,24 @@ public class ProjectContext {
     }
 
     public BallerinaModel.Expression.VariableReference dbClient(String sharedResourcePropertyName) {
-        return dbClients.computeIfAbsent(sharedResourcePropertyName, this::createDbClient);
+        String varName = generatedResources.get(sharedResourcePropertyName);
+        if (varName == null) {
+            throw new RuntimeException("Failed to find db client for " + sharedResourcePropertyName);
+        }
+        return new BallerinaModel.Expression.VariableReference(varName);
     }
 
-    private BallerinaModel.Expression.VariableReference createDbClient(String name) {
-        // TODO: handle configurations
-        importLibraryIfNeededToUtility(Library.JDBC);
-        BallerinaModel.ModuleVar moduleVar = new BallerinaModel.ModuleVar(ConversionUtils.sanitizes(name),
-                "jdbc:Client",
-                new BallerinaModel.Expression.CheckPanic(
-                        new BallerinaModel.Expression.NewExpression(
-                                List.of(new BallerinaModel.Expression.StringConstant(name)))),
-                false, false);
-        utilityConstants.add(moduleVar);
-        return new BallerinaModel.Expression.VariableReference(moduleVar.name());
+    public void addResourceDeclaration(String resourceName, BallerinaModel.ModuleVar resourceVar,
+            Collection<BallerinaModel.ModuleVar> configurables,
+            Collection<Library> imports) {
+        imports.forEach(this::importLibraryIfNeededToUtility);
+        configurables.forEach(each -> utilityVars.put(each.name(), each));
+        utilityVars.put(resourceVar.name(), resourceVar);
+        generatedResources.put(resourceName, resourceVar.name());
+    }
+
+    public String getUtilityVarName(String base) {
+        return ConversionUtils.getSanitizedUniqueName(base, utilityVars.keySet());
     }
 
     public String getAddToContextFn() {

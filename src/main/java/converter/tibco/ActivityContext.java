@@ -80,8 +80,8 @@ class ActivityContext {
         return processContext.contextVarRef();
     }
 
-    public BallerinaModel.Expression.VariableReference dbClient(String sharedResourcePropertyName) {
-        return processContext.dbClient(sharedResourcePropertyName);
+    public BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {
+        return processContext.client(sharedResourcePropertyName);
     }
 
     public String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
@@ -114,5 +114,9 @@ class ActivityContext {
 
     String getLogFunction() {
         return processContext.getLogFunction();
+    }
+
+    public String getConfigVarName(String name) {
+        return processContext.getConfigVarName(name);
     }
 }

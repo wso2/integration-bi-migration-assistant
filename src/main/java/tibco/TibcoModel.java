@@ -30,6 +30,33 @@ import java.util.Set;
 
 public class TibcoModel {
 
+    public interface Resource {
+
+        String name();
+
+        Collection<SubstitutionBinding> substitutionBindings();
+
+        record JDBCResource(String name, String userName, String password, String jdbcDriver, String dbUrl,
+                            Collection<SubstitutionBinding> substitutionBindings) implements Resource {
+
+        }
+
+        record HTTPConnectionResource(String name, String svcRegServiceName,
+                                      Collection<SubstitutionBinding> substitutionBindings) implements Resource {
+
+        }
+
+        record HTTPClientResource(String name, Optional<Integer> port,
+                                  Collection<SubstitutionBinding> substitutionBindings)
+                implements Resource {
+
+        }
+
+        record SubstitutionBinding(String template, String propName) {
+
+        }
+    }
+
     public record Process(String name, Collection<Type> types, ProcessInfo processInfo,
                           Optional<ProcessInterface> processInterface,
                           Optional<ProcessTemplateConfigurations> processTemplateConfigurations,
@@ -163,8 +190,24 @@ public class TibcoModel {
         }
     }
 
-    public record Variable(String name, boolean isInternal) {
+    public interface Variable {
 
+        String name();
+
+        record DefaultVariable(String name) implements Variable {
+
+        }
+
+        sealed interface PropertyVariable extends Variable {
+
+            record PropertyReference(String name, String literal) implements PropertyVariable {
+
+            }
+
+            record SimpleProperty(String name, String source) implements PropertyVariable {
+
+            }
+        }
     }
 
     public record PartnerLink(String name, Optional<Binding> binding) {
@@ -353,7 +396,11 @@ public class TibcoModel {
                             }
                         }
 
-                        record HTTPSend() implements Config {
+                        record HTTPSend(String httpClientResource) implements Config {
+
+                            public HTTPSend {
+                                assert !httpClientResource.isEmpty();
+                            }
 
                             @Override
                             public ExtensionKind kind() {

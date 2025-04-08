@@ -2,7 +2,8 @@ import ballerina/data.xmldata;
 import ballerina/log;
 import ballerinax/java.jdbc;
 
-jdbc:Client jdbcProperty = checkpanic new ("jdbcProperty");
+jdbc:Client creditcheckservice_JDBCConnectionResource = checkpanic new (string `${dbURL} jdbc:postgresql://awagle:5432/bookstore`, "bwuser", "#!yk2zPUfipGX2vB+1XNJha9KX6eLVDmcZ");
+configurable string dbURL = ?;
 
 function convertToElement(xml input) returns Element {
     return checkpanic xmldata:parseAsType(input);
