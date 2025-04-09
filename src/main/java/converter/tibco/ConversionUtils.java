@@ -31,6 +31,8 @@ import java.util.Optional;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NEVER;
 
+import java.util.Optional;
+
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
@@ -75,7 +77,7 @@ public final class ConversionUtils {
     }
 
     public static BallerinaModel.TypeDesc.BuiltinType from(
-            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.SQLParameter.SQLType sqlType) {
+            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.SQLType sqlType) {
         return switch (sqlType) {
             case INTEGER, BIGINT, SMALLINT -> BallerinaModel.TypeDesc.BuiltinType.INT;
             case DECIMAL, NUMERIC, REAL, DOUBLE -> BallerinaModel.TypeDesc.BuiltinType.DECIMAL;
@@ -83,6 +85,27 @@ public final class ConversionUtils {
             case BOOLEAN -> BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
             case BLOB, CLOB -> BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
         };
+    }
+
+    static BallerinaModel.TypeDesc createQueryResultType(ActivityContext cx,
+                                                         TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql) {
+        ProcessContext processContext = cx.processContext;
+        processContext.projectContext.getTypeContext().addLibraryImport(Library.XML_DATA);
+        AnalysisResult analysisResult = processContext.analysisResult;
+        String typeName = "QueryResult" + analysisResult.queryIndex(sql);
+        List<BallerinaModel.TypeDesc.RecordTypeDesc.RecordField> fields = sql.resultColumns().stream()
+                .map(each -> new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField(
+                        each.name(),
+                        from(each.type()),
+                        false,
+                        Optional.empty(),
+                        Optional.empty()))
+                .toList();
+        BallerinaModel.TypeDesc.RecordTypeDesc recordTy = new BallerinaModel.TypeDesc.RecordTypeDesc(List.of(), fields,
+                NEVER, Optional.empty(), Optional.of("Record"));
+
+        processContext.addModuleTypeDef(typeName, new BallerinaModel.ModuleTypeDef(typeName, recordTy));
+        return processContext.getTypeByName(typeName);
     }
 
     static BallerinaModel.TypeDesc createQueryInputType(

@@ -61,6 +61,11 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
             if (typeDesc instanceof TypeDesc.RecordTypeDesc recordTypeDesc) {
                 recordTypeDesc.namespace().ifPresent(ns -> sb.append(ns.annotation()));
+                recordTypeDesc.xmlName().ifPresent(name -> sb.append("""
+                        @xmldata:Name {
+                            value: "%s"
+                        }
+                        """.formatted(name)));
             }
             sb.append("public type ").append(name).append(" ").append(typeDesc).append(";");
             return sb.toString();
@@ -112,6 +117,14 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
+        record StreamTypeDesc(TypeDesc valueTy, TypeDesc completionType) implements TypeDesc {
+
+            @Override
+            public String toString() {
+                return "stream<" + valueTy + ", " + completionType + ">";
+            }
+        }
+
         record BallerinaType(String value) implements TypeDesc {
 
             @Override
@@ -121,7 +134,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
 
         record RecordTypeDesc(List<TypeDesc> inclusions, List<RecordField> fields, TypeDesc rest,
-                Optional<Namespace> namespace)
+                              Optional<Namespace> namespace, Optional<String> xmlName)
                 implements TypeDesc {
 
             public RecordTypeDesc(List<RecordField> fields) {
@@ -129,7 +142,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
 
             public RecordTypeDesc(List<TypeDesc> inclusions, List<RecordField> fields, TypeDesc rest) {
-                this(inclusions, fields, rest, Optional.empty());
+                this(inclusions, fields, rest, Optional.empty(), Optional.empty());
             }
 
             private static final String INDENT = "  ";

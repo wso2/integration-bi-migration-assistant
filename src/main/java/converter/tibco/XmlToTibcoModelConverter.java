@@ -533,8 +533,22 @@ public final class XmlToTibcoModelConverter {
         List<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.SQLParameter> parameters =
                 getChildrenWithTag(value, "PreparedParameters")
                         .map(XmlToTibcoModelConverter::parseSqlParameter).toList();
-        return new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL(sharedResourceProperty, query,
+
+        List<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.Column> columns =
+                getChildrenWithTag(value, "columnMetadata")
+                        .map(XmlToTibcoModelConverter::parseColumn).toList();
+        return new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL(sharedResourceProperty, query, columns,
                 parameters);
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.Column parseColumn(
+            Element columnMetadata) {
+        boolean isOptional = columnMetadata.getAttribute("status").contains("OptionalElement");
+        return new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.Column(
+                columnMetadata.getAttribute("columnName"),
+                TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.SQLType.fromString(
+                        columnMetadata.getAttribute("typeName")), isOptional
+        );
     }
 
     private static TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.SQLParameter parseSqlParameter(
@@ -542,7 +556,7 @@ public final class XmlToTibcoModelConverter {
     ) {
         return new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.SQLParameter(
                 preparedParameters.getAttribute("ParameterName"),
-                TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.SQLParameter.SQLType.fromString(
+                TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.SQLType.fromString(
                         preparedParameters.getAttribute("DataTypeDisplayValue")));
     }
 

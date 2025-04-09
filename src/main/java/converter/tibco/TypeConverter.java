@@ -3,6 +3,8 @@ package converter.tibco;
 import ballerina.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.xsd.core.Response;
+
+import ballerina.BallerinaModel.Statement.Return;
 import tibco.TibcoModel;
 
 import java.util.Collection;
@@ -32,7 +34,7 @@ class TypeConverter {
         } catch (Exception e) {
             // TODO: Handle schema conversion failure
             String allSchemas = String.join(",\n", content);
-            throw new RuntimeException("Failed to convert types:\n" + allSchemas + "\n" + e.getMessage());
+//            throw new RuntimeException("Failed to convert types:\n" + allSchemas + "\n" + e.getMessage());
         }
     }
 
@@ -108,7 +110,8 @@ class TypeConverter {
         List<BallerinaModel.Resource> resources =
                 List.of(convertOperation(cx, apiPath, messageTypes, portType.operation()));
         List<String> listenerRefs = List.of(cx.getDefaultHttpListenerRef());
-        return new BallerinaModel.Service(basePath, listenerRefs, resources, List.of(), List.of(), List.of());
+        return new BallerinaModel.Service(basePath, listenerRefs, Optional.empty(), resources, List.of(), List.of(),
+                List.of(), List.of());
     }
 
     private static BallerinaModel.Resource convertOperation(
@@ -120,7 +123,7 @@ class TypeConverter {
         String path = apiPath.startsWith("/") ? apiPath.substring(1) : apiPath;
         BallerinaModel.TypeDesc inputType = cx.getTypeByName(messageTypes.get(operation.input().message().value()));
         List<BallerinaModel.Parameter> parameters =
-                List.of(new BallerinaModel.Parameter(inputType, "input"));
+                List.of(new BallerinaModel.Parameter("input", inputType));
         List<BallerinaModel.TypeDesc> returnTypeMembers =
                 Stream.concat(
                                 Stream.of(operation.output().message()),
@@ -131,7 +134,7 @@ class TypeConverter {
                 ? returnTypeMembers.getFirst()
                 : new BallerinaModel.TypeDesc.UnionTypeDesc(returnTypeMembers);
         var startFunction = cx.getProcessStartFunction();
-        List<BallerinaModel.Statement> body = List.of(new BallerinaModel.Return<>(Optional.of(
+        List<BallerinaModel.Statement> body = List.of(new Return<>(Optional.of(
                 new BallerinaModel.Expression.FunctionCall(startFunction.name(), new String[]{"input"}))));
         return new BallerinaModel.Resource(resourceMethodName, path, parameters, Optional.of(returnType.toString()),
                 body);

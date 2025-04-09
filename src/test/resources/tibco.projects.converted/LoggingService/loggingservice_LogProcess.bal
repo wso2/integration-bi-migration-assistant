@@ -22,12 +22,14 @@ function activityExtension_3(xml input, map<xml> context) returns xml|error {
     string var2 = <string>var1.fileName;
     string var3 = var1.textContent;
     checkpanic io:fileWriteString(var2, var3);
+    addToContext(context, "TextFile", var0);
     return var0;
 }
 
 function activityExtension_4(xml input, map<xml> context) returns xml|error {
     xml var0 = check xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://www.example.org/LogSchema" xmlns:tns="http://www.tibco.com/xml/render/example" version="2.0"><xsl:param name="Start"/><xsl:template name="RenderXml-input" match="/"><tns:InputElement><level><xsl:value-of select="$Start/tns1:level"/></level><message><xsl:value-of select="$Start/tns1:message"/></message><logger><xsl:value-of select="$Start/tns1:loggerName"/></logger><timestamp><xsl:value-of select="current-dateTime()"/></timestamp></tns:InputElement></xsl:template></xsl:stylesheet>`), context);
+    addToContext(context, "RenderXml", var0);
     return var0;
 }
 
@@ -38,6 +40,7 @@ function activityExtension_5(xml input, map<xml> context) returns xml|error {
     string var2 = <string>var1.fileName;
     string var3 = var1.textContent;
     checkpanic io:fileWriteString(var2, var3);
+    addToContext(context, "XMLFile", var0);
     return var0;
 }
 

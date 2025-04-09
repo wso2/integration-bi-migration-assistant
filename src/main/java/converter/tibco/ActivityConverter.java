@@ -40,6 +40,7 @@ import java.util.Optional;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 
@@ -149,36 +150,33 @@ class ActivityConverter {
                                 inputBindings.getLast().varName());
 
                 TibcoModel.Scope.Flow.Activity.ActivityExtension.Config config = activityExtension.config();
-                List<BallerinaModel.Statement> rest = switch (config) {
+                ActivityExtensionConfigConversion conversion = switch (config) {
                         case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.End ignored ->
-                                List.of(new Return<>(result));
+                                new ActivityExtensionConfigConversion(List.of(), result);
                         case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.HTTPSend httpSend ->
-                                createHttpSend(cx, result, httpSend, activityExtension.outputVariable());
-                        case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.JsonOperation jsonOperation ->
-                                createJsonOperation(cx, result, jsonOperation, activityExtension.outputVariable());
+                                createHttpSend(cx, result, httpSend);
+                        case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.JsonOperation ignored ->
+                                new ActivityExtensionConfigConversion(List.of(), result);
                         case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql ->
                                 createSQLOperation(cx, result, sql);
                         case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SendHTTPResponse ignored ->
-                                List.of(new Return<>(result));
+                                new ActivityExtensionConfigConversion(List.of(), result);
                         case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.FileWrite fileWrite ->
                                 createFileWriteOperation(cx, result, fileWrite);
                         case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.Log log ->
                                 createLogOperation(cx, result, log);
-                        case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.RenderXML renderXML ->
-                                createRenderXml(cx, result, renderXML);
+                        case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.RenderXML ignored ->
+                                new ActivityExtensionConfigConversion(List.of(), result);
                 };
-                body.addAll(rest);
+                // FIXME: handle add to output
+                body.addAll(conversion.body());
+                activityExtension.outputVariable()
+                        .ifPresent(outputVar -> body.add(addToContext(cx, conversion.result(), outputVar)));
+                body.add(new Return<>(conversion.result()));
                 return body;
         }
 
-        private static List<BallerinaModel.Statement> createRenderXml(
-                        ActivityContext cx,
-                        BallerinaModel.Expression.VariableReference result,
-                        TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.RenderXML renderXML) {
-                return List.of(new Return<>(result));
-        }
-
-        private static List<BallerinaModel.Statement> createLogOperation(
+        private static ActivityExtensionConfigConversion createLogOperation(
                         ActivityContext cx,
                         BallerinaModel.Expression.VariableReference result,
                         TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.Log log) {
@@ -196,19 +194,19 @@ class ActivityConverter {
                                                 new BallerinaModel.Expression.VariableReference(dataDecl.varName()))));
                 body.add(callStatement);
 
-                body.add(new Return<>(result));
-
-                return body;
+                return new ActivityExtensionConfigConversion(body, result);
         }
 
-        private static List<BallerinaModel.Statement> createFileWriteOperation(
+        private static ActivityExtensionConfigConversion createFileWriteOperation(
                         ActivityContext cx,
                         BallerinaModel.Expression.VariableReference result,
                         TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.FileWrite fileWrite) {
                 List<BallerinaModel.Statement> body = new ArrayList<>();
                 BallerinaModel.TypeDesc dataType = cx.getFileWriteConfigType();
-                VarDeclStatment dataDecl = new VarDeclStatment(dataType, cx.getAnnonVarName(),
-                                new FunctionCall(cx.getConvertToTypeFunction(dataType), List.of(result)));
+                VarDeclStatment dataDecl = new VarDeclStatment(dataType,
+                        cx.getAnnonVarName(),
+                        new BallerinaModel.Expression.FunctionCall(cx.getConvertToTypeFunction(dataType),
+                                List.of(result)));
                 body.add(dataDecl);
 
                 VarDeclStatment fileNameDecl = new VarDeclStatment(STRING, cx.getAnnonVarName(),
@@ -227,64 +225,84 @@ class ActivityConverter {
                 body.add(textContentDecl);
 
                 CallStatement callStatement = new CallStatement(
-                                new BallerinaModel.Expression.CheckPanic(new FunctionCall(
+                        new BallerinaModel.Expression.CheckPanic(new BallerinaModel.Expression.FunctionCall(
                                                 cx.getFileWriteFunction(),
                                                 List.of(new BallerinaModel.Expression.VariableReference(
                                                                 fileNameDecl.varName()),
                                                                 new BallerinaModel.Expression.VariableReference(
                                                                                 textContentDecl.varName())))));
                 body.add(callStatement);
-
-                body.add(new Return<>(result));
-                return body;
+                return new ActivityExtensionConfigConversion(body, result);
         }
 
-        private static List<BallerinaModel.Statement> createSQLOperation(
+        private static ActivityExtensionConfigConversion createSQLOperation(
                         ActivityContext cx,
-                        VariableReference inputVar,
+                        BallerinaModel.Expression.VariableReference inputVar,
                         TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql) {
                 List<BallerinaModel.Statement> body = new ArrayList<>();
                 BallerinaModel.TypeDesc dataType = ConversionUtils.createQueryInputType(cx, sql);
                 VarDeclStatment dataDecl = new VarDeclStatment(dataType, "data",
-                                new FunctionCall(cx.getConvertToTypeFunction(dataType),
+                        new BallerinaModel.Expression.FunctionCall(cx.getConvertToTypeFunction(dataType),
                                                 List.of(inputVar)));
                 body.add(dataDecl);
-                VariableReference paramData = new VariableReference(dataDecl.varName());
+                BallerinaModel.Expression.VariableReference paramData = new BallerinaModel.Expression.VariableReference(
+                        dataDecl.varName());
 
                 VarDeclStatment queryDecl = ConversionUtils.createQueryDecl(cx, paramData, sql);
                 body.add(queryDecl);
                 VariableReference query = new VariableReference(queryDecl.varName());
 
                 BallerinaModel.Expression.VariableReference dbClient = cx.client(sql.sharedResourcePropertyName());
+                if (sql.query().toUpperCase().startsWith("SELECT")) {
+                        return finishSelectQuery(cx, sql, dbClient, query, body);
+                }
                 BallerinaModel.TypeDesc executionResultType = cx.processContext.getTypeByName("sql:ExecutionResult");
                 VarDeclStatment result = new VarDeclStatment(executionResultType,
                                 cx.getAnnonVarName(),
-                                new BallerinaModel.Expression.CheckPanic(
+                        new BallerinaModel.Expression.Check(
                                                 new BallerinaModel.Action.RemoteMethodCallAction(
                                                                 dbClient, "execute", List.of(query))));
                 body.add(result);
-
-                // TODO: handle things like select properly
-                body.add(new Return<>(inputVar));
-                return body;
+                return new ActivityExtensionConfigConversion(body, result.ref());
         }
 
-        private static List<BallerinaModel.Statement> createJsonOperation(
-                        ActivityContext cx,
-                        BallerinaModel.Expression.VariableReference inputVar,
-                        TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.JsonOperation jsonOperation,
-                        Optional<String> outputVarName) {
-                // TODO: how to implement this
-                return outputVarName.map(
-                                s -> List.of(addToContext(cx, inputVar, s), new Return<>(inputVar)))
-                        .orElseGet(() -> List.of(new Return<>(inputVar)));
+        private static @NotNull ActivityExtensionConfigConversion finishSelectQuery(ActivityContext cx,
+                                                                                    TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql,
+                                                                                    BallerinaModel.Expression.VariableReference dbClient,
+                                                                                    BallerinaModel.Expression.VariableReference query,
+                                                                                    List<BallerinaModel.Statement> body) {
+                BallerinaModel.TypeDesc columnTy = ConversionUtils.createQueryResultType(cx, sql);
+                BallerinaModel.TypeDesc.StreamTypeDesc streamTypeDesc = new BallerinaModel.TypeDesc.StreamTypeDesc(
+                        columnTy,
+                        BallerinaModel.TypeDesc.UnionTypeDesc.of(
+                                cx.processContext.getTypeByName("sql:ExecutionResult"),
+                                NIL));
+                VarDeclStatment stream = new VarDeclStatment(streamTypeDesc,
+                        cx.getAnnonVarName(),
+                        new BallerinaModel.Action.RemoteMethodCallAction(dbClient, "query", List.of(query)));
+                body.add(stream);
+
+                VarDeclStatment accum = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                        new BallerinaModel.Expression.XMLTemplate(""));
+                body.add(accum);
+
+                BallerinaModel.BallerinaStatement foreachStatement = new BallerinaModel.BallerinaStatement("""
+                        check from var each in %s do {
+                            %s = %s + each;
+                        };
+                        """.formatted(stream.ref(), accum.ref(), accum.ref()));
+                body.add(foreachStatement);
+
+                VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                        new BallerinaModel.Expression.XMLTemplate("<root>${%s}</root>".formatted(accum.ref())));
+                body.add(result);
+                return new ActivityExtensionConfigConversion(body, result.ref());
         }
 
-        private static List<BallerinaModel.Statement> createHttpSend(
+        private static ActivityExtensionConfigConversion createHttpSend(
                         ActivityContext cx,
                         BallerinaModel.Expression.VariableReference configVar,
-                        TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.HTTPSend httpSend,
-                        Optional<String> outputVarName) {
+                        TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.HTTPSend httpSend) {
                 String parseFn = cx.getParseHttpConfigFunction();
                 List<BallerinaModel.Statement> body = new ArrayList<>();
                 BallerinaModel.TypeDesc.TypeReference httpConfigType = cx.getHttpConfigType();
@@ -316,17 +334,17 @@ class ActivityConverter {
                 body.add(responseDecl);
 
                 String jsonToXmlFunction = cx.processContext.getJsonToXMLFunction();
-                FunctionCall jsonToXmlFunctionCall = new FunctionCall(
+                BallerinaModel.Expression.FunctionCall jsonToXmlFunctionCall =
+                        new BallerinaModel.Expression.FunctionCall(
                                 jsonToXmlFunction, new String[] { responseDecl.varName() });
-                VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                        new Check(jsonToXmlFunctionCall));
+                VarDeclStatment resultDecl = new VarDeclStatment(XML,
+                        cx.getAnnonVarName(),
+                        new BallerinaModel.Expression.Check(jsonToXmlFunctionCall));
                 body.add(resultDecl);
-                VariableReference result = new VariableReference(
+                BallerinaModel.Expression.VariableReference result = new BallerinaModel.Expression.VariableReference(
                                 resultDecl.varName());
-                outputVarName.ifPresent(s -> body.add(addToContext(cx, result, s)));
-                body.add(new Return<>(result));
 
-                return body;
+                return new ActivityExtensionConfigConversion(body, result);
         }
 
         private static List<BallerinaModel.Statement> convertReceiveEvent(
@@ -480,7 +498,12 @@ class ActivityConverter {
                 assert !key.isEmpty();
                 String addToContextFn = cx.getAddToContextFn();
                 return new CallStatement(
-                                new FunctionCall(addToContextFn,
-                                                List.of(cx.contextVarRef(), new StringConstant(key), value)));
+                        new BallerinaModel.Expression.FunctionCall(addToContextFn, List.of(cx.contextVarRef(),
+                                new BallerinaModel.Expression.StringConstant(key), value)));
+        }
+
+        private record ActivityExtensionConfigConversion(List<BallerinaModel.Statement> body,
+                                                         BallerinaModel.Expression.VariableReference result) {
+
         }
 }

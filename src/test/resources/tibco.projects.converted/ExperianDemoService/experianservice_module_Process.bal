@@ -23,8 +23,15 @@ function activityExtension_2(xml input, map<xml> context) returns xml|error {
     sql:ParameterizedQuery var1 = `SELECT *
   FROM public.creditscore where ssn like ${data.ssn}
 `;
-    sql:ExecutionResult var2 = checkpanic experianservice_module_JDBCConnectionResource->execute(var1);
-    return var0;
+    stream<QueryResult0, sql:ExecutionResult|()> var2 = experianservice_module_JDBCConnectionResource->query(var1);
+    xml var3 = xml ``;
+    check from var each in var2
+        do {
+            var3 = var3 + each;
+        };
+    xml var4 = xml `<root>${var3}</root>`;
+    addToContext(context, "JDBCQuery", var4);
+    return var4;
 }
 
 function activityExtension_3(xml input, map<xml> context) returns xml|error {

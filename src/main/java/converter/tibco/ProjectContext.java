@@ -273,6 +273,7 @@ public class ProjectContext {
             case "Client" -> Optional.of(getLibraryType(cx, Library.HTTP, "Client"));
             case "ParameterizedQuery" -> Optional.of(getLibraryType(cx, Library.SQL, "ParameterizedQuery"));
             case "ExecutionResult" -> Optional.of(getLibraryType(cx, Library.SQL, "ExecutionResult"));
+            case "Error" -> Optional.of(getLibraryType(cx, Library.SQL, "Error"));
             default -> Optional.empty();
         };
     }

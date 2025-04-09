@@ -114,8 +114,10 @@ final class ResourceConvertor {
                         Collectors.toMap(ConversionResult::bindingName, ConversionResult::varName));
     }
 
-    private static BallerinaModel.ModuleVar convertSubstitutionBinding(ProjectContext cx,
-                                                                       TibcoModel.Resource.SubstitutionBinding binding) {
+    private static BallerinaModel.ModuleVar convertSubstitutionBinding(
+            ProjectContext cx,
+            TibcoModel.Resource.SubstitutionBinding binding
+    ) {
         String name = cx.getUtilityVarName(binding.template());
         return BallerinaModel.ModuleVar.configurable(name, STRING);
     }
