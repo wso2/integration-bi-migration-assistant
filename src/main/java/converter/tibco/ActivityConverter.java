@@ -168,7 +168,6 @@ class ActivityConverter {
                         case TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.RenderXML ignored ->
                                 new ActivityExtensionConfigConversion(List.of(), result);
                 };
-                // FIXME: handle add to output
                 body.addAll(conversion.body());
                 activityExtension.outputVariable()
                         .ifPresent(outputVar -> body.add(addToContext(cx, conversion.result(), outputVar)));
@@ -266,11 +265,12 @@ class ActivityConverter {
                 return new ActivityExtensionConfigConversion(body, result.ref());
         }
 
-        private static @NotNull ActivityExtensionConfigConversion finishSelectQuery(ActivityContext cx,
-                                                                                    TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql,
-                                                                                    BallerinaModel.Expression.VariableReference dbClient,
-                                                                                    BallerinaModel.Expression.VariableReference query,
-                                                                                    List<BallerinaModel.Statement> body) {
+        private static @NotNull ActivityExtensionConfigConversion finishSelectQuery(
+                ActivityContext cx,
+                TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql,
+                BallerinaModel.Expression.VariableReference dbClient,
+                BallerinaModel.Expression.VariableReference query,
+                List<BallerinaModel.Statement> body) {
                 BallerinaModel.TypeDesc columnTy = ConversionUtils.createQueryResultType(cx, sql);
                 BallerinaModel.TypeDesc.StreamTypeDesc streamTypeDesc = new BallerinaModel.TypeDesc.StreamTypeDesc(
                         columnTy,

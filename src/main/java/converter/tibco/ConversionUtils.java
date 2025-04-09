@@ -87,8 +87,10 @@ public final class ConversionUtils {
         };
     }
 
-    static BallerinaModel.TypeDesc createQueryResultType(ActivityContext cx,
-                                                         TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql) {
+    static BallerinaModel.TypeDesc createQueryResultType(
+            ActivityContext cx,
+            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql
+    ) {
         ProcessContext processContext = cx.processContext;
         processContext.projectContext.getTypeContext().addLibraryImport(Library.XML_DATA);
         AnalysisResult analysisResult = processContext.analysisResult;
