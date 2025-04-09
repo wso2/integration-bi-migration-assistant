@@ -62,11 +62,46 @@ function errorHandler_creditapp_module_EquifaxScore(error err, map<xml> cx) retu
 }
 
 function invoke(xml input, map<xml> context) returns xml|error {
-    http:Client var0 = check new ("/");
-    json var1 = check var0->post("/creditscore", input);
-    xml var2 = check fromJson(var1);
-    addToContext(context, "post", var2);
-    return var2;
+    xml var0 = check xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com/20180827154353PLT" xmlns:tns1="http://tns.tibco.com/bw/REST" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0"><xsl:param name="Start"/><xsl:template name="post-input" match="/"><tns:postRequest1><item><tns3:GiveNewSchemaNameHere><xsl:if test="$Start/tns3:DOB"><tns3:DOB><xsl:value-of select="$Start/tns3:DOB"/></tns3:DOB></xsl:if><xsl:if test="$Start/tns3:FirstName"><tns3:FirstName><xsl:value-of select="$Start/tns3:FirstName"/></tns3:FirstName></xsl:if><xsl:if test="$Start/tns3:LastName"><tns3:LastName><xsl:value-of select="$Start/tns3:LastName"/></tns3:LastName></xsl:if><xsl:if test="$Start/tns3:SSN"><tns3:SSN><xsl:value-of select="$Start/tns3:SSN"/></tns3:SSN></xsl:if></tns3:GiveNewSchemaNameHere></item><httpHeaders><tns1:httpHeaders/></httpHeaders></tns:postRequest1></xsl:template></xsl:stylesheet>`), context);
+    xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com/20180827154353PLT" xmlns:tns1="http://tns.tibco.com/bw/REST" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
+    <xsl:param name="Start"/>
+    <xsl:template name="post-input" match="/">
+        <tns3:GiveNewSchemaNameHere>
+            <xsl:if test="$Start/tns3:DOB">
+                <tns3:DOB>
+                    <xsl:value-of select="$Start/tns3:DOB"/>
+                </tns3:DOB>
+            </xsl:if>
+            <xsl:if test="$Start/tns3:FirstName">
+                <tns3:FirstName>
+                    <xsl:value-of select="$Start/tns3:FirstName"/>
+                </tns3:FirstName>
+            </xsl:if>
+            <xsl:if test="$Start/tns3:LastName">
+                <tns3:LastName>
+                    <xsl:value-of select="$Start/tns3:LastName"/>
+                </tns3:LastName>
+            </xsl:if>
+            <xsl:if test="$Start/tns3:SSN">
+                <tns3:SSN>
+                    <xsl:value-of select="$Start/tns3:SSN"/>
+                </tns3:SSN>
+            </xsl:if>
+        </tns3:GiveNewSchemaNameHere>
+    </xsl:template>
+</xsl:stylesheet>`), context);
+    xml var2 = check xslt:transform(var1, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com/20180827154353PLT" xmlns:tns1="http://tns.tibco.com/bw/REST" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
+    <xsl:template name="post-input" match="/">
+        <tns1:httpHeaders/>
+    </xsl:template>
+</xsl:stylesheet>`), context);
+    json var3 = check httpInvoke("/", "/creditscore", "post", var2);
+    xml var4 = check fromJson(var3);
+    addToContext(context, "post", var4);
+    return var4;
 }
 
 function process_creditapp_module_EquifaxScore(xml input) returns xml {

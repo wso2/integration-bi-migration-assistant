@@ -49,6 +49,22 @@ function getRequestPath(HTTPRequestConfig config) returns string {
         select key + "=" + config.parameters.get(key));
 }
 
+function handleInvoke(String baseUrl, string path, String method, anydata payload)
+        returns json|error {
+    http:Client client = check new (baseUrl);
+    match method {
+        "post" => {
+            return check client->post(path, payload);
+        }
+        "put" => {
+            return check client->put(path, payload);
+        }
+        _ => {
+            return error("Unsupported HTTP method: " + method);
+        }
+    }
+}
+
 function httpCall(HTTPRequestConfig config, http:Client 'client) returns json|error {
     string requestPath = getRequestPath(config);
     match config.Method {

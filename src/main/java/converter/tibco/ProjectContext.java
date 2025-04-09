@@ -198,6 +198,12 @@ public class ProjectContext {
         return Intrinsics.HTTP_CALL.name;
     }
 
+    public String getHttpInvokeFunction() {
+        importLibraryIfNeededToUtility(HTTP);
+        utilityIntrinsics.add(Intrinsics.HANDLE_INVOKE);
+        return Intrinsics.HANDLE_INVOKE.name;
+    }
+
     private void importLibraryIfNeededToUtility(Library library) {
         conversionContext.ifPresent(cx -> {
             if (library == JDBC) {

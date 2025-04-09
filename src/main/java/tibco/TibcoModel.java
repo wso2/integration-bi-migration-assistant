@@ -234,7 +234,13 @@ public class TibcoModel {
                                     Format clientRequestFormat, List<Parameter> parameters) {
 
                 public enum Method {
-                    POST;
+                    POST("post");
+
+                    public final String method;
+
+                    Method(String method) {
+                        this.method = method;
+                    }
 
                     public static Method from(String value) {
                         if (value.equalsIgnoreCase("post")) {
