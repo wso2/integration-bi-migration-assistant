@@ -76,6 +76,32 @@ public enum Intrinsics {
                     }
                     """
     ),
+    HTTP_CALL(
+            "httpCall",
+            """
+                    function httpCall(HTTPRequestConfig config, http:Client 'client) returns json|error {
+                        string requestPath = getRequestPath(config);
+                        match config.Method {
+                            "GET" => {
+                                return checkpanic 'client->get(requestPath, config.Headers);
+                            }
+                            "POST" => {
+                                return checkpanic 'client->post(requestPath, config.PostData, config.Headers);
+                            }
+                            "PUT" => {
+                                return checkpanic 'client->put(requestPath, config.PostData, config.Headers);
+                            }
+                            "DELETE" => {
+                                return checkpanic 'client->delete(requestPath, config.Headers);
+                            }
+                            _ => {
+                                return error("Unsupported HTTP method: " + config.Method);
+                            }
+                        }
+                    }
+                    """
+
+    ),
     TRANSFORM_XSLT(
             "transformXSLT",
             """

@@ -19,11 +19,10 @@ function activityExtension_2(xml input, map<xml> context) returns xml|error {
     xml var0 = check xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns4="http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput" xmlns:tns6="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0"><xsl:param name="RenderJSON"/><xsl:param name="Start"/><xsl:template name="SendHTTPRequest-input" match="/"><tns4:RequestActivityInput><Method><xsl:value-of select="'POST'"/></Method><RequestURI><xsl:value-of select="'/creditscore'"/></RequestURI><PostData><xsl:value-of select="$RenderJSON/jsonString"/></PostData><Headers><Accept><xsl:value-of select="'application/json'"/></Accept><Content-Type><xsl:value-of select="'application/json'"/></Content-Type></Headers><parameters><xsl:if test="$Start/tns6:SSN"><ssn><xsl:value-of select="$Start/tns6:SSN"/></ssn></xsl:if></parameters></tns4:RequestActivityInput></xsl:template></xsl:stylesheet>`), context);
     HTTPRequestConfig var1 = convertToHTTPRequestConfig(var0);
-    string var2 = getRequestPath(var1);
-    json var3 = check creditapp_module_HttpClientResource1->/var2.post(var1.PostData, var1.Headers);
-    xml var4 = check fromJson(var3);
-    addToContext(context, "SendHTTPRequest", var4);
-    return var4;
+    json var2 = check httpCall(var0, creditapp_module_HttpClientResource1);
+    xml var3 = check fromJson(var2);
+    addToContext(context, "SendHTTPRequest", var3);
+    return var3;
 }
 
 function activityExtension_3(xml input, map<xml> context) returns xml|error {

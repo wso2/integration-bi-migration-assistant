@@ -138,11 +138,6 @@ public class CodeGenerator {
                 moduleMembers.add(fd);
             }
 
-            for (String f : textDocument.intrinsics()) {
-                ModuleMemberDeclarationNode fd = NodeParser.parseModuleMemberDeclaration(f);
-                moduleMembers.add(fd);
-            }
-
             NodeList<ImportDeclarationNode> importDecls = NodeFactory.createNodeList(imports);
             NodeList<ModuleMemberDeclarationNode> moduleMemberDecls = NodeFactory.createNodeList(moduleMembers);
 

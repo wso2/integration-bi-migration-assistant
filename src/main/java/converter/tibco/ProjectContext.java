@@ -43,6 +43,7 @@ import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static converter.tibco.Library.HTTP;
 import static converter.tibco.Library.IO;
 import static converter.tibco.Library.JDBC;
 import static converter.tibco.Library.LOG;
@@ -188,6 +189,13 @@ public class ProjectContext {
         typeCx.moduleTypeDefs.put(httpConfigTy, Optional.of(httpConfigType));
         typeCx.addIntrinsic(Intrinsics.CREATE_HTTP_REQUEST_PATH_FROM_CONFIG);
         return new BallerinaModel.TypeDesc.TypeReference(httpConfigTy);
+    }
+
+    public String getHttpCallFunction() {
+        utilityIntrinsics.add(Intrinsics.HTTP_CALL);
+        utilityIntrinsics.add(Intrinsics.CREATE_HTTP_REQUEST_PATH_FROM_CONFIG);
+        importLibraryIfNeededToUtility(HTTP);
+        return Intrinsics.HTTP_CALL.name;
     }
 
     private void importLibraryIfNeededToUtility(Library library) {

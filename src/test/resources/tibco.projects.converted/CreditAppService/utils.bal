@@ -40,41 +40,34 @@ function addToContext(map<xml> context, string varName, xml value) {
     context[varName] = transformed;
 }
 
-function transformXSLT(xml input) returns xml {
-    xmlns "http://www.w3.org/1999/XSL/Transform" as xsl;
-    xml<xml:Element> values = input/**/<xsl:value\-of>;
-    foreach xml:Element item in values {
-        map<string> attributes = item.getAttributes();
-        string selectPath = attributes.get("select");
-        int? index = selectPath.indexOf("/");
-        string path;
-        if index == () {
-            path = selectPath;
-        } else {
-            path = selectPath.substring(0, index) + "/root" + selectPath.substring(index);
-        }
-        attributes["select"] = path;
+function getRequestPath(HTTPRequestConfig config) returns string {
+    string base = config.RequestURI;
+    if (config.parameters.length() == 0) {
+        return base;
     }
-    xml<xml:Element> test = input/**/<xsl:'if>;
-    foreach xml:Element item in test {
-        map<string> attributes = item.getAttributes();
-        string selectPath = attributes.get("test");
-        int? index = selectPath.indexOf("/");
-        string path;
-        if index == () {
-            path = selectPath;
-        } else {
-            path = selectPath.substring(0, index) + "/root" + selectPath.substring(index);
-        }
-        attributes["test"] = path;
-    }
-    return input;
+    return base + "?" + "&".'join(...from string key in config.parameters.keys()
+        select key + "=" + config.parameters.get(key));
 }
 
-function addToContext(map<xml> context, string varName, xml value) {
-    xml children = value/*;
-    xml transformed = xml `<root>${children}</root>`;
-    context[varName] = transformed;
+function httpCall(HTTPRequestConfig config, http:Client 'client) returns json|error {
+    string requestPath = getRequestPath(config);
+    match config.Method {
+        "GET" => {
+            return checkpanic 'client->get(requestPath, config.Headers);
+        }
+        "POST" => {
+            return checkpanic 'client->post(requestPath, config.PostData, config.Headers);
+        }
+        "PUT" => {
+            return checkpanic 'client->put(requestPath, config.PostData, config.Headers);
+        }
+        "DELETE" => {
+            return checkpanic 'client->delete(requestPath, config.Headers);
+        }
+        _ => {
+            return error("Unsupported HTTP method: " + config.Method);
+        }
+    }
 }
 
 function transformXSLT(xml input) returns xml {
