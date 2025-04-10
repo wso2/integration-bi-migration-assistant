@@ -16,8 +16,9 @@ service / on creditapp_module_EquifaxScore_listener {
     }
 }
 
-function activityExtension_6(xml input, map<xml> context) returns xml|error {
-    xml var0 = check xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+function activityExtension_6(map<xml> context) returns xml|error {
+    xml var0 = xml ``;
+    xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
     <xsl:param name="post.item"/>
     <xsl:template name="End-input" match="/">
@@ -40,7 +41,7 @@ function activityExtension_6(xml input, map<xml> context) returns xml|error {
         </tns3:SuccessSchema>
     </xsl:template>
 </xsl:stylesheet>`), context);
-    return var0;
+    return var1;
 }
 
 function activityRunner_creditapp_module_EquifaxScore(xml input, map<xml> cx) returns xml|error {
@@ -61,10 +62,11 @@ function errorHandler_creditapp_module_EquifaxScore(error err, map<xml> cx) retu
     checkpanic err;
 }
 
-function invoke(xml input, map<xml> context) returns xml|error {
-    xml var0 = check xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com/20180827154353PLT" xmlns:tns1="http://tns.tibco.com/bw/REST" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0"><xsl:param name="Start"/><xsl:template name="post-input" match="/"><tns:postRequest1><item><tns3:GiveNewSchemaNameHere><xsl:if test="$Start/tns3:DOB"><tns3:DOB><xsl:value-of select="$Start/tns3:DOB"/></tns3:DOB></xsl:if><xsl:if test="$Start/tns3:FirstName"><tns3:FirstName><xsl:value-of select="$Start/tns3:FirstName"/></tns3:FirstName></xsl:if><xsl:if test="$Start/tns3:LastName"><tns3:LastName><xsl:value-of select="$Start/tns3:LastName"/></tns3:LastName></xsl:if><xsl:if test="$Start/tns3:SSN"><tns3:SSN><xsl:value-of select="$Start/tns3:SSN"/></tns3:SSN></xsl:if></tns3:GiveNewSchemaNameHere></item><httpHeaders><tns1:httpHeaders/></httpHeaders></tns:postRequest1></xsl:template></xsl:stylesheet>`), context);
+function invoke(map<xml> context) returns xml|error {
+    xml var0 = xml ``;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com/20180827154353PLT" xmlns:tns1="http://tns.tibco.com/bw/REST" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0"><xsl:param name="Start"/><xsl:template name="post-input" match="/"><tns:postRequest1><item><tns3:GiveNewSchemaNameHere><xsl:if test="$Start/tns3:DOB"><tns3:DOB><xsl:value-of select="$Start/tns3:DOB"/></tns3:DOB></xsl:if><xsl:if test="$Start/tns3:FirstName"><tns3:FirstName><xsl:value-of select="$Start/tns3:FirstName"/></tns3:FirstName></xsl:if><xsl:if test="$Start/tns3:LastName"><tns3:LastName><xsl:value-of select="$Start/tns3:LastName"/></tns3:LastName></xsl:if><xsl:if test="$Start/tns3:SSN"><tns3:SSN><xsl:value-of select="$Start/tns3:SSN"/></tns3:SSN></xsl:if></tns3:GiveNewSchemaNameHere></item><httpHeaders><tns1:httpHeaders/></httpHeaders></tns:postRequest1></xsl:template></xsl:stylesheet>`), context);
+    xml var2 = check xslt:transform(var1, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com/20180827154353PLT" xmlns:tns1="http://tns.tibco.com/bw/REST" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
     <xsl:param name="Start"/>
     <xsl:template name="post-input" match="/">
@@ -92,22 +94,22 @@ function invoke(xml input, map<xml> context) returns xml|error {
         </tns3:GiveNewSchemaNameHere>
     </xsl:template>
 </xsl:stylesheet>`), context);
-    xml var2 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var3 = check xslt:transform(var1, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com/20180827154353PLT" xmlns:tns1="http://tns.tibco.com/bw/REST" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
     <xsl:template name="post-input" match="/">
         <tns1:httpHeaders/>
     </xsl:template>
 </xsl:stylesheet>`), context);
-    xml var3 = xml `<root>${var1} + ${var2}</root>`;
-    json var4 = check handleInvoke("/", "/creditscore", "post", var3);
-    xml var5 = check fromJson(var4);
-    addToContext(context, "post", var5);
-    return var5;
+    xml var4 = xml `<root>${var2} + ${var3}</root>`;
+    json var5 = check handleInvoke("/", "/creditscore", "post", var4);
+    xml var6 = check fromJson(var5);
+    addToContext(context, "post", var6);
+    return var6;
 }
 
 function process_creditapp_module_EquifaxScore(xml input) returns xml {
     map<xml> context = {};
-    addToContext(context, "post.item", input);
+    addToContext(context, "$input", input);
     xml|error result = activityRunner_creditapp_module_EquifaxScore(input, context);
     if result is error {
         return errorHandler_creditapp_module_EquifaxScore(result, context);
@@ -115,7 +117,7 @@ function process_creditapp_module_EquifaxScore(xml input) returns xml {
     return result;
 }
 
-function receiveEvent_5(xml input, map<xml> context) returns xml|error {
-    addToContext(context, "Start", input);
-    return input;
+function receiveEvent_5(map<xml> context) returns xml|error {
+    addToContext(context, "Start", context.get("$input"));
+    return context.get("$input");
 }

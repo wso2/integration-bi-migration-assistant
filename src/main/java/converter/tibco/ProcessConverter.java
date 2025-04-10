@@ -235,10 +235,12 @@ public class ProcessConverter {
                 VarDeclStatment context = cx.initContextVar();
                 body.add(context);
                 String addToContextFn = cx.getAddToContextFn();
-                VariableReference input = new VariableReference("input");
+                String inputVarName = "input";
+                VariableReference input = new VariableReference(inputVarName);
                 body.add(new CallStatement(
                                 new FunctionCall(addToContextFn, List.of(cx.contextVarRef(),
-                                                new BallerinaModel.Expression.StringConstant("post.item"),
+                                                new BallerinaModel.Expression.StringConstant(
+                                                                ConversionUtils.Constants.CONTEXT_INPUT_NAME),
                                                 input))));
                 VarDeclStatment result = new VarDeclStatment(
                                 BallerinaModel.TypeDesc.UnionTypeDesc.of(XML, ERROR), "result",
@@ -248,7 +250,8 @@ public class ProcessConverter {
                 handleErrorResult(cx, result, context, body);
                 body.add(new Return<>(result.ref()));
                 return new BallerinaModel.Function(name,
-                                List.of(new BallerinaModel.Parameter("input", XML)), Optional.of(XML.toString()), body);
+                                List.of(new BallerinaModel.Parameter(inputVarName, XML)), Optional.of(XML.toString()),
+                                body);
         }
 
         private static void handleErrorResult(ProcessContext cx, VarDeclStatment result,

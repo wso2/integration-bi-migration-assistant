@@ -170,4 +170,11 @@ public final class ConversionUtils {
             throw new RuntimeException("Failed to convertTypes element to string", e);
         }
     }
+
+    public enum Constants {
+        ;
+
+        static final String CONTEXT_VAR_NAME = "context";
+        static final String CONTEXT_INPUT_NAME = "$input";
+    }
 }

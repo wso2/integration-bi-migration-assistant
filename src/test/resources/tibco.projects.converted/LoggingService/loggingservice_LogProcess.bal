@@ -1,47 +1,52 @@
 import ballerina/io;
 import ballerina/xslt;
 
-function activityExtension(xml input, map<xml> context) returns xml|error {
-    xml var0 = check xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+function activityExtension(map<xml> context) returns xml|error {
+    xml var0 = xml ``;
+    xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns2="http://www.example.org/LogResult" version="2.0"><xsl:template name="End-input" match="/"><tns2:result><xsl:value-of select="'Logging Done'"/></tns2:result></xsl:template></xsl:stylesheet>`), context);
-    return var0;
+    return var1;
 }
 
-function activityExtension_2(xml input, map<xml> context) returns xml|error {
-    xml var0 = check xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+function activityExtension_2(map<xml> context) returns xml|error {
+    xml var0 = xml ``;
+    xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:tns1="http://www.example.org/LogSchema" version="2.0"><xsl:param name="Start"/><xsl:template name="consolelog-input" match="/"><tns:ActivityInput><msgCode><xsl:value-of select="$Start/tns1:msgCode"/></msgCode><logLevel><xsl:value-of select="$Start/tns1:level"/></logLevel><message><xsl:value-of select="$Start/tns1:message"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`), context);
-    LogParametersType var1 = convertToLogParametersType(var0);
-    logWrapper(var1);
-    return var0;
+    LogParametersType var2 = convertToLogParametersType(var1);
+    logWrapper(var2);
+    return var1;
 }
 
-function activityExtension_3(xml input, map<xml> context) returns xml|error {
-    xml var0 = check xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+function activityExtension_3(map<xml> context) returns xml|error {
+    xml var0 = xml ``;
+    xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://www.tibco.com/namespaces/tnt/plugins/file" xmlns:tns1="http://www.example.org/LogSchema" xmlns:bw="http://www.tibco.com/bw/xpath/bw-custom-functions" version="2.0"><xsl:param name="Start"/><xsl:template name="WriteFile-input" match="/"><tns3:WriteActivityInputTextClass><fileName><xsl:value-of select="concat(concat(${fileDir}, $Start/tns1:loggerName), '.txt')"/></fileName><textContent><xsl:value-of select="$Start/tns1:message"/></textContent></tns3:WriteActivityInputTextClass></xsl:template></xsl:stylesheet>`), context);
-    WriteActivityInputTextClass var1 = convertToWriteActivityInputTextClass(var0);
-    string var2 = <string>var1.fileName;
-    string var3 = var1.textContent;
-    checkpanic io:fileWriteString(var2, var3);
-    addToContext(context, "TextFile", var0);
-    return var0;
+    WriteActivityInputTextClass var2 = convertToWriteActivityInputTextClass(var1);
+    string var3 = <string>var2.fileName;
+    string var4 = var2.textContent;
+    checkpanic io:fileWriteString(var3, var4);
+    addToContext(context, "TextFile", var1);
+    return var1;
 }
 
-function activityExtension_4(xml input, map<xml> context) returns xml|error {
-    xml var0 = check xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+function activityExtension_4(map<xml> context) returns xml|error {
+    xml var0 = xml ``;
+    xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://www.example.org/LogSchema" xmlns:tns="http://www.tibco.com/xml/render/example" version="2.0"><xsl:param name="Start"/><xsl:template name="RenderXml-input" match="/"><tns:InputElement><level><xsl:value-of select="$Start/tns1:level"/></level><message><xsl:value-of select="$Start/tns1:message"/></message><logger><xsl:value-of select="$Start/tns1:loggerName"/></logger><timestamp><xsl:value-of select="current-dateTime()"/></timestamp></tns:InputElement></xsl:template></xsl:stylesheet>`), context);
-    addToContext(context, "RenderXml", var0);
-    return var0;
+    addToContext(context, "RenderXml", var1);
+    return var1;
 }
 
-function activityExtension_5(xml input, map<xml> context) returns xml|error {
-    xml var0 = check xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+function activityExtension_5(map<xml> context) returns xml|error {
+    xml var0 = xml ``;
+    xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://www.tibco.com/namespaces/tnt/plugins/file" xmlns:tns1="http://www.example.org/LogSchema" xmlns:bw="http://www.tibco.com/bw/xpath/bw-custom-functions" version="2.0"><xsl:param name="RenderXml"/><xsl:param name="Start"/><xsl:template name="XMLFile-input" match="/"><tns3:WriteActivityInputTextClass><fileName><xsl:value-of select="concat(concat(${fileDir}, $Start/tns1:loggerName), '.xml')"/></fileName><textContent><xsl:value-of select="$RenderXml"/></textContent></tns3:WriteActivityInputTextClass></xsl:template></xsl:stylesheet>`), context);
-    WriteActivityInputTextClass var1 = convertToWriteActivityInputTextClass(var0);
-    string var2 = <string>var1.fileName;
-    string var3 = var1.textContent;
-    checkpanic io:fileWriteString(var2, var3);
-    addToContext(context, "XMLFile", var0);
-    return var0;
+    WriteActivityInputTextClass var2 = convertToWriteActivityInputTextClass(var1);
+    string var3 = <string>var2.fileName;
+    string var4 = var2.textContent;
+    checkpanic io:fileWriteString(var3, var4);
+    addToContext(context, "XMLFile", var1);
+    return var1;
 }
 
 function activityRunner_loggingservice_LogProcess(xml input, map<xml> cx) returns xml|error {
@@ -94,7 +99,7 @@ function predicate_2(xml input) returns boolean {
 
 function process_loggingservice_LogProcess(xml input) returns xml {
     map<xml> context = {};
-    addToContext(context, "post.item", input);
+    addToContext(context, "$input", input);
     xml|error result = activityRunner_loggingservice_LogProcess(input, context);
     if result is error {
         return errorHandler_loggingservice_LogProcess(result, context);
@@ -102,7 +107,7 @@ function process_loggingservice_LogProcess(xml input) returns xml {
     return result;
 }
 
-function receiveEvent(xml input, map<xml> context) returns xml|error {
-    addToContext(context, "Start", input);
-    return input;
+function receiveEvent(map<xml> context) returns xml|error {
+    addToContext(context, "Start", context.get("$input"));
+    return context.get("$input");
 }

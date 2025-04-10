@@ -41,7 +41,6 @@ import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 
 public class ProcessContext implements ContextWithFile {
 
-    static final String CONTEXT_VAR_NAME = "context";
     private final Set<BallerinaModel.Import> imports = new HashSet<>();
     private BallerinaModel.Listener defaultListner = null;
     private final Map<String, BallerinaModel.ModuleVar> constants = new HashMap<>();
@@ -218,8 +217,8 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getHttpConfigType();
     }
 
-    public BallerinaModel.Expression contextVarRef() {
-        return new BallerinaModel.Expression.VariableReference(CONTEXT_VAR_NAME);
+    public BallerinaModel.Expression.VariableReference contextVarRef() {
+        return new BallerinaModel.Expression.VariableReference(ConversionUtils.Constants.CONTEXT_VAR_NAME);
     }
 
     public BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {

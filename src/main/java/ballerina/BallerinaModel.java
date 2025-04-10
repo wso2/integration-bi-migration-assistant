@@ -545,6 +545,15 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
+        record MethodCall(VariableReference object, String methodName, List<Expression> args) implements Expression {
+
+            @Override
+            public String toString() {
+                return object + "." + methodName + "(" +
+                        String.join(", ", args.stream().map(Objects::toString).toList()) + ")";
+            }
+        }
+
         record FunctionCall(String functionName, String[] args) implements Expression {
 
             public FunctionCall(String functionName, List<Expression> args) {
