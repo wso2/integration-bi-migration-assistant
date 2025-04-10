@@ -21,6 +21,12 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         public Import(String orgName, String moduleName) {
             this(orgName, moduleName, Optional.empty());
         }
+
+        @Override
+        public String toString() {
+            String importPrefix = importPrefix().map(ip -> String.format("as %s", ip)).orElse("");
+            return String.format("import %s/%s %s;", orgName(), moduleName(), importPrefix);
+        }
     }
 
     public record ModuleTypeDef(Type type, String name) {
@@ -129,16 +135,38 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record BallerinaStatement(String stmt) implements Statement {
+        @Override
+        public String toString() {
+            return stmt;
+        }
     }
 
     public record BallerinaExpression(String expr) {
+        @Override
+        public String toString() {
+            return expr;
+        }
     }
 
     public record IfElseStatement(BallerinaExpression ifCondition, List<Statement> ifBody,
                                   List<ElseIfClause> elseIfClauses, List<Statement> elseBody) implements Statement {
+        @Override
+        public String toString() {
+            String ifBlock = String.format("if %s { %s }", ifCondition, String.join("",
+                    ifBody.stream().map(Object::toString).toList()));
+            String elseIfs = String.join("", elseIfClauses.stream().map(Object::toString).toList());
+            String elseBlock = elseBody.isEmpty() ? "" : String.format("else { %s }",
+                    String.join("", elseBody.stream().map(Object::toString).toList()));
+            return ifBlock + elseIfs + elseBlock;
+        }
     }
 
     public record ElseIfClause(BallerinaExpression condition, List<Statement> elseIfBody) {
+        @Override
+        public String toString() {
+            return String.format("else if %s { %s }", condition, String.join("", elseIfBody.stream()
+                    .map(Object::toString).toList()));
+        }
     }
 
     public record DoStatement(List<Statement> doBody, Optional<OnFailClause> onFailClause) implements Statement {
@@ -148,6 +176,26 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
         public DoStatement(List<Statement> doBody, OnFailClause onFailClause) {
             this(doBody, Optional.of(onFailClause));
+        }
+
+        @Override
+        public String toString() {
+            String doBlock = String.format("do { %s }", String.join("", doBody.stream()
+                    .map(Object::toString).toList()));
+            String onFail = onFailClause.map(ofc -> String.format("on fail %s { %s }",
+                    String.join("", ofc.typeBindingPattern().map(Object::toString).orElse("")),
+                    String.join("", ofc.onFailBody.stream().map(Object::toString).toList()))).orElse("");
+            return doBlock + onFail;
+        }
+    }
+
+    // Note: should be placed at the beginning of a function-body-block
+    public record NamedWorkerDecl(String name, Optional<Type> returnType,
+                                  List<Statement> statements) implements Statement {
+        @Override
+        public String toString() {
+            return String.format("worker %s returns %s { %s }", name, returnType.map(Object::toString).orElse(""),
+                    String.join("", statements.stream().map(Object::toString).toList()));
         }
     }
 
@@ -162,8 +210,12 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record TypeBindingPattern(Type type, String variableName) {
+        @Override
+        public String toString() {
+            return type + " " + variableName;
+        }
     }
 
-    public sealed interface Statement permits BallerinaStatement, IfElseStatement, DoStatement {
+    public sealed interface Statement permits BallerinaStatement, IfElseStatement, DoStatement, NamedWorkerDecl {
     }
 }

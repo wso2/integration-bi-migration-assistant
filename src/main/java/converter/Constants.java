@@ -43,6 +43,7 @@ public class Constants {
     public static final String FUNC_NAME_ASYC_TEMPLATE = "_async%s_";
     public static final String VAR_PAYLOAD_TEMPLATE = "_payload%s_";
     public static final String VAR_CLIENT_RESULT_TEMPLATE = "_clientResult%s_";
+    public static final String FUNC_NAME_VM_RECEIVE_TEMPLATE = "_vmReceive%s_";
 
     // Types
     public static final String HTTP_RESPONSE_TYPE = "http:Response";

@@ -42,7 +42,7 @@ footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #666; }
 </div>
 <div class="summary-item">
 <span class="summary-bullet">&#8226;</span>
-<p>Compatible XML Element Tag Weight: 44</p>
+<p>Compatible XML Element Tag Weight: 46</p>
 </div>
 </div>
 <h4 class="drawer-toggle" onclick="toggleDrawer('compatibleTagsDrawer', 'compatibleArrow')">
@@ -52,9 +52,9 @@ footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #666; }
 <div class="drawer" id="compatibleTagsDrawer">
 <table class="green-table">
 <tr><th>Element Tag</th><th>Weight</th><th>Occurrences</th><th>Total Weight</th></tr>
-<tr><td>http:listener-config</td><td>4</td><td>1</td><td>4</td></tr>
+<tr><td>http:listener-config</td><td>5</td><td>1</td><td>5</td></tr>
 <tr><td>flow</td><td>3</td><td>2</td><td>6</td></tr>
-<tr><td>http:listener</td><td>4</td><td>1</td><td>4</td></tr>
+<tr><td>http:listener</td><td>5</td><td>1</td><td>5</td></tr>
 <tr><td>flow-ref</td><td>3</td><td>3</td><td>9</td></tr>
 <tr><td>dw:transform-message</td><td>3</td><td>1</td><td>3</td></tr>
 <tr><td>dw:input-payload</td><td>2</td><td>1</td><td>2</td></tr>
@@ -122,53 +122,55 @@ footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #666; }
 <div class="scrollable-table">
 <table class="blue-table">
 <tr><th>Tag</th><th>Weight</th></tr>
-<tr><td>secure-property-placeholder:config</td><td>3</td></tr>
 <tr><td>choice-exception-strategy</td><td>4</td></tr>
-<tr><td>set-property</td><td>1</td></tr>
 <tr><td>unsupported-tag</td><td>1000</td></tr>
 <tr><td>dw:transform-message</td><td>3</td></tr>
-<tr><td>configuration</td><td>1</td></tr>
-<tr><td>set-session-variable</td><td>2</td></tr>
 <tr><td>db:dynamic-query</td><td>3</td></tr>
 <tr><td>logger</td><td>1</td></tr>
 <tr><td>spring:beans</td><td>7</td></tr>
-<tr><td>ws:consumer-config</td><td>4</td></tr>
 <tr><td>exception-strategy</td><td>3</td></tr>
-<tr><td>http:request</td><td>4</td></tr>
-<tr><td>set-payload</td><td>2</td></tr>
 <tr><td>when</td><td>2</td></tr>
 <tr><td>dw:set-payload</td><td>2</td></tr>
 <tr><td>flow-ref</td><td>3</td></tr>
 <tr><td>catch-exception-strategy</td><td>2</td></tr>
+<tr><td>http:listener-config</td><td>5</td></tr>
+<tr><td>db:parameterized-query</td><td>3</td></tr>
+<tr><td>flow</td><td>3</td></tr>
+<tr><td>otherwise</td><td>2</td></tr>
+<tr><td>vm:inbound-endpoint</td><td>5</td></tr>
+<tr><td>smtp:outbound-endpoint</td><td>4</td></tr>
+<tr><td>file:connector</td><td>5</td></tr>
+<tr><td>dw:set-session-variable</td><td>2</td></tr>
+<tr><td>enricher</td><td>5</td></tr>
+<tr><td>db:mysql-config</td><td>4</td></tr>
+<tr><td>db:insert</td><td>2</td></tr>
+<tr><td>smtp:connector</td><td>4</td></tr>
+<tr><td>secure-property-placeholder:config</td><td>3</td></tr>
+<tr><td>set-property</td><td>1</td></tr>
+<tr><td>configuration</td><td>1</td></tr>
+<tr><td>set-session-variable</td><td>2</td></tr>
+<tr><td>ws:consumer-config</td><td>4</td></tr>
+<tr><td>http:request</td><td>4</td></tr>
+<tr><td>set-payload</td><td>3</td></tr>
+<tr><td>vm:outbound-endpoint</td><td>5</td></tr>
 <tr><td>dw:set-variable</td><td>2</td></tr>
 <tr><td>db:delete</td><td>2</td></tr>
-<tr><td>http:listener-config</td><td>4</td></tr>
-<tr><td>http:request-config</td><td>4</td></tr>
+<tr><td>http:request-config</td><td>5</td></tr>
 <tr><td>set-variable</td><td>1</td></tr>
 <tr><td>object-to-string-transformer</td><td>2</td></tr>
 <tr><td>db:update</td><td>2</td></tr>
-<tr><td>db:parameterized-query</td><td>3</td></tr>
-<tr><td>flow</td><td>3</td></tr>
 <tr><td>sub-flow</td><td>3</td></tr>
-<tr><td>http:listener</td><td>4</td></tr>
-<tr><td>otherwise</td><td>2</td></tr>
+<tr><td>http:listener</td><td>5</td></tr>
 <tr><td>expression-component</td><td>3</td></tr>
-<tr><td>smtp:outbound-endpoint</td><td>4</td></tr>
-<tr><td>file:connector</td><td>5</td></tr>
 <tr><td>db:template-query-ref</td><td>3</td></tr>
-<tr><td>dw:set-session-variable</td><td>2</td></tr>
 <tr><td>api-platform-gw:api</td><td>8</td></tr>
 <tr><td>http:query-params</td><td>2</td></tr>
 <tr><td>db:select</td><td>2</td></tr>
-<tr><td>enricher</td><td>4</td></tr>
-<tr><td>async</td><td>3</td></tr>
+<tr><td>async</td><td>4</td></tr>
 <tr><td>json:object-to-json-transformer</td><td>2</td></tr>
-<tr><td>db:mysql-config</td><td>4</td></tr>
 <tr><td>dw:input-payload</td><td>2</td></tr>
 <tr><td>db:template-query</td><td>3</td></tr>
 <tr><td>choice</td><td>3</td></tr>
-<tr><td>db:insert</td><td>2</td></tr>
-<tr><td>smtp:connector</td><td>4</td></tr>
 </table>
 </div>
 </div>
