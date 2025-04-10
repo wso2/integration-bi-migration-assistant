@@ -46,13 +46,7 @@ public class ConversionUtils {
                     return escapeSpecialCharacters(s);
                 }).toList();
 
-        String resourcePath;
-        if (list.isEmpty()) {
-            resourcePath = ".";
-        } else {
-            resourcePath = String.join("/", list);
-        }
-        return resourcePath;
+        return list.isEmpty() ? "." : String.join("/", list);
     }
 
     /**

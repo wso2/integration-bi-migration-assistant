@@ -495,7 +495,7 @@ service /mule3 on config {
 
 ```
 
-## Database
+## Database Connector
 
 - ### Basic Db Select
 
@@ -2726,6 +2726,230 @@ service /mule3 on config {
         ctx.flowVars.age = "29";
         return ctx.inboundProperties.response;
     }
+}
+
+```
+
+## Vm Connector
+
+- ### Simple Vm Connector
+
+**Input (simple_vm_connector.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <flow name="outboundVmFlow">
+        <set-payload value="#['Hello World']" doc:name="Set Payload"/>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="path-xxx" doc:name="VM"/>
+    </flow>
+    <flow name="inboundVmFlow">
+        <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="path-xxx"/>
+        <logger message="Received a message: #[payload]" level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>
+
+```
+**Output (simple_vm_connector.bal):**
+```ballerina
+import ballerina/log;
+
+public type Context record {|
+    anydata payload;
+|};
+
+public function inboundVmFlow(Context ctx) {
+    log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
+}
+
+public function outboundVmFlow(Context ctx) {
+    worker W returns error? {
+        // VM Inbound Endpoint
+        anydata receivedPayload = <- function;
+        ctx.payload = receivedPayload;
+        inboundVmFlow(ctx);
+    }
+
+    // set payload
+    string _payload0_ = "Hello World";
+    ctx.payload = _payload0_;
+
+    // VM Outbound Endpoint
+    ctx.payload -> W;
+}
+
+```
+
+- ### Vm Connector Inside Async Block
+
+**Input (vm_connector_inside_async_block.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8081" basePath="/" doc:name="HTTP Listener Configuration"/>
+    <flow name="outboundVmFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/vm" allowedMethods="GET" doc:name="HTTP"/>
+        <set-payload value="#['Hello World']" doc:name="Set Payload"/>
+        <async doc:name="Async">
+            <vm:outbound-endpoint exchange-pattern="one-way" path="path-xxx" doc:name="VM"/>
+        </async>
+        <logger message="xxx: logger after async block invoked" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="inboundVmFow">
+        <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="path-xxx"/>
+        <logger message="Received a message: #[payload]" level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>
+
+```
+**Output (vm_connector_inside_async_block.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type InboundProperties record {|
+    http:Response response;
+|};
+
+public type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
+public listener http:Listener HTTP_Listener_Configuration = new (8081, {host: "0.0.0.0"});
+
+service / on HTTP_Listener_Configuration {
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
+    }
+
+    resource function get vm() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+
+        // set payload
+        string _payload0_ = "Hello World";
+        ctx.payload = _payload0_;
+
+        // async operation
+        _ = start _async0_(ctx);
+        log:printInfo("xxx: logger after async block invoked");
+        ctx.inboundProperties.response.setPayload(_payload0_);
+        return ctx.inboundProperties.response;
+    }
+}
+
+public function _vmReceive0_(Context ctx) {
+    log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
+}
+
+public function _async0_(Context ctx) {
+    worker W returns error? {
+        // VM Inbound Endpoint
+        anydata receivedPayload = <- function;
+        ctx.payload = receivedPayload;
+        _vmReceive0_(ctx);
+    }
+
+    // VM Outbound Endpoint
+    ctx.payload -> W;
+}
+
+```
+
+- ### Vm Connector Wth Http Source
+
+**Input (vm_connector_wth_http_source.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8081" basePath="/" doc:name="HTTP Listener Configuration"/>
+    <flow name="outboundVmFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/vm" allowedMethods="GET" doc:name="HTTP"/>
+        <set-payload value="#['Hello World']" doc:name="Set Payload"/>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="path-xxx" doc:name="VM"/>
+    </flow>
+    <flow name="inboundVmFow">
+        <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="path-xxx"/>
+        <logger message="Received a message: #[payload]" level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>
+
+```
+**Output (vm_connector_wth_http_source.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type InboundProperties record {|
+    http:Response response;
+|};
+
+public type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
+public listener http:Listener HTTP_Listener_Configuration = new (8081, {host: "0.0.0.0"});
+
+service / on HTTP_Listener_Configuration {
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new}};
+    }
+
+    resource function get vm() returns http:Response|error {
+        return self._invokeEndPoint0_(self.ctx);
+    }
+
+    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+        worker W returns error? {
+            // VM Inbound Endpoint
+            anydata receivedPayload = <- function;
+            ctx.payload = receivedPayload;
+            _vmReceive0_(ctx);
+        }
+
+        // set payload
+        string _payload0_ = "Hello World";
+        ctx.payload = _payload0_;
+
+        // VM Outbound Endpoint
+        ctx.payload -> W;
+        ctx.inboundProperties.response.setPayload(_payload0_);
+        return ctx.inboundProperties.response;
+    }
+}
+
+public function _vmReceive0_(Context ctx) {
+    log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
 }
 
 ```

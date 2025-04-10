@@ -24,18 +24,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
-import static ballerina.BallerinaModel.BallerinaStatement;
-import static ballerina.BallerinaModel.DoStatement;
-import static ballerina.BallerinaModel.ElseIfClause;
 import static ballerina.BallerinaModel.Function;
-import static ballerina.BallerinaModel.IfElseStatement;
 import static ballerina.BallerinaModel.Import;
 import static ballerina.BallerinaModel.Listener;
 import static ballerina.BallerinaModel.Module;
 import static ballerina.BallerinaModel.ModuleTypeDef;
 import static ballerina.BallerinaModel.ModuleVar;
 import static ballerina.BallerinaModel.ObjectField;
-import static ballerina.BallerinaModel.OnFailClause;
 import static ballerina.BallerinaModel.Parameter;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
@@ -58,8 +53,8 @@ public class CodeGenerator {
         for (TextDocument textDocument : module.textDocuments()) {
             List<ImportDeclarationNode> imports = new ArrayList<>();
             for (Import importDeclaration : textDocument.imports()) {
-                ImportDeclarationNode importDeclarationNode = NodeParser.parseImportDeclaration(
-                        constructImportDeclaration(importDeclaration));
+                ImportDeclarationNode importDeclarationNode =
+                        NodeParser.parseImportDeclaration(importDeclaration.toString());
                 imports.add(importDeclarationNode);
             }
 
@@ -273,64 +268,10 @@ public class CodeGenerator {
     private FunctionBodyBlockNode constructFunctionBodyBlock(List<Statement> body) {
         List<String> stmtList = new ArrayList<>();
         for (Statement statement : body) {
-            String s = constructBallerinaStatements(statement);
-            stmtList.add(s);
+            stmtList.add(statement.toString());
         }
 
         String joinedStatements = String.join("", stmtList);
         return NodeParser.parseFunctionBodyBlock(String.format("{ %s }", joinedStatements));
-    }
-
-    private static String constructBallerinaStatements(Statement stmt) {
-        if (stmt instanceof BallerinaStatement balStmt) {
-            return balStmt.stmt();
-        } else if (stmt instanceof DoStatement doStatement) {
-            return constructDoStatement(doStatement);
-        } else if (stmt instanceof IfElseStatement ifElseStmt) {
-            StringBuilder elseIfStringBuilder = new StringBuilder();
-            for (ElseIfClause elseIfClause : ifElseStmt.elseIfClauses()) {
-                elseIfStringBuilder.append(
-                        String.format("else if %s { %s }",
-                                elseIfClause.condition().expr(),
-                                String.join("", elseIfClause.elseIfBody().stream()
-                                        .map(CodeGenerator::constructBallerinaStatements).toList())
-                        ));
-            }
-
-            List<Statement> elseBody = ifElseStmt.elseBody();
-            String elseString = elseBody.isEmpty() ? "" :
-                    String.format("else { %s }", String.join("", elseBody.stream()
-                            .map(CodeGenerator::constructBallerinaStatements).toList()));
-
-            return String.format("if %s { %s } %s %s",
-                    ifElseStmt.ifCondition().expr(),
-                    String.join("", ifElseStmt.ifBody().stream()
-                            .map(CodeGenerator::constructBallerinaStatements).toList()), elseIfStringBuilder,
-                    elseString);
-        } else {
-            throw new IllegalStateException();
-        }
-    }
-
-    private static String constructDoStatement(DoStatement doStatement) {
-        String doBlock = String.format("do { %s }", String.join("", doStatement.doBody().stream()
-                .map(CodeGenerator::constructBallerinaStatements).toList()));
-        if (doStatement.onFailClause().isEmpty()) {
-            return doBlock;
-        }
-
-        OnFailClause onFailClause = doStatement.onFailClause().get();
-        String typeBindingPattern = onFailClause.typeBindingPattern().map(tbp -> String.format("%s %s", tbp.type(),
-                tbp.variableName())).orElse("");
-
-        String onFailBody = String.join("", onFailClause.onFailBody().stream()
-                .map(CodeGenerator::constructBallerinaStatements).toList());
-        return String.format("%s on fail %s { %s }", doBlock, typeBindingPattern, onFailBody);
-    }
-
-    private static String constructImportDeclaration(Import importDeclaration) {
-        String importPrefix = importDeclaration.importPrefix().map(ip -> String.format(" as %s", ip)).orElse("");
-        return String.format("import %s/%s%s;", importDeclaration.orgName(), importDeclaration.moduleName(),
-                importPrefix);
     }
 }

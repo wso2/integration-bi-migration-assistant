@@ -8,8 +8,8 @@ import java.util.stream.Collectors;
 public enum MuleXMLTag {
 
     // Global Elements
-    HTTP_LISTENER_CONFIG("http:listener-config", 4),
-    HTTP_REQUEST_CONFIG("http:request-config", 4),
+    HTTP_LISTENER_CONFIG("http:listener-config", 5),
+    HTTP_REQUEST_CONFIG("http:request-config", 5),
     DB_MYSQL_CONFIG("db:mysql-config", 4),
     DB_TEMPLATE_QUERY("db:template-query", 3),
 
@@ -27,13 +27,13 @@ public enum MuleXMLTag {
     FLOW("flow", 3),
     SUB_FLOW("sub-flow", 3),
     FLOW_REFERENCE("flow-ref", 3),
-    ENRICHER("enricher", 4),
-    ASYNC("async", 3),
+    ENRICHER("enricher", 5),
+    ASYNC("async", 4),
 
     // Transformers
     SET_VARIABLE("set-variable", 1),
     SET_SESSION_VARIABLE("set-session-variable", 2),
-    SET_PAYLOAD("set-payload", 2),
+    SET_PAYLOAD("set-payload", 3),
     OBJECT_TO_JSON("json:object-to-json-transformer", 2),
     OBJECT_TO_STRING("object-to-string-transformer", 2),
 
@@ -43,9 +43,13 @@ public enum MuleXMLTag {
     REFERENCE_EXCEPTION_STRATEGY("exception-strategy", 3),
 
     // HTTP Module
-    HTTP_LISTENER("http:listener", 4),
+    HTTP_LISTENER("http:listener", 5),
     HTTP_REQUEST("http:request", 4),
     HTTP_QUERY_PARAMS("http:query-params", 2),
+
+    // VM connector
+    VM_INBOUND_ENDPOINT("vm:inbound-endpoint", 5),
+    VM_OUTBOUND_ENDPOINT("vm:outbound-endpoint", 5),
 
     // Database Connector
     DB_INSERT("db:insert", 2),
@@ -61,7 +65,6 @@ public enum MuleXMLTag {
     DW_SET_SESSION_VARIABLE("dw:set-session-variable", 2),
     DW_SET_PAYLOAD("dw:set-payload", 2),
     DW_INPUT_PAYLOAD("dw:input-payload", 2),
-
 
     // Yet to support
     SPRING_BEANS("spring:beans", 7),

@@ -55,6 +55,7 @@ import static ballerina.BallerinaModel.Service;
 import static ballerina.BallerinaModel.Statement;
 import static ballerina.BallerinaModel.TextDocument;
 import static ballerina.BallerinaModel.TypeBindingPattern;
+import static ballerina.BallerinaModel.NamedWorkerDecl;
 import static converter.Constants.BAL_ANYDATA_TYPE;
 import static converter.Constants.BAL_ERROR_TYPE;
 import static converter.Constants.BAL_STRING_TYPE;
@@ -103,6 +104,8 @@ import static mule.MuleModel.SetSessionVariable;
 import static mule.MuleModel.SubFlow;
 import static mule.MuleModel.TransformMessage;
 import static mule.MuleModel.Type;
+import static mule.MuleModel.VMInboundEndpoint;
+import static mule.MuleModel.VMOutboundEndpoint;
 import static mule.MuleModel.WhenInChoice;
 import static mule.MuleModel.UnsupportedBlock;
 
@@ -142,6 +145,7 @@ public class MuleToBalConverter {
         HashMap<String, HTTPRequestConfig> sharedHttpRequestConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbMSQLConfig> sharedDbMySQLConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbTemplateQuery> sharedDbTemplateQueryMap = new LinkedHashMap<>();
+        HashMap<String, String> vmPathToBalFuncMap = new LinkedHashMap<>();
 
         // Internal variable/method count
         public int invokeEndPointMethodCount = 0;
@@ -155,6 +159,7 @@ public class MuleToBalConverter {
         public int asyncFuncCount = 0;
         public int payloadVarCount = 0;
         public int clientResultVarCount = 0;
+        public int vmReceiveFuncCount = 0;
 
         private final DWConversionStats dwConversionStats;
 
@@ -340,6 +345,7 @@ public class MuleToBalConverter {
 
     private static BallerinaModel generateBallerinaModel(Data data, List<Flow> flows, List<SubFlow> subFlows) {
         List<Service> services = new ArrayList<>();
+        Set<Function> functions = new HashSet<>();
         List<Flow> privateFlows = new ArrayList<>();
 
         for (Flow flow : flows) {
@@ -350,37 +356,13 @@ public class MuleToBalConverter {
             }
 
             MuleRecord src = source.get();
-            assert src.kind() == Kind.HTTP_LISTENER;
-
-            SharedProjectData.FlowInfo flowInfo = new SharedProjectData.FlowInfo(flow.name(), Context.HTTP_LISTENER);
-            data.sharedProjectData.flowInfoMap.put(flow.name(), flowInfo);
-            data.sharedProjectData.currentFlowInfo = flowInfo;
-
-            data.sharedProjectData.inboundProperties.add(
-                    new SharedProjectData.TypeAndNamePair(Constants.HTTP_RESPONSE_TYPE, "response"));
-            data.sharedProjectData.contextTypeDefImports.add(Constants.HTTP_MODULE_IMPORT);
-
-            // Create a service from the flow
-            Service service = genBalService(data, (HttpListener) src, flow.flowBlocks());
-
-            createContextInfoHoldingDataStructures(data.sharedProjectData);
-
-            // gen init function
-            ModuleTypeDef moduleTypeDef = data.sharedProjectData.contextTypeDefMap.get(Constants.CONTEXT_RECORD_TYPE);
-            ClosedRecordType contextRecord = (ClosedRecordType) moduleTypeDef.type();
-            String recordInitValue = getRecordInitValue(contextRecord);
-            List<Statement> initBody = Collections.singletonList(stmtFrom(
-                    String.format("self.%s = %s;", Constants.CONTEXT_REFERENCE, recordInitValue)));
-            Function initFunc = new Function("init", Collections.emptyList(), initBody);
-
-            // Modify service with init function
-            service = new Service(service.basePath(), service.listenerRefs(), Optional.of(initFunc),
-                    service.resources(), service.functions(), service.pathParams(), service.queryParams(),
-                    service.fields());
-            services.add(service);
+            if (src.kind() == Kind.VM_INBOUND_ENDPOINT) {
+                genVMInboundEndpointSource(data, flow, (VMInboundEndpoint) src, functions);
+            } else {
+                assert src.kind() == Kind.HTTP_LISTENER;
+                genHttpSource(data, flow, (HttpListener) src, services);
+            }
         }
-
-        Set<Function> functions = new HashSet<>();
 
         // Create functions for private flows
         genBalFuncsFromPrivateFlows(data, privateFlows, functions);
@@ -440,6 +422,48 @@ public class MuleToBalConverter {
         }
         return createBallerinaModel(new ArrayList<>(data.imports), typeDefs,
                 moduleVars, listeners, services, functions.stream().toList(), comments);
+    }
+
+    private static void genVMInboundEndpointSource(Data data, Flow flow, VMInboundEndpoint vmInboundEndpoint,
+                                                   Set<Function> functions) {
+        String path = vmInboundEndpoint.path();
+        String funcName = data.sharedProjectData.vmPathToBalFuncMap.get(path);
+        if (funcName == null) {
+            funcName = ConversionUtils.escapeSpecialCharacters(flow.name());
+            data.sharedProjectData.vmPathToBalFuncMap.put(path, funcName);
+            genBalFunc(data, functions, funcName, flow.flowBlocks());
+        } else {
+            genBalFunc(data, functions, funcName, flow.flowBlocks());
+        }
+    }
+
+    private static void genHttpSource(Data data, Flow flow, HttpListener src, List<Service> services) {
+        SharedProjectData.FlowInfo flowInfo = new SharedProjectData.FlowInfo(flow.name(), Context.HTTP_LISTENER);
+        data.sharedProjectData.flowInfoMap.put(flow.name(), flowInfo);
+        data.sharedProjectData.currentFlowInfo = flowInfo;
+
+        data.sharedProjectData.inboundProperties.add(new SharedProjectData.TypeAndNamePair(
+                Constants.HTTP_RESPONSE_TYPE, "response"));
+        data.sharedProjectData.contextTypeDefImports.add(Constants.HTTP_MODULE_IMPORT);
+
+        // Create a service from the flow
+        Service service = genBalService(data, src, flow.flowBlocks());
+
+        createContextInfoHoldingDataStructures(data.sharedProjectData);
+
+        // gen init function
+        ModuleTypeDef moduleTypeDef = data.sharedProjectData.contextTypeDefMap.get(Constants.CONTEXT_RECORD_TYPE);
+        ClosedRecordType contextRecord = (ClosedRecordType) moduleTypeDef.type();
+        String recordInitValue = getRecordInitValue(contextRecord);
+        List<Statement> initBody = Collections.singletonList(stmtFrom(
+                String.format("self.%s = %s;", Constants.CONTEXT_REFERENCE, recordInitValue)));
+        Function initFunc = new Function("init", Collections.emptyList(), initBody);
+
+        // Modify service with init function
+        service = new Service(service.basePath(), service.listenerRefs(), Optional.of(initFunc),
+                service.resources(), service.functions(), service.pathParams(), service.queryParams(),
+                service.fields());
+        services.add(service);
     }
 
     static void createContextInfoHoldingDataStructures(SharedProjectData sharedProjectData) {
@@ -526,7 +550,14 @@ public class MuleToBalConverter {
         data.sharedProjectData.flowToGenMethodMap.put(flowName, function);
     }
 
+    private static void genBalFunc(Data data, Set<Function> functions, String funcName, List<MuleRecord> flowBlocks) {
+        List<Statement> body = genFuncBodyStatements(data, flowBlocks);
+        Function function = Function.publicFunction(funcName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
+        functions.add(function);
+    }
+
     private static void addEndOfMethodStatements(SharedProjectData.FlowInfo flowInfo, BlockFunctionBody body) {
+        // TODO: revisit
         if (flowInfo.context == Context.HTTP_LISTENER) {
             if (flowInfo.currentPayload != DEFAULT_PAYLOAD) {
                 // the payload has been updated
@@ -619,18 +650,26 @@ public class MuleToBalConverter {
     private static List<Statement> genFuncBodyStatements(Data data, List<MuleRecord> flowBlocks) {
         // Add function body statements
         List<Statement> body = new ArrayList<>();
+        List<Statement> workers = new ArrayList<>();
 
         // Read flow blocks
         for (MuleRecord record : flowBlocks) {
             List<Statement> s = convertToStatements(data, record);
-            // TODO: handle properly
+            // TODO: handle these properly
+            if (s.size() > 1 && s.getFirst() instanceof NamedWorkerDecl namedWorkerDecl) {
+                workers.add(namedWorkerDecl);
+                s.remove(namedWorkerDecl);
+            }
+
             if (s.size() == 1 && s.getFirst() instanceof DoStatement doStatement) {
                 body = new ArrayList<>(Collections.singletonList(new DoStatement(body, doStatement.onFailClause())));
                 continue;
             }
             body.addAll(s);
         }
-        return body;
+
+        workers.addAll(body);
+        return workers;
     }
 
     protected static BallerinaModel createBallerinaModel(List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
@@ -655,6 +694,11 @@ public class MuleToBalConverter {
             case MuleXMLTag.HTTP_LISTENER -> {
                 return readHttpListener(data, muleElement);
             }
+
+            case MuleXMLTag.VM_INBOUND_ENDPOINT -> {
+                return readVMInboundEndpoint(data, muleElement);
+            }
+
             // Process Items
             case MuleXMLTag.LOGGER -> {
                 return readLogger(data, muleElement);
@@ -707,6 +751,9 @@ public class MuleToBalConverter {
             case MuleXMLTag.REFERENCE_EXCEPTION_STRATEGY -> {
                 return readReferenceExceptionStrategy(data, muleElement);
             }
+            case MuleXMLTag.VM_OUTBOUND_ENDPOINT -> {
+                return readVMOutboundEndpoint(data, muleElement);
+            }
             default -> {
                 return readUnsupportedBlock(data, muleElement);
             }
@@ -718,6 +765,25 @@ public class MuleToBalConverter {
         switch (muleRec) {
             case Logger lg -> statementList.add(stmtFrom(String.format("log:%s(%s);",
                     getBallerinaLogFunction(lg.level()), convertMuleExprToBalStringLiteral(lg.message()))));
+            case VMOutboundEndpoint vmOutboundEndpoint -> {
+                String path = vmOutboundEndpoint.path();
+                String funcName = data.sharedProjectData.vmPathToBalFuncMap.get(path);
+                if (funcName == null) {
+                    funcName = String.format(Constants.FUNC_NAME_VM_RECEIVE_TEMPLATE,
+                            data.sharedProjectData.vmReceiveFuncCount++);
+                    data.sharedProjectData.vmPathToBalFuncMap.put(path, funcName);
+                }
+
+                List<Statement> body = new ArrayList<>();
+                body.add(stmtFrom("\n// VM Inbound Endpoint\n"));
+                body.add(stmtFrom("anydata receivedPayload = <- function;"));
+                body.add(stmtFrom("ctx.payload = receivedPayload;"));
+                body.add(stmtFrom(String.format("%s(ctx);", funcName)));
+
+                statementList.add(new NamedWorkerDecl("W", Optional.of(typeFrom("error?")), body));
+                statementList.add(stmtFrom("\n\n// VM Outbound Endpoint\n"));
+                statementList.add(stmtFrom(String.format("%s.payload -> W;", Constants.CONTEXT_REFERENCE)));
+            }
             case ExpressionComponent exprComponent -> {
                 String convertedExpr = convertMuleExprToBal(String.format("#[%s]", exprComponent.exprCompContent()));
                 ConversionUtils.processExprCompContent(data.sharedProjectData, convertedExpr);
@@ -1054,7 +1120,7 @@ public class MuleToBalConverter {
     // Flow Control
     private static Choice readChoice(Data data, MuleElement muleElement) {
         List<WhenInChoice> whens = new ArrayList<>();
-        List<MuleRecord> otherwiseProcess = null;
+        List<MuleRecord> otherwiseProcess = new ArrayList<>();
         while (muleElement.peekChild() != null) {
             MuleElement child = muleElement.consumeChild();
             Element childElement = child.getElement();
@@ -1072,8 +1138,7 @@ public class MuleToBalConverter {
                 whens.add(whenInChoice);
             } else {
                 assert childElement.getTagName().equals(MuleXMLTag.OTHERWISE.tag());
-                assert otherwiseProcess == null;
-                otherwiseProcess = new ArrayList<>();
+                assert otherwiseProcess.isEmpty();
                 while (child.peekChild() != null) {
                     MuleElement otherwiseChild = child.consumeChild();
                     MuleRecord r = readBlock(data, otherwiseChild);
@@ -1096,6 +1161,9 @@ public class MuleToBalConverter {
             MuleElement child = mFlowElement.consumeChild();
             Element element = child.getElement();
             if (element.getTagName().equals(MuleXMLTag.HTTP_LISTENER.tag())) {
+                assert source == null;
+                source = readBlock(data, child);
+            } else if (element.getTagName().equals(MuleXMLTag.VM_INBOUND_ENDPOINT.tag())) {
                 assert source == null;
                 source = readBlock(data, child);
             } else {
@@ -1262,6 +1330,21 @@ public class MuleToBalConverter {
         Element element = muleElement.getElement();
         String flowName = element.getAttribute("name");
         return new FlowReference(flowName);
+    }
+
+    // VM Connector
+    private static VMInboundEndpoint readVMInboundEndpoint(Data data, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String path = element.getAttribute("path");
+        String exchangePattern = element.getAttribute("exchange-pattern");
+        return new VMInboundEndpoint(path, exchangePattern);
+    }
+
+    private static VMOutboundEndpoint readVMOutboundEndpoint(Data data, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String path = element.getAttribute("path");
+        String exchangePattern = element.getAttribute("exchange-pattern");
+        return new VMOutboundEndpoint(path, exchangePattern);
     }
 
     // Database Connector

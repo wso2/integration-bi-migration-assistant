@@ -13,6 +13,20 @@ public record MuleModel() {
         }
     }
 
+    public record VMInboundEndpoint(Kind kind, String path, String exchangePattern)
+            implements MuleRecord {
+        public VMInboundEndpoint(String path, String exchangePattern) {
+            this(Kind.VM_INBOUND_ENDPOINT, path, exchangePattern);
+        }
+    }
+
+    public record VMOutboundEndpoint(Kind kind, String path, String exchangePattern)
+            implements MuleRecord {
+        public VMOutboundEndpoint(String path, String exchangePattern) {
+            this(Kind.VM_OUTBOUND_ENDPOINT, path, exchangePattern);
+        }
+    }
+
     public record Logger(Kind kind, String message, LogLevel level) implements MuleRecord {
         public Logger(String message, LogLevel level) {
             this(Kind.LOGGER, message, level);
@@ -226,6 +240,8 @@ public record MuleModel() {
 
     public enum Kind {
         HTTP_LISTENER,
+        VM_INBOUND_ENDPOINT,
+        VM_OUTBOUND_ENDPOINT,
         LOGGER,
         EXPRESSION_COMPONENT,
         PAYLOAD,
