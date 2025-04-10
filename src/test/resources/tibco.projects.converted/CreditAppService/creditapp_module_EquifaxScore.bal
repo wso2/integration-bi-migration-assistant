@@ -99,7 +99,7 @@ function invoke(xml input, map<xml> context) returns xml|error {
     </xsl:template>
 </xsl:stylesheet>`), context);
     xml var3 = xml `<root>${var1} + ${var2}</root>`;
-    json var4 = check httpInvoke("/", "/creditscore", "post", var3);
+    json var4 = check handleInvoke("/", "/creditscore", "post", var3);
     xml var5 = check fromJson(var4);
     addToContext(context, "post", var5);
     return var5;

@@ -103,17 +103,17 @@ public enum Intrinsics {
 
     ),
     HANDLE_INVOKE(
-            "httpInvoke",
+            "handleInvoke",
             """
-                    function handleInvoke(String baseUrl, string path, String method, anydata payload)
+                    function handleInvoke(string baseUrl, string path, string method, anydata payload)
                            returns json|error {
-                        http:Client client = check new (baseUrl);
+                        http:Client 'client = check new (baseUrl);
                         match method {
                             "post" => {
-                                return check client->post(path, payload);
+                                return check 'client->post(path, payload);
                             }
                             "put" => {
-                                return check client->put(path, payload);
+                                return check 'client->put(path, payload);
                             }
                             _ => {
                                 return error("Unsupported HTTP method: " + method);

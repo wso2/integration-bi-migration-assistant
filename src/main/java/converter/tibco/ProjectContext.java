@@ -187,7 +187,6 @@ public class ProjectContext {
                                         new BallerinaModel.TypeDesc.MapTypeDesc(STRING),
                                         new BallerinaModel.Expression.MappingConstructor(List.of())))));
         typeCx.moduleTypeDefs.put(httpConfigTy, Optional.of(httpConfigType));
-        typeCx.addIntrinsic(Intrinsics.CREATE_HTTP_REQUEST_PATH_FROM_CONFIG);
         return new BallerinaModel.TypeDesc.TypeReference(httpConfigTy);
     }
 
