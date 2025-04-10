@@ -100,7 +100,7 @@ function invoke(map<xml> context) returns xml|error {
         <tns1:httpHeaders/>
     </xsl:template>
 </xsl:stylesheet>`), context);
-    xml var4 = xml `<root>${var2} + ${var3}</root>`;
+    xml var4 = xml `<root>${var2 + var3}</root>`;
     json var5 = check handleInvoke("/", "/creditscore", "post", var4);
     xml var6 = check fromJson(var5);
     addToContext(context, "post", var6);
