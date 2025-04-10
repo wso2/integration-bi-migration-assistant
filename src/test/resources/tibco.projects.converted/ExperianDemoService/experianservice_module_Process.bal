@@ -79,5 +79,6 @@ function process_experianservice_module_Process(xml input) returns xml {
 }
 
 function receiveEvent(xml input, map<xml> context) returns xml|error {
+    addToContext(context, "HTTPReceiver", input);
     return input;
 }

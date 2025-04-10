@@ -257,7 +257,9 @@ public final class XmlToTibcoModelConverter {
         for (Element each : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(each);
             switch (tag) {
-                case "inputBindings", "inputBinding" -> inputBindings.addAll(parseInputBindings(each));
+                case "inputBinding" -> inputBindings.add(
+                        new TibcoModel.Scope.Flow.Activity.InputBinding.CompleteBinding(parseExpressionNode(each)));
+                case "inputBindings" -> inputBindings.addAll(parseInputBindings(each));
                 case "targets" -> targets.addAll(parseTargets(each));
                 default -> throw new ParserException("Unsupported reply element tag: " + tag, element);
             }
@@ -335,7 +337,9 @@ public final class XmlToTibcoModelConverter {
         for (Element each : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(each);
             switch (tag) {
-                case "inputBinding", "inputBindings" -> inputBindings.addAll(parseInputBindings(each));
+                case "inputBinding" -> inputBindings.add(
+                        new TibcoModel.Scope.Flow.Activity.InputBinding.CompleteBinding(parseExpressionNode(each)));
+                case "inputBindings" -> inputBindings.addAll(parseInputBindings(each));
                 case "targets" -> {
                     for (Element target : ElementIterable.of(each)) {
                         targets.add(parseTarget(target));
@@ -353,16 +357,25 @@ public final class XmlToTibcoModelConverter {
                 inputBindings, targets, sources);
     }
 
-    private static List<TibcoModel.Scope.Flow.Activity.InputBinding> parseInputBindings(Element element) {
-        String tag = getTagNameWithoutNameSpace(element);
-        return switch (tag) {
-            case "inputBinding" -> List.of(
-                    new TibcoModel.Scope.Flow.Activity.InputBinding(parseExpressionNode(element)));
-            case "inputBindings" ->
-                    ElementIterable.of(element).stream().map(each -> new TibcoModel.Scope.Flow.Activity.InputBinding(
-                            parseExpressionNode(each))).toList();
-            default -> throw new ParserException("Unsupported input binding tag" + tag, element);
-        };
+    private static List<? extends TibcoModel.Scope.Flow.Activity.InputBinding> parseInputBindings(Element element) {
+        List<TibcoModel.Scope.Flow.Activity.Expression> partialBindings = new ArrayList<>();
+        List<TibcoModel.Scope.Flow.Activity.InputBinding.CompleteBinding> completeBindings = new ArrayList<>();
+        for (Element each : ElementIterable.of(element)) {
+            String tag = getTagNameWithoutNameSpace(each);
+            switch (tag) {
+                case "inputBinding" -> completeBindings.add(
+                        new TibcoModel.Scope.Flow.Activity.InputBinding.CompleteBinding(parseExpressionNode(each)));
+                case "partBinding" -> partialBindings.add(parseExpressionNode(each));
+                default -> throw new ParserException("Unsupported input binding element tag: " + tag, element);
+            }
+        }
+        if (!partialBindings.isEmpty() && !completeBindings.isEmpty()) {
+            throw new ParserException("Mix of partial bindings and complete bindings detected", element);
+        }
+        if (!partialBindings.isEmpty()) {
+            return List.of(new TibcoModel.Scope.Flow.Activity.InputBinding.PartialBindings(partialBindings));
+        }
+        return completeBindings;
     }
 
     private static TibcoModel.Scope.Flow.Activity.Expression parseExpressionNode(Element node) {
@@ -439,7 +452,10 @@ public final class XmlToTibcoModelConverter {
                     sources = ElementIterable.of(getFirstChildWithTag(element, "sources")).stream()
                             .map(XmlToTibcoModelConverter::parseSource).toList();
                 }
-                case "inputBindings", "inputBinding" -> inputBindings.addAll(parseInputBindings(each));
+                case "inputBinding" ->
+                        inputBindings.add(new TibcoModel.Scope.Flow.Activity.InputBinding.CompleteBinding(
+                                parseExpressionNode(each)));
+                case "inputBindings" -> inputBindings.addAll(parseInputBindings(each));
                 case "CallProcess" -> {
                     if (callProcess != null) {
                         throw new ParserException("Multiple CallProcess elements found in the XML", element);
@@ -473,9 +489,7 @@ public final class XmlToTibcoModelConverter {
                         .map(s -> s.map(XmlToTibcoModelConverter::parseSource).toList())
                         .orElse(List.of());
         List<TibcoModel.Scope.Flow.Activity.InputBinding> inputBindings =
-                ElementIterable.of(getFirstChildWithTag(activity, "inputBindings")).stream()
-                        .map(each -> new TibcoModel.Scope.Flow.Activity.InputBinding(parseExpressionNode(each)))
-                        .toList();
+                new ArrayList<>(parseInputBindings(getFirstChildWithTag(activity, "inputBindings")));
         TibcoModel.Scope.Flow.Activity.ActivityExtension.Config config =
                 parseActivityExtensionConfig(getFirstChildWithTag(activity, "config"));
         return new TibcoModel.Scope.Flow.Activity.ActivityExtension(inputVariable, outputVariable, targets, sources,

@@ -582,13 +582,30 @@ public class TibcoModel {
                     }
                 }
 
-                record InputBinding(Expression expression) {
+                sealed interface InputBinding {
 
-                    public Expression.XSLT xslt() {
-                        if (expression instanceof Expression.XSLT xslt) {
-                            return xslt;
+                    record CompleteBinding(Expression expression) implements InputBinding {
+
+                        public Expression.XSLT xslt() {
+                            if (expression instanceof Expression.XSLT xslt) {
+                                return xslt;
+                            }
+                            throw new IllegalStateException("Not an XSLT expression: " + expression);
                         }
-                        throw new IllegalStateException("Not an XSLT expression: " + expression);
+                    }
+
+                    record PartialBindings(List<Expression> expressions) implements InputBinding {
+
+                        public List<Expression.XSLT> xslt() {
+                            return expressions.stream()
+                                    .map(expr -> {
+                                        if (expr instanceof Expression.XSLT xslt) {
+                                            return xslt;
+                                        }
+                                        throw new IllegalStateException("Not an XSLT expression: " + expr);
+                                    })
+                                    .toList();
+                        }
                     }
                 }
 

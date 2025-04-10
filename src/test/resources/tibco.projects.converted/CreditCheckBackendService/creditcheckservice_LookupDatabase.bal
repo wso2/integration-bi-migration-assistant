@@ -118,11 +118,13 @@ function process_creditcheckservice_LookupDatabase(xml input) returns xml {
 }
 
 function receiveEvent(xml input, map<xml> context) returns xml|error {
+    addToContext(context, "Start", input);
     return input;
 }
 
 function throw(xml input, map<xml> context) returns xml|error {
     xml var0 = check xslt:transform(input, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?><xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://schemas.tibco.com/bw/plugins/basic/6.0/Exceptions" version="2.0"><xsl:template name="Throw-input" match="/"><tns:DefaultFault/></xsl:template> </xsl:stylesheet>`), context);
-    error var1 = error("TODO: create error value");
-    panic var1;
+    xml var1 = xml `<root>${var0}</root>`;
+    error var2 = error("TODO: create error value");
+    panic var2;
 }

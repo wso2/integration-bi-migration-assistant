@@ -92,16 +92,17 @@ function invoke(xml input, map<xml> context) returns xml|error {
         </tns3:GiveNewSchemaNameHere>
     </xsl:template>
 </xsl:stylesheet>`), context);
-    xml var2 = check xslt:transform(var1, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var2 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com/20180827154353PLT" xmlns:tns1="http://tns.tibco.com/bw/REST" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
     <xsl:template name="post-input" match="/">
         <tns1:httpHeaders/>
     </xsl:template>
 </xsl:stylesheet>`), context);
-    json var3 = check httpInvoke("/", "/creditscore", "post", var2);
-    xml var4 = check fromJson(var3);
-    addToContext(context, "post", var4);
-    return var4;
+    xml var3 = xml `<root>${var1} + ${var2}</root>`;
+    json var4 = check httpInvoke("/", "/creditscore", "post", var3);
+    xml var5 = check fromJson(var4);
+    addToContext(context, "post", var5);
+    return var5;
 }
 
 function process_creditapp_module_EquifaxScore(xml input) returns xml {
@@ -115,5 +116,6 @@ function process_creditapp_module_EquifaxScore(xml input) returns xml {
 }
 
 function receiveEvent_5(xml input, map<xml> context) returns xml|error {
+    addToContext(context, "Start", input);
     return input;
 }

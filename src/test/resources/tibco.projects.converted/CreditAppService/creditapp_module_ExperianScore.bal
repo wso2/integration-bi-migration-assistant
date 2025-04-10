@@ -88,5 +88,6 @@ function process_creditapp_module_ExperianScore(xml input) returns xml {
 }
 
 function receiveEvent(xml input, map<xml> context) returns xml|error {
+    addToContext(context, "Start", input);
     return input;
 }

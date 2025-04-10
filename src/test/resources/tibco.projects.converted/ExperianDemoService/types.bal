@@ -22,29 +22,26 @@ public type QueryResult0 record {|
 |};
  import ballerina/data.xmldata;
 
-@xmldata:Namespace {uri: "http://tns.tibco.com/bw/json/1535671685533"}
-public type ExperianResponseSchemaElementType record {|
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
+public type InputElement record {|
 @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
 SequenceGroup sequenceGroup;
 |};
 
-@xmldata:Namespace {uri: "http://tns.tibco.com/bw/json/1535671685533"}
-public type ExperianResponseSchemaElement record {|
-@xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
-SequenceGroup sequenceGroup;
-|};
-
-@xmldata:Namespace {uri: "http://tns.tibco.com/bw/json/1535671685533"}
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
 public type SequenceGroup record {|
-@xmldata:Namespace {uri: "http://tns.tibco.com/bw/json/1535671685533"}
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
 @xmldata:SequenceOrder {value: 1}
-int fiCOScore?;
-@xmldata:Namespace {uri: "http://tns.tibco.com/bw/json/1535671685533"}
+string dob;
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
 @xmldata:SequenceOrder {value: 2}
-string rating?;
-@xmldata:Namespace {uri: "http://tns.tibco.com/bw/json/1535671685533"}
+string firstName;
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
 @xmldata:SequenceOrder {value: 3}
-int noOfInquiries?;
+string lastName;
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
+@xmldata:SequenceOrder {value: 4}
+string ssn;
 |};
 
 @xmldata:Namespace {uri: "http://tns.tibco.com/bw/REST"}
@@ -273,24 +270,27 @@ int statusCode;
 string message?;
 |};
 
-@xmldata:Namespace {uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
-public type InputElement record {|
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/json/1535671685533"}
+public type ExperianResponseSchemaElementType record {|
 @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
 SequenceGroup9 sequenceGroup9;
 |};
 
-@xmldata:Namespace {uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/json/1535671685533"}
+public type ExperianResponseSchemaElement record {|
+@xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
+SequenceGroup9 sequenceGroup9;
+|};
+
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/json/1535671685533"}
 public type SequenceGroup9 record {|
-@xmldata:Namespace {uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/json/1535671685533"}
 @xmldata:SequenceOrder {value: 1}
-string dob;
-@xmldata:Namespace {uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
+int fiCOScore?;
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/json/1535671685533"}
 @xmldata:SequenceOrder {value: 2}
-string firstName;
-@xmldata:Namespace {uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
+string rating?;
+@xmldata:Namespace {uri: "http://tns.tibco.com/bw/json/1535671685533"}
 @xmldata:SequenceOrder {value: 3}
-string lastName;
-@xmldata:Namespace {uri: "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367"}
-@xmldata:SequenceOrder {value: 4}
-string ssn;
+int noOfInquiries?;
 |};

@@ -112,9 +112,10 @@ function reply(xml input, map<xml> context) returns xml|error {
         </tns2:Response>
     </xsl:template>
 </xsl:stylesheet>`), context);
-    xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = xml `<root>${var0}</root>`;
+    xml var2 = check xslt:transform(var1, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://xmlns.example.com/20180831151624PLT" xmlns:tns2="/T1535753828744Converted/JsonSchema" version="2.0"><xsl:param name="LookupDatabase"/><xsl:template name="postOut-input" match="/"><tns1:postResponse><item><tns2:Response><xsl:if test="$LookupDatabase/tns2:FICOScore"><tns2:FICOScore><xsl:value-of select="$LookupDatabase/tns2:FICOScore"/></tns2:FICOScore></xsl:if><xsl:if test="$LookupDatabase/tns2:Rating"><tns2:Rating><xsl:value-of select="$LookupDatabase/tns2:Rating"/></tns2:Rating></xsl:if><xsl:if test="$LookupDatabase/tns2:NoOfInquiries"><tns2:NoOfInquiries><xsl:value-of select="$LookupDatabase/tns2:NoOfInquiries"/></tns2:NoOfInquiries></xsl:if></tns2:Response></item></tns1:postResponse></xsl:template></xsl:stylesheet>`), context);
-    return var1;
+    return var2;
 }
 
 function reply_6(xml input, map<xml> context) returns xml|error {
@@ -130,5 +131,6 @@ function reply_6(xml input, map<xml> context) returns xml|error {
         </tns:client4XXError>
     </xsl:template>
 </xsl:stylesheet>`), context);
-    return var1;
+    xml var2 = xml `<root>${var1}</root>`;
+    return var2;
 }
