@@ -41,7 +41,7 @@ function activityRunner_creditcheckservice_Process(map<xml> cx) returns xml|erro
     return result2;
 }
 
-function creditcheckservice_Process_start(httpHeaders input = (), map<xml> params = {}) returns Response {
+function creditcheckservice_Process_start(httpHeaders input, map<xml> params = {}) returns Response {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
     xml xmlResult = process_creditcheckservice_Process(inputXML, params);
     Response result = convertToResponse(xmlResult);

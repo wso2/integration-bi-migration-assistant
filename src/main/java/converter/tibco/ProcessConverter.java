@@ -251,15 +251,13 @@ public class ProcessConverter {
                 if (inputType == ANYDATA) {
                         inputType = JSON;
                 }
-                return new BallerinaModel.Function(startFuncData.name(),
-                                List.of(new BallerinaModel.Parameter(inputType, inputVariable,
-                                                new BallerinaModel.BallerinaExpression("()")),
-                                                new BallerinaModel.Parameter(
-                                                                new BallerinaModel.TypeDesc.MapTypeDesc(XML), params,
-                                                                new BallerinaModel.BallerinaExpression("{}"))),
-
-                                Optional.of(returnType.toString()),
-                                body);
+            return new BallerinaModel.Function(startFuncData.name(),
+                    List.of(new BallerinaModel.Parameter(inputVariable, inputType),
+                            new BallerinaModel.Parameter(
+                                    new BallerinaModel.TypeDesc.MapTypeDesc(XML), params,
+                                    new BallerinaModel.BallerinaExpression("{}"))),
+                    Optional.of(returnType.toString()),
+                    body);
         }
 
         private static BallerinaModel.Function generateProcessFunction(ProcessContext cx) {

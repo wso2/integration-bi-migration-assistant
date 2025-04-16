@@ -78,7 +78,7 @@ function errorHandler_loggingservice_LogProcess(error err, map<xml> cx) returns 
     checkpanic err;
 }
 
-function loggingservice_LogProcess_start(LogMessage input = (), map<xml> params = {}) returns result {
+function loggingservice_LogProcess_start(LogMessage input, map<xml> params = {}) returns result {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
     xml xmlResult = process_loggingservice_LogProcess(inputXML, params);
     result result = convertToresult(xmlResult);

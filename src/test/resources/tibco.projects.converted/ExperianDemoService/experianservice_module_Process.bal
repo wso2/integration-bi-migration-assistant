@@ -65,7 +65,7 @@ function errorHandler_experianservice_module_Process(error err, map<xml> cx) ret
     checkpanic err;
 }
 
-function experianservice_module_Process_start(InputElement input = (), map<xml> params = {}) returns ExperianResponseSchemaElement {
+function experianservice_module_Process_start(InputElement input, map<xml> params = {}) returns ExperianResponseSchemaElement {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
     xml xmlResult = process_experianservice_module_Process(inputXML, params);
     ExperianResponseSchemaElement result = convertToExperianResponseSchemaElement(xmlResult);

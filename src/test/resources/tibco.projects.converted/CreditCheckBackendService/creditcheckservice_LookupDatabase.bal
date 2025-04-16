@@ -91,7 +91,7 @@ function activityRunner_creditcheckservice_LookupDatabase(map<xml> cx) returns x
     return result4;
 }
 
-function creditcheckservice_LookupDatabase_start(Element input = (), map<xml> params = {}) returns Response {
+function creditcheckservice_LookupDatabase_start(Element input, map<xml> params = {}) returns Response {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
     xml xmlResult = process_creditcheckservice_LookupDatabase(inputXML, params);
     Response result = convertToResponse(xmlResult);

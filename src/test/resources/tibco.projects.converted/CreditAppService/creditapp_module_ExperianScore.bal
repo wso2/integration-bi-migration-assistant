@@ -70,7 +70,7 @@ function activityRunner_creditapp_module_ExperianScore(map<xml> cx) returns xml|
     return result4;
 }
 
-function creditapp_module_ExperianScore_start(GiveNewSchemaNameHere input = (), map<xml> params = {}) returns ExperianResponseSchemaElement {
+function creditapp_module_ExperianScore_start(GiveNewSchemaNameHere input, map<xml> params = {}) returns ExperianResponseSchemaElement {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
     xml xmlResult = process_creditapp_module_ExperianScore(inputXML, params);
     ExperianResponseSchemaElement result = convertToExperianResponseSchemaElement(xmlResult);
