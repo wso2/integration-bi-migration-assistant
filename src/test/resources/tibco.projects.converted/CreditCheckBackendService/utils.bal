@@ -42,19 +42,19 @@ function addToContext(map<xml> context, string varName, xml value) {
 function logWrapper(LogParametersType input) {
     match (input) {
         {message: var m, logLevel: "info"} => {
-            log:printInfo(m);
+            log:printInfo(m.toString());
         }
         {message: var m, logLevel: "debug"} => {
-            log:printDebug(m);
+            log:printDebug(m.toString());
         }
         {message: var m, logLevel: "warn"} => {
-            log:printWarn(m);
+            log:printWarn(m.toString());
         }
         {message: var m, logLevel: "error"} => {
-            log:printError(m);
+            log:printError(m.toString());
         }
         {message: var m} => {
-            log:printInfo(m);
+            log:printInfo(m.toString());
         }
     }
 }
