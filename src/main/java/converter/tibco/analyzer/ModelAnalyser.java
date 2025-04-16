@@ -143,7 +143,6 @@ public class ModelAnalyser {
     }
 
     private static void analysePartnerLinks(ProcessAnalysisContext cx, Collection<TibcoModel.PartnerLink> links) {
-        // FIXME: extend support for SOAP as well
         links.stream()
                 .flatMap(link -> link instanceof TibcoModel.PartnerLink.NonEmptyPartnerLink nonEmptyPartnerLink ?
                         Stream.of(nonEmptyPartnerLink) : Stream.empty())

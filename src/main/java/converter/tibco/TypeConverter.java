@@ -6,6 +6,7 @@ import io.ballerina.xsd.core.Response;
 
 import ballerina.BallerinaModel.Statement.Return;
 import ballerina.BallerinaModel.Statement.VarDeclStatment;
+import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
 
 import java.util.ArrayList;
@@ -14,10 +15,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 import java.util.StringJoiner;
-
-import org.jetbrains.annotations.NotNull;
+import java.util.stream.Stream;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
@@ -67,13 +66,13 @@ class TypeConverter {
     }
 
     static Collection<BallerinaModel.Service> convertWsdlDefinition(ProcessContext cx,
-                                                                    TibcoModel.Type.WSDLDefinition wsdlDefinition) {
+            TibcoModel.Type.WSDLDefinition wsdlDefinition) {
         Map<String, String> messageTypes = getMessageTypeDefinitions(cx, wsdlDefinition);
         return wsdlDefinition.portType().stream().map(portType -> convertPortType(cx, messageTypes, portType)).toList();
     }
 
     private static Map<String, String> getMessageTypeDefinitions(ProcessContext cx,
-                                                                 TibcoModel.Type.WSDLDefinition wsdlDefinition) {
+            TibcoModel.Type.WSDLDefinition wsdlDefinition) {
         Map<String, String> result = new HashMap<>();
         for (TibcoModel.Type.WSDLDefinition.Message message : wsdlDefinition.messages()) {
             Optional<String> referredTypeName = getMessageTypeName(cx, message);
@@ -86,7 +85,7 @@ class TypeConverter {
     }
 
     private static Optional<String> getMessageTypeName(ProcessContext cx,
-                                                       TibcoModel.Type.WSDLDefinition.Message message) {
+            TibcoModel.Type.WSDLDefinition.Message message) {
         Optional<TibcoModel.Type.WSDLDefinition.Message.Part> part;
         if (message.parts().size() == 1) {
             part = Optional.ofNullable(message.parts().getFirst());
@@ -107,8 +106,8 @@ class TypeConverter {
     }
 
     private static BallerinaModel.Service convertPortType(ProcessContext cx,
-                                                          Map<String, String> messageTypes,
-                                                          TibcoModel.Type.WSDLDefinition.PortType portType) {
+            Map<String, String> messageTypes,
+            TibcoModel.Type.WSDLDefinition.PortType portType) {
         String basePath = portType.basePath();
         if (!basePath.startsWith("/")) {
             basePath = "/" + basePath;
@@ -133,9 +132,9 @@ class TypeConverter {
         BallerinaModel.TypeDesc inputType = cx.getTypeByName(messageTypes.get(operation.input().message().value()));
         List<BallerinaModel.Parameter> parameters = List.of(new BallerinaModel.Parameter("input", inputType));
         List<BallerinaModel.TypeDesc> returnTypeMembers = Stream.concat(
-                        Stream.of(operation.output().message()),
-                        operation.faults().stream().map(
-                                TibcoModel.Type.WSDLDefinition.PortType.Operation.Fault::message))
+                Stream.of(operation.output().message()),
+                operation.faults().stream().map(
+                        TibcoModel.Type.WSDLDefinition.PortType.Operation.Fault::message))
                 .map(message -> cx.getTypeByName(messageTypes.get(message.value()))).toList();
         BallerinaModel.TypeDesc returnType = returnTypeMembers.size() == 1
                 ? returnTypeMembers.getFirst()
