@@ -44,16 +44,16 @@ function activityExtension_6(map<xml> context) returns xml|error {
     return var1;
 }
 
-function activityRunner_creditapp_module_EquifaxScore(xml input, map<xml> cx) returns xml|error {
-    xml result0 = check receiveEvent_5(input, cx);
-    xml result1 = check invoke(result0, cx);
-    xml result2 = check activityExtension_6(result1, cx);
+function activityRunner_creditapp_module_EquifaxScore(map<xml> cx) returns xml|error {
+    xml result0 = check receiveEvent_5(cx);
+    xml result1 = check invoke(cx);
+    xml result2 = check activityExtension_6(cx);
     return result2;
 }
 
-function creditapp_module_EquifaxScore_start(GiveNewSchemaNameHere input) returns SuccessSchema {
+function creditapp_module_EquifaxScore_start(GiveNewSchemaNameHere input, map<xml> params = {}) returns SuccessSchema {
     xml inputXML = checkpanic toXML(input);
-    xml xmlResult = process_creditapp_module_EquifaxScore(inputXML);
+    xml xmlResult = process_creditapp_module_EquifaxScore(inputXML, params);
     SuccessSchema result = convertToSuccessSchema(xmlResult);
     return result;
 }
@@ -107,10 +107,10 @@ function invoke(map<xml> context) returns xml|error {
     return var6;
 }
 
-function process_creditapp_module_EquifaxScore(xml input) returns xml {
-    map<xml> context = {};
+function process_creditapp_module_EquifaxScore(xml input, map<xml> params) returns xml {
+    map<xml> context = {...params};
     addToContext(context, "$input", input);
-    xml|error result = activityRunner_creditapp_module_EquifaxScore(input, context);
+    xml|error result = activityRunner_creditapp_module_EquifaxScore(context);
     if result is error {
         return errorHandler_creditapp_module_EquifaxScore(result, context);
     }

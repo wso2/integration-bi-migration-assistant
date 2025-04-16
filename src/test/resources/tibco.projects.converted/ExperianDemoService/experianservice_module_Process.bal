@@ -52,12 +52,12 @@ function activityExtension_4(map<xml> context) returns xml|error {
     return var1;
 }
 
-function activityRunner_experianservice_module_Process(xml input, map<xml> cx) returns xml|error {
-    xml result0 = check receiveEvent(input, cx);
-    xml result1 = check activityExtension_3(result0, cx);
-    xml result2 = check activityExtension_2(result1, cx);
-    xml result3 = check activityExtension_4(result2, cx);
-    xml result4 = check activityExtension(result3, cx);
+function activityRunner_experianservice_module_Process(map<xml> cx) returns xml|error {
+    xml result0 = check receiveEvent(cx);
+    xml result1 = check activityExtension_3(cx);
+    xml result2 = check activityExtension_2(cx);
+    xml result3 = check activityExtension_4(cx);
+    xml result4 = check activityExtension(cx);
     return result4;
 }
 
@@ -65,17 +65,17 @@ function errorHandler_experianservice_module_Process(error err, map<xml> cx) ret
     checkpanic err;
 }
 
-function experianservice_module_Process_start(InputElement input) returns ExperianResponseSchemaElement {
+function experianservice_module_Process_start(InputElement input, map<xml> params = {}) returns ExperianResponseSchemaElement {
     xml inputXML = checkpanic toXML(input);
-    xml xmlResult = process_experianservice_module_Process(inputXML);
+    xml xmlResult = process_experianservice_module_Process(inputXML, params);
     ExperianResponseSchemaElement result = convertToExperianResponseSchemaElement(xmlResult);
     return result;
 }
 
-function process_experianservice_module_Process(xml input) returns xml {
-    map<xml> context = {};
+function process_experianservice_module_Process(xml input, map<xml> params) returns xml {
+    map<xml> context = {...params};
     addToContext(context, "$input", input);
-    xml|error result = activityRunner_experianservice_module_Process(input, context);
+    xml|error result = activityRunner_experianservice_module_Process(context);
     if result is error {
         return errorHandler_experianservice_module_Process(result, context);
     }

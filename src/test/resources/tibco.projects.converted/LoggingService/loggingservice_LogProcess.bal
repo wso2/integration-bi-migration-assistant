@@ -49,28 +49,28 @@ function activityExtension_5(map<xml> context) returns xml|error {
     return var1;
 }
 
-function activityRunner_loggingservice_LogProcess(xml input, map<xml> cx) returns xml|error {
-    xml result0 = check receiveEvent(input, cx);
+function activityRunner_loggingservice_LogProcess(map<xml> cx) returns xml|error {
+    xml result0 = check receiveEvent(cx);
     xml result1;
     if predicate_2(result0) {
-        result1 = check activityExtension_4(result0, cx);
+        result1 = check activityExtension_4(cx);
     } else {
         result1 = result0;
     }
-    xml result2 = check activityExtension_5(result1, cx);
+    xml result2 = check activityExtension_5(cx);
     xml result3;
     if predicate_1(result0) {
-        result3 = check activityExtension_3(result2, cx);
+        result3 = check activityExtension_3(cx);
     } else {
         result3 = result2;
     }
     xml result4;
     if predicate_0(result0) {
-        result4 = check activityExtension_2(result3, cx);
+        result4 = check activityExtension_2(cx);
     } else {
         result4 = result3;
     }
-    xml result5 = check activityExtension(result4, cx);
+    xml result5 = check activityExtension(cx);
     return result5;
 }
 
@@ -78,9 +78,9 @@ function errorHandler_loggingservice_LogProcess(error err, map<xml> cx) returns 
     checkpanic err;
 }
 
-function loggingservice_LogProcess_start(LogMessage input) returns result {
+function loggingservice_LogProcess_start(LogMessage input, map<xml> params = {}) returns result {
     xml inputXML = checkpanic toXML(input);
-    xml xmlResult = process_loggingservice_LogProcess(inputXML);
+    xml xmlResult = process_loggingservice_LogProcess(inputXML, params);
     result result = convertToresult(xmlResult);
     return result;
 }
@@ -97,10 +97,10 @@ function predicate_2(xml input) returns boolean {
     return test(input, "matches($Start/ns0:handler, \"file\") and matches($Start/ns0:formatter, \"xml\")");
 }
 
-function process_loggingservice_LogProcess(xml input) returns xml {
-    map<xml> context = {};
+function process_loggingservice_LogProcess(xml input, map<xml> params) returns xml {
+    map<xml> context = {...params};
     addToContext(context, "$input", input);
-    xml|error result = activityRunner_loggingservice_LogProcess(input, context);
+    xml|error result = activityRunner_loggingservice_LogProcess(context);
     if result is error {
         return errorHandler_loggingservice_LogProcess(result, context);
     }

@@ -51,8 +51,7 @@ public class ProcessContext implements ContextWithFile {
     public final ProjectContext projectContext;
     public final AnalysisResult analysisResult;
     private BallerinaModel.Expression.VariableReference contextRef;
-    private final Map<TibcoModel.Scope.Flow.Activity.Source.Predicate, String> predicateToFunctionMap =
-            new HashMap<>();
+    private final Map<TibcoModel.Scope.Flow.Activity.Source.Predicate, String> predicateToFunctionMap = new HashMap<>();
     private final Map<String, String> propertyVariableToResourceMap = new HashMap<>();
 
     private static final Logger logger = Logger.getLogger(ProcessContext.class.getName());
@@ -67,9 +66,9 @@ public class ProcessContext implements ContextWithFile {
         return new BallerinaModel.TypeDesc.MapTypeDesc(XML);
     }
 
-    public VarDeclStatment initContextVar() {
-        VarDeclStatment varDeclStatment =
-                new VarDeclStatment(contextType(), "context", new BallerinaModel.BallerinaExpression("{}"));
+    public VarDeclStatment initContextVar(String paramsVarName) {
+        VarDeclStatment varDeclStatment = new VarDeclStatment(contextType(), "context",
+                new BallerinaModel.BallerinaExpression("{...%s}".formatted(paramsVarName)));
         this.contextRef = new BallerinaModel.Expression.VariableReference(varDeclStatment.varName());
         return varDeclStatment;
     }
@@ -77,14 +76,14 @@ public class ProcessContext implements ContextWithFile {
     public void addResourceVariable(TibcoModel.Variable.PropertyVariable propertyVariable) {
         switch (propertyVariable) {
             case TibcoModel.Variable.PropertyVariable.PropertyReference ref ->
-                    propertyVariableToResourceMap.put(ref.name(), ref.literal());
+                propertyVariableToResourceMap.put(ref.name(), ref.literal());
             case TibcoModel.Variable.PropertyVariable.SimpleProperty simpleProperty ->
-                    projectContext.addConfigurableVariable(simpleProperty.name(), simpleProperty.source());
+                projectContext.addConfigurableVariable(simpleProperty.name(), simpleProperty.source());
         }
     }
 
     public BallerinaModel.Expression.VariableReference addConfigurableVariable(BallerinaModel.TypeDesc td,
-                                                                               String name) {
+            String name) {
         var varDecl = this.configurables.computeIfAbsent(name, k -> createConfigurableVariable(td, name));
         return new BallerinaModel.Expression.VariableReference(varDecl.name());
     }
@@ -156,11 +155,11 @@ public class ProcessContext implements ContextWithFile {
     }
 
     BallerinaModel.TextDocument serialize(Collection<BallerinaModel.Service> processServices,
-                                          List<BallerinaModel.Function> functions) {
+            List<BallerinaModel.Function> functions) {
         String name = ConversionUtils.sanitizes(process.name()) + ".bal";
         List<BallerinaModel.Listener> listeners = defaultListner != null ? List.of(defaultListner) : List.of();
-        List<BallerinaModel.ModuleVar> moduleVars =
-                Stream.concat(constants.values().stream(), configurables.values().stream()).toList();
+        List<BallerinaModel.ModuleVar> moduleVars = Stream
+                .concat(constants.values().stream(), configurables.values().stream()).toList();
         return new BallerinaModel.TextDocument(name, imports.stream().toList(), List.of(),
                 moduleVars, listeners, processServices.stream().toList(), functions, List.of());
     }

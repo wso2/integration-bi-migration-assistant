@@ -33,6 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 
@@ -53,7 +54,7 @@ public class ModelAnalyser {
                 Map.of(process, cx.faultHandlerStartActivities);
 
         Map<TibcoModel.Scope.Flow.Activity, AnalysisResult.ActivityData> activityData = cx.activityData();
-        Map<String, TibcoModel.PartnerLink.Binding> partnerLinkBindings =
+        Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings =
                 Collections.unmodifiableMap(cx.partnerLinkBindings);
 
         logger.info(String.format("Process Statistics - Name: %s, Total Activities: %d, Unhandled Activities: %d",
@@ -142,8 +143,11 @@ public class ModelAnalyser {
     }
 
     private static void analysePartnerLinks(ProcessAnalysisContext cx, Collection<TibcoModel.PartnerLink> links) {
-        links.stream().filter(link -> link.binding().isPresent())
-                .forEach(link -> cx.partnerLinkBindings.put(link.name(), link.binding().get()));
+        // FIXME: extend support for SOAP as well
+        links.stream()
+                .flatMap(link -> link instanceof TibcoModel.PartnerLink.NonEmptyPartnerLink nonEmptyPartnerLink ?
+                        Stream.of(nonEmptyPartnerLink) : Stream.empty())
+                .forEach(link -> cx.partnerLinkBindings.put(link.name(), link.binding()));
     }
 
     private static void analyseScope(ProcessAnalysisContext cx, TibcoModel.Scope scope) {
@@ -235,7 +239,8 @@ public class ModelAnalyser {
 
         private final Set<TibcoModel.Scope.Flow.Activity> activities = new HashSet<>();
         private final Set<TibcoModel.Scope.Flow.Link> links = new HashSet<>();
-        private final Map<String, TibcoModel.PartnerLink.Binding> partnerLinkBindings = new HashMap<>();
+        private final Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings =
+                new HashMap<>();
 
         private static final Map<TibcoModel.Scope.Flow.Activity, String> activityFunctionNames =
                 new ConcurrentHashMap<>();

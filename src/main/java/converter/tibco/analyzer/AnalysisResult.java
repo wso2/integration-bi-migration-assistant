@@ -36,7 +36,7 @@ public final class AnalysisResult {
     private final Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> startActivities;
     private final Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> faultHandlerStartActivities;
     private final Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData;
-    private final Map<String, TibcoModel.PartnerLink.Binding> partnerLinkBindings;
+    private final Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings;
     private final Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex;
     private final Map<TibcoModel.Process, String> inputTypeName;
     private final Map<TibcoModel.Process, String> outputTypeName;
@@ -47,7 +47,7 @@ public final class AnalysisResult {
                    Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> startActivities,
                    Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> faultHandlerStartActivities,
                    Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData,
-                   Map<String, TibcoModel.PartnerLink.Binding> partnerLinkBindings,
+                   Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings,
                    Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex,
                    Map<TibcoModel.Process, String> inputTypeName, Map<TibcoModel.Process, String> outputTypeName,
                    Graph<GraphNode> dependencyGraph) {
@@ -192,7 +192,7 @@ public final class AnalysisResult {
                 .toList();
     }
 
-    public TibcoModel.PartnerLink.Binding getBinding(String partnerLinkName) {
+    public TibcoModel.PartnerLink.RestPartnerLink.Binding getBinding(String partnerLinkName) {
         return Objects.requireNonNull(partnerLinkBindings.get(partnerLinkName));
     }
 

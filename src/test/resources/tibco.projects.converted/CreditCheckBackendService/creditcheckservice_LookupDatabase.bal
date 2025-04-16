@@ -72,28 +72,28 @@ function activityExtension_9(map<xml> context) returns xml|error {
     return var5;
 }
 
-function activityRunner_creditcheckservice_LookupDatabase(xml input, map<xml> cx) returns xml|error {
-    xml result0 = check receiveEvent(input, cx);
-    xml result1 = check activityExtension_9(result0, cx);
+function activityRunner_creditcheckservice_LookupDatabase(map<xml> cx) returns xml|error {
+    xml result0 = check receiveEvent(cx);
+    xml result1 = check activityExtension_9(cx);
     xml result2;
     if predicate_1(result1) {
-        result2 = check throw(result1, cx);
+        result2 = check throw(cx);
     } else {
         result2 = result1;
     }
     xml result3;
     if predicate_0(result1) {
-        result3 = check activityExtension_10(result2, cx);
+        result3 = check activityExtension_10(cx);
     } else {
         result3 = result2;
     }
-    xml result4 = check activityExtension_8(result3, cx);
+    xml result4 = check activityExtension_8(cx);
     return result4;
 }
 
-function creditcheckservice_LookupDatabase_start(Element input) returns Response {
+function creditcheckservice_LookupDatabase_start(Element input, map<xml> params = {}) returns Response {
     xml inputXML = checkpanic toXML(input);
-    xml xmlResult = process_creditcheckservice_LookupDatabase(inputXML);
+    xml xmlResult = process_creditcheckservice_LookupDatabase(inputXML, params);
     Response result = convertToResponse(xmlResult);
     return result;
 }
@@ -110,10 +110,10 @@ function predicate_1(xml input) returns boolean {
     return !test(input, "string-length($QueryRecords/Record[1]/rating)>0");
 }
 
-function process_creditcheckservice_LookupDatabase(xml input) returns xml {
-    map<xml> context = {};
+function process_creditcheckservice_LookupDatabase(xml input, map<xml> params) returns xml {
+    map<xml> context = {...params};
     addToContext(context, "$input", input);
-    xml|error result = activityRunner_creditcheckservice_LookupDatabase(input, context);
+    xml|error result = activityRunner_creditcheckservice_LookupDatabase(context);
     if result is error {
         return errorHandler_creditcheckservice_LookupDatabase(result, context);
     }

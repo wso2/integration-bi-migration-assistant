@@ -34,24 +34,24 @@ function activityExtension_5(map<xml> context) returns xml|error {
     return var1;
 }
 
-function activityRunner_creditcheckservice_Process(xml input, map<xml> cx) returns xml|error {
-    xml result0 = check extActivity(input, cx);
-    xml result1 = check activityExtension(result0, cx);
-    xml result2 = check reply(result1, cx);
+function activityRunner_creditcheckservice_Process(map<xml> cx) returns xml|error {
+    xml result0 = check extActivity(cx);
+    xml result1 = check activityExtension(cx);
+    xml result2 = check reply(cx);
     return result2;
 }
 
-function creditcheckservice_Process_start(httpHeaders input) returns Response {
+function creditcheckservice_Process_start(httpHeaders input, map<xml> params = {}) returns Response {
     xml inputXML = checkpanic toXML(input);
-    xml xmlResult = process_creditcheckservice_Process(inputXML);
+    xml xmlResult = process_creditcheckservice_Process(inputXML, params);
     Response result = convertToResponse(xmlResult);
     return result;
 }
 
 function errorHandler_creditcheckservice_Process(error err, map<xml> cx) returns xml {
     xml input = xml ``;
-    xml result0 = checkpanic activityExtension_5(input, cx);
-    xml result1 = checkpanic reply_6(result0, cx);
+    xml result0 = checkpanic activityExtension_5(cx);
+    xml result1 = checkpanic reply_6(cx);
     return result1;
 }
 
@@ -81,10 +81,10 @@ function pick(map<xml> context) returns xml|error {
     return xml ``;
 }
 
-function process_creditcheckservice_Process(xml input) returns xml {
-    map<xml> context = {};
+function process_creditcheckservice_Process(xml input, map<xml> params) returns xml {
+    map<xml> context = {...params};
     addToContext(context, "$input", input);
-    xml|error result = activityRunner_creditcheckservice_Process(input, context);
+    xml|error result = activityRunner_creditcheckservice_Process(context);
     if result is error {
         return errorHandler_creditcheckservice_Process(result, context);
     }
@@ -92,6 +92,7 @@ function process_creditcheckservice_Process(xml input) returns xml {
 }
 
 function reply(map<xml> context) returns xml|error {
+    xml var0 = xml ``;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://xmlns.example.com/20180831151624PLT" xmlns:tns2="/T1535753828744Converted/JsonSchema" version="2.0">
     <xsl:param name="LookupDatabase"/>
@@ -122,6 +123,7 @@ function reply(map<xml> context) returns xml|error {
 }
 
 function reply_6(map<xml> context) returns xml|error {
+    xml var0 = xml ``;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://xmlns.example.com/20180831151624PLT" xmlns:tns="http://tns.tibco.com/bw/REST" version="2.0"><xsl:template name="Reply-input" match="/"><tns1:post4XXFaultMessage><clientError><tns:client4XXError><statusCode><xsl:value-of select="404"/></statusCode></tns:client4XXError></clientError></tns1:post4XXFaultMessage></xsl:template></xsl:stylesheet>`), context);
     xml var2 = check xslt:transform(var1, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>

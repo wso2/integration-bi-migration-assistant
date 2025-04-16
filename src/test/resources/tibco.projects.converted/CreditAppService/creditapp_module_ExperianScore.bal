@@ -61,18 +61,18 @@ function activityExtension_4(map<xml> context) returns xml|error {
     return var1;
 }
 
-function activityRunner_creditapp_module_ExperianScore(xml input, map<xml> cx) returns xml|error {
-    xml result0 = check receiveEvent(input, cx);
-    xml result1 = check activityExtension_3(result0, cx);
-    xml result2 = check activityExtension_2(result1, cx);
-    xml result3 = check activityExtension_4(result2, cx);
-    xml result4 = check activityExtension(result3, cx);
+function activityRunner_creditapp_module_ExperianScore(map<xml> cx) returns xml|error {
+    xml result0 = check receiveEvent(cx);
+    xml result1 = check activityExtension_3(cx);
+    xml result2 = check activityExtension_2(cx);
+    xml result3 = check activityExtension_4(cx);
+    xml result4 = check activityExtension(cx);
     return result4;
 }
 
-function creditapp_module_ExperianScore_start(GiveNewSchemaNameHere input) returns ExperianResponseSchemaElement {
+function creditapp_module_ExperianScore_start(GiveNewSchemaNameHere input, map<xml> params = {}) returns ExperianResponseSchemaElement {
     xml inputXML = checkpanic toXML(input);
-    xml xmlResult = process_creditapp_module_ExperianScore(inputXML);
+    xml xmlResult = process_creditapp_module_ExperianScore(inputXML, params);
     ExperianResponseSchemaElement result = convertToExperianResponseSchemaElement(xmlResult);
     return result;
 }
@@ -81,10 +81,10 @@ function errorHandler_creditapp_module_ExperianScore(error err, map<xml> cx) ret
     checkpanic err;
 }
 
-function process_creditapp_module_ExperianScore(xml input) returns xml {
-    map<xml> context = {};
+function process_creditapp_module_ExperianScore(xml input, map<xml> params) returns xml {
+    map<xml> context = {...params};
     addToContext(context, "$input", input);
-    xml|error result = activityRunner_creditapp_module_ExperianScore(input, context);
+    xml|error result = activityRunner_creditapp_module_ExperianScore(context);
     if result is error {
         return errorHandler_creditapp_module_ExperianScore(result, context);
     }

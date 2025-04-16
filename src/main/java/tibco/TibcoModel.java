@@ -30,6 +30,29 @@ import java.util.Set;
 
 public class TibcoModel {
 
+    public enum Method {
+        POST("post"),
+        DELETE("delete"),
+        PUT("put"),
+        GET("get");
+
+        public final String method;
+
+        Method(String method) {
+            this.method = method;
+        }
+
+        public static Method from(String value) {
+            return switch (value.toLowerCase()) {
+                case "post" -> POST;
+                case "delete" -> DELETE;
+                case "put" -> PUT;
+                case "get" -> GET;
+                default -> throw new IllegalArgumentException("Unknown method: " + value);
+            };
+        }
+    }
+
     public interface Resource {
 
         String name();
@@ -178,7 +201,7 @@ public class TibcoModel {
 
     }
 
-    public record ProcessInfo(boolean callable, boolean extraErrorVars, Set<Modifier> modifiers, boolean scalable,
+    public record ProcessInfo(boolean callable, Set<Modifier> modifiers, boolean scalable,
                               boolean singleton, boolean stateless, Type type) {
 
         public enum Modifier {
@@ -210,9 +233,45 @@ public class TibcoModel {
         }
     }
 
-    public record PartnerLink(String name, Optional<Binding> binding) {
+    public sealed interface PartnerLink {
 
-        public record Binding(Path path, Connector connector, Operation operation) {
+        record UnhandledPartnerLink(Optional<String> name, String reason) implements PartnerLink {
+
+            public UnhandledPartnerLink(String name, String reason) {
+                this(name == null || name.isEmpty() ? Optional.empty() : Optional.of(name), reason);
+            }
+        }
+
+        record EmptyPartnerLink(String name) implements PartnerLink {
+
+        }
+
+        sealed interface NonEmptyPartnerLink extends PartnerLink {
+
+            String name();
+
+            Binding binding();
+
+        }
+
+        record SoapPartnerLink(String name, String path) implements NonEmptyPartnerLink {
+
+            private static final Binding.Operation OPERATION = new Binding.Operation(Method.POST,
+                    Binding.Operation.RequestEntityProcessing.CHUNKED, Binding.Operation.MessageStyle.ELEMENT,
+                    Binding.Operation.MessageStyle.ELEMENT, Binding.Operation.Format.XML, Binding.Operation.Format.XML,
+                    List.of());
+
+            @Override
+            public Binding binding() {
+                return new Binding(new Binding.Path(path, ""), Binding.Connector.HTTP_CLIENT_RESOURCE_2, OPERATION);
+            }
+        }
+
+        record RestPartnerLink(String name, Binding binding) implements NonEmptyPartnerLink {
+
+        }
+
+        record Binding(Path path, Connector connector, Operation operation) {
 
             public record Path(String basePath, String path) {
 
@@ -232,23 +291,6 @@ public class TibcoModel {
             public record Operation(Method method, RequestEntityProcessing requestEntityProcessing,
                                     MessageStyle requestStyle, MessageStyle responseStyle, Format clientFormat,
                                     Format clientRequestFormat, List<Parameter> parameters) {
-
-                public enum Method {
-                    POST("post");
-
-                    public final String method;
-
-                    Method(String method) {
-                        this.method = method;
-                    }
-
-                    public static Method from(String value) {
-                        if (value.equalsIgnoreCase("post")) {
-                            return POST;
-                        }
-                        throw new IllegalArgumentException("Unknown method: " + value);
-                    }
-                }
 
                 public enum RequestEntityProcessing {
                     CHUNKED;
@@ -273,7 +315,8 @@ public class TibcoModel {
                 }
 
                 public enum Format {
-                    JSON
+                    JSON,
+                    XML;
                 }
 
                 public record Parameter() {
@@ -282,7 +325,6 @@ public class TibcoModel {
             }
 
         }
-
     }
 
     public record Scope(String name, Collection<Flow> flows, Collection<FaultHandler> faultHandlers) {
@@ -342,7 +384,8 @@ public class TibcoModel {
 
                 }
 
-                record Reply(String name, PartnerLink.Binding.Operation.Method operation, String partnerLink,
+                record Reply(String name, Method operation,
+                             String partnerLink,
                              String portType, List<InputBinding> inputBindings, Collection<Target> targets)
                         implements Activity, ActivityWithTargets {
 
@@ -364,7 +407,8 @@ public class TibcoModel {
                         return onMessage().scope();
                     }
 
-                    public record OnMessage(PartnerLink.Binding.Operation.Method operation, String partnerLink,
+                    public record OnMessage(Method operation,
+                                            String partnerLink,
                                             String portType, String variable, Scope scope) {
 
                     }
@@ -554,13 +598,10 @@ public class TibcoModel {
 
                 }
 
-                record Invoke(String inputVariable, String outputVariable, Operation operation, String partnerLink,
+                record Invoke(String inputVariable, String outputVariable, Method operation, String partnerLink,
                               List<InputBinding> inputBindings, Collection<Target> targets, List<Source> sources)
                         implements Activity, ActivityWithSources, ActivityWithTargets {
 
-                    public enum Operation {
-                        POST
-                    }
 
                 }
 

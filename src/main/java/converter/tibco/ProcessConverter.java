@@ -201,6 +201,7 @@ public class ProcessConverter {
                 List<BallerinaModel.Statement> body = new ArrayList<>();
                 var startFuncData = cx.getProcessStartFunction();
                 String inputVariable = "input";
+                String params = "params";
                 FunctionCall toXMLCall = new FunctionCall(cx.getToXmlFunction(), new String[] { inputVariable });
                 String inputXML = "inputXML";
                 VarDeclStatment inputXMLVar = new VarDeclStatment(XML, inputXML,
@@ -209,7 +210,7 @@ public class ProcessConverter {
 
                 String processFunction = cx.getProcessFunction();
                 VarDeclStatment xmlResult = new VarDeclStatment(XML, "xmlResult",
-                                new FunctionCall(processFunction, new String[] { inputXML }));
+                        new FunctionCall(processFunction, new String[]{inputXML, params}));
                 body.add(xmlResult);
 
                 BallerinaModel.TypeDesc returnType = startFuncData.returnType();
@@ -224,7 +225,11 @@ public class ProcessConverter {
 
                 BallerinaModel.TypeDesc inputType = startFuncData.inputType();
                 return new BallerinaModel.Function(startFuncData.name(),
-                                List.of(new BallerinaModel.Parameter(inputVariable, inputType)),
+                        List.of(new BallerinaModel.Parameter(inputVariable, inputType),
+                                new BallerinaModel.Parameter(
+                                        new BallerinaModel.TypeDesc.MapTypeDesc(XML), params,
+                                        new BallerinaModel.BallerinaExpression("{}"))),
+
                                 Optional.of(returnType.toString()),
                                 body);
         }
@@ -232,10 +237,11 @@ public class ProcessConverter {
         private static BallerinaModel.Function generateProcessFunction(ProcessContext cx) {
                 String name = cx.getProcessFunction();
                 List<BallerinaModel.Statement> body = new ArrayList<>();
-                VarDeclStatment context = cx.initContextVar();
+                String inputVarName = "input";
+                String paramsVarName = "params";
+                VarDeclStatment context = cx.initContextVar(paramsVarName);
                 body.add(context);
                 String addToContextFn = cx.getAddToContextFn();
-                String inputVarName = "input";
                 VariableReference input = new VariableReference(inputVarName);
                 body.add(new CallStatement(
                                 new FunctionCall(addToContextFn, List.of(cx.contextVarRef(),
@@ -245,12 +251,16 @@ public class ProcessConverter {
                 VarDeclStatment result = new VarDeclStatment(
                                 BallerinaModel.TypeDesc.UnionTypeDesc.of(XML, ERROR), "result",
                                 new FunctionCall(cx.getActivityRunnerFunction(),
-                                                List.of(input, context.ref())));
+                                        List.of(context.ref())));
                 body.add(result);
                 handleErrorResult(cx, result, context, body);
                 body.add(new Return<>(result.ref()));
                 return new BallerinaModel.Function(name,
-                                List.of(new BallerinaModel.Parameter(inputVarName, XML)), Optional.of(XML.toString()),
+                        List.of(new BallerinaModel.Parameter(inputVarName, XML),
+                                new BallerinaModel.Parameter(
+                                        paramsVarName,
+                                        new BallerinaModel.TypeDesc.MapTypeDesc(XML))),
+                        Optional.of(XML.toString()),
                                 body);
         }
 
@@ -271,14 +281,14 @@ public class ProcessConverter {
                 AnalysisResult analysisResult = cx.analysisResult;
                 List<TibcoModel.Scope.Flow.Activity> activities = analysisResult.sortedActivities(cx.process).toList();
                 List<BallerinaModel.Statement> body = new ArrayList<>();
-                VariableReference result = generateActivityFlowFunctionInner(cx, activities,
+                BallerinaModel.Expression.VariableReference result = generateActivityFlowFunctionInner(cx, activities,
                                 BallerinaModel.Expression.Check::new, body,
-                                new VariableReference("input"));
+                        new BallerinaModel.Expression.VariableReference("input"));
                 body.add(new Return<>(result));
                 return new BallerinaModel.Function(cx.getActivityRunnerFunction(),
-                                List.of(new BallerinaModel.Parameter("input", XML),
-                                                new BallerinaModel.Parameter("cx",
-                                                                new BallerinaModel.TypeDesc.MapTypeDesc(XML))),
+                        List.of(new BallerinaModel.Parameter(
+                                "cx",
+                                new BallerinaModel.TypeDesc.MapTypeDesc(XML))),
                                 Optional.of(BallerinaModel.TypeDesc.UnionTypeDesc.of(XML, ERROR).toString()), body);
         }
 
@@ -350,7 +360,7 @@ public class ProcessConverter {
                                 .toList();
 
                 if (predicates.isEmpty()) {
-                        VarDeclStatment result = activityFunctionCallResult(activity, varName, callHandler, input,
+                        VarDeclStatment result = activityFunctionCallResult(activity, varName, callHandler,
                                         context,
                                         analysisResult);
                         body.add(result);
@@ -365,11 +375,11 @@ public class ProcessConverter {
                                         BallerinaModel.Expression.BinaryLogical.Operator.OR);
                 }
                 BallerinaModel.IfElseStatement ifElse = new BallerinaModel.IfElseStatement(cond,
-                                List.of(new VarAssignStatement(result.ref(),
-                                                new BallerinaModel.Expression.Check(new FunctionCall(
-                                                                analysisResult.from(activity).functionName(),
-                                                                List.of(input, context))))),
-                                List.of(), List.of(new VarAssignStatement(result.ref(), input)));
+                        List.of(new VarAssignStatement(result.ref(),
+                                new BallerinaModel.Expression.Check(
+                                        activityFunctionCall(activity, context,
+                                                analysisResult)))),
+                        List.of(), List.of(new VarAssignStatement(result.ref(), input)));
                 body.add(ifElse);
                 return result;
         }
@@ -377,12 +387,18 @@ public class ProcessConverter {
         private static VarDeclStatment activityFunctionCallResult(
                         TibcoModel.Scope.Flow.Activity activity,
                         String varName,
-                        Function<FunctionCall, BallerinaModel.Expression> callHandler,
-                        VariableReference input,
-                        VariableReference context,
+                        Function<BallerinaModel.Expression.FunctionCall, BallerinaModel.Expression> callHandler,
+                        BallerinaModel.Expression.VariableReference context,
                         AnalysisResult analysisResult) {
-                FunctionCall callExpr = new FunctionCall(
-                                analysisResult.from(activity).functionName(), List.of(input, context));
+                BallerinaModel.Expression.FunctionCall callExpr = activityFunctionCall(activity, context,
+                        analysisResult);
                 return new VarDeclStatment(XML, varName, callHandler.apply(callExpr));
+        }
+
+        private static BallerinaModel.Expression.@NotNull FunctionCall activityFunctionCall(
+                TibcoModel.Scope.Flow.Activity activity, BallerinaModel.Expression.VariableReference context,
+                AnalysisResult analysisResult) {
+                return new BallerinaModel.Expression.FunctionCall(
+                        analysisResult.from(activity).functionName(), List.of(context));
         }
 }

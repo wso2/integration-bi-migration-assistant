@@ -371,6 +371,10 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     public record Parameter(String name, TypeDesc type, Optional<BallerinaExpression> defaultExpr) {
 
+        public Parameter(TypeDesc typeDesc, String name, BallerinaExpression defaultExpr) {
+            this(name, typeDesc, Optional.of(defaultExpr));
+        }
+
         public Parameter(String name, TypeDesc type) {
             this(name, type, Optional.empty());
         }
