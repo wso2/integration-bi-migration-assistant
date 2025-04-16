@@ -510,11 +510,6 @@ public class ProjectContext {
             for (Map.Entry<String, Optional<BallerinaModel.ModuleTypeDef>> entry : moduleTypeDefs.entrySet()) {
                 if (entry.getValue().isPresent()) {
                     typeDefs.add(entry.getValue().get());
-                } else if (!astNodes.containsKey(entry.getKey())) {
-                    logger.warning(
-                            String.format("Type definition not found for %s using `anydata` as fallback",
-                                    entry.getKey()));
-                    typeDefs.add(new BallerinaModel.ModuleTypeDef(entry.getKey(), ANYDATA));
                 }
             }
             List<ModuleMemberDeclarationNode> nodes = astNodes.entrySet().stream()

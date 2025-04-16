@@ -35,12 +35,16 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
+import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
+
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
@@ -51,7 +55,7 @@ public class ProcessConverter {
         private ProcessConverter() {
         }
 
-        static BallerinaModel.Module convertProject(
+        static ConversionResult convertProject(
                         TibcoToBalConverter.ProjectConversionContext conversionContext,
                         Collection<TibcoModel.Process> processes,
                         Collection<TibcoModel.Type.Schema> types,
@@ -64,16 +68,29 @@ public class ProcessConverter {
                 record ProcessResult(TibcoModel.Process process, TypeConversionResult result) {
 
                 }
+                // FIXME: this should ignore schemas
                 List<ProcessResult> results = processes.stream().map(process -> new ProcessResult(process,
                                 convertTypes(cx.getProcessContext(process), process))).toList();
-                convertTypes(cx, types);
+                List<TibcoModel.Type.Schema> schemas = new ArrayList<>(types);
+                for (var each : processes) {
+                        accumSchemas(each, schemas);
+                }
+                SyntaxTree typeSyntaxTree = convertTypes(cx, schemas);
                 // We need to ensure all the type definitions have been processed before we
                 // start processing the functions
                 List<BallerinaModel.TextDocument> textDocuments = results.stream().map(result -> {
                         TibcoModel.Process process = result.process();
                         return convertBody(cx.getProcessContext(process), process, result.result());
                 }).toList();
-                return cx.serialize(textDocuments);
+                return new ConversionResult(cx.serialize(textDocuments), typeSyntaxTree);
+        }
+
+        private static void accumSchemas(TibcoModel.Process process, Collection<TibcoModel.Type.Schema> accum) {
+                for (var each : process.types()) {
+                        if (each instanceof TibcoModel.Type.Schema schema) {
+                                accum.add(schema);
+                        }
+                }
         }
 
         private static void convertResources(ProjectContext cx,
@@ -91,9 +108,9 @@ public class ProcessConverter {
                 }
         }
 
-        static void convertTypes(ProjectContext cx, Collection<TibcoModel.Type.Schema> schemas) {
+        static SyntaxTree convertTypes(ProjectContext cx, Collection<TibcoModel.Type.Schema> schemas) {
                 ContextWithFile typeContext = cx.getTypeContext();
-                TypeConverter.convertSchemas(typeContext, schemas);
+                return TypeConverter.convertSchemas(typeContext, schemas);
         }
 
         static BallerinaModel.Module convertProcess(TibcoModel.Process process) {
@@ -182,15 +199,11 @@ public class ProcessConverter {
 
         private static TypeConversionResult convertTypes(ProcessContext cx, TibcoModel.Process process) {
                 List<BallerinaModel.Service> services = new ArrayList<>();
-                Collection<TibcoModel.Type.Schema> schemas = new ArrayList<>();
                 for (TibcoModel.Type type : process.types()) {
-                        switch (type) {
-                                case TibcoModel.Type.Schema schema -> schemas.add(schema);
-                                case TibcoModel.Type.WSDLDefinition wsdlDefinition ->
-                                        services.addAll(TypeConverter.convertWsdlDefinition(cx, wsdlDefinition));
+                        if (Objects.requireNonNull(type) instanceof TibcoModel.Type.WSDLDefinition wsdlDefinition) {
+                                services.addAll(TypeConverter.convertWsdlDefinition(cx, wsdlDefinition));
                         }
                 }
-                TypeConverter.convertSchemas(cx, schemas);
                 return new TypeConversionResult(services);
         }
 
@@ -205,23 +218,23 @@ public class ProcessConverter {
                 String inputVariable = "input";
                 String params = "params";
                 BallerinaModel.Expression.VariableReference inputVar = new BallerinaModel.Expression.VariableReference(
-                        inputVariable);
+                                inputVariable);
                 String inputXML = "inputXML";
                 VarDeclStatment inputXMLVar = new VarDeclStatment(XML, inputXML,
-                        new BallerinaModel.Expression.TernaryExpression(
-                                new BallerinaModel.Expression.TypeCheckExpression(
-                                        inputVar,
-                                        new BallerinaModel.TypeDesc.MapTypeDesc(ANYDATA)),
-                                new BallerinaModel.Expression.CheckPanic(
-                                        new BallerinaModel.Expression.FunctionCall(
-                                                cx.getToXmlFunction(),
-                                                List.of(inputVar))),
-                                new BallerinaModel.Expression.XMLTemplate("")));
+                                new BallerinaModel.Expression.TernaryExpression(
+                                                new BallerinaModel.Expression.TypeCheckExpression(
+                                                                inputVar,
+                                                                new BallerinaModel.TypeDesc.MapTypeDesc(ANYDATA)),
+                                                new BallerinaModel.Expression.CheckPanic(
+                                                                new BallerinaModel.Expression.FunctionCall(
+                                                                                cx.getToXmlFunction(),
+                                                                                List.of(inputVar))),
+                                                new BallerinaModel.Expression.XMLTemplate("")));
                 body.add(inputXMLVar);
 
                 String processFunction = cx.getProcessFunction();
                 VarDeclStatment xmlResult = new VarDeclStatment(XML, "xmlResult",
-                        new FunctionCall(processFunction, new String[]{inputXML, params}));
+                                new FunctionCall(processFunction, new String[] { inputXML, params }));
                 body.add(xmlResult);
 
                 BallerinaModel.TypeDesc returnType = startFuncData.returnType();
@@ -239,11 +252,11 @@ public class ProcessConverter {
                         inputType = JSON;
                 }
                 return new BallerinaModel.Function(startFuncData.name(),
-                        List.of(new BallerinaModel.Parameter(inputType, inputVariable,
-                                        new BallerinaModel.BallerinaExpression("()")),
-                                new BallerinaModel.Parameter(
-                                        new BallerinaModel.TypeDesc.MapTypeDesc(XML), params,
-                                        new BallerinaModel.BallerinaExpression("{}"))),
+                                List.of(new BallerinaModel.Parameter(inputType, inputVariable,
+                                                new BallerinaModel.BallerinaExpression("()")),
+                                                new BallerinaModel.Parameter(
+                                                                new BallerinaModel.TypeDesc.MapTypeDesc(XML), params,
+                                                                new BallerinaModel.BallerinaExpression("{}"))),
 
                                 Optional.of(returnType.toString()),
                                 body);
@@ -266,16 +279,16 @@ public class ProcessConverter {
                 VarDeclStatment result = new VarDeclStatment(
                                 BallerinaModel.TypeDesc.UnionTypeDesc.of(XML, ERROR), "result",
                                 new FunctionCall(cx.getActivityRunnerFunction(),
-                                        List.of(context.ref())));
+                                                List.of(context.ref())));
                 body.add(result);
                 handleErrorResult(cx, result, context, body);
                 body.add(new Return<>(result.ref()));
                 return new BallerinaModel.Function(name,
-                        List.of(new BallerinaModel.Parameter(inputVarName, XML),
-                                new BallerinaModel.Parameter(
-                                        paramsVarName,
-                                        new BallerinaModel.TypeDesc.MapTypeDesc(XML))),
-                        Optional.of(XML.toString()),
+                                List.of(new BallerinaModel.Parameter(inputVarName, XML),
+                                                new BallerinaModel.Parameter(
+                                                                paramsVarName,
+                                                                new BallerinaModel.TypeDesc.MapTypeDesc(XML))),
+                                Optional.of(XML.toString()),
                                 body);
         }
 
@@ -298,12 +311,12 @@ public class ProcessConverter {
                 List<BallerinaModel.Statement> body = new ArrayList<>();
                 BallerinaModel.Expression.VariableReference result = generateActivityFlowFunctionInner(cx, activities,
                                 BallerinaModel.Expression.Check::new, body,
-                        new BallerinaModel.Expression.VariableReference("input"));
+                                new BallerinaModel.Expression.VariableReference("input"));
                 body.add(new Return<>(result));
                 return new BallerinaModel.Function(cx.getActivityRunnerFunction(),
-                        List.of(new BallerinaModel.Parameter(
-                                "cx",
-                                new BallerinaModel.TypeDesc.MapTypeDesc(XML))),
+                                List.of(new BallerinaModel.Parameter(
+                                                "cx",
+                                                new BallerinaModel.TypeDesc.MapTypeDesc(XML))),
                                 Optional.of(BallerinaModel.TypeDesc.UnionTypeDesc.of(XML, ERROR).toString()), body);
         }
 
@@ -390,11 +403,11 @@ public class ProcessConverter {
                                         BallerinaModel.Expression.BinaryLogical.Operator.OR);
                 }
                 BallerinaModel.IfElseStatement ifElse = new BallerinaModel.IfElseStatement(cond,
-                        List.of(new VarAssignStatement(result.ref(),
-                                new BallerinaModel.Expression.Check(
-                                        activityFunctionCall(activity, context,
-                                                analysisResult)))),
-                        List.of(), List.of(new VarAssignStatement(result.ref(), input)));
+                                List.of(new VarAssignStatement(result.ref(),
+                                                new BallerinaModel.Expression.Check(
+                                                                activityFunctionCall(activity, context,
+                                                                                analysisResult)))),
+                                List.of(), List.of(new VarAssignStatement(result.ref(), input)));
                 body.add(ifElse);
                 return result;
         }
@@ -406,14 +419,14 @@ public class ProcessConverter {
                         BallerinaModel.Expression.VariableReference context,
                         AnalysisResult analysisResult) {
                 BallerinaModel.Expression.FunctionCall callExpr = activityFunctionCall(activity, context,
-                        analysisResult);
+                                analysisResult);
                 return new VarDeclStatment(XML, varName, callHandler.apply(callExpr));
         }
 
         private static BallerinaModel.Expression.@NotNull FunctionCall activityFunctionCall(
-                TibcoModel.Scope.Flow.Activity activity, BallerinaModel.Expression.VariableReference context,
-                AnalysisResult analysisResult) {
+                        TibcoModel.Scope.Flow.Activity activity, BallerinaModel.Expression.VariableReference context,
+                        AnalysisResult analysisResult) {
                 return new BallerinaModel.Expression.FunctionCall(
-                        analysisResult.from(activity).functionName(), List.of(context));
+                                analysisResult.from(activity).functionName(), List.of(context));
         }
 }

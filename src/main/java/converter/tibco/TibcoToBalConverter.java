@@ -62,7 +62,7 @@ public class TibcoToBalConverter {
         return new CodeGenerator(ballerinaModel).generateBalCode();
     }
 
-    public static BallerinaModel.Module convertProject(ProjectConversionContext cx, String projectPath) {
+    public static ConversionResult convertProject(ProjectConversionContext cx, String projectPath) {
         Set<TibcoModel.Process> processes;
         Set<TibcoModel.Type.Schema> types;
         Set<TibcoModel.Resource.JDBCResource> jdbcResources;
