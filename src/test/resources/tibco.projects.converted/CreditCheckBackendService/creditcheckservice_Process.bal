@@ -11,8 +11,8 @@ service /CreditScore on creditcheckservice_Process_listener {
 }
 
 service / on creditcheckservice_Process_listener {
-    resource function get creditscore(httpHeaders input) returns Response|http:NotFound|http:InternalServerError {
-        return creditcheckservice_Process_start(input);
+    resource function get creditscore() returns Response|http:NotFound|http:InternalServerError {
+        return creditcheckservice_Process_start();
     }
 }
 
@@ -41,8 +41,8 @@ function activityRunner_creditcheckservice_Process(map<xml> cx) returns xml|erro
     return result2;
 }
 
-function creditcheckservice_Process_start(httpHeaders input, map<xml> params = {}) returns Response {
-    xml inputXML = checkpanic toXML(input);
+function creditcheckservice_Process_start(httpHeaders input = (), map<xml> params = {}) returns Response {
+    xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
     xml xmlResult = process_creditcheckservice_Process(inputXML, params);
     Response result = convertToResponse(xmlResult);
     return result;

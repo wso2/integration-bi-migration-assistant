@@ -36,9 +36,9 @@ class TypeConverter {
             }
             Response result = generateNodes(content);
             cx.addTypeDefAsIntrinsic(result.types());
-        } catch (Exception e) {
+        } catch (Exception ignored) {
             // TODO: Handle schema conversion failure
-            String allSchemas = String.join(",\n", content);
+            // String allSchemas = String.join(",\n", content);
             // throw new RuntimeException("Failed to convert types:\n" + allSchemas + "\n" +
             // e.getMessage());
         }
@@ -129,8 +129,11 @@ class TypeConverter {
         String path = resourcePath.path;
         ParamInitResult params = initParams(resourceMethodName, resourcePath);
         List<BallerinaModel.Statement> body = new ArrayList<>(params.initStatements());
-        BallerinaModel.TypeDesc inputType = cx.getTypeByName(messageTypes.get(operation.input().message().value()));
-        List<BallerinaModel.Parameter> parameters = List.of(new BallerinaModel.Parameter("input", inputType));
+        Optional<BallerinaModel.TypeDesc> inputType = resourceMethodName.equals("get") ? Optional.empty()
+                : Optional.of(cx.getTypeByName(messageTypes.get(operation.input().message().value())));
+        List<BallerinaModel.Parameter> parameters = inputType
+                .map(typeDesc -> List.of(new BallerinaModel.Parameter("input", typeDesc)))
+                .orElseGet(List::of);
         List<BallerinaModel.TypeDesc> returnTypeMembers = Stream.concat(
                 Stream.of(operation.output().message()),
                 operation.faults().stream().map(
@@ -140,8 +143,8 @@ class TypeConverter {
                 ? returnTypeMembers.getFirst()
                 : new BallerinaModel.TypeDesc.UnionTypeDesc(returnTypeMembers);
         var startFunction = cx.getProcessStartFunction();
-        List<String> args = params.paramName().isPresent() ? List.of("input", params.paramName().get())
-                : List.of("input");
+        List<String> args = Stream.concat(parameters.stream().map(BallerinaModel.Parameter::name),
+                params.paramName().stream()).toList();
         body.add(new Return<>(Optional.of(
                 new BallerinaModel.Expression.FunctionCall(startFunction.name(), args.toArray(String[]::new)))));
         return new BallerinaModel.Resource(resourceMethodName, path, parameters, Optional.of(returnType.toString()),

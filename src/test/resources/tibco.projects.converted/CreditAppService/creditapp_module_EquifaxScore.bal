@@ -51,8 +51,8 @@ function activityRunner_creditapp_module_EquifaxScore(map<xml> cx) returns xml|e
     return result2;
 }
 
-function creditapp_module_EquifaxScore_start(GiveNewSchemaNameHere input, map<xml> params = {}) returns SuccessSchema {
-    xml inputXML = checkpanic toXML(input);
+function creditapp_module_EquifaxScore_start(GiveNewSchemaNameHere input = (), map<xml> params = {}) returns SuccessSchema {
+    xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
     xml xmlResult = process_creditapp_module_EquifaxScore(inputXML, params);
     SuccessSchema result = convertToSuccessSchema(xmlResult);
     return result;

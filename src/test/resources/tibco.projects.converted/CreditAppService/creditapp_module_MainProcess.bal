@@ -16,8 +16,8 @@ function activityRunner_creditapp_module_MainProcess(map<xml> cx) returns xml|er
     return result2;
 }
 
-function creditapp_module_MainProcess_start(GiveNewSchemaNameHere input, map<xml> params = {}) returns CreditScoreSuccessSchema {
-    xml inputXML = checkpanic toXML(input);
+function creditapp_module_MainProcess_start(GiveNewSchemaNameHere input = (), map<xml> params = {}) returns CreditScoreSuccessSchema {
+    xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
     xml xmlResult = process_creditapp_module_MainProcess(inputXML, params);
     CreditScoreSuccessSchema result = convertToCreditScoreSuccessSchema(xmlResult);
     return result;
