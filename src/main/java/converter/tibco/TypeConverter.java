@@ -131,9 +131,7 @@ class TypeConverter {
         List<BallerinaModel.Statement> body = new ArrayList<>(params.initStatements());
         Optional<BallerinaModel.TypeDesc> inputType = resourceMethodName.equals("get") ? Optional.empty()
                 : Optional.of(cx.getTypeByName(messageTypes.get(operation.input().message().value())));
-        List<BallerinaModel.Parameter> parameters = inputType
-                .map(typeDesc -> List.of(new BallerinaModel.Parameter("input", typeDesc)))
-                .orElseGet(List::of);
+        Optional<BallerinaModel.Parameter> parameter = inputType.map(ty -> new BallerinaModel.Parameter("input", ty));
         List<BallerinaModel.TypeDesc> returnTypeMembers = Stream.concat(
                 Stream.of(operation.output().message()),
                 operation.faults().stream().map(
@@ -143,12 +141,14 @@ class TypeConverter {
                 ? returnTypeMembers.getFirst()
                 : new BallerinaModel.TypeDesc.UnionTypeDesc(returnTypeMembers);
         var startFunction = cx.getProcessStartFunction();
-        List<String> args = Stream.concat(parameters.stream().map(BallerinaModel.Parameter::name),
-                params.paramName().stream()).toList();
+        List<String> args = Stream
+                .concat(parameter.map(BallerinaModel.Parameter::name).or("()"::describeConstable).stream(),
+                        params.paramName().stream())
+                .toList();
         body.add(new Return<>(Optional.of(
                 new BallerinaModel.Expression.FunctionCall(startFunction.name(), args.toArray(String[]::new)))));
-        return new BallerinaModel.Resource(resourceMethodName, path, parameters, Optional.of(returnType.toString()),
-                body);
+        return new BallerinaModel.Resource(resourceMethodName, path, parameter.stream().toList(),
+                Optional.of(returnType.toString()), body);
     }
 
     private record ParamInitResult(Optional<String> paramName, List<BallerinaModel.Statement> initStatements) {

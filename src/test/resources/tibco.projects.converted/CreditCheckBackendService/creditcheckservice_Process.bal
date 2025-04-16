@@ -12,7 +12,7 @@ service /CreditScore on creditcheckservice_Process_listener {
 
 service / on creditcheckservice_Process_listener {
     resource function get creditscore() returns Response|http:NotFound|http:InternalServerError {
-        return creditcheckservice_Process_start();
+        return creditcheckservice_Process_start(());
     }
 }
 
