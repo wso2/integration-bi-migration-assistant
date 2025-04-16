@@ -45,7 +45,8 @@ public enum MuleXMLTag {
     // HTTP Module
     HTTP_LISTENER("http:listener", 5),
     HTTP_REQUEST("http:request", 4),
-    HTTP_QUERY_PARAMS("http:query-params", 2),
+    HTTP_REQEUST_BUILDER("http:request-builder", 3),
+    HTTP_QUERY_PARAM("http:query-param", 2),
 
     // VM connector
     VM_INBOUND_ENDPOINT("vm:inbound-endpoint", 5),

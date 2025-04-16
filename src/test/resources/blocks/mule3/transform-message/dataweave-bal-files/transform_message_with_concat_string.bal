@@ -8,4 +8,5 @@ function _dwMethod0_() returns json {
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod0_();
+    ctx.payload = _dwOutput_;
 }

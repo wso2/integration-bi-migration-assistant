@@ -47,6 +47,7 @@ public class Constants {
 
     // Types
     public static final String HTTP_RESPONSE_TYPE = "http:Response";
+    public static final String HTTP_REQUEST_TYPE = "http:Request";
     public static final String HTTP_RESOURCE_RETURN_TYPE_DEFAULT = HTTP_RESPONSE_TYPE + "|error";
     public static final String MYSQL_CLIENT_TYPE = "mysql:Client";
     public static final String HTTP_RESOURCE_RETURN_TYPE_UPPER = "anydata|http:Response|http:StatusCodeResponse|" +

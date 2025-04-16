@@ -1,10 +1,12 @@
 package converter;
 
+import io.ballerina.compiler.syntax.tree.SyntaxInfo;
 import org.w3c.dom.Element;
 
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +24,8 @@ import static ballerina.BallerinaModel.BallerinaExpression;
 import static ballerina.BallerinaModel.RecordField;
 import static ballerina.BallerinaModel.RecordType;
 import static ballerina.BallerinaModel.BallerinaStatement;
+import static ballerina.BallerinaModel.ModuleTypeDef;
+import static converter.MELConverter.convertMELToBal;
 
 public class ConversionUtils {
 
@@ -34,14 +38,20 @@ public class ConversionUtils {
      * @param path mule path
      * @return ballerina resource path
      */
-    static String getBallerinaResourcePath(String path) {
+    static String getBallerinaResourcePath(String path, List<String> pathParams) {
         List<String> list = Arrays.stream(path.split("/")).filter(s -> !s.isEmpty())
                 .map(s -> {
                     if (s.startsWith("{") && s.endsWith("}")) {
                         // We come here for mule path params. e.g. foo/{bar}/baz
                         String pathParamName = s.substring(1, s.length() - 1);
                         pathParamName = escapeSpecialCharacters(pathParamName);
+                        pathParams.add(pathParamName);
                         return "[string " + pathParamName + "]";
+                    }
+                    if (s.startsWith("#[") && s.endsWith("]")) {
+                        // Handle MEL in url. e.g. /users/#[flowVars.userId]
+                        String balExpr = convertMELToBal(s, false);
+                        return "[" + balExpr + "]";
                     }
                     return escapeSpecialCharacters(s);
                 }).toList();
@@ -70,7 +80,17 @@ public class ConversionUtils {
      */
     static String getBallerinaClientResourcePath(String basePath) {
         List<String> list = Arrays.stream(basePath.split("/")).filter(s -> !s.isEmpty())
-                .map(s -> isInt(s) ? "[" + s + "]" : ConversionUtils.escapeSpecialCharacters(s)).toList();
+                .map(s -> {
+                    if (isInt(s)) {
+                        return "[" + s + "]";
+                    }
+                    if (s.startsWith("#[") && s.endsWith("]")) {
+                        // Handle MEL in url. e.g. /users/#[flowVars.userId]
+                        String balExpr = convertMELToBal(s, false);
+                        return "[" + balExpr + "]";
+                    }
+                    return ConversionUtils.escapeSpecialCharacters(s);
+                }).toList();
         return list.isEmpty() ? "/" : "/" + String.join("/", list);
     }
 
@@ -154,7 +174,15 @@ public class ConversionUtils {
     }
 
     static String genQueryParam(Map<String, String> queryParams) {
-        return queryParams.entrySet().stream().map(e -> String.format("%s = \"%s\"", e.getKey(), e.getValue()))
+        return queryParams.entrySet().stream().map(e -> {
+                    String k = e.getKey();
+                    String key = SyntaxInfo.isKeyword(k) ? "'" + k : k;
+                    String balExpr = convertMuleExprToBal(e.getValue());
+                    if (balExpr.startsWith("ctx.")) {
+                        balExpr = "check " + balExpr + ".ensureType(http:QueryParamType)";
+                    }
+                    return String.format("%s = %s", key, balExpr);
+                })
                 .reduce((a, b) -> a + ", " + b).orElse("");
     }
 
@@ -180,29 +208,12 @@ public class ConversionUtils {
         while (matcher.find()) {
             hasMELParts = true;
             String matchedExpression = matcher.group(0);
-            String replacement = "\\${" + convertMELToBal(matchedExpression, true) + "}";
+            String replacement = "\\${" + convertMELToBal(matchedExpression, addToStringCalls) + "}";
             matcher.appendReplacement(result, replacement);
         }
         matcher.appendTail(result);
 
         return hasMELParts ? String.format("string `%s`", result) : "\"" + melExpression.replace("\"", "\\\"") + "\"";
-    }
-
-    private static String convertMELToBal(String melExpression, boolean addToStringCalls) {
-        // Remove #[] wrapper from the MEL expression
-        String result = melExpression.substring(2, melExpression.length() - 1);
-
-        // Replace string literals: 'xxx' --> "xxx"
-        result = result.replaceAll("'(.*?)'", "\"$1\"");
-
-        // Replace payload: payload --> ctx.payload
-        result = result.replaceAll("\\b(payload)\\b", addToStringCalls ? "ctx.$1.toString()" : "ctx.$1");
-
-        // Replace variable references: flowVars.foo --> ctx.flowVars.foo / ctx.flowVars.foo.toString()
-        result = result.replaceAll("\\b(flowVars|sessionVars|message|recordVars)(\\.\\w+)\\b",
-                addToStringCalls ? "ctx.$1$2.toString()" : "ctx.$1$2");
-
-        return result;
     }
 
     public static String inferTypeFromBalExpr(String balExpr) {
@@ -216,6 +227,10 @@ public class ConversionUtils {
             return "int";
         } else if (balExpr.matches("-?\\d+\\.\\d+")) {
             return "decimal";
+        } else if (balExpr.startsWith("ctx.inboundProperties.request.getQueryParamValue")) {
+            return "string";
+        } else if (balExpr.startsWith("ctx.inboundProperties.uriParams")) {
+            return "string";
         } else {
             return "anydata";
         }
@@ -247,34 +262,39 @@ public class ConversionUtils {
         return sb.toString();
     }
 
-    public static String getRecordInitValue(RecordType recordType) {
+    public static String getRecordInitValue(HashMap<String, ModuleTypeDef> contextTypeDefMap,
+                                            RecordType recordType) {
         List<String> requiredFields = new ArrayList<>();
         for (RecordField recordField : recordType.recordFields()) {
             if (!recordField.isOptional()) {
-                String value = getRequiredRecFieldDefaultValue(recordField);
-                requiredFields.add(String.format("%s : %s", recordField.name(), value));
+                String value = getRequiredRecFieldDefaultValue(contextTypeDefMap, recordField);
+                requiredFields.add(String.format("%s: %s", recordField.name(), value));
             }
         }
-        String recordBody = String.join(",", requiredFields);
-        return String.format("{ %s }", recordBody);
+        String recordBody = String.join(", ", requiredFields);
+        return String.format("{%s}", recordBody);
     }
 
-    private static String getRequiredRecFieldDefaultValue(RecordField recordField) {
+    private static String getRequiredRecFieldDefaultValue(HashMap<String, ModuleTypeDef> contextTypeDefMap,
+                                                          RecordField recordField) {
         assert !recordField.isOptional();
-        if (recordField.type().toString().equals("anydata")) {
-            return "()";
+        String typeStr = recordField.type().toString();
+        switch (typeStr) {
+            case "anydata" -> {
+                return "()";
+            }
+            case Constants.HTTP_RESPONSE_TYPE, Constants.HTTP_REQUEST_TYPE -> {
+                return "new";
+            }
+            case "map<string>" -> {
+                return "{}";
+            }
+            case Constants.INBOUND_PROPERTIES_TYPE, Constants.FLOW_VARS_TYPE, Constants.SESSION_VARS_TYPE -> {
+                ModuleTypeDef moduleTypeDef = contextTypeDefMap.get(typeStr);
+                return getRecordInitValue(contextTypeDefMap, (RecordType) moduleTypeDef.type());
+            }
+            default -> throw new IllegalStateException();
         }
-
-        if (recordField.type().toString().equals("FlowVars") || recordField.type().toString().equals("SessionVars")) {
-            return "{}";
-        }
-
-        if (recordField.type().toString().equals("InboundProperties")) {
-            // TODO: handle non-http sources
-            return "{response: new}";
-        }
-
-        throw new IllegalStateException();
     }
 
     public static BallerinaExpression exprFrom(String expr) {

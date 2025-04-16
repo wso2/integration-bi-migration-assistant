@@ -3,6 +3,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -16,21 +18,24 @@ service / on httpConfig {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
+    }
+}
+
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    do {
+        log:printInfo("xxx: end of flow reached");
+    } on fail error e {
+        catch\-exception\-strategy(ctx, e);
     }
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        do {
-            log:printInfo("xxx: end of flow reached");
-        } on fail error e {
-            catch\-exception\-strategy(ctx, e);
-        }
-        return ctx.inboundProperties.response;
-    }
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 public function catch\-exception\-strategy(Context ctx, error e) {
