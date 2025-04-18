@@ -28,7 +28,7 @@ function errorHandler_creditapp_module_MainProcess(error err, map<xml> cx) retur
 }
 
 function extActivity(map<xml> context) returns xml|error {
-    xml var0 = xml ``;
+    xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
     <xsl:param name="post.item"/>
@@ -63,7 +63,7 @@ function extActivity(map<xml> context) returns xml|error {
 }
 
 function extActivity_11(map<xml> context) returns xml|error {
-    xml var0 = xml ``;
+    xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://xmlns.example.com/Creditscore/parameters" xmlns:tns="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
     <xsl:param name="post.item"/>
@@ -98,7 +98,7 @@ function extActivity_11(map<xml> context) returns xml|error {
 }
 
 function pick(map<xml> context) returns xml|error {
-    return xml ``;
+    return xml `<root></root>`;
 }
 
 function process_creditapp_module_MainProcess(xml input, map<xml> params) returns xml {
@@ -112,7 +112,7 @@ function process_creditapp_module_MainProcess(xml input, map<xml> params) return
 }
 
 function reply(map<xml> context) returns xml|error {
-    xml var0 = xml ``;
+    xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://xmlns.example.com/20180827160122PLT" xmlns:tns="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" xmlns:tns2="http://tns.tibco.com/bw/json/1535671685533" version="2.0">
     <xsl:param name="EquifaxScore"/>

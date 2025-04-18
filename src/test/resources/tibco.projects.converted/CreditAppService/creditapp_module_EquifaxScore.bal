@@ -17,7 +17,7 @@ service / on creditapp_module_EquifaxScore_listener {
 }
 
 function activityExtension_6(map<xml> context) returns xml|error {
-    xml var0 = xml ``;
+    xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
     <xsl:param name="post.item"/>
@@ -63,7 +63,7 @@ function errorHandler_creditapp_module_EquifaxScore(error err, map<xml> cx) retu
 }
 
 function invoke(map<xml> context) returns xml|error {
-    xml var0 = xml ``;
+    xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com/20180827154353PLT" xmlns:tns1="http://tns.tibco.com/bw/REST" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0"><xsl:param name="Start"/><xsl:template name="post-input" match="/"><tns:postRequest1><item><tns3:GiveNewSchemaNameHere><xsl:if test="$Start/tns3:DOB"><tns3:DOB><xsl:value-of select="$Start/tns3:DOB"/></tns3:DOB></xsl:if><xsl:if test="$Start/tns3:FirstName"><tns3:FirstName><xsl:value-of select="$Start/tns3:FirstName"/></tns3:FirstName></xsl:if><xsl:if test="$Start/tns3:LastName"><tns3:LastName><xsl:value-of select="$Start/tns3:LastName"/></tns3:LastName></xsl:if><xsl:if test="$Start/tns3:SSN"><tns3:SSN><xsl:value-of select="$Start/tns3:SSN"/></tns3:SSN></xsl:if></tns3:GiveNewSchemaNameHere></item><httpHeaders><tns1:httpHeaders/></httpHeaders></tns:postRequest1></xsl:template></xsl:stylesheet>`), context);
     xml var2 = check xslt:transform(var1, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>

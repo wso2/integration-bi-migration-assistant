@@ -17,7 +17,7 @@ service / on creditcheckservice_Process_listener {
 }
 
 function activityExtension(map<xml> context) returns xml|error {
-    xml var0 = xml ``;
+    xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" version="2.0"><xsl:template name="LogSuccess-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'Invoation Successful'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`), context);
     LogParametersType var2 = convertToLogParametersType(var1);
@@ -26,7 +26,7 @@ function activityExtension(map<xml> context) returns xml|error {
 }
 
 function activityExtension_5(map<xml> context) returns xml|error {
-    xml var0 = xml ``;
+    xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" version="2.0"><xsl:template name="LogFailure-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'Invocation Failed'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`), context);
     LogParametersType var2 = convertToLogParametersType(var1);
@@ -56,7 +56,7 @@ function errorHandler_creditcheckservice_Process(error err, map<xml> cx) returns
 }
 
 function extActivity(map<xml> context) returns xml|error {
-    xml var0 = xml ``;
+    xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns2="/T1535753828744Converted/JsonSchema" xmlns:tns3="http://www.example.com/namespaces/tns/1535845694732" version="2.0">
     <xsl:param name="post.item"/>
@@ -74,11 +74,11 @@ function extActivity(map<xml> context) returns xml|error {
 }
 
 function faultHandler(map<xml> context) returns xml|error {
-    return xml ``;
+    return xml `<root></root>`;
 }
 
 function pick(map<xml> context) returns xml|error {
-    return xml ``;
+    return xml `<root></root>`;
 }
 
 function process_creditcheckservice_Process(xml input, map<xml> params) returns xml {
@@ -92,7 +92,7 @@ function process_creditcheckservice_Process(xml input, map<xml> params) returns 
 }
 
 function reply(map<xml> context) returns xml|error {
-    xml var0 = xml ``;
+    xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://xmlns.example.com/20180831151624PLT" xmlns:tns2="/T1535753828744Converted/JsonSchema" version="2.0">
     <xsl:param name="LookupDatabase"/>
@@ -123,7 +123,7 @@ function reply(map<xml> context) returns xml|error {
 }
 
 function reply_6(map<xml> context) returns xml|error {
-    xml var0 = xml ``;
+    xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://xmlns.example.com/20180831151624PLT" xmlns:tns="http://tns.tibco.com/bw/REST" version="2.0"><xsl:template name="Reply-input" match="/"><tns1:post4XXFaultMessage><clientError><tns:client4XXError><statusCode><xsl:value-of select="404"/></statusCode></tns:client4XXError></clientError></tns1:post4XXFaultMessage></xsl:template></xsl:stylesheet>`), context);
     xml var2 = check xslt:transform(var1, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>

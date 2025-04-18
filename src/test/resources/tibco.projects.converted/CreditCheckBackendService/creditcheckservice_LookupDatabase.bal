@@ -2,7 +2,7 @@ import ballerina/sql;
 import ballerina/xslt;
 
 function activityExtension_10(map<xml> context) returns xml|error {
-    xml var0 = xml ``;
+    xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://www.tibco.com/namespaces/tnt/plugins/jdbc+21902290-4882-46a2-8795-b85989c9d7c0+input" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tns1="http://www.example.com/namespaces/tns/1535845694732" version="2.0">
     <xsl:param name="Start"/>
@@ -28,7 +28,7 @@ function activityExtension_10(map<xml> context) returns xml|error {
 }
 
 function activityExtension_8(map<xml> context) returns xml|error {
-    xml var0 = xml ``;
+    xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns2="/T1535753828744Converted/JsonSchema" version="2.0">
     <xsl:param name="QueryRecords"/>
@@ -56,13 +56,13 @@ function activityExtension_8(map<xml> context) returns xml|error {
 }
 
 function activityExtension_9(map<xml> context) returns xml|error {
-    xml var0 = xml ``;
+    xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input" xmlns:tns1="http://www.example.com/namespaces/tns/1535845694732" version="2.0"><xsl:param name="Start"/><xsl:template name="JDBCQuery-input" match="/"><tns:jdbcQueryActivityInput><ssn><xsl:value-of select="$Start/tns1:ssn"/></ssn></tns:jdbcQueryActivityInput></xsl:template></xsl:stylesheet>`), context);
     QueryData0 data = convertToQueryData0(var1);
     sql:ParameterizedQuery var2 = `select * from public.creditscore where ssn like ${data.ssn}`;
     stream<QueryResult0, sql:ExecutionResult|()> var3 = creditcheckservice_JDBCConnectionResource->query(var2);
-    xml var4 = xml ``;
+    xml var4 = xml `<root></root>`;
     check from var each in var3
         do {
             var4 = var4 + each;
@@ -126,7 +126,7 @@ function receiveEvent(map<xml> context) returns xml|error {
 }
 
 function throw(map<xml> context) returns xml|error {
-    xml var0 = xml ``;
+    xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?><xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://schemas.tibco.com/bw/plugins/basic/6.0/Exceptions" version="2.0"><xsl:template name="Throw-input" match="/"><tns:DefaultFault/></xsl:template> </xsl:stylesheet>`), context);
     xml var2 = xml `<root>${var1}</root>`;
     error var3 = error("TODO: create error value");
