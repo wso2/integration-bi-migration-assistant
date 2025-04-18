@@ -20,6 +20,7 @@ package converter.tibco;
 
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import tibco.TibcoModel;
@@ -840,7 +841,7 @@ public final class XmlToTibcoModelConverter {
         if (element.getChildNodes().getLength() == 0) {
             return Optional.empty();
         }
-        Map<String, String> namespaces = new HashMap<>();
+        Map<String, String> namespaces = getNamespaces(element);
         Collection<TibcoModel.Type.WSDLDefinition.PartnerLinkType> partnerLinkTypes = new ArrayList<>();
         List<TibcoModel.NameSpace> imports = new ArrayList<>();
         List<TibcoModel.Type.WSDLDefinition.Message> messages = new ArrayList<>();
@@ -860,6 +861,23 @@ public final class XmlToTibcoModelConverter {
         }
         return Optional.of(
                 new TibcoModel.Type.WSDLDefinition(namespaces, partnerLinkTypes, imports, messages, portTypes));
+    }
+
+    private static Map<String, String> getNamespaces(Element element) {
+        Map<String, String> namespaces = new HashMap<>();
+        NamedNodeMap attributes = element.getAttributes();
+        for (int i = 0; i < attributes.getLength(); i++) {
+            Node attribute = attributes.item(i);
+            String name = attribute.getNodeName();
+            if (!name.startsWith("xmlns")) {
+                continue;
+            }
+            String nameSpace = name.split(":")[1];
+            String value = attribute.getNodeValue();
+            namespaces.put(nameSpace, value);
+        }
+
+        return Collections.unmodifiableMap(namespaces);
     }
 
     private static TibcoModel.Type.WSDLDefinition.PortType parsePortType(Element element) {
