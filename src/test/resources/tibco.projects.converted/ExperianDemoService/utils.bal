@@ -32,7 +32,7 @@ function transformXSLT(xml input) returns xml {
         if index == () {
             path = selectPath;
         } else {
-            path = selectPath.substring(0, index) + "/root" + selectPath.substring(index);
+            path = selectPath.substring(0, index) + "/" + selectPath.substring(index);
         }
         attributes["select"] = path;
     }
@@ -45,7 +45,7 @@ function transformXSLT(xml input) returns xml {
         if index == () {
             path = selectPath;
         } else {
-            path = selectPath.substring(0, index) + "/root" + selectPath.substring(index);
+            path = selectPath.substring(0, index) + "/" + selectPath.substring(index);
         }
         attributes["test"] = path;
     }

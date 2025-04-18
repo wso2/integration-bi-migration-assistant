@@ -119,7 +119,7 @@ public class MigrationTool {
             logger.log(Level.SEVERE, "Error adding project artifacts", e);
         }
         try {
-            writeASTToFile(targetDir, "types_gen.bal", result.types());
+            writeASTToFile(targetDir, "types.bal", result.types());
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Error creating types files", e);
         }

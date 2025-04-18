@@ -114,4 +114,9 @@ class ActivityContext {
     public String getConfigVarName(String name) {
         return processContext.getConfigVarName(name);
     }
+
+    public BallerinaModel.Expression.VariableReference getHttpClient(String path) {
+        return processContext.getHttpClient(path);
+    }
+
 }

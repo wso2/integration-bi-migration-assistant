@@ -78,7 +78,7 @@ function creditapp_module_ExperianScore_start(GiveNewSchemaNameHere input, map<x
 }
 
 function errorHandler_creditapp_module_ExperianScore(error err, map<xml> cx) returns xml {
-    checkpanic err;
+    panic err;
 }
 
 function process_creditapp_module_ExperianScore(xml input, map<xml> params) returns xml {

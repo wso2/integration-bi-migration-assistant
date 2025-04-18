@@ -75,7 +75,7 @@ function activityRunner_loggingservice_LogProcess(map<xml> cx) returns xml|error
 }
 
 function errorHandler_loggingservice_LogProcess(error err, map<xml> cx) returns xml {
-    checkpanic err;
+    panic err;
 }
 
 function loggingservice_LogProcess_start(LogMessage input, map<xml> params = {}) returns result {

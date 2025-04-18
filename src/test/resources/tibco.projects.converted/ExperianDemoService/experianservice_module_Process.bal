@@ -62,7 +62,7 @@ function activityRunner_experianservice_module_Process(map<xml> cx) returns xml|
 }
 
 function errorHandler_experianservice_module_Process(error err, map<xml> cx) returns xml {
-    checkpanic err;
+    panic err;
 }
 
 function experianservice_module_Process_start(InputElement input, map<xml> params = {}) returns ExperianResponseSchemaElement {

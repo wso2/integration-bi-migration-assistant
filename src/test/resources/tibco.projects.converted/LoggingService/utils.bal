@@ -26,21 +26,23 @@ function addToContext(map<xml> context, string varName, xml value) {
 }
 
 function logWrapper(LogParametersType input) {
-    match (input) {
-        {message: var m, logLevel: "info"} => {
-            log:printInfo(m.toString());
-        }
-        {message: var m, logLevel: "debug"} => {
-            log:printDebug(m.toString());
-        }
-        {message: var m, logLevel: "warn"} => {
-            log:printWarn(m.toString());
-        }
-        {message: var m, logLevel: "error"} => {
-            log:printError(m.toString());
-        }
-        {message: var m} => {
-            log:printInfo(m.toString());
+    foreach var body in input {
+        match (body) {
+            {message: var m, logLevel: "info"} => {
+                log:printInfo(m);
+            }
+            {message: var m, logLevel: "debug"} => {
+                log:printDebug(m);
+            }
+            {message: var m, logLevel: "warn"} => {
+                log:printWarn(m);
+            }
+            {message: var m, logLevel: "error"} => {
+                log:printError(m);
+            }
+            {message: var m} => {
+                log:printInfo(m);
+            }
         }
     }
 }
@@ -56,7 +58,7 @@ function transformXSLT(xml input) returns xml {
         if index == () {
             path = selectPath;
         } else {
-            path = selectPath.substring(0, index) + "/root" + selectPath.substring(index);
+            path = selectPath.substring(0, index) + "/" + selectPath.substring(index);
         }
         attributes["select"] = path;
     }
@@ -69,7 +71,7 @@ function transformXSLT(xml input) returns xml {
         if index == () {
             path = selectPath;
         } else {
-            path = selectPath.substring(0, index) + "/root" + selectPath.substring(index);
+            path = selectPath.substring(0, index) + "/" + selectPath.substring(index);
         }
         attributes["test"] = path;
     }

@@ -24,7 +24,7 @@ function creditapp_module_MainProcess_start(GiveNewSchemaNameHere input, map<xml
 }
 
 function errorHandler_creditapp_module_MainProcess(error err, map<xml> cx) returns xml {
-    checkpanic err;
+    panic err;
 }
 
 function extActivity(map<xml> context) returns xml|error {

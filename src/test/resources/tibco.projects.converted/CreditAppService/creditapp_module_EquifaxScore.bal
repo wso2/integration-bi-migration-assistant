@@ -59,7 +59,7 @@ function creditapp_module_EquifaxScore_start(GiveNewSchemaNameHere input, map<xm
 }
 
 function errorHandler_creditapp_module_EquifaxScore(error err, map<xml> cx) returns xml {
-    checkpanic err;
+    panic err;
 }
 
 function invoke(map<xml> context) returns xml|error {
@@ -101,7 +101,7 @@ function invoke(map<xml> context) returns xml|error {
     </xsl:template>
 </xsl:stylesheet>`), context);
     xml var4 = xml `<root>${var2 + var3}</root>`;
-    json var5 = check handleInvoke("/", "/creditscore", "post", var4);
+    json var5 = check httpClient0->post("/creditscore", var4);
     xml var6 = check fromJson(var5);
     addToContext(context, "post", var6);
     return var6;

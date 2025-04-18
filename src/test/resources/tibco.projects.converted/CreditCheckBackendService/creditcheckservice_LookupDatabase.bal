@@ -99,7 +99,7 @@ function creditcheckservice_LookupDatabase_start(Element input, map<xml> params 
 }
 
 function errorHandler_creditcheckservice_LookupDatabase(error err, map<xml> cx) returns xml {
-    checkpanic err;
+    panic err;
 }
 
 function predicate_0(xml input) returns boolean {

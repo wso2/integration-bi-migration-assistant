@@ -79,6 +79,7 @@ public class ProjectContext {
     private static final Logger logger = Logger.getLogger(ProjectContext.class.getName());
     private final Optional<TibcoToBalConverter.ProjectConversionContext> conversionContext;
     private final Map<String, String> generatedResources = new HashMap<>();
+    private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
 
     public ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext) {
         this.conversionContext = Optional.of(conversionContext);
@@ -195,12 +196,6 @@ public class ProjectContext {
         utilityIntrinsics.add(Intrinsics.CREATE_HTTP_REQUEST_PATH_FROM_CONFIG);
         importLibraryIfNeededToUtility(HTTP);
         return Intrinsics.HTTP_CALL.name;
-    }
-
-    public String getHttpInvokeFunction() {
-        importLibraryIfNeededToUtility(HTTP);
-        utilityIntrinsics.add(Intrinsics.HANDLE_INVOKE);
-        return Intrinsics.HANDLE_INVOKE.name;
     }
 
     private void importLibraryIfNeededToUtility(Library library) {
@@ -348,6 +343,20 @@ public class ProjectContext {
     public void addConfigurableVariable(String name, String source) {
         BallerinaModel.ModuleVar var = BallerinaModel.ModuleVar.configurable(source, STRING);
         utilityVars.put(name, var);
+    }
+
+    public BallerinaModel.Expression.VariableReference getHttpClient(String path) {
+        if (httpClients.containsKey(path)) {
+            return httpClients.get(path);
+        }
+        importLibraryIfNeededToUtility(HTTP);
+        String clientName = "httpClient" + httpClients.size();
+        BallerinaModel.ModuleVar client = new BallerinaModel.ModuleVar(clientName, "http:Client",
+                new BallerinaModel.BallerinaExpression("checkpanic new (\"%s\")".formatted(path)));
+        utilityVars.put(clientName, client);
+        var ref = new BallerinaModel.Expression.VariableReference(clientName);
+        httpClients.put(path, ref);
+        return ref;
     }
 
     public BallerinaModel.Expression.VariableReference getConfigurableVariable(String name) {

@@ -287,7 +287,8 @@ public final class XmlToTibcoModelConverter {
             }
         }
 
-        return new TibcoModel.Scope.Flow.Activity.UnhandledActivity(reason, ConversionUtils.elementToString(element),
+        return new TibcoModel.Scope.Flow.Activity.UnhandledActivity(" FIXME: " + reason,
+                ConversionUtils.elementToString(element),
                 sources, targets);
     }
 

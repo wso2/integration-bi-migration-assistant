@@ -370,17 +370,16 @@ class ActivityConverter {
 
                 AnalysisResult ar = cx.processContext.analysisResult;
                 TibcoModel.PartnerLink.Binding binding = ar.getBinding(invoke.partnerLink());
-                String invokeHandler = cx.processContext.projectContext.getHttpInvokeFunction();
-                BallerinaModel.Expression.FunctionCall invokeCall = new BallerinaModel.Expression.FunctionCall(
-                                invokeHandler,
-                                List.of(new BallerinaModel.Expression.StringConstant(binding.path().basePath()),
-                                                new BallerinaModel.Expression.StringConstant(binding.path().path()),
-                                                new BallerinaModel.Expression.StringConstant(
-                                                                binding.operation().method().method),
-                                                input));
+            String path = binding.path().basePath();
+            BallerinaModel.Expression.VariableReference client = cx.getHttpClient(path);
+
                 VarDeclStatment callResult = new VarDeclStatment(JSON,
                                 cx.getAnnonVarName(),
-                                new BallerinaModel.Expression.Check(invokeCall));
+                        new BallerinaModel.Expression.Check(
+                                new BallerinaModel.Action.RemoteMethodCallAction(client,
+                                        binding.operation().method().method,
+                                        List.of(new BallerinaModel.Expression.StringConstant(
+                                                binding.path().path()), input))));
                 body.add(callResult);
 
                 String jsonToXMLFunction = cx.processContext.getJsonToXMLFunction();

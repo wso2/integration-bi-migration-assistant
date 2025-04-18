@@ -166,12 +166,12 @@ public class ProcessContext implements ContextWithFile {
 
     ProjectContext.FunctionData getProcessStartFunction() {
 
-        if (getProcessInputType() == ANYDATA || getProcessOutputType() == ANYDATA) {
-            logger.warning(String.format(
-                    "Can't determine input/output type for process start function %s, " +
-                            "maybe failed to handle start activity?",
-                    getProcessStartFunctionName()));
-        }
+//        if (getProcessInputType() == ANYDATA || getProcessOutputType() == ANYDATA) {
+//            logger.warning(String.format(
+//                    "Can't determine input/output type for process start function %s, " +
+//                            "maybe failed to handle start activity?",
+//                    getProcessStartFunctionName()));
+//        }
         return new ProjectContext.FunctionData(getProcessStartFunctionName(), getProcessInputType(),
                 getProcessOutputType());
     }
@@ -278,5 +278,9 @@ public class ProcessContext implements ContextWithFile {
 
     public String getConfigVarName(String varName) {
         return projectContext.getConfigVarName(varName);
+    }
+
+    public BallerinaModel.Expression.VariableReference getHttpClient(String path) {
+        return projectContext.getHttpClient(path);
     }
 }

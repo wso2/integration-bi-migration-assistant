@@ -5,6 +5,7 @@ http:Client creditapp_module_HttpClientResource1 = checkpanic new (string `${hos
 http:Client creditapp_module_HttpClientResource2 = checkpanic new (string `${host_2}:13080`);
 configurable string host = ?;
 configurable string host_2 = ?;
+http:Client httpClient0 = checkpanic new ("/");
 
 function convertToCreditScoreSuccessSchema(xml input) returns CreditScoreSuccessSchema {
     return checkpanic xmldata:parseAsType(input);
@@ -49,22 +50,6 @@ function getRequestPath(HTTPRequestConfig config) returns string {
         select key + "=" + config.parameters.get(key));
 }
 
-function handleInvoke(string baseUrl, string path, string method, anydata payload)
-        returns json|error {
-    http:Client 'client = check new (baseUrl);
-    match method {
-        "post" => {
-            return check 'client->post(path, payload);
-        }
-        "put" => {
-            return check 'client->put(path, payload);
-        }
-        _ => {
-            return error("Unsupported HTTP method: " + method);
-        }
-    }
-}
-
 function httpCall(HTTPRequestConfig config, http:Client 'client) returns json|error {
     string requestPath = getRequestPath(config);
     match config.Method {
@@ -97,7 +82,7 @@ function transformXSLT(xml input) returns xml {
         if index == () {
             path = selectPath;
         } else {
-            path = selectPath.substring(0, index) + "/root" + selectPath.substring(index);
+            path = selectPath.substring(0, index) + "/" + selectPath.substring(index);
         }
         attributes["select"] = path;
     }
@@ -110,7 +95,7 @@ function transformXSLT(xml input) returns xml {
         if index == () {
             path = selectPath;
         } else {
-            path = selectPath.substring(0, index) + "/root" + selectPath.substring(index);
+            path = selectPath.substring(0, index) + "/" + selectPath.substring(index);
         }
         attributes["test"] = path;
     }

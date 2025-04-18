@@ -584,6 +584,14 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
+        record Panic(Expression callExpr) implements Expression {
+
+            @Override
+            public String toString() {
+                return "panic " + callExpr;
+            }
+        }
+
         record CheckPanic(Expression callExpr) implements Expression {
 
             @Override
