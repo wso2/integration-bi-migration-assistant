@@ -16,11 +16,23 @@
  *  under the License.
  */
 
-package converter.tibco;
+package converter.tibco.xslt;
 
-import ballerina.BallerinaModel;
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
+public interface Transform {
 
-public record ConversionResult(BallerinaModel.Module module, SyntaxTree types) {
+    default String transformPath(TransformContext cx, String path) {
+        return path;
+    }
 
+    default String transformParameter(TransformContext cx, String parameter) {
+        return parameter;
+    }
+
+    default String transformParameterUsage(TransformContext cx, String parameterUsage) {
+        return parameterUsage;
+    }
+
+    default String transform(TransformContext cx, String content) {
+        return content;
+    }
 }

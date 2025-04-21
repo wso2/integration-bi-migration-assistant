@@ -9,7 +9,6 @@ import io.ballerina.cli.cmd.NewCommand;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.cli.cmd.NewCommand;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-
 import picocli.CommandLine;
 
 import java.io.File;

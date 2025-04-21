@@ -26,7 +26,7 @@ import java.util.List;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 
-class ActivityContext {
+public class ActivityContext {
 
     public final ProcessContext processContext;
     private final TibcoModel.Scope.Flow.Activity activity;

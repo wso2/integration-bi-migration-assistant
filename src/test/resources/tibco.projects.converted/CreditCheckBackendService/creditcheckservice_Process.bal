@@ -18,8 +18,8 @@ service / on creditcheckservice_Process_listener {
 
 function activityExtension(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" version="2.0"><xsl:template name="LogSuccess-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'Invoation Successful'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`), context);
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" version="2.0"><xsl:template name="LogSuccess-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'Invoation Successful'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`, context);
     LogParametersType var2 = convertToLogParametersType(var1);
     logWrapper(var2);
     return var1;
@@ -27,8 +27,8 @@ function activityExtension(map<xml> context) returns xml|error {
 
 function activityExtension_5(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" version="2.0"><xsl:template name="LogFailure-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'Invocation Failed'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`), context);
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" version="2.0"><xsl:template name="LogFailure-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'Invocation Failed'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`, context);
     LogParametersType var2 = convertToLogParametersType(var1);
     logWrapper(var2);
     return var1;
@@ -57,17 +57,17 @@ function errorHandler_creditcheckservice_Process(error err, map<xml> cx) returns
 
 function extActivity(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns2="/T1535753828744Converted/JsonSchema" xmlns:tns3="http://www.example.com/namespaces/tns/1535845694732" version="2.0">
-    <xsl:param name="post.item"/>
+    <xsl:param name="post"/>
     <xsl:template name="LookupDatabase-input" match="/">
         <tns3:Element>
             <tns3:ssn>
-                <xsl:value-of select="$post.item/tns2:SSN"/>
+                <xsl:value-of select="$post/root/item/tns2:SSN"/>
             </tns3:ssn>
         </tns3:Element>
     </xsl:template>
-</xsl:stylesheet>`), context);
+</xsl:stylesheet>`, context);
     xml var2 = check toXML(check trap creditcheckservice_LookupDatabase_start(convertToElement(var1)));
     addToContext(context, "LookupDatabase", var2);
     return var2;
@@ -93,40 +93,40 @@ function process_creditcheckservice_Process(xml input, map<xml> params) returns 
 
 function reply(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://xmlns.example.com/20180831151624PLT" xmlns:tns2="/T1535753828744Converted/JsonSchema" version="2.0">
     <xsl:param name="LookupDatabase"/>
     <xsl:template name="postOut-input" match="/">
         <tns2:Response>
-            <xsl:if test="$LookupDatabase/tns2:FICOScore">
+            <xsl:if test="$LookupDatabase/root/tns2:FICOScore">
                 <tns2:FICOScore>
-                    <xsl:value-of select="$LookupDatabase/tns2:FICOScore"/>
+                    <xsl:value-of select="$LookupDatabase/root/tns2:FICOScore"/>
                 </tns2:FICOScore>
             </xsl:if>
-            <xsl:if test="$LookupDatabase/tns2:Rating">
+            <xsl:if test="$LookupDatabase/root/tns2:Rating">
                 <tns2:Rating>
-                    <xsl:value-of select="$LookupDatabase/tns2:Rating"/>
+                    <xsl:value-of select="$LookupDatabase/root/tns2:Rating"/>
                 </tns2:Rating>
             </xsl:if>
-            <xsl:if test="$LookupDatabase/tns2:NoOfInquiries">
+            <xsl:if test="$LookupDatabase/root/tns2:NoOfInquiries">
                 <tns2:NoOfInquiries>
-                    <xsl:value-of select="$LookupDatabase/tns2:NoOfInquiries"/>
+                    <xsl:value-of select="$LookupDatabase/root/tns2:NoOfInquiries"/>
                 </tns2:NoOfInquiries>
             </xsl:if>
         </tns2:Response>
     </xsl:template>
-</xsl:stylesheet>`), context);
+</xsl:stylesheet>`, context);
     xml var2 = xml `<root>${var1}</root>`;
-    xml var3 = check xslt:transform(var2, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://xmlns.example.com/20180831151624PLT" xmlns:tns2="/T1535753828744Converted/JsonSchema" version="2.0"><xsl:param name="LookupDatabase"/><xsl:template name="postOut-input" match="/"><tns1:postResponse><item><tns2:Response><xsl:if test="$LookupDatabase/tns2:FICOScore"><tns2:FICOScore><xsl:value-of select="$LookupDatabase/tns2:FICOScore"/></tns2:FICOScore></xsl:if><xsl:if test="$LookupDatabase/tns2:Rating"><tns2:Rating><xsl:value-of select="$LookupDatabase/tns2:Rating"/></tns2:Rating></xsl:if><xsl:if test="$LookupDatabase/tns2:NoOfInquiries"><tns2:NoOfInquiries><xsl:value-of select="$LookupDatabase/tns2:NoOfInquiries"/></tns2:NoOfInquiries></xsl:if></tns2:Response></item></tns1:postResponse></xsl:template></xsl:stylesheet>`), context);
+    xml var3 = check xslt:transform(var2, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://xmlns.example.com/20180831151624PLT" xmlns:tns2="/T1535753828744Converted/JsonSchema" version="2.0"><xsl:param name="LookupDatabase"/><xsl:template name="postOut-input" match="/"><tns1:postResponse><item><tns2:Response><xsl:if test="$LookupDatabase/root/tns2:FICOScore"><tns2:FICOScore><xsl:value-of select="$LookupDatabase/root/tns2:FICOScore"/></tns2:FICOScore></xsl:if><xsl:if test="$LookupDatabase/root/tns2:Rating"><tns2:Rating><xsl:value-of select="$LookupDatabase/root/tns2:Rating"/></tns2:Rating></xsl:if><xsl:if test="$LookupDatabase/root/tns2:NoOfInquiries"><tns2:NoOfInquiries><xsl:value-of select="$LookupDatabase/root/tns2:NoOfInquiries"/></tns2:NoOfInquiries></xsl:if></tns2:Response></item></tns1:postResponse></xsl:template></xsl:stylesheet>`, context);
     return var3;
 }
 
 function reply_6(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://xmlns.example.com/20180831151624PLT" xmlns:tns="http://tns.tibco.com/bw/REST" version="2.0"><xsl:template name="Reply-input" match="/"><tns1:post4XXFaultMessage><clientError><tns:client4XXError><statusCode><xsl:value-of select="404"/></statusCode></tns:client4XXError></clientError></tns1:post4XXFaultMessage></xsl:template></xsl:stylesheet>`), context);
-    xml var2 = check xslt:transform(var1, transformXSLT(xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://xmlns.example.com/20180831151624PLT" xmlns:tns="http://tns.tibco.com/bw/REST" version="2.0"><xsl:template name="Reply-input" match="/"><tns1:post4XXFaultMessage><clientError><tns:client4XXError><statusCode><xsl:value-of select="404"/></statusCode></tns:client4XXError></clientError></tns1:post4XXFaultMessage></xsl:template></xsl:stylesheet>`, context);
+    xml var2 = check xslt:transform(var1, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://xmlns.example.com/20180831151624PLT" xmlns:tns="http://tns.tibco.com/bw/REST" version="2.0">
     <xsl:template name="Reply-input" match="/">
         <tns:client4XXError>
@@ -135,7 +135,7 @@ function reply_6(map<xml> context) returns xml|error {
             </statusCode>
         </tns:client4XXError>
     </xsl:template>
-</xsl:stylesheet>`), context);
+</xsl:stylesheet>`, context);
     xml var3 = xml `<root>${var2}</root>`;
     return var3;
 }

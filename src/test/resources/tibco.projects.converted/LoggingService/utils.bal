@@ -47,37 +47,6 @@ function logWrapper(LogParametersType input) {
     }
 }
 
-function transformXSLT(xml input) returns xml {
-    xmlns "http://www.w3.org/1999/XSL/Transform" as xsl;
-    xml<xml:Element> values = input/**/<xsl:value\-of>;
-    foreach xml:Element item in values {
-        map<string> attributes = item.getAttributes();
-        string selectPath = attributes.get("select");
-        int? index = selectPath.indexOf("/");
-        string path;
-        if index == () {
-            path = selectPath;
-        } else {
-            path = selectPath.substring(0, index) + "/" + selectPath.substring(index);
-        }
-        attributes["select"] = path;
-    }
-    xml<xml:Element> test = input/**/<xsl:'if>;
-    foreach xml:Element item in test {
-        map<string> attributes = item.getAttributes();
-        string selectPath = attributes.get("test");
-        int? index = selectPath.indexOf("/");
-        string path;
-        if index == () {
-            path = selectPath;
-        } else {
-            path = selectPath.substring(0, index) + "/" + selectPath.substring(index);
-        }
-        attributes["test"] = path;
-    }
-    return input;
-}
-
 function test(xml input, string xpath) returns boolean {
     // TODO: support XPath
     return false;

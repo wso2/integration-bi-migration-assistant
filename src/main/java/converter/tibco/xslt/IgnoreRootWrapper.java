@@ -16,11 +16,18 @@
  *  under the License.
  */
 
-package converter.tibco;
+package converter.tibco.xslt;
 
-import ballerina.BallerinaModel;
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
+public class IgnoreRootWrapper implements Transform {
 
-public record ConversionResult(BallerinaModel.Module module, SyntaxTree types) {
-
+    @Override
+    public String transformPath(TransformContext cx, String path) {
+        if (path.equals("/")) {
+            return path;
+        }
+        if (path.startsWith("/") && !path.startsWith("//")) {
+            return "/root" + path;
+        }
+        return path;
+    }
 }

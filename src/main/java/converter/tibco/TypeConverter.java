@@ -4,9 +4,11 @@ import ballerina.BallerinaModel;
 
 import ballerina.BallerinaModel.Statement.Return;
 import ballerina.BallerinaModel.Statement.VarDeclStatment;
-import org.jetbrains.annotations.NotNull;
-
 import ballerina.CodeGenerator;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.tools.text.TextDocuments;
+import io.ballerina.xsd.core.response.NodeResponse;
+import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
 
 import java.util.ArrayList;
@@ -17,10 +19,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.stream.Stream;
-
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import io.ballerina.tools.text.TextDocuments;
-import io.ballerina.xsd.core.response.NodeResponse;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static io.ballerina.xsd.core.XSDToRecord.generateNodes;

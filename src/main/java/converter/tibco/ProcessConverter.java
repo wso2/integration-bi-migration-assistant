@@ -26,6 +26,7 @@ import ballerina.BallerinaModel.Statement.Return;
 import ballerina.BallerinaModel.Statement.VarAssignStatement;
 import ballerina.BallerinaModel.Statement.VarDeclStatment;
 import converter.tibco.analyzer.AnalysisResult;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
 
@@ -42,9 +43,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
-import io.ballerina.compiler.syntax.tree.ModulePartNode;
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
-
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
@@ -68,7 +66,6 @@ public class ProcessConverter {
                 record ProcessResult(TibcoModel.Process process, TypeConversionResult result) {
 
                 }
-                // FIXME: this should ignore schemas
                 List<ProcessResult> results = processes.stream().map(process -> new ProcessResult(process,
                                 convertTypes(cx.getProcessContext(process), process))).toList();
                 List<TibcoModel.Type.Schema> schemas = new ArrayList<>(types);
