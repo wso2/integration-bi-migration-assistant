@@ -1,8 +1,8 @@
 package converter;
 
-import ballerina.BallerinaModel.BallerinaType;
 import ballerina.BallerinaModel.Import;
 import ballerina.BallerinaModel.Parameter;
+import ballerina.BallerinaModel.TypeDesc.BallerinaType;
 
 import java.util.Collections;
 import java.util.List;
