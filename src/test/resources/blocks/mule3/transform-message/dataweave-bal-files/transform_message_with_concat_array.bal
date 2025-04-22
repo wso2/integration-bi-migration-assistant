@@ -10,4 +10,5 @@ function _dwMethod0_() returns json|error {
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_();
+    ctx.payload = _dwOutput_;
 }

@@ -3,6 +3,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -16,30 +18,32 @@ service / on HTTP_Listener_Configuration {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get vm() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get vm(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
+    }
+}
+
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    worker W returns error? {
+        // VM Inbound Endpoint
+        anydata receivedPayload = <- function;
+        ctx.payload = receivedPayload;
+        _vmReceive0_(ctx);
     }
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        worker W returns error? {
-            // VM Inbound Endpoint
-            anydata receivedPayload = <- function;
-            ctx.payload = receivedPayload;
-            _vmReceive0_(ctx);
-        }
+    // set payload
+    string _payload0_ = "Hello World";
+    ctx.payload = _payload0_;
 
-        // set payload
-        string _payload0_ = "Hello World";
-        ctx.payload = _payload0_;
+    // VM Outbound Endpoint
+    ctx.payload -> W;
 
-        // VM Outbound Endpoint
-        ctx.payload -> W;
-        ctx.inboundProperties.response.setPayload(_payload0_);
-        return ctx.inboundProperties.response;
-    }
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 public function _vmReceive0_(Context ctx) {

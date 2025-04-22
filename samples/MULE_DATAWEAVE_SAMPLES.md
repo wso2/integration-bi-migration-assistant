@@ -31,6 +31,7 @@ function _dwMethod0_() returns json|error {
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_();
+    ctx.payload = _dwOutput_;
 }
 
 ```
@@ -54,6 +55,7 @@ public type Context record {|
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_();
+    ctx.payload = _dwOutput_;
 }
 
 function _dwMethod0_() returns json|error {
@@ -88,6 +90,7 @@ function _dwMethod0_() returns json {
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod0_();
+    ctx.payload = _dwOutput_;
 }
 
 ```
@@ -117,12 +120,13 @@ public type Context record {|
     anydata payload;
 |};
 
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_();
-}
-
 function _dwMethod0_() returns json|error {
     return {"date": check time:civilFromString("2021-01-01").ensureType(json), "time": check time:civilFromString("23:59:56").ensureType(json), "timeZone": check time:civilFromString("-08:00").ensureType(json), "dateTime": check time:civilFromString("2003-10-01T23:57:59-03:00").ensureType(json), "localDateTime": check time:civilFromString("2003-10-01T23:57:59").ensureType(json)};
+}
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_();
+    ctx.payload = _dwOutput_;
 }
 
 ```
@@ -145,13 +149,14 @@ public type Context record {|
     anydata payload;
 |};
 
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
+    ctx.payload = _dwOutput_;
+}
+
 function _dwMethod0_(json payload) returns json {
     var _var_0 = [1, 2, 3, 4];
     return _var_0.filter(element => element > 2);
-}
-
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
 }
 
 ```
@@ -173,12 +178,13 @@ public type Context record {|
     anydata payload;
 |};
 
-function _dwMethod0_() returns json {
-    return "APPLE".toLowerAscii();
-}
-
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod0_();
+    ctx.payload = _dwOutput_;
+}
+
+function _dwMethod0_() returns json {
+    return "APPLE".toLowerAscii();
 }
 
 ```
@@ -200,13 +206,14 @@ public type Context record {|
     anydata payload;
 |};
 
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod0_();
+    ctx.payload = _dwOutput_;
+}
+
 function _dwMethod0_() returns json {
     var _var_0 = ["john", "peter", "matt"];
     return {"users": _var_0.'map(element => element.toUpperAscii())};
-}
-
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_();
 }
 
 ```
@@ -229,13 +236,14 @@ public type Context record {|
     anydata payload;
 |};
 
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
+    ctx.payload = _dwOutput_;
+}
+
 function _dwMethod0_(json payload) returns json {
     var _var_0 = [1, 2, 3, 4];
     return _var_0.'map(element => element + _var_0.indexOf(element));
-}
-
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
 }
 
 ```
@@ -260,6 +268,7 @@ public type Context record {|
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
+    ctx.payload = _dwOutput_;
 }
 
 function _dwMethod0_(json payload) returns json {
@@ -289,6 +298,7 @@ public type Context record {|
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
+    ctx.payload = _dwOutput_;
 }
 
 function _dwMethod0_(json payload) returns json {
@@ -316,6 +326,7 @@ public type Context record {|
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod0_();
+    ctx.payload = _dwOutput_;
 }
 
 function _dwMethod0_() returns json {
@@ -342,14 +353,15 @@ public type Context record {|
     anydata payload;
 |};
 
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod0_();
+    ctx.payload = _dwOutput_;
+}
+
 function _dwMethod0_() returns json {
     string:RegExp _pattern_ = re `/(\d+)/`;
     var _var_0 = "admin123";
     return {"b": _pattern_.replace(_var_0, "ID")};
-}
-
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_();
 }
 
 ```
@@ -380,6 +392,7 @@ function _dwMethod0_(json payload) returns json|error {
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_(ctx.payload.toJson());
+    ctx.payload = _dwOutput_;
 }
 
 ```
@@ -404,13 +417,14 @@ public type Context record {|
     anydata payload;
 |};
 
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
+    ctx.payload = _dwOutput_;
+}
+
 function _dwMethod0_(json payload) returns json {
     var _var_0 = [1, 2, 3, 4];
     return {"hail1": _var_0.length()};
-}
-
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
 }
 
 ```
@@ -434,6 +448,7 @@ public type Context record {|
 
 public function sampleFlow(Context ctx) {
     string _dwOutput_ = _dwMethod0_();
+    ctx.payload = _dwOutput_;
 }
 
 function _dwMethod0_() returns string {
@@ -472,6 +487,7 @@ function _dwMethod0_() returns json|error {
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_();
+    ctx.payload = _dwOutput_;
 }
 
 ```
@@ -504,10 +520,6 @@ public function getFormattedStringFromDate(string dateString, string format) ret
     handle localDateTime = getDateTime(parseInstant(java:fromString(dateString)),
             getZoneId(java:fromString("UTC")));
     return formatDateTime(localDateTime, getDateTimeFormatter(java:fromString(format))).toString();
-}
-
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_();
 }
 
 public function parseInstant(handle instant) returns handle = @java:Method {
@@ -553,6 +565,11 @@ public function intToString(int intValue, string format) returns string {
     return stringResult.toString();
 }
 
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_();
+    ctx.payload = _dwOutput_;
+}
+
 public function newDecimalFormat(handle format) returns handle = @java:Constructor {
     'class: "java.text.DecimalFormat"
 } external;
@@ -582,6 +599,7 @@ public type Context record {|
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_();
+    ctx.payload = _dwOutput_;
 }
 
 function _dwMethod0_() returns json|error {
@@ -607,12 +625,13 @@ public type Context record {|
     anydata payload;
 |};
 
-public function sampleFlow(Context ctx) {
-    string _dwOutput_ = _dwMethod0_();
-}
-
 function _dwMethod0_() returns string {
     return 10.toString();
+}
+
+public function sampleFlow(Context ctx) {
+    string _dwOutput_ = _dwMethod0_();
+    ctx.payload = _dwOutput_;
 }
 
 ```
@@ -645,10 +664,6 @@ public function UTC() returns handle = @java:FieldGet {
     name: "UTC"
 } external;
 
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_();
-}
-
 public function parseDateTime(handle date, handle formatter) returns handle = @java:Method {
     'class: "java.time.LocalDateTime",
     name: "parse",
@@ -675,6 +690,11 @@ function _dwMethod0_() returns json|error {
     return {"a": [1436287232, 0], "b": check getDateFromFormattedString("2015-10-07 16:40:32.000", "yyyy-MM-dd HH:mm:ss.SSS")};
 }
 
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_();
+    ctx.payload = _dwOutput_;
+}
+
 ```
 
 ## Upper Expression
@@ -696,6 +716,7 @@ public type Context record {|
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod0_();
+    ctx.payload = _dwOutput_;
 }
 
 function _dwMethod0_() returns json {
@@ -740,6 +761,7 @@ function _dwMethod0_(json payload) returns json|error {
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_(ctx.payload.toJson());
+    ctx.payload = _dwOutput_;
 }
 
 ```
@@ -785,6 +807,7 @@ function _dwMethod0_(json payload) returns json|error {
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_(ctx.payload.toJson());
+    ctx.payload = _dwOutput_;
 }
 
 ```

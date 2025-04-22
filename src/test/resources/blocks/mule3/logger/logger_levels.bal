@@ -3,6 +3,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -16,19 +18,22 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        log:printInfo("xxx: INFO level logger invoked");
-        log:printDebug("xxx: DEBUG level logger invoked");
-        log:printError("xxx: ERROR level logger invoked");
-        log:printWarn("xxx: WARN level logger invoked");
-        log:printInfo("xxx: TRACE level logger invoked");
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: INFO level logger invoked");
+    log:printDebug("xxx: DEBUG level logger invoked");
+    log:printError("xxx: ERROR level logger invoked");
+    log:printWarn("xxx: WARN level logger invoked");
+    log:printInfo("xxx: TRACE level logger invoked");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }

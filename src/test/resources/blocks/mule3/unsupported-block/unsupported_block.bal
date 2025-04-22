@@ -3,6 +3,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -16,30 +18,33 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
-        // TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.
-        // ------------------------------------------------------------------------
-        // <db:select-unsupported config-ref="MySQL_Configuration" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" doc:name="Database" xmlns:db="http://www.mulesoft.org/schema/mule/db">
-        //             <db:parameterized-query><![CDATA[SELECT * from users;]]></db:parameterized-query>
-        //         </db:select-unsupported>
-        // ------------------------------------------------------------------------
+    // TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.
+    // ------------------------------------------------------------------------
+    // <db:select-unsupported config-ref="MySQL_Configuration" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" doc:name="Database" xmlns:db="http://www.mulesoft.org/schema/mule/db">
+    //             <db:parameterized-query><![CDATA[SELECT * from users;]]></db:parameterized-query>
+    //         </db:select-unsupported>
+    // ------------------------------------------------------------------------
 
-        // TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.
-        // ------------------------------------------------------------------------
-        // <json:object-to-json-transformer-unsupported xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" doc:name="Object to JSON" xmlns:json="http://www.mulesoft.org/schema/mule/json"/>
-        // ------------------------------------------------------------------------
+    // TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.
+    // ------------------------------------------------------------------------
+    // <json:object-to-json-transformer-unsupported xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" doc:name="Object to JSON" xmlns:json="http://www.mulesoft.org/schema/mule/json"/>
+    // ------------------------------------------------------------------------
 
-        log:printInfo(string `Users details: ${ctx.payload.toString()}`);
-        return ctx.inboundProperties.response;
-    }
+    log:printInfo(string `Users details: ${ctx.payload.toString()}`);
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 // TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.

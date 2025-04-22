@@ -5,6 +5,8 @@ import ballerinax/mysql.driver as _;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -22,24 +24,28 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
-        // database operation
-        sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
-        stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
-        Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
-            select _iterator_;
+    // database operation
+    sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
+    stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
+    Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
+        select _iterator_;
+    ctx.payload = _dbSelect0_;
 
-        // json transformation
-        json _to_json0_ = _dbSelect0_.toJson();
-        ctx.inboundProperties.response.setPayload(_to_json0_);
-        return ctx.inboundProperties.response;
-    }
+    // json transformation
+    json _to_json0_ = _dbSelect0_.toJson();
+    ctx.payload = _to_json0_;
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
