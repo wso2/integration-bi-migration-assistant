@@ -1,7 +1,6 @@
 package converter;
 
 import ballerina.BallerinaModel;
-
 import org.w3c.dom.Element;
 
 import java.io.StringWriter;
@@ -19,8 +18,8 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import static ballerina.BallerinaModel.BallerinaExpression;
-import static ballerina.BallerinaModel.BallerinaStatement;
+import static ballerina.BallerinaModel.Expression.BallerinaExpression;
+import static ballerina.BallerinaModel.Statement.BallerinaStatement;
 
 public class ConversionUtils {
 

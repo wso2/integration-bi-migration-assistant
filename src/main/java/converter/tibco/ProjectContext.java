@@ -20,6 +20,7 @@ package converter.tibco;
 
 import ballerina.BallerinaModel;
 import ballerina.BallerinaModel.Expression.FunctionCall;
+import ballerina.BallerinaModel.Statement.Return;
 import ballerina.BallerinaModel.TypeDesc.UnionTypeDesc;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import tibco.TibcoModel;
@@ -48,14 +49,6 @@ import static converter.tibco.Library.IO;
 import static converter.tibco.Library.JDBC;
 import static converter.tibco.Library.LOG;
 import static converter.tibco.Library.XML_DATA;
-
-import ballerina.BallerinaModel;
-import ballerina.BallerinaModel.Statement;
-import ballerina.BallerinaModel.Statement.Return;
-import ballerina.BallerinaModel.Statement.VarDeclStatment;
-import converter.tibco.analyzer.AnalysisResult;
-import converter.tibco.analyzer.ModelAnalyser;
-import tibco.TibcoModel;
 
 public class ProjectContext {
 
@@ -111,7 +104,7 @@ public class ProjectContext {
             String functionName = "toXML";
             utilityFunctions.add(new BallerinaModel.Function(functionName,
                     List.of(new BallerinaModel.Parameter("data", new BallerinaModel.TypeDesc.MapTypeDesc(ANYDATA))),
-                    Optional.of(new UnionTypeDesc(List.of(ERROR, XML)).toString()),
+                    new UnionTypeDesc(List.of(ERROR, XML)).toString(),
                     List.of(new Return<>(
                             Optional.of(new FunctionCall("xmldata:toXml",
                                     new String[] { "data" }))))));
@@ -126,7 +119,7 @@ public class ProjectContext {
             String functionName = "fromJson";
             utilityFunctions.add(
                     new BallerinaModel.Function(functionName, List.of(new BallerinaModel.Parameter("data", JSON)),
-                            Optional.of(new UnionTypeDesc(List.of(ERROR, XML)).toString()),
+                            new UnionTypeDesc(List.of(ERROR, XML)).toString(),
                             List.of(new Return<>(new FunctionCall("xmldata:fromJson", new String[] { "data" })))));
             jsonToXMLFunction = functionName;
         }
@@ -214,9 +207,9 @@ public class ProjectContext {
                 "xmldata:parseAsType", new String[] { "input" });
         BallerinaModel.Expression.CheckPanic checkPanic = new BallerinaModel.Expression.CheckPanic(parseAsTypeCall);
         Return<BallerinaModel.Expression.CheckPanic> returnStmt = new Return<>(Optional.of(checkPanic));
-        BallerinaModel.Function function = new BallerinaModel.Function(functionName,
-                List.of(new BallerinaModel.Parameter("input", XML)), Optional.of(targetType.toString()),
-                List.of(returnStmt));
+        BallerinaModel.Function function =
+                new BallerinaModel.Function(functionName, List.of(new BallerinaModel.Parameter("input", XML)),
+                        targetType, List.of(returnStmt));
         utilityFunctions.add(function);
         return functionName;
     }
@@ -352,7 +345,7 @@ public class ProjectContext {
         importLibraryIfNeededToUtility(HTTP);
         String clientName = "httpClient" + httpClients.size();
         BallerinaModel.ModuleVar client = new BallerinaModel.ModuleVar(clientName, "http:Client",
-                new BallerinaModel.BallerinaExpression("checkpanic new (\"%s\")".formatted(path)));
+                new BallerinaModel.Expression.BallerinaExpression("checkpanic new (\"%s\")".formatted(path)));
         utilityVars.put(clientName, client);
         var ref = new BallerinaModel.Expression.VariableReference(clientName);
         httpClients.put(path, ref);

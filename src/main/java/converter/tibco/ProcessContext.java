@@ -68,7 +68,7 @@ public class ProcessContext implements ContextWithFile {
 
     public VarDeclStatment initContextVar(String paramsVarName) {
         VarDeclStatment varDeclStatment = new VarDeclStatment(contextType(), "context",
-                new BallerinaModel.BallerinaExpression("{...%s}".formatted(paramsVarName)));
+                new BallerinaModel.Expression.BallerinaExpression("{...%s}".formatted(paramsVarName)));
         this.contextRef = new BallerinaModel.Expression.VariableReference(varDeclStatment.varName());
         return varDeclStatment;
     }
@@ -89,7 +89,7 @@ public class ProcessContext implements ContextWithFile {
     }
 
     private static BallerinaModel.ModuleVar createConfigurableVariable(BallerinaModel.TypeDesc td, String name) {
-        return BallerinaModel.ModuleVar.configurable(name, td, new BallerinaModel.BallerinaExpression("?"));
+        return BallerinaModel.ModuleVar.configurable(name, td, new BallerinaModel.Expression.BallerinaExpression("?"));
     }
 
     String getToXmlFunction() {
@@ -128,7 +128,7 @@ public class ProcessContext implements ContextWithFile {
         assert td == BallerinaModel.TypeDesc.BuiltinType.STRING;
         String expr = "\"" + valueRepr + "\"";
         constants.put(name,
-                BallerinaModel.ModuleVar.constant(name, td, new BallerinaModel.BallerinaExpression(expr)));
+                BallerinaModel.ModuleVar.constant(name, td, new BallerinaModel.Expression.BallerinaExpression(expr)));
         return name;
     }
 
@@ -282,5 +282,13 @@ public class ProcessContext implements ContextWithFile {
 
     public BallerinaModel.Expression.VariableReference getHttpClient(String path) {
         return projectContext.getHttpClient(path);
+    }
+
+    public static BallerinaModel.Expression.VariableReference processLevelFnInputVariable() {
+        return new BallerinaModel.Expression.VariableReference("input");
+    }
+
+    public static BallerinaModel.Expression.VariableReference processLevelFnParamVariable() {
+        return new BallerinaModel.Expression.VariableReference("params");
     }
 }

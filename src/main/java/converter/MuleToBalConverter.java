@@ -37,12 +37,12 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import static ballerina.BallerinaModel.BallerinaExpression;
-import static ballerina.BallerinaModel.BallerinaStatement;
+import static ballerina.BallerinaModel.Expression.BallerinaExpression;
+import static ballerina.BallerinaModel.Statement.BallerinaStatement;
 import static ballerina.BallerinaModel.BlockFunctionBody;
 import static ballerina.BallerinaModel.DefaultPackage;
 import static ballerina.BallerinaModel.Function;
-import static ballerina.BallerinaModel.IfElseStatement;
+import static ballerina.BallerinaModel.Statement.IfElseStatement;
 import static ballerina.BallerinaModel.Import;
 import static ballerina.BallerinaModel.Listener;
 import static ballerina.BallerinaModel.ListenerType;
@@ -88,7 +88,6 @@ import static mule.MuleModel.HTTPListenerConfig;
 import static mule.MuleModel.HttpListener;
 import static mule.MuleModel.HttpRequest;
 import static mule.MuleModel.Kind;
-import static mule.MuleModel.HTTPListenerConfig;
 import static mule.MuleModel.HTTPRequestConfig;
 import static mule.MuleModel.LogLevel;
 import static mule.MuleModel.Logger;
@@ -100,7 +99,6 @@ import static mule.MuleModel.QueryType;
 import static mule.MuleModel.ReferenceExceptionStrategy;
 import static mule.MuleModel.SetVariable;
 import static mule.MuleModel.SetSessionVariable;
-import static mule.MuleModel.SetVariable;
 import static mule.MuleModel.SubFlow;
 import static mule.MuleModel.TransformMessage;
 import static mule.MuleModel.Type;
@@ -108,7 +106,6 @@ import static mule.MuleModel.VMInboundEndpoint;
 import static mule.MuleModel.VMOutboundEndpoint;
 import static mule.MuleModel.WhenInChoice;
 import static mule.MuleModel.UnsupportedBlock;
-import static mule.MuleModel.WhenInChoice;
 
 public class MuleToBalConverter {
 

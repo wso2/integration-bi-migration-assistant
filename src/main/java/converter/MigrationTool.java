@@ -7,8 +7,6 @@ import converter.tibco.TibcoToBalConverter;
 import dataweave.converter.DWConversionStats;
 import io.ballerina.cli.cmd.NewCommand;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import io.ballerina.cli.cmd.NewCommand;
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import picocli.CommandLine;
 
 import java.io.File;
@@ -23,14 +21,11 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import io.ballerina.cli.cmd.NewCommand;
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
-
 import static converter.HtmlReportWriter.writeHtmlReport;
+import static converter.MuleToBalConverter.SharedProjectData;
 import static converter.MuleToBalConverter.convertProjectXMLFileToBallerina;
 import static converter.MuleToBalConverter.createBallerinaModel;
 import static converter.MuleToBalConverter.createContextInfoHoldingDataStructures;
-import static converter.MuleToBalConverter.SharedProjectData;
 
 public class MigrationTool {
 

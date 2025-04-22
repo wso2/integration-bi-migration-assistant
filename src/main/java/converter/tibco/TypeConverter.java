@@ -1,7 +1,6 @@
 package converter.tibco;
 
 import ballerina.BallerinaModel;
-
 import ballerina.BallerinaModel.Statement.Return;
 import ballerina.BallerinaModel.Statement.VarDeclStatment;
 import ballerina.CodeGenerator;
@@ -188,7 +187,7 @@ class TypeConverter {
 
         VarDeclStatment paramsDecl = new VarDeclStatment(
                 new BallerinaModel.TypeDesc.MapTypeDesc(XML), params,
-                new BallerinaModel.BallerinaExpression("{%s: %s}".formatted(resourceMethod, paramsXML)));
+                new BallerinaModel.Expression.BallerinaExpression("{%s: %s}".formatted(resourceMethod, paramsXML)));
         body.add(paramsDecl);
 
         return new PathParamInitResult(Optional.of(params), body);

@@ -29,16 +29,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NEVER;
-
-import java.util.Optional;
-
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NEVER;
 
 public final class ConversionUtils {
 
@@ -89,22 +87,18 @@ public final class ConversionUtils {
 
     static BallerinaModel.TypeDesc createQueryResultType(
             ActivityContext cx,
-            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql
-    ) {
+            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql) {
         ProcessContext processContext = cx.processContext;
         processContext.projectContext.getTypeContext().addLibraryImport(Library.XML_DATA);
         AnalysisResult analysisResult = processContext.analysisResult;
         String typeName = "QueryResult" + analysisResult.queryIndex(sql);
         List<BallerinaModel.TypeDesc.RecordTypeDesc.RecordField> fields = sql.resultColumns().stream()
-                .map(each -> new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField(
-                        each.name(),
-                        from(each.type()),
-                        false,
-                        Optional.empty(),
-                        Optional.empty()))
+                .map(each -> new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField(each.name(), from(each.type()),
+                        false, Optional.empty(), Optional.empty()))
                 .toList();
         BallerinaModel.TypeDesc.RecordTypeDesc recordTy = new BallerinaModel.TypeDesc.RecordTypeDesc(List.of(), fields,
-                NEVER, Optional.empty(), Optional.of("Record"));
+                NEVER, Optional.empty(),
+                Optional.of("Record"));
 
         processContext.addModuleTypeDef(typeName, new BallerinaModel.ModuleTypeDef(typeName, recordTy));
         return processContext.getTypeByName(typeName);
@@ -117,9 +111,7 @@ public final class ConversionUtils {
         AnalysisResult analysisResult = processContext.analysisResult;
         String typeName = "QueryData" + analysisResult.queryIndex(sql);
         List<BallerinaModel.TypeDesc.RecordTypeDesc.RecordField> fields = sql.parameters().stream()
-                .map(each -> new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField(
-                        each.name(),
-                        from(each.type())))
+                .map(each -> new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField(each.name(), from(each.type())))
                 .toList();
         BallerinaModel.TypeDesc.RecordTypeDesc recordTy = new BallerinaModel.TypeDesc.RecordTypeDesc(List.of(), fields,
                 NEVER);
@@ -143,7 +135,8 @@ public final class ConversionUtils {
             }
         }
         sb.append("`");
-        BallerinaModel.BallerinaExpression templateExpr = new BallerinaModel.BallerinaExpression(sb.toString());
+        BallerinaModel.Expression.BallerinaExpression templateExpr =
+                new BallerinaModel.Expression.BallerinaExpression(sb.toString());
         return new VarDeclStatment(cx.processContext.getTypeByName("sql:ParameterizedQuery"), cx.getAnnonVarName(),
                 templateExpr);
     }

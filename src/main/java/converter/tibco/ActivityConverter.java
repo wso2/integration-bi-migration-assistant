@@ -19,7 +19,6 @@
 package converter.tibco;
 
 import ballerina.BallerinaModel;
-import ballerina.BallerinaModel.Comment;
 import ballerina.BallerinaModel.Expression.Check;
 import ballerina.BallerinaModel.Expression.FunctionCall;
 import ballerina.BallerinaModel.Expression.Trap;
@@ -86,8 +85,8 @@ class ActivityConverter {
                         case TibcoModel.Scope.Flow.Activity.Throw throwActivity ->
                                 convertThrowActivity(cx, throwActivity);
                 };
-                return new BallerinaModel.Function(cx.functionName(), cx.parameters(),
-                                Optional.of(ActivityContext.returnType().toString()), body);
+                return new BallerinaModel.Function(cx.functionName(), cx.parameters(), ActivityContext.returnType(),
+                        body);
         }
 
         private static List<BallerinaModel.Statement> convertThrowActivity(
@@ -110,9 +109,9 @@ class ActivityConverter {
                 // TODO: set the body correctly
                 VarDeclStatment errorValue = new VarDeclStatment(ERROR,
                                 cx.getAnnonVarName(),
-                                new BallerinaModel.BallerinaExpression("error(\"TODO: create error value\")"));
+                        new BallerinaModel.Expression.BallerinaExpression("error(\"TODO: create error value\")"));
                 body.add(errorValue);
-                body.add(new BallerinaModel.BallerinaStatement("panic " + errorValue.varName() + ";"));
+                body.add(new BallerinaModel.Statement.BallerinaStatement("panic " + errorValue.varName() + ";"));
 
                 return body;
         }
@@ -126,7 +125,7 @@ class ActivityConverter {
                         ActivityContext cx,
                         TibcoModel.Scope.Flow.Activity.UnhandledActivity unhandledActivity) {
                 BallerinaModel.Expression inputXml = defaultEmptyXml();
-                return List.of(new BallerinaModel.Comment(unhandledActivity.reason()),
+                return List.of(new BallerinaModel.Statement.Comment(unhandledActivity.reason()),
                                 new Return<>(inputXml));
         }
 
@@ -311,7 +310,8 @@ class ActivityConverter {
                                 defaultEmptyXml());
                 body.add(accum);
 
-                BallerinaModel.BallerinaStatement foreachStatement = new BallerinaModel.BallerinaStatement("""
+                BallerinaModel.Statement.BallerinaStatement
+                        foreachStatement = new BallerinaModel.Statement.BallerinaStatement("""
                                 check from var each in %s do {
                                     %s = %s + each;
                                 };
@@ -347,17 +347,20 @@ class ActivityConverter {
                                 new BallerinaModel.Expression.Check(httpCallFn));
                 body.add(responseDecl);
 
-                String jsonToXmlFunction = cx.processContext.getJsonToXMLFunction();
-                BallerinaModel.Expression.FunctionCall jsonToXmlFunctionCall = new BallerinaModel.Expression.FunctionCall(
-                                jsonToXmlFunction, new String[] { responseDecl.varName() });
-                VarDeclStatment resultDecl = new VarDeclStatment(XML,
-                                cx.getAnnonVarName(),
-                                new BallerinaModel.Expression.Check(jsonToXmlFunctionCall));
+                VarDeclStatment resultDecl = convertJSONResponseToXML(cx, responseDecl);
                 body.add(resultDecl);
                 BallerinaModel.Expression.VariableReference result = new BallerinaModel.Expression.VariableReference(
                                 resultDecl.varName());
 
                 return new ActivityExtensionConfigConversion(body, result);
+        }
+
+        private static @NotNull VarDeclStatment convertJSONResponseToXML(ActivityContext cx,
+                        VarDeclStatment responseDecl) {
+                String jsonToXmlFunction = cx.processContext.getJsonToXMLFunction();
+                FunctionCall jsonToXmlFunctionCall = new FunctionCall(jsonToXmlFunction,
+                                new String[] { responseDecl.varName() });
+                return new VarDeclStatment(XML, cx.getAnnonVarName(), new Check(jsonToXmlFunctionCall));
         }
 
         private static List<BallerinaModel.Statement> convertReceiveEvent(
@@ -396,12 +399,11 @@ class ActivityConverter {
                                                                                 binding.path().path()), input))));
                 body.add(callResult);
 
-                String jsonToXMLFunction = cx.processContext.getJsonToXMLFunction();
-                BallerinaModel.Expression.FunctionCall jsonToXMLFunctionCall = new BallerinaModel.Expression.FunctionCall(
-                                jsonToXMLFunction, List.of(callResult.ref()));
-                VarDeclStatment resultDecl = new VarDeclStatment(XML,
-                                cx.getAnnonVarName(),
-                                new BallerinaModel.Expression.Check(jsonToXMLFunctionCall));
+                BallerinaModel.Expression.FunctionCall jsonToXMLFunctionCall =
+                        new BallerinaModel.Expression.FunctionCall(
+                                cx.processContext.getJsonToXMLFunction(), List.of(callResult.ref()));
+                VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                        new BallerinaModel.Expression.Check(jsonToXMLFunctionCall));
                 body.add(resultDecl);
                 BallerinaModel.Expression.VariableReference result = new BallerinaModel.Expression.VariableReference(
                                 resultDecl.varName());
@@ -449,34 +451,31 @@ class ActivityConverter {
                 List<VarDeclStatment> varDelStatements = new ArrayList<>();
                 BallerinaModel.Expression.VariableReference last = input;
                 for (TibcoModel.Scope.Flow.Activity.InputBinding transform : inputBindings) {
-                        VarDeclStatment varDecl;
-                        switch (transform) {
+                        VarDeclStatment varDecl = switch (transform) {
                                 case TibcoModel.Scope.Flow.Activity.InputBinding.CompleteBinding completeBinding ->
-                                        varDecl = new VarDeclStatment(
-                                                        XML, cx.getAnnonVarName(),
+                                        new VarDeclStatment(XML, cx.getAnnonVarName(),
                                                         xsltTransform(cx, last, completeBinding.xslt()));
-                                case TibcoModel.Scope.Flow.Activity.InputBinding.PartialBindings partialBindings -> {
-                                        BallerinaModel.Expression.VariableReference finalLast = last;
-                                        List<VarDeclStatment> statements = partialBindings.xslt()
-                                                        .stream()
-                                                        .map(each -> xsltTransform(cx, finalLast, each))
-                                                        .map(each -> new VarDeclStatment(
-                                                                        XML, cx.getAnnonVarName(), each))
-                                                        .toList();
-                                        varDelStatements.addAll(statements);
-                                        String concat = statements.stream()
-                                                        .map(VarDeclStatment::varName)
-                                                        .collect(Collectors.joining(" + "));
-                                        varDecl = new VarDeclStatment(
-                                                        XML, cx.getAnnonVarName(),
-                                                        new BallerinaModel.Expression.XMLTemplate(
-                                                                        "<root>${" + concat + "}</root>"));
-                                }
-                        }
+                                case TibcoModel.Scope.Flow.Activity.InputBinding.PartialBindings partialBindings ->
+                                        convertPartialInputBinding(cx, partialBindings, last, varDelStatements);
+                        };
                         varDelStatements.add(varDecl);
                         last = varDecl.ref();
                 }
                 return varDelStatements;
+        }
+
+        private static @NotNull VarDeclStatment convertPartialInputBinding(
+                        ActivityContext cx,
+                        TibcoModel.Scope.Flow.Activity.InputBinding.PartialBindings partialBindings,
+                        VariableReference last,
+                        List<VarDeclStatment> varDelStatements) {
+                List<VarDeclStatment> statements = partialBindings.xslt().stream()
+                                .map(each -> xsltTransform(cx, last, each))
+                                .map(each -> new VarDeclStatment(XML, cx.getAnnonVarName(), each)).toList();
+                varDelStatements.addAll(statements);
+                String concat = statements.stream().map(VarDeclStatment::varName).collect(Collectors.joining(" + "));
+                return new VarDeclStatment(XML, cx.getAnnonVarName(),
+                                new BallerinaModel.Expression.XMLTemplate("<root>${" + concat + "}</root>"));
         }
 
         private static BallerinaModel.Expression xsltTransform(

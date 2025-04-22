@@ -24,6 +24,7 @@ import tibco.TibcoModel;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -43,7 +44,7 @@ final class ResourceConvertor {
                         .map(value -> toExpr(substitutions, value)).toList());
         BallerinaModel.ModuleVar resourceVar =
                 new BallerinaModel.ModuleVar(cx.getUtilityVarName(resource.name()), "jdbc:Client",
-                        new BallerinaModel.Expression.CheckPanic(constructorCall), false, false);
+                        Optional.of(new BallerinaModel.Expression.CheckPanic(constructorCall)), false, false);
         cx.addResourceDeclaration(resource.name(), resourceVar, substitutions.values(), List.of(Library.JDBC));
     }
 
@@ -63,7 +64,7 @@ final class ResourceConvertor {
         );
         BallerinaModel.ModuleVar resourceVar =
                 new BallerinaModel.ModuleVar(cx.getUtilityVarName(resource.name()), "http:Client",
-                        new BallerinaModel.Expression.CheckPanic(constructorCall), false, false);
+                        Optional.of(new BallerinaModel.Expression.CheckPanic(constructorCall)), false, false);
         cx.addResourceDeclaration(resource.name(), resourceVar, substitutions.values(), List.of(Library.HTTP));
     }
 

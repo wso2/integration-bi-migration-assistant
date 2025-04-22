@@ -99,7 +99,7 @@ public class DWReader {
                     context.setMimeType(((MuleModel.InputPayloadElement) child).mimeType());
                     break;
                 default:
-                    statementList.add(new BallerinaModel.BallerinaStatement(
+                    statementList.add(new BallerinaModel.Statement.BallerinaStatement(
                             ConversionUtils.wrapElementInUnsupportedBlockComment(child.toString())));
                     break;
             }
@@ -112,7 +112,7 @@ public class DWReader {
                                            String varName,
                                            List<BallerinaModel.Statement> statementList) {
         String funcStatement = getFunctionStatement(script, resourcePath, context, data, varName);
-        statementList.add(new BallerinaModel.BallerinaStatement(funcStatement));
+        statementList.add(new BallerinaModel.Statement.BallerinaStatement(funcStatement));
         context.clearScript();
     }
 
