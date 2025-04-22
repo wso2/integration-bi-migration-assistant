@@ -1,5 +1,6 @@
 package converter;
 
+import ballerina.BallerinaModel;
 import ballerina.BallerinaModel.TypeDesc.BallerinaType;
 import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc;
 import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
@@ -258,8 +259,7 @@ public class ConversionUtils {
         return String.format("{ %s }", recordBody);
     }
 
-    private static String getRequiredRecFieldDefaultValue(
-            BallerinaModel.TypeDesc.RecordTypeDesc.RecordField recordField) {
+    private static String getRequiredRecFieldDefaultValue(RecordTypeDesc.RecordField recordField) {
         assert !recordField.isOptional();
         return switch (recordField.typeDesc().toString()) {
             case "anydata" -> "()";
