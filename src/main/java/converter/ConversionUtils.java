@@ -1,5 +1,8 @@
 package converter;
 
+import ballerina.BallerinaModel.TypeDesc.BallerinaType;
+import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc;
+import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import io.ballerina.compiler.syntax.tree.SyntaxInfo;
 import org.w3c.dom.Element;
 
@@ -19,12 +22,9 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import static ballerina.BallerinaModel.BallerinaType;
-import static ballerina.BallerinaModel.BallerinaExpression;
-import static ballerina.BallerinaModel.RecordField;
-import static ballerina.BallerinaModel.RecordType;
-import static ballerina.BallerinaModel.BallerinaStatement;
+import static ballerina.BallerinaModel.Expression.BallerinaExpression;
 import static ballerina.BallerinaModel.ModuleTypeDef;
+import static ballerina.BallerinaModel.Statement.BallerinaStatement;
 import static converter.MELConverter.convertMELToBal;
 
 public class ConversionUtils {
@@ -263,9 +263,9 @@ public class ConversionUtils {
     }
 
     public static String getRecordInitValue(HashMap<String, ModuleTypeDef> contextTypeDefMap,
-                                            RecordType recordType) {
+                                            RecordTypeDesc recordType) {
         List<String> requiredFields = new ArrayList<>();
-        for (RecordField recordField : recordType.recordFields()) {
+        for (RecordField recordField : recordType.fields()) {
             if (!recordField.isOptional()) {
                 String value = getRequiredRecFieldDefaultValue(contextTypeDefMap, recordField);
                 requiredFields.add(String.format("%s: %s", recordField.name(), value));
@@ -278,7 +278,7 @@ public class ConversionUtils {
     private static String getRequiredRecFieldDefaultValue(HashMap<String, ModuleTypeDef> contextTypeDefMap,
                                                           RecordField recordField) {
         assert !recordField.isOptional();
-        String typeStr = recordField.type().toString();
+        String typeStr = recordField.typeDesc().toString();
         switch (typeStr) {
             case "anydata" -> {
                 return "()";
@@ -291,7 +291,7 @@ public class ConversionUtils {
             }
             case Constants.INBOUND_PROPERTIES_TYPE, Constants.FLOW_VARS_TYPE, Constants.SESSION_VARS_TYPE -> {
                 ModuleTypeDef moduleTypeDef = contextTypeDefMap.get(typeStr);
-                return getRecordInitValue(contextTypeDefMap, (RecordType) moduleTypeDef.type());
+                return getRecordInitValue(contextTypeDefMap, (RecordTypeDesc) moduleTypeDef.typeDesc());
             }
             default -> throw new IllegalStateException();
         }

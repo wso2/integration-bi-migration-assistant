@@ -58,18 +58,17 @@ public class CodeGenerator {
                 imports.add(importDeclarationNode);
             }
 
-            List<ModuleMemberDeclarationNode> moduleMembers = new ArrayList<>();
+            List<ModuleMemberDeclarationNode> moduleMembers = new ArrayList<>(textDocument.astNodes());
 
             for (ModuleTypeDef moduleTypeDef : textDocument.moduleTypeDefs()) {
                 // TODO: handle visibility qualifier properly
                 TypeDefinitionNode typeDefinitionNode = (TypeDefinitionNode) NodeParser.parseModuleMemberDeclaration(
-                        String.format("public type %s %s;", moduleTypeDef.name(), moduleTypeDef.type()));
+                        moduleTypeDef.toString());
                 moduleMembers.add(typeDefinitionNode);
             }
 
             for (ModuleVar moduleVar : textDocument.moduleVars()) {
-                ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(
-                        String.format("%s %s = %s;", moduleVar.type(), moduleVar.name(), moduleVar.expr().expr()));
+                ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(moduleVar.toString());
                 moduleMembers.add(member);
             }
 
@@ -121,7 +120,7 @@ public class CodeGenerator {
 
             for (Function f : textDocument.functions()) {
                 String funcParamString = constructFunctionParameterString(f.parameters(), false);
-                String methodName = f.funcName();
+                String methodName = f.functionName();
                 FunctionDefinitionNode functionDefinitionNode;
                 if (f.body() instanceof BallerinaModel.BlockFunctionBody) {
                     FunctionDefinitionNode fd = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
@@ -132,6 +131,10 @@ public class CodeGenerator {
                     functionDefinitionNode = generateBallerinaExternalFunction(f, funcParamString, methodName);
                 }
                 moduleMembers.add(functionDefinitionNode);
+            }
+
+            for (String f : textDocument.intrinsics()) {
+                moduleMembers.add(NodeParser.parseModuleMemberDeclaration(f));
             }
 
             NodeList<ImportDeclarationNode> importDecls = NodeFactory.createNodeList(imports);
@@ -160,12 +163,12 @@ public class CodeGenerator {
         if (function.body() instanceof BallerinaModel.BlockFunctionBody) {
             functionDefinitionNode = (FunctionDefinitionNode) NodeParser.parseObjectMember(
                     String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(
-                                    function.visibilityQualifier()), function.funcName(), funcParamString,
+                                    function.visibilityQualifier()), function.functionName(), funcParamString,
                             getReturnTypeDescriptor(function.returnType())));
             functionDefinitionNode = generateBallerinaFunction(functionDefinitionNode, function.body());
         } else {
             functionDefinitionNode = generateBallerinaExternalFunction(function, funcParamString,
-                    function.funcName());
+                    function.functionName());
         }
         return functionDefinitionNode;
     }

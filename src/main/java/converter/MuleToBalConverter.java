@@ -1,6 +1,14 @@
 package converter;
 
 import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.ObjectField;
+import ballerina.BallerinaModel.OnFailClause;
+import ballerina.BallerinaModel.Statement.DoStatement;
+import ballerina.BallerinaModel.Statement.ElseIfClause;
+import ballerina.BallerinaModel.Statement.NamedWorkerDecl;
+import ballerina.BallerinaModel.TypeBindingPattern;
+import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc;
+import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import ballerina.CodeGenerator;
 import converter.MuleXMLNavigator.MuleElement;
 import dataweave.converter.DWConversionStats;
@@ -31,31 +39,23 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import static ballerina.BallerinaModel.BallerinaExpression;
-import static ballerina.BallerinaModel.BallerinaStatement;
+import static ballerina.BallerinaModel.Expression.BallerinaExpression;
+import static ballerina.BallerinaModel.Statement.BallerinaStatement;
 import static ballerina.BallerinaModel.BlockFunctionBody;
-import static ballerina.BallerinaModel.ClosedRecordType;
 import static ballerina.BallerinaModel.DefaultPackage;
-import static ballerina.BallerinaModel.DoStatement;
-import static ballerina.BallerinaModel.ElseIfClause;
 import static ballerina.BallerinaModel.Function;
-import static ballerina.BallerinaModel.IfElseStatement;
+import static ballerina.BallerinaModel.Statement.IfElseStatement;
 import static ballerina.BallerinaModel.Import;
 import static ballerina.BallerinaModel.Listener;
 import static ballerina.BallerinaModel.ListenerType;
 import static ballerina.BallerinaModel.Module;
 import static ballerina.BallerinaModel.ModuleTypeDef;
 import static ballerina.BallerinaModel.ModuleVar;
-import static ballerina.BallerinaModel.ObjectField;
-import static ballerina.BallerinaModel.OnFailClause;
 import static ballerina.BallerinaModel.Parameter;
-import static ballerina.BallerinaModel.RecordField;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
 import static ballerina.BallerinaModel.Statement;
 import static ballerina.BallerinaModel.TextDocument;
-import static ballerina.BallerinaModel.TypeBindingPattern;
-import static ballerina.BallerinaModel.NamedWorkerDecl;
 import static converter.Constants.BAL_ANYDATA_TYPE;
 import static converter.Constants.BAL_ERROR_TYPE;
 import static converter.Constants.FUNC_NAME_ASYC_TEMPLATE;
@@ -76,18 +76,18 @@ import static mule.MuleModel.Async;
 import static mule.MuleModel.CatchExceptionStrategy;
 import static mule.MuleModel.ChoiceExceptionStrategy;
 import static mule.MuleModel.Choice;
+import static mule.MuleModel.Database;
 import static mule.MuleModel.DbInParam;
 import static mule.MuleModel.DbMSQLConfig;
 import static mule.MuleModel.DbTemplateQuery;
-import static mule.MuleModel.Database;
 import static mule.MuleModel.Enricher;
 import static mule.MuleModel.ExpressionComponent;
 import static mule.MuleModel.Flow;
 import static mule.MuleModel.FlowReference;
+import static mule.MuleModel.HTTPListenerConfig;
 import static mule.MuleModel.HttpListener;
 import static mule.MuleModel.HttpRequest;
 import static mule.MuleModel.Kind;
-import static mule.MuleModel.HTTPListenerConfig;
 import static mule.MuleModel.HTTPRequestConfig;
 import static mule.MuleModel.LogLevel;
 import static mule.MuleModel.Logger;
@@ -199,6 +199,7 @@ public class MuleToBalConverter {
         }
 
         static class FlowInfo {
+
             final String flowName;
             private Context context;
             private PayloadVarInfo currentPayload;
@@ -229,6 +230,7 @@ public class MuleToBalConverter {
     static final PayloadVarInfo DEFAULT_PAYLOAD = new PayloadVarInfo("()", "null");
 
     public record PayloadVarInfo(String type, String nameReference) {
+
     }
 
     public static SyntaxTree convertStandaloneXMLFileToBallerina(String xmlFilePath) {
@@ -456,7 +458,7 @@ public class MuleToBalConverter {
 
         // gen init function
         ModuleTypeDef moduleTypeDef = data.sharedProjectData.contextTypeDefMap.get(Constants.CONTEXT_RECORD_TYPE);
-        ClosedRecordType contextRecord = (ClosedRecordType) moduleTypeDef.type();
+        RecordTypeDesc contextRecord = (RecordTypeDesc) moduleTypeDef.typeDesc();
         String recordInitValue = getRecordInitValue(data.sharedProjectData.contextTypeDefMap, contextRecord);
         List<Statement> initBody = Collections.singletonList(stmtFrom(
                 String.format("self.%s = %s;", Constants.CONTEXT_REFERENCE, recordInitValue)));
@@ -471,44 +473,44 @@ public class MuleToBalConverter {
 
     static void createContextInfoHoldingDataStructures(SharedProjectData sharedProjectData) {
         List<RecordField> contextRecFields = new ArrayList<>();
-        contextRecFields.add(new RecordField(BAL_ANYDATA_TYPE, "payload", false));
+        contextRecFields.add(new RecordField("payload", BAL_ANYDATA_TYPE, false));
 
         if (!sharedProjectData.flowVars.isEmpty()) {
-            contextRecFields.add(new RecordField(typeFrom(Constants.FLOW_VARS_TYPE), Constants.FLOW_VARS_REF, false));
+            contextRecFields.add(new RecordField(Constants.FLOW_VARS_REF, typeFrom(Constants.FLOW_VARS_TYPE), false));
             List<RecordField> flowVarRecFields = new ArrayList<>();
             for (SharedProjectData.TypeAndNamePair tnp : sharedProjectData.flowVars) {
-                flowVarRecFields.add(new RecordField(typeFrom(tnp.type), tnp.name, true));
+                flowVarRecFields.add(new RecordField(tnp.name, typeFrom(tnp.type), true));
             }
-            ClosedRecordType flowVarsRecord = new ClosedRecordType(flowVarRecFields);
-            sharedProjectData.contextTypeDefMap.put("FlowVars", new ModuleTypeDef(flowVarsRecord, "FlowVars"));
+            RecordTypeDesc flowVarsRecord = RecordTypeDesc.closedRecord(flowVarRecFields);
+            sharedProjectData.contextTypeDefMap.put("FlowVars", new ModuleTypeDef("FlowVars", flowVarsRecord));
         }
 
         if (!sharedProjectData.sessionVars.isEmpty()) {
-            contextRecFields.add(new RecordField(typeFrom(Constants.SESSION_VARS_TYPE), Constants.SESSION_VARS_REF,
+            contextRecFields.add(new RecordField(Constants.SESSION_VARS_REF, typeFrom(Constants.SESSION_VARS_TYPE),
                     false));
             List<RecordField> sessionVarRecFields = new ArrayList<>();
             for (SharedProjectData.TypeAndNamePair tnp : sharedProjectData.sessionVars) {
-                sessionVarRecFields.add(new RecordField(typeFrom(tnp.type), tnp.name, true));
+                sessionVarRecFields.add(new RecordField(tnp.name, typeFrom(tnp.type), true));
             }
-            ClosedRecordType sessionVarsRecord = new ClosedRecordType(sessionVarRecFields);
-            sharedProjectData.contextTypeDefMap.put("SessionVars", new ModuleTypeDef(sessionVarsRecord, "SessionVars"));
+            RecordTypeDesc sessionVarsRecord = RecordTypeDesc.closedRecord(sessionVarRecFields);
+            sharedProjectData.contextTypeDefMap.put("SessionVars", new ModuleTypeDef("SessionVars", sessionVarsRecord));
         }
 
         if (!sharedProjectData.inboundProperties.isEmpty()) {
-            contextRecFields.add(new RecordField(typeFrom(Constants.INBOUND_PROPERTIES_TYPE), "inboundProperties",
+            contextRecFields.add(new RecordField("inboundProperties", typeFrom(Constants.INBOUND_PROPERTIES_TYPE),
                     false));
             List<RecordField> inboundPropRecordFields = new ArrayList<>();
             for (SharedProjectData.TypeAndNamePair tnp : sharedProjectData.inboundProperties) {
-                inboundPropRecordFields.add(new RecordField(typeFrom(tnp.type), tnp.name, false));
+                inboundPropRecordFields.add(new RecordField(tnp.name, typeFrom(tnp.type), false));
             }
-            ClosedRecordType inboundPropertiesRecord = new ClosedRecordType(inboundPropRecordFields);
+            RecordTypeDesc inboundPropertiesRecord = RecordTypeDesc.closedRecord(inboundPropRecordFields);
             sharedProjectData.contextTypeDefMap.put(Constants.INBOUND_PROPERTIES_TYPE,
-                    new ModuleTypeDef(inboundPropertiesRecord, Constants.INBOUND_PROPERTIES_TYPE));
+                    new ModuleTypeDef(Constants.INBOUND_PROPERTIES_TYPE, inboundPropertiesRecord));
         }
 
-        ClosedRecordType contextRecord = new ClosedRecordType(contextRecFields);
-        sharedProjectData.contextTypeDefMap.put(Constants.CONTEXT_RECORD_TYPE, new ModuleTypeDef(contextRecord,
-                Constants.CONTEXT_RECORD_TYPE));
+        RecordTypeDesc contextRecord = RecordTypeDesc.closedRecord(contextRecFields);
+        sharedProjectData.contextTypeDefMap.put(Constants.CONTEXT_RECORD_TYPE, new ModuleTypeDef(
+                Constants.CONTEXT_RECORD_TYPE, contextRecord));
     }
 
     private static void genBalFuncForGlobalExceptionStrategy(Data data, MuleRecord muleRecord,
@@ -517,10 +519,10 @@ public class MuleToBalConverter {
         String name;
         if (muleRecord instanceof CatchExceptionStrategy catchExceptionStrategy) {
             name = catchExceptionStrategy.name();
-            body = getCatchExceptionBody(data, (CatchExceptionStrategy) muleRecord);
+            body = getCatchExceptionBody(data, catchExceptionStrategy);
         } else if (muleRecord instanceof ChoiceExceptionStrategy choiceExceptionStrategy) {
             name = choiceExceptionStrategy.name();
-            body = getChoiceExceptionBody(data, (ChoiceExceptionStrategy) muleRecord);
+            body = getChoiceExceptionBody(data, choiceExceptionStrategy);
         } else {
             throw new UnsupportedOperationException("exception strategy not supported");
         }
@@ -610,7 +612,7 @@ public class MuleToBalConverter {
         // Add body as a top level function
         functions.add(new Function(Optional.of("public"), invokeEndPointMethodName, Collections.singletonList(
                 new Parameter(Constants.CONTEXT_REFERENCE, typeFrom(Constants.CONTEXT_RECORD_TYPE))),
-                Optional.of(returnType),  new BlockFunctionBody(body)));
+                Optional.of(returnType), new BlockFunctionBody(body)));
 
         // Add service fields
         List<ObjectField> fields = Collections.singletonList(
@@ -926,13 +928,14 @@ public class MuleToBalConverter {
                     String methodName = String.format(Constants.FUNC_NAME_ENRICHER_TEMPLATE,
                             data.sharedProjectData.enricherFuncCount);
                     Function func = new Function(Optional.of("public"), methodName, Constants.FUNC_PARAMS_WITH_CONTEXT,
-                            Optional.of("string?"),  new BlockFunctionBody(enricherStmts));
+                            Optional.of("string?"), new BlockFunctionBody(enricherStmts));
                     data.functions.add(func);
 
                     enricherStmts.add(stmtFrom(String.format("return %s;", source)));
                     statementList.add(stmtFrom(String.format("%s = %s(%s.clone());", target,
                             String.format(Constants.FUNC_NAME_ENRICHER_TEMPLATE,
-                                    data.sharedProjectData.enricherFuncCount++), Constants.CONTEXT_REFERENCE)));
+                                    data.sharedProjectData.enricherFuncCount++),
+                            Constants.CONTEXT_REFERENCE)));
                 }
             }
             case CatchExceptionStrategy catchExceptionStrategy -> {
@@ -943,7 +946,7 @@ public class MuleToBalConverter {
             }
             case ChoiceExceptionStrategy choiceExceptionStrategy -> {
                 List<Statement> onFailBody = getChoiceExceptionBody(data, choiceExceptionStrategy);
-                TypeBindingPattern typeBindingPattern = new BallerinaModel.TypeBindingPattern(BAL_ERROR_TYPE, "e");
+                TypeBindingPattern typeBindingPattern = new TypeBindingPattern(BAL_ERROR_TYPE, "e");
                 OnFailClause onFailClause = new OnFailClause(onFailBody, typeBindingPattern);
                 DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
                 statementList.add(doStatement);
@@ -962,8 +965,8 @@ public class MuleToBalConverter {
             case Database database -> {
                 data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_SQL, Optional.empty()));
                 String streamConstraintType = Constants.GENERIC_RECORD_TYPE_REF;
-                data.typeDefMap.put(streamConstraintType, new ModuleTypeDef(typeFrom(Constants.GENERIC_RECORD_TYPE),
-                        streamConstraintType));
+                data.typeDefMap.put(streamConstraintType,
+                        new ModuleTypeDef(streamConstraintType, typeFrom(Constants.GENERIC_RECORD_TYPE)));
 
                 statementList.add(stmtFrom("\n\n// database operation\n"));
                 String dbQueryVarName = Constants.VAR_DB_QUERY_TEMPLATE
@@ -1070,25 +1073,14 @@ public class MuleToBalConverter {
         data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_LOG));
         String message = element.getAttribute("message");
         String level = element.getAttribute("level");
-        LogLevel logLevel;
-        switch (level) {
-            case "DEBUG" -> {
-                logLevel = LogLevel.DEBUG;
-            }
-            case "ERROR" -> {
-                logLevel = LogLevel.ERROR;
-            }
-            case "INFO" -> {
-                logLevel = LogLevel.INFO;
-            }
-            case "TRACE" -> {
-                logLevel = LogLevel.TRACE;
-            }
-            case "WARN" -> {
-                logLevel = LogLevel.WARN;
-            }
+        LogLevel logLevel = switch (level) {
+            case "DEBUG" -> LogLevel.DEBUG;
+            case "ERROR" -> LogLevel.ERROR;
+            case "INFO" -> LogLevel.INFO;
+            case "TRACE" -> LogLevel.TRACE;
+            case "WARN" -> LogLevel.WARN;
             default -> throw new IllegalStateException();
-        }
+        };
         return new Logger(message, logLevel);
     }
 
