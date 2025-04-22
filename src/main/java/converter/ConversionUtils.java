@@ -1,9 +1,11 @@
 package converter;
 
+import ballerina.BallerinaModel.TypeDesc.BallerinaType;
+import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc;
+import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import org.w3c.dom.Element;
 
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,11 +19,8 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import static ballerina.BallerinaModel.BallerinaType;
-import static ballerina.BallerinaModel.BallerinaExpression;
-import static ballerina.BallerinaModel.RecordField;
-import static ballerina.BallerinaModel.RecordType;
-import static ballerina.BallerinaModel.BallerinaStatement;
+import static ballerina.BallerinaModel.Expression.BallerinaExpression;
+import static ballerina.BallerinaModel.Statement.BallerinaStatement;
 
 public class ConversionUtils {
 
@@ -247,34 +246,27 @@ public class ConversionUtils {
         return sb.toString();
     }
 
-    public static String getRecordInitValue(RecordType recordType) {
-        List<String> requiredFields = new ArrayList<>();
-        for (RecordField recordField : recordType.recordFields()) {
-            if (!recordField.isOptional()) {
+    public static String getRecordInitValue(RecordTypeDesc recordType) {
+        String recordBody = recordType.fields().stream()
+            .filter(recordField -> !recordField.isOptional())
+            .map(recordField -> {
                 String value = getRequiredRecFieldDefaultValue(recordField);
-                requiredFields.add(String.format("%s : %s", recordField.name(), value));
-            }
-        }
-        String recordBody = String.join(",", requiredFields);
+                return String.format("%s : %s", recordField.name(), value);
+            })
+            .collect(java.util.stream.Collectors.joining(", "));
         return String.format("{ %s }", recordBody);
     }
 
     private static String getRequiredRecFieldDefaultValue(RecordField recordField) {
         assert !recordField.isOptional();
-        if (recordField.type().toString().equals("anydata")) {
-            return "()";
-        }
-
-        if (recordField.type().toString().equals("FlowVars") || recordField.type().toString().equals("SessionVars")) {
-            return "{}";
-        }
-
-        if (recordField.type().toString().equals("InboundProperties")) {
-            // TODO: handle non-http sources
-            return "{response: new}";
-        }
-
-        throw new IllegalStateException();
+        return switch (recordField.typeDesc().toString()) {
+            case "anydata" -> "()";
+            case "FlowVars", "SessionVars" -> "{}";
+            case "InboundProperties" ->
+                // TODO: handle non-http sources
+                "{response: new}";
+            default -> throw new IllegalStateException();
+        };
     }
 
     public static BallerinaExpression exprFrom(String expr) {
