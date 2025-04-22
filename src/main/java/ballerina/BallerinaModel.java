@@ -67,7 +67,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                         }
                         """.formatted(name)));
             }
-            sb.append("public type ").append(name).append(" ").append(typeDesc).append(";");
+            sb.append("public type %s %s;".formatted(name, typeDesc));
             return sb.toString();
         }
     }
@@ -259,7 +259,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                 sb.append("const ");
             }
             sb.append(type).append(" ").append(name);
-            expr.map(initExpr -> sb.append(" ").append("=").append(" ").append(initExpr));
+            expr.map(initExpr -> sb.append(" = ").append(initExpr));
             sb.append(";\n");
             return sb.toString();
         }
