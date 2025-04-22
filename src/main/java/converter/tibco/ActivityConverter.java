@@ -19,6 +19,7 @@
 package converter.tibco;
 
 import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.Expression.BallerinaExpression;
 import ballerina.BallerinaModel.Expression.Check;
 import ballerina.BallerinaModel.Expression.FunctionCall;
 import ballerina.BallerinaModel.Expression.Trap;
@@ -109,7 +110,7 @@ class ActivityConverter {
                 // TODO: set the body correctly
                 VarDeclStatment errorValue = new VarDeclStatment(ERROR,
                                 cx.getAnnonVarName(),
-                        new BallerinaModel.Expression.BallerinaExpression("error(\"TODO: create error value\")"));
+                        new BallerinaExpression("error(\"TODO: create error value\")"));
                 body.add(errorValue);
                 body.add(new BallerinaModel.Statement.BallerinaStatement("panic " + errorValue.varName() + ";"));
 
@@ -328,31 +329,43 @@ class ActivityConverter {
                         ActivityContext cx,
                         BallerinaModel.Expression.VariableReference configVar,
                         TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.HTTPSend httpSend) {
-                String parseFn = cx.getParseHttpConfigFunction();
                 List<BallerinaModel.Statement> body = new ArrayList<>();
-                BallerinaModel.TypeDesc.TypeReference httpConfigType = cx.getHttpConfigType();
-                BallerinaModel.Expression.FunctionCall parseCall = new BallerinaModel.Expression.FunctionCall(parseFn,
-                                new String[] { configVar.varName() });
-                VarDeclStatment configVarDecl = new VarDeclStatment(httpConfigType,
-                                cx.getAnnonVarName(), parseCall);
-                body.add(configVarDecl);
                 BallerinaModel.Expression.VariableReference client = cx.client(httpSend.httpClientResource());
+                VarDeclStatment method = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                        new BallerinaExpression("(%s/**/<Method>[0]).data()".formatted(configVar.varName())));
+                body.add(method);
 
-                String httpCallFnName = cx.processContext.projectContext.getHttpCallFunction();
-                BallerinaModel.Expression.FunctionCall httpCallFn = new BallerinaModel.Expression.FunctionCall(
-                                httpCallFnName, List.of(configVar, client));
+                VarDeclStatment requestURI = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                        new BallerinaExpression("(%s/**/<RequestURI>[0]).data()".formatted(configVar.varName())));
+                body.add(requestURI);
+                // TODO: how to get map<json> from xml?
+//                VarDeclStatment headers = new VarDeclStatment(JSON, cx.getAnnonVarName(),
+//                        new BallerinaExpression("%s/**/<Headers>[0]".formatted(configVar.varName())));
+//                body.add(headers);
 
-                VarDeclStatment responseDecl = new VarDeclStatment(JSON,
-                                cx.getAnnonVarName(),
-                                new BallerinaModel.Expression.Check(httpCallFn));
-                body.add(responseDecl);
+                VarDeclStatment result = new VarDeclStatment(JSON, cx.getAnnonVarName(), new BallerinaExpression("()"));
+                body.add(result);
 
-                VarDeclStatment resultDecl = convertJSONResponseToXML(cx, responseDecl);
+                body.add(new BallerinaModel.Statement.BallerinaStatement("""
+                        match %1$s {
+                            "GET" => {
+                                %2$s = check %3$s->get(%4$s);
+                            }
+                            "POST" => {
+                                json postData = (var1/**/<PostData>[0]).data();
+                                %2$s = check %3$s->post(%4$s, postData);
+                            }
+                            _ => {
+                                panic error("Unsupported method: " + %1$s);
+                            }
+                        }
+                        """.formatted(method.varName(), result.varName(), client.varName(), requestURI.varName())));
+
+                VarDeclStatment resultDecl = convertJSONResponseToXML(cx, result);
                 body.add(resultDecl);
-                BallerinaModel.Expression.VariableReference result = new BallerinaModel.Expression.VariableReference(
-                                resultDecl.varName());
 
-                return new ActivityExtensionConfigConversion(body, result);
+                return new ActivityExtensionConfigConversion(body, new BallerinaModel.Expression.VariableReference(
+                        resultDecl.varName()));
         }
 
         private static @NotNull VarDeclStatment convertJSONResponseToXML(ActivityContext cx,

@@ -58,14 +58,6 @@ public class ActivityContext {
         return new BallerinaModel.TypeDesc.UnionTypeDesc(List.of(XML, ERROR));
     }
 
-    public String getParseHttpConfigFunction() {
-        return processContext.getParseHttpConfigFunction();
-    }
-
-    public BallerinaModel.TypeDesc.TypeReference getHttpConfigType() {
-        return processContext.getHttpConfigType();
-    }
-
     public BallerinaModel.Expression.VariableReference addConfigurableVariable(
             BallerinaModel.TypeDesc td, String name) {
         return processContext.addConfigurableVariable(td, name);

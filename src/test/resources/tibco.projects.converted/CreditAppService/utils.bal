@@ -19,10 +19,6 @@ function convertToGiveNewSchemaNameHere(xml input) returns GiveNewSchemaNameHere
     return checkpanic xmldata:parseAsType(input);
 }
 
-function convertToHTTPRequestConfig(xml input) returns HTTPRequestConfig {
-    return checkpanic xmldata:parseAsType(input);
-}
-
 function convertToSuccessSchema(xml input) returns SuccessSchema {
     return checkpanic xmldata:parseAsType(input);
 }
@@ -39,34 +35,4 @@ function addToContext(map<xml> context, string varName, xml value) {
     xml children = value/*;
     xml transformed = xml `<root>${children}</root>`;
     context[varName] = transformed;
-}
-
-function getRequestPath(HTTPRequestConfig config) returns string {
-    string base = config.RequestURI;
-    if (config.parameters.length() == 0) {
-        return base;
-    }
-    return base + "?" + "&".'join(...from string key in config.parameters.keys()
-        select key + "=" + config.parameters.get(key));
-}
-
-function httpCall(HTTPRequestConfig config, http:Client 'client) returns json|error {
-    string requestPath = getRequestPath(config);
-    match config.Method {
-        "GET" => {
-            return checkpanic 'client->get(requestPath, config.Headers);
-        }
-        "POST" => {
-            return checkpanic 'client->post(requestPath, config.PostData, config.Headers);
-        }
-        "PUT" => {
-            return checkpanic 'client->put(requestPath, config.PostData, config.Headers);
-        }
-        "DELETE" => {
-            return checkpanic 'client->delete(requestPath, config.Headers);
-        }
-        _ => {
-            return error("Unsupported HTTP method: " + config.Method);
-        }
-    }
 }

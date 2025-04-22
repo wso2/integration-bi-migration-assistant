@@ -208,14 +208,6 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getJsonToXMLFunction();
     }
 
-    public String getParseHttpConfigFunction() {
-        return projectContext.getParseHttpConfigFunction();
-    }
-
-    public BallerinaModel.TypeDesc.TypeReference getHttpConfigType() {
-        return projectContext.getHttpConfigType();
-    }
-
     public BallerinaModel.Expression.VariableReference contextVarRef() {
         return new BallerinaModel.Expression.VariableReference(ConversionUtils.Constants.CONTEXT_VAR_NAME);
     }

@@ -19,19 +19,6 @@
 package converter.tibco;
 
 public enum Intrinsics {
-    CREATE_HTTP_REQUEST_PATH_FROM_CONFIG(
-            "getRequestPath",
-            """
-                    function getRequestPath(HTTPRequestConfig config) returns string {
-                        string base = config.RequestURI;
-                        if (config.parameters.length() == 0) {
-                            return base;
-                        }
-                        return base + "?" + "&".'join(...from string key in config.parameters.keys()
-                            select key + "=" + config.parameters.get(key));
-                    }
-                    """
-    ),
     ADD_TO_CONTEXT(
             "addToContext",
             """
@@ -74,52 +61,6 @@ public enum Intrinsics {
                     function test(xml input, string xpath) returns boolean {
                         // TODO: support XPath
                         return false;
-                    }
-                    """
-    ),
-    HTTP_CALL(
-            "httpCall",
-            """
-                    function httpCall(HTTPRequestConfig config, http:Client 'client) returns json|error {
-                        string requestPath = getRequestPath(config);
-                        match config.Method {
-                            "GET" => {
-                                return checkpanic 'client->get(requestPath, config.Headers);
-                            }
-                            "POST" => {
-                                return checkpanic 'client->post(requestPath, config.PostData, config.Headers);
-                            }
-                            "PUT" => {
-                                return checkpanic 'client->put(requestPath, config.PostData, config.Headers);
-                            }
-                            "DELETE" => {
-                                return checkpanic 'client->delete(requestPath, config.Headers);
-                            }
-                            _ => {
-                                return error("Unsupported HTTP method: " + config.Method);
-                            }
-                        }
-                    }
-                    """
-
-    ),
-    HANDLE_INVOKE(
-            "handleInvoke",
-            """
-                    function handleInvoke(string baseUrl, string path, string method, anydata payload)
-                           returns json|error {
-                        http:Client 'client = check new (baseUrl);
-                        match method {
-                            "post" => {
-                                return check 'client->post(path, payload);
-                            }
-                            "put" => {
-                                return check 'client->put(path, payload);
-                            }
-                            _ => {
-                                return error("Unsupported HTTP method: " + method);
-                            }
-                        }
                     }
                     """
     ),

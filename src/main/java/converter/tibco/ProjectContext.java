@@ -62,7 +62,6 @@ public class ProjectContext {
     private final Map<String, BallerinaModel.Expression.VariableReference> dbClients = new HashMap<>();
     private String toXMLFunction = null;
     private String jsonToXMLFunction = null;
-    private String toHttpConfigFunction = null;
     private String logFunction = null;
     private int nextPort = 8080;
     private int typeCount = 0;
@@ -126,14 +125,6 @@ public class ProjectContext {
         return jsonToXMLFunction;
     }
 
-    String getParseHttpConfigFunction() {
-        if (toHttpConfigFunction == null) {
-            BallerinaModel.TypeDesc targetType = getHttpConfigType();
-            toHttpConfigFunction = createConvertToTypeFunction(targetType);
-        }
-        return toHttpConfigFunction;
-    }
-
     BallerinaModel.TypeDesc getFileWriteConfigType() {
         return getTypeByName("WriteActivityInputTextClass", typeCx);
     }
@@ -151,44 +142,6 @@ public class ProjectContext {
         utilityIntrinsics.add(intrinsic);
         logFunction = intrinsic.name;
         return logFunction;
-    }
-
-    // TODO: We can get rid of this with an equivalent type similar to file types
-    BallerinaModel.TypeDesc.TypeReference getHttpConfigType() {
-        // type HTTPRequestConfig record {
-        // string Method;
-        // string RequestURI;
-        // json PostData = "";
-        // map<string> Headers = {};
-        // map<string> parameters = {};
-        // };
-        String httpConfigTy = "HTTPRequestConfig";
-        if (typeCx.moduleTypeDefs.containsKey(httpConfigTy)) {
-            return new BallerinaModel.TypeDesc.TypeReference(httpConfigTy);
-        }
-        BallerinaModel.ModuleTypeDef httpConfigType = new BallerinaModel.ModuleTypeDef(httpConfigTy,
-                new BallerinaModel.TypeDesc.RecordTypeDesc(
-                        List.of(
-                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("Method", STRING),
-                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("RequestURI", STRING),
-                                // TODO: handle put
-                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("PostData", JSON,
-                                        new BallerinaModel.Expression.StringConstant("")),
-                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("Headers",
-                                        new BallerinaModel.TypeDesc.MapTypeDesc(STRING),
-                                        new BallerinaModel.Expression.MappingConstructor(List.of())),
-                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("parameters",
-                                        new BallerinaModel.TypeDesc.MapTypeDesc(STRING),
-                                        new BallerinaModel.Expression.MappingConstructor(List.of())))));
-        typeCx.moduleTypeDefs.put(httpConfigTy, Optional.of(httpConfigType));
-        return new BallerinaModel.TypeDesc.TypeReference(httpConfigTy);
-    }
-
-    public String getHttpCallFunction() {
-        utilityIntrinsics.add(Intrinsics.HTTP_CALL);
-        utilityIntrinsics.add(Intrinsics.CREATE_HTTP_REQUEST_PATH_FROM_CONFIG);
-        importLibraryIfNeededToUtility(HTTP);
-        return Intrinsics.HTTP_CALL.name;
     }
 
     private void importLibraryIfNeededToUtility(Library library) {
