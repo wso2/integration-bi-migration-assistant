@@ -30,6 +30,7 @@ import static ballerina.BallerinaModel.Listener;
 import static ballerina.BallerinaModel.Module;
 import static ballerina.BallerinaModel.ModuleTypeDef;
 import static ballerina.BallerinaModel.ModuleVar;
+import static ballerina.BallerinaModel.ObjectField;
 import static ballerina.BallerinaModel.Parameter;
 import static ballerina.BallerinaModel.Resource;
 import static ballerina.BallerinaModel.Service;
@@ -85,7 +86,7 @@ public class CodeGenerator {
                         String.format("service %s on %s { }", service.basePath(), listenerRefs));
 
                 List<Node> members = new ArrayList<>();
-                for (var field : service.fields()) {
+                for (ObjectField field : service.fields()) {
                     ObjectFieldNode objectFieldNode = (ObjectFieldNode) NodeParser.parseObjectMember(
                             String.format("%s %s;", field.type(), field.name()));
                     members.add(objectFieldNode);
@@ -162,7 +163,7 @@ public class CodeGenerator {
         if (function.body() instanceof BallerinaModel.BlockFunctionBody) {
             functionDefinitionNode = (FunctionDefinitionNode) NodeParser.parseObjectMember(
                     String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(
-                                    function.visibilityQualifier()), function.functionName(), funcParamString,
+                            function.visibilityQualifier()), function.functionName(), funcParamString,
                             getReturnTypeDescriptor(function.returnType())));
             functionDefinitionNode = generateBallerinaFunction(functionDefinitionNode, function.body());
         } else {
@@ -225,7 +226,7 @@ public class CodeGenerator {
         return syntaxTree;
     }
 
-    public static SyntaxTree formatSyntaxTree(SyntaxTree syntaxTree) {
+    private static SyntaxTree formatSyntaxTree(SyntaxTree syntaxTree) {
         try {
             syntaxTree = Formatter.format(syntaxTree);
         } catch (FormatterException e) {
