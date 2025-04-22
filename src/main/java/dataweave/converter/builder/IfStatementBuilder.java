@@ -2,6 +2,7 @@ package dataweave.converter.builder;
 
 import ballerina.BallerinaModel;
 import ballerina.BallerinaModel.Statement.ElseIfClause;
+import ballerina.BallerinaModel.Statement.IfElseStatement;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,11 +32,11 @@ public class IfStatementBuilder extends StatementBuilder {
         this.elseBody.add(statement);
     }
 
-    public BallerinaModel.Statement.IfElseStatement build() {
-        return new BallerinaModel.Statement.IfElseStatement(ifCondition, ifBody, elseIfClauses, elseBody);
+    public IfElseStatement build() {
+        return new IfElseStatement(ifCondition, ifBody, elseIfClauses, elseBody);
     }
 
-    public BallerinaModel.Statement.IfElseStatement getStatement() {
-        return new BallerinaModel.Statement.IfElseStatement(ifCondition, ifBody, elseIfClauses, elseBody);
+    public IfElseStatement getStatement() {
+        return new IfElseStatement(ifCondition, ifBody, elseIfClauses, elseBody);
     }
 }

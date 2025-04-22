@@ -1,11 +1,13 @@
 package converter;
 
 import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.ObjectField;
 import ballerina.BallerinaModel.OnFailClause;
 import ballerina.BallerinaModel.Statement.DoStatement;
 import ballerina.BallerinaModel.Statement.ElseIfClause;
 import ballerina.BallerinaModel.Statement.NamedWorkerDecl;
 import ballerina.BallerinaModel.TypeBindingPattern;
+import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc;
 import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import ballerina.CodeGenerator;
 import converter.MuleXMLNavigator.MuleElement;
@@ -453,8 +455,7 @@ public class MuleToBalConverter {
 
         // gen init function
         ModuleTypeDef moduleTypeDef = data.sharedProjectData.contextTypeDefMap.get(Constants.CONTEXT_RECORD_TYPE);
-        BallerinaModel.TypeDesc.RecordTypeDesc contextRecord = (BallerinaModel.TypeDesc.RecordTypeDesc) moduleTypeDef
-                .typeDesc();
+        RecordTypeDesc contextRecord = (RecordTypeDesc) moduleTypeDef.typeDesc();
         String recordInitValue = getRecordInitValue(contextRecord);
         List<Statement> initBody = Collections.singletonList(stmtFrom(
                 String.format("self.%s = %s;", Constants.CONTEXT_REFERENCE, recordInitValue)));
@@ -477,8 +478,7 @@ public class MuleToBalConverter {
             for (SharedProjectData.TypeAndNamePair tnp : sharedProjectData.flowVars) {
                 flowVarRecFields.add(new RecordField(tnp.name, typeFrom(tnp.type), true));
             }
-            BallerinaModel.TypeDesc.RecordTypeDesc flowVarsRecord = BallerinaModel.TypeDesc.RecordTypeDesc
-                    .closedRecord(flowVarRecFields);
+            RecordTypeDesc flowVarsRecord = RecordTypeDesc.closedRecord(flowVarRecFields);
             sharedProjectData.contextTypeDefMap.put("FlowVars", new ModuleTypeDef("FlowVars", flowVarsRecord));
         }
 
@@ -489,8 +489,7 @@ public class MuleToBalConverter {
             for (SharedProjectData.TypeAndNamePair tnp : sharedProjectData.sessionVars) {
                 sessionVarRecFields.add(new RecordField(tnp.name, typeFrom(tnp.type), true));
             }
-            BallerinaModel.TypeDesc.RecordTypeDesc sessionVarsRecord = BallerinaModel.TypeDesc.RecordTypeDesc
-                    .closedRecord(sessionVarRecFields);
+            RecordTypeDesc sessionVarsRecord = RecordTypeDesc.closedRecord(sessionVarRecFields);
             sharedProjectData.contextTypeDefMap.put("SessionVars", new ModuleTypeDef("SessionVars", sessionVarsRecord));
         }
 
@@ -501,14 +500,12 @@ public class MuleToBalConverter {
             for (SharedProjectData.TypeAndNamePair tnp : sharedProjectData.inboundProperties) {
                 inboundPropRecordFields.add(new RecordField(tnp.name, typeFrom(tnp.type), false));
             }
-            BallerinaModel.TypeDesc.RecordTypeDesc inboundPropertiesRecord = BallerinaModel.TypeDesc.RecordTypeDesc
-                    .closedRecord(inboundPropRecordFields);
+            RecordTypeDesc inboundPropertiesRecord = RecordTypeDesc.closedRecord(inboundPropRecordFields);
             sharedProjectData.contextTypeDefMap.put(Constants.INBOUND_PROPERTIES_TYPE,
                     new ModuleTypeDef(Constants.INBOUND_PROPERTIES_TYPE, inboundPropertiesRecord));
         }
 
-        BallerinaModel.TypeDesc.RecordTypeDesc contextRecord = BallerinaModel.TypeDesc.RecordTypeDesc
-                .closedRecord(contextRecFields);
+        RecordTypeDesc contextRecord = RecordTypeDesc.closedRecord(contextRecFields);
         sharedProjectData.contextTypeDefMap.put(Constants.CONTEXT_RECORD_TYPE, new ModuleTypeDef(
                 Constants.CONTEXT_RECORD_TYPE, contextRecord));
     }
@@ -519,10 +516,10 @@ public class MuleToBalConverter {
         String name;
         if (muleRecord instanceof CatchExceptionStrategy catchExceptionStrategy) {
             name = catchExceptionStrategy.name();
-            body = getCatchExceptionBody(data, (CatchExceptionStrategy) muleRecord);
+            body = getCatchExceptionBody(data, catchExceptionStrategy);
         } else if (muleRecord instanceof ChoiceExceptionStrategy choiceExceptionStrategy) {
             name = choiceExceptionStrategy.name();
-            body = getChoiceExceptionBody(data, (ChoiceExceptionStrategy) muleRecord);
+            body = getChoiceExceptionBody(data, choiceExceptionStrategy);
         } else {
             throw new UnsupportedOperationException("exception strategy not supported");
         }

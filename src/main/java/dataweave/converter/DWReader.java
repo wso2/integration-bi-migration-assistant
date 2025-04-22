@@ -1,6 +1,7 @@
 package dataweave.converter;
 
 import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.Statement.BallerinaStatement;
 import converter.Constants;
 import converter.ConversionUtils;
 import converter.MuleToBalConverter;
@@ -99,7 +100,7 @@ public class DWReader {
                     context.setMimeType(((MuleModel.InputPayloadElement) child).mimeType());
                     break;
                 default:
-                    statementList.add(new BallerinaModel.Statement.BallerinaStatement(
+                    statementList.add(new BallerinaStatement(
                             ConversionUtils.wrapElementInUnsupportedBlockComment(child.toString())));
                     break;
             }
@@ -112,7 +113,7 @@ public class DWReader {
                                            String varName,
                                            List<BallerinaModel.Statement> statementList) {
         String funcStatement = getFunctionStatement(script, resourcePath, context, data, varName);
-        statementList.add(new BallerinaModel.Statement.BallerinaStatement(funcStatement));
+        statementList.add(new BallerinaStatement(funcStatement));
         context.clearScript();
     }
 

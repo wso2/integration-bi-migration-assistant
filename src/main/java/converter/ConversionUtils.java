@@ -1,10 +1,11 @@
 package converter;
 
-import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.TypeDesc.BallerinaType;
+import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc;
+import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import org.w3c.dom.Element;
 
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -246,36 +247,28 @@ public class ConversionUtils {
         return sb.toString();
     }
 
-    public static String getRecordInitValue(BallerinaModel.TypeDesc.RecordTypeDesc recordType) {
-        List<String> requiredFields = new ArrayList<>();
-        for (var recordField : recordType.fields()) {
-            if (!recordField.isOptional()) {
+    public static String getRecordInitValue(RecordTypeDesc recordType) {
+        String recordBody = recordType.fields().stream()
+            .filter(recordField -> !recordField.isOptional())
+            .map(recordField -> {
                 String value = getRequiredRecFieldDefaultValue(recordField);
-                requiredFields.add(String.format("%s : %s", recordField.name(), value));
-            }
-        }
-        String recordBody = String.join(",", requiredFields);
+                return String.format("%s : %s", recordField.name(), value);
+            })
+            .collect(java.util.stream.Collectors.joining(", "));
         return String.format("{ %s }", recordBody);
     }
 
     private static String getRequiredRecFieldDefaultValue(
             BallerinaModel.TypeDesc.RecordTypeDesc.RecordField recordField) {
         assert !recordField.isOptional();
-        if (recordField.typeDesc().toString().equals("anydata")) {
-            return "()";
-        }
-
-        if (recordField.typeDesc().toString().equals("FlowVars") ||
-                recordField.typeDesc().toString().equals("SessionVars")) {
-            return "{}";
-        }
-
-        if (recordField.typeDesc().toString().equals("InboundProperties")) {
-            // TODO: handle non-http sources
-            return "{response: new}";
-        }
-
-        throw new IllegalStateException();
+        return switch (recordField.typeDesc().toString()) {
+            case "anydata" -> "()";
+            case "FlowVars", "SessionVars" -> "{}";
+            case "InboundProperties" ->
+                // TODO: handle non-http sources
+                "{response: new}";
+            default -> throw new IllegalStateException();
+        };
     }
 
     public static BallerinaExpression exprFrom(String expr) {

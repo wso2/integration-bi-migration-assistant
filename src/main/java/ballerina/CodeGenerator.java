@@ -133,8 +133,7 @@ public class CodeGenerator {
             }
 
             for (String f : textDocument.intrinsics()) {
-                ModuleMemberDeclarationNode fd = NodeParser.parseModuleMemberDeclaration(f);
-                moduleMembers.add(fd);
+                moduleMembers.add(NodeParser.parseModuleMemberDeclaration(f));
             }
 
             NodeList<ImportDeclarationNode> importDecls = NodeFactory.createNodeList(imports);
@@ -163,7 +162,7 @@ public class CodeGenerator {
         if (function.body() instanceof BallerinaModel.BlockFunctionBody) {
             functionDefinitionNode = (FunctionDefinitionNode) NodeParser.parseObjectMember(
                     String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(
-                            function.visibilityQualifier()), function.functionName(), funcParamString,
+                                    function.visibilityQualifier()), function.functionName(), funcParamString,
                             getReturnTypeDescriptor(function.returnType())));
             functionDefinitionNode = generateBallerinaFunction(functionDefinitionNode, function.body());
         } else {

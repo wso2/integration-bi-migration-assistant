@@ -1,6 +1,7 @@
 package dataweave.converter;
 
 import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.Statement.BallerinaStatement;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,11 +26,9 @@ public class DWContext {
 
     public void clearScript() {
         if (!this.currentScriptContext.errors.isEmpty() && !this.currentScriptContext.visited) {
-            this.currentScriptContext.statements.add(new BallerinaModel.Statement.BallerinaStatement(
-                    DWUtils.PARSER_ERROR_COMMENT));
+            this.currentScriptContext.statements.add(new BallerinaStatement(DWUtils.PARSER_ERROR_COMMENT));
             for (String error : this.currentScriptContext.errors) {
-                this.currentScriptContext.statements.add(new BallerinaModel.Statement.BallerinaStatement("// " + error
-                        + "\n"));
+                this.currentScriptContext.statements.add(new BallerinaStatement("// " + error + "\n"));
             }
             this.currentScriptContext.visited = true;
         }
@@ -40,8 +39,8 @@ public class DWContext {
         if (this.currentScriptContext.exprBuilder.isEmpty()) {
             return;
         }
-        this.currentScriptContext.statements.add(new BallerinaModel.Statement.BallerinaStatement("return " +
-                (this.currentScriptContext.exprBuilder + ";")));
+        this.currentScriptContext.statements.add(
+                new BallerinaStatement("return " + (this.currentScriptContext.exprBuilder + ";")));
         this.currentScriptContext.exprBuilder = new StringBuilder();
     }
 
@@ -68,12 +67,12 @@ public class DWContext {
     }
 
     public void addUnsupportedComment(String context) {
-        this.currentScriptContext.statements.add(new BallerinaModel.Statement.BallerinaStatement(
+        this.currentScriptContext.statements.add(new BallerinaStatement(
                 String.format(DWUtils.UNSUPPORTED_DW_NODE, context)));
     }
 
     public void addUnsupportedCommentWithType(String context, String type) {
-        this.currentScriptContext.statements.add(new BallerinaModel.Statement.BallerinaStatement(
+        this.currentScriptContext.statements.add(new BallerinaStatement(
                 String.format(DWUtils.UNSUPPORTED_DW_NODE_WITH_TYPE, context, type)));
     }
 

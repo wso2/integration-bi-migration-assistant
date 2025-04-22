@@ -22,13 +22,13 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record TextDocument(String documentName, List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
-            List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
-            List<Function> functions, List<String> Comments, List<String> intrinsics,
-            List<ModuleMemberDeclarationNode> astNodes) {
+                               List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
+                               List<Function> functions, List<String> Comments, List<String> intrinsics,
+                               List<ModuleMemberDeclarationNode> astNodes) {
 
         public TextDocument(String documentName, List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
-                List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
-                List<Function> functions, List<String> comments) {
+                            List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
+                            List<Function> functions, List<String> comments) {
             this(documentName, imports, moduleTypeDefs, moduleVars, listeners, services, functions, comments,
                     List.of(), List.of());
         }
@@ -67,7 +67,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                         }
                         """.formatted(name)));
             }
-            sb.append("public type ").append(name).append(" ").append(typeDesc).append(";");
+            sb.append("public type %s %s;".formatted(name, typeDesc));
             return sb.toString();
         }
     }
@@ -135,7 +135,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
 
             public record RecordField(String name, TypeDesc typeDesc, boolean isOptional,
-                    Optional<Expression> defaultValue, Optional<Namespace> namespace) {
+                                      Optional<Expression> defaultValue, Optional<Namespace> namespace) {
 
                 public RecordField(String name, TypeDesc typeDesc, Expression defaultValue) {
                     this(name, typeDesc, false, Optional.of(defaultValue), Optional.empty());
@@ -222,7 +222,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record ModuleVar(String name, String type, Optional<Expression> expr, boolean isConstant,
-            boolean isConfigurable) {
+                            boolean isConfigurable) {
 
         public ModuleVar {
             assert !isConfigurable || isConstant;
@@ -259,7 +259,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                 sb.append("const ");
             }
             sb.append(type).append(" ").append(name);
-            expr.map(initExpr -> sb.append(" ").append("=").append(" ").append(initExpr));
+            expr.map(initExpr -> sb.append(" = ").append(initExpr));
             sb.append(";\n");
             return sb.toString();
         }
@@ -290,10 +290,10 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record Function(Optional<String> visibilityQualifier, String functionName, List<Parameter> parameters,
-            Optional<String> returnType, FunctionBody body) {
+                           Optional<String> returnType, FunctionBody body) {
 
         public Function(String funcName, List<Parameter> parameters, TypeDesc returnType,
-                List<Statement> body) {
+                        List<Statement> body) {
             this(Optional.empty(), funcName, parameters, Optional.of(returnType.toString()),
                     new BlockFunctionBody(body));
         }
@@ -593,7 +593,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
 
         record NamedWorkerDecl(String name, Optional<TypeDesc> returnType,
-                                      List<Statement> statements) implements Statement {
+                               List<Statement> statements) implements Statement {
             @Override
             public String toString() {
                 return String.format("worker %s returns %s { %s }", name, returnType.map(Object::toString).orElse(""),
