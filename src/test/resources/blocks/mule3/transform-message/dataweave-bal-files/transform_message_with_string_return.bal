@@ -4,6 +4,7 @@ public type Context record {|
 
 public function sampleFlow(Context ctx) {
     string _dwOutput_ = _dwMethod0_();
+    ctx.payload = _dwOutput_;
 }
 
 function _dwMethod0_() returns string {

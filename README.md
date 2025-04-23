@@ -135,4 +135,3 @@ The migration tool currently supports the following DataWeave transformations an
 ## Sample Input and Output
 
 For detailed XML input and ballerina output samples, please refer to [MULE_COMPONENT_SAMPLES.md](samples/MULE_COMPONENT_SAMPLES.md) and [MULE_DATAWEAVE_SAMPLES.md](samples/MULE_DATAWEAVE_SAMPLES.md).
-

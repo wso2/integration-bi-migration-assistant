@@ -4,6 +4,7 @@ public type Context record {|
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
+    ctx.payload = _dwOutput_;
 }
 
 function _dwMethod0_(json payload) returns json {

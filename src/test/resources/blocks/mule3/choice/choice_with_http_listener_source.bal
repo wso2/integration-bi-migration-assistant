@@ -7,6 +7,8 @@ public type FlowVars record {|
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -21,24 +23,27 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), flowVars: {}, inboundProperties: {response: new}};
+        self.ctx = {payload: (), flowVars: {}, inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
+    }
+}
+
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    ctx.flowVars.marks = 73;
+    if ctx.flowVars.marks > 75 {
+        log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is A.`);
+    } else if ctx.flowVars.marks > 65 {
+        log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is B.`);
+    } else if ctx.flowVars.marks > 55 {
+        log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is C.`);
+    } else {
+        log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is F.`);
     }
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        ctx.flowVars.marks = 73;
-        if ctx.flowVars.marks > 75 {
-            log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is A.`);
-        } else if ctx.flowVars.marks > 65 {
-            log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is B.`);
-        } else if ctx.flowVars.marks > 55 {
-            log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is C.`);
-        } else {
-            log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is F.`);
-        }
-        return ctx.inboundProperties.response;
-    }
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }

@@ -3,6 +3,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -16,19 +18,22 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        log:printInfo("xxx: logger invoked via http end point");
-        demoSub_Flow(ctx);
-        log:printInfo("xxx: logger after flow reference invoked");
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: logger invoked via http end point");
+    demoSub_Flow(ctx);
+    log:printInfo("xxx: logger after flow reference invoked");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 public function demoSub_Flow(Context ctx) {
@@ -37,5 +42,4 @@ public function demoSub_Flow(Context ctx) {
     // set payload
     string _payload0_ = "This is a sub flow set-payload call";
     ctx.payload = _payload0_;
-    ctx.inboundProperties.response.setPayload(_payload0_);
 }

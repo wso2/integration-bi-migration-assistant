@@ -197,9 +197,10 @@ public record MuleModel() {
         }
     }
 
-    public record HTTPRequestConfig(Kind kind, String name, String host, String port) implements MuleRecord {
-        public HTTPRequestConfig(String name, String host, String port) {
-            this(Kind.HTTP_REQUEST_CONFIG, name, host, port);
+    public record HTTPRequestConfig(Kind kind, String name, String host, String port,
+                                    String protocol) implements MuleRecord {
+        public HTTPRequestConfig(String name, String host, String port, String protocol) {
+            this(Kind.HTTP_REQUEST_CONFIG, name, host, port, protocol);
         }
     }
 

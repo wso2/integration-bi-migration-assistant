@@ -128,6 +128,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -141,22 +143,25 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
+    }
+}
+
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    do {
+        log:printInfo("xxx: logger invoked via http end point");
+    } on fail {
+        log:printInfo("xxx: exception caught");
+        log:printInfo("xxx: end of catch flow reached");
     }
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        do {
-            log:printInfo("xxx: logger invoked via http end point");
-        } on fail {
-            log:printInfo("xxx: exception caught");
-            log:printInfo("xxx: end of catch flow reached");
-        }
-        return ctx.inboundProperties.response;
-    }
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -262,6 +267,8 @@ public type FlowVars record {|
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -276,26 +283,29 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), flowVars: {}, inboundProperties: {response: new}};
+        self.ctx = {payload: (), flowVars: {}, inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
+    }
+}
+
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    ctx.flowVars.marks = 73;
+    if ctx.flowVars.marks > 75 {
+        log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is A.`);
+    } else if ctx.flowVars.marks > 65 {
+        log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is B.`);
+    } else if ctx.flowVars.marks > 55 {
+        log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is C.`);
+    } else {
+        log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is F.`);
     }
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        ctx.flowVars.marks = 73;
-        if ctx.flowVars.marks > 75 {
-            log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is A.`);
-        } else if ctx.flowVars.marks > 65 {
-            log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is B.`);
-        } else if ctx.flowVars.marks > 55 {
-            log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is C.`);
-        } else {
-            log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is F.`);
-        }
-        return ctx.inboundProperties.response;
-    }
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -457,6 +467,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -470,27 +482,30 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        do {
-            log:printInfo("xxx: logger invoked via http end point");
-        } on fail error e {
-            if "condition1" {
-                log:printInfo("xxx: first catch condition invoked");
-            } else if "condition2" {
-                log:printInfo("xxx: second catch condition invoked");
-            } else {
-                log:printInfo("xxx: generic catch condition invoked");
-            }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    do {
+        log:printInfo("xxx: logger invoked via http end point");
+    } on fail error e {
+        if "condition1" {
+            log:printInfo("xxx: first catch condition invoked");
+        } else if "condition2" {
+            log:printInfo("xxx: second catch condition invoked");
+        } else {
+            log:printInfo("xxx: generic catch condition invoked");
         }
-        return ctx.inboundProperties.response;
     }
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -532,6 +547,8 @@ import ballerinax/mysql.driver as _;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -549,23 +566,26 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
-        // database operation
-        sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
-        stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
-        Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
-            select _iterator_;
-        ctx.inboundProperties.response.setPayload(_dbSelect0_.toString());
-        return ctx.inboundProperties.response;
-    }
+    // database operation
+    sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
+    stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
+    Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
+        select _iterator_;
+    ctx.payload = _dbSelect0_;
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -608,6 +628,8 @@ import ballerinax/mysql.driver as _;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -626,23 +648,26 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
-        // database operation
-        sql:ParameterizedQuery _dbQuery0_ = Template_Select_Query;
-        stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
-        Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
-            select _iterator_;
-        ctx.inboundProperties.response.setPayload(_dbSelect0_.toString());
-        return ctx.inboundProperties.response;
-    }
+    // database operation
+    sql:ParameterizedQuery _dbQuery0_ = Template_Select_Query;
+    stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
+    Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
+        select _iterator_;
+    ctx.payload = _dbSelect0_;
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -693,10 +718,8 @@ public function combineFlowVarsAndPayloadFlow(Context ctx) {
     // set payload
     string _payload0_ = "Welcome";
     ctx.payload = _payload0_;
-
     ctx.flowVars.name = "Alice";
     ctx.payload = "Hello " + ctx.flowVars.name;
-
     log:printInfo(string `Message: ${ctx.payload.toString()}`);
 }
 
@@ -732,6 +755,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -745,17 +770,20 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        log:printInfo("xxx: logger invoked via http end point");
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: logger invoked via http end point");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -793,6 +821,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -806,19 +836,22 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        log:printInfo("xxx: logger invoked via http end point");
-        demoPrivateFlow(ctx);
-        log:printInfo("xxx: end of main flow");
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: logger invoked via http end point");
+    demoPrivateFlow(ctx);
+    log:printInfo("xxx: end of main flow");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 public function demoPrivateFlow(Context ctx) {
@@ -857,6 +890,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -870,49 +905,60 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
 
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function post .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
 
-    resource function put .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function put .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
 
-    resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function delete .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
 
-    resource function patch .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function patch .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
 
-    resource function head .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function head .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
 
-    resource function options .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function options .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
 
-    resource function trace .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function trace .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
 
-    resource function connect .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function connect .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        log:printInfo("xxx: logger invoked");
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: logger invoked");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -945,6 +991,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -958,17 +1006,20 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function post .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        log:printInfo("xxx: logger invoked");
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: logger invoked");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -1001,6 +1052,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -1014,25 +1067,30 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
 
-    resource function post .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function post .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
 
-    resource function delete .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function delete .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        log:printInfo("xxx: logger invoked");
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: logger invoked");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -1064,6 +1122,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -1077,17 +1137,20 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get demo() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get demo(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        log:printInfo("xxx: logger invoked");
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: logger invoked");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -1119,6 +1182,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -1132,17 +1197,20 @@ service / on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        log:printInfo("xxx: logger invoked");
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: logger invoked");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -1174,6 +1242,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -1187,17 +1257,20 @@ service / on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get demo() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get demo(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        log:printInfo("xxx: logger invoked");
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: logger invoked");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -1229,6 +1302,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -1242,17 +1317,20 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        log:printInfo("xxx: logger invoked");
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: logger invoked");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -1284,6 +1362,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -1297,17 +1377,21 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get [string version]/demo/[string id]() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get [string version]/demo/[string id](http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.uriParams = {version, id};
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        log:printInfo("xxx: logger invoked");
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: logger invoked");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -1339,6 +1423,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -1352,17 +1438,20 @@ service /mule\-3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get v\-1/demo/main\-contract() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get v\-1/demo/main\-contract(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        log:printInfo("xxx: logger invoked");
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: logger invoked");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -1490,6 +1579,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -1503,22 +1594,25 @@ service /mule3 on HTTP_Listener_Config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
-        // http client request
-        http:Client HTTP_Request_Config = check new ("jsonplaceholder.typicode.com:80");
-        http:Response _clientResult0_ = check HTTP_Request_Config->/posts/latest.get();
-        ctx.payload = check _clientResult0_.getJsonPayload();
-        log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
-        return ctx.inboundProperties.response;
-    }
+    // http client request
+    http:Client HTTP_Request_Config = check new ("jsonplaceholder.typicode.com:80");
+    http:Response _clientResult0_ = check HTTP_Request_Config->/posts/latest.get();
+    ctx.payload = check _clientResult0_.getJsonPayload();
+    log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -1553,6 +1647,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -1566,18 +1662,21 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        log:printInfo("xxx: first logger invoked");
-        log:printInfo("xxx: second logger invoked");
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: first logger invoked");
+    log:printInfo("xxx: second logger invoked");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -1614,6 +1713,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -1627,21 +1728,24 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        log:printInfo("xxx: INFO level logger invoked");
-        log:printDebug("xxx: DEBUG level logger invoked");
-        log:printError("xxx: ERROR level logger invoked");
-        log:printWarn("xxx: WARN level logger invoked");
-        log:printInfo("xxx: TRACE level logger invoked");
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: INFO level logger invoked");
+    log:printDebug("xxx: DEBUG level logger invoked");
+    log:printError("xxx: ERROR level logger invoked");
+    log:printWarn("xxx: WARN level logger invoked");
+    log:printInfo("xxx: TRACE level logger invoked");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -1834,6 +1938,8 @@ import ballerinax/mysql.driver as _;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -1851,26 +1957,30 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
-        // database operation
-        sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
-        stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
-        Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
-            select _iterator_;
+    // database operation
+    sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
+    stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
+    Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
+        select _iterator_;
+    ctx.payload = _dbSelect0_;
 
-        // json transformation
-        json _to_json0_ = _dbSelect0_.toJson();
-        ctx.inboundProperties.response.setPayload(_to_json0_);
-        return ctx.inboundProperties.response;
-    }
+    // json transformation
+    json _to_json0_ = _dbSelect0_.toJson();
+    ctx.payload = _to_json0_;
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -1913,6 +2023,8 @@ import ballerinax/mysql.driver as _;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -1930,26 +2042,30 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
-        // database operation
-        sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
-        stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
-        Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
-            select _iterator_;
+    // database operation
+    sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
+    stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
+    Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
+        select _iterator_;
+    ctx.payload = _dbSelect0_;
 
-        // string transformation
-        string _to_string0_ = _dbSelect0_.toString();
-        ctx.inboundProperties.response.setPayload(_to_string0_);
-        return ctx.inboundProperties.response;
-    }
+    // string transformation
+    string _to_string0_ = _dbSelect0_.toString();
+    ctx.payload = _to_string0_;
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -2033,6 +2149,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -2046,21 +2164,24 @@ service / on httpConfig {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
+    }
+}
+
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    do {
+        log:printInfo("xxx: end of flow reached");
+    } on fail error e {
+        catch\-exception\-strategy(ctx, e);
     }
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        do {
-            log:printInfo("xxx: end of flow reached");
-        } on fail error e {
-            catch\-exception\-strategy(ctx, e);
-        }
-        return ctx.inboundProperties.response;
-    }
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 public function catch\-exception\-strategy(Context ctx, error e) {
@@ -2164,6 +2285,8 @@ public type SessionVars record {|
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -2178,25 +2301,27 @@ service /mule3 on HTTP_Config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), sessionVars: {}, inboundProperties: {response: new}};
+        self.ctx = {payload: (), sessionVars: {}, inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get session() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get session(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        ctx.sessionVars.sessionVarExample = "Initial Value";
-        log:printInfo(string `Session Variable (Initial): ${ctx.sessionVars.sessionVarExample.toString()}`);
-        ctx.sessionVars.sessionVarExample = "Modified Value";
-        log:printInfo(string `Session Variable (Modified): ${ctx.sessionVars.sessionVarExample.toString()}`);
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    ctx.sessionVars.sessionVarExample = "Initial Value";
+    log:printInfo(string `Session Variable (Initial): ${ctx.sessionVars.sessionVarExample.toString()}`);
+    ctx.sessionVars.sessionVarExample = "Modified Value";
+    log:printInfo(string `Session Variable (Modified): ${ctx.sessionVars.sessionVarExample.toString()}`);
 
-        // set payload
-        string _payload0_ = "{\"message\":\"Check logs for session variable values\"}";
-        ctx.payload = _payload0_;
-        ctx.inboundProperties.response.setPayload(_payload0_);
-        return ctx.inboundProperties.response;
-    }
+    // set payload
+    string _payload0_ = "{\"message\":\"Check logs for session variable values\"}";
+    ctx.payload = _payload0_;
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -2275,6 +2400,8 @@ import ballerina/http;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -2288,21 +2415,23 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
-        // set payload
-        string _payload0_ = "Hello world!";
-        ctx.payload = _payload0_;
-        ctx.inboundProperties.response.setPayload(_payload0_);
-        return ctx.inboundProperties.response;
-    }
+    // set payload
+    string _payload0_ = "Hello world!";
+    ctx.payload = _payload0_;
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -2336,6 +2465,8 @@ import ballerina/http;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -2349,29 +2480,31 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
-        // set payload
-        string _payload0_ = "First payload";
-        ctx.payload = _payload0_;
+    // set payload
+    string _payload0_ = "First payload";
+    ctx.payload = _payload0_;
 
-        // set payload
-        string _payload1_ = "Second payload";
-        ctx.payload = _payload1_;
+    // set payload
+    string _payload1_ = "Second payload";
+    ctx.payload = _payload1_;
 
-        // set payload
-        string _payload2_ = "Third payload";
-        ctx.payload = _payload2_;
-        ctx.inboundProperties.response.setPayload(_payload2_);
-        return ctx.inboundProperties.response;
-    }
+    // set payload
+    string _payload2_ = "Third payload";
+    ctx.payload = _payload2_;
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -2412,6 +2545,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -2425,19 +2560,22 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        log:printInfo("xxx: logger invoked via http end point");
-        demoSub_Flow(ctx);
-        log:printInfo("xxx: logger after flow reference invoked");
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: logger invoked via http end point");
+    demoSub_Flow(ctx);
+    log:printInfo("xxx: logger after flow reference invoked");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 public function demoSub_Flow(Context ctx) {
@@ -2446,7 +2584,6 @@ public function demoSub_Flow(Context ctx) {
     // set payload
     string _payload0_ = "This is a sub flow set-payload call";
     ctx.payload = _payload0_;
-    ctx.inboundProperties.response.setPayload(_payload0_);
 }
 
 ```
@@ -2489,6 +2626,8 @@ import ballerina/http;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -2502,20 +2641,23 @@ service /foo on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        json myVariable = _dwMethod0_(ctx.payload.toJson());
-        json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
-        json mySessionVariable = _dwMethod0_(ctx.payload.toJson());
-        ctx.inboundProperties.response.setPayload(_dwOutput_);
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    json myVariable = _dwMethod0_(ctx.payload.toJson());
+    json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
+    json mySessionVariable = _dwMethod0_(ctx.payload.toJson());
+    ctx.payload = _dwOutput_;
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 function _dwMethod0_(json payload) returns json {
@@ -2559,6 +2701,8 @@ import ballerina/http;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -2572,23 +2716,26 @@ service /foo on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
-    }
-
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        json _dwOutput_ = check _dwMethod0_(ctx.payload.toJson());
-        ctx.inboundProperties.response.setPayload(_dwOutput_);
-        return ctx.inboundProperties.response;
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
 }
 
 function _dwMethod0_(json payload) returns json|error {
     float conversionRate = 13.15;
     return {"s1": "Hello World", "s2": "Hello World", "n": 1.23, "b": true, "a": check [1, 2, 3].ensureType(json), "o": check {"name": "Anne"}.ensureType(json)};
+}
+
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    json _dwOutput_ = check _dwMethod0_(ctx.payload.toJson());
+    ctx.payload = _dwOutput_;
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -2641,18 +2788,19 @@ public type Context record {|
     anydata payload;
 |};
 
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
-    _dwOutput_ = _dwMethod1_(ctx.payload.toJson());
-    _dwOutput_ = _dwMethod2_(ctx.payload.toJson());
-}
-
 function _dwMethod1_(xml payload) returns json {
     //TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'map$+1' OF TYPE 'xml' FOUND. MANUAL CONVERSION REQUIRED.
 }
 
 function _dwMethod2_(json payload) returns json {
     //TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'groupBy$.language' FOUND. MANUAL CONVERSION REQUIRED.
+}
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
+    _dwOutput_ = _dwMethod1_(ctx.payload.toJson());
+    _dwOutput_ = _dwMethod2_(ctx.payload.toJson());
+    ctx.payload = _dwOutput_;
 }
 
 function _dwMethod0_(json payload) returns json {
@@ -2700,6 +2848,8 @@ public type FlowVars record {|
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -2714,18 +2864,21 @@ service /mule3 on config {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), flowVars: {}, inboundProperties: {response: new}};
+        self.ctx = {payload: (), flowVars: {}, inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get .(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        ctx.flowVars.name = "lochana";
-        ctx.flowVars.age = "29";
-        return ctx.inboundProperties.response;
-    }
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    ctx.flowVars.name = "lochana";
+    ctx.flowVars.age = "29";
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 ```
@@ -2823,6 +2976,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -2836,25 +2991,27 @@ service / on HTTP_Listener_Configuration {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get vm() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get vm(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
     }
+}
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
-        // set payload
-        string _payload0_ = "Hello World";
-        ctx.payload = _payload0_;
+    // set payload
+    string _payload0_ = "Hello World";
+    ctx.payload = _payload0_;
 
-        // async operation
-        _ = start _async0_(ctx);
-        log:printInfo("xxx: logger after async block invoked");
-        ctx.inboundProperties.response.setPayload(_payload0_);
-        return ctx.inboundProperties.response;
-    }
+    // async operation
+    _ = start _async0_(ctx);
+    log:printInfo("xxx: logger after async block invoked");
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 public function _vmReceive0_(Context ctx) {
@@ -2909,6 +3066,8 @@ import ballerina/log;
 
 public type InboundProperties record {|
     http:Response response;
+    http:Request request;
+    map<string> uriParams;
 |};
 
 public type Context record {|
@@ -2922,30 +3081,32 @@ service / on HTTP_Listener_Configuration {
     Context ctx;
 
     function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new}};
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get vm() returns http:Response|error {
-        return self._invokeEndPoint0_(self.ctx);
+    resource function get vm(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return _invokeEndPoint0_(self.ctx);
+    }
+}
+
+public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+    worker W returns error? {
+        // VM Inbound Endpoint
+        anydata receivedPayload = <- function;
+        ctx.payload = receivedPayload;
+        _vmReceive0_(ctx);
     }
 
-    private function _invokeEndPoint0_(Context ctx) returns http:Response|error {
-        worker W returns error? {
-            // VM Inbound Endpoint
-            anydata receivedPayload = <- function;
-            ctx.payload = receivedPayload;
-            _vmReceive0_(ctx);
-        }
+    // set payload
+    string _payload0_ = "Hello World";
+    ctx.payload = _payload0_;
 
-        // set payload
-        string _payload0_ = "Hello World";
-        ctx.payload = _payload0_;
+    // VM Outbound Endpoint
+    ctx.payload -> W;
 
-        // VM Outbound Endpoint
-        ctx.payload -> W;
-        ctx.inboundProperties.response.setPayload(_payload0_);
-        return ctx.inboundProperties.response;
-    }
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
 }
 
 public function _vmReceive0_(Context ctx) {
