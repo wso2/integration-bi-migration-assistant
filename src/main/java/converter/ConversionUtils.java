@@ -1,9 +1,7 @@
 package converter;
 
 import ballerina.BallerinaModel;
-import ballerina.BallerinaModel.TypeDesc.BallerinaType;
 import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc;
-import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import org.w3c.dom.Element;
 
 import java.io.StringWriter;
