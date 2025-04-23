@@ -1,6 +1,7 @@
 package converter;
 
 import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.ObjectField;
 import ballerina.BallerinaModel.OnFailClause;
 import ballerina.BallerinaModel.Statement.DoStatement;
 import ballerina.BallerinaModel.Statement.ElseIfClause;
