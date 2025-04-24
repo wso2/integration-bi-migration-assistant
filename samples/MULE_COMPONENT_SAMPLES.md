@@ -877,7 +877,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule3"/>
     <flow name="demoFlow">
-        <http:listener config-ref="config" path="/"  doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/demo"  doc:name="HTTP"/>
         <logger message="xxx: logger invoked" level="INFO" doc:name="Logger"/>
     </flow>
 </mule>
@@ -908,47 +908,7 @@ service /mule3 on config {
         self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get .(http:Request request) returns http:Response|error {
-        self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
-    }
-
-    resource function post .(http:Request request) returns http:Response|error {
-        self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
-    }
-
-    resource function put .(http:Request request) returns http:Response|error {
-        self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
-    }
-
-    resource function delete .(http:Request request) returns http:Response|error {
-        self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
-    }
-
-    resource function patch .(http:Request request) returns http:Response|error {
-        self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
-    }
-
-    resource function head .(http:Request request) returns http:Response|error {
-        self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
-    }
-
-    resource function options .(http:Request request) returns http:Response|error {
-        self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
-    }
-
-    resource function trace .(http:Request request) returns http:Response|error {
-        self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
-    }
-
-    resource function connect .(http:Request request) returns http:Response|error {
+    resource function default demo(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
         return _invokeEndPoint0_(self.ctx);
     }
