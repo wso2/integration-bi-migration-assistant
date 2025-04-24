@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
@@ -42,7 +41,7 @@ import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 public class ProcessContext implements ContextWithFile {
 
     private final Set<BallerinaModel.Import> imports = new HashSet<>();
-    private BallerinaModel.Listener defaultListner = null;
+    private BallerinaModel.Listener defaultListener = null;
     private final Map<String, BallerinaModel.ModuleVar> constants = new HashMap<>();
     private final Map<String, BallerinaModel.ModuleVar> configurables = new HashMap<>();
     private final Map<BallerinaModel.TypeDesc, String> typeConversionFunction = new HashMap<>();
@@ -50,11 +49,8 @@ public class ProcessContext implements ContextWithFile {
 
     public final ProjectContext projectContext;
     public final AnalysisResult analysisResult;
-    private BallerinaModel.Expression.VariableReference contextRef;
     private final Map<TibcoModel.Scope.Flow.Activity.Source.Predicate, String> predicateToFunctionMap = new HashMap<>();
     private final Map<String, String> propertyVariableToResourceMap = new HashMap<>();
-
-    private static final Logger logger = Logger.getLogger(ProcessContext.class.getName());
 
     ProcessContext(ProjectContext projectContext, TibcoModel.Process process) {
         this.projectContext = projectContext;
@@ -62,34 +58,22 @@ public class ProcessContext implements ContextWithFile {
         this.analysisResult = ModelAnalyser.analyseProcess(process);
     }
 
-    public static BallerinaModel.TypeDesc contextType() {
+    static BallerinaModel.TypeDesc contextType() {
         return new BallerinaModel.TypeDesc.MapTypeDesc(XML);
     }
 
-    public VarDeclStatment initContextVar(String paramsVarName) {
-        VarDeclStatment varDeclStatment = new VarDeclStatment(contextType(), "context",
+    VarDeclStatment initContextVar(String paramsVarName) {
+        return new VarDeclStatment(contextType(), "context",
                 new BallerinaModel.Expression.BallerinaExpression("{...%s}".formatted(paramsVarName)));
-        this.contextRef = new BallerinaModel.Expression.VariableReference(varDeclStatment.varName());
-        return varDeclStatment;
     }
 
-    public void addResourceVariable(TibcoModel.Variable.PropertyVariable propertyVariable) {
+    void addResourceVariable(TibcoModel.Variable.PropertyVariable propertyVariable) {
         switch (propertyVariable) {
             case TibcoModel.Variable.PropertyVariable.PropertyReference ref ->
                 propertyVariableToResourceMap.put(ref.name(), ref.literal());
             case TibcoModel.Variable.PropertyVariable.SimpleProperty simpleProperty ->
                 projectContext.addConfigurableVariable(simpleProperty.name(), simpleProperty.source());
         }
-    }
-
-    public BallerinaModel.Expression.VariableReference addConfigurableVariable(BallerinaModel.TypeDesc td,
-            String name) {
-        var varDecl = this.configurables.computeIfAbsent(name, k -> createConfigurableVariable(td, name));
-        return new BallerinaModel.Expression.VariableReference(varDecl.name());
-    }
-
-    private static BallerinaModel.ModuleVar createConfigurableVariable(BallerinaModel.TypeDesc td, String name) {
-        return BallerinaModel.ModuleVar.configurable(name, td, new BallerinaModel.Expression.BallerinaExpression("?"));
     }
 
     String getToXmlFunction() {
@@ -143,21 +127,20 @@ public class ProcessContext implements ContextWithFile {
     }
 
     String getDefaultHttpListenerRef() {
-        if (defaultListner == null) {
+        if (defaultListener == null) {
             addLibraryImport(Library.HTTP);
             String listenerRef = ConversionUtils.sanitizes(process.name()) + "_listener";
-            defaultListner = new BallerinaModel.Listener(BallerinaModel.ListenerType.HTTP, listenerRef,
+            defaultListener = new BallerinaModel.Listener(BallerinaModel.ListenerType.HTTP, listenerRef,
                     Integer.toString(projectContext.allocatePort()),
                     Map.of("host", "localhost"));
         }
-        return defaultListner.name();
-
+        return defaultListener.name();
     }
 
     BallerinaModel.TextDocument serialize(Collection<BallerinaModel.Service> processServices,
             List<BallerinaModel.Function> functions) {
         String name = ConversionUtils.sanitizes(process.name()) + ".bal";
-        List<BallerinaModel.Listener> listeners = defaultListner != null ? List.of(defaultListner) : List.of();
+        List<BallerinaModel.Listener> listeners = defaultListener != null ? List.of(defaultListener) : List.of();
         List<BallerinaModel.ModuleVar> moduleVars = Stream
                 .concat(constants.values().stream(), configurables.values().stream()).toList();
         return new BallerinaModel.TextDocument(name, imports.stream().toList(), List.of(),
@@ -165,34 +148,27 @@ public class ProcessContext implements ContextWithFile {
     }
 
     ProjectContext.FunctionData getProcessStartFunction() {
-
-//        if (getProcessInputType() == ANYDATA || getProcessOutputType() == ANYDATA) {
-//            logger.warning(String.format(
-//                    "Can't determine input/output type for process start function %s, " +
-//                            "maybe failed to handle start activity?",
-//                    getProcessStartFunctionName()));
-//        }
         return new ProjectContext.FunctionData(getProcessStartFunctionName(), getProcessInputType(),
                 getProcessOutputType());
     }
 
-    public String getProcessStartFunctionName() {
-        return ConversionUtils.sanitizes(process.name()) + "_start";
+    String getProcessStartFunctionName() {
+        return "start_" + ConversionUtils.sanitizes(process.name());
     }
 
-    public String getProcessFunction() {
+    String getProcessFunction() {
         return "process_" + ConversionUtils.sanitizes(process.name());
     }
 
-    public String getActivityRunnerFunction() {
+    String getActivityRunnerFunction() {
         return "activityRunner_" + ConversionUtils.sanitizes(process.name());
     }
 
-    public String getErrorHandlerFunction() {
+    String getErrorHandlerFunction() {
         return "errorHandler_" + ConversionUtils.sanitizes(process.name());
     }
 
-    public String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
+    String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
         return typeConversionFunction.computeIfAbsent(targetType, this::createConvertToTypeFunction);
     }
 
@@ -200,19 +176,19 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.createConvertToTypeFunction(targetType);
     }
 
-    public ProjectContext.FunctionData getProcessStartFunction(String processName) {
+    ProjectContext.FunctionData getProcessStartFunction(String processName) {
         return projectContext.getProcessStartFunction(processName);
     }
 
-    public String getJsonToXMLFunction() {
+    String getJsonToXMLFunction() {
         return projectContext.getJsonToXMLFunction();
     }
 
-    public BallerinaModel.Expression.VariableReference contextVarRef() {
+    BallerinaModel.Expression.VariableReference contextVarRef() {
         return new BallerinaModel.Expression.VariableReference(ConversionUtils.Constants.CONTEXT_VAR_NAME);
     }
 
-    public BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {
+    BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {
         String resourceRef = propertyVariableToResourceMap.get(sharedResourcePropertyName);
         if (resourceRef == null) {
             throw new RuntimeException("No shared resource found for " + sharedResourcePropertyName);
@@ -220,19 +196,15 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.dbClient(resourceRef);
     }
 
-    public String getAddToContextFn() {
+    String getAddToContextFn() {
         return projectContext.getAddToContextFn();
     }
 
-    public String getTransformXSLTFn() {
-        return projectContext.getTransformXSLTFn();
-    }
-
-    public BallerinaModel.TypeDesc getFileWriteConfigType() {
+    BallerinaModel.TypeDesc getFileWriteConfigType() {
         return projectContext.getFileWriteConfigType();
     }
 
-    public String getFileWriteFunction() {
+    String getFileWriteFunction() {
         return projectContext.getFileWriteFunction(this);
     }
 
@@ -244,11 +216,11 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getLogFunction();
     }
 
-    public String getPredicateTestFunction() {
+    String getPredicateTestFunction() {
         return projectContext.getPredicateTestFunction();
     }
 
-    public BallerinaModel.TypeDesc getProcessInputType() {
+    BallerinaModel.TypeDesc getProcessInputType() {
         String typeName = analysisResult.inputTypeName(process);
         if (Objects.equals(typeName, "UNKNOWN")) {
             return ANYDATA;
@@ -256,7 +228,7 @@ public class ProcessContext implements ContextWithFile {
         return getTypeByName(typeName);
     }
 
-    public BallerinaModel.TypeDesc getProcessOutputType() {
+    BallerinaModel.TypeDesc getProcessOutputType() {
         String typeName = analysisResult.outputTypeName(process);
         if (Objects.equals(typeName, "UNKNOWN")) {
             return ANYDATA;
@@ -264,23 +236,23 @@ public class ProcessContext implements ContextWithFile {
         return getTypeByName(typeName);
     }
 
-    public String predicateFunction(TibcoModel.Scope.Flow.Activity.Source.Predicate predicate) {
+    String predicateFunction(TibcoModel.Scope.Flow.Activity.Source.Predicate predicate) {
         return predicateToFunctionMap.computeIfAbsent(predicate, p -> "predicate_" + predicateToFunctionMap.size());
     }
 
-    public String getConfigVarName(String varName) {
+    String getConfigVarName(String varName) {
         return projectContext.getConfigVarName(varName);
     }
 
-    public BallerinaModel.Expression.VariableReference getHttpClient(String path) {
+    BallerinaModel.Expression.VariableReference getHttpClient(String path) {
         return projectContext.getHttpClient(path);
     }
 
-    public static BallerinaModel.Expression.VariableReference processLevelFnInputVariable() {
+    static BallerinaModel.Expression.VariableReference processLevelFnInputVariable() {
         return new BallerinaModel.Expression.VariableReference("input");
     }
 
-    public static BallerinaModel.Expression.VariableReference processLevelFnParamVariable() {
+    static BallerinaModel.Expression.VariableReference processLevelFnParamVariable() {
         return new BallerinaModel.Expression.VariableReference("params");
     }
 }

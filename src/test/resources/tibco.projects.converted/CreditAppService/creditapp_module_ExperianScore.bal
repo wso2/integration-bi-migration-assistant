@@ -12,7 +12,7 @@ service / on creditapp_module_ExperianScore_listener {
 </item>`;
         xml inputXmlMap = xml `<root>${inputXml}</root>`;
         map<xml> paramXML = {post: inputXmlMap};
-        return creditapp_module_ExperianScore_start(input, paramXML);
+        return start_creditapp_module_ExperianScore(input, paramXML);
     }
 }
 
@@ -90,13 +90,6 @@ function activityRunner_creditapp_module_ExperianScore(map<xml> cx) returns xml|
     return result4;
 }
 
-function creditapp_module_ExperianScore_start(GiveNewSchemaNameHere input, map<xml> params = {}) returns ExperianResponseSchemaElement {
-    xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = process_creditapp_module_ExperianScore(inputXML, params);
-    ExperianResponseSchemaElement result = convertToExperianResponseSchemaElement(xmlResult);
-    return result;
-}
-
 function errorHandler_creditapp_module_ExperianScore(error err, map<xml> cx) returns xml {
     panic err;
 }
@@ -114,4 +107,11 @@ function process_creditapp_module_ExperianScore(xml input, map<xml> params) retu
 function receiveEvent(map<xml> context) returns xml|error {
     addToContext(context, "Start", context.get("$input"));
     return context.get("$input");
+}
+
+function start_creditapp_module_ExperianScore(GiveNewSchemaNameHere input, map<xml> params = {}) returns ExperianResponseSchemaElement {
+    xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
+    xml xmlResult = process_creditapp_module_ExperianScore(inputXML, params);
+    ExperianResponseSchemaElement result = convertToExperianResponseSchemaElement(xmlResult);
+    return result;
 }

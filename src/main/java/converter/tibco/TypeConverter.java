@@ -1,14 +1,21 @@
 package converter.tibco;
 
 import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.Expression.BallerinaExpression;
+import ballerina.BallerinaModel.Expression.CheckPanic;
+import ballerina.BallerinaModel.Expression.FunctionCall;
+import ballerina.BallerinaModel.Expression.XMLTemplate;
 import ballerina.BallerinaModel.Statement.Return;
 import ballerina.BallerinaModel.Statement.VarDeclStatment;
+import ballerina.BallerinaModel.TypeDesc.MapTypeDesc;
 import ballerina.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.text.TextDocuments;
 import io.ballerina.xsd.core.response.NodeResponse;
 import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
+import tibco.TibcoModel.Type.WSDLDefinition;
+import tibco.TibcoModel.Type.WSDLDefinition.PortType.Operation;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,8 +54,7 @@ class TypeConverter {
         }
     }
 
-    static Collection<BallerinaModel.Service> convertWsdlDefinition(ProcessContext cx,
-            TibcoModel.Type.WSDLDefinition wsdlDefinition) {
+    static Collection<BallerinaModel.Service> convertWsdlDefinition(ProcessContext cx, WSDLDefinition wsdlDefinition) {
         Map<String, String> messageTypes = getMessageTypeDefinitions(cx, wsdlDefinition);
         return wsdlDefinition.portType().stream()
                 .map(portType -> convertPortType(cx, messageTypes, portType, wsdlDefinition.namespaces(),
@@ -56,10 +62,9 @@ class TypeConverter {
                 .toList();
     }
 
-    private static Map<String, String> getMessageTypeDefinitions(ProcessContext cx,
-            TibcoModel.Type.WSDLDefinition wsdlDefinition) {
+    private static Map<String, String> getMessageTypeDefinitions(ProcessContext cx, WSDLDefinition wsdlDefinition) {
         Map<String, String> result = new HashMap<>();
-        for (TibcoModel.Type.WSDLDefinition.Message message : wsdlDefinition.messages()) {
+        for (WSDLDefinition.Message message : wsdlDefinition.messages()) {
             Optional<String> referredTypeName = getMessageTypeName(cx, message);
             if (referredTypeName.isEmpty()) {
                 continue;
@@ -69,9 +74,8 @@ class TypeConverter {
         return result;
     }
 
-    private static Optional<String> getMessageTypeName(ProcessContext cx,
-            TibcoModel.Type.WSDLDefinition.Message message) {
-        Optional<TibcoModel.Type.WSDLDefinition.Message.Part> part;
+    private static Optional<String> getMessageTypeName(ProcessContext cx, WSDLDefinition.Message message) {
+        Optional<WSDLDefinition.Message.Part> part;
         if (message.parts().size() == 1) {
             part = Optional.ofNullable(message.parts().getFirst());
         } else {
@@ -81,20 +85,19 @@ class TypeConverter {
             return Optional.empty();
         }
         String typeName = switch (part.get()) {
-            case TibcoModel.Type.WSDLDefinition.Message.Part.InlineError inlineError -> {
+            case WSDLDefinition.Message.Part.InlineError inlineError -> {
                 String constantName = inlineError.name();
                 yield cx.declareConstant(constantName, inlineError.value(), inlineError.type());
             }
-            case TibcoModel.Type.WSDLDefinition.Message.Part.Reference ref -> ref.element().value();
+            case WSDLDefinition.Message.Part.Reference ref -> ref.element().value();
         };
         return Optional.of(typeName);
     }
 
-    private static BallerinaModel.Service convertPortType(ProcessContext cx,
-            Map<String, String> messageTypes,
-            TibcoModel.Type.WSDLDefinition.PortType portType,
-            Map<String, String> wsdlNamespaces,
-            Collection<TibcoModel.Type.WSDLDefinition.Message> messages) {
+    private static BallerinaModel.Service convertPortType(ProcessContext cx, Map<String, String> messageTypes,
+                                                          WSDLDefinition.PortType portType,
+                                                          Map<String, String> wsdlNamespaces,
+                                                          Collection<WSDLDefinition.Message> messages) {
         String basePath = portType.basePath();
         if (!basePath.startsWith("/")) {
             basePath = "/" + basePath;
@@ -107,16 +110,15 @@ class TypeConverter {
                 List.of(), List.of());
     }
 
-    private static BallerinaModel.Resource convertOperation(
-            ProcessContext cx,
-            String apiPath, Map<String, String> messageTypes,
-            TibcoModel.Type.WSDLDefinition.PortType.Operation operation,
-            Map<String, String> wsdlNameSpaces,
-            Collection<TibcoModel.Type.WSDLDefinition.Message> messages) {
+    private static BallerinaModel.Resource convertOperation(ProcessContext cx, String apiPath,
+                                                            Map<String, String> messageTypes,
+                                                            Operation operation,
+                                                            Map<String, String> wsdlNamespaces,
+                                                            Collection<WSDLDefinition.Message> messages) {
         String resourceMethodName = operation.name();
         var resourcePath = toResourcePath(apiPath);
         String path = resourcePath.path;
-        var paramsXML = initParams(cx, resourceMethodName, resourcePath, operation.input(), wsdlNameSpaces, messages);
+        var paramsXML = initParams(cx, resourceMethodName, resourcePath, operation.input(), wsdlNamespaces, messages);
 
         List<BallerinaModel.Statement> body = new ArrayList<>(paramsXML.initStatements);
 
@@ -133,21 +135,20 @@ class TypeConverter {
         ).toArray(String[]::new);
 
         body.add(new Return<>(Optional.of(
-                new BallerinaModel.Expression.FunctionCall(cx.getProcessStartFunction().name(), startFunctionArgs))));
+                new FunctionCall(cx.getProcessStartFunction().name(), startFunctionArgs))));
 
         return new BallerinaModel.Resource(resourceMethodName, path, resourceMethodParameter.stream().toList(),
                 Optional.of(returnType.toString()), body);
     }
 
-    private static BallerinaModel.TypeDesc getOperationReturnType(
-            ProcessContext cx, Map<String, String> messageTypes,
-            TibcoModel.Type.WSDLDefinition.PortType.Operation operation
-    ) {
-        List<BallerinaModel.TypeDesc> returnTypeMembers = Stream.concat(
+    private static BallerinaModel.TypeDesc getOperationReturnType(ProcessContext cx, Map<String, String> messageTypes,
+                                                                  Operation operation) {
+        List<BallerinaModel.TypeDesc> returnTypeMembers =
+                Stream.concat(
                         Stream.of(operation.output().message()),
-                        operation.faults().stream().map(
-                                TibcoModel.Type.WSDLDefinition.PortType.Operation.Fault::message))
-                .map(message -> cx.getTypeByName(messageTypes.get(message.value()))).toList();
+                                operation.faults().stream().map(Operation.Fault::message))
+                        .map(message -> cx.getTypeByName(messageTypes.get(message.value())))
+                        .toList();
         return returnTypeMembers.size() == 1 ? returnTypeMembers.getFirst() :
                 new BallerinaModel.TypeDesc.UnionTypeDesc(returnTypeMembers);
     }
@@ -161,12 +162,9 @@ class TypeConverter {
 
     }
 
-    private static ParamInitResult initParams(
-            ProcessContext cx,
-            String resourceMethod, ResourcePath resourcePath,
-            TibcoModel.Type.WSDLDefinition.PortType.Operation.Input input, Map<String, String> wsdlNameSpaces,
-            Collection<TibcoModel.Type.WSDLDefinition.Message> messages
-    ) {
+    private static ParamInitResult initParams(ProcessContext cx, String resourceMethod, ResourcePath resourcePath,
+                                              Operation.Input input, Map<String, String> wsdlNameSpaces,
+                                              Collection<WSDLDefinition.Message> messages) {
         Optional<ParamInitResult> pathParams = initPathParameters(resourcePath, input, wsdlNameSpaces, messages);
         Optional<ParamInitResult> bodyParams = resourceMethod.equals("get") ? Optional.empty()
                 : Optional.of(initRequestBodyParamsNew(cx));
@@ -184,13 +182,11 @@ class TypeConverter {
         });
         sb.append("</root>");
 
-        VarDeclStatment inputXml = new VarDeclStatment(XML, "inputXmlMap",
-                new BallerinaModel.Expression.XMLTemplate(sb.toString()));
+        VarDeclStatment inputXml = new VarDeclStatment(XML, "inputXmlMap", new XMLTemplate(sb.toString()));
         body.add(inputXml);
 
-        VarDeclStatment paramXmlDecl = new VarDeclStatment(new BallerinaModel.TypeDesc.MapTypeDesc(XML), "paramXML",
-                new BallerinaModel.Expression.BallerinaExpression(
-                        "{%s: %s}".formatted(resourceMethod, inputXml.varName())));
+        VarDeclStatment paramXmlDecl = new VarDeclStatment(new MapTypeDesc(XML), "paramXML",
+                new BallerinaExpression("{%s: %s}".formatted(resourceMethod, inputXml.varName())));
         body.add(paramXmlDecl);
         return new ParamInitResult(paramXmlDecl.varName(), body);
     }
@@ -200,11 +196,10 @@ class TypeConverter {
         String toXmlFunction = cx.getToXmlFunction();
         List<BallerinaModel.Statement> body = new ArrayList<>();
         VarDeclStatment inputValXml = new VarDeclStatment(XML, "inputValXml",
-                new BallerinaModel.Expression.CheckPanic(new BallerinaModel.Expression.FunctionCall(toXmlFunction,
-                        new String[]{inputParamName})));
+                new CheckPanic(new FunctionCall(toXmlFunction, new String[]{inputParamName})));
         body.add(inputValXml);
         VarDeclStatment extractedBody = new VarDeclStatment(XML, "extractedBody",
-                new BallerinaModel.Expression.BallerinaExpression("%s/*".formatted(inputValXml.varName())));
+                new BallerinaExpression("%s/*".formatted(inputValXml.varName())));
         body.add(extractedBody);
 
         // TODO: how to handle arrays
@@ -213,19 +208,14 @@ class TypeConverter {
                     ${%s}
                 </item>
                 """.formatted(extractedBody.varName());
-        VarDeclStatment inputXml = new VarDeclStatment(XML, "inputXml",
-                new BallerinaModel.Expression.XMLTemplate(xmlTemplate));
+        VarDeclStatment inputXml = new VarDeclStatment(XML, "inputXml", new XMLTemplate(xmlTemplate));
         body.add(inputXml);
         return new ParamInitResult(inputXml.varName(), body);
     }
 
-    private static Optional<ParamInitResult> initPathParameters(
-            ResourcePath resourcePath,
-            TibcoModel.Type.WSDLDefinition.PortType.Operation.Input input,
-            Map<String, String> wsdlNameSpaces,
-            Collection<TibcoModel.Type.WSDLDefinition.Message> messages
-    ) {
-
+    private static Optional<ParamInitResult> initPathParameters(ResourcePath resourcePath, Operation.Input input,
+                                                                Map<String, String> wsdlNameSpaces,
+                                                                Collection<WSDLDefinition.Message> messages) {
         if (resourcePath.pathParams.isEmpty()) {
             return Optional.empty();
         }
@@ -238,14 +228,14 @@ class TypeConverter {
                     </%s>
                     """.formatted(each, each, each));
         }
-        TibcoModel.Type.WSDLDefinition.Message inputMessage = messages.stream()
+        WSDLDefinition.Message inputMessage = messages.stream()
                 .filter(message -> message.name().equals(input.message().value())).findFirst()
                 .orElseThrow(() -> new IllegalStateException("Failed to find input message"));
-        TibcoModel.Type.WSDLDefinition.Message.Part parameterPart = inputMessage.parts().stream()
+        WSDLDefinition.Message.Part parameterPart = inputMessage.parts().stream()
                 .filter(each -> each.name().equals("parameters")).findFirst()
                 .orElseThrow(() -> new IllegalStateException("Failed to find parameter part"));
-        assert parameterPart instanceof TibcoModel.Type.WSDLDefinition.Message.Part.Reference;
-        String namespace = ((TibcoModel.Type.WSDLDefinition.Message.Part.Reference) parameterPart).element().nameSpace()
+        assert parameterPart instanceof WSDLDefinition.Message.Part.Reference;
+        String namespace = ((WSDLDefinition.Message.Part.Reference) parameterPart).element().nameSpace()
                 .uri();
         String xml = """
                 <parameters>
@@ -254,7 +244,7 @@ class TypeConverter {
                     </ns:%1$s>
                 </parameters>""".formatted(parameterPart.name(), wsdlNameSpaces.get(namespace), xmlBody);
         VarDeclStatment pathParamDecl =
-                new VarDeclStatment(XML, "pathParams", new BallerinaModel.Expression.XMLTemplate(xml));
+                new VarDeclStatment(XML, "pathParams", new XMLTemplate(xml));
         body.add(pathParamDecl);
         return Optional.of(new ParamInitResult(pathParamDecl.varName(), body));
     }
@@ -288,5 +278,4 @@ class TypeConverter {
     record ResourcePath(String path, List<String> pathParams) {
 
     }
-
 }

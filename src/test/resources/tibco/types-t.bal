@@ -12,7 +12,7 @@ service /y54cuadtcxtfstqs3rux2gfdaxppoqgc on com_test_Test_listener {
 </item>`;
         xml inputXmlMap = xml `<root>${inputXml}</root>`;
         map<xml> paramXML = {post: inputXmlMap};
-        return com_test_Test_start(input, paramXML);
+        return start_com_test_Test(input, paramXML);
     }
 }
 
@@ -25,6 +25,6 @@ service / on com_test_Test_listener {
 </item>`;
         xml inputXmlMap = xml `<root>${inputXml}</root>`;
         map<xml> paramXML = {post: inputXmlMap};
-        return com_test_Test_start(input, paramXML);
+        return start_com_test_Test(input, paramXML);
     }
 }

@@ -19,10 +19,12 @@
 package converter.tibco;
 
 import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.Expression;
 import ballerina.BallerinaModel.Statement.VarDeclStatment;
 import converter.tibco.analyzer.AnalysisResult;
 import org.w3c.dom.Element;
 import tibco.TibcoModel;
+import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL;
 
 import java.io.StringWriter;
 import java.util.Collection;
@@ -37,6 +39,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NEVER;
+import static converter.tibco.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 
 public final class ConversionUtils {
 
@@ -74,8 +77,7 @@ public final class ConversionUtils {
         return nameToCheck;
     }
 
-    public static BallerinaModel.TypeDesc.BuiltinType from(
-            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL.SQLType sqlType) {
+    public static BallerinaModel.TypeDesc.BuiltinType from(SQL.SQLType sqlType) {
         return switch (sqlType) {
             case INTEGER, BIGINT, SMALLINT -> BallerinaModel.TypeDesc.BuiltinType.INT;
             case DECIMAL, NUMERIC, REAL, DOUBLE -> BallerinaModel.TypeDesc.BuiltinType.DECIMAL;
@@ -85,9 +87,7 @@ public final class ConversionUtils {
         };
     }
 
-    static BallerinaModel.TypeDesc createQueryResultType(
-            ActivityContext cx,
-            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql) {
+    static BallerinaModel.TypeDesc createQueryResultType(ActivityContext cx, SQL sql) {
         ProcessContext processContext = cx.processContext;
         processContext.projectContext.getTypeContext().addLibraryImport(Library.XML_DATA);
         AnalysisResult analysisResult = processContext.analysisResult;
@@ -104,9 +104,7 @@ public final class ConversionUtils {
         return processContext.getTypeByName(typeName);
     }
 
-    static BallerinaModel.TypeDesc createQueryInputType(
-            ActivityContext cx,
-            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql) {
+    static BallerinaModel.TypeDesc createQueryInputType(ActivityContext cx, SQL sql) {
         ProcessContext processContext = cx.processContext;
         AnalysisResult analysisResult = processContext.analysisResult;
         String typeName = "QueryData" + analysisResult.queryIndex(sql);
@@ -119,8 +117,7 @@ public final class ConversionUtils {
         return processContext.getTypeByName(typeName);
     }
 
-    static VarDeclStatment createQueryDecl(ActivityContext cx, BallerinaModel.Expression.VariableReference paramData,
-            TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL query) {
+    static VarDeclStatment createQueryDecl(ActivityContext cx, Expression.VariableReference paramData, SQL query) {
         int paramIndex = 0;
         StringBuilder sb = new StringBuilder();
         String queryStr = query.query();
@@ -135,9 +132,8 @@ public final class ConversionUtils {
             }
         }
         sb.append("`");
-        BallerinaModel.Expression.BallerinaExpression templateExpr =
-                new BallerinaModel.Expression.BallerinaExpression(sb.toString());
-        return new VarDeclStatment(cx.processContext.getTypeByName("sql:ParameterizedQuery"), cx.getAnnonVarName(),
+        Expression.BallerinaExpression templateExpr = new Expression.BallerinaExpression(sb.toString());
+        return new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE), cx.getAnnonVarName(),
                 templateExpr);
     }
 

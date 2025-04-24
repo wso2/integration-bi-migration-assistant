@@ -7,7 +7,6 @@ import ballerina.BallerinaModel.TypeDesc.BallerinaType;
 import java.util.Collections;
 import java.util.List;
 
-import static ballerina.BallerinaModel.TypeDesc.BallerinaType;
 import static converter.ConversionUtils.typeFrom;
 
 public class Constants {

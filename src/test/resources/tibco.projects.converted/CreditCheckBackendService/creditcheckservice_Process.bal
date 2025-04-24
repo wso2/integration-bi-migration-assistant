@@ -13,7 +13,7 @@ service /CreditScore on creditcheckservice_Process_listener {
 </item>`;
         xml inputXmlMap = xml `<root>${inputXml}</root>`;
         map<xml> paramXML = {post: inputXmlMap};
-        return creditcheckservice_Process_start(input, paramXML);
+        return start_creditcheckservice_Process(input, paramXML);
     }
 }
 
@@ -21,7 +21,7 @@ service / on creditcheckservice_Process_listener {
     resource function get creditscore() returns Response|http:NotFound|http:InternalServerError {
         xml inputXmlMap = xml `<root></root>`;
         map<xml> paramXML = {get: inputXmlMap};
-        return creditcheckservice_Process_start((), paramXML);
+        return start_creditcheckservice_Process((), paramXML);
     }
 }
 
@@ -50,15 +50,8 @@ function activityRunner_creditcheckservice_Process(map<xml> cx) returns xml|erro
     return result2;
 }
 
-function creditcheckservice_Process_start(httpHeaders input, map<xml> params = {}) returns Response {
-    xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = process_creditcheckservice_Process(inputXML, params);
-    Response result = convertToResponse(xmlResult);
-    return result;
-}
-
 function errorHandler_creditcheckservice_Process(error err, map<xml> cx) returns xml {
-    xml input = xml ``;
+    xml input = xml `<root></root>`;
     xml result0 = checkpanic activityExtension_5(cx);
     xml result1 = checkpanic reply_6(cx);
     return result1;
@@ -77,7 +70,7 @@ function extActivity(map<xml> context) returns xml|error {
         </tns3:Element>
     </xsl:template>
 </xsl:stylesheet>`, context);
-    xml var2 = check toXML(check trap creditcheckservice_LookupDatabase_start(convertToElement(var1)));
+    xml var2 = check toXML(check trap start_creditcheckservice_LookupDatabase(convertToElement(var1)));
     addToContext(context, "LookupDatabase", var2);
     return var2;
 }
@@ -147,4 +140,11 @@ function reply_6(map<xml> context) returns xml|error {
 </xsl:stylesheet>`, context);
     xml var3 = xml `<root>${var2}</root>`;
     return var3;
+}
+
+function start_creditcheckservice_Process(httpHeaders input, map<xml> params = {}) returns Response {
+    xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
+    xml xmlResult = process_creditcheckservice_Process(inputXML, params);
+    Response result = convertToResponse(xmlResult);
+    return result;
 }

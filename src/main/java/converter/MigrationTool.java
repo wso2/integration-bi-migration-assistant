@@ -41,13 +41,12 @@ public class MigrationTool {
                     "<mule-xml-config-file-or-project-directory>");
             System.exit(1);
         }
-
-        if (args[0].equals("--tibco") || args[0].equals("-t")) {
+        boolean isTibcoMigration = args[0].equals("--tibco") || args[0].equals("-t");
+        if (isTibcoMigration) {
             migrateTibco(args);
-            return;
+        } else {
+            migrateMuleProject(args);
         }
-
-        migrateMuleProject(args);
     }
 
     private static void migrateTibco(String[] args) {
@@ -64,27 +63,28 @@ public class MigrationTool {
         }
 
         if (Files.isRegularFile(inputPath)) {
-            SyntaxTree syntaxTree = TibcoToBalConverter.convertFile(inputPath.toString());
-            String ballerinaCode = syntaxTree.toSourceCode();
-            String outputBalFilePath;
-            if (outputPath != null) {
-                outputBalFilePath = outputPath;
-            } else {
-                outputBalFilePath = inputPath.toString().replaceAll("\\.bwp$", ".bal");
+            if (outputPath == null) {
+                outputPath = inputPath.toString().replaceAll("\\.bwp$", ".bal");
             }
-            Path outputFilePath = Paths.get(outputBalFilePath);
-            try {
-                Files.writeString(outputFilePath, ballerinaCode);
-                logger.info("Conversion successful. Output written to " + outputBalFilePath);
-            } catch (Exception e) {
-                logger.log(Level.SEVERE, "Error writing output to file: " + outputBalFilePath, e);
-                System.exit(1);
-            }
+            migrateTibcoFile(inputPath, outputPath);
         } else if (Files.isDirectory(inputPath)) {
             String targetPath = outputPath != null ? outputPath : inputPath + "_converted";
             migrateTibcoProject(inputPath.toString(), targetPath);
         } else {
             logger.severe("Invalid path: " + inputPath);
+            System.exit(1);
+        }
+    }
+
+    private static void migrateTibcoFile(Path inputPath, String outputPath) {
+        SyntaxTree syntaxTree = TibcoToBalConverter.convertFile(inputPath.toString());
+        String ballerinaCode = syntaxTree.toSourceCode();
+        Path outputFilePath = Paths.get(outputPath);
+        try {
+            Files.writeString(outputFilePath, ballerinaCode);
+            logger.info("Conversion successful. Output written to " + outputPath);
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error writing output to file: " + outputPath, e);
             System.exit(1);
         }
     }
@@ -120,7 +120,7 @@ public class MigrationTool {
     }
 
     private static void writeTextDocument(BallerinaModel.Module module, BallerinaModel.DefaultPackage balPackage,
-            BallerinaModel.TextDocument textDocument, Path targetDir) throws IOException {
+                                          BallerinaModel.TextDocument textDocument, Path targetDir) throws IOException {
         BallerinaModel.Module tmpModule = new BallerinaModel.Module(module.name(), List.of(textDocument));
         BallerinaModel ballerinaModel = new BallerinaModel(balPackage, List.of(tmpModule));
         String fileName = textDocument.documentName();
@@ -149,13 +149,15 @@ public class MigrationTool {
         String distribution = "2201.12.0";
 
         Path tomlPath = Paths.get(targetPath, "Ballerina.toml");
-        StringBuilder tomlContent = new StringBuilder("[package]\n" +
-                "org = \"" + org + "\"\n" +
-                "name = \"" + name + "\"\n" +
-                "version = \"" + version + "\"\n" +
-                "distribution = \"" + distribution + "\"\n\n" +
-                "[build-options]\n" +
-                "observabilityIncluded = true");
+        StringBuilder tomlContent = new StringBuilder("""
+                [package]
+                org = "%s"
+                name = "%s"
+                version = "%s"
+                distribution = "%s"
+                
+                [build-options]
+                observabilityIncluded = true""".formatted(org, name, version, distribution));
         for (var each : cx.javaDependencies()) {
             tomlContent.append("\n");
             tomlContent.append(each.dependencyParam);
@@ -196,7 +198,7 @@ public class MigrationTool {
         Path balProjectPath = muleProjectPath.resolve(balProjectName);
 
         // create ballerina project
-        String[] args = { balProjectPath.toString() };
+        String[] args = {balProjectPath.toString()};
         NewCommand newCommand = new NewCommand(System.out, false);
         new CommandLine(newCommand).parseArgs(args);
         newCommand.execute();

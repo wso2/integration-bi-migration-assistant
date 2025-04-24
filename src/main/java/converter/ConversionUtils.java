@@ -1,6 +1,6 @@
 package converter;
 
-import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.TypeDesc.BallerinaType;
 import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc;
 import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import io.ballerina.compiler.syntax.tree.SyntaxInfo;
@@ -29,8 +29,8 @@ import static converter.MELConverter.convertMELToBal;
 
 public class ConversionUtils {
 
-    private static final Pattern UNESCAPED_SPECIAL_CHAR_SET = Pattern
-            .compile("([$&+,:;=\\?@#\\\\|/'\\ \\[\\}\\]<\\>.\"^*{}~`()%!-])");
+    private static final Pattern UNESCAPED_SPECIAL_CHAR_SET =
+            Pattern.compile("([$&+,:;=\\?@#\\\\|/'\\ \\[\\}\\]<\\>.\"^*{}~`()%!-])");
 
     /**
      * Converts mule path to a Ballerina resource path.
@@ -95,9 +95,9 @@ public class ConversionUtils {
     }
 
     static void processExprCompContent(MuleToBalConverter.SharedProjectData sharedProjectData,
-            String convertedBalStmts) {
-        List<String> list = Arrays.stream(convertedBalStmts.split(";")).filter(s -> !s.isEmpty()).map(String::trim)
-                .toList();
+                                       String convertedBalStmts) {
+        List<String> list =
+                Arrays.stream(convertedBalStmts.split(";")).filter(s -> !s.isEmpty()).map(String::trim).toList();
         for (String stmt : list) {
             processStatement(sharedProjectData, stmt);
         }
@@ -147,7 +147,7 @@ public class ConversionUtils {
     static String[] getAllowedMethods(String allowedMethods) {
         if (allowedMethods.isEmpty()) {
             // Leaving empty will allow all methods
-            return new String[] { "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE", "CONNECT" };
+            return new String[]{"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE", "CONNECT"};
         }
         return allowedMethods.split(",\\s*");
     }
@@ -245,7 +245,7 @@ public class ConversionUtils {
             transformer.transform(new DOMSource(element), new StreamResult(writer));
             return writer.getBuffer().toString();
         } catch (Exception e) {
-            throw new RuntimeException("Error converting Member to String", e);
+            throw new RuntimeException("Error converting Element to String", e);
         }
     }
 
@@ -305,7 +305,7 @@ public class ConversionUtils {
         return new BallerinaStatement(stmt);
     }
 
-    public static BallerinaModel.TypeDesc.BallerinaType typeFrom(String type) {
-        return new BallerinaModel.TypeDesc.BallerinaType(type);
+    public static BallerinaType typeFrom(String type) {
+        return new BallerinaType(type);
     }
 }

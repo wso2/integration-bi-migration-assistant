@@ -65,7 +65,6 @@ public class ProjectContext {
     private String logFunction = null;
     private int nextPort = 8080;
     private int typeCount = 0;
-    private int unhandledTypeCount = 0;
 
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
     private static final Logger logger = Logger.getLogger(ProjectContext.class.getName());
@@ -73,11 +72,11 @@ public class ProjectContext {
     private final Map<String, String> generatedResources = new HashMap<>();
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
 
-    public ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext) {
+    ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext) {
         this.conversionContext = Optional.of(conversionContext);
     }
 
-    public ProjectContext() {
+    ProjectContext() {
         this.conversionContext = Optional.empty();
     }
 
@@ -89,39 +88,40 @@ public class ProjectContext {
         return nextPort++;
     }
 
-    public BallerinaModel.Module serialize(Collection<BallerinaModel.TextDocument> textDocuments) {
+    BallerinaModel.Module serialize(Collection<BallerinaModel.TextDocument> textDocuments) {
         List<BallerinaModel.TextDocument> combinedTextDocuments = Stream.concat(textDocuments.stream(),
                 Stream.of(typesFile(), utilsFile())).toList();
-        logger.info(String.format("Type Statistics - Total Types: %d, Unhandled Types: %d",
-                typeCount, unhandledTypeCount));
+        logger.info(String.format("Type Statistics - Total Types: %d", typeCount));
         return new BallerinaModel.Module("tibco", combinedTextDocuments);
     }
 
     String getToXmlFunction() {
-        if (toXMLFunction == null) {
-            importLibraryIfNeededToUtility(Library.XML_DATA);
-            String functionName = "toXML";
-            utilityFunctions.add(new BallerinaModel.Function(functionName,
-                    List.of(new BallerinaModel.Parameter("data", new BallerinaModel.TypeDesc.MapTypeDesc(ANYDATA))),
-                    new UnionTypeDesc(List.of(ERROR, XML)).toString(),
-                    List.of(new Return<>(
-                            Optional.of(new FunctionCall("xmldata:toXml",
-                                    new String[] { "data" }))))));
-            toXMLFunction = functionName;
+        if (toXMLFunction != null) {
+            return toXMLFunction;
         }
+        importLibraryIfNeededToUtility(Library.XML_DATA);
+        String functionName = "toXML";
+        utilityFunctions.add(new BallerinaModel.Function(functionName,
+                List.of(new BallerinaModel.Parameter("data", new BallerinaModel.TypeDesc.MapTypeDesc(ANYDATA))),
+                new UnionTypeDesc(List.of(ERROR, XML)).toString(),
+                List.of(new Return<>(
+                        Optional.of(new FunctionCall("xmldata:toXml",
+                                new String[]{"data"}))))));
+        toXMLFunction = functionName;
         return toXMLFunction;
     }
 
     String getJsonToXMLFunction() {
-        if (jsonToXMLFunction == null) {
-            importLibraryIfNeededToUtility(Library.XML_DATA);
-            String functionName = "fromJson";
-            utilityFunctions.add(
-                    new BallerinaModel.Function(functionName, List.of(new BallerinaModel.Parameter("data", JSON)),
-                            new UnionTypeDesc(List.of(ERROR, XML)).toString(),
-                            List.of(new Return<>(new FunctionCall("xmldata:fromJson", new String[] { "data" })))));
-            jsonToXMLFunction = functionName;
+        if (jsonToXMLFunction != null) {
+            return jsonToXMLFunction;
         }
+        importLibraryIfNeededToUtility(Library.XML_DATA);
+        String functionName = "fromJson";
+        utilityFunctions.add(
+                new BallerinaModel.Function(functionName, List.of(new BallerinaModel.Parameter("data", JSON)),
+                        UnionTypeDesc.of(ERROR, XML),
+                        List.of(new Return<>(new FunctionCall("xmldata:fromJson", new String[]{"data"})))));
+        jsonToXMLFunction = functionName;
         return jsonToXMLFunction;
     }
 
@@ -259,16 +259,11 @@ public class ProjectContext {
         return typeCx.addModuleTypeDef(name, moduleTypeDef);
     }
 
-    public void incrementTypeCount() {
+    void incrementTypeCount() {
         typeCount++;
     }
 
-    public void incrementUnhandledTypeCount() {
-        incrementTypeCount();
-        unhandledTypeCount++;
-    }
-
-    public String getFileWriteFunction(ContextWithFile contextWithFile) {
+    String getFileWriteFunction(ContextWithFile contextWithFile) {
         contextWithFile.addLibraryImport(IO);
         return "io:fileWriteString";
     }
@@ -338,9 +333,8 @@ public class ProjectContext {
         return new BallerinaModel.Expression.VariableReference(varName);
     }
 
-    public void addResourceDeclaration(String resourceName, BallerinaModel.ModuleVar resourceVar,
-            Collection<BallerinaModel.ModuleVar> configurables,
-            Collection<Library> imports) {
+    void addResourceDeclaration(String resourceName, BallerinaModel.ModuleVar resourceVar,
+                                Collection<BallerinaModel.ModuleVar> configurables, Collection<Library> imports) {
         imports.forEach(this::importLibraryIfNeededToUtility);
         configurables.forEach(each -> utilityVars.put(each.name(), each));
         utilityVars.put(resourceVar.name(), resourceVar);
@@ -354,18 +348,6 @@ public class ProjectContext {
     public String getAddToContextFn() {
         utilityIntrinsics.add(Intrinsics.ADD_TO_CONTEXT);
         return Intrinsics.ADD_TO_CONTEXT.name;
-    }
-
-    public String getTransformXSLTFn() {
-        addTransformXSLTFnIfNeeded();
-        return Intrinsics.TRANSFORM_XSLT.name;
-    }
-
-    public void addTransformXSLTFnIfNeeded() {
-        if (utilityIntrinsics.contains(Intrinsics.TRANSFORM_XSLT)) {
-            return;
-        }
-        utilityIntrinsics.add(Intrinsics.TRANSFORM_XSLT);
     }
 
     private static class ContextWrapperForTypeFile implements ContextWithFile {
@@ -390,10 +372,6 @@ public class ProjectContext {
             imports.add(new BallerinaModel.Import("ballerina", library.moduleName, Optional.empty()));
         }
 
-        public void addIntrinsic(Intrinsics intrinsic) {
-            typeIntrinsics.add(intrinsic.body);
-        }
-
         @Override
         public BallerinaModel.TypeDesc getTypeByName(String name) {
             return cx.getTypeByName(name, this);
@@ -401,8 +379,7 @@ public class ProjectContext {
 
         @Override
         public boolean addModuleTypeDef(String name, BallerinaModel.ModuleTypeDef defn) {
-            if (defn.typeDesc() instanceof BallerinaModel.TypeDesc.TypeReference(String name1) &&
-                    name1.equals(name)) {
+            if (defn.typeDesc() instanceof BallerinaModel.TypeDesc.TypeReference(String name1) && name1.equals(name)) {
                 return false;
             }
             addAnnotationsImports(defn.typeDesc());

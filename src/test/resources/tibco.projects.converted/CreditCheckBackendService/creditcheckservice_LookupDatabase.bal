@@ -91,13 +91,6 @@ function activityRunner_creditcheckservice_LookupDatabase(map<xml> cx) returns x
     return result4;
 }
 
-function creditcheckservice_LookupDatabase_start(Element input, map<xml> params = {}) returns Response {
-    xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = process_creditcheckservice_LookupDatabase(inputXML, params);
-    Response result = convertToResponse(xmlResult);
-    return result;
-}
-
 function errorHandler_creditcheckservice_LookupDatabase(error err, map<xml> cx) returns xml {
     panic err;
 }
@@ -123,6 +116,13 @@ function process_creditcheckservice_LookupDatabase(xml input, map<xml> params) r
 function receiveEvent(map<xml> context) returns xml|error {
     addToContext(context, "Start", context.get("$input"));
     return context.get("$input");
+}
+
+function start_creditcheckservice_LookupDatabase(Element input, map<xml> params = {}) returns Response {
+    xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
+    xml xmlResult = process_creditcheckservice_LookupDatabase(inputXML, params);
+    Response result = convertToResponse(xmlResult);
+    return result;
 }
 
 function throw(map<xml> context) returns xml|error {

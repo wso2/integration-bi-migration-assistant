@@ -242,8 +242,8 @@ public class MuleToBalConverter {
     }
 
     public static SyntaxTree convertProjectXMLFileToBallerina(MuleXMLNavigator muleXMLNavigator,
-            SharedProjectData sharedProjectData,
-            String xmlFilePath) {
+                                                              SharedProjectData sharedProjectData,
+                                                              String xmlFilePath) {
         MuleToBalConverter.Data data = new MuleToBalConverter.Data(sharedProjectData);
         SyntaxTree syntaxTree = convertXMLFileToBallerina(muleXMLNavigator, xmlFilePath, data);
         sharedProjectData.sharedHttpListenerConfigsMap.putAll(data.globalHttpListenerConfigsMap);
@@ -254,7 +254,7 @@ public class MuleToBalConverter {
     }
 
     private static SyntaxTree convertXMLFileToBallerina(MuleXMLNavigator muleXMLNavigator, String xmlFilePath,
-            Data data) {
+                                                        Data data) {
         BallerinaModel ballerinaModel = getBallerinaModel(muleXMLNavigator, data, xmlFilePath);
         return new CodeGenerator(ballerinaModel).generateBalCode();
     }
@@ -425,7 +425,7 @@ public class MuleToBalConverter {
     }
 
     private static void genVMInboundEndpointSource(Data data, Flow flow, VMInboundEndpoint vmInboundEndpoint,
-            Set<Function> functions) {
+                                                   Set<Function> functions) {
         String path = vmInboundEndpoint.path();
         String funcName = data.sharedProjectData.vmPathToBalFuncMap.get(path);
         if (funcName == null) {
@@ -514,7 +514,7 @@ public class MuleToBalConverter {
     }
 
     private static void genBalFuncForGlobalExceptionStrategy(Data data, MuleRecord muleRecord,
-            Set<Function> functions) {
+                                                             Set<Function> functions) {
         List<Statement> body;
         String name;
         if (muleRecord instanceof CatchExceptionStrategy catchExceptionStrategy) {
@@ -542,7 +542,7 @@ public class MuleToBalConverter {
     }
 
     private static void genBalFuncForPrivateOrSubFlow(Data data, Set<Function> functions, String flowName,
-            List<MuleRecord> flowBlocks) {
+                                                      List<MuleRecord> flowBlocks) {
         putFlowInfoIfAbsent(data, flowName);
         data.sharedProjectData.currentFlowInfo = data.sharedProjectData.flowInfoMap.get(flowName);
 
@@ -647,9 +647,9 @@ public class MuleToBalConverter {
     }
 
     protected static BallerinaModel createBallerinaModel(List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
-            List<ModuleVar> moduleVars, List<Listener> listeners,
-            List<Service> services, List<Function> functions,
-            List<String> comments) {
+                                                         List<ModuleVar> moduleVars, List<Listener> listeners,
+                                                         List<Service> services, List<Function> functions,
+                                                         List<String> comments) {
         // TODO: figure out package, module names properly
         String projectName = "muleDemoProject";
         String moduleName = "muleDemoModule";
@@ -1005,8 +1005,7 @@ public class MuleToBalConverter {
             case UnsupportedBlock unsupportedBlock -> {
                 String comment = ConversionUtils.wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());
                 // TODO: comment is not a statement. Find a better way to handle this
-                // This works for now because we concatenate and create a body block `{ stmts }`
-                // before parsing.
+                // This works for now because we concatenate and create a body block `{ stmts }` before parsing.
                 statementList.add(stmtFrom(comment));
             }
             case null -> throw new IllegalStateException();
@@ -1021,7 +1020,8 @@ public class MuleToBalConverter {
     }
 
     private static List<Statement> getChoiceExceptionBody(Data data, ChoiceExceptionStrategy choiceExceptionStrategy) {
-        List<CatchExceptionStrategy> catchExceptionStrategies = choiceExceptionStrategy.catchExceptionStrategyList();
+        List<CatchExceptionStrategy> catchExceptionStrategies =
+                choiceExceptionStrategy.catchExceptionStrategyList();
         assert !catchExceptionStrategies.isEmpty();
 
         CatchExceptionStrategy firstCatch = catchExceptionStrategies.getFirst();
@@ -1085,7 +1085,7 @@ public class MuleToBalConverter {
     }
 
     private static MuleRecord readExpressionComponent(Data data, MuleElement muleElement) {
-        return new ExpressionComponent(muleElement.getElement().getTextContent());
+            return new ExpressionComponent(muleElement.getElement().getTextContent());
     }
 
     // Flow Control

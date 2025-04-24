@@ -13,7 +13,7 @@ service /Creditscore on experianservice_module_Process_listener {
 </item>`;
         xml inputXmlMap = xml `<root>${inputXml}</root>`;
         map<xml> paramXML = {post: inputXmlMap};
-        return experianservice_module_Process_start(input, paramXML);
+        return start_experianservice_module_Process(input, paramXML);
     }
 }
 
@@ -72,13 +72,6 @@ function errorHandler_experianservice_module_Process(error err, map<xml> cx) ret
     panic err;
 }
 
-function experianservice_module_Process_start(InputElement input, map<xml> params = {}) returns ExperianResponseSchemaElement {
-    xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = process_experianservice_module_Process(inputXML, params);
-    ExperianResponseSchemaElement result = convertToExperianResponseSchemaElement(xmlResult);
-    return result;
-}
-
 function process_experianservice_module_Process(xml input, map<xml> params) returns xml {
     map<xml> context = {...params};
     addToContext(context, "$input", input);
@@ -92,4 +85,11 @@ function process_experianservice_module_Process(xml input, map<xml> params) retu
 function receiveEvent(map<xml> context) returns xml|error {
     addToContext(context, "HTTPReceiver", context.get("$input"));
     return context.get("$input");
+}
+
+function start_experianservice_module_Process(InputElement input, map<xml> params = {}) returns ExperianResponseSchemaElement {
+    xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
+    xml xmlResult = process_experianservice_module_Process(inputXML, params);
+    ExperianResponseSchemaElement result = convertToExperianResponseSchemaElement(xmlResult);
+    return result;
 }

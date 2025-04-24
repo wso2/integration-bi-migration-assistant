@@ -13,7 +13,7 @@ service /y54cuadtcxtfstqs3rux2gfdaxppoqgc on creditapp_module_EquifaxScore_liste
 </item>`;
         xml inputXmlMap = xml `<root>${inputXml}</root>`;
         map<xml> paramXML = {post: inputXmlMap};
-        return creditapp_module_EquifaxScore_start(input, paramXML);
+        return start_creditapp_module_EquifaxScore(input, paramXML);
     }
 }
 
@@ -26,7 +26,7 @@ service / on creditapp_module_EquifaxScore_listener {
 </item>`;
         xml inputXmlMap = xml `<root>${inputXml}</root>`;
         map<xml> paramXML = {post: inputXmlMap};
-        return creditapp_module_EquifaxScore_start(input, paramXML);
+        return start_creditapp_module_EquifaxScore(input, paramXML);
     }
 }
 
@@ -63,13 +63,6 @@ function activityRunner_creditapp_module_EquifaxScore(map<xml> cx) returns xml|e
     xml result1 = check invoke(cx);
     xml result2 = check activityExtension_6(cx);
     return result2;
-}
-
-function creditapp_module_EquifaxScore_start(GiveNewSchemaNameHere input, map<xml> params = {}) returns SuccessSchema {
-    xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = process_creditapp_module_EquifaxScore(inputXML, params);
-    SuccessSchema result = convertToSuccessSchema(xmlResult);
-    return result;
 }
 
 function errorHandler_creditapp_module_EquifaxScore(error err, map<xml> cx) returns xml {
@@ -134,4 +127,11 @@ function process_creditapp_module_EquifaxScore(xml input, map<xml> params) retur
 function receiveEvent_5(map<xml> context) returns xml|error {
     addToContext(context, "Start", context.get("$input"));
     return context.get("$input");
+}
+
+function start_creditapp_module_EquifaxScore(GiveNewSchemaNameHere input, map<xml> params = {}) returns SuccessSchema {
+    xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
+    xml xmlResult = process_creditapp_module_EquifaxScore(inputXML, params);
+    SuccessSchema result = convertToSuccessSchema(xmlResult);
+    return result;
 }

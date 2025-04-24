@@ -32,66 +32,57 @@ public class ActivityContext {
     private final TibcoModel.Scope.Flow.Activity activity;
     private int varCounter = 0;
 
-    String getAnnonVarName() {
-        return "var" + varCounter++;
-    }
-
     ActivityContext(ProcessContext processContext, TibcoModel.Scope.Flow.Activity activity) {
         this.activity = activity;
         this.processContext = processContext;
     }
 
-    public ProjectContext.FunctionData getProcessStartFunctionName(String processName) {
+    String getAnnonVarName() {
+        return "var" + varCounter++;
+    }
+
+    ProjectContext.FunctionData getProcessStartFunctionName(String processName) {
         return processContext.getProcessStartFunction(processName);
     }
 
-    public String functionName() {
+    String functionName() {
         return processContext.analysisResult.from(activity).functionName();
     }
 
-    public List<BallerinaModel.Parameter> parameters() {
+    List<BallerinaModel.Parameter> parameters() {
         return List.of(
                 new BallerinaModel.Parameter(ConversionUtils.Constants.CONTEXT_VAR_NAME, ProcessContext.contextType()));
     }
 
-    public static BallerinaModel.TypeDesc returnType() {
+    static BallerinaModel.TypeDesc returnType() {
         return new BallerinaModel.TypeDesc.UnionTypeDesc(List.of(XML, ERROR));
     }
 
-    public BallerinaModel.Expression.VariableReference addConfigurableVariable(
-            BallerinaModel.TypeDesc td, String name) {
-        return processContext.addConfigurableVariable(td, name);
-    }
-
-    public BallerinaModel.Expression.VariableReference contextVarRef() {
+    BallerinaModel.Expression.VariableReference contextVarRef() {
         return processContext.contextVarRef();
     }
 
-    public BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {
+    BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {
         return processContext.client(sharedResourcePropertyName);
     }
 
-    public String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
+    String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
         return processContext.getConvertToTypeFunction(targetType);
     }
 
-    public String getAddToContextFn() {
+    String getAddToContextFn() {
         return processContext.getAddToContextFn();
-    }
-
-    public String getTransformXSLTFn() {
-        return processContext.getTransformXSLTFn();
     }
 
     void addLibraryImport(Library library) {
         processContext.addLibraryImport(library);
     }
 
-    public BallerinaModel.TypeDesc getFileWriteConfigType() {
+    BallerinaModel.TypeDesc getFileWriteConfigType() {
         return processContext.getFileWriteConfigType();
     }
 
-    public String getFileWriteFunction() {
+    String getFileWriteFunction() {
         return processContext.getFileWriteFunction();
     }
 
@@ -107,8 +98,11 @@ public class ActivityContext {
         return processContext.getConfigVarName(name);
     }
 
-    public BallerinaModel.Expression.VariableReference getHttpClient(String path) {
+    BallerinaModel.Expression.VariableReference getHttpClient(String path) {
         return processContext.getHttpClient(path);
     }
 
+    public String getJsonToXMLFunction() {
+        return processContext.getJsonToXMLFunction();
+    }
 }

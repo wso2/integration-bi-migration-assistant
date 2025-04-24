@@ -78,13 +78,6 @@ function errorHandler_loggingservice_LogProcess(error err, map<xml> cx) returns 
     panic err;
 }
 
-function loggingservice_LogProcess_start(LogMessage input, map<xml> params = {}) returns result {
-    xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = process_loggingservice_LogProcess(inputXML, params);
-    result result = convertToresult(xmlResult);
-    return result;
-}
-
 function predicate_0(xml input) returns boolean {
     return test(input, "matches($Start/ns0:handler, \"console\")");
 }
@@ -110,4 +103,11 @@ function process_loggingservice_LogProcess(xml input, map<xml> params) returns x
 function receiveEvent(map<xml> context) returns xml|error {
     addToContext(context, "Start", context.get("$input"));
     return context.get("$input");
+}
+
+function start_loggingservice_LogProcess(LogMessage input, map<xml> params = {}) returns result {
+    xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
+    xml xmlResult = process_loggingservice_LogProcess(inputXML, params);
+    result result = convertToresult(xmlResult);
+    return result;
 }

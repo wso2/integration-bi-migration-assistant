@@ -18,8 +18,15 @@
 
 package converter.tibco;
 
-import ballerina.BallerinaModel;
+import ballerina.BallerinaModel.Expression;
+import ballerina.BallerinaModel.Expression.CheckPanic;
+import ballerina.BallerinaModel.Expression.NewExpression;
+import ballerina.BallerinaModel.Expression.StringConstant;
+import ballerina.BallerinaModel.ModuleVar;
 import tibco.TibcoModel;
+import tibco.TibcoModel.Resource.HTTPClientResource;
+import tibco.TibcoModel.Resource.HTTPConnectionResource;
+import tibco.TibcoModel.Resource.JDBCResource;
 
 import java.util.Collection;
 import java.util.List;
@@ -36,39 +43,35 @@ final class ResourceConvertor {
 
     }
 
-    public static void convertJDBCResource(ProjectContext cx, TibcoModel.Resource.JDBCResource resource) {
-        Map<String, BallerinaModel.ModuleVar> substitutions = convertSubstitutionBindings(cx,
-                resource.substitutionBindings());
-        BallerinaModel.Expression.NewExpression constructorCall = new BallerinaModel.Expression.NewExpression(
+    public static void convertJDBCResource(ProjectContext cx, JDBCResource resource) {
+        Map<String, ModuleVar> substitutions = convertSubstitutionBindings(cx, resource.substitutionBindings());
+        NewExpression constructorCall = new NewExpression(
                 Stream.of(resource.dbUrl(), resource.userName(), resource.password())
-                        .map(value -> toExpr(substitutions, value)).toList());
-        BallerinaModel.ModuleVar resourceVar =
-                new BallerinaModel.ModuleVar(cx.getUtilityVarName(resource.name()), "jdbc:Client",
-                        Optional.of(new BallerinaModel.Expression.CheckPanic(constructorCall)), false, false);
+                        .map(value -> toExpr(substitutions, value))
+                        .toList());
+        ModuleVar resourceVar =
+                new ModuleVar(cx.getUtilityVarName(resource.name()), "jdbc:Client",
+                        Optional.of(new CheckPanic(constructorCall)), false, false);
         cx.addResourceDeclaration(resource.name(), resourceVar, substitutions.values(), List.of(Library.JDBC));
     }
 
-    public static void convertHttpConnectionResource(ProjectContext cx,
-                                                     TibcoModel.Resource.HTTPConnectionResource resource) {
+    public static void convertHttpConnectionResource(ProjectContext cx, HTTPConnectionResource resource) {
     }
 
-    public static void convertHttpClientResource(ProjectContext cx, TibcoModel.Resource.HTTPClientResource resource) {
-        Map<String, BallerinaModel.ModuleVar> substitutions = convertSubstitutionBindings(cx,
-                resource.substitutionBindings());
+    public static void convertHttpClientResource(ProjectContext cx, HTTPClientResource resource) {
+        Map<String, ModuleVar> substitutions = convertSubstitutionBindings(cx, resource.substitutionBindings());
         String hostName = hostName(resource);
         if (resource.port().isPresent()) {
             hostName = hostName + ":" + resource.port().get();
         }
-        BallerinaModel.Expression.NewExpression constructorCall = new BallerinaModel.Expression.NewExpression(
-                List.of(toExpr(substitutions, hostName))
-        );
-        BallerinaModel.ModuleVar resourceVar =
-                new BallerinaModel.ModuleVar(cx.getUtilityVarName(resource.name()), "http:Client",
-                        Optional.of(new BallerinaModel.Expression.CheckPanic(constructorCall)), false, false);
+        NewExpression constructorCall = new NewExpression(List.of(toExpr(substitutions, hostName)));
+        ModuleVar resourceVar =
+                new ModuleVar(cx.getUtilityVarName(resource.name()), "http:Client",
+                        Optional.of(new CheckPanic(constructorCall)), false, false);
         cx.addResourceDeclaration(resource.name(), resourceVar, substitutions.values(), List.of(Library.HTTP));
     }
 
-    private static String hostName(TibcoModel.Resource.HTTPClientResource resource) {
+    private static String hostName(HTTPClientResource resource) {
         for (TibcoModel.Resource.SubstitutionBinding binding : resource.substitutionBindings()) {
             if (binding.template().equals("host")) {
                 return binding.propName();
@@ -81,20 +84,19 @@ final class ResourceConvertor {
 
     }
 
-    private static BallerinaModel.Expression toExpr(Map<String, BallerinaModel.ModuleVar> configVars, String value) {
+    private static Expression toExpr(Map<String, ModuleVar> configVars, String value) {
         var result = substituteIfNeeded(configVars, value);
         if (!result.hasInterpolations) {
-            return new BallerinaModel.Expression.StringConstant(result.result);
+            return new StringConstant(result.result);
         }
-        return new BallerinaModel.Expression.StringTemplate(result.result());
+        return new Expression.StringTemplate(result.result());
     }
 
-    private static SubstitutionResult substituteIfNeeded(Map<String, BallerinaModel.ModuleVar> configVars,
-                                                         String value) {
+    private static SubstitutionResult substituteIfNeeded(Map<String, ModuleVar> configVars, String value) {
         boolean hasInterpolations = false;
         String result = value;
 
-        for (Map.Entry<String, BallerinaModel.ModuleVar> entry : configVars.entrySet()) {
+        for (Map.Entry<String, ModuleVar> entry : configVars.entrySet()) {
             if (value.contains(entry.getKey())) {
                 hasInterpolations = true;
                 result = result.replace(entry.getKey(), "${" + entry.getValue().name() + "}");
@@ -104,22 +106,18 @@ final class ResourceConvertor {
         return new SubstitutionResult(hasInterpolations, result);
     }
 
-    private static Map<String, BallerinaModel.ModuleVar> convertSubstitutionBindings(
-            ProjectContext cx,
-            Collection<TibcoModel.Resource.SubstitutionBinding> bindings) {
-        record ConversionResult(String bindingName, BallerinaModel.ModuleVar varName) {
+    private static Map<String, ModuleVar> convertSubstitutionBindings(
+            ProjectContext cx, Collection<TibcoModel.Resource.SubstitutionBinding> bindings) {
+        record ConversionResult(String bindingName, ModuleVar varName) {
 
         }
         return bindings.stream()
-                .map(each -> new ConversionResult(each.propName(), convertSubstitutionBinding(cx, each))).collect(
-                        Collectors.toMap(ConversionResult::bindingName, ConversionResult::varName));
+                .map(each -> new ConversionResult(each.propName(), convertSubstitutionBinding(cx, each)))
+                .collect(Collectors.toMap(ConversionResult::bindingName, ConversionResult::varName));
     }
 
-    private static BallerinaModel.ModuleVar convertSubstitutionBinding(
-            ProjectContext cx,
-            TibcoModel.Resource.SubstitutionBinding binding
-    ) {
-        String name = cx.getUtilityVarName(binding.template());
-        return BallerinaModel.ModuleVar.configurable(name, STRING);
+    private static ModuleVar convertSubstitutionBinding(ProjectContext cx,
+                                                        TibcoModel.Resource.SubstitutionBinding binding) {
+        return ModuleVar.configurable(cx.getUtilityVarName(binding.template()), STRING);
     }
 }
