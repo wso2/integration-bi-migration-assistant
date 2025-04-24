@@ -5,7 +5,14 @@ public listener http:Listener creditapp_module_ExperianScore_listener = new (808
 
 service / on creditapp_module_ExperianScore_listener {
     resource function post creditscore(GiveNewSchemaNameHere input) returns ExperianResponseSchemaElement|http:NotFound|http:InternalServerError {
-        return creditapp_module_ExperianScore_start(input);
+        xml inputValXml = checkpanic toXML(input);
+        xml extractedBody = inputValXml/*;
+        xml inputXml = xml `<item>
+    ${extractedBody}
+</item>`;
+        xml inputXmlMap = xml `<root>${inputXml}</root>`;
+        map<xml> paramXML = {post: inputXmlMap};
+        return creditapp_module_ExperianScore_start(input, paramXML);
     }
 }
 

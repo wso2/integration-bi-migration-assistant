@@ -383,7 +383,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
             @Override
             public String toString() {
-                return "xml`" + body() + "`";
+                return "xml`" + body().trim() + "`";
             }
         }
 

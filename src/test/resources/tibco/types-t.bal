@@ -5,12 +5,26 @@ public listener http:Listener com_test_Test_listener = new (8080, {host: "localh
 
 service /y54cuadtcxtfstqs3rux2gfdaxppoqgc on com_test_Test_listener {
     resource function post creditscore(GiveNewSchemaNameHere input) returns SuccessSchema|http:NotFound|http:InternalServerError|client_404_RecordNotFound {
-        return com_test_Test_start(input);
+        xml inputValXml = checkpanic toXML(input);
+        xml extractedBody = inputValXml/*;
+        xml inputXml = xml `<item>
+    ${extractedBody}
+</item>`;
+        xml inputXmlMap = xml `<root>${inputXml}</root>`;
+        map<xml> paramXML = {post: inputXmlMap};
+        return com_test_Test_start(input, paramXML);
     }
 }
 
 service / on com_test_Test_listener {
     resource function post creditscore(GiveNewSchemaNameHere input) returns SuccessSchema|http:NotFound|http:InternalServerError {
-        return com_test_Test_start(input);
+        xml inputValXml = checkpanic toXML(input);
+        xml extractedBody = inputValXml/*;
+        xml inputXml = xml `<item>
+    ${extractedBody}
+</item>`;
+        xml inputXmlMap = xml `<root>${inputXml}</root>`;
+        map<xml> paramXML = {post: inputXmlMap};
+        return com_test_Test_start(input, paramXML);
     }
 }

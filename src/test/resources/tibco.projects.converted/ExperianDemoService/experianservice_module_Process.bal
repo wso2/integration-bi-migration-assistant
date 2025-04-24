@@ -6,7 +6,14 @@ public listener http:Listener experianservice_module_Process_listener = new (808
 
 service /Creditscore on experianservice_module_Process_listener {
     resource function post creditscore(InputElement input) returns ExperianResponseSchemaElement|http:NotFound|http:InternalServerError {
-        return experianservice_module_Process_start(input);
+        xml inputValXml = checkpanic toXML(input);
+        xml extractedBody = inputValXml/*;
+        xml inputXml = xml `<item>
+    ${extractedBody}
+</item>`;
+        xml inputXmlMap = xml `<root>${inputXml}</root>`;
+        map<xml> paramXML = {post: inputXmlMap};
+        return experianservice_module_Process_start(input, paramXML);
     }
 }
 

@@ -6,13 +6,22 @@ public listener http:Listener creditcheckservice_Process_listener = new (8080, {
 
 service /CreditScore on creditcheckservice_Process_listener {
     resource function post creditscore(Request input) returns Response|http:NotFound|http:InternalServerError|client_404_NotFound {
-        return creditcheckservice_Process_start(input);
+        xml inputValXml = checkpanic toXML(input);
+        xml extractedBody = inputValXml/*;
+        xml inputXml = xml `<item>
+    ${extractedBody}
+</item>`;
+        xml inputXmlMap = xml `<root>${inputXml}</root>`;
+        map<xml> paramXML = {post: inputXmlMap};
+        return creditcheckservice_Process_start(input, paramXML);
     }
 }
 
 service / on creditcheckservice_Process_listener {
     resource function get creditscore() returns Response|http:NotFound|http:InternalServerError {
-        return creditcheckservice_Process_start(());
+        xml inputXmlMap = xml `<root></root>`;
+        map<xml> paramXML = {get: inputXmlMap};
+        return creditcheckservice_Process_start((), paramXML);
     }
 }
 

@@ -6,13 +6,27 @@ public listener http:Listener creditapp_module_EquifaxScore_listener = new (8081
 
 service /y54cuadtcxtfstqs3rux2gfdaxppoqgc on creditapp_module_EquifaxScore_listener {
     resource function post creditscore(GiveNewSchemaNameHere input) returns SuccessSchema|http:NotFound|http:InternalServerError|client_404_RecordNotFound {
-        return creditapp_module_EquifaxScore_start(input);
+        xml inputValXml = checkpanic toXML(input);
+        xml extractedBody = inputValXml/*;
+        xml inputXml = xml `<item>
+    ${extractedBody}
+</item>`;
+        xml inputXmlMap = xml `<root>${inputXml}</root>`;
+        map<xml> paramXML = {post: inputXmlMap};
+        return creditapp_module_EquifaxScore_start(input, paramXML);
     }
 }
 
 service / on creditapp_module_EquifaxScore_listener {
     resource function post creditscore(GiveNewSchemaNameHere input) returns SuccessSchema|http:NotFound|http:InternalServerError {
-        return creditapp_module_EquifaxScore_start(input);
+        xml inputValXml = checkpanic toXML(input);
+        xml extractedBody = inputValXml/*;
+        xml inputXml = xml `<item>
+    ${extractedBody}
+</item>`;
+        xml inputXmlMap = xml `<root>${inputXml}</root>`;
+        map<xml> paramXML = {post: inputXmlMap};
+        return creditapp_module_EquifaxScore_start(input, paramXML);
     }
 }
 

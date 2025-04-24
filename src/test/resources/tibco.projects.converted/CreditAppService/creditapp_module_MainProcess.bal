@@ -5,7 +5,14 @@ public listener http:Listener creditapp_module_MainProcess_listener = new (8082,
 
 service /CreditDetails on creditapp_module_MainProcess_listener {
     resource function post creditdetails(GiveNewSchemaNameHere input) returns CreditScoreSuccessSchema|http:NotFound|http:InternalServerError {
-        return creditapp_module_MainProcess_start(input);
+        xml inputValXml = checkpanic toXML(input);
+        xml extractedBody = inputValXml/*;
+        xml inputXml = xml `<item>
+    ${extractedBody}
+</item>`;
+        xml inputXmlMap = xml `<root>${inputXml}</root>`;
+        map<xml> paramXML = {post: inputXmlMap};
+        return creditapp_module_MainProcess_start(input, paramXML);
     }
 }
 
