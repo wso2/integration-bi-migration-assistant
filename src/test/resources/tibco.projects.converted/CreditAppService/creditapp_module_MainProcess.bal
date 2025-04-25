@@ -1,6 +1,7 @@
 import ballerina/http;
 import ballerina/xslt;
 
+http:Client creditapp_module_MainProcess_client = checkpanic new ("localhost:8082/CreditDetails/creditdetails");
 public listener http:Listener creditapp_module_MainProcess_listener = new (8082, {host: "localhost"});
 
 service /CreditDetails on creditapp_module_MainProcess_listener {
@@ -61,7 +62,7 @@ function extActivity(map<xml> context) returns xml|error {
         </tns:GiveNewSchemaNameHere>
     </xsl:template>
 </xsl:stylesheet>`, context);
-    xml var2 = check toXML(check trap start_creditapp_module_EquifaxScore(convertToGiveNewSchemaNameHere(var1)));
+    xml var2 = check creditapp_module_EquifaxScore_client->post("", var1);
     addToContext(context, "EquifaxScore", var2);
     return var2;
 }
@@ -96,7 +97,7 @@ function extActivity_11(map<xml> context) returns xml|error {
         </tns:GiveNewSchemaNameHere>
     </xsl:template>
 </xsl:stylesheet>`, context);
-    xml var2 = check toXML(check trap start_creditapp_module_ExperianScore(convertToGiveNewSchemaNameHere(var1)));
+    xml var2 = check creditapp_module_ExperianScore_client->post("", var1);
     addToContext(context, "ExperianScore", var2);
     return var2;
 }

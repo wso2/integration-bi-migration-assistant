@@ -1,6 +1,7 @@
 import ballerina/http;
 import ballerina/xslt;
 
+http:Client creditcheckservice_Process_client = checkpanic new ("localhost:8080/CreditScore/creditscore");
 const string client_404_NotFound = "Not Found";
 public listener http:Listener creditcheckservice_Process_listener = new (8080, {host: "localhost"});
 

@@ -35,6 +35,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import static ballerina.BallerinaModel.Expression;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.UnionTypeDesc;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
@@ -52,6 +53,8 @@ public class ProcessContext implements ContextWithFile {
     public final AnalysisResult analysisResult;
     private final Map<TibcoModel.Scope.Flow.Activity.Source.Predicate, String> predicateToFunctionMap = new HashMap<>();
     private final Map<String, String> propertyVariableToResourceMap = new HashMap<>();
+
+    private DefaultClientDetails processClient;
 
     ProcessContext(ProjectContext projectContext, TibcoModel.Process process) {
         this.projectContext = projectContext;
@@ -254,6 +257,40 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getHttpClient(path);
     }
 
+    void allocatedDefaultClient(List<BallerinaModel.Service> services) {
+        if (services.isEmpty() || defaultListener == null) {
+            return;
+        }
+        Optional<BallerinaModel.Service> service = services.stream()
+                .filter(each -> !each.resources().isEmpty())
+                .filter(each -> each.listenerRefs().contains(defaultListener.name())).findAny();
+        if (service.isEmpty()) {
+            return;
+        }
+        BallerinaModel.Service defaultService = service.get();
+        String port = defaultListener.port();
+        BallerinaModel.Resource defaultResource = defaultService.resources().getFirst();
+        String path = ConversionUtils.sanitizePath(defaultService.basePath() + "/" + defaultResource.path());
+        Expression initExpr =
+                new Expression.BallerinaExpression("checkpanic new(\"localhost:%s/%s\")".formatted(port, path));
+        processClient = new DefaultClientDetails(new BallerinaModel.ModuleVar(
+                ConversionUtils.sanitizes(process.name()) + "_client", "http:Client", Optional.of(initExpr),
+                false, false), defaultResource.resourceMethodName());
+        String name = processClient.varDecl.name();
+        constants.put(name, processClient.varDecl);
+    }
+
+    Optional<DefaultClientDetails> getDefaultClient() {
+        if (processClient == null) {
+            return Optional.empty();
+        }
+        if (processClient.isUsed) {
+            return Optional.of(processClient);
+        }
+        processClient.isUsed = true;
+        return Optional.of(processClient);
+    }
+
     static BallerinaModel.Expression.VariableReference processLevelFnInputVariable() {
         return new BallerinaModel.Expression.VariableReference("input");
     }
@@ -264,5 +301,25 @@ public class ProcessContext implements ContextWithFile {
 
     public BallerinaModel.TypeDesc serviceInputType(BallerinaModel.TypeDesc expectedBodyType) {
         return UnionTypeDesc.of(expectedBodyType, XML);
+    }
+
+    Optional<DefaultClientDetails> getDefaultClientDetails(String processName) {
+        return projectContext.getDefaultClientDetails(processName);
+    }
+
+    static final class DefaultClientDetails {
+        final BallerinaModel.ModuleVar varDecl;
+        final String method;
+        boolean isUsed = false;
+
+        DefaultClientDetails(BallerinaModel.ModuleVar varDecl, String method) {
+            this.varDecl = varDecl;
+            this.method = method;
+        }
+
+        Expression.VariableReference ref() {
+            assert isUsed;
+            return new Expression.VariableReference(varDecl.name());
+        }
     }
 }

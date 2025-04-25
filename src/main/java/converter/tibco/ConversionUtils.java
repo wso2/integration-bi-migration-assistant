@@ -160,6 +160,10 @@ public final class ConversionUtils {
         }
     }
 
+    public static String sanitizePath(String path) {
+        return path.replaceAll("^/+", "").replaceAll("/+$", "");
+    }
+
     public enum Constants {
         ;
 

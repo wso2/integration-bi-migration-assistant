@@ -16,10 +16,6 @@ function convertToExperianResponseSchemaElement(xml input) returns ExperianRespo
     return checkpanic xmldata:parseAsType(input);
 }
 
-function convertToGiveNewSchemaNameHere(xml input) returns GiveNewSchemaNameHere {
-    return checkpanic xmldata:parseAsType(input);
-}
-
 function convertToSuccessSchema(xml input) returns SuccessSchema {
     return checkpanic xmldata:parseAsType(input);
 }

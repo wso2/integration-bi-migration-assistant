@@ -386,19 +386,38 @@ final class ActivityConverter {
             body.addAll(inputBindings);
             result = new VariableReference(inputBindings.getLast().varName());
         }
-        var startFunction = cx.getProcessStartFunctionName(extActivity.callProcess().subprocessName());
+        String targetProcess = extActivity.callProcess().subprocessName();
+        Optional<ProcessContext.DefaultClientDetails> client = cx.getDefaultClientDetails(targetProcess);
 
-        String convertToTypeFunction = cx.processContext.getConvertToTypeFunction(startFunction.inputType());
-        FunctionCall convertToTypeFunctionCall = new FunctionCall(convertToTypeFunction, List.of(result));
-
-        VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), new Check(
-                new FunctionCall(cx.processContext.getToXmlFunction(), List.of(new Check(
-                        new Trap(new FunctionCall(startFunction.name(), List.of(convertToTypeFunctionCall))))))));
+        VariableReference finalResult = result;
+        VarDeclStatment resultDecl = client.map(cl -> callProcessUsingClient(cx, cl, finalResult))
+                .orElseGet(() ->
+                        callProcessDirectlyUsingStartFunction(
+                                cx, cx.getProcessStartFunctionName(targetProcess), finalResult));
         body.add(resultDecl);
         VariableReference resultRef = resultDecl.ref();
         body.add(addToContext(cx, resultRef, extActivity.outputVariable()));
         body.add(new Return<>(resultRef));
         return body;
+    }
+
+    private static @NotNull VarDeclStatment callProcessUsingClient(ActivityContext cx,
+                                                                   ProcessContext.DefaultClientDetails client,
+                                                                   VariableReference result) {
+        return new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(
+                        new RemoteMethodCallAction(client.ref(),
+                                client.method, List.of(new StringConstant(""), result))));
+    }
+
+    private static @NotNull VarDeclStatment callProcessDirectlyUsingStartFunction(
+            ActivityContext cx, ProjectContext.FunctionData startFunction, VariableReference result) {
+        String convertToTypeFunction = cx.processContext.getConvertToTypeFunction(startFunction.inputType());
+        FunctionCall convertToTypeFunctionCall = new FunctionCall(convertToTypeFunction, List.of(result));
+
+        return new VarDeclStatment(XML, cx.getAnnonVarName(), new Check(
+                new FunctionCall(cx.processContext.getToXmlFunction(), List.of(new Check(
+                        new Trap(new FunctionCall(startFunction.name(), List.of(convertToTypeFunctionCall))))))));
     }
 
     private static List<VarDeclStatment> convertInputBindings(ActivityContext cx, VariableReference input,

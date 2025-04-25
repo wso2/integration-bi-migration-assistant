@@ -2,6 +2,7 @@ import ballerina/http;
 import ballerina/xslt;
 
 const string client_404_RecordNotFound = "Record Not Found";
+http:Client creditapp_module_EquifaxScore_client = checkpanic new ("localhost:8081/y54cuadtcxtfstqs3rux2gfdaxppoqgc/creditscore");
 public listener http:Listener creditapp_module_EquifaxScore_listener = new (8081, {host: "localhost"});
 
 service /y54cuadtcxtfstqs3rux2gfdaxppoqgc on creditapp_module_EquifaxScore_listener {

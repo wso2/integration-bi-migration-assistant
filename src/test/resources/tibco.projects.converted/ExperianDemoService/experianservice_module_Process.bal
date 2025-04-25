@@ -2,6 +2,7 @@ import ballerina/http;
 import ballerina/sql;
 import ballerina/xslt;
 
+http:Client experianservice_module_Process_client = checkpanic new ("localhost:8080/Creditscore/creditscore");
 public listener http:Listener experianservice_module_Process_listener = new (8080, {host: "localhost"});
 
 service /Creditscore on experianservice_module_Process_listener {

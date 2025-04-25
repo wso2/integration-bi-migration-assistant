@@ -211,6 +211,7 @@ public class ProcessConverter {
                 .flatMap(wsdlDefinition -> TypeConverter.convertWsdlDefinition(cx, wsdlDefinition)
                         .stream())
                 .collect(Collectors.toList());
+        cx.allocatedDefaultClient(services);
         return new TypeConversionResult(services);
     }
 

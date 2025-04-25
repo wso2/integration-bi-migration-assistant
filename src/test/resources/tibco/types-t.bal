@@ -1,6 +1,7 @@
 import ballerina/http;
 
 const string client_404_RecordNotFound = "Record Not Found";
+http:Client com_test_Test_client = checkpanic new ("localhost:8080/y54cuadtcxtfstqs3rux2gfdaxppoqgc/creditscore");
 public listener http:Listener com_test_Test_listener = new (8080, {host: "localhost"});
 
 service /y54cuadtcxtfstqs3rux2gfdaxppoqgc on com_test_Test_listener {

@@ -215,9 +215,7 @@ public class ProjectContext {
     }
 
     FunctionData getProcessStartFunction(String processName) {
-        TibcoModel.Process process = processContextMap.keySet().stream().filter(proc -> proc.name().equals(processName))
-                .findAny()
-                .orElseThrow(() -> new IndexOutOfBoundsException("failed to find process" + processName));
+        TibcoModel.Process process = getProcess(processName);
         return getProcessContext(process).getProcessStartFunction();
     }
 
@@ -341,6 +339,18 @@ public class ProjectContext {
             throw new RuntimeException("Failed to find configurable variable for " + varName);
         }
         return varDecl.name();
+    }
+
+    Optional<ProcessContext.DefaultClientDetails> getDefaultClientDetails(String processName) {
+        TibcoModel.Process process = getProcess(processName);
+        return getProcessContext(process).getDefaultClient();
+    }
+
+    private TibcoModel.Process getProcess(String processName) {
+        TibcoModel.Process process = processContextMap.keySet().stream().filter(proc -> proc.name().equals(processName))
+                .findAny()
+                .orElseThrow(() -> new IndexOutOfBoundsException("failed to find process" + processName));
+        return process;
     }
 
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {

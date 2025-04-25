@@ -1,6 +1,7 @@
 import ballerina/http;
 import ballerina/xslt;
 
+http:Client creditapp_module_ExperianScore_client = checkpanic new ("localhost:8080/creditscore");
 public listener http:Listener creditapp_module_ExperianScore_listener = new (8080, {host: "localhost"});
 
 service / on creditapp_module_ExperianScore_listener {

@@ -22,6 +22,7 @@ import ballerina.BallerinaModel;
 import tibco.TibcoModel;
 
 import java.util.List;
+import java.util.Optional;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
@@ -39,6 +40,10 @@ public class ActivityContext {
 
     String getAnnonVarName() {
         return "var" + varCounter++;
+    }
+
+    Optional<ProcessContext.DefaultClientDetails> getDefaultClientDetails(String processName) {
+        return processContext.getDefaultClientDetails(processName);
     }
 
     ProjectContext.FunctionData getProcessStartFunctionName(String processName) {
