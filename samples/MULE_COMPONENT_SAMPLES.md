@@ -2286,6 +2286,41 @@ public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
 ```
 
+- ### Simple Remove Session Variable
+
+**Input (simple_remove_session_variable.xml):**
+```xml
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+    <flow name="weatherServiceFlow">
+        <set-session-variable variableName="bar" value="#['hello session']" doc:name="Session Variable"/>
+        <remove-session-variable variableName="bar" doc:name="Session Variable"/>
+    </flow>
+</mule>
+
+```
+**Output (simple_remove_session_variable.bal):**
+```ballerina
+public type SessionVars record {|
+    string bar?;
+|};
+
+public type Context record {|
+    anydata payload;
+    SessionVars sessionVars;
+|};
+
+public function weatherServiceFlow(Context ctx) {
+    ctx.sessionVars.bar = "hello session";
+    ctx.sessionVars.bar = ();
+}
+
+```
+
 - ### Updating Same Session Variable
 
 **Input (updating_same_session_variable.xml):**
@@ -2839,6 +2874,41 @@ public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
     return ctx.inboundProperties.response;
+}
+
+```
+
+- ### Simple Remove Variable
+
+**Input (simple_remove_variable.xml):**
+```xml
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+    <flow name="weatherServiceFlow">
+        <set-variable variableName="foo" value="#['hello']" doc:name="Variable"/>
+        <remove-variable variableName="foo" doc:name="Variable"/>
+    </flow>
+</mule>
+
+```
+**Output (simple_remove_variable.bal):**
+```ballerina
+public type FlowVars record {|
+    string foo?;
+|};
+
+public type Context record {|
+    anydata payload;
+    FlowVars flowVars;
+|};
+
+public function weatherServiceFlow(Context ctx) {
+    ctx.flowVars.foo = "hello";
+    ctx.flowVars.foo = ();
 }
 
 ```

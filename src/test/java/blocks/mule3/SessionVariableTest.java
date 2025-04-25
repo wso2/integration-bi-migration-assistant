@@ -22,4 +22,10 @@ public class SessionVariableTest extends AbstractBlockTest {
         testMule3ToBal("session-variable/set_session_variable_with_http_source.xml",
                 "session-variable/set_session_variable_with_http_source.bal");
     }
+
+    @Test
+    public void testSimpleRemoveSessionVariable() {
+        testMule3ToBal("session-variable/simple_remove_session_variable.xml",
+                "session-variable/simple_remove_session_variable.bal");
+    }
 }

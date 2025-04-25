@@ -1,3 +1,20 @@
+/*
+ *  Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com). All Rights Reserved.
+ *
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied. See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
 package mule;
 
 import java.util.List;
@@ -149,6 +166,9 @@ public record MuleModel() {
         }
     }
 
+    public record RemoveVariable(Kind kind, String variableName) implements MuleRecord {
+    }
+
     public record SetSessionVariable(Kind kind, String variableName, String value) implements MuleRecord {
         public SetSessionVariable(String variableName, String value) {
             this(Kind.SET_SESSION_VARIABLE, variableName, value);
@@ -261,6 +281,8 @@ public record MuleModel() {
         DB_IN_PARAM,
         SET_VARIABLE,
         SET_SESSION_VARIABLE,
+        REMOVE_VARIABLE,
+        REMOVE_SESSION_VARIABLE,
         OBJECT_TO_JSON,
         OBJECT_TO_STRING,
         TRANSFORM_MESSAGE,
