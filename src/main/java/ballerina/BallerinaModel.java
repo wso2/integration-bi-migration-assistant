@@ -634,6 +634,10 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         record IfElseStatement(Expression ifCondition, List<Statement> ifBody,
                                List<ElseIfClause> elseIfClauses, List<Statement> elseBody) implements Statement {
 
+            public static IfElseStatement ifStatement(Expression condition, List<Statement> body) {
+                return new IfElseStatement(condition, body, List.of(), List.of());
+            }
+
             @Override
             public String toString() {
                 StringBuilder sb = new StringBuilder();

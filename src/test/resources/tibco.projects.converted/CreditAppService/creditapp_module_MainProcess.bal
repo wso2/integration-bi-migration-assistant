@@ -4,7 +4,11 @@ import ballerina/xslt;
 public listener http:Listener creditapp_module_MainProcess_listener = new (8082, {host: "localhost"});
 
 service /CreditDetails on creditapp_module_MainProcess_listener {
-    resource function post creditdetails(GiveNewSchemaNameHere input) returns CreditScoreSuccessSchema|http:NotFound|http:InternalServerError {
+    resource function post creditdetails(GiveNewSchemaNameHere|xml req) returns CreditScoreSuccessSchema|http:NotFound|http:InternalServerError {
+        GiveNewSchemaNameHere|error input = tryBindToGiveNewSchemaNameHere(req);
+        if input is error {
+            return <http:InternalServerError>{};
+        }
         xml inputValXml = checkpanic toXML(input);
         xml extractedBody = inputValXml/*;
         xml inputXml = xml `<item>

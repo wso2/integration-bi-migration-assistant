@@ -35,8 +35,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.*;
 
 public class ProcessContext implements ContextWithFile {
 
@@ -176,6 +175,11 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.createConvertToTypeFunction(targetType);
     }
 
+
+    String getTryDataBindToTypeFunction(BallerinaModel.TypeDesc targetType) {
+        return projectContext.getTryDataBindToTypeFunction(targetType);
+    }
+
     ProjectContext.FunctionData getProcessStartFunction(String processName) {
         return projectContext.getProcessStartFunction(processName);
     }
@@ -254,5 +258,9 @@ public class ProcessContext implements ContextWithFile {
 
     static BallerinaModel.Expression.VariableReference processLevelFnParamVariable() {
         return new BallerinaModel.Expression.VariableReference("params");
+    }
+
+    public BallerinaModel.TypeDesc serviceInputType(BallerinaModel.TypeDesc expectedBodyType) {
+        return UnionTypeDesc.of(expectedBodyType, XML);
     }
 }

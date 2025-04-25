@@ -1,3 +1,4 @@
+import ballerina/data.jsondata;
 import ballerina/data.xmldata;
 import ballerina/http;
 
@@ -29,6 +30,10 @@ function fromJson(json data) returns error|xml {
 
 function toXML(map<anydata> data) returns error|xml {
     return xmldata:toXml(data);
+}
+
+function tryBindToGiveNewSchemaNameHere(xml|json input) returns GiveNewSchemaNameHere|error {
+    return input is xml ? xmldata:parseAsType(input) : jsondata:parseAsType(input);
 }
 
 function addToContext(map<xml> context, string varName, xml value) {

@@ -1,3 +1,4 @@
+import ballerina/data.jsondata;
 import ballerina/data.xmldata;
 import ballerina/log;
 import ballerinax/java.jdbc;
@@ -31,6 +32,10 @@ function convertToResponse(xml input) returns Response {
 
 function toXML(map<anydata> data) returns error|xml {
     return xmldata:toXml(data);
+}
+
+function tryBindToRequest(xml|json input) returns Request|error {
+    return input is xml ? xmldata:parseAsType(input) : jsondata:parseAsType(input);
 }
 
 function addToContext(map<xml> context, string varName, xml value) {

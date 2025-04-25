@@ -37,6 +37,8 @@ import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
+import static ballerina.BallerinaModel.Expression.TernaryExpression;
+import static ballerina.BallerinaModel.Expression.VariableReference;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
@@ -71,6 +73,7 @@ public class ProjectContext {
     private final Optional<TibcoToBalConverter.ProjectConversionContext> conversionContext;
     private final Map<String, String> generatedResources = new HashMap<>();
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
+    private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
 
     ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext) {
         this.conversionContext = Optional.of(conversionContext);
@@ -163,6 +166,30 @@ public class ProjectContext {
         BallerinaModel.Function function =
                 new BallerinaModel.Function(functionName, List.of(new BallerinaModel.Parameter("input", XML)),
                         targetType, List.of(returnStmt));
+        utilityFunctions.add(function);
+        return functionName;
+    }
+
+    String getTryDataBindToTypeFunction(BallerinaModel.TypeDesc targetType) {
+        return dataBindingFunctions.computeIfAbsent(targetType, this::createTryDataBindToTypeFunction);
+    }
+
+    String createTryDataBindToTypeFunction(BallerinaModel.TypeDesc targetType) {
+        String functionName = "tryBindTo" + ConversionUtils.sanitizes(targetType.toString());
+        importLibraryIfNeededToUtility(Library.XML_DATA);
+        importLibraryIfNeededToUtility(Library.JSON_DATA);
+        VariableReference input = new VariableReference("input");
+
+        BallerinaModel.Function function =
+                new BallerinaModel.Function(
+                        functionName,
+                        List.of(new BallerinaModel.Parameter(input.varName(), UnionTypeDesc.of(XML, JSON))),
+                        UnionTypeDesc.of(targetType, ERROR),
+                        List.of(new Return<>(
+                                new TernaryExpression(
+                                        new BallerinaModel.Expression.TypeCheckExpression(input, XML),
+                                        new FunctionCall("xmldata:parseAsType", List.of(input)),
+                                        new FunctionCall("jsondata:parseAsType", List.of(input))))));
         utilityFunctions.add(function);
         return functionName;
     }

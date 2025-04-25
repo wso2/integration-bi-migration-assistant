@@ -5,7 +5,11 @@ const string client_404_NotFound = "Not Found";
 public listener http:Listener creditcheckservice_Process_listener = new (8080, {host: "localhost"});
 
 service /CreditScore on creditcheckservice_Process_listener {
-    resource function post creditscore(Request input) returns Response|http:NotFound|http:InternalServerError|client_404_NotFound {
+    resource function post creditscore(Request|xml req) returns Response|http:NotFound|http:InternalServerError|client_404_NotFound {
+        Request|error input = tryBindToRequest(req);
+        if input is error {
+            return <http:InternalServerError>{};
+        }
         xml inputValXml = checkpanic toXML(input);
         xml extractedBody = inputValXml/*;
         xml inputXml = xml `<item>

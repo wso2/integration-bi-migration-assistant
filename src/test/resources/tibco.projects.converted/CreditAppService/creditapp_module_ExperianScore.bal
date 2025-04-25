@@ -4,7 +4,11 @@ import ballerina/xslt;
 public listener http:Listener creditapp_module_ExperianScore_listener = new (8080, {host: "localhost"});
 
 service / on creditapp_module_ExperianScore_listener {
-    resource function post creditscore(GiveNewSchemaNameHere input) returns ExperianResponseSchemaElement|http:NotFound|http:InternalServerError {
+    resource function post creditscore(GiveNewSchemaNameHere|xml req) returns ExperianResponseSchemaElement|http:NotFound|http:InternalServerError {
+        GiveNewSchemaNameHere|error input = tryBindToGiveNewSchemaNameHere(req);
+        if input is error {
+            return <http:InternalServerError>{};
+        }
         xml inputValXml = checkpanic toXML(input);
         xml extractedBody = inputValXml/*;
         xml inputXml = xml `<item>

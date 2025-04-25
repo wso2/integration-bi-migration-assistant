@@ -1,10 +1,8 @@
 package converter.tibco;
 
 import ballerina.BallerinaModel;
-import ballerina.BallerinaModel.Expression.BallerinaExpression;
-import ballerina.BallerinaModel.Expression.CheckPanic;
-import ballerina.BallerinaModel.Expression.FunctionCall;
-import ballerina.BallerinaModel.Expression.XMLTemplate;
+import ballerina.BallerinaModel.Expression.*;
+import ballerina.BallerinaModel.Statement.IfElseStatement;
 import ballerina.BallerinaModel.Statement.Return;
 import ballerina.BallerinaModel.Statement.VarDeclStatment;
 import ballerina.BallerinaModel.TypeDesc.MapTypeDesc;
@@ -17,6 +15,7 @@ import tibco.TibcoModel;
 import tibco.TibcoModel.Type.WSDLDefinition;
 import tibco.TibcoModel.Type.WSDLDefinition.PortType.Operation;
 
+import javax.swing.text.html.Option;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,6 +26,7 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.stream.Stream;
 
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static io.ballerina.xsd.core.XSDToRecord.generateNodes;
 
@@ -115,22 +115,26 @@ class TypeConverter {
                                                             Operation operation,
                                                             Map<String, String> wsdlNamespaces,
                                                             Collection<WSDLDefinition.Message> messages) {
+
+        VariableReference bodyRef = new VariableReference("req");
         String resourceMethodName = operation.name();
         var resourcePath = toResourcePath(apiPath);
         String path = resourcePath.path;
-        var paramsXML = initParams(cx, resourceMethodName, resourcePath, operation.input(), wsdlNamespaces, messages);
-
-        List<BallerinaModel.Statement> body = new ArrayList<>(paramsXML.initStatements);
+        Optional<BallerinaModel.TypeDesc> expectedBodyType = resourceMethodName.equals("get") ? Optional.empty() :
+                Optional.of(cx.getTypeByName(messageTypes.get(operation.input().message().value())));
+        Optional<ParamInitResult> bodyDataBinding = expectedBodyType.map(inTy -> dataBindingForBody(cx, inTy, bodyRef));
+        List<BallerinaModel.Statement> body = new ArrayList<>();
+        bodyDataBinding.map(ParamInitResult::initStatements).ifPresent(body::addAll);
+        ParamInitResult paramsXML = initParams(cx, resourceMethodName, resourcePath, operation.input(), wsdlNamespaces, messages);
+        body.addAll(paramsXML.initStatements);
 
         Optional<BallerinaModel.Parameter> resourceMethodParameter =
-                resourceMethodName.equals("get") ? Optional.empty() :
-                        Optional.of(cx.getTypeByName(messageTypes.get(operation.input().message().value())))
-                                .map(ty -> new BallerinaModel.Parameter("input", ty));
+                expectedBodyType.map(expectedTy -> new BallerinaModel.Parameter(bodyRef.varName(), cx.serviceInputType(expectedTy)));
 
         BallerinaModel.TypeDesc returnType = getOperationReturnType(cx, messageTypes, operation);
 
         String[] startFunctionArgs = Stream.concat(
-                resourceMethodParameter.map(BallerinaModel.Parameter::name).or("()"::describeConstable).stream(),
+                bodyDataBinding.map(ParamInitResult::paramName).or("()"::describeConstable).stream(),
                 Stream.of(paramsXML.paramName)
         ).toArray(String[]::new);
 
@@ -139,6 +143,21 @@ class TypeConverter {
 
         return new BallerinaModel.Resource(resourceMethodName, path, resourceMethodParameter.stream().toList(),
                 Optional.of(returnType.toString()), body);
+    }
+
+    private static ParamInitResult dataBindingForBody(ProcessContext cx,
+                                                      BallerinaModel.TypeDesc targetType,
+                                                      VariableReference inputValRef) {
+        List<BallerinaModel.Statement> body = new ArrayList<>();
+        VarDeclStatment inputDecl = new VarDeclStatment(
+                BallerinaModel.TypeDesc.UnionTypeDesc.of(targetType, ERROR),
+                "input",
+                new FunctionCall(cx.getTryDataBindToTypeFunction(targetType), List.of(inputValRef)));
+        body.add(inputDecl);
+        IfElseStatement handleError = IfElseStatement.ifStatement(new TypeCheckExpression(inputDecl.ref(), ERROR),
+                List.of(new Return<>(new BallerinaExpression("<http:InternalServerError>{}"))));
+        body.add(handleError);
+        return new ParamInitResult(inputDecl.varName(), body);
     }
 
     private static BallerinaModel.TypeDesc getOperationReturnType(ProcessContext cx, Map<String, String> messageTypes,
@@ -167,7 +186,7 @@ class TypeConverter {
                                               Collection<WSDLDefinition.Message> messages) {
         Optional<ParamInitResult> pathParams = initPathParameters(resourcePath, input, wsdlNameSpaces, messages);
         Optional<ParamInitResult> bodyParams = resourceMethod.equals("get") ? Optional.empty()
-                : Optional.of(initRequestBodyParamsNew(cx));
+                : Optional.of(initRequestBodyParams(cx));
         List<BallerinaModel.Statement> body = new ArrayList<>();
 
         StringBuilder sb = new StringBuilder();
@@ -191,7 +210,7 @@ class TypeConverter {
         return new ParamInitResult(paramXmlDecl.varName(), body);
     }
 
-    private static ParamInitResult initRequestBodyParamsNew(ProcessContext cx) {
+    private static ParamInitResult initRequestBodyParams(ProcessContext cx) {
         String inputParamName = "input";
         String toXmlFunction = cx.getToXmlFunction();
         List<BallerinaModel.Statement> body = new ArrayList<>();

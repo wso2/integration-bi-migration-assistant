@@ -5,7 +5,11 @@ import ballerina/xslt;
 public listener http:Listener experianservice_module_Process_listener = new (8080, {host: "localhost"});
 
 service /Creditscore on experianservice_module_Process_listener {
-    resource function post creditscore(InputElement input) returns ExperianResponseSchemaElement|http:NotFound|http:InternalServerError {
+    resource function post creditscore(InputElement|xml req) returns ExperianResponseSchemaElement|http:NotFound|http:InternalServerError {
+        InputElement|error input = tryBindToInputElement(req);
+        if input is error {
+            return <http:InternalServerError>{};
+        }
         xml inputValXml = checkpanic toXML(input);
         xml extractedBody = inputValXml/*;
         xml inputXml = xml `<item>
