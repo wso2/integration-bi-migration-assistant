@@ -387,6 +387,11 @@ public class ProjectContext {
         return Intrinsics.ADD_TO_CONTEXT.name;
     }
 
+    public String getNamespaceFixFn() {
+        utilityIntrinsics.add(Intrinsics.PATCH_XML_NAMESPACES);
+        return Intrinsics.PATCH_XML_NAMESPACES.name;
+    }
+
     private static class ContextWrapperForTypeFile implements ContextWithFile {
 
         final Set<BallerinaModel.Import> imports = new HashSet<>();

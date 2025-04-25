@@ -386,10 +386,14 @@ final class ActivityConverter {
             body.addAll(inputBindings);
             result = new VariableReference(inputBindings.getLast().varName());
         }
+        String namespaceFixFn = cx.getNamespaceFixFn();
+        VarDeclStatment resultWithoutNamespaces = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new FunctionCall(namespaceFixFn, List.of(result)));
+        body.add(resultWithoutNamespaces);
+        VariableReference finalResult = resultWithoutNamespaces.ref();
         String targetProcess = extActivity.callProcess().subprocessName();
         Optional<ProcessContext.DefaultClientDetails> client = cx.getDefaultClientDetails(targetProcess);
 
-        VariableReference finalResult = result;
         VarDeclStatment resultDecl = client.map(cl -> callProcessUsingClient(cx, cl, finalResult))
                 .orElseGet(() ->
                         callProcessDirectlyUsingStartFunction(

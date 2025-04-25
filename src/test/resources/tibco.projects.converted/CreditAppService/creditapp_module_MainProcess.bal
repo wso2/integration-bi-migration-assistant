@@ -62,9 +62,10 @@ function extActivity(map<xml> context) returns xml|error {
         </tns:GiveNewSchemaNameHere>
     </xsl:template>
 </xsl:stylesheet>`, context);
-    xml var2 = check creditapp_module_EquifaxScore_client->post("", var1);
-    addToContext(context, "EquifaxScore", var2);
-    return var2;
+    xml var2 = transform(var1);
+    xml var3 = check creditapp_module_EquifaxScore_client->post("", var2);
+    addToContext(context, "EquifaxScore", var3);
+    return var3;
 }
 
 function extActivity_11(map<xml> context) returns xml|error {
@@ -97,9 +98,10 @@ function extActivity_11(map<xml> context) returns xml|error {
         </tns:GiveNewSchemaNameHere>
     </xsl:template>
 </xsl:stylesheet>`, context);
-    xml var2 = check creditapp_module_ExperianScore_client->post("", var1);
-    addToContext(context, "ExperianScore", var2);
-    return var2;
+    xml var2 = transform(var1);
+    xml var3 = check creditapp_module_ExperianScore_client->post("", var2);
+    addToContext(context, "ExperianScore", var3);
+    return var3;
 }
 
 function pick(map<xml> context) returns xml|error {

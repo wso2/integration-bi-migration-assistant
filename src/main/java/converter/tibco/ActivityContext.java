@@ -75,6 +75,11 @@ public class ActivityContext {
         return processContext.getConvertToTypeFunction(targetType);
     }
 
+
+    public String getNamespaceFixFn() {
+        return processContext.getNamespaceFixFn();
+    }
+
     String getAddToContextFn() {
         return processContext.getAddToContextFn();
     }

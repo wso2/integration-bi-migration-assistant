@@ -307,6 +307,10 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getDefaultClientDetails(processName);
     }
 
+    public String getNamespaceFixFn() {
+        return projectContext.getNamespaceFixFn();
+    }
+
     static final class DefaultClientDetails {
         final BallerinaModel.ModuleVar varDecl;
         final String method;

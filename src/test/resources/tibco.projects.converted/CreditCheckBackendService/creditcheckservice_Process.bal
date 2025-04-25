@@ -75,9 +75,10 @@ function extActivity(map<xml> context) returns xml|error {
         </tns3:Element>
     </xsl:template>
 </xsl:stylesheet>`, context);
-    xml var2 = check toXML(check trap start_creditcheckservice_LookupDatabase(convertToElement(var1)));
-    addToContext(context, "LookupDatabase", var2);
-    return var2;
+    xml var2 = transform(var1);
+    xml var3 = check toXML(check trap start_creditcheckservice_LookupDatabase(convertToElement(var2)));
+    addToContext(context, "LookupDatabase", var3);
+    return var3;
 }
 
 function faultHandler(map<xml> context) returns xml|error {
