@@ -5,7 +5,7 @@ public type Context record {|
     anydata payload;
 |};
 
-public listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081);
 
 public function demoFlow(Context ctx) {
 

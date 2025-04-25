@@ -74,9 +74,7 @@ public class CodeGenerator {
 
             for (Listener listener : textDocument.listeners()) {
                 // TODO: handle visibility qualifier properly
-                ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(
-                        String.format("public listener http:Listener %s = new (%s, {host: \"%s\"});", listener.name(),
-                                listener.port(), listener.config().get("host")));
+                ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(listener.toString());
                 moduleMembers.add(member);
             }
 

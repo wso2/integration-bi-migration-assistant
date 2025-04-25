@@ -17,7 +17,7 @@ public type Context record {|
     InboundProperties inboundProperties;
 |};
 
-public listener http:Listener HTTP_Config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener HTTP_Config = new (8081);
 
 service /mule3 on HTTP_Config {
     Context ctx;

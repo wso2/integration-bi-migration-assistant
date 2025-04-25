@@ -273,8 +273,18 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     }
 
-    // TODO: move port to config map
     public record Listener(ListenerType type, String name, String port, Map<String, String> config) {
+        @Override
+        public String toString() {
+            String host = config.get("host").trim();
+            String argList;
+            if (host.equals("0.0.0.0")) {
+                argList = "(%s)".formatted(port);
+            } else {
+                argList = "(%s, {host: \"%s\"})".formatted(port, host);
+            }
+            return "public listener http:Listener %s = new %s;".formatted(name, argList);
+        }
     }
 
     public enum ListenerType {

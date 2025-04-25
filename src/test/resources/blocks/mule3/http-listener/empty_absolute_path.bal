@@ -12,7 +12,7 @@ public type Context record {|
     InboundProperties inboundProperties;
 |};
 
-public listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081);
 
 service / on config {
     Context ctx;

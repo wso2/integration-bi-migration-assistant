@@ -56,4 +56,10 @@ public class HttpListenerTest extends AbstractBlockTest {
                         "http-listener/allowed_resource_default_methods.bal"}
         };
     }
+
+    @Test
+    public void testListenerWithLocalhost() {
+        testMule3ToBal("http-listener/http_listener_with_localhost.xml",
+                "http-listener/http_listener_with_localhost.bal");
+    }
 }

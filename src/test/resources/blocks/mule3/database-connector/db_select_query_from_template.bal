@@ -19,7 +19,7 @@ public type Record record {
 
 mysql:Client MySQL_Configuration = check new ("localhost", "root", "admin123", "test_db", 3306);
 sql:ParameterizedQuery Template_Select_Query = `SELECT * FROM users;`;
-public listener http:Listener config = new (8081, {host: "0.0.0.0"});
+public listener http:Listener config = new (8081);
 
 service /mule3 on config {
     Context ctx;
