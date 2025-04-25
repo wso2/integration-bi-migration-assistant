@@ -1,7 +1,12 @@
 package converter.tibco;
 
 import ballerina.BallerinaModel;
-import ballerina.BallerinaModel.Expression.*;
+import ballerina.BallerinaModel.Expression.BallerinaExpression;
+import ballerina.BallerinaModel.Expression.CheckPanic;
+import ballerina.BallerinaModel.Expression.FunctionCall;
+import ballerina.BallerinaModel.Expression.TypeCheckExpression;
+import ballerina.BallerinaModel.Expression.VariableReference;
+import ballerina.BallerinaModel.Expression.XMLTemplate;
 import ballerina.BallerinaModel.Statement.IfElseStatement;
 import ballerina.BallerinaModel.Statement.Return;
 import ballerina.BallerinaModel.Statement.VarDeclStatment;
@@ -15,7 +20,6 @@ import tibco.TibcoModel;
 import tibco.TibcoModel.Type.WSDLDefinition;
 import tibco.TibcoModel.Type.WSDLDefinition.PortType.Operation;
 
-import javax.swing.text.html.Option;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -122,14 +126,17 @@ class TypeConverter {
         String path = resourcePath.path;
         Optional<BallerinaModel.TypeDesc> expectedBodyType = resourceMethodName.equals("get") ? Optional.empty() :
                 Optional.of(cx.getTypeByName(messageTypes.get(operation.input().message().value())));
-        Optional<ParamInitResult> bodyDataBinding = expectedBodyType.map(inTy -> dataBindingForBody(cx, inTy, bodyRef));
+        Optional<ParamInitResult> bodyDataBinding =
+                expectedBodyType.map(inTy -> dataBindingForBody(cx, inTy, bodyRef));
         List<BallerinaModel.Statement> body = new ArrayList<>();
         bodyDataBinding.map(ParamInitResult::initStatements).ifPresent(body::addAll);
-        ParamInitResult paramsXML = initParams(cx, resourceMethodName, resourcePath, operation.input(), wsdlNamespaces, messages);
+        ParamInitResult paramsXML =
+                initParams(cx, resourceMethodName, resourcePath, operation.input(), wsdlNamespaces, messages);
         body.addAll(paramsXML.initStatements);
 
         Optional<BallerinaModel.Parameter> resourceMethodParameter =
-                expectedBodyType.map(expectedTy -> new BallerinaModel.Parameter(bodyRef.varName(), cx.serviceInputType(expectedTy)));
+                expectedBodyType.map(expectedTy ->
+                        new BallerinaModel.Parameter(bodyRef.varName(), cx.serviceInputType(expectedTy)));
 
         BallerinaModel.TypeDesc returnType = getOperationReturnType(cx, messageTypes, operation);
 

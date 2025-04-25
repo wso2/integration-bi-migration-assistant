@@ -35,7 +35,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.*;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.UnionTypeDesc;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 
 public class ProcessContext implements ContextWithFile {
 
