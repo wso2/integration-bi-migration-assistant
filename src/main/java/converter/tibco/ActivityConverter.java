@@ -53,7 +53,12 @@ import tibco.TibcoModel.Scope.Flow.Activity.Reply;
 import tibco.TibcoModel.Scope.Flow.Activity.Throw;
 import tibco.TibcoModel.Scope.Flow.Activity.UnhandledActivity;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static ballerina.BallerinaModel.Expression.CheckPanic;
@@ -62,7 +67,12 @@ import static ballerina.BallerinaModel.Expression.MethodCall;
 import static ballerina.BallerinaModel.Expression.StringConstant;
 import static ballerina.BallerinaModel.Expression.TypeCast;
 import static ballerina.BallerinaModel.Expression.XMLTemplate;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.*;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 
 final class ActivityConverter {
 

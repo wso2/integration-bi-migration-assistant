@@ -21,15 +21,12 @@ package converter.tibco;
 import ballerina.BallerinaModel;
 import ballerina.BallerinaModel.Expression;
 import ballerina.BallerinaModel.Statement.VarDeclStatment;
-import converter.tibco.analyzer.AnalysisResult;
 import org.w3c.dom.Element;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL;
 
 import java.io.StringWriter;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
@@ -38,7 +35,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NEVER;
 import static converter.tibco.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 
 public final class ConversionUtils {
@@ -87,24 +83,8 @@ public final class ConversionUtils {
         };
     }
 
-    static BallerinaModel.TypeDesc createQueryResultType(ActivityContext cx, SQL sql) {
-        ProcessContext processContext = cx.processContext;
-        processContext.projectContext.getTypeContext().addLibraryImport(Library.XML_DATA);
-        AnalysisResult analysisResult = processContext.analysisResult;
-        String typeName = "QueryResult" + analysisResult.queryIndex(sql);
-        List<BallerinaModel.TypeDesc.RecordTypeDesc.RecordField> fields = sql.resultColumns().stream()
-                .map(each -> new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField(each.name(), from(each.type()),
-                        false, Optional.empty(), Optional.empty()))
-                .toList();
-        BallerinaModel.TypeDesc.RecordTypeDesc recordTy = new BallerinaModel.TypeDesc.RecordTypeDesc(List.of(), fields,
-                NEVER, Optional.empty(),
-                Optional.of("Record"));
-
-        processContext.addModuleTypeDef(typeName, new BallerinaModel.ModuleTypeDef(typeName, recordTy));
-        return processContext.getTypeByName(typeName);
-    }
-
-    static VarDeclStatment createQueryDecl(ActivityContext cx, Map<String, Expression.VariableReference> vars, SQL query) {
+    static VarDeclStatment createQueryDecl(ActivityContext cx, Map<String, Expression.VariableReference> vars,
+                                           SQL query) {
         int paramIndex = 0;
         StringBuilder sb = new StringBuilder();
         String queryStr = query.query();
