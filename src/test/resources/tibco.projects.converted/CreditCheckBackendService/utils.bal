@@ -14,14 +14,6 @@ function convertToLogParametersType(xml input) returns LogParametersType {
     return checkpanic xmldata:parseAsType(input);
 }
 
-function convertToQueryData0(xml input) returns QueryData0 {
-    return checkpanic xmldata:parseAsType(input);
-}
-
-function convertToQueryData1(xml input) returns QueryData1 {
-    return checkpanic xmldata:parseAsType(input);
-}
-
 function convertToResponse(xml input) returns Response {
     return checkpanic xmldata:parseAsType(input);
 }

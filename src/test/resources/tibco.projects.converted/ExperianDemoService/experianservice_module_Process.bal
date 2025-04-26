@@ -33,19 +33,20 @@ function activityExtension_2(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns2="http://www.tibco.com/namespaces/tnt/plugins/jdbc+1d5225ab-4bc8-4898-8f74-01e4317c3e29+input" xmlns:tns="http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367" version="2.0"><xsl:param name="ParseJSON"/><xsl:template name="JDBCQuery-input" match="/"><tns2:jdbcQueryActivityInput><ssn><xsl:value-of select="$ParseJSON/root/tns:ssn"/></ssn></tns2:jdbcQueryActivityInput></xsl:template></xsl:stylesheet>`, context);
-    QueryData0 data = convertToQueryData0(var1);
+    string ssn = (var1/<ssn>/*).toString().trim();
     sql:ParameterizedQuery var2 = `SELECT *
-  FROM public.creditscore where ssn like ${data.ssn}
+  FROM public.creditscore where ssn like ${ssn}
 `;
-    stream<QueryResult0, sql:ExecutionResult|()> var3 = experianservice_module_JDBCConnectionResource->query(var2);
-    xml var4 = xml `<root></root>`;
+    stream<map<anydata>, error|()> var3 = experianservice_module_JDBCConnectionResource->query(var2);
+    xml var4 = xml ``;
     check from var each in var3
         do {
-            var4 = var4 + each;
+            xml var5 = check toXML(each);
+            var4 = var4 + var5;
         };
-    xml var5 = xml `<root>${var4}</root>`;
-    addToContext(context, "JDBCQuery", var5);
-    return var5;
+    xml var6 = xml `<root>${var4}</root>`;
+    addToContext(context, "JDBCQuery", var6);
+    return var6;
 }
 
 function activityExtension_3(map<xml> context) returns xml|error {

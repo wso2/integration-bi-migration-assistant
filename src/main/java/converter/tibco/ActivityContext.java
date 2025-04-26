@@ -115,4 +115,9 @@ public class ActivityContext {
     public String getJsonToXMLFunction() {
         return processContext.getJsonToXMLFunction();
     }
+
+
+    String getToXmlFunction() {
+        return this.processContext.getToXmlFunction();
+    }
 }

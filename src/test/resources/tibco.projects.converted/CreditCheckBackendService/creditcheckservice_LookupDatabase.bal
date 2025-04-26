@@ -18,13 +18,15 @@ function activityExtension_10(map<xml> context) returns xml|error {
         </tns3:jdbcUpdateActivityInput>
     </xsl:template>
 </xsl:stylesheet>`, context);
-    QueryData1 data = convertToQueryData1(var1);
+    string noOfPulls = (var1/<noOfPulls>/*).toString().trim();
+    string ssn = (var1/<ssn>/*).toString().trim();
     sql:ParameterizedQuery var2 = `UPDATE creditscore
-  SET numofpulls = ${data.noOfPulls}
-  WHERE ssn like ${data.ssn}`;
+  SET numofpulls = ${noOfPulls}
+  WHERE ssn like ${ssn}`;
     sql:ExecutionResult var3 = check creditcheckservice_JDBCConnectionResource->execute(var2);
-    addToContext(context, "UpdatePulls", var3);
-    return var3;
+    xml var4 = xml `<root></root>`;
+    addToContext(context, "UpdatePulls", var4);
+    return var4;
 }
 
 function activityExtension_8(map<xml> context) returns xml|error {
@@ -59,17 +61,18 @@ function activityExtension_9(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input" xmlns:tns1="http://www.example.com/namespaces/tns/1535845694732" version="2.0"><xsl:param name="Start"/><xsl:template name="JDBCQuery-input" match="/"><tns:jdbcQueryActivityInput><ssn><xsl:value-of select="$Start/root/tns1:ssn"/></ssn></tns:jdbcQueryActivityInput></xsl:template></xsl:stylesheet>`, context);
-    QueryData0 data = convertToQueryData0(var1);
-    sql:ParameterizedQuery var2 = `select * from public.creditscore where ssn like ${data.ssn}`;
-    stream<QueryResult0, sql:ExecutionResult|()> var3 = creditcheckservice_JDBCConnectionResource->query(var2);
-    xml var4 = xml `<root></root>`;
+    string ssn = (var1/<ssn>/*).toString().trim();
+    sql:ParameterizedQuery var2 = `select * from public.creditscore where ssn like ${ssn}`;
+    stream<map<anydata>, error|()> var3 = creditcheckservice_JDBCConnectionResource->query(var2);
+    xml var4 = xml ``;
     check from var each in var3
         do {
-            var4 = var4 + each;
+            xml var5 = check toXML(each);
+            var4 = var4 + var5;
         };
-    xml var5 = xml `<root>${var4}</root>`;
-    addToContext(context, "QueryRecords", var5);
-    return var5;
+    xml var6 = xml `<root>${var4}</root>`;
+    addToContext(context, "QueryRecords", var6);
+    return var6;
 }
 
 function activityRunner_creditcheckservice_LookupDatabase(map<xml> cx) returns xml|error {

@@ -23,12 +23,12 @@ import ballerina.BallerinaModel.Expression;
 import ballerina.BallerinaModel.Statement.VarDeclStatment;
 import converter.tibco.analyzer.AnalysisResult;
 import org.w3c.dom.Element;
-import tibco.TibcoModel;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL;
 
 import java.io.StringWriter;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.xml.transform.OutputKeys;
@@ -104,20 +104,7 @@ public final class ConversionUtils {
         return processContext.getTypeByName(typeName);
     }
 
-    static BallerinaModel.TypeDesc createQueryInputType(ActivityContext cx, SQL sql) {
-        ProcessContext processContext = cx.processContext;
-        AnalysisResult analysisResult = processContext.analysisResult;
-        String typeName = "QueryData" + analysisResult.queryIndex(sql);
-        List<BallerinaModel.TypeDesc.RecordTypeDesc.RecordField> fields = sql.parameters().stream()
-                .map(each -> new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField(each.name(), from(each.type())))
-                .toList();
-        BallerinaModel.TypeDesc.RecordTypeDesc recordTy = new BallerinaModel.TypeDesc.RecordTypeDesc(List.of(), fields,
-                NEVER);
-        processContext.addModuleTypeDef(typeName, new BallerinaModel.ModuleTypeDef(typeName, recordTy));
-        return processContext.getTypeByName(typeName);
-    }
-
-    static VarDeclStatment createQueryDecl(ActivityContext cx, Expression.VariableReference paramData, SQL query) {
+    static VarDeclStatment createQueryDecl(ActivityContext cx, Map<String, Expression.VariableReference> vars, SQL query) {
         int paramIndex = 0;
         StringBuilder sb = new StringBuilder();
         String queryStr = query.query();
@@ -125,8 +112,9 @@ public final class ConversionUtils {
         for (int i = 0; i < queryStr.length(); i++) {
             char c = queryStr.charAt(i);
             if (c == '?') {
-                sb.append("${").append(paramData.varName()).append(".")
-                        .append(query.parameters().get(paramIndex++).name()).append("}");
+                String varName = query.parameters().get(paramIndex++).name();
+                assert vars.get(varName) != null;
+                sb.append("${%s}".formatted(vars.get(varName)));
             } else {
                 sb.append(c);
             }
@@ -135,10 +123,6 @@ public final class ConversionUtils {
         Expression.BallerinaExpression templateExpr = new Expression.BallerinaExpression(sb.toString());
         return new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE), cx.getAnnonVarName(),
                 templateExpr);
-    }
-
-    static BallerinaModel.TypeDesc.RecordTypeDesc.Namespace createNamespace(TibcoModel.NameSpace nameSpace) {
-        return new BallerinaModel.TypeDesc.RecordTypeDesc.Namespace(nameSpace.prefix(), nameSpace.uri());
     }
 
     public static String elementToString(Element element) {

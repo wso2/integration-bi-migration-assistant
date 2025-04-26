@@ -53,10 +53,7 @@ import tibco.TibcoModel.Scope.Flow.Activity.Reply;
 import tibco.TibcoModel.Scope.Flow.Activity.Throw;
 import tibco.TibcoModel.Scope.Flow.Activity.UnhandledActivity;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static ballerina.BallerinaModel.Expression.CheckPanic;
@@ -65,11 +62,7 @@ import static ballerina.BallerinaModel.Expression.MethodCall;
 import static ballerina.BallerinaModel.Expression.StringConstant;
 import static ballerina.BallerinaModel.Expression.TypeCast;
 import static ballerina.BallerinaModel.Expression.XMLTemplate;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.*;
 
 final class ActivityConverter {
 
@@ -245,48 +238,61 @@ final class ActivityConverter {
     private static ActivityExtensionConfigConversion createSQLOperation(
             ActivityContext cx, VariableReference inputVar, ActivityExtension.Config.SQL sql) {
         List<Statement> body = new ArrayList<>();
-        BallerinaModel.TypeDesc dataType = ConversionUtils.createQueryInputType(cx, sql);
-        VarDeclStatment dataDecl = new VarDeclStatment(dataType, "data",
-                new FunctionCall(cx.getConvertToTypeFunction(dataType), List.of(inputVar)));
-        body.add(dataDecl);
+        Map<String, VariableReference> vars = addParamDecl(body, inputVar, sql);
 
-        VarDeclStatment queryDecl = ConversionUtils.createQueryDecl(cx, dataDecl.ref(), sql);
+        VarDeclStatment queryDecl = ConversionUtils.createQueryDecl(cx, vars, sql);
         body.add(queryDecl);
 
         VariableReference dbClient = cx.client(sql.sharedResourcePropertyName());
         if (sql.query().toUpperCase().startsWith("SELECT")) {
             return finishSelectQuery(cx, sql, dbClient, queryDecl.ref(), body);
         }
-        VarDeclStatment result = new VarDeclStatment(
+        body.add(new VarDeclStatment(
                 cx.processContext.getTypeByName(BallerinaSQLConstants.EXECUTION_RESULT_TYPE),
                 cx.getAnnonVarName(),
                 new Check(
-                        new RemoteMethodCallAction(
-                                dbClient, BallerinaSQLConstants.EXECUTE_METHOD, List.of(queryDecl.ref()))));
-        body.add(result);
-        return new ActivityExtensionConfigConversion(result.ref(), body);
+                        new RemoteMethodCallAction(dbClient, BallerinaSQLConstants.EXECUTE_METHOD,
+                                List.of(queryDecl.ref())))));
+        VarDeclStatment dummyXmlResult = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+        body.add(dummyXmlResult);
+        return new ActivityExtensionConfigConversion(dummyXmlResult.ref(), body);
+    }
+
+    private static Map<String, VariableReference> addParamDecl(List<Statement> body, VariableReference dataValue,
+                                                               ActivityExtension.Config.SQL sql) {
+        Map<String, VariableReference> vars = new HashMap<>();
+        for (ActivityExtension.Config.SQL.SQLParameter each : sql.parameters()) {
+            String name = each.name();
+            VarDeclStatment varDecl = new VarDeclStatment(STRING, name,
+                    new BallerinaExpression("(%s/<%s>/*).toString().trim()".formatted(dataValue.varName(), name)));
+            body.add(varDecl);
+            vars.put(name, varDecl.ref());
+        }
+        return vars;
     }
 
     private static @NotNull ActivityExtensionConfigConversion finishSelectQuery(
             ActivityContext cx, ActivityExtension.Config.SQL sql, VariableReference dbClient, VariableReference query,
             List<Statement> body) {
         StreamTypeDesc streamTypeDesc = new StreamTypeDesc(
-                ConversionUtils.createQueryResultType(cx, sql),
-                UnionTypeDesc.of(
-                        cx.processContext.getTypeByName(BallerinaSQLConstants.EXECUTION_RESULT_TYPE), NIL));
+                new BallerinaModel.TypeDesc.MapTypeDesc(ANYDATA),
+                UnionTypeDesc.of(ERROR, NIL));
         VarDeclStatment stream = new VarDeclStatment(
                 streamTypeDesc, cx.getAnnonVarName(),
                 new RemoteMethodCallAction(dbClient, BallerinaSQLConstants.QUERY_METHOD, List.of(query)));
         body.add(stream);
 
-        VarDeclStatment accum = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+        VarDeclStatment accum = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(""));
         body.add(accum);
+        String toXmlFn = cx.getToXmlFunction();
+        String xmlVar = cx.getAnnonVarName();
 
         body.add(new BallerinaStatement("""
-                check from var each in %s do {
-                    %s = %s + each;
+                check from var each in %1$s do {
+                    xml %2$s = check %3$s(each);
+                    %4$s = %5$s + %2$s;
                 };
-                """.formatted(stream.ref(), accum.ref(), accum.ref())));
+                """.formatted(stream.ref(), xmlVar, toXmlFn, accum.ref(), accum.ref())));
 
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new XMLTemplate("<root>${%s}</root>".formatted(accum.ref())));
