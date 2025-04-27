@@ -47,7 +47,7 @@ function activityExtension_2(map<xml> context) returns xml|error {
             panic error("Unsupported method: " + var2);
         }
     }
-    xml var5 = check fromJson(var4);
+    xml var5 = xml `<root><asciiContent>${var4.toJsonString()}</asciiContent></root>`;
     addToContext(context, "SendHTTPRequest", var5);
     return var5;
 }

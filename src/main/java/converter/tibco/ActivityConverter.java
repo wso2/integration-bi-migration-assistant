@@ -372,16 +372,11 @@ final class ActivityConverter {
                     }
                 }
                 """.formatted(method.varName(), result.varName(), client.varName(), requestURI.varName())));
-
-        VarDeclStatment resultDecl = convertJSONResponseToXML(cx, result);
+        VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("<root><asciiContent>${%s.toJsonString()}</asciiContent></root>".formatted(result.varName())));
         body.add(resultDecl);
 
         return new ActivityExtensionConfigConversion(new VariableReference(resultDecl.varName()), body);
-    }
-
-    private static VarDeclStatment convertJSONResponseToXML(ActivityContext cx, VarDeclStatment responseDecl) {
-        return new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new Check(new FunctionCall(cx.processContext.getJsonToXMLFunction(), List.of(responseDecl.ref()))));
     }
 
     private static List<Statement> convertReceiveEvent(ActivityContext cx, ReceiveEvent receiveEvent) {
