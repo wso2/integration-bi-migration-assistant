@@ -978,12 +978,7 @@ public final class XmlToTibcoModelConverter {
     }
 
     public static String getTagNameWithoutNameSpace(String tagName) {
-        String[] parts = tagName.split(":");
-        if (parts.length == 1) {
-            return parts[0];
-        }
-        assert parts.length == 2 && !parts[1].isEmpty();
-        return parts[1];
+        return ConversionUtils.stripNamespace(tagName);
     }
 
     private static Collection<Element> expectNChildren(Element element, int n) {

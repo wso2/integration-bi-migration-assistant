@@ -74,6 +74,7 @@ public class ProjectContext {
     private final Map<String, String> generatedResources = new HashMap<>();
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
     private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
+    private final Map<BallerinaModel.TypeDesc, String> typeConversionFunction = new HashMap<>();
 
     ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext) {
         this.conversionContext = Optional.of(conversionContext);
@@ -156,7 +157,11 @@ public class ProjectContext {
         utilityFunctionImports.add(new BallerinaModel.Import(library.orgName, library.moduleName, Optional.empty()));
     }
 
-    String createConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
+    String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
+        return typeConversionFunction.computeIfAbsent(targetType, this::createConvertToTypeFunction);
+    }
+
+    private String createConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
         String functionName = "convertTo" + ConversionUtils.sanitizes(targetType.toString());
         importLibraryIfNeededToUtility(Library.XML_DATA);
         FunctionCall parseAsTypeCall = new FunctionCall(

@@ -18,10 +18,6 @@ function convertToResponse(xml input) returns Response {
     return checkpanic xmldata:parseAsType(input);
 }
 
-function convertToResponse(xml input) returns Response {
-    return checkpanic xmldata:parseAsType(input);
-}
-
 function toXML(map<anydata> data) returns error|xml {
     return xmldata:toXml(data);
 }

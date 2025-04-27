@@ -148,7 +148,7 @@ function reply_6(map<xml> context) returns xml|error {
     return var3;
 }
 
-function start_creditcheckservice_Process(httpHeaders input, map<xml> params = {}) returns Response {
+function start_creditcheckservice_Process(()|Request input, map<xml> params = {}) returns Response {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
     xml xmlResult = process_creditcheckservice_Process(inputXML, params);
     Response result = convertToResponse(xmlResult);

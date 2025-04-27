@@ -128,6 +128,15 @@ public final class ConversionUtils {
         return path.replaceAll("^/+", "").replaceAll("/+$", "");
     }
 
+    public static String stripNamespace(String tagName) {
+        String[] parts = tagName.split(":");
+        if (parts.length == 1) {
+            return parts[0];
+        }
+        assert parts.length == 2 && !parts[1].isEmpty();
+        return parts[1];
+    }
+
     public enum Constants {
         ;
 

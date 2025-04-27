@@ -59,17 +59,17 @@ public class ModelAnalyser {
 
         logger.info(String.format("Process Statistics - Name: %s, Total Activities: %d, Unhandled Activities: %d",
                 process.name(), cx.totalActivityCount, cx.unhandledActivityCount));
-        Map<TibcoModel.Process, String> inputTypeName = Map.of(process, cx.getInputTypeName());
+        Map<TibcoModel.Process, Collection<String>> inputTypeNames = Map.of(process, cx.getInputTypeName());
         Map<TibcoModel.Process, String> outputTypeName = Map.of(process, cx.getOutputTypeName());
         return new AnalysisResult(cx.destinationMap, cx.sourceMap, startActivities, faultHandlerStartActivities,
-                activityData, partnerLinkBindings, cx.queryIndex, inputTypeName,
+                activityData, partnerLinkBindings, cx.queryIndex, inputTypeNames,
                 outputTypeName, cx.dependencyGraph);
     }
 
     private static void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
-        process.scope().ifPresent(s -> analyseScope(cx, s));
         analysePartnerLinks(cx, process.partnerLinks());
         analyseTypes(cx, process.types());
+        process.scope().ifPresent(s -> analyseScope(cx, s));
         process.processInterface().ifPresent(i -> analyzeProcessInterface(cx, i));
     }
 
@@ -77,7 +77,7 @@ public class ModelAnalyser {
                                                 TibcoModel.ProcessInterface processInterface) {
         String inputType = sanitizeTypeName(processInterface.input());
         if (!inputType.isEmpty()) {
-            cx.setInputTypeName(inputType);
+            cx.appendInputTypeName(inputType);
         }
         String outputType = sanitizeTypeName(processInterface.output());
         if (!outputType.isEmpty()) {
@@ -108,7 +108,11 @@ public class ModelAnalyser {
         var messageTypes = getMessageTypeDefinitions(wsdlDefinition);
         wsdlDefinition.portType().forEach(portType -> {
             var operation = portType.operation();
-            cx.setInputTypeName(messageTypes.get(operation.input().message().value()));
+            String inputType = messageTypes.get(operation.input().message().value());
+            if (inputType == null) {
+                inputType = "null";
+            }
+            cx.appendInputTypeName(inputType);
             cx.setOutputTypeName(messageTypes.get(operation.output().message().value()));
         });
     }
@@ -127,11 +131,11 @@ public class ModelAnalyser {
 
     private static Optional<String> getMessageTypeName(TibcoModel.Type.WSDLDefinition.Message message) {
         Optional<TibcoModel.Type.WSDLDefinition.Message.Part> part;
-        if (message.parts().size() == 1) {
-            part = Optional.ofNullable(message.parts().getFirst());
-        } else {
+//        if (message.parts().size() == 1) {
+//            part = Optional.ofNullable(message.parts().getFirst());
+//        } else {
             part = message.parts().stream().filter(each -> each.name().equals("item")).findFirst();
-        }
+//        }
         if (part.isEmpty()) {
             return Optional.empty();
         }
@@ -245,7 +249,7 @@ public class ModelAnalyser {
                 new ConcurrentHashMap<>();
         public Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex =
                 new IdentityHashMap<>();
-        private String inputTypeName;
+        private final Set<String> inputTypeNames = new HashSet<>();
         private String outputTypeName;
 
         public void addEndActivity(TibcoModel.Scope.Flow.Activity activity) {
@@ -317,15 +321,12 @@ public class ModelAnalyser {
             queryIndex.put(sql, queryIndex.size());
         }
 
-        public void setInputTypeName(String inputTypeName) {
-            this.inputTypeName = inputTypeName;
+        public void appendInputTypeName(String inputTypeName) {
+            this.inputTypeNames.add(inputTypeName);
         }
 
-        public String getInputTypeName() {
-            if (inputTypeName == null) {
-                return "UNKNOWN";
-            }
-            return inputTypeName;
+        public Collection<String> getInputTypeName() {
+            return inputTypeNames;
         }
 
         public void setOutputTypeName(String outputTypeName) {

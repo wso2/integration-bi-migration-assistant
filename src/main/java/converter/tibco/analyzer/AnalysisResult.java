@@ -38,7 +38,7 @@ public final class AnalysisResult {
     private final Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData;
     private final Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings;
     private final Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex;
-    private final Map<TibcoModel.Process, String> inputTypeName;
+    private final Map<TibcoModel.Process, Collection<String>> inputTypeNames;
     private final Map<TibcoModel.Process, String> outputTypeName;
     private final Graph<GraphNode> dependencyGraph;
 
@@ -49,8 +49,8 @@ public final class AnalysisResult {
                    Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData,
                    Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings,
                    Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex,
-                   Map<TibcoModel.Process, String> inputTypeName, Map<TibcoModel.Process, String> outputTypeName,
-                   Graph<GraphNode> dependencyGraph) {
+                   Map<TibcoModel.Process, Collection<String>> inputTypeNames,
+                   Map<TibcoModel.Process, String> outputTypeName, Graph<GraphNode> dependencyGraph) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.startActivities = startActivities;
@@ -58,13 +58,13 @@ public final class AnalysisResult {
         this.activityData = activityData;
         this.partnerLinkBindings = partnerLinkBindings;
         this.queryIndex = queryIndex;
-        this.inputTypeName = inputTypeName;
+        this.inputTypeNames = inputTypeNames;
         this.outputTypeName = outputTypeName;
         this.dependencyGraph = dependencyGraph;
     }
 
-    public String inputTypeName(TibcoModel.Process process) {
-        return inputTypeName.get(process);
+    public Collection<String> inputTypeName(TibcoModel.Process process) {
+        return inputTypeNames.get(process);
     }
 
     public String outputTypeName(TibcoModel.Process process) {

@@ -46,7 +46,6 @@ public class ProcessContext implements ContextWithFile {
     private BallerinaModel.Listener defaultListener = null;
     private final Map<String, BallerinaModel.ModuleVar> constants = new HashMap<>();
     private final Map<String, BallerinaModel.ModuleVar> configurables = new HashMap<>();
-    private final Map<BallerinaModel.TypeDesc, String> typeConversionFunction = new HashMap<>();
     public final TibcoModel.Process process;
 
     public final ProjectContext projectContext;
@@ -173,11 +172,7 @@ public class ProcessContext implements ContextWithFile {
     }
 
     String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
-        return typeConversionFunction.computeIfAbsent(targetType, this::createConvertToTypeFunction);
-    }
-
-    private String createConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
-        return projectContext.createConvertToTypeFunction(targetType);
+        return projectContext.getConvertToTypeFunction(targetType);
     }
 
 
@@ -230,11 +225,14 @@ public class ProcessContext implements ContextWithFile {
     }
 
     BallerinaModel.TypeDesc getProcessInputType() {
-        String typeName = analysisResult.inputTypeName(process);
-        if (Objects.equals(typeName, "UNKNOWN")) {
+        Collection<String> typeNames = analysisResult.inputTypeName(process);
+        if (typeNames.isEmpty()) {
             return ANYDATA;
         }
-        return getTypeByName(typeName);
+        if (typeNames.size() == 1) {
+            return getTypeByName(typeNames.iterator().next());
+        }
+        return UnionTypeDesc.of(typeNames.stream().map(this::getTypeByName).toArray(BallerinaModel.TypeDesc[]::new));
     }
 
     BallerinaModel.TypeDesc getProcessOutputType() {

@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
@@ -36,6 +38,7 @@ import static io.ballerina.xsd.core.XSDToRecord.generateNodes;
 
 class TypeConverter {
 
+    private static final Logger logger = Logger.getLogger(TypeConverter.class.getName());
     private TypeConverter() {
     }
 
@@ -48,13 +51,23 @@ class TypeConverter {
         }
         try {
             NodeResponse response = generateNodes(content);
-            assert response.diagnostics().isEmpty();
+            logTypeConversionErrors(response);
             SyntaxTree syntaxTree = SyntaxTree.from(TextDocuments.from(""));
             syntaxTree = syntaxTree.modifyWith(response.types());
             return CodeGenerator.formatSyntaxTree(syntaxTree);
         } catch (Exception e) {
-            // TODO: deal with errors
             throw new RuntimeException("Type conversion failed due to: " + e.getMessage(), e);
+        }
+    }
+
+    private static void logTypeConversionErrors(NodeResponse response) {
+        if (response.diagnostics().isEmpty()) {
+            return;
+        }
+        logger.log(Level.WARNING, "Errors detected while trying to convert XSD schemas to Ballerina types. " +
+                "Falling back to placeholder types");
+        for (var each : response.diagnostics()) {
+            logger.log(Level.WARNING, each.message());
         }
     }
 
