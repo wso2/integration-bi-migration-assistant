@@ -74,16 +74,18 @@ function activityExtension_3(map<xml> context) returns xml|error {
         </tns:InputElement>
     </xsl:template>
 </xsl:stylesheet>`, context);
-    addToContext(context, "RenderJSON", var1);
-    return var1;
+    xml var2 = renderJson(var1);
+    addToContext(context, "RenderJSON", var2);
+    return var2;
 }
 
 function activityExtension_4(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns5="activity.jsonParser.input+a3fa07a6-0270-48b7-ba84-7de6924acb3d+ActivityInputType" version="2.0"><xsl:param name="SendHTTPRequest"/><xsl:template name="ParseJSON-input" match="/"><tns5:ActivityInputClass><jsonString><xsl:value-of select="$SendHTTPRequest/root/asciiContent"/></jsonString></tns5:ActivityInputClass></xsl:template></xsl:stylesheet>`, context);
-    addToContext(context, "ParseJSON", var1);
-    return var1;
+    xml var2 = check renderJsonAsExperianResponseSchemaElementXML(var1);
+    addToContext(context, "ParseJSON", var2);
+    return var2;
 }
 
 function activityRunner_creditapp_module_ExperianScore(map<xml> cx) returns xml|error {

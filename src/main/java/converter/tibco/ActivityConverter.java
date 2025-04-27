@@ -182,7 +182,9 @@ final class ActivityConverter {
         ActivityExtensionConfigConversion conversion = switch (config) {
             case ActivityExtension.Config.End ignored -> emptyExtensionConversion(result);
             case ActivityExtension.Config.HTTPSend httpSend -> createHttpSend(cx, result, httpSend);
-            case ActivityExtension.Config.JsonOperation ignored -> emptyExtensionConversion(result);
+            case ActivityExtension.Config.JsonOperation jsonOperation -> createJsonOperation(cx, result, jsonOperation,
+                    activityExtension.outputVariable().orElseThrow(
+                            () -> new IllegalStateException("json operation should have output variable")));
             case ActivityExtension.Config.SQL sql -> createSQLOperation(cx, result, sql);
             case ActivityExtension.Config.SendHTTPResponse ignored -> emptyExtensionConversion(result);
             case ActivityExtension.Config.FileWrite fileWrite -> createFileWriteOperation(cx, result, fileWrite);
@@ -194,6 +196,33 @@ final class ActivityConverter {
                 .ifPresent(outputVar -> body.add(addToContext(cx, conversion.result(), outputVar)));
         body.add(new Return<>(conversion.result()));
         return body;
+    }
+
+    private static ActivityExtensionConfigConversion createJsonOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.JsonOperation jsonOperation,
+            String outputVariable) {
+        return switch (jsonOperation.kind()) {
+            case JSON_RENDER -> createJsonRenderOperation(cx, result, jsonOperation);
+            case JSON_PARSER -> createJsonParserOperation(cx, result, jsonOperation, outputVariable);
+            default -> throw new IllegalStateException("Unexpected json operation kind: " + jsonOperation.kind());
+        };
+    }
+
+    private static ActivityExtensionConfigConversion createJsonParserOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.JsonOperation jsonOperation,
+            String outputVariable) {
+        VarDeclStatment rendered = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(
+                        new FunctionCall(cx.getRenderJsonAsXMLFunction(cx.variableType(outputVariable)),
+                                List.of(result))));
+        return new ActivityExtensionConfigConversion(rendered.ref(), List.of(rendered));
+    }
+
+    private static ActivityExtensionConfigConversion createJsonRenderOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.JsonOperation jsonOperation) {
+        String jsonRenderFn = cx.getRenderJsonFn();
+        VarDeclStatment jsonResult = new VarDeclStatment(XML, cx.getAnnonVarName(), new FunctionCall(jsonRenderFn, List.of(result)));
+        return new ActivityExtensionConfigConversion(jsonResult.ref(), List.of(jsonResult));
     }
 
     private static @NotNull ActivityExtensionConfigConversion emptyExtensionConversion(VariableReference result) {

@@ -309,6 +309,20 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getNamespaceFixFn();
     }
 
+
+    String variableType(String variable) {
+        return analysisResult.variableType(process, variable);
+    }
+
+
+    String getRenderJsonAsXMLFunction(String type) {
+        return projectContext.getRenderJsonAsXMLFunction(type);
+    }
+
+    public String getRenderJsonFn() {
+        return projectContext.getRenderJsonFn();
+    }
+
     static final class DefaultClientDetails {
         final BallerinaModel.ModuleVar varDecl;
         final String method;

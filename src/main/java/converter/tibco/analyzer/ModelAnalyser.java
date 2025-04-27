@@ -61,16 +61,25 @@ public class ModelAnalyser {
                 process.name(), cx.totalActivityCount, cx.unhandledActivityCount));
         Map<TibcoModel.Process, Collection<String>> inputTypeNames = Map.of(process, cx.getInputTypeName());
         Map<TibcoModel.Process, String> outputTypeName = Map.of(process, cx.getOutputTypeName());
+        Map<TibcoModel.Process, Map<String, String>> variableTypes = Map.of(process, cx.variableTypes);
         return new AnalysisResult(cx.destinationMap, cx.sourceMap, startActivities, faultHandlerStartActivities,
                 activityData, partnerLinkBindings, cx.queryIndex, inputTypeNames,
-                outputTypeName, cx.dependencyGraph);
+                outputTypeName, variableTypes, cx.dependencyGraph);
     }
 
     private static void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
+        analyzeVariables(cx, process.variables());
         analysePartnerLinks(cx, process.partnerLinks());
         analyseTypes(cx, process.types());
         process.scope().ifPresent(s -> analyseScope(cx, s));
         process.processInterface().ifPresent(i -> analyzeProcessInterface(cx, i));
+    }
+
+    private static void analyzeVariables(ProcessAnalysisContext cx, Collection<TibcoModel.Variable> variables) {
+        variables.forEach(variable -> {
+            String typeName = ConversionUtils.stripNamespace(variable.type());
+            cx.setVariableType(variable.name(), typeName);
+        });
     }
 
     private static void analyzeProcessInterface(ProcessAnalysisContext cx,
@@ -251,6 +260,7 @@ public class ModelAnalyser {
                 new IdentityHashMap<>();
         private final Set<String> inputTypeNames = new HashSet<>();
         private String outputTypeName;
+        private final Map<String, String> variableTypes = new HashMap<>();
 
         public void addEndActivity(TibcoModel.Scope.Flow.Activity activity) {
             endActivities.add(activity);
@@ -263,6 +273,10 @@ public class ModelAnalyser {
                 startActivities.add(activity);
             }
             dependencyGraph.addRoot(activityNode(activity));
+        }
+
+        public void setVariableType(String name, String type) {
+            variableTypes.put(name, type);
         }
 
         public void allocateLinkIfNeeded(TibcoModel.Scope.Flow.Link link) {

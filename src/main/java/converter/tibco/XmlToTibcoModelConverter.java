@@ -626,24 +626,26 @@ public final class XmlToTibcoModelConverter {
 
     private static TibcoModel.Variable parseVariable(Element element) {
         String name = element.getAttribute("name");
+        String type = element.getAttribute("element");
         boolean isProperty =
                 tryGetAttributeIgnoringNamespace(element, "property").map(val -> val.equals("yes")).orElse(false);
         if (isProperty) {
-            return parsePropertyVariable(element, name);
+            return parsePropertyVariable(element, name, type);
         }
-        return new TibcoModel.Variable.DefaultVariable(name);
+        return new TibcoModel.Variable.DefaultVariable(name, type);
     }
 
-    private static TibcoModel.Variable.@NotNull PropertyVariable parsePropertyVariable(Element element, String name) {
+    private static TibcoModel.Variable.@NotNull PropertyVariable parsePropertyVariable(Element element, String name,
+                                                                                       String type) {
         Optional<Element> from = tryGetFirstChildWithTag(element, "from");
         if (from.isPresent()) {
             Optional<Element> literal = tryGetFirstChildWithTag(from.get(), "literal");
             if (literal.isPresent()) {
-                return new TibcoModel.Variable.PropertyVariable.PropertyReference(name, literal.get().getTextContent());
+                return new TibcoModel.Variable.PropertyVariable.PropertyReference(name, literal.get().getTextContent(), type);
             }
         } else {
             String propertySource = getAttributeIgnoringNamespace(element, "propertySource");
-            return new TibcoModel.Variable.PropertyVariable.SimpleProperty(name, propertySource);
+            return new TibcoModel.Variable.PropertyVariable.SimpleProperty(name, propertySource, type);
         }
         throw new ParserException("Failed to parse property variable", element);
     }

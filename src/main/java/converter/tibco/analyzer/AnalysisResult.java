@@ -40,6 +40,7 @@ public final class AnalysisResult {
     private final Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex;
     private final Map<TibcoModel.Process, Collection<String>> inputTypeNames;
     private final Map<TibcoModel.Process, String> outputTypeName;
+    private final Map<TibcoModel.Process, Map<String, String>> variableTypes;
     private final Graph<GraphNode> dependencyGraph;
 
     AnalysisResult(Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap,
@@ -50,7 +51,8 @@ public final class AnalysisResult {
                    Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings,
                    Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex,
                    Map<TibcoModel.Process, Collection<String>> inputTypeNames,
-                   Map<TibcoModel.Process, String> outputTypeName, Graph<GraphNode> dependencyGraph) {
+                   Map<TibcoModel.Process, String> outputTypeName,
+                   Map<TibcoModel.Process, Map<String, String>> variableTypes, Graph<GraphNode> dependencyGraph) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.startActivities = startActivities;
@@ -60,6 +62,7 @@ public final class AnalysisResult {
         this.queryIndex = queryIndex;
         this.inputTypeNames = inputTypeNames;
         this.outputTypeName = outputTypeName;
+        this.variableTypes = variableTypes;
         this.dependencyGraph = dependencyGraph;
     }
 
@@ -94,6 +97,14 @@ public final class AnalysisResult {
             return List.of();
         }
         return sources;
+    }
+
+    public String variableType(TibcoModel.Process process, String variableName) {
+        var variableType = variableTypes.get(process);
+        if (variableType == null) {
+            throw new IllegalArgumentException("No variable type found for process: " + process);
+        }
+        return Objects.requireNonNull(variableType.get(variableName), () -> "Variable type not found for: " + variableName);
     }
 
     public LinkData from(TibcoModel.Scope.Flow.Link link) {

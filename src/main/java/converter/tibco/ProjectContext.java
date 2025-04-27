@@ -46,11 +46,7 @@ import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
-import static converter.tibco.Library.HTTP;
-import static converter.tibco.Library.IO;
-import static converter.tibco.Library.JDBC;
-import static converter.tibco.Library.LOG;
-import static converter.tibco.Library.XML_DATA;
+import static converter.tibco.Library.*;
 
 public class ProjectContext {
 
@@ -60,6 +56,7 @@ public class ProjectContext {
     private final Set<BallerinaModel.Import> utilityFunctionImports = new HashSet<>();
     private final Map<String, BallerinaModel.ModuleVar> utilityVars = new HashMap<>();
     private final Set<Intrinsics> utilityIntrinsics = new HashSet<>();
+    private final Set<ComptimeFunction> utilityCompTimeFunctions = new HashSet<>();
 
     private final Map<String, BallerinaModel.Expression.VariableReference> dbClients = new HashMap<>();
     private String toXMLFunction = null;
@@ -75,6 +72,7 @@ public class ProjectContext {
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
     private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
     private final Map<BallerinaModel.TypeDesc, String> typeConversionFunction = new HashMap<>();
+    private final Map<String, String> renderJsonAsXMLFunction = new HashMap<>();
 
     ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext) {
         this.conversionContext = Optional.of(conversionContext);
@@ -207,12 +205,15 @@ public class ProjectContext {
         List<BallerinaModel.Function> sortedFunctions = utilityFunctions.stream()
                 .sorted(Comparator.comparing(BallerinaModel.Function::functionName))
                 .toList();
-        List<String> sortedIntrinsics = utilityIntrinsics.stream()
+        Stream<String> sortedIntrinsics = utilityIntrinsics.stream()
                 .sorted(Comparator.comparing(Intrinsics::name))
-                .map(each -> each.body)
-                .toList();
+                .map(each -> each.body);
+        Stream<String> sortedComptimes = utilityCompTimeFunctions.stream()
+                .sorted(Comparator.comparing(ComptimeFunction::functionName))
+                .map(ComptimeFunction::intrinsify);
+        List<String> combinedIntrinsics = Stream.concat(sortedIntrinsics, sortedComptimes).toList();
         return new BallerinaModel.TextDocument("utils.bal", imports, List.of(), sortedConstants,
-                List.of(), List.of(), sortedFunctions, List.of(), sortedIntrinsics, List.of());
+                List.of(), List.of(), sortedFunctions, List.of(), combinedIntrinsics, List.of());
     }
 
     private BallerinaModel.TextDocument typesFile() {
@@ -222,6 +223,19 @@ public class ProjectContext {
     FunctionData getProcessStartFunction(String processName) {
         TibcoModel.Process process = getProcess(processName);
         return getProcessContext(process).getProcessStartFunction();
+    }
+
+    String getRenderJsonAsXMLFunction(String type) {
+        return renderJsonAsXMLFunction.computeIfAbsent(type, this::createRenderJsonAsXMLFunction);
+    }
+
+    String createRenderJsonAsXMLFunction(String type) {
+        importLibraryIfNeededToUtility(XML_DATA);
+        importLibraryIfNeededToUtility(JSON_DATA);
+        utilityIntrinsics.add(Intrinsics.RENDER_JSON_AS_XML);
+        ComptimeFunction renderJsonAsXML = new RenderJSONAsXML(type);
+        utilityCompTimeFunctions.add(renderJsonAsXML);
+        return renderJsonAsXML.functionName();
     }
 
     BallerinaModel.TypeDesc getTypeByName(String name, ContextWithFile cx) {
@@ -393,8 +407,15 @@ public class ProjectContext {
     }
 
     public String getNamespaceFixFn() {
+        utilityIntrinsics.add(Intrinsics.XML_PARSER);
         utilityIntrinsics.add(Intrinsics.PATCH_XML_NAMESPACES);
         return Intrinsics.PATCH_XML_NAMESPACES.name;
+    }
+
+    public String getRenderJsonFn() {
+        utilityIntrinsics.add(Intrinsics.XML_PARSER);
+        utilityIntrinsics.add(Intrinsics.RENDER_JSON);
+        return Intrinsics.RENDER_JSON.name;
     }
 
     private static class ContextWrapperForTypeFile implements ContextWithFile {

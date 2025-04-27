@@ -120,4 +120,16 @@ public class ActivityContext {
     String getToXmlFunction() {
         return this.processContext.getToXmlFunction();
     }
+
+    public String getRenderJsonFn() {
+        return processContext.getRenderJsonFn();
+    }
+
+    String variableType(String variable) {
+        return processContext.variableType(variable);
+    }
+
+    String getRenderJsonAsXMLFunction(String type) {
+        return processContext.getRenderJsonAsXMLFunction(type);
+    }
 }

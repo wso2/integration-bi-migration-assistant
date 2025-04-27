@@ -217,17 +217,19 @@ public class TibcoModel {
 
         String name();
 
-        record DefaultVariable(String name) implements Variable {
+        String type();
+
+        record DefaultVariable(String name, String type) implements Variable {
 
         }
 
         sealed interface PropertyVariable extends Variable {
 
-            record PropertyReference(String name, String literal) implements PropertyVariable {
+            record PropertyReference(String name, String literal, String type) implements PropertyVariable {
 
             }
 
-            record SimpleProperty(String name, String source) implements PropertyVariable {
+            record SimpleProperty(String name, String source, String type) implements PropertyVariable {
 
             }
         }

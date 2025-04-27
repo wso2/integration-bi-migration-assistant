@@ -70,11 +70,6 @@ result = value;
 return result;
 }
 
-type XMLElementParseResult record {|
-string? namespace;
-string name;
-|};
-
 function transformElement(xml:Element element) returns xml {
 XMLElementParseResult parseResult = parseElement(element);
 string? namespace = parseResult.namespace;
@@ -94,6 +89,11 @@ xml transformedChildren = children.map(transform);
 transformedElement.setChildren(transformedChildren);
 return transformedElement;
 }
+
+type XMLElementParseResult record {|
+    string? namespace;
+    string name;
+|};
 
 function parseElement(xml:Element element) returns XMLElementParseResult {
 string name = element.getName();

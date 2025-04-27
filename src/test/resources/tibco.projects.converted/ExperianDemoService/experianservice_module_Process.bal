@@ -53,16 +53,18 @@ function activityExtension_3(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="activity.jsonParser.input+f396d921-0bc7-459d-ae81-0eb1a0f94723+ActivityInputType" version="2.0"><xsl:param name="HTTPReceiver"/><xsl:template name="ParseJSON-input" match="/"><tns:ActivityInputClass><jsonString><xsl:value-of select="$HTTPReceiver/root/PostData"/></jsonString></tns:ActivityInputClass></xsl:template></xsl:stylesheet>`, context);
-    addToContext(context, "ParseJSON", var1);
-    return var1;
+    xml var2 = check renderJsonAsInputElementXML(var1);
+    addToContext(context, "ParseJSON", var2);
+    return var2;
 }
 
 function activityExtension_4(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://tns.tibco.com/bw/json/1535671685533" version="2.0"><xsl:param name="JDBCQuery"/><xsl:template name="RenderJSON-input" match="/"><tns:ExperianResponseSchemaElement><xsl:if test="$JDBCQuery/root/Record[1]/ficoscore"><tns:fiCOScore><xsl:value-of select="$JDBCQuery/root/Record[1]/ficoscore"/></tns:fiCOScore></xsl:if><xsl:if test="$JDBCQuery/root/Record[1]/rating"><tns:rating><xsl:value-of select="$JDBCQuery/root/Record[1]/rating"/></tns:rating></xsl:if><xsl:if test="$JDBCQuery/root/Record[1]/numofpulls"><tns:noOfInquiries><xsl:value-of select="$JDBCQuery/root/Record[1]/numofpulls"/></tns:noOfInquiries></xsl:if></tns:ExperianResponseSchemaElement></xsl:template></xsl:stylesheet>`, context);
-    addToContext(context, "RenderJSON", var1);
-    return var1;
+    xml var2 = renderJson(var1);
+    addToContext(context, "RenderJSON", var2);
+    return var2;
 }
 
 function activityRunner_experianservice_module_Process(map<xml> cx) returns xml|error {
