@@ -202,7 +202,7 @@ final class ActivityConverter {
             ActivityContext cx, VariableReference result, ActivityExtension.Config.JsonOperation jsonOperation,
             String outputVariable) {
         return switch (jsonOperation.kind()) {
-            case JSON_RENDER -> createJsonRenderOperation(cx, result, jsonOperation);
+            case JSON_RENDER -> createJsonRenderOperation(cx, result);
             case JSON_PARSER -> createJsonParserOperation(cx, result, jsonOperation, outputVariable);
             default -> throw new IllegalStateException("Unexpected json operation kind: " + jsonOperation.kind());
         };
@@ -218,10 +218,11 @@ final class ActivityConverter {
         return new ActivityExtensionConfigConversion(rendered.ref(), List.of(rendered));
     }
 
-    private static ActivityExtensionConfigConversion createJsonRenderOperation(
-            ActivityContext cx, VariableReference result, ActivityExtension.Config.JsonOperation jsonOperation) {
+    private static ActivityExtensionConfigConversion createJsonRenderOperation(ActivityContext cx,
+                                                                               VariableReference result) {
         String jsonRenderFn = cx.getRenderJsonFn();
-        VarDeclStatment jsonResult = new VarDeclStatment(XML, cx.getAnnonVarName(), new FunctionCall(jsonRenderFn, List.of(result)));
+        VarDeclStatment jsonResult = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new FunctionCall(jsonRenderFn, List.of(result)));
         return new ActivityExtensionConfigConversion(jsonResult.ref(), List.of(jsonResult));
     }
 
@@ -373,7 +374,8 @@ final class ActivityConverter {
                 }
                 """.formatted(method.varName(), result.varName(), client.varName(), requestURI.varName())));
         VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new XMLTemplate("<root><asciiContent>${%s.toJsonString()}</asciiContent></root>".formatted(result.varName())));
+                new XMLTemplate("<root><asciiContent>${%s.toJsonString()}</asciiContent></root>".formatted(
+                        result.varName())));
         body.add(resultDecl);
 
         return new ActivityExtensionConfigConversion(new VariableReference(resultDecl.varName()), body);

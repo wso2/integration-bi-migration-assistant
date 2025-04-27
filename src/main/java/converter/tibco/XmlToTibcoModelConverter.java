@@ -641,7 +641,8 @@ public final class XmlToTibcoModelConverter {
         if (from.isPresent()) {
             Optional<Element> literal = tryGetFirstChildWithTag(from.get(), "literal");
             if (literal.isPresent()) {
-                return new TibcoModel.Variable.PropertyVariable.PropertyReference(name, literal.get().getTextContent(), type);
+                return new TibcoModel.Variable.PropertyVariable.PropertyReference(name, literal.get().getTextContent(),
+                        type);
             }
         } else {
             String propertySource = getAttributeIgnoringNamespace(element, "propertySource");

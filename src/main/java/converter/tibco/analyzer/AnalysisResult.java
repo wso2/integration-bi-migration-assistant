@@ -104,7 +104,8 @@ public final class AnalysisResult {
         if (variableType == null) {
             throw new IllegalArgumentException("No variable type found for process: " + process);
         }
-        return Objects.requireNonNull(variableType.get(variableName), () -> "Variable type not found for: " + variableName);
+        return Objects.requireNonNull(variableType.get(variableName),
+                () -> "Variable type not found for: " + variableName);
     }
 
     public LinkData from(TibcoModel.Scope.Flow.Link link) {

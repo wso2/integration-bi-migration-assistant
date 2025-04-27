@@ -46,7 +46,12 @@ import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
-import static converter.tibco.Library.*;
+import static converter.tibco.Library.HTTP;
+import static converter.tibco.Library.IO;
+import static converter.tibco.Library.JDBC;
+import static converter.tibco.Library.JSON_DATA;
+import static converter.tibco.Library.LOG;
+import static converter.tibco.Library.XML_DATA;
 
 public class ProjectContext {
 
