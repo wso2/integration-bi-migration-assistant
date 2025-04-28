@@ -149,12 +149,10 @@ public class ProcessConverter {
                 .map(activity -> ActivityConverter.convertActivity(cx, activity))
                 .collect(Collectors.toCollection(ArrayList::new));
         addTransitionPredicates(cx, functions);
-        if (process.scope().isPresent()) {
-            functions.add(generateStartFunction(cx));
-            functions.add(generateActivityFlowFunction(cx));
-            functions.add(generateErrorFlowFunction(cx));
-            functions.add(generateProcessFunction(cx));
-        }
+        functions.add(generateStartFunction(cx));
+        functions.add(generateActivityFlowFunction(cx));
+        functions.add(generateErrorFlowFunction(cx));
+        functions.add(generateProcessFunction(cx));
 
         functions.sort(Comparator.comparing(BallerinaModel.Function::functionName));
 
@@ -233,7 +231,8 @@ public class ProcessConverter {
 
         VariableReference params = ProcessContext.processLevelFnParamVariable();
         VarDeclStatment xmlResult = new VarDeclStatment(XML, "xmlResult",
-                new FunctionCall(cx.getProcessFunction(), List.of(inputXMLVar.ref(), params)));
+                new FunctionCall(cx.analysisResult.getControlFlowFunctions(cx.process.scope()).scopeFn(),
+                        List.of(inputXMLVar.ref(), params)));
         body.add(xmlResult);
 
         TypeDesc returnType = startFuncData.returnType();
@@ -256,7 +255,9 @@ public class ProcessConverter {
     }
 
     private static BallerinaModel.Function generateProcessFunction(ProcessContext cx) {
-        String name = cx.getProcessFunction();
+        AnalysisResult analysisResult = cx.analysisResult;
+        AnalysisResult.ControlFlowFunctions controlFlowFunctions = analysisResult.getControlFlowFunctions(cx.process.scope());
+        String name = controlFlowFunctions.scopeFn();
         List<Statement> body = new ArrayList<>();
         String inputVarName = "input";
         String paramsVarName = "params";
@@ -268,7 +269,7 @@ public class ProcessConverter {
                 List.of(cx.contextVarRef(), new StringConstant(ConversionUtils.Constants.CONTEXT_INPUT_NAME), input))));
         VarDeclStatment result =
                 new VarDeclStatment(TypeDesc.UnionTypeDesc.of(XML, ERROR), "result",
-                        new FunctionCall(cx.getActivityRunnerFunction(), List.of(context.ref())));
+                        new FunctionCall(controlFlowFunctions.activityRunner(), List.of(context.ref())));
         body.add(result);
         handleErrorResult(cx, result, context, body);
         body.add(new Return<>(result.ref()));
@@ -284,7 +285,8 @@ public class ProcessConverter {
         Statement.IfElseStatement ifElse =
                 new Statement.IfElseStatement(typeCheck,
                         List.of(new Return<>(
-                                new FunctionCall(cx.getErrorHandlerFunction(), List.of(result.ref(), context.ref())))),
+                                new FunctionCall(cx.analysisResult.getControlFlowFunctions(cx.process.scope()).
+                                        errorHandler(), List.of(result.ref(), context.ref())))),
                         List.of(), List.of());
         body.add(ifElse);
     }
@@ -296,7 +298,8 @@ public class ProcessConverter {
         VariableReference result = generateActivityFlowFunctionInner(cx, activities,
                 Check::new, body, new VariableReference("input"));
         body.add(new Return<>(result));
-        return new BallerinaModel.Function(cx.getActivityRunnerFunction(),
+        String activityRunnerFunction = analysisResult.getControlFlowFunctions(cx.process.scope()).activityRunner();
+        return new BallerinaModel.Function(activityRunnerFunction,
                 List.of(new Parameter("cx", new TypeDesc.MapTypeDesc(XML))),
                 TypeDesc.UnionTypeDesc.of(XML, ERROR), body);
     }
@@ -317,7 +320,8 @@ public class ProcessConverter {
             body.add(new Return<>(result));
 
         }
-        return new BallerinaModel.Function(cx.getErrorHandlerFunction(),
+        String errorHandlerFunction = analysisResult.getControlFlowFunctions(cx.process.scope()).errorHandler();
+        return new BallerinaModel.Function(errorHandlerFunction,
                 List.of(new Parameter("err", ERROR),
                         new Parameter("cx", new TypeDesc.MapTypeDesc(XML))),
                 XML.toString(), body);

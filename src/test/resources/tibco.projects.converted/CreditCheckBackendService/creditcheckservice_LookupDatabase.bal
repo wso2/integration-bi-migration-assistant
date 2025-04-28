@@ -75,7 +75,20 @@ function activityExtension_9(map<xml> context) returns xml|error {
     return var6;
 }
 
-function activityRunner_creditcheckservice_LookupDatabase(map<xml> cx) returns xml|error {
+function predicate_0(xml input) returns boolean {
+    return test(input, "string-length($QueryRecords/Record[1]/rating)>0");
+}
+
+function predicate_1(xml input) returns boolean {
+    return !test(input, "string-length($QueryRecords/Record[1]/rating)>0");
+}
+
+function receiveEvent(map<xml> context) returns xml|error {
+    addToContext(context, "Start", context.get("$input"));
+    return context.get("$input");
+}
+
+function scope_8ActivityRunner(map<xml> cx) returns xml|error {
     xml result0 = check receiveEvent(cx);
     xml result1 = check activityExtension_9(cx);
     xml result2;
@@ -94,36 +107,23 @@ function activityRunner_creditcheckservice_LookupDatabase(map<xml> cx) returns x
     return result4;
 }
 
-function errorHandler_creditcheckservice_LookupDatabase(error err, map<xml> cx) returns xml {
+function scope_8FaultHandler(error err, map<xml> cx) returns xml {
     panic err;
 }
 
-function predicate_0(xml input) returns boolean {
-    return test(input, "string-length($QueryRecords/Record[1]/rating)>0");
-}
-
-function predicate_1(xml input) returns boolean {
-    return !test(input, "string-length($QueryRecords/Record[1]/rating)>0");
-}
-
-function process_creditcheckservice_LookupDatabase(xml input, map<xml> params) returns xml {
+function scope_8ScopeFn(xml input, map<xml> params) returns xml {
     map<xml> context = {...params};
     addToContext(context, "$input", input);
-    xml|error result = activityRunner_creditcheckservice_LookupDatabase(context);
+    xml|error result = scope_8ActivityRunner(context);
     if result is error {
-        return errorHandler_creditcheckservice_LookupDatabase(result, context);
+        return scope_8FaultHandler(result, context);
     }
     return result;
 }
 
-function receiveEvent(map<xml> context) returns xml|error {
-    addToContext(context, "Start", context.get("$input"));
-    return context.get("$input");
-}
-
 function start_creditcheckservice_LookupDatabase(Element input, map<xml> params = {}) returns Response {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = process_creditcheckservice_LookupDatabase(inputXML, params);
+    xml xmlResult = scope_8ScopeFn(inputXML, params);
     Response result = convertToResponse(xmlResult);
     return result;
 }

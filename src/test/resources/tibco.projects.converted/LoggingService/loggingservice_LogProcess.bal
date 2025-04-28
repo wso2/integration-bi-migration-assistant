@@ -49,7 +49,24 @@ function activityExtension_5(map<xml> context) returns xml|error {
     return var1;
 }
 
-function activityRunner_loggingservice_LogProcess(map<xml> cx) returns xml|error {
+function predicate_0(xml input) returns boolean {
+    return test(input, "matches($Start/ns0:handler, \"console\")");
+}
+
+function predicate_1(xml input) returns boolean {
+    return test(input, "matches($Start/ns0:handler, \"file\") and matches($Start/ns0:formatter, \"text\")");
+}
+
+function predicate_2(xml input) returns boolean {
+    return test(input, "matches($Start/ns0:handler, \"file\") and matches($Start/ns0:formatter, \"xml\")");
+}
+
+function receiveEvent(map<xml> context) returns xml|error {
+    addToContext(context, "Start", context.get("$input"));
+    return context.get("$input");
+}
+
+function scope_4ActivityRunner(map<xml> cx) returns xml|error {
     xml result0 = check receiveEvent(cx);
     xml result1;
     if predicate_2(result0) {
@@ -74,40 +91,23 @@ function activityRunner_loggingservice_LogProcess(map<xml> cx) returns xml|error
     return result5;
 }
 
-function errorHandler_loggingservice_LogProcess(error err, map<xml> cx) returns xml {
+function scope_4FaultHandler(error err, map<xml> cx) returns xml {
     panic err;
 }
 
-function predicate_0(xml input) returns boolean {
-    return test(input, "matches($Start/ns0:handler, \"console\")");
-}
-
-function predicate_1(xml input) returns boolean {
-    return test(input, "matches($Start/ns0:handler, \"file\") and matches($Start/ns0:formatter, \"text\")");
-}
-
-function predicate_2(xml input) returns boolean {
-    return test(input, "matches($Start/ns0:handler, \"file\") and matches($Start/ns0:formatter, \"xml\")");
-}
-
-function process_loggingservice_LogProcess(xml input, map<xml> params) returns xml {
+function scope_4ScopeFn(xml input, map<xml> params) returns xml {
     map<xml> context = {...params};
     addToContext(context, "$input", input);
-    xml|error result = activityRunner_loggingservice_LogProcess(context);
+    xml|error result = scope_4ActivityRunner(context);
     if result is error {
-        return errorHandler_loggingservice_LogProcess(result, context);
+        return scope_4FaultHandler(result, context);
     }
     return result;
 }
 
-function receiveEvent(map<xml> context) returns xml|error {
-    addToContext(context, "Start", context.get("$input"));
-    return context.get("$input");
-}
-
 function start_loggingservice_LogProcess(LogMessage input, map<xml> params = {}) returns result {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = process_loggingservice_LogProcess(inputXML, params);
+    xml xmlResult = scope_4ScopeFn(inputXML, params);
     result result = convertToresult(xmlResult);
     return result;
 }

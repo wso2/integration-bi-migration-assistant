@@ -67,7 +67,12 @@ function activityExtension_4(map<xml> context) returns xml|error {
     return var2;
 }
 
-function activityRunner_experianservice_module_Process(map<xml> cx) returns xml|error {
+function receiveEvent(map<xml> context) returns xml|error {
+    addToContext(context, "HTTPReceiver", context.get("$input"));
+    return context.get("$input");
+}
+
+function scope_9ActivityRunner(map<xml> cx) returns xml|error {
     xml result0 = check receiveEvent(cx);
     xml result1 = check activityExtension_3(cx);
     xml result2 = check activityExtension_2(cx);
@@ -76,28 +81,23 @@ function activityRunner_experianservice_module_Process(map<xml> cx) returns xml|
     return result4;
 }
 
-function errorHandler_experianservice_module_Process(error err, map<xml> cx) returns xml {
+function scope_9FaultHandler(error err, map<xml> cx) returns xml {
     panic err;
 }
 
-function process_experianservice_module_Process(xml input, map<xml> params) returns xml {
+function scope_9ScopeFn(xml input, map<xml> params) returns xml {
     map<xml> context = {...params};
     addToContext(context, "$input", input);
-    xml|error result = activityRunner_experianservice_module_Process(context);
+    xml|error result = scope_9ActivityRunner(context);
     if result is error {
-        return errorHandler_experianservice_module_Process(result, context);
+        return scope_9FaultHandler(result, context);
     }
     return result;
 }
 
-function receiveEvent(map<xml> context) returns xml|error {
-    addToContext(context, "HTTPReceiver", context.get("$input"));
-    return context.get("$input");
-}
-
 function start_experianservice_module_Process(InputElement input, map<xml> params = {}) returns ExperianResponseSchemaElement {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = process_experianservice_module_Process(inputXML, params);
+    xml xmlResult = scope_9ScopeFn(inputXML, params);
     ExperianResponseSchemaElement result = convertToExperianResponseSchemaElement(xmlResult);
     return result;
 }

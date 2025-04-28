@@ -88,7 +88,12 @@ function activityExtension_4(map<xml> context) returns xml|error {
     return var2;
 }
 
-function activityRunner_creditapp_module_ExperianScore(map<xml> cx) returns xml|error {
+function receiveEvent(map<xml> context) returns xml|error {
+    addToContext(context, "Start", context.get("$input"));
+    return context.get("$input");
+}
+
+function scopeActivityRunner(map<xml> cx) returns xml|error {
     xml result0 = check receiveEvent(cx);
     xml result1 = check activityExtension_3(cx);
     xml result2 = check activityExtension_2(cx);
@@ -97,28 +102,23 @@ function activityRunner_creditapp_module_ExperianScore(map<xml> cx) returns xml|
     return result4;
 }
 
-function errorHandler_creditapp_module_ExperianScore(error err, map<xml> cx) returns xml {
+function scopeFaultHandler(error err, map<xml> cx) returns xml {
     panic err;
 }
 
-function process_creditapp_module_ExperianScore(xml input, map<xml> params) returns xml {
+function scopeScopeFn(xml input, map<xml> params) returns xml {
     map<xml> context = {...params};
     addToContext(context, "$input", input);
-    xml|error result = activityRunner_creditapp_module_ExperianScore(context);
+    xml|error result = scopeActivityRunner(context);
     if result is error {
-        return errorHandler_creditapp_module_ExperianScore(result, context);
+        return scopeFaultHandler(result, context);
     }
     return result;
 }
 
-function receiveEvent(map<xml> context) returns xml|error {
-    addToContext(context, "Start", context.get("$input"));
-    return context.get("$input");
-}
-
 function start_creditapp_module_ExperianScore(GiveNewSchemaNameHere input, map<xml> params = {}) returns ExperianResponseSchemaElement {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = process_creditapp_module_ExperianScore(inputXML, params);
+    xml xmlResult = scopeScopeFn(inputXML, params);
     ExperianResponseSchemaElement result = convertToExperianResponseSchemaElement(xmlResult);
     return result;
 }

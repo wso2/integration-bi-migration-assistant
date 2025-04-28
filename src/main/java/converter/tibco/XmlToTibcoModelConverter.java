@@ -154,7 +154,7 @@ public final class XmlToTibcoModelConverter {
             }
         }
         return new TibcoModel.Process(name, types, processInfo, processInterface, processTemplateConfigurations,
-                partnerLinks, variables, Optional.ofNullable(scope));
+                partnerLinks, variables, scope);
     }
 
     // TODO: fill this

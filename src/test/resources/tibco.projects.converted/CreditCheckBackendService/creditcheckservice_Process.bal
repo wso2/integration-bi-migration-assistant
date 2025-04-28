@@ -48,20 +48,6 @@ function activityExtension_5(map<xml> context) returns xml|error {
     return var1;
 }
 
-function activityRunner_creditcheckservice_Process(map<xml> cx) returns xml|error {
-    xml result0 = check extActivity(cx);
-    xml result1 = check activityExtension(cx);
-    xml result2 = check reply(cx);
-    return result2;
-}
-
-function errorHandler_creditcheckservice_Process(error err, map<xml> cx) returns xml {
-    xml input = xml `<root></root>`;
-    xml result0 = checkpanic activityExtension_5(cx);
-    xml result1 = checkpanic reply_6(cx);
-    return result1;
-}
-
 function extActivity(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
@@ -98,16 +84,6 @@ function faultHandler(map<xml> context) returns xml|error {
 
 function pick(map<xml> context) returns xml|error {
     return xml `<root></root>`;
-}
-
-function process_creditcheckservice_Process(xml input, map<xml> params) returns xml {
-    map<xml> context = {...params};
-    addToContext(context, "$input", input);
-    xml|error result = activityRunner_creditcheckservice_Process(context);
-    if result is error {
-        return errorHandler_creditcheckservice_Process(result, context);
-    }
-    return result;
 }
 
 function reply(map<xml> context) returns xml|error {
@@ -159,9 +135,33 @@ function reply_6(map<xml> context) returns xml|error {
     return var3;
 }
 
+function scope_5ActivityRunner(map<xml> cx) returns xml|error {
+    xml result0 = check extActivity(cx);
+    xml result1 = check activityExtension(cx);
+    xml result2 = check reply(cx);
+    return result2;
+}
+
+function scope_5FaultHandler(error err, map<xml> cx) returns xml {
+    xml input = xml `<root></root>`;
+    xml result0 = checkpanic activityExtension_5(cx);
+    xml result1 = checkpanic reply_6(cx);
+    return result1;
+}
+
+function scope_5ScopeFn(xml input, map<xml> params) returns xml {
+    map<xml> context = {...params};
+    addToContext(context, "$input", input);
+    xml|error result = scope_5ActivityRunner(context);
+    if result is error {
+        return scope_5FaultHandler(result, context);
+    }
+    return result;
+}
+
 function start_creditcheckservice_Process(()|Request input, map<xml> params = {}) returns Response {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = process_creditcheckservice_Process(inputXML, params);
+    xml xmlResult = scope_5ScopeFn(inputXML, params);
     Response result = convertToResponse(xmlResult);
     return result;
 }
