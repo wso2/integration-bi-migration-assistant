@@ -280,9 +280,13 @@ public class TibcoModel {
             }
 
             public enum Connector {
+                HTTP_CLIENT_RESOURCE,
                 HTTP_CLIENT_RESOURCE_2;
 
                 public static Connector from(String value) {
+                    if (value.contains("HttpClientResource")) {
+                        return HTTP_CLIENT_RESOURCE;
+                    }
                     if (value.contains("HttpClientResource2")) {
                         return HTTP_CLIENT_RESOURCE_2;
                     }
@@ -290,9 +294,18 @@ public class TibcoModel {
                 }
             }
 
-            public record Operation(Method method, RequestEntityProcessing requestEntityProcessing,
-                                    MessageStyle requestStyle, MessageStyle responseStyle, Format clientFormat,
-                                    Format clientRequestFormat, List<Parameter> parameters) {
+            public record Operation(Method method, Optional<RequestEntityProcessing> requestEntityProcessing,
+                                    Optional<MessageStyle> requestStyle, Optional<MessageStyle> responseStyle,
+                                    Optional<Format> clientFormat, Optional<Format> clientRequestFormat,
+                                    List<Parameter> parameters) {
+
+                public Operation(Method method, RequestEntityProcessing requestEntityProcessing,
+                                 MessageStyle requestStyle, MessageStyle responseStyle, Format clientFormat,
+                                 Format clientRequestFormat, List<Parameter> parameters) {
+                    this(method, Optional.of(requestEntityProcessing), Optional.of(requestStyle),
+                            Optional.of(responseStyle), Optional.of(clientFormat), Optional.of(clientRequestFormat),
+                            parameters);
+                }
 
                 public enum RequestEntityProcessing {
                     CHUNKED;
@@ -419,14 +432,29 @@ public class TibcoModel {
                     }
                 }
 
-                record ReceiveEvent(boolean createInstance, float eventTimeout, String variable,
+                record ReceiveEvent(boolean createInstance, float eventTimeout, Optional<String> variable,
                                     List<Source> sources, Element element) implements Activity, ActivityWithSources {
+                    public ReceiveEvent(boolean createInstance, float eventTimeout, String variable,
+                                        List<Source> sources, Element element) {
+                        this(createInstance, eventTimeout,
+                                variable.isEmpty() ? Optional.empty() : Optional.of(variable), sources, element);
+                    }
 
                 }
 
-                record ExtActivity(Expression expression, String inputVariable, String outputVariable,
-                                   List<Source> sources, List<InputBinding> inputBindings,
-                                   CallProcess callProcess, Element element) implements Activity, ActivityWithSources {
+                record ExtActivity(Optional<Expression> expression, String inputVariable, String outputVariable,
+                                   List<Source> sources, List<Target> targets, List<InputBinding> inputBindings,
+                                   CallProcess callProcess,
+                                   Element element) implements Activity, ActivityWithSources, ActivityWithTargets {
+
+                    public ExtActivity {
+                        assert expression != null;
+                        assert sources != null;
+                        assert targets != null;
+                        assert inputBindings != null;
+                        assert callProcess != null;
+                        assert element != null;
+                    }
 
                     public record CallProcess(String subprocessName) {
 

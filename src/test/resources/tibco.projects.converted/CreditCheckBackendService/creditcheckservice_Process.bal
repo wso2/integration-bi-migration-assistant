@@ -70,15 +70,26 @@ function extActivity(map<xml> context) returns xml|error {
     <xsl:template name="LookupDatabase-input" match="/">
         <tns3:Element>
             <tns3:ssn>
+                <xsl:value-of select="$post/root/item/tns2:Request/tns2:SSN"/>
+            </tns3:ssn>
+        </tns3:Element>
+    </xsl:template>
+</xsl:stylesheet>`, context);
+    xml var2 = check xslt:transform(var1, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns2="/T1535753828744Converted/JsonSchema" xmlns:tns3="http://www.example.com/namespaces/tns/1535845694732" version="2.0">
+    <xsl:param name="post"/>
+    <xsl:template name="LookupDatabase-input" match="/">
+        <tns3:Element>
+            <tns3:ssn>
                 <xsl:value-of select="$post/root/item/tns2:SSN"/>
             </tns3:ssn>
         </tns3:Element>
     </xsl:template>
 </xsl:stylesheet>`, context);
-    xml var2 = transform(var1);
-    xml var3 = check toXML(check trap start_creditcheckservice_LookupDatabase(convertToElement(var2)));
-    addToContext(context, "LookupDatabase", var3);
-    return var3;
+    xml var3 = transform(var2);
+    xml var4 = check toXML(check trap start_creditcheckservice_LookupDatabase(convertToElement(var3)));
+    addToContext(context, "LookupDatabase", var4);
+    return var4;
 }
 
 function faultHandler(map<xml> context) returns xml|error {

@@ -114,7 +114,7 @@ final class ActivityConverter {
     }
 
     private static @NotNull List<Statement> tryConvertActivityBody(ActivityContext cx, Activity activity) {
-        List<Statement> body = switch (activity) {
+        return switch (activity) {
             case ActivityExtension activityExtension -> convertActivityExtension(cx, activityExtension);
             case Empty ignored -> convertEmptyAction(cx);
             case ExtActivity extActivity -> convertExtActivity(cx, extActivity);
@@ -126,7 +126,6 @@ final class ActivityConverter {
             case UnhandledActivity unhandledActivity -> convertUnhandledActivity(cx, unhandledActivity);
             case Throw throwActivity -> convertThrowActivity(cx, throwActivity);
         };
-        return body;
     }
 
     private static List<Statement> convertThrowActivity(ActivityContext cx, Throw throwActivity) {
@@ -201,7 +200,8 @@ final class ActivityConverter {
                 convertInputBindings(cx, inputDecl.ref(), activityExtension.inputBindings());
         body.addAll(inputBindings);
 
-        VariableReference result = new VariableReference(inputBindings.getLast().varName());
+        VariableReference result = inputBindings.isEmpty() ? inputDecl.ref() :
+                new VariableReference(inputBindings.getLast().varName());
 
         ActivityExtension.Config config = activityExtension.config();
         ActivityExtensionConfigConversion conversion = switch (config) {
@@ -407,10 +407,14 @@ final class ActivityConverter {
     }
 
     private static List<Statement> convertReceiveEvent(ActivityContext cx, ReceiveEvent receiveEvent) {
-        return List.of(
-                addToContext(cx, getFromContext(cx, ConversionUtils.Constants.CONTEXT_INPUT_NAME),
-                        receiveEvent.variable()),
-                new Return<>(getFromContext(cx, ConversionUtils.Constants.CONTEXT_INPUT_NAME)));
+        if (receiveEvent.variable().isPresent()) {
+            var variable = receiveEvent.variable().get();
+            return List.of(
+                    addToContext(cx, getFromContext(cx, ConversionUtils.Constants.CONTEXT_INPUT_NAME), variable),
+                    new Return<>(getFromContext(cx, ConversionUtils.Constants.CONTEXT_INPUT_NAME)));
+        } else {
+            return List.of(new Return<>(defaultEmptyXml()));
+        }
     }
 
     private static List<Statement> convertInvoke(ActivityContext cx, Invoke invoke) {
@@ -426,11 +430,22 @@ final class ActivityConverter {
         String path = binding.path().basePath();
         VariableReference client = cx.getHttpClient(path);
 
-        VarDeclStatment callResult = new VarDeclStatment(JSON,
-                cx.getAnnonVarName(),
-                new Check(
-                        new RemoteMethodCallAction(client, binding.operation().method().method,
-                                List.of(new StringConstant(binding.path().path()), input))));
+        VarDeclStatment callResult;
+        StringConstant bindingPath = new StringConstant(binding.path().path());
+        if (binding.operation().method().method.equalsIgnoreCase("get")) {
+            // TODO: properly set query path
+            callResult = new VarDeclStatment(JSON,
+                    cx.getAnnonVarName(),
+                    new Check(
+                            new RemoteMethodCallAction(client, binding.operation().method().method,
+                                    List.of(bindingPath))));
+        } else {
+            callResult = new VarDeclStatment(JSON,
+                    cx.getAnnonVarName(),
+                    new Check(
+                            new RemoteMethodCallAction(client, binding.operation().method().method,
+                                    List.of(bindingPath, input))));
+        }
         body.add(callResult);
 
         FunctionCall jsonToXMLFunctionCall = new FunctionCall(cx.getJsonToXMLFunction(), List.of(callResult.ref()));
@@ -448,6 +463,16 @@ final class ActivityConverter {
         VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
         body.add(inputDecl);
         VariableReference result = inputDecl.ref();
+        if (!extActivity.expression().isEmpty()) {
+            Activity.Expression expression = extActivity.expression().get();
+            if (!(expression instanceof Activity.Expression.XSLT xslt)) {
+                throw new IllegalArgumentException("Only XSLT supported as Ext activity expression");
+            }
+            VarDeclStatment transformDecl =
+                    new VarDeclStatment(XML, cx.getAnnonVarName(), xsltTransform(cx, result, xslt));
+            body.add(transformDecl);
+            result = transformDecl.ref();
+        }
         if (!extActivity.inputBindings().isEmpty()) {
             List<VarDeclStatment> inputBindings = convertInputBindings(cx, result, extActivity.inputBindings());
             body.addAll(inputBindings);
@@ -475,10 +500,18 @@ final class ActivityConverter {
     private static @NotNull VarDeclStatment callProcessUsingClient(ActivityContext cx,
                                                                    ProcessContext.DefaultClientDetails client,
                                                                    VariableReference result) {
-        return new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new Check(
-                        new RemoteMethodCallAction(client.ref(),
-                                client.method, List.of(new StringConstant(""), result))));
+        if (client.method.equalsIgnoreCase("get")) {
+            // TODO: properly set path parameters
+            return new VarDeclStatment(XML, cx.getAnnonVarName(),
+                    new Check(
+                            new RemoteMethodCallAction(client.ref(),
+                                    client.method, List.of(new StringConstant("")))));
+        } else {
+            return new VarDeclStatment(XML, cx.getAnnonVarName(),
+                    new Check(
+                            new RemoteMethodCallAction(client.ref(),
+                                    client.method, List.of(new StringConstant(""), result))));
+        }
     }
 
     private static @NotNull VarDeclStatment callProcessDirectlyUsingStartFunction(

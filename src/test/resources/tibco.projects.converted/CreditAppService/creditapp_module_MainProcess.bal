@@ -35,6 +35,8 @@ function errorHandler_creditapp_module_MainProcess(error err, map<xml> cx) retur
 function extActivity(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0"><xsl:param name="post"/><xsl:template name="FICOScore-input" match="/"><tns:GiveNewSchemaNameHere><xsl:if test="$post/root/item/tns:GiveNewSchemaNameHere/tns:DOB"><tns:DOB><xsl:value-of select="$post/root/item/tns:GiveNewSchemaNameHere/tns:DOB"/></tns:DOB></xsl:if><xsl:if test="$post/root/item/tns:GiveNewSchemaNameHere/tns:FirstName"><tns:FirstName><xsl:value-of select="$post/root/item/tns:GiveNewSchemaNameHere/tns:FirstName"/></tns:FirstName></xsl:if><xsl:if test="$post/root/item/tns:GiveNewSchemaNameHere/tns:LastName"><tns:LastName><xsl:value-of select="$post/root/item/tns:GiveNewSchemaNameHere/tns:LastName"/></tns:LastName></xsl:if><xsl:if test="$post/root/item/tns:GiveNewSchemaNameHere/tns:SSN"><tns:SSN><xsl:value-of select="$post/root/item/tns:GiveNewSchemaNameHere/tns:SSN"/></tns:SSN></xsl:if></tns:GiveNewSchemaNameHere></xsl:template></xsl:stylesheet>`, context);
+    xml var2 = check xslt:transform(var1, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
     <xsl:param name="post"/>
     <xsl:template name="FICOScore-input" match="/">
@@ -62,15 +64,17 @@ function extActivity(map<xml> context) returns xml|error {
         </tns:GiveNewSchemaNameHere>
     </xsl:template>
 </xsl:stylesheet>`, context);
-    xml var2 = transform(var1);
-    xml var3 = check creditapp_module_EquifaxScore_client->post("", var2);
-    addToContext(context, "EquifaxScore", var3);
-    return var3;
+    xml var3 = transform(var2);
+    xml var4 = check creditapp_module_EquifaxScore_client->post("", var3);
+    addToContext(context, "EquifaxScore", var4);
+    return var4;
 }
 
 function extActivity_11(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://xmlns.example.com/Creditscore/parameters" xmlns:tns="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0"><xsl:param name="post"/><xsl:template name="ExperianScore-input" match="/"><tns:GiveNewSchemaNameHere><xsl:if test="$post/root/item/tns:GiveNewSchemaNameHere/tns:DOB"><tns:DOB><xsl:value-of select="$post/root/item/tns:GiveNewSchemaNameHere/tns:DOB"/></tns:DOB></xsl:if><xsl:if test="$post/root/item/tns:GiveNewSchemaNameHere/tns:FirstName"><tns:FirstName><xsl:value-of select="$post/root/item/tns:GiveNewSchemaNameHere/tns:FirstName"/></tns:FirstName></xsl:if><xsl:if test="$post/root/item/tns:GiveNewSchemaNameHere/tns:LastName"><tns:LastName><xsl:value-of select="$post/root/item/tns:GiveNewSchemaNameHere/tns:LastName"/></tns:LastName></xsl:if><xsl:if test="$post/root/item/tns:GiveNewSchemaNameHere/tns:SSN"><tns:SSN><xsl:value-of select="$post/root/item/tns:GiveNewSchemaNameHere/tns:SSN"/></tns:SSN></xsl:if></tns:GiveNewSchemaNameHere></xsl:template></xsl:stylesheet>`, context);
+    xml var2 = check xslt:transform(var1, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://xmlns.example.com/Creditscore/parameters" xmlns:tns="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
     <xsl:param name="post"/>
     <xsl:template name="ExperianScore-input" match="/">
@@ -98,10 +102,10 @@ function extActivity_11(map<xml> context) returns xml|error {
         </tns:GiveNewSchemaNameHere>
     </xsl:template>
 </xsl:stylesheet>`, context);
-    xml var2 = transform(var1);
-    xml var3 = check creditapp_module_ExperianScore_client->post("", var2);
-    addToContext(context, "ExperianScore", var3);
-    return var3;
+    xml var3 = transform(var2);
+    xml var4 = check creditapp_module_ExperianScore_client->post("", var3);
+    addToContext(context, "ExperianScore", var4);
+    return var4;
 }
 
 function pick(map<xml> context) returns xml|error {
