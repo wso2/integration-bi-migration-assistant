@@ -64,14 +64,14 @@ public class ModelAnalyser {
         Map<TibcoModel.Process, Map<String, String>> variableTypes = Map.of(process, cx.variableTypes);
         return new AnalysisResult(cx.destinationMap, cx.sourceMap, startActivities, faultHandlerStartActivities,
                 activityData, partnerLinkBindings, cx.queryIndex, inputTypeNames,
-                outputTypeName, variableTypes, cx.dependencyGraph);
+                outputTypeName, variableTypes, cx.dependencyGraph, cx.controlFlowFunctions);
     }
 
     private static void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
         analyzeVariables(cx, process.variables());
         analysePartnerLinks(cx, process.partnerLinks());
         analyseTypes(cx, process.types());
-        process.scope().ifPresent(s -> analyseScope(cx, s));
+        analyseScope(cx, process.scope());
         process.processInterface().ifPresent(i -> analyzeProcessInterface(cx, i));
     }
 
@@ -163,6 +163,7 @@ public class ModelAnalyser {
     }
 
     private static void analyseScope(ProcessAnalysisContext cx, TibcoModel.Scope scope) {
+        cx.allocateControlFlowFunctionsIfNeeded(scope);
         scope.flows().forEach(flow -> analyseFlow(cx, flow));
         scope.faultHandlers().forEach(faultHandler -> analyseActivity(cx, faultHandler));
     }
@@ -261,6 +262,8 @@ public class ModelAnalyser {
         private final Set<String> inputTypeNames = new HashSet<>();
         private String outputTypeName;
         private final Map<String, String> variableTypes = new HashMap<>();
+        private final Map<TibcoModel.Scope, AnalysisResult.ControlFlowFunctions> controlFlowFunctions = new HashMap<>();
+        private static final Set<String> controlFlowFunctionNames = new HashSet<>();
 
         public void addEndActivity(TibcoModel.Scope.Flow.Activity activity) {
             endActivities.add(activity);
@@ -345,6 +348,19 @@ public class ModelAnalyser {
 
         public void setOutputTypeName(String outputTypeName) {
             this.outputTypeName = outputTypeName;
+        }
+
+        public void allocateControlFlowFunctionsIfNeeded(TibcoModel.Scope scope) {
+            if (controlFlowFunctions.containsKey(scope)) {
+                return;
+            }
+            String name = scope.name();
+            if (name.isEmpty()) {
+                name = "anonScope";
+            }
+            name = ConversionUtils.getSanitizedUniqueName(name, controlFlowFunctionNames);
+            controlFlowFunctionNames.add(name);
+            controlFlowFunctions.put(scope, new AnalysisResult.ControlFlowFunctions(name + "ScopeFn", name + "ActivityRunner", name + "FaultHandler"));
         }
 
         public String getOutputTypeName() {

@@ -21,17 +21,6 @@ service /CreditDetails on creditapp_module_MainProcess_listener {
     }
 }
 
-function activityRunner_creditapp_module_MainProcess(map<xml> cx) returns xml|error {
-    xml result0 = check extActivity_11(cx);
-    xml result1 = check extActivity(cx);
-    xml result2 = check reply(cx);
-    return result2;
-}
-
-function errorHandler_creditapp_module_MainProcess(error err, map<xml> cx) returns xml {
-    panic err;
-}
-
 function extActivity(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
@@ -112,16 +101,6 @@ function pick(map<xml> context) returns xml|error {
     return xml `<root></root>`;
 }
 
-function process_creditapp_module_MainProcess(xml input, map<xml> params) returns xml {
-    map<xml> context = {...params};
-    addToContext(context, "$input", input);
-    xml|error result = activityRunner_creditapp_module_MainProcess(context);
-    if result is error {
-        return errorHandler_creditapp_module_MainProcess(result, context);
-    }
-    return result;
-}
-
 function reply(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
@@ -173,9 +152,30 @@ function reply(map<xml> context) returns xml|error {
     return var3;
 }
 
+function scope_2ActivityRunner(map<xml> cx) returns xml|error {
+    xml result0 = check extActivity_11(cx);
+    xml result1 = check extActivity(cx);
+    xml result2 = check reply(cx);
+    return result2;
+}
+
+function scope_2FaultHandler(error err, map<xml> cx) returns xml {
+    panic err;
+}
+
+function scope_2ScopeFn(xml input, map<xml> params) returns xml {
+    map<xml> context = {...params};
+    addToContext(context, "$input", input);
+    xml|error result = scope_2ActivityRunner(context);
+    if result is error {
+        return scope_2FaultHandler(result, context);
+    }
+    return result;
+}
+
 function start_creditapp_module_MainProcess(GiveNewSchemaNameHere input, map<xml> params = {}) returns CreditScoreSuccessSchema {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = process_creditapp_module_MainProcess(inputXML, params);
+    xml xmlResult = scope_2ScopeFn(inputXML, params);
     CreditScoreSuccessSchema result = convertToCreditScoreSuccessSchema(xmlResult);
     return result;
 }

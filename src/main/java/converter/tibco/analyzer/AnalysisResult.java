@@ -42,6 +42,7 @@ public final class AnalysisResult {
     private final Map<TibcoModel.Process, String> outputTypeName;
     private final Map<TibcoModel.Process, Map<String, String>> variableTypes;
     private final Graph<GraphNode> dependencyGraph;
+    private final Map<TibcoModel.Scope, ControlFlowFunctions> controlFlowFunctions;
 
     AnalysisResult(Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap,
                    Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap,
@@ -52,7 +53,7 @@ public final class AnalysisResult {
                    Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex,
                    Map<TibcoModel.Process, Collection<String>> inputTypeNames,
                    Map<TibcoModel.Process, String> outputTypeName,
-                   Map<TibcoModel.Process, Map<String, String>> variableTypes, Graph<GraphNode> dependencyGraph) {
+                   Map<TibcoModel.Process, Map<String, String>> variableTypes, Graph<GraphNode> dependencyGraph, Map<TibcoModel.Scope, ControlFlowFunctions> controlFlowFunctions) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.startActivities = startActivities;
@@ -64,6 +65,7 @@ public final class AnalysisResult {
         this.outputTypeName = outputTypeName;
         this.variableTypes = variableTypes;
         this.dependencyGraph = dependencyGraph;
+        this.controlFlowFunctions = controlFlowFunctions;
     }
 
     public Collection<String> inputTypeName(TibcoModel.Process process) {
@@ -208,6 +210,10 @@ public final class AnalysisResult {
         return Objects.requireNonNull(partnerLinkBindings.get(partnerLinkName));
     }
 
+    public ControlFlowFunctions getControlFlowFunctions(TibcoModel.Scope scope) {
+        return Objects.requireNonNull(controlFlowFunctions.get(scope));
+    }
+
     public record LinkData(Collection<TibcoModel.Scope.Flow.Activity> sourceActivities,
                            Collection<TibcoModel.Scope.Flow.Activity> destinationActivities) {
 
@@ -228,5 +234,8 @@ public final class AnalysisResult {
         public enum Kind {
             ACTIVITY, LINK
         }
+    }
+
+    public record ControlFlowFunctions(String scopeFn, String activityRunner, String errorHandler) {
     }
 }

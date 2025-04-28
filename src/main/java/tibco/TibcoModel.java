@@ -83,7 +83,7 @@ public class TibcoModel {
     public record Process(String name, Collection<Type> types, ProcessInfo processInfo,
                           Optional<ProcessInterface> processInterface,
                           Optional<ProcessTemplateConfigurations> processTemplateConfigurations,
-                          Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Optional<Scope> scope) {
+                          Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope) {
 
         @Override
         public boolean equals(Object obj) {
@@ -99,6 +99,9 @@ public class TibcoModel {
         }
 
         public Process {
+            if (scope == null) {
+                throw new IllegalArgumentException("Scope cannot be null");
+            }
             if (name == null) {
                 throw new IllegalArgumentException("Name cannot be null");
             }
