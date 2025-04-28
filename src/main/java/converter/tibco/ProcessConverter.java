@@ -62,6 +62,8 @@ import static ballerina.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static converter.ConversionUtils.exprFrom;
+import static converter.ConversionUtils.stmtFrom;
 
 public class ProcessConverter {
 
@@ -250,7 +252,7 @@ public class ProcessConverter {
         }
         return new BallerinaModel.Function(startFuncData.name(),
                 List.of(new Parameter(inputVar.varName(), inputType),
-                        new Parameter(new TypeDesc.MapTypeDesc(XML), params.varName(), new BallerinaExpression("{}"))),
+                        new Parameter(new TypeDesc.MapTypeDesc(XML), params.varName(), exprFrom("{}"))),
                 returnType.toString(), body);
     }
 
@@ -306,7 +308,7 @@ public class ProcessConverter {
 
         List<Statement> body = new ArrayList<>();
         if (activities.isEmpty()) {
-            body.add(new Statement.BallerinaStatement(new Panic(new VariableReference("err")) + ";\n"));
+            body.add(stmtFrom(new Panic(new VariableReference("err")) + ";\n"));
         } else {
             VarDeclStatment input =
                     new VarDeclStatment(XML, "input", new XMLTemplate("<root></root>"));

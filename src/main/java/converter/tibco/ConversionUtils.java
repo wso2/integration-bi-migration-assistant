@@ -35,6 +35,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import static converter.ConversionUtils.exprFrom;
 import static converter.tibco.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 
 public final class ConversionUtils {
@@ -100,7 +101,7 @@ public final class ConversionUtils {
             }
         }
         sb.append("`");
-        Expression.BallerinaExpression templateExpr = new Expression.BallerinaExpression(sb.toString());
+        Expression.BallerinaExpression templateExpr = exprFrom(sb.toString());
         return new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE), cx.getAnnonVarName(),
                 templateExpr);
     }

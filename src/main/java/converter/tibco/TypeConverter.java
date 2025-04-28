@@ -52,6 +52,7 @@ import java.util.stream.Stream;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static converter.ConversionUtils.exprFrom;
 import static io.ballerina.xsd.core.XSDToRecord.generateNodes;
 
 class TypeConverter {
@@ -193,7 +194,7 @@ class TypeConverter {
                 new FunctionCall(cx.getTryDataBindToTypeFunction(targetType), List.of(inputValRef)));
         body.add(inputDecl);
         IfElseStatement handleError = IfElseStatement.ifStatement(new TypeCheckExpression(inputDecl.ref(), ERROR),
-                List.of(new Return<>(new BallerinaExpression("<http:InternalServerError>{}"))));
+                List.of(new Return<>(exprFrom("<http:InternalServerError>{}"))));
         body.add(handleError);
         return new ParamInitResult(inputDecl.varName(), body);
     }
@@ -243,7 +244,7 @@ class TypeConverter {
         body.add(inputXml);
 
         VarDeclStatment paramXmlDecl = new VarDeclStatment(new MapTypeDesc(XML), "paramXML",
-                new BallerinaExpression("{%s: %s}".formatted(resourceMethod, inputXml.varName())));
+                exprFrom("{%s: %s}".formatted(resourceMethod, inputXml.varName())));
         body.add(paramXmlDecl);
         return new ParamInitResult(paramXmlDecl.varName(), body);
     }
@@ -256,7 +257,7 @@ class TypeConverter {
                 new CheckPanic(new FunctionCall(toXmlFunction, new String[]{inputParamName})));
         body.add(inputValXml);
         VarDeclStatment extractedBody = new VarDeclStatment(XML, "extractedBody",
-                new BallerinaExpression("%s/*".formatted(inputValXml.varName())));
+                exprFrom("%s/*".formatted(inputValXml.varName())));
         body.add(extractedBody);
 
         // TODO: how to handle arrays

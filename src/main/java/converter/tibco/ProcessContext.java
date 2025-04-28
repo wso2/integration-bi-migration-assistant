@@ -39,6 +39,7 @@ import static ballerina.BallerinaModel.Expression;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.UnionTypeDesc;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static converter.ConversionUtils.exprFrom;
 
 public class ProcessContext implements ContextWithFile {
 
@@ -66,8 +67,7 @@ public class ProcessContext implements ContextWithFile {
     }
 
     VarDeclStatment initContextVar(String paramsVarName) {
-        return new VarDeclStatment(contextType(), "context",
-                new BallerinaModel.Expression.BallerinaExpression("{...%s}".formatted(paramsVarName)));
+        return new VarDeclStatment(contextType(), "context", exprFrom("{...%s}".formatted(paramsVarName)));
     }
 
     void addResourceVariable(TibcoModel.Variable.PropertyVariable propertyVariable) {
@@ -114,8 +114,7 @@ public class ProcessContext implements ContextWithFile {
         BallerinaModel.TypeDesc td = getTypeByName(type);
         assert td == BallerinaModel.TypeDesc.BuiltinType.STRING;
         String expr = "\"" + valueRepr + "\"";
-        constants.put(name,
-                BallerinaModel.ModuleVar.constant(name, td, new BallerinaModel.Expression.BallerinaExpression(expr)));
+        constants.put(name, BallerinaModel.ModuleVar.constant(name, td, exprFrom(expr)));
         return name;
     }
 
@@ -269,8 +268,7 @@ public class ProcessContext implements ContextWithFile {
         String port = defaultListener.port();
         BallerinaModel.Resource defaultResource = defaultService.resources().getFirst();
         String path = ConversionUtils.sanitizePath(defaultService.basePath() + "/" + defaultResource.path());
-        Expression initExpr =
-                new Expression.BallerinaExpression("checkpanic new(\"localhost:%s/%s\")".formatted(port, path));
+        Expression initExpr = exprFrom("checkpanic new(\"localhost:%s/%s\")".formatted(port, path));
         processClient = new DefaultClientDetails(new BallerinaModel.ModuleVar(
                 ConversionUtils.sanitizes(process.name()) + "_client", "http:Client", Optional.of(initExpr),
                 false, false), defaultResource.resourceMethodName());

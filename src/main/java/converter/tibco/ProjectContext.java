@@ -46,6 +46,7 @@ import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static converter.ConversionUtils.exprFrom;
 import static converter.tibco.Library.HTTP;
 import static converter.tibco.Library.IO;
 import static converter.tibco.Library.JDBC;
@@ -63,7 +64,6 @@ public class ProjectContext {
     private final Set<Intrinsics> utilityIntrinsics = new HashSet<>();
     private final Set<ComptimeFunction> utilityCompTimeFunctions = new HashSet<>();
 
-    private final Map<String, BallerinaModel.Expression.VariableReference> dbClients = new HashMap<>();
     private String toXMLFunction = null;
     private String jsonToXMLFunction = null;
     private String logFunction = null;
@@ -342,7 +342,7 @@ public class ProjectContext {
         importLibraryIfNeededToUtility(HTTP);
         String clientName = "httpClient" + httpClients.size();
         BallerinaModel.ModuleVar client = new BallerinaModel.ModuleVar(clientName, "http:Client",
-                new BallerinaModel.Expression.BallerinaExpression("checkpanic new (\"%s\")".formatted(path)));
+                exprFrom("checkpanic new (\"%s\")".formatted(path)));
         utilityVars.put(clientName, client);
         var ref = new BallerinaModel.Expression.VariableReference(clientName);
         httpClients.put(path, ref);

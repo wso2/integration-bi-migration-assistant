@@ -74,6 +74,8 @@ import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static converter.ConversionUtils.exprFrom;
+import static converter.ConversionUtils.stmtFrom;
 
 final class ActivityConverter {
 
@@ -142,9 +144,9 @@ final class ActivityConverter {
         }
         // TODO: set the body correctly using result
         VarDeclStatment errorValue = new VarDeclStatment(ERROR, cx.getAnnonVarName(),
-                new BallerinaExpression("error(\"TODO: create error value\")"));
+                exprFrom("error(\"TODO: create error value\")"));
         body.add(errorValue);
-        body.add(new BallerinaStatement(String.format("panic %s;", errorValue.varName())));
+        body.add(stmtFrom(String.format("panic %s;", errorValue.varName())));
 
         return body;
     }
@@ -327,7 +329,7 @@ final class ActivityConverter {
         for (ActivityExtension.Config.SQL.SQLParameter each : sql.parameters()) {
             String name = each.name();
             VarDeclStatment varDecl = new VarDeclStatment(STRING, name,
-                    new BallerinaExpression("(%s/<%s>/*).toString().trim()".formatted(dataValue.varName(), name)));
+                    exprFrom("(%s/<%s>/*).toString().trim()".formatted(dataValue.varName(), name)));
             body.add(varDecl);
             vars.put(name, varDecl.ref());
         }
@@ -350,7 +352,7 @@ final class ActivityConverter {
         String toXmlFn = cx.getToXmlFunction();
         String xmlVar = cx.getAnnonVarName();
 
-        body.add(new BallerinaStatement("""
+        body.add(stmtFrom("""
                 check from var each in %1$s do {
                     xml %2$s = check %3$s(each);
                     %4$s = %5$s + %2$s;
@@ -368,21 +370,21 @@ final class ActivityConverter {
         List<Statement> body = new ArrayList<>();
         VariableReference client = cx.client(httpSend.httpClientResource());
         VarDeclStatment method = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                new BallerinaExpression("(%s/**/<Method>[0]).data()".formatted(configVar.varName())));
+                exprFrom("(%s/**/<Method>[0]).data()".formatted(configVar.varName())));
         body.add(method);
 
         VarDeclStatment requestURI = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                new BallerinaExpression("(%s/**/<RequestURI>[0]).data()".formatted(configVar.varName())));
+                exprFrom("(%s/**/<RequestURI>[0]).data()".formatted(configVar.varName())));
         body.add(requestURI);
         // TODO: how to get map<json> from xml?
         //   VarDeclStatment headers = new VarDeclStatment(JSON, cx.getAnnonVarName(),
         //           new BallerinaExpression("%s/**/<Headers>[0]".formatted(configVar.varName())));
         //   body.add(headers);
 
-        VarDeclStatment result = new VarDeclStatment(JSON, cx.getAnnonVarName(), new BallerinaExpression("()"));
+        VarDeclStatment result = new VarDeclStatment(JSON, cx.getAnnonVarName(), exprFrom("()"));
         body.add(result);
 
-        body.add(new BallerinaStatement("""
+        body.add(stmtFrom("""
                 match %1$s {
                     "GET" => {
                         %2$s = check %3$s->get(%4$s);
