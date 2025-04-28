@@ -123,7 +123,22 @@ final class ActivityConverter {
             case Reply reply -> convertReply(cx, reply);
             case UnhandledActivity unhandledActivity -> convertUnhandledActivity(cx, unhandledActivity);
             case Throw throwActivity -> convertThrowActivity(cx, throwActivity);
+            case Activity.Assign assign -> convertAssign(cx, assign);
+            case Activity.Foreach foreach -> convertForeach(cx, foreach);
+            case Activity.NestedScope nestedScope -> convertNestedScope(cx, nestedScope);
         };
+    }
+
+    private static @NotNull List<Statement> convertNestedScope(ActivityContext cx, Activity.NestedScope nestedScope) {
+        return convertActivityWithScope(cx, nestedScope);
+    }
+
+    private static @NotNull List<Statement> convertForeach(ActivityContext cx, Activity.Foreach foreach) {
+        return convertEmptyAction(cx);
+    }
+
+    private static @NotNull List<Statement> convertAssign(ActivityContext cx, Activity.Assign assign) {
+        return convertEmptyAction(cx);
     }
 
     private static List<Statement> convertThrowActivity(ActivityContext cx, Throw throwActivity) {

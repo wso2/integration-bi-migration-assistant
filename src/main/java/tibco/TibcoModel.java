@@ -345,11 +345,18 @@ public class TibcoModel {
         }
     }
 
-    public record Scope(String name, Collection<Flow> flows, Collection<FaultHandler> faultHandlers) {
+    public record Scope(String name, Collection<Flow> flows, Collection<Sequence> sequence,
+                        Collection<FaultHandler> faultHandlers) {
 
         public sealed interface FaultHandler extends Flow.Activity {
             Scope scope();
         }
+
+
+        public record Sequence(String name, List<Flow.Activity> activities) {
+
+        }
+
 
         public record Flow(String name, Collection<Link> links, List<Activity> activities) {
 
@@ -358,6 +365,7 @@ public class TibcoModel {
                 assert links != null;
                 assert activities != null;
             }
+
 
             public record Link(String name) {
 
@@ -397,6 +405,16 @@ public class TibcoModel {
                     }
                 }
 
+                record NestedScope(String name, List<Source> sources, Collection<Target> targets,
+                                   Collection<Sequence> sequences, Collection<Flow> flows,
+                                   Collection<FaultHandler> faultHandlers,
+                                   Element element) implements Activity, ActivityWithSources, ActivityWithTargets, ActivityWithScope {
+                    public Scope scope() {
+                        return new Scope(name, flows, sequences, faultHandlers);
+                    }
+
+                }
+
                 record CatchAll(Scope scope,
                                 Element element) implements FaultHandler, ActivityWithScope, StartActivity {
 
@@ -406,6 +424,13 @@ public class TibcoModel {
                                          Collection<Target> targets,
                                          Element element) implements Activity, ActivityWithSources,
                         ActivityWithTargets {
+
+                }
+
+                record Assign(Element element) implements Activity {
+                }
+
+                record Foreach(Element element) implements Activity {
 
                 }
 
