@@ -33,39 +33,38 @@ public final class AnalysisResult {
 
     private final Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap;
     private final Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap;
-    private final Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> startActivities;
-    private final Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> faultHandlerStartActivities;
     private final Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData;
     private final Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings;
     private final Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex;
     private final Map<TibcoModel.Process, Collection<String>> inputTypeNames;
     private final Map<TibcoModel.Process, String> outputTypeName;
     private final Map<TibcoModel.Process, Map<String, String>> variableTypes;
-    private final Graph<GraphNode> dependencyGraph;
+    private final Map<TibcoModel.Scope, Graph<GraphNode>> dependencyGraphs;
     private final Map<TibcoModel.Scope, ControlFlowFunctions> controlFlowFunctions;
+    private final Map<TibcoModel.Process, Collection<TibcoModel.Scope>> scopes;
 
     AnalysisResult(Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap,
                    Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap,
-                   Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> startActivities,
-                   Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> faultHandlerStartActivities,
                    Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData,
                    Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings,
                    Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex,
                    Map<TibcoModel.Process, Collection<String>> inputTypeNames,
                    Map<TibcoModel.Process, String> outputTypeName,
-                   Map<TibcoModel.Process, Map<String, String>> variableTypes, Graph<GraphNode> dependencyGraph, Map<TibcoModel.Scope, ControlFlowFunctions> controlFlowFunctions) {
+                   Map<TibcoModel.Process, Map<String, String>> variableTypes,
+                   Map<TibcoModel.Scope, Graph<GraphNode>> dependencyGraphs,
+                   Map<TibcoModel.Scope, ControlFlowFunctions> controlFlowFunctions,
+                   Map<TibcoModel.Process, Collection<TibcoModel.Scope>> scopes) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
-        this.startActivities = startActivities;
-        this.faultHandlerStartActivities = faultHandlerStartActivities;
         this.activityData = activityData;
         this.partnerLinkBindings = partnerLinkBindings;
         this.queryIndex = queryIndex;
         this.inputTypeNames = inputTypeNames;
         this.outputTypeName = outputTypeName;
         this.variableTypes = variableTypes;
-        this.dependencyGraph = dependencyGraph;
+        this.dependencyGraphs = dependencyGraphs;
         this.controlFlowFunctions = controlFlowFunctions;
+        this.scopes = scopes;
     }
 
     public Collection<String> inputTypeName(TibcoModel.Process process) {
@@ -74,14 +73,6 @@ public final class AnalysisResult {
 
     public String outputTypeName(TibcoModel.Process process) {
         return outputTypeName.get(process);
-    }
-
-    public Collection<TibcoModel.Scope.Flow.Activity> startActivities(TibcoModel.Process process) {
-        return startActivities.get(process);
-    }
-
-    public Collection<TibcoModel.Scope.Flow.Activity> faultHandlerStartActivities(TibcoModel.Process process) {
-        return faultHandlerStartActivities.get(process);
     }
 
     public Collection<TibcoModel.Scope.Flow.Activity> destinations(TibcoModel.Scope.Flow.Link link) {
@@ -174,36 +165,18 @@ public final class AnalysisResult {
                 .flatMap(Optional::stream);
     }
 
-    public Stream<TibcoModel.Scope.Flow.Activity> sortedActivities(TibcoModel.Process process) {
-        return sortedActivitiesFromRoots(startActivityNodes(process));
-    }
-
-    public Stream<TibcoModel.Scope.Flow.Activity> sortedFaultHandlerActivities(TibcoModel.Process process) {
-        return sortedActivitiesFromRoots(faultHandlerStartActivityNodes(process));
-    }
-
-    public Stream<TibcoModel.Scope.Flow.Activity> sortedActivitiesFromRoots(Collection<GraphNode> roots) {
-        return dependencyGraph.topologicalSortWithRoots(roots).stream()
+    public Stream<TibcoModel.Scope.Flow.Activity> sortedActivities(TibcoModel.Scope scope) {
+        Graph<GraphNode> dependencyGraph = dependencyGraphs.get(scope);
+        if (dependencyGraph == null) {
+            throw new IllegalArgumentException("No dependency graph found for scope: " + scope);
+        }
+        return dependencyGraph.topologicalSort().stream()
                 .filter(node -> node.kid == GraphNode.Kind.ACTIVITY)
                 .map(node -> (TibcoModel.Scope.Flow.Activity) node.data);
     }
 
-    private Collection<GraphNode> faultHandlerStartActivityNodes(TibcoModel.Process process) {
-        return graphNodes(faultHandlerStartActivities(process).stream());
-    }
-
-    private Collection<GraphNode> startActivityNodes(TibcoModel.Process process) {
-        return graphNodes(startActivities(process).stream());
-    }
-
-    private Collection<GraphNode> graphNodes(Stream<TibcoModel.Scope.Flow.Activity> activities) {
-        record Data(TibcoModel.Scope.Flow.Activity activity, ActivityData activityData) {
-
-        }
-        return activities
-                .map(activity -> new Data(activity, from(activity)))
-                .map(data -> new GraphNode(data.activityData.functionName, GraphNode.Kind.ACTIVITY, data.activity))
-                .toList();
+    public Collection<TibcoModel.Scope> scopes(TibcoModel.Process process) {
+        return Objects.requireNonNull(scopes.get(process));
     }
 
     public TibcoModel.PartnerLink.RestPartnerLink.Binding getBinding(String partnerLinkName) {

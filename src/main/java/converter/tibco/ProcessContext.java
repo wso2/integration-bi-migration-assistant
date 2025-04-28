@@ -55,6 +55,7 @@ public class ProcessContext implements ContextWithFile {
     private final Map<String, String> propertyVariableToResourceMap = new HashMap<>();
 
     private DefaultClientDetails processClient;
+    final Set<TibcoModel.Scope> handledScopes = new HashSet<>();
 
     ProcessContext(ProjectContext projectContext, TibcoModel.Process process) {
         this.projectContext = projectContext;
