@@ -48,6 +48,10 @@ function activityExtension_5(map<xml> context) returns xml|error {
     return var1;
 }
 
+function catchAll(map<xml> context) returns xml|error {
+    return scope2ScopeFn(context);
+}
+
 function extActivity(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
@@ -76,10 +80,6 @@ function extActivity(map<xml> context) returns xml|error {
     xml var4 = check toXML(check trap start_creditcheckservice_LookupDatabase(convertToElement(var3)));
     addToContext(context, "LookupDatabase", var4);
     return var4;
-}
-
-function faultHandler(map<xml> context) returns xml|error {
-    return xml `<root></root>`;
 }
 
 function pick(map<xml> context) returns xml|error {
@@ -136,23 +136,22 @@ function reply_6(map<xml> context) returns xml|error {
 }
 
 function scope1_6ActivityRunner(map<xml> cx) returns xml|error {
-    xml result0 = check extActivity(cx);
-    xml result1 = check activityExtension(cx);
-    xml result2 = check reply(cx);
-    return result2;
+    xml result0 = check catchAll(cx);
+    xml result1 = check extActivity(cx);
+    xml result2 = check activityExtension(cx);
+    xml result3 = check reply(cx);
+    return result3;
 }
 
 function scope1_6FaultHandler(error err, map<xml> cx) returns xml {
-    xml input = xml `<root></root>`;
-    xml result0 = checkpanic activityExtension_5(cx);
-    xml result1 = checkpanic reply_6(cx);
-    return result1;
+    xml result0 = checkpanic catchAll(cx);
+    return result0;
 }
 
 function scope1_6ScopeFn(map<xml> cx) returns xml {
     xml|error result = scope1_6ActivityRunner(cx);
     if result is error {
-        return scope_5FaultHandler(result, cx);
+        return scope1_6FaultHandler(result, cx);
     }
     return result;
 }
@@ -170,7 +169,7 @@ function scope2FaultHandler(error err, map<xml> cx) returns xml {
 function scope2ScopeFn(map<xml> cx) returns xml {
     xml|error result = scope2ActivityRunner(cx);
     if result is error {
-        return scope_5FaultHandler(result, cx);
+        return scope2FaultHandler(result, cx);
     }
     return result;
 }

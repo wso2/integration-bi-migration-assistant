@@ -166,7 +166,7 @@ function scope1FaultHandler(error err, map<xml> cx) returns xml {
 function scope1ScopeFn(map<xml> cx) returns xml {
     xml|error result = scope1ActivityRunner(cx);
     if result is error {
-        return scope_2FaultHandler(result, cx);
+        return scope1FaultHandler(result, cx);
     }
     return result;
 }

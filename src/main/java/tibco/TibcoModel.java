@@ -397,7 +397,8 @@ public class TibcoModel {
                     }
                 }
 
-                record CatchAll(Scope scope, Element element) implements FaultHandler, ActivityWithScope {
+                record CatchAll(Scope scope,
+                                Element element) implements FaultHandler, ActivityWithScope, StartActivity {
 
                 }
 

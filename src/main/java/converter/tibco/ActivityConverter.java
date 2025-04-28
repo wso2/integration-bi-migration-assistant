@@ -149,7 +149,12 @@ final class ActivityConverter {
     }
 
     private static List<Statement> convertCatchAll(ActivityContext cx, CatchAll catchAll) {
-        return convertEmptyAction(cx);
+        return convertActivityWithScope(cx, catchAll);
+    }
+
+    private static @NotNull List<Statement> convertActivityWithScope(ActivityContext cx, Activity.ActivityWithScope activityWithScope) {
+        String scopeFn = cx.processContext.analysisResult.getControlFlowFunctions(activityWithScope.scope()).scopeFn();
+        return List.of(new Return<>(new FunctionCall(scopeFn, List.of(cx.contextVarRef()))));
     }
 
     private static List<Statement> convertUnhandledActivity(ActivityContext cx, UnhandledActivity unhandledActivity) {
@@ -180,8 +185,7 @@ final class ActivityConverter {
     }
 
     private static List<Statement> convertPickAction(ActivityContext cx, Pick pick) {
-        String scopeFn = cx.processContext.analysisResult.getControlFlowFunctions(pick.scope()).scopeFn();
-        return List.of(new Return<>(new FunctionCall(scopeFn, List.of(cx.contextVarRef()))));
+        return convertActivityWithScope(cx, pick);
     }
 
     private static List<Statement> convertEmptyAction(ActivityContext cx) {

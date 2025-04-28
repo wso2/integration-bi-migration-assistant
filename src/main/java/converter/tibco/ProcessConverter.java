@@ -271,7 +271,7 @@ public class ProcessConverter {
         VariableReference input = new VariableReference(inputVarName);
         body.add(new CallStatement(new FunctionCall(addToContextFn,
                 List.of(cx.contextVarRef(), new StringConstant(ConversionUtils.Constants.CONTEXT_INPUT_NAME), input))));
-        generateScopeFnBody(cx, controlFlowFunctions, context.ref(), body);
+        generateScopeFnBody(controlFlowFunctions, context.ref(), body);
         return new BallerinaModel.Function(name,
                 List.of(new Parameter(inputVarName, XML),
                         new Parameter(paramsVarName, new TypeDesc.MapTypeDesc(XML))), XML,
@@ -295,26 +295,25 @@ public class ProcessConverter {
         String name = controlFlowFunctions.scopeFn();
         List<Statement> body = new ArrayList<>();
         Parameter parameter = new Parameter("cx", new TypeDesc.MapTypeDesc(XML));
-        generateScopeFnBody(cx, controlFlowFunctions, new VariableReference(parameter.name()), body);
+        generateScopeFnBody(controlFlowFunctions, new VariableReference(parameter.name()), body);
         return new BallerinaModel.Function(name, List.of(parameter), XML, body);
     }
 
-    private static void generateScopeFnBody(ProcessContext cx, AnalysisResult.ControlFlowFunctions controlFlowFunctions, VariableReference context, List<Statement> body) {
+    private static void generateScopeFnBody(AnalysisResult.ControlFlowFunctions controlFlowFunctions, VariableReference context, List<Statement> body) {
         VarDeclStatment result = new VarDeclStatment(TypeDesc.UnionTypeDesc.of(XML, ERROR), "result",
                 new FunctionCall(controlFlowFunctions.activityRunner(), List.of(context)));
         body.add(result);
-        handleErrorResult(cx, result, context, body);
+        handleErrorResult(result, context, controlFlowFunctions.errorHandler(), body);
         body.add(new Return<>(result.ref()));
     }
 
-    private static void handleErrorResult(ProcessContext cx, VarDeclStatment result, VariableReference context,
-                                          List<Statement> body) {
+    private static void handleErrorResult(VarDeclStatment result, VariableReference context,
+                                          String errorHandlerFn, List<Statement> body) {
         TypeCheckExpression typeCheck = new TypeCheckExpression(result.ref(), ERROR);
         Statement.IfElseStatement ifElse =
                 new Statement.IfElseStatement(typeCheck,
                         List.of(new Return<>(
-                                new FunctionCall(cx.analysisResult.getControlFlowFunctions(cx.process.scope()).
-                                        errorHandler(), List.of(result.ref(), context)))),
+                                new FunctionCall(errorHandlerFn, List.of(result.ref(), context)))),
                         List.of(), List.of());
         body.add(ifElse);
     }
@@ -341,29 +340,29 @@ public class ProcessConverter {
     }
 
     private static BallerinaModel.@NotNull Function generateErrorFlowFunction(ProcessContext cx, TibcoModel.Scope scope) {
+        Parameter context = new Parameter("cx", new TypeDesc.MapTypeDesc(XML));
         AnalysisResult analysisResult = cx.analysisResult;
         Collection<TibcoModel.Scope.FaultHandler> faultHandlers = scope.faultHandlers();
         List<Statement> body = new ArrayList<>();
-        if (faultHandlers.size() > 1) {
-            // FIXME:
-            body.add(stmtFrom(new Panic(new VariableReference("err")) + ";\n"));
-        }
+        int resultCount = 0;
         if (faultHandlers.isEmpty()) {
             body.add(stmtFrom(new Panic(new VariableReference("err")) + ";\n"));
         } else {
-            TibcoModel.Scope.FaultHandler faultHandler = faultHandlers.iterator().next();
-            List<Activity> activities = analysisResult.sortedActivities(faultHandler.scope()).toList();
-            VarDeclStatment input =
-                    new VarDeclStatment(XML, "input", new XMLTemplate("<root></root>"));
-            body.add(input);
-            VariableReference result = generateActivityFlowFunctionInner(cx, activities, CheckPanic::new, body,
-                    input.ref());
-            body.add(new Return<>(result));
+            VariableReference finalResult = null;
+            for (TibcoModel.Scope.FaultHandler each : faultHandlers) {
+                AnalysisResult.ActivityData data = analysisResult.from(each);
+                VarDeclStatment result = new VarDeclStatment(XML, "result" + (resultCount++),
+                        new CheckPanic(
+                                new FunctionCall(data.functionName(), List.of(new VariableReference(context.name())))));
+                body.add(result);
+                finalResult = result.ref();
+            }
+            body.add(new Return<>(finalResult));
         }
         String errorHandlerFunction = analysisResult.getControlFlowFunctions(scope).errorHandler();
         return new BallerinaModel.Function(errorHandlerFunction,
                 List.of(new Parameter("err", ERROR),
-                        new Parameter("cx", new TypeDesc.MapTypeDesc(XML))),
+                        context),
                 XML.toString(), body);
     }
 

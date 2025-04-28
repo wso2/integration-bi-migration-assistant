@@ -187,14 +187,7 @@ public class ModelAnalyser {
         if (activity instanceof TibcoModel.Scope.Flow.Activity.StartActivity) {
             cx.addStartActivity(activity);
         }
-        boolean isFaultHandler = activity instanceof TibcoModel.Scope.FaultHandler;
-        if (isFaultHandler) {
-            cx.inFaultHandler = true;
-        }
         analyseActivityInner(cx, activity);
-        if (isFaultHandler) {
-            cx.inFaultHandler = false;
-        }
     }
 
     private static void analyseActivityInner(ProcessAnalysisContext cx, TibcoModel.Scope.Flow.Activity activity) {
@@ -229,7 +222,6 @@ public class ModelAnalyser {
 
         public int unhandledActivityCount = 0;
         public int totalActivityCount = 0;
-        public boolean inFaultHandler = false;
         public TibcoModel.Scope currentScope = null;
         // We are using order preserving sets purely for tests
         private final Collection<TibcoModel.Scope.Flow.Activity> endActivities = new LinkedHashSet<>();
@@ -288,7 +280,7 @@ public class ModelAnalyser {
                 case TibcoModel.Scope.Flow.Activity.Pick ignored -> "pick";
                 case TibcoModel.Scope.Flow.Activity.ReceiveEvent ignored -> "receiveEvent";
                 case TibcoModel.Scope.Flow.Activity.Reply ignored -> "reply";
-                case TibcoModel.Scope.Flow.Activity.CatchAll ignored -> "faultHandler";
+                case TibcoModel.Scope.Flow.Activity.CatchAll ignored -> "catchAll";
                 case TibcoModel.Scope.Flow.Activity.Throw ignored -> "throw";
                 case TibcoModel.Scope.Flow.Activity.UnhandledActivity ignored -> {
                     unhandledActivityCount++;
