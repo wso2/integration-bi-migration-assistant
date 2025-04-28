@@ -199,7 +199,7 @@ public final class XmlToTibcoModelConverter {
         if (!getTagNameWithoutNameSpace(scope).equals("scope")) {
             throw new ParserException("Expected a scope", element);
         }
-        return new TibcoModel.Scope.Flow.Activity.CatchAll(parseScope(scope));
+        return new TibcoModel.Scope.Flow.Activity.CatchAll(parseScope(scope), element);
     }
 
     private static TibcoModel.Scope.Flow parseFlow(Element flow) {
@@ -249,7 +249,7 @@ public final class XmlToTibcoModelConverter {
 
     private static TibcoModel.Scope.Flow.Activity.Throw parseThrow(Element element) {
         ActivityInputOutput result = getActivityInputOutput(element);
-        return new TibcoModel.Scope.Flow.Activity.Throw(result.inputBindings(), result.targets());
+        return new TibcoModel.Scope.Flow.Activity.Throw(result.inputBindings(), result.targets(), element);
     }
 
     private static @NotNull ActivityInputOutput getActivityInputOutput(Element element) {
@@ -288,9 +288,7 @@ public final class XmlToTibcoModelConverter {
             }
         }
 
-        return new TibcoModel.Scope.Flow.Activity.UnhandledActivity(" FIXME: " + reason,
-                ConversionUtils.elementToString(element),
-                sources, targets);
+        return new TibcoModel.Scope.Flow.Activity.UnhandledActivity(" FIXME: " + reason, sources, targets, element);
     }
 
     private static TibcoModel.Scope.Flow.Activity.Reply parseReply(Element element) {
@@ -301,19 +299,19 @@ public final class XmlToTibcoModelConverter {
         String portType = element.getAttribute("portType");
         ActivityInputOutput result = getActivityInputOutput(element);
         return new TibcoModel.Scope.Flow.Activity.Reply(name, operation, partnerLink, portType, result.inputBindings,
-                result.targets);
+                result.targets, element);
     }
 
     private static TibcoModel.Scope.Flow.Activity.Empty parseEmpty(Element element) {
         String name = element.getAttribute("name");
-        return new TibcoModel.Scope.Flow.Activity.Empty(name);
+        return new TibcoModel.Scope.Flow.Activity.Empty(name, element);
     }
 
     private static TibcoModel.Scope.Flow.Activity.Pick parsePick(Element element) {
         boolean createInstance = expectBooleanAttribute(element, "createInstance");
         TibcoModel.Scope.Flow.Activity.Pick.OnMessage onMessage =
                 parseOnMessage(getFirstChildWithTag(element, "onMessage"));
-        return new TibcoModel.Scope.Flow.Activity.Pick(createInstance, onMessage);
+        return new TibcoModel.Scope.Flow.Activity.Pick(createInstance, onMessage, element);
     }
 
     private static TibcoModel.Scope.Flow.Activity.Pick.OnMessage parseOnMessage(Element element) {
@@ -360,7 +358,7 @@ public final class XmlToTibcoModelConverter {
             }
         }
         return new TibcoModel.Scope.Flow.Activity.Invoke(inputVariable, outputVariable, operation, partnerLink,
-                inputBindings, targets, sources);
+                inputBindings, targets, sources, element);
     }
 
     private static List<? extends TibcoModel.Scope.Flow.Activity.InputBinding> parseInputBindings(Element element) {
@@ -472,7 +470,7 @@ public final class XmlToTibcoModelConverter {
             }
         }
         return new TibcoModel.Scope.Flow.Activity.ExtActivity(expression, inputVariable, outputVariable, sources,
-                inputBindings, callProcess);
+                inputBindings, callProcess, element);
     }
 
     private static TibcoModel.Scope.Flow.Activity.ExtActivity.CallProcess parseCallProcesses(Element element) {
@@ -499,7 +497,7 @@ public final class XmlToTibcoModelConverter {
         TibcoModel.Scope.Flow.Activity.ActivityExtension.Config config =
                 parseActivityExtensionConfig(getFirstChildWithTag(activity, "config"));
         return new TibcoModel.Scope.Flow.Activity.ActivityExtension(inputVariable, outputVariable, targets, sources,
-                inputBindings, config);
+                inputBindings, config, activity);
     }
 
     private static Collection<TibcoModel.Scope.Flow.Activity.Target> parseTargets(Element each) {
@@ -588,7 +586,8 @@ public final class XmlToTibcoModelConverter {
                 ElementIterable.of(getFirstChildWithTag(activity, "sources")).stream()
                         .map(XmlToTibcoModelConverter::parseSource).toList();
 
-        return new TibcoModel.Scope.Flow.Activity.ReceiveEvent(createInstance, eventTimeout, variable, sources);
+        return new TibcoModel.Scope.Flow.Activity.ReceiveEvent(createInstance, eventTimeout, variable, sources,
+                activity);
     }
 
     private static TibcoModel.Scope.Flow.Activity.Source parseSource(Element element) {

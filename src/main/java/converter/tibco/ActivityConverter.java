@@ -39,6 +39,7 @@ import converter.tibco.xslt.ReplaceDotAccessWithXPath;
 import converter.tibco.xslt.ReplaceVariableReference;
 import converter.tibco.xslt.TransformPipeline;
 import org.jetbrains.annotations.NotNull;
+import org.w3c.dom.Element;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Scope.Flow.Activity;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension;
@@ -94,6 +95,23 @@ final class ActivityConverter {
     }
 
     private static BallerinaModel.Function convertActivity(ActivityContext cx, Activity activity) {
+        List<Statement> body;
+        try {
+            body = tryConvertActivityBody(cx, activity);
+        } catch (Exception e) {
+            List<Activity.Source> sources = activity instanceof Activity.ActivityWithSources activityWithSources ?
+                    activityWithSources.sources() : List.of();
+            Collection<Activity.Target> targets = activity instanceof Activity.ActivityWithTargets activityWithTargets ?
+                    activityWithTargets.targets() : List.of();
+            UnhandledActivity unhandledActivity = new UnhandledActivity(
+                    "Failed to codegen activity due to %s".formatted(e.getMessage()),
+                    sources, targets, activity.element());
+            body = tryConvertActivityBody(cx, unhandledActivity);
+        }
+        return new BallerinaModel.Function(cx.functionName(), cx.parameters(), ActivityContext.returnType(), body);
+    }
+
+    private static @NotNull List<Statement> tryConvertActivityBody(ActivityContext cx, Activity activity) {
         List<Statement> body = switch (activity) {
             case ActivityExtension activityExtension -> convertActivityExtension(cx, activityExtension);
             case Empty ignored -> convertEmptyAction(cx);
@@ -106,7 +124,7 @@ final class ActivityConverter {
             case UnhandledActivity unhandledActivity -> convertUnhandledActivity(cx, unhandledActivity);
             case Throw throwActivity -> convertThrowActivity(cx, throwActivity);
         };
-        return new BallerinaModel.Function(cx.functionName(), cx.parameters(), ActivityContext.returnType(), body);
+        return body;
     }
 
     private static List<Statement> convertThrowActivity(ActivityContext cx, Throw throwActivity) {
@@ -137,7 +155,12 @@ final class ActivityConverter {
 
     private static List<Statement> convertUnhandledActivity(ActivityContext cx, UnhandledActivity unhandledActivity) {
         BallerinaModel.Expression inputXml = defaultEmptyXml();
-        return List.of(new Comment(unhandledActivity.reason()), new Return<>(inputXml));
+        return List.of(new Comment(unhandledActivity.reason()), elementAsComment(unhandledActivity.element()),
+                new Return<>(inputXml));
+    }
+
+    private static Comment elementAsComment(Element element) {
+        return new Comment(ConversionUtils.elementToString(element));
     }
 
     private static List<Statement> convertReply(ActivityContext cx, Reply reply) {

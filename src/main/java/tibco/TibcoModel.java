@@ -349,6 +349,8 @@ public class TibcoModel {
 
             public sealed interface Activity {
 
+                Element element();
+
                 sealed interface ActivityWithSources extends Activity {
 
                     List<Source> sources();
@@ -376,33 +378,34 @@ public class TibcoModel {
                     }
                 }
 
-                record CatchAll(Scope scope) implements FaultHandler, ActivityWithScope {
+                record CatchAll(Scope scope, Element element) implements FaultHandler, ActivityWithScope {
 
                 }
 
-                record UnhandledActivity(String reason, String elementAsString, List<Source> sources,
-                        Collection<Target> targets) implements Activity, ActivityWithSources,
+                record UnhandledActivity(String reason, List<Source> sources,
+                                         Collection<Target> targets,
+                                         Element element) implements Activity, ActivityWithSources,
                         ActivityWithTargets {
 
                 }
 
-                record Reply(String name, Method operation,
-                             String partnerLink,
-                             String portType, List<InputBinding> inputBindings, Collection<Target> targets)
+                record Reply(String name, Method operation, String partnerLink, String portType,
+                             List<InputBinding> inputBindings, Collection<Target> targets, Element element)
                         implements Activity, ActivityWithTargets {
 
                 }
 
-                record Throw(List<InputBinding> inputBindings, Collection<Target> targets)
+                record Throw(List<InputBinding> inputBindings, Collection<Target> targets, Element element)
                         implements Activity, ActivityWithTargets {
 
                 }
 
-                record Empty(String name) implements Activity {
+                record Empty(String name, Element element) implements Activity {
 
                 }
 
-                record Pick(boolean createInstance, OnMessage onMessage) implements Activity, ActivityWithScope {
+                record Pick(boolean createInstance, OnMessage onMessage,
+                            Element element) implements Activity, ActivityWithScope {
 
                     @Override
                     public Scope scope() {
@@ -417,23 +420,22 @@ public class TibcoModel {
                 }
 
                 record ReceiveEvent(boolean createInstance, float eventTimeout, String variable,
-                                    List<Source> sources) implements Activity, ActivityWithSources {
+                                    List<Source> sources, Element element) implements Activity, ActivityWithSources {
 
                 }
 
                 record ExtActivity(Expression expression, String inputVariable, String outputVariable,
                                    List<Source> sources, List<InputBinding> inputBindings,
-                                   CallProcess callProcess) implements Activity, ActivityWithSources {
+                                   CallProcess callProcess, Element element) implements Activity, ActivityWithSources {
 
                     public record CallProcess(String subprocessName) {
 
                     }
                 }
 
-                record ActivityExtension(String inputVariable,
-                                         Optional<String> outputVariable,
+                record ActivityExtension(String inputVariable, Optional<String> outputVariable,
                                          Collection<Target> targets, List<Source> sources,
-                                         List<InputBinding> inputBindings, Config config)
+                                         List<InputBinding> inputBindings, Config config, Element element)
                         implements Activity, ActivityWithTargets, ActivityWithSources {
 
                     public sealed interface Config {
@@ -601,7 +603,8 @@ public class TibcoModel {
                 }
 
                 record Invoke(String inputVariable, String outputVariable, Method operation, String partnerLink,
-                              List<InputBinding> inputBindings, Collection<Target> targets, List<Source> sources)
+                              List<InputBinding> inputBindings, Collection<Target> targets, List<Source> sources,
+                              Element element)
                         implements Activity, ActivityWithSources, ActivityWithTargets {
 
 
