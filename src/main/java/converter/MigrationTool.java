@@ -37,8 +37,8 @@ public class MigrationTool {
 
     public static void main(String[] args) {
         if (args.length < 1) {
-            logger.severe("Usage: java -jar mule-to-bi-migration-assistant.jar " +
-                    "<mule-xml-config-file-or-project-directory>");
+            logger.severe("Usage: java -jar integration-bi-migration-assistant.jar " +
+                    "[-t|--tibco] <mule-or-tibco-xml-config-file-or-project-directory>");
             System.exit(1);
         }
         boolean isTibcoMigration = args[0].equals("--tibco") || args[0].equals("-t");
@@ -52,7 +52,7 @@ public class MigrationTool {
     private static void migrateTibco(String[] args) {
         if (args.length < 2) {
             logger.severe(
-                    "Usage: java -jar mule_to_bal_converter.jar --tibco <path to bwp file or project> " +
+                    "Usage: java -jar integration-bi-migration-assistant --tibco <path to bwp file or project> " +
                             "[-o <output path>]");
             System.exit(1);
         }
