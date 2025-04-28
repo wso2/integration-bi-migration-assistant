@@ -236,7 +236,6 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             this(name, type.toString(), expr);
         }
 
-
         public static ModuleVar constant(String name, TypeDesc typeDesc, Expression expr) {
             return new ModuleVar(name, typeDesc.toString(), Optional.of(expr), true, false);
         }
@@ -384,7 +383,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
             @Override
             public String toString() {
-                return "xml`" + body() + "`";
+                return "xml`" + body().trim() + "`";
             }
         }
 
@@ -634,6 +633,10 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
         record IfElseStatement(Expression ifCondition, List<Statement> ifBody,
                                List<ElseIfClause> elseIfClauses, List<Statement> elseBody) implements Statement {
+
+            public static IfElseStatement ifStatement(Expression condition, List<Statement> body) {
+                return new IfElseStatement(condition, body, List.of(), List.of());
+            }
 
             @Override
             public String toString() {

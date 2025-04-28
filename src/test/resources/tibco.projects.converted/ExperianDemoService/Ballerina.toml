@@ -1,0 +1,12 @@
+[package]
+org = "converter"
+name = "ExperianDemoService"
+version = "0.1.0"
+distribution = "2201.12.0"
+
+[build-options]
+observabilityIncluded = true
+[[platform.java17.dependency]]
+artifactId = "h2"
+version = "2.0.206"
+groupId = "com.h2database"

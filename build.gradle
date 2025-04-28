@@ -40,12 +40,17 @@ dependencies {
     implementation group: 'org.antlr', name: 'antlr4', version: "${antlrVersion}"
     implementation group: 'info.picocli', name: 'picocli', version: "${picocliVersion}"
 
+    // TIBCO dependencies
+    implementation group: 'io.ballerina', name: 'xsd-core', version: "${xsdCoreVersion}"
+
+    // Dev dependencies
+    implementation group: 'org.jetbrains', name: 'annotations', version: "${jetbrainsAnnotationsVersion}"
     testImplementation group: 'org.testng', name: 'testng', version: "${testngVersion}"
     spotbugs group: 'com.github.spotbugs', name: 'spotbugs', version: "${spotbugsVersion}"
 }
 
 checkstyle {
-    toolVersion = '10.3.4'
+    toolVersion = '10.12.5'
     config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
 }
 

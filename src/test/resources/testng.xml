@@ -16,4 +16,11 @@
             <class name="TestConverter"/>
         </classes>
     </test>
+    <test name="Tibco Tests">
+        <classes>
+            <class name="converter.tibco.ParserTest"/>
+            <class name="converter.tibco.ConversionTest"/>
+            <class name="converter.TibcoProjectConversionTest"/>
+        </classes>
+    </test>
 </suite>

@@ -227,7 +227,7 @@ public class CodeGenerator {
         return syntaxTree;
     }
 
-    private static SyntaxTree formatSyntaxTree(SyntaxTree syntaxTree) {
+    public static SyntaxTree formatSyntaxTree(SyntaxTree syntaxTree) {
         try {
             syntaxTree = Formatter.format(syntaxTree);
         } catch (FormatterException e) {
