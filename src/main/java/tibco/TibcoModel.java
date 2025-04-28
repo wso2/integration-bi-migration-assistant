@@ -348,7 +348,7 @@ public class TibcoModel {
     public record Scope(String name, Collection<Flow> flows, Collection<FaultHandler> faultHandlers) {
 
         public sealed interface FaultHandler extends Flow.Activity {
-
+            Scope scope();
         }
 
         public record Flow(String name, Collection<Link> links, List<Activity> activities) {
@@ -375,6 +375,9 @@ public class TibcoModel {
                 sealed interface ActivityWithScope extends Activity {
 
                     Scope scope();
+                }
+
+                sealed interface StartActivity extends Activity {
                 }
 
                 sealed interface ActivityWithTargets extends Activity {
@@ -421,7 +424,7 @@ public class TibcoModel {
                 }
 
                 record Pick(boolean createInstance, OnMessage onMessage,
-                            Element element) implements Activity, ActivityWithScope {
+                            Element element) implements Activity, ActivityWithScope, StartActivity {
 
                     @Override
                     public Scope scope() {

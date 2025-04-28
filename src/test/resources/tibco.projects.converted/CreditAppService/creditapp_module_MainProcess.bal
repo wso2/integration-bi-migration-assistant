@@ -98,7 +98,7 @@ function extActivity_11(map<xml> context) returns xml|error {
 }
 
 function pick(map<xml> context) returns xml|error {
-    return xml `<root></root>`;
+    return scope1ScopeFn(context);
 }
 
 function reply(map<xml> context) returns xml|error {
@@ -152,11 +152,28 @@ function reply(map<xml> context) returns xml|error {
     return var3;
 }
 
-function scope_2ActivityRunner(map<xml> cx) returns xml|error {
+function scope1ActivityRunner(map<xml> cx) returns xml|error {
     xml result0 = check extActivity_11(cx);
     xml result1 = check extActivity(cx);
     xml result2 = check reply(cx);
     return result2;
+}
+
+function scope1FaultHandler(error err, map<xml> cx) returns xml {
+    panic err;
+}
+
+function scope1ScopeFn(map<xml> cx) returns xml {
+    xml|error result = scope1ActivityRunner(cx);
+    if result is error {
+        return scope_2FaultHandler(result, cx);
+    }
+    return result;
+}
+
+function scope_2ActivityRunner(map<xml> cx) returns xml|error {
+    xml result0 = check pick(cx);
+    return result0;
 }
 
 function scope_2FaultHandler(error err, map<xml> cx) returns xml {

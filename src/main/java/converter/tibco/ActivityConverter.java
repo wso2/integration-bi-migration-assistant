@@ -180,7 +180,8 @@ final class ActivityConverter {
     }
 
     private static List<Statement> convertPickAction(ActivityContext cx, Pick pick) {
-        return convertEmptyAction(cx);
+        String scopeFn = cx.processContext.analysisResult.getControlFlowFunctions(pick.scope()).scopeFn();
+        return List.of(new Return<>(new FunctionCall(scopeFn, List.of(cx.contextVarRef()))));
     }
 
     private static List<Statement> convertEmptyAction(ActivityContext cx) {

@@ -39,6 +39,9 @@ class Graph<E> {
 
     void addRoot(E root) {
         assert root != null;
+        if (roots.contains(root)) {
+            return;
+        }
         roots.add(root);
     }
 

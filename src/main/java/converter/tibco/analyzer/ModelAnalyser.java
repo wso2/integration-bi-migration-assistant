@@ -21,16 +21,7 @@ package converter.tibco.analyzer;
 import converter.tibco.ConversionUtils;
 import tibco.TibcoModel;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -48,10 +39,6 @@ public class ModelAnalyser {
     public static AnalysisResult analyseProcess(TibcoModel.Process process) {
         ProcessAnalysisContext cx = new ProcessAnalysisContext();
         analyseProcess(cx, process);
-        Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> startActivities =
-                Map.of(process, cx.startActivities);
-        Map<TibcoModel.Process, Collection<TibcoModel.Scope.Flow.Activity>> faultHandlerStartActivities =
-                Map.of(process, cx.faultHandlerStartActivities);
 
         Map<TibcoModel.Scope.Flow.Activity, AnalysisResult.ActivityData> activityData = cx.activityData();
         Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings =
@@ -62,9 +49,10 @@ public class ModelAnalyser {
         Map<TibcoModel.Process, Collection<String>> inputTypeNames = Map.of(process, cx.getInputTypeName());
         Map<TibcoModel.Process, String> outputTypeName = Map.of(process, cx.getOutputTypeName());
         Map<TibcoModel.Process, Map<String, String>> variableTypes = Map.of(process, cx.variableTypes);
-        return new AnalysisResult(cx.destinationMap, cx.sourceMap, startActivities, faultHandlerStartActivities,
+        Map<TibcoModel.Process, Collection<TibcoModel.Scope>> scopes = Map.of(process, cx.dependencyGraphs.keySet());
+        return new AnalysisResult(cx.destinationMap, cx.sourceMap,
                 activityData, partnerLinkBindings, cx.queryIndex, inputTypeNames,
-                outputTypeName, variableTypes, cx.dependencyGraph, cx.controlFlowFunctions);
+                outputTypeName, variableTypes, cx.dependencyGraphs, cx.controlFlowFunctions, scopes);
     }
 
     private static void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
@@ -164,8 +152,10 @@ public class ModelAnalyser {
 
     private static void analyseScope(ProcessAnalysisContext cx, TibcoModel.Scope scope) {
         cx.allocateControlFlowFunctionsIfNeeded(scope);
+        cx.pushScope(scope);
         scope.flows().forEach(flow -> analyseFlow(cx, flow));
         scope.faultHandlers().forEach(faultHandler -> analyseActivity(cx, faultHandler));
+        cx.popScope();
     }
 
     private static void analyseFlow(ProcessAnalysisContext cx, TibcoModel.Scope.Flow flow) {
@@ -193,6 +183,9 @@ public class ModelAnalyser {
             }
             targets.stream().map(TibcoModel.Scope.Flow.Activity.Target::linkName).map(
                     TibcoModel.Scope.Flow.Link::new).forEach(link -> cx.addDestination(link, activity));
+        }
+        if (activity instanceof TibcoModel.Scope.Flow.Activity.StartActivity) {
+            cx.addStartActivity(activity);
         }
         boolean isFaultHandler = activity instanceof TibcoModel.Scope.FaultHandler;
         if (isFaultHandler) {
@@ -234,13 +227,11 @@ public class ModelAnalyser {
 
     private static class ProcessAnalysisContext {
 
-        public final Graph<AnalysisResult.GraphNode> dependencyGraph = new Graph<>();
         public int unhandledActivityCount = 0;
         public int totalActivityCount = 0;
         public boolean inFaultHandler = false;
+        public TibcoModel.Scope currentScope = null;
         // We are using order preserving sets purely for tests
-        private final Collection<TibcoModel.Scope.Flow.Activity> startActivities = new LinkedHashSet<>();
-        private final Collection<TibcoModel.Scope.Flow.Activity> faultHandlerStartActivities = new LinkedHashSet<>();
         private final Collection<TibcoModel.Scope.Flow.Activity> endActivities = new LinkedHashSet<>();
         // places where data added to the link ends up
         private final Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap =
@@ -262,20 +253,18 @@ public class ModelAnalyser {
         private final Set<String> inputTypeNames = new HashSet<>();
         private String outputTypeName;
         private final Map<String, String> variableTypes = new HashMap<>();
+
         private final Map<TibcoModel.Scope, AnalysisResult.ControlFlowFunctions> controlFlowFunctions = new HashMap<>();
         private static final Set<String> controlFlowFunctionNames = new HashSet<>();
+        private final Map<TibcoModel.Scope, Graph<AnalysisResult.GraphNode>> dependencyGraphs = new HashMap<>();
+        private final Stack<TibcoModel.Scope> scopeStack = new Stack<>();
 
         public void addEndActivity(TibcoModel.Scope.Flow.Activity activity) {
             endActivities.add(activity);
         }
 
         public void addStartActivity(TibcoModel.Scope.Flow.Activity activity) {
-            if (inFaultHandler) {
-                faultHandlerStartActivities.add(activity);
-            } else {
-                startActivities.add(activity);
-            }
-            dependencyGraph.addRoot(activityNode(activity));
+            dependencyGraphs.get(currentScope).addRoot(activityNode(activity));
         }
 
         public void setVariableType(String name, String type) {
@@ -312,12 +301,12 @@ public class ModelAnalyser {
         }
 
         public void addDestination(TibcoModel.Scope.Flow.Link source, TibcoModel.Scope.Flow.Activity destination) {
-            dependencyGraph.addEdge(linkNode(source), activityNode(destination));
+            dependencyGraphs.get(currentScope).addEdge(linkNode(source), activityNode(destination));
             destinationMap.computeIfAbsent(source, (ignored) -> new ArrayList<>()).add(destination);
         }
 
         public void addSource(TibcoModel.Scope.Flow.Activity source, TibcoModel.Scope.Flow.Link destination) {
-            dependencyGraph.addEdge(activityNode(source), linkNode(destination));
+            dependencyGraphs.get(currentScope).addEdge(activityNode(source), linkNode(destination));
             sourceMap.computeIfAbsent(destination, (ignored) -> new ArrayList<>()).add(source);
         }
 
@@ -348,6 +337,23 @@ public class ModelAnalyser {
 
         public void setOutputTypeName(String outputTypeName) {
             this.outputTypeName = outputTypeName;
+        }
+
+        public void pushScope(TibcoModel.Scope scope) {
+            if (!dependencyGraphs.containsKey(scope)) {
+                dependencyGraphs.put(scope, new Graph<>());
+            }
+            scopeStack.push(scope);
+            this.currentScope = scope;
+        }
+
+        public void popScope() {
+            scopeStack.pop();
+            if (scopeStack.isEmpty()) {
+                this.currentScope = null;
+            } else {
+                this.currentScope = scopeStack.peek();
+            }
         }
 
         public void allocateControlFlowFunctionsIfNeeded(TibcoModel.Scope scope) {
