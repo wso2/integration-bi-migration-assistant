@@ -396,7 +396,7 @@ public class TibcoModel {
 
                 sealed interface Expression {
 
-                    record XSLT(String expression) implements Expression {
+                    record XSLT(String expression) implements Expression, Assign.Copy.CopySource {
 
                     }
 
@@ -427,7 +427,16 @@ public class TibcoModel {
 
                 }
 
-                record Assign(Element element) implements Activity {
+                record Assign(List<Source> sources, Collection<Target> targets, Copy operation,
+                              Element element) implements Activity, ActivityWithSources, ActivityWithTargets {
+                    public record Copy(CopySource from, VarRef to) {
+                        sealed public interface CopySource {
+                        }
+
+                        public record VarRef(String name) implements CopySource {
+
+                        }
+                    }
                 }
 
                 record Foreach(Element element) implements Activity {
