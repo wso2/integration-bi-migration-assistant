@@ -20,13 +20,11 @@ package converter.tibco;
 
 import ballerina.BallerinaModel;
 import ballerina.BallerinaModel.Action.RemoteMethodCallAction;
-import ballerina.BallerinaModel.Expression.BallerinaExpression;
 import ballerina.BallerinaModel.Expression.Check;
 import ballerina.BallerinaModel.Expression.FunctionCall;
 import ballerina.BallerinaModel.Expression.Trap;
 import ballerina.BallerinaModel.Expression.VariableReference;
 import ballerina.BallerinaModel.Statement;
-import ballerina.BallerinaModel.Statement.BallerinaStatement;
 import ballerina.BallerinaModel.Statement.CallStatement;
 import ballerina.BallerinaModel.Statement.Comment;
 import ballerina.BallerinaModel.Statement.Return;

@@ -20,7 +20,6 @@ package converter.tibco;
 
 import ballerina.BallerinaModel;
 import ballerina.BallerinaModel.Expression;
-import ballerina.BallerinaModel.Expression.BallerinaExpression;
 import ballerina.BallerinaModel.Expression.BinaryLogical;
 import ballerina.BallerinaModel.Expression.Check;
 import ballerina.BallerinaModel.Expression.CheckPanic;

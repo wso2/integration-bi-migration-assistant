@@ -19,7 +19,6 @@
 package converter.tibco;
 
 import ballerina.BallerinaModel;
-import ballerina.BallerinaModel.Expression.BallerinaExpression;
 import ballerina.BallerinaModel.Expression.CheckPanic;
 import ballerina.BallerinaModel.Expression.FunctionCall;
 import ballerina.BallerinaModel.Expression.TypeCheckExpression;
