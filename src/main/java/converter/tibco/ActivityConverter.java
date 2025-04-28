@@ -138,7 +138,19 @@ final class ActivityConverter {
     }
 
     private static @NotNull List<Statement> convertAssign(ActivityContext cx, Activity.Assign assign) {
-        return convertEmptyAction(cx);
+        List<Statement> body = new ArrayList<>();
+        BallerinaModel.Expression sourceExp = switch (assign.operation().from()) {
+            case Activity.Expression.XSLT xslt -> {
+                VarDeclStatment init = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+                body.add(init);
+                yield xsltTransform(cx, init.ref(), xslt);
+            }
+            case Activity.Assign.Copy.VarRef varRef -> getFromContext(cx, varRef.name());
+        };
+        VarDeclStatment source = new VarDeclStatment(XML, cx.getAnnonVarName(), sourceExp);
+        body.add(source);
+        body.add(addToContext(cx, source.ref(), assign.operation().to().name()));
+        return body;
     }
 
     private static List<Statement> convertThrowActivity(ActivityContext cx, Throw throwActivity) {
