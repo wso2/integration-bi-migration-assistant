@@ -18,6 +18,7 @@
 
 package converter.tibco.analyzer;
 
+import ballerina.BallerinaModel;
 import converter.tibco.ConversionUtils;
 import tibco.TibcoModel;
 
@@ -155,22 +156,44 @@ public class ModelAnalyser {
         cx.pushScope(scope);
         scope.flows().forEach(flow -> analyseFlow(cx, flow));
         scope.faultHandlers().forEach(faultHandler -> analyseActivity(cx, faultHandler));
+        scope.sequence().forEach(sequence -> analyseSequence(cx, sequence));
         cx.popScope();
     }
 
+    private static void analyseSequence(ProcessAnalysisContext cx, TibcoModel.Scope.Sequence sequence) {
+        cx.inSequence.push(true);
+        List<TibcoModel.Scope.Flow.Activity> activities = sequence.activities();
+        for (int i = 0; i < activities.size(); i++) {
+            TibcoModel.Scope.Flow.Activity activity = activities.get(i);
+            if (i == 0) {
+                cx.addStartActivity(activity);
+            } else {
+                cx.addDestination(activities.get(i - 1), activity);
+            }
+            if (i == activities.size() - 1) {
+                cx.addEndActivity(activity);
+            }
+            analyseActivity(cx, activity);
+        }
+        cx.inSequence.pop();
+    }
+
     private static void analyseFlow(ProcessAnalysisContext cx, TibcoModel.Scope.Flow flow) {
+        cx.inSequence.push(false);
         flow.links().forEach(link -> analyseLink(cx, link));
         flow.activities().forEach(activity -> analyseActivity(cx, activity));
+        cx.inSequence.pop();
     }
 
     private static void analyseActivity(ProcessAnalysisContext cx, TibcoModel.Scope.Flow.Activity activity) {
         if (activity instanceof TibcoModel.Scope.Flow.Activity.Empty) {
             return;
         }
+        boolean isInSequence = cx.inSequence.peek();
         cx.allocateActivityNameIfNeeded(activity);
         if (activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithSources activityWithSources) {
             Collection<TibcoModel.Scope.Flow.Activity.Source> sources = activityWithSources.sources();
-            if (sources.isEmpty()) {
+            if (!isInSequence && sources.isEmpty()) {
                 cx.addEndActivity(activity);
             }
             sources.stream().map(TibcoModel.Scope.Flow.Activity.Source::linkName).map(
@@ -178,7 +201,7 @@ public class ModelAnalyser {
         }
         if (activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithTargets activityWithTargets) {
             Collection<TibcoModel.Scope.Flow.Activity.Target> targets = activityWithTargets.targets();
-            if (targets.isEmpty()) {
+            if (!isInSequence && targets.isEmpty()) {
                 cx.addStartActivity(activity);
             }
             targets.stream().map(TibcoModel.Scope.Flow.Activity.Target::linkName).map(
@@ -195,11 +218,13 @@ public class ModelAnalyser {
             analyseScope(cx, activityWithScope.scope());
             return;
         }
-        if (!(activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithSources)) {
+
+        boolean isInSequence = cx.inSequence.peek();
+        if (!isInSequence && !(activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithSources)) {
             cx.addEndActivity(activity);
         }
 
-        if (!(activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithTargets)) {
+        if (!isInSequence && !(activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithTargets)) {
             cx.addStartActivity(activity);
         }
         if (activity instanceof TibcoModel.Scope.Flow.Activity.ActivityExtension activityExtension) {
@@ -250,6 +275,7 @@ public class ModelAnalyser {
         private static final Set<String> controlFlowFunctionNames = new HashSet<>();
         private final Map<TibcoModel.Scope, Graph<AnalysisResult.GraphNode>> dependencyGraphs = new HashMap<>();
         private final Stack<TibcoModel.Scope> scopeStack = new Stack<>();
+        final Stack<Boolean> inSequence = new Stack<>();
 
         public void addEndActivity(TibcoModel.Scope.Flow.Activity activity) {
             endActivities.add(activity);
@@ -282,6 +308,9 @@ public class ModelAnalyser {
                 case TibcoModel.Scope.Flow.Activity.Reply ignored -> "reply";
                 case TibcoModel.Scope.Flow.Activity.CatchAll ignored -> "catchAll";
                 case TibcoModel.Scope.Flow.Activity.Throw ignored -> "throw";
+                case TibcoModel.Scope.Flow.Activity.NestedScope ignored -> "nestedScope";
+                case TibcoModel.Scope.Flow.Activity.Assign ignored -> "assign";
+                case TibcoModel.Scope.Flow.Activity.Foreach ignored -> "forEach";
                 case TibcoModel.Scope.Flow.Activity.UnhandledActivity ignored -> {
                     unhandledActivityCount++;
                     yield "unhandled";
@@ -290,6 +319,11 @@ public class ModelAnalyser {
             String activityName = ConversionUtils.getSanitizedUniqueName(prefix, activityFunctionNames.values());
             activityFunctionNames.put(activity, activityName);
             activities.add(activity);
+        }
+
+
+        public void addDestination(TibcoModel.Scope.Flow.Activity source, TibcoModel.Scope.Flow.Activity destination) {
+            dependencyGraphs.get(currentScope).addEdge(activityNode(source), activityNode(destination));
         }
 
         public void addDestination(TibcoModel.Scope.Flow.Link source, TibcoModel.Scope.Flow.Activity destination) {
@@ -303,6 +337,7 @@ public class ModelAnalyser {
         }
 
         private String activityNodeName(TibcoModel.Scope.Flow.Activity activity) {
+            allocateActivityNameIfNeeded(activity);
             return activityFunctionNames.get(activity);
         }
 

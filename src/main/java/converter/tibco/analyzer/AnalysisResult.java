@@ -75,14 +75,6 @@ public final class AnalysisResult {
         return outputTypeName.get(process);
     }
 
-    public Collection<TibcoModel.Scope.Flow.Activity> destinations(TibcoModel.Scope.Flow.Link link) {
-        var destinations = destinationMap.get(link);
-        if (destinations == null) {
-            return List.of();
-        }
-        return destinations;
-    }
-
     public Collection<TibcoModel.Scope.Flow.Activity> sources(TibcoModel.Scope.Flow.Link link) {
         var sources = sourceMap.get(link);
         // this can happen for invalid activities
@@ -99,10 +91,6 @@ public final class AnalysisResult {
         }
         return Objects.requireNonNull(variableType.get(variableName),
                 () -> "Variable type not found for: " + variableName);
-    }
-
-    public LinkData from(TibcoModel.Scope.Flow.Link link) {
-        return new LinkData(sources(link), destinations(link));
     }
 
     public ActivityData from(TibcoModel.Scope.Flow.Activity activity) {

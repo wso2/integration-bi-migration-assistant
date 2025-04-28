@@ -175,11 +175,16 @@ public final class XmlToTibcoModelConverter {
                 ElementIterable.of(element).stream()
                         .filter(each -> getTagNameWithoutNameSpace(each).equals("flow"))
                         .map(XmlToTibcoModelConverter::parseFlow).toList();
+
+        Collection<TibcoModel.Scope.Sequence> sequences =
+                ElementIterable.of(element).stream()
+                        .filter(each -> getTagNameWithoutNameSpace(each).equals("sequence"))
+                        .map(XmlToTibcoModelConverter::parseSequence).toList();
         Collection<TibcoModel.Scope.FaultHandler> faultHandlers =
                 ElementIterable.of(element).stream()
                         .filter(each -> getTagNameWithoutNameSpace(each).equals("faultHandlers"))
                         .flatMap(XmlToTibcoModelConverter::parseFaultHandlers).toList();
-        return new TibcoModel.Scope(name, flows, faultHandlers);
+        return new TibcoModel.Scope(name, flows, sequences, faultHandlers);
     }
 
     private static Stream<TibcoModel.Scope.FaultHandler> parseFaultHandlers(Element element) {
@@ -243,8 +248,54 @@ public final class XmlToTibcoModelConverter {
             case "empty" -> parseEmpty(element);
             case "reply" -> parseReply(element);
             case "throw" -> parseThrow(element);
+            case "scope" -> parseNestedScope(element);
+            case "assign" -> parseAssign(element);
+            case "forEach" -> parseForeach(element);
             default -> throw new ParserException("Unsupported activity tag: " + tag, element);
         };
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.Foreach parseForeach(Element element) {
+        return new TibcoModel.Scope.Flow.Activity.Foreach(element);
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.Assign parseAssign(Element element) {
+        return new TibcoModel.Scope.Flow.Activity.Assign(element);
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.NestedScope parseNestedScope(Element element) {
+        String name = element.getAttribute("name");
+        Collection<TibcoModel.Scope.Flow> flows =
+                ElementIterable.of(element).stream()
+                        .filter(each -> getTagNameWithoutNameSpace(each).equals("flow"))
+                        .map(XmlToTibcoModelConverter::parseFlow).toList();
+
+        Collection<TibcoModel.Scope.Sequence> sequences =
+                ElementIterable.of(element).stream()
+                        .filter(each -> getTagNameWithoutNameSpace(each).equals("sequence"))
+                        .map(XmlToTibcoModelConverter::parseSequence).toList();
+        Collection<TibcoModel.Scope.FaultHandler> faultHandlers =
+                ElementIterable.of(element).stream()
+                        .filter(each -> getTagNameWithoutNameSpace(each).equals("faultHandlers"))
+                        .flatMap(XmlToTibcoModelConverter::parseFaultHandlers).toList();
+        Collection<TibcoModel.Scope.Flow.Activity.Target> targets =
+                ElementIterable.of(element).stream()
+                        .filter(each -> getTagNameWithoutNameSpace(each).equals("targets"))
+                        .map(XmlToTibcoModelConverter::parseTargets).flatMap(Collection::stream).toList();
+        List<TibcoModel.Scope.Flow.Activity.Source> sources =
+                ElementIterable.of(element).stream()
+                        .filter(each -> getTagNameWithoutNameSpace(each).equals("sources"))
+                        .map(XmlToTibcoModelConverter::parseSources).flatMap(Collection::stream).toList();
+        return new TibcoModel.Scope.Flow.Activity.NestedScope(name, sources, targets, sequences, flows,
+                faultHandlers, element);
+    }
+
+    private static TibcoModel.Scope.Sequence parseSequence(Element element) {
+        String name = element.getAttribute("name");
+        List<TibcoModel.Scope.Flow.Activity> activities =
+                ElementIterable.of(element).stream()
+                        .map(XmlToTibcoModelConverter::parseActivity).toList();
+        return new TibcoModel.Scope.Sequence(name, activities);
     }
 
     private static TibcoModel.Scope.Flow.Activity.Throw parseThrow(Element element) {
@@ -281,8 +332,7 @@ public final class XmlToTibcoModelConverter {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
                 case "targets" -> targets.addAll(parseTargets(child));
-                case "sources" -> sources.addAll(ElementIterable.of(child).stream()
-                        .map(XmlToTibcoModelConverter::parseSource).toList());
+                case "sources" -> sources.addAll(parseSources(child));
                 default -> {
                 }
             }
@@ -519,6 +569,11 @@ public final class XmlToTibcoModelConverter {
 
     private static Collection<TibcoModel.Scope.Flow.Activity.Target> parseTargets(Element each) {
         return ElementIterable.of(each).stream().map(XmlToTibcoModelConverter::parseTarget).toList();
+    }
+
+
+    private static Collection<TibcoModel.Scope.Flow.Activity.Source> parseSources(Element each) {
+        return ElementIterable.of(each).stream().map(XmlToTibcoModelConverter::parseSource).toList();
     }
 
     private static TibcoModel.Scope.Flow.Activity.Target parseTarget(Element each) {
