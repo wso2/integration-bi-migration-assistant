@@ -260,7 +260,8 @@ public class ProcessConverter {
 
     private static BallerinaModel.Function generateProcessFunction(ProcessContext cx) {
         AnalysisResult analysisResult = cx.analysisResult;
-        AnalysisResult.ControlFlowFunctions controlFlowFunctions = analysisResult.getControlFlowFunctions(cx.process.scope());
+        AnalysisResult.ControlFlowFunctions controlFlowFunctions = analysisResult.getControlFlowFunctions(
+                cx.process.scope());
         String name = controlFlowFunctions.scopeFn();
         List<Statement> body = new ArrayList<>();
         String inputVarName = "input";
@@ -278,7 +279,8 @@ public class ProcessConverter {
                 body);
     }
 
-    private static Collection<BallerinaModel.Function> generateControlFlowFunctionsForScope(ProcessContext cx, TibcoModel.Scope scope) {
+    private static Collection<BallerinaModel.Function> generateControlFlowFunctionsForScope(
+            ProcessContext cx, TibcoModel.Scope scope) {
         if (cx.handledScopes.contains(scope)) {
             return List.of();
         }
@@ -299,7 +301,8 @@ public class ProcessConverter {
         return new BallerinaModel.Function(name, List.of(parameter), XML, body);
     }
 
-    private static void generateScopeFnBody(AnalysisResult.ControlFlowFunctions controlFlowFunctions, VariableReference context, List<Statement> body) {
+    private static void generateScopeFnBody(AnalysisResult.ControlFlowFunctions controlFlowFunctions,
+                                            VariableReference context, List<Statement> body) {
         VarDeclStatment result = new VarDeclStatment(TypeDesc.UnionTypeDesc.of(XML, ERROR), "result",
                 new FunctionCall(controlFlowFunctions.activityRunner(), List.of(context)));
         body.add(result);
@@ -339,7 +342,8 @@ public class ProcessConverter {
         return generateErrorFlowFunction(cx, cx.process.scope());
     }
 
-    private static BallerinaModel.@NotNull Function generateErrorFlowFunction(ProcessContext cx, TibcoModel.Scope scope) {
+    private static BallerinaModel.@NotNull Function generateErrorFlowFunction(ProcessContext cx,
+                                                                              TibcoModel.Scope scope) {
         Parameter context = new Parameter("cx", new TypeDesc.MapTypeDesc(XML));
         AnalysisResult analysisResult = cx.analysisResult;
         Collection<TibcoModel.Scope.FaultHandler> faultHandlers = scope.faultHandlers();

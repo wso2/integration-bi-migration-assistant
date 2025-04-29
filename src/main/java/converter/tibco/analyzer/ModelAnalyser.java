@@ -21,7 +21,18 @@ package converter.tibco.analyzer;
 import converter.tibco.ConversionUtils;
 import tibco.TibcoModel;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -401,7 +412,8 @@ public class ModelAnalyser {
             }
             name = ConversionUtils.getSanitizedUniqueName(name, controlFlowFunctionNames);
             controlFlowFunctionNames.add(name);
-            controlFlowFunctions.put(scope, new AnalysisResult.ControlFlowFunctions(name + "ScopeFn", name + "ActivityRunner", name + "FaultHandler"));
+            controlFlowFunctions.put(scope, new AnalysisResult.ControlFlowFunctions(name + "ScopeFn",
+                    name + "ActivityRunner", name + "FaultHandler"));
         }
 
         public String getOutputTypeName() {
