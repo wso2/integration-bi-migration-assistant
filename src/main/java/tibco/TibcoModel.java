@@ -390,6 +390,13 @@ public class TibcoModel {
                     List<Source> sources();
                 }
 
+                sealed interface ActivityWithName extends Activity {
+                    Optional<String> getName();
+                }
+
+                sealed interface ActivityWithOutput extends Activity {
+                    Optional<String> outVariableName();
+                }
                 sealed interface ActivityWithScope extends Activity {
 
                     Scope scope();
@@ -418,11 +425,15 @@ public class TibcoModel {
                 record NestedScope(String name, List<Source> sources, Collection<Target> targets,
                                    Collection<Sequence> sequences, Collection<Flow> flows,
                                    Collection<FaultHandler> faultHandlers,
-                                   Element element) implements Activity, ActivityWithSources, ActivityWithTargets, ActivityWithScope {
+                                   Element element) implements Activity, ActivityWithSources, ActivityWithTargets, ActivityWithScope, ActivityWithName {
                     public Scope scope() {
                         return new Scope(name, flows, sequences, faultHandlers);
                     }
 
+                    @Override
+                    public Optional<String> getName() {
+                        return Optional.of(name);
+                    }
                 }
 
                 record CatchAll(Scope scope,
@@ -451,8 +462,12 @@ public class TibcoModel {
 
                 record Reply(String name, Method operation, String partnerLink, String portType,
                              List<InputBinding> inputBindings, Collection<Target> targets, Element element)
-                        implements Activity, ActivityWithTargets {
+                        implements Activity, ActivityWithTargets, ActivityWithName {
 
+                    @Override
+                    public Optional<String> getName() {
+                        return Optional.of(name);
+                    }
                 }
 
                 record Throw(List<InputBinding> inputBindings, Collection<Target> targets, Element element)
@@ -460,8 +475,12 @@ public class TibcoModel {
 
                 }
 
-                record Empty(String name, Element element) implements Activity {
+                record Empty(String name, Element element) implements Activity, ActivityWithName {
 
+                    @Override
+                    public Optional<String> getName() {
+                        return Optional.of(name);
+                    }
                 }
 
                 record Pick(boolean createInstance, OnMessage onMessage,
@@ -492,7 +511,7 @@ public class TibcoModel {
                 record ExtActivity(Optional<Expression> expression, String inputVariable, String outputVariable,
                                    List<Source> sources, List<Target> targets, List<InputBinding> inputBindings,
                                    CallProcess callProcess,
-                                   Element element) implements Activity, ActivityWithSources, ActivityWithTargets {
+                                   Element element) implements Activity, ActivityWithSources, ActivityWithTargets, ActivityWithOutput {
 
                     public ExtActivity {
                         assert expression != null;
@@ -503,15 +522,31 @@ public class TibcoModel {
                         assert element != null;
                     }
 
+                    @Override
+                    public Optional<String> outVariableName() {
+                        return Optional.of(outputVariable);
+                    }
+
                     public record CallProcess(String subprocessName) {
 
                     }
                 }
 
-                record ActivityExtension(String inputVariable, Optional<String> outputVariable,
+                record ActivityExtension(Optional<String> name, Optional<String> inputVariable,
+                                         Optional<String> outputVariable,
                                          Collection<Target> targets, List<Source> sources,
                                          List<InputBinding> inputBindings, Config config, Element element)
-                        implements Activity, ActivityWithTargets, ActivityWithSources {
+                        implements Activity, ActivityWithTargets, ActivityWithSources, ActivityWithName, ActivityWithOutput {
+
+                    @Override
+                    public Optional<String> getName() {
+                        return name;
+                    }
+
+                    @Override
+                    public Optional<String> outVariableName() {
+                        return outputVariable;
+                    }
 
                     public sealed interface Config {
 
@@ -590,6 +625,14 @@ public class TibcoModel {
                             }
                         }
 
+                        record AccumulateEnd(String activityName) implements Config {
+
+                            @Override
+                            public ExtensionKind kind() {
+                                return ExtensionKind.ACCUMULATE_END;
+                            }
+                        }
+
                         record SQL(String sharedResourcePropertyName, String query,
                                    List<Column> resultColumns, List<SQLParameter> parameters) implements Config {
 
@@ -649,6 +692,7 @@ public class TibcoModel {
                         }
 
                         enum ExtensionKind {
+                            ACCUMULATE_END,
                             END,
                             FILE_WRITE,
                             HTTP_SEND,
@@ -671,6 +715,7 @@ public class TibcoModel {
                                     case "bw.generalactivities.log" -> LOG;
                                     case "bw.xml.renderxml" -> RENDER_XML;
                                     case "bw.generalactivities.mapper" -> MAPPER;
+                                    case "bw.internal.accumulateend" -> ACCUMULATE_END;
                                     default -> patternMatch(typeId);
                                 };
                             }
@@ -690,9 +735,13 @@ public class TibcoModel {
                 record Invoke(String inputVariable, String outputVariable, Method operation, String partnerLink,
                               List<InputBinding> inputBindings, Collection<Target> targets, List<Source> sources,
                               Element element)
-                        implements Activity, ActivityWithSources, ActivityWithTargets {
+                        implements Activity, ActivityWithSources, ActivityWithTargets, ActivityWithOutput {
 
 
+                    @Override
+                    public Optional<String> outVariableName() {
+                        return Optional.of(outputVariable);
+                    }
                 }
 
                 record Target(String linkName) {

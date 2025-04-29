@@ -42,6 +42,7 @@ public final class AnalysisResult {
     private final Map<TibcoModel.Scope, Graph<GraphNode>> dependencyGraphs;
     private final Map<TibcoModel.Scope, ControlFlowFunctions> controlFlowFunctions;
     private final Map<TibcoModel.Process, Collection<TibcoModel.Scope>> scopes;
+    private final Map<String, TibcoModel.Scope.Flow.Activity> activityByName;
 
     AnalysisResult(Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap,
                    Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap,
@@ -53,7 +54,7 @@ public final class AnalysisResult {
                    Map<TibcoModel.Process, Map<String, String>> variableTypes,
                    Map<TibcoModel.Scope, Graph<GraphNode>> dependencyGraphs,
                    Map<TibcoModel.Scope, ControlFlowFunctions> controlFlowFunctions,
-                   Map<TibcoModel.Process, Collection<TibcoModel.Scope>> scopes) {
+                   Map<TibcoModel.Process, Collection<TibcoModel.Scope>> scopes, Map<String, TibcoModel.Scope.Flow.Activity> activityByName) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.activityData = activityData;
@@ -65,6 +66,7 @@ public final class AnalysisResult {
         this.dependencyGraphs = dependencyGraphs;
         this.controlFlowFunctions = controlFlowFunctions;
         this.scopes = scopes;
+        this.activityByName = activityByName;
     }
 
     public Collection<String> inputTypeName(TibcoModel.Process process) {
@@ -82,6 +84,10 @@ public final class AnalysisResult {
             return List.of();
         }
         return sources;
+    }
+
+    public Optional<TibcoModel.Scope.Flow.Activity> findActivity(String name) {
+        return Optional.ofNullable(activityByName.get(name));
     }
 
     public String variableType(TibcoModel.Process process, String variableName) {

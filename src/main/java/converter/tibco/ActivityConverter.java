@@ -248,7 +248,9 @@ final class ActivityConverter {
     private static List<Statement> convertActivityExtension(ActivityContext cx, ActivityExtension activityExtension) {
         List<Statement> body = new ArrayList<>();
         VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                getFromContext(cx, activityExtension.inputVariable()));
+                activityExtension.inputVariable()
+                        .map(name -> (BallerinaModel.Expression) getFromContext(cx, cx.functionName()))
+                        .orElseGet(ActivityConverter::defaultEmptyXml));
         body.add(inputDecl);
         List<VarDeclStatment> inputBindings =
                 convertInputBindings(cx, inputDecl.ref(), activityExtension.inputBindings());
@@ -270,12 +272,38 @@ final class ActivityConverter {
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.RenderXML ignored -> emptyExtensionConversion(result);
             case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(result);
+            case ActivityExtension.Config.AccumulateEnd accumulateEnd -> createAccumulateEnd(cx, result, accumulateEnd,
+                    activityExtension.outVariableName().orElseThrow(
+                            () -> new IllegalStateException("accumulate end should have output variable")));
         };
         body.addAll(conversion.body());
         activityExtension.outputVariable()
                 .ifPresent(outputVar -> body.add(addToContext(cx, conversion.result(), outputVar)));
         body.add(new Return<>(conversion.result()));
         return body;
+    }
+
+    private static ActivityExtensionConfigConversion createAccumulateEnd(ActivityContext cx, VariableReference result, ActivityExtension.Config.AccumulateEnd accumulateEnd, String resultName) {
+        AnalysisResult ar = cx.processContext.analysisResult;
+        Activity source = ar.findActivity(accumulateEnd.activityName()).orElseThrow(() ->
+                new IllegalStateException("Cannot find activity: " + accumulateEnd.activityName()));
+        if (!(source instanceof Activity.ActivityWithOutput activityWithOutput && activityWithOutput.outVariableName().isPresent())) {
+            throw new IllegalStateException("Cannot find output variable for activity: " + accumulateEnd.activityName());
+        }
+        List<Statement> body = new ArrayList<>();
+        String outputVariable = activityWithOutput.outVariableName().get();
+        VarDeclStatment currentValue = new VarDeclStatment(UnionTypeDesc.of(XML, NIL), cx.getAnnonVarName(), exprFrom("%s[\"%s\"]".formatted(cx.contextVarRef(), resultName)));
+        body.add(currentValue);
+        VarDeclStatment addition = new VarDeclStatment(XML, cx.getAnnonVarName(), getFromContext(cx, outputVariable));
+        body.add(addition);
+        VarDeclStatment accumResult = new VarDeclStatment(XML, cx.getAnnonVarName());
+        body.add(accumResult);
+        Statement.IfElseStatement accum = new Statement.IfElseStatement(new TypeCheckExpression(currentValue.ref(), XML),
+                List.of(new Statement.VarAssignStatement(accumResult.ref(), exprFrom("%s + %s".formatted(currentValue.ref(), addition.ref())))),
+                List.of(),
+                List.of(new Statement.VarAssignStatement(accumResult.ref(), addition.ref())));
+        body.add(accum);
+        return new ActivityExtensionConfigConversion(accumResult.ref(), body);
     }
 
     private static ActivityExtensionConfigConversion createJsonOperation(
