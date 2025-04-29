@@ -22,14 +22,14 @@ service / on creditapp_module_ExperianScore_listener {
 }
 
 function activityExtension(map<xml> context) returns xml|error {
-    xml var0 = xml `<root></root>`;
+    xml var0 = context.get("End-input");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://tns.tibco.com/bw/json/1535671685533" version="2.0"><xsl:param name="ParseJSON"/><xsl:template name="End-input" match="/"><tns3:ExperianResponseSchemaElement><xsl:if test="$ParseJSON/root/tns3:fiCOScore"><tns3:fiCOScore><xsl:value-of select="$ParseJSON/root/tns3:fiCOScore"/></tns3:fiCOScore></xsl:if><xsl:if test="$ParseJSON/root/tns3:rating"><tns3:rating><xsl:value-of select="$ParseJSON/root/tns3:rating"/></tns3:rating></xsl:if><xsl:if test="$ParseJSON/root/tns3:noOfInquiries"><tns3:noOfInquiries><xsl:value-of select="$ParseJSON/root/tns3:noOfInquiries"/></tns3:noOfInquiries></xsl:if></tns3:ExperianResponseSchemaElement></xsl:template></xsl:stylesheet>`, context);
     return var1;
 }
 
 function activityExtension_2(map<xml> context) returns xml|error {
-    xml var0 = xml `<root></root>`;
+    xml var0 = context.get("SendHTTPRequest-input");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns4="http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput" xmlns:tns6="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0"><xsl:param name="RenderJSON"/><xsl:param name="Start"/><xsl:template name="SendHTTPRequest-input" match="/"><tns4:RequestActivityInput><Method><xsl:value-of select="'POST'"/></Method><RequestURI><xsl:value-of select="'/creditscore'"/></RequestURI><PostData><xsl:value-of select="$RenderJSON/root/jsonString"/></PostData><Headers><Accept><xsl:value-of select="'application/json'"/></Accept><Content-Type><xsl:value-of select="'application/json'"/></Content-Type></Headers><parameters><xsl:if test="$Start/root/tns6:SSN"><ssn><xsl:value-of select="$Start/root/tns6:SSN"/></ssn></xsl:if></parameters></tns4:RequestActivityInput></xsl:template></xsl:stylesheet>`, context);
     string var2 = (var1/**/<Method>[0]).data();
@@ -53,7 +53,7 @@ function activityExtension_2(map<xml> context) returns xml|error {
 }
 
 function activityExtension_3(map<xml> context) returns xml|error {
-    xml var0 = xml `<root></root>`;
+    xml var0 = context.get("RenderJSON-input");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns6="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" xmlns:tns="http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367" version="2.0">
     <xsl:param name="Start"/>
@@ -80,7 +80,7 @@ function activityExtension_3(map<xml> context) returns xml|error {
 }
 
 function activityExtension_4(map<xml> context) returns xml|error {
-    xml var0 = xml `<root></root>`;
+    xml var0 = context.get("ParseJSON-input");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns5="activity.jsonParser.input+a3fa07a6-0270-48b7-ba84-7de6924acb3d+ActivityInputType" version="2.0"><xsl:param name="SendHTTPRequest"/><xsl:template name="ParseJSON-input" match="/"><tns5:ActivityInputClass><jsonString><xsl:value-of select="$SendHTTPRequest/root/asciiContent"/></jsonString></tns5:ActivityInputClass></xsl:template></xsl:stylesheet>`, context);
     xml var2 = check renderJsonAsExperianResponseSchemaElementXML(var1);
@@ -88,7 +88,12 @@ function activityExtension_4(map<xml> context) returns xml|error {
     return var2;
 }
 
-function activityRunner_creditapp_module_ExperianScore(map<xml> cx) returns xml|error {
+function receiveEvent(map<xml> context) returns xml|error {
+    addToContext(context, "Start", context.get("$input"));
+    return context.get("$input");
+}
+
+function scopeActivityRunner(map<xml> cx) returns xml|error {
     xml result0 = check receiveEvent(cx);
     xml result1 = check activityExtension_3(cx);
     xml result2 = check activityExtension_2(cx);
@@ -97,28 +102,23 @@ function activityRunner_creditapp_module_ExperianScore(map<xml> cx) returns xml|
     return result4;
 }
 
-function errorHandler_creditapp_module_ExperianScore(error err, map<xml> cx) returns xml {
+function scopeFaultHandler(error err, map<xml> cx) returns xml {
     panic err;
 }
 
-function process_creditapp_module_ExperianScore(xml input, map<xml> params) returns xml {
+function scopeScopeFn(xml input, map<xml> params) returns xml {
     map<xml> context = {...params};
     addToContext(context, "$input", input);
-    xml|error result = activityRunner_creditapp_module_ExperianScore(context);
+    xml|error result = scopeActivityRunner(context);
     if result is error {
-        return errorHandler_creditapp_module_ExperianScore(result, context);
+        return scopeFaultHandler(result, context);
     }
     return result;
 }
 
-function receiveEvent(map<xml> context) returns xml|error {
-    addToContext(context, "Start", context.get("$input"));
-    return context.get("$input");
-}
-
 function start_creditapp_module_ExperianScore(GiveNewSchemaNameHere input, map<xml> params = {}) returns ExperianResponseSchemaElement {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = process_creditapp_module_ExperianScore(inputXML, params);
+    xml xmlResult = scopeScopeFn(inputXML, params);
     ExperianResponseSchemaElement result = convertToExperianResponseSchemaElement(xmlResult);
     return result;
 }

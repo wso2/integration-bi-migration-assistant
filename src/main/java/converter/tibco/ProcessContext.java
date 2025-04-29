@@ -55,6 +55,7 @@ public class ProcessContext implements ContextWithFile {
     private final Map<String, String> propertyVariableToResourceMap = new HashMap<>();
 
     private DefaultClientDetails processClient;
+    final Set<TibcoModel.Scope> handledScopes = new HashSet<>();
 
     ProcessContext(ProjectContext projectContext, TibcoModel.Process process) {
         this.projectContext = projectContext;
@@ -158,22 +159,9 @@ public class ProcessContext implements ContextWithFile {
         return "start_" + ConversionUtils.sanitizes(process.name());
     }
 
-    String getProcessFunction() {
-        return "process_" + ConversionUtils.sanitizes(process.name());
-    }
-
-    String getActivityRunnerFunction() {
-        return "activityRunner_" + ConversionUtils.sanitizes(process.name());
-    }
-
-    String getErrorHandlerFunction() {
-        return "errorHandler_" + ConversionUtils.sanitizes(process.name());
-    }
-
     String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
         return projectContext.getConvertToTypeFunction(targetType);
     }
-
 
     String getTryDataBindToTypeFunction(BallerinaModel.TypeDesc targetType) {
         return projectContext.getTryDataBindToTypeFunction(targetType);
@@ -307,11 +295,9 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getNamespaceFixFn();
     }
 
-
     String variableType(String variable) {
         return analysisResult.variableType(process, variable);
     }
-
 
     String getRenderJsonAsXMLFunction(String type) {
         return projectContext.getRenderJsonAsXMLFunction(type);

@@ -2,7 +2,7 @@ import ballerina/sql;
 import ballerina/xslt;
 
 function activityExtension_10(map<xml> context) returns xml|error {
-    xml var0 = xml `<root></root>`;
+    xml var0 = context.get("UpdatePulls-input");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://www.tibco.com/namespaces/tnt/plugins/jdbc+21902290-4882-46a2-8795-b85989c9d7c0+input" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tns1="http://www.example.com/namespaces/tns/1535845694732" version="2.0">
     <xsl:param name="Start"/>
@@ -30,7 +30,7 @@ function activityExtension_10(map<xml> context) returns xml|error {
 }
 
 function activityExtension_8(map<xml> context) returns xml|error {
-    xml var0 = xml `<root></root>`;
+    xml var0 = context.get("End-input");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns2="/T1535753828744Converted/JsonSchema" version="2.0">
     <xsl:param name="QueryRecords"/>
@@ -58,7 +58,7 @@ function activityExtension_8(map<xml> context) returns xml|error {
 }
 
 function activityExtension_9(map<xml> context) returns xml|error {
-    xml var0 = xml `<root></root>`;
+    xml var0 = context.get("QueryRecords-input");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input" xmlns:tns1="http://www.example.com/namespaces/tns/1535845694732" version="2.0"><xsl:param name="Start"/><xsl:template name="JDBCQuery-input" match="/"><tns:jdbcQueryActivityInput><ssn><xsl:value-of select="$Start/root/tns1:ssn"/></ssn></tns:jdbcQueryActivityInput></xsl:template></xsl:stylesheet>`, context);
     string ssn = (var1/<ssn>/*).toString().trim();
@@ -75,7 +75,20 @@ function activityExtension_9(map<xml> context) returns xml|error {
     return var6;
 }
 
-function activityRunner_creditcheckservice_LookupDatabase(map<xml> cx) returns xml|error {
+function predicate_0(xml input) returns boolean {
+    return test(input, "string-length($QueryRecords/Record[1]/rating)>0");
+}
+
+function predicate_1(xml input) returns boolean {
+    return !test(input, "string-length($QueryRecords/Record[1]/rating)>0");
+}
+
+function receiveEvent(map<xml> context) returns xml|error {
+    addToContext(context, "Start", context.get("$input"));
+    return context.get("$input");
+}
+
+function scope_8ActivityRunner(map<xml> cx) returns xml|error {
     xml result0 = check receiveEvent(cx);
     xml result1 = check activityExtension_9(cx);
     xml result2;
@@ -94,36 +107,23 @@ function activityRunner_creditcheckservice_LookupDatabase(map<xml> cx) returns x
     return result4;
 }
 
-function errorHandler_creditcheckservice_LookupDatabase(error err, map<xml> cx) returns xml {
+function scope_8FaultHandler(error err, map<xml> cx) returns xml {
     panic err;
 }
 
-function predicate_0(xml input) returns boolean {
-    return test(input, "string-length($QueryRecords/Record[1]/rating)>0");
-}
-
-function predicate_1(xml input) returns boolean {
-    return !test(input, "string-length($QueryRecords/Record[1]/rating)>0");
-}
-
-function process_creditcheckservice_LookupDatabase(xml input, map<xml> params) returns xml {
+function scope_8ScopeFn(xml input, map<xml> params) returns xml {
     map<xml> context = {...params};
     addToContext(context, "$input", input);
-    xml|error result = activityRunner_creditcheckservice_LookupDatabase(context);
+    xml|error result = scope_8ActivityRunner(context);
     if result is error {
-        return errorHandler_creditcheckservice_LookupDatabase(result, context);
+        return scope_8FaultHandler(result, context);
     }
     return result;
 }
 
-function receiveEvent(map<xml> context) returns xml|error {
-    addToContext(context, "Start", context.get("$input"));
-    return context.get("$input");
-}
-
 function start_creditcheckservice_LookupDatabase(Element input, map<xml> params = {}) returns Response {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = process_creditcheckservice_LookupDatabase(inputXML, params);
+    xml xmlResult = scope_8ScopeFn(inputXML, params);
     Response result = convertToResponse(xmlResult);
     return result;
 }

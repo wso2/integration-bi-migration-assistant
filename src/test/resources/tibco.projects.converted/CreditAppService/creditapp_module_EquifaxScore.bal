@@ -40,7 +40,7 @@ service / on creditapp_module_EquifaxScore_listener {
 }
 
 function activityExtension_6(map<xml> context) returns xml|error {
-    xml var0 = xml `<root></root>`;
+    xml var0 = context.get("End-input");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
     <xsl:param name="post"/>
@@ -65,17 +65,6 @@ function activityExtension_6(map<xml> context) returns xml|error {
     </xsl:template>
 </xsl:stylesheet>`, context);
     return var1;
-}
-
-function activityRunner_creditapp_module_EquifaxScore(map<xml> cx) returns xml|error {
-    xml result0 = check receiveEvent_5(cx);
-    xml result1 = check invoke(cx);
-    xml result2 = check activityExtension_6(cx);
-    return result2;
-}
-
-function errorHandler_creditapp_module_EquifaxScore(error err, map<xml> cx) returns xml {
-    panic err;
 }
 
 function invoke(map<xml> context) returns xml|error {
@@ -123,24 +112,35 @@ function invoke(map<xml> context) returns xml|error {
     return var6;
 }
 
-function process_creditapp_module_EquifaxScore(xml input, map<xml> params) returns xml {
-    map<xml> context = {...params};
-    addToContext(context, "$input", input);
-    xml|error result = activityRunner_creditapp_module_EquifaxScore(context);
-    if result is error {
-        return errorHandler_creditapp_module_EquifaxScore(result, context);
-    }
-    return result;
-}
-
 function receiveEvent_5(map<xml> context) returns xml|error {
     addToContext(context, "Start", context.get("$input"));
     return context.get("$input");
 }
 
+function scope_1ActivityRunner(map<xml> cx) returns xml|error {
+    xml result0 = check receiveEvent_5(cx);
+    xml result1 = check invoke(cx);
+    xml result2 = check activityExtension_6(cx);
+    return result2;
+}
+
+function scope_1FaultHandler(error err, map<xml> cx) returns xml {
+    panic err;
+}
+
+function scope_1ScopeFn(xml input, map<xml> params) returns xml {
+    map<xml> context = {...params};
+    addToContext(context, "$input", input);
+    xml|error result = scope_1ActivityRunner(context);
+    if result is error {
+        return scope_1FaultHandler(result, context);
+    }
+    return result;
+}
+
 function start_creditapp_module_EquifaxScore(GiveNewSchemaNameHere input, map<xml> params = {}) returns SuccessSchema {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = process_creditapp_module_EquifaxScore(inputXML, params);
+    xml xmlResult = scope_1ScopeFn(inputXML, params);
     SuccessSchema result = convertToSuccessSchema(xmlResult);
     return result;
 }
