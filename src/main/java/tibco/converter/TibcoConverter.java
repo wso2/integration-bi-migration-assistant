@@ -18,9 +18,9 @@
 
 package tibco.converter;
 
+import cli.Main;
 import common.BallerinaModel;
 import common.CodeGenerator;
-import mule.MuleConverter;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import tibco.TibcoToBalConverter;
 
@@ -34,7 +34,7 @@ import java.util.logging.Level;
 public class TibcoConverter {
     public static void migrateTibco(String[] args) {
         if (args.length < 2) {
-            MuleConverter.logger.severe(
+            Main.logger.severe(
                     "Usage: java -jar integration-bi-migration-assistant --tibco <path to bwp file or project> " +
                             "[-o <output path>]");
             System.exit(1);
@@ -54,7 +54,7 @@ public class TibcoConverter {
             String targetPath = outputPath != null ? outputPath : inputPath + "_converted";
             migrateTibcoProject(inputPath.toString(), targetPath);
         } else {
-            MuleConverter.logger.severe("Invalid path: " + inputPath);
+            Main.logger.severe("Invalid path: " + inputPath);
             System.exit(1);
         }
     }
@@ -65,9 +65,9 @@ public class TibcoConverter {
         Path outputFilePath = Paths.get(outputPath);
         try {
             Files.writeString(outputFilePath, ballerinaCode);
-            MuleConverter.logger.info("Conversion successful. Output written to " + outputPath);
+            Main.logger.info("Conversion successful. Output written to " + outputPath);
         } catch (Exception e) {
-            MuleConverter.logger.log(Level.SEVERE, "Error writing output to file: " + outputPath, e);
+            Main.logger.log(Level.SEVERE, "Error writing output to file: " + outputPath, e);
             System.exit(1);
         }
     }
@@ -77,7 +77,7 @@ public class TibcoConverter {
         try {
             createTargetDirectoryIfNeeded(targetDir);
         } catch (IOException e) {
-            MuleConverter.logger.log(Level.SEVERE, "Error creating target directory: " + targetDir, e);
+            Main.logger.log(Level.SEVERE, "Error creating target directory: " + targetDir, e);
             System.exit(1);
         }
         TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext();
@@ -87,18 +87,18 @@ public class TibcoConverter {
             try {
                 writeTextDocument(result.module(), balPackage, textDocument, targetDir);
             } catch (IOException e) {
-                MuleConverter.logger.log(Level.SEVERE, "Failed to create output file" + textDocument.documentName(), e);
+                Main.logger.log(Level.SEVERE, "Failed to create output file" + textDocument.documentName(), e);
             }
         }
         try {
             addProjectArtifacts(cx, targetPath);
         } catch (IOException e) {
-            MuleConverter.logger.log(Level.SEVERE, "Error adding project artifacts", e);
+            Main.logger.log(Level.SEVERE, "Error adding project artifacts", e);
         }
         try {
             writeASTToFile(targetDir, "types.bal", result.types());
         } catch (IOException e) {
-            MuleConverter.logger.log(Level.SEVERE, "Error creating types files", e);
+            Main.logger.log(Level.SEVERE, "Error creating types files", e);
         }
     }
 
@@ -121,7 +121,7 @@ public class TibcoConverter {
             return;
         }
         Files.createDirectories(targetDir);
-        MuleConverter.logger.info("Created target directory: " + targetDir);
+        Main.logger.info("Created target directory: " + targetDir);
     }
 
     private static void addProjectArtifacts(TibcoToBalConverter.ProjectConversionContext cx, String targetPath)
@@ -147,6 +147,6 @@ public class TibcoConverter {
         }
 
         Files.writeString(tomlPath, tomlContent.toString());
-        MuleConverter.logger.info("Created Ballerina.toml file at: " + tomlPath);
+        Main.logger.info("Created Ballerina.toml file at: " + tomlPath);
     }
 }

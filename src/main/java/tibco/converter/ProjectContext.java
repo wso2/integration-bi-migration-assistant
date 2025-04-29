@@ -18,6 +18,7 @@
 
 package tibco.converter;
 
+import cli.Main;
 import common.BallerinaModel;
 import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Statement.Return;
@@ -73,7 +74,7 @@ public class ProjectContext {
     private int typeCount = 0;
 
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
-    private static final Logger logger = Logger.getLogger(ProjectContext.class.getName());
+    private static final Logger logger = Main.logger;
     private final Optional<TibcoToBalConverter.ProjectConversionContext> conversionContext;
     private final Map<String, String> generatedResources = new HashMap<>();
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();

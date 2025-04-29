@@ -21,11 +21,15 @@ package cli;
 import mule.MuleConverter;
 import tibco.converter.TibcoConverter;
 
+import java.util.logging.Logger;
+
 public class Main {
+
+    public static final Logger logger = Logger.getLogger(Main.class.getName());
 
     public static void main(String[] args) {
         if (args.length < 1) {
-            MuleConverter.logger.severe("Usage: java -jar integration-bi-migration-assistant.jar " +
+            logger.severe("Usage: java -jar integration-bi-migration-assistant.jar " +
                     "[-t|--tibco] <mule-or-tibco-xml-config-file-or-project-directory>");
             System.exit(1);
         }

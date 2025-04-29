@@ -18,6 +18,7 @@
 
 package tibco;
 
+import cli.Main;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -46,7 +47,7 @@ import java.util.stream.StreamSupport;
 
 public final class XmlToTibcoModelConverter {
 
-    private static final Logger logger = Logger.getLogger(XmlToTibcoModelConverter.class.getName());
+    private static final Logger logger = Main.logger;
 
     private XmlToTibcoModelConverter() {
     }

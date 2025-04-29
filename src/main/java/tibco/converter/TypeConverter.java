@@ -18,6 +18,7 @@
 
 package tibco.converter;
 
+import cli.Main;
 import common.BallerinaModel;
 import common.BallerinaModel.Expression.CheckPanic;
 import common.BallerinaModel.Expression.FunctionCall;
@@ -56,7 +57,7 @@ import static io.ballerina.xsd.core.XSDToRecord.generateNodes;
 
 class TypeConverter {
 
-    private static final Logger logger = Logger.getLogger(TypeConverter.class.getName());
+    private static final Logger logger = Main.logger;
     private TypeConverter() {
     }
 
