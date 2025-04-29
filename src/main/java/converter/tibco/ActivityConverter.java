@@ -60,18 +60,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static ballerina.BallerinaModel.Expression.CheckPanic;
-import static ballerina.BallerinaModel.Expression.FieldAccess;
-import static ballerina.BallerinaModel.Expression.MethodCall;
-import static ballerina.BallerinaModel.Expression.StringConstant;
-import static ballerina.BallerinaModel.Expression.TypeCast;
-import static ballerina.BallerinaModel.Expression.XMLTemplate;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static ballerina.BallerinaModel.Expression.*;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.*;
 import static converter.ConversionUtils.exprFrom;
 import static converter.ConversionUtils.stmtFrom;
 
@@ -134,23 +124,56 @@ final class ActivityConverter {
     }
 
     private static @NotNull List<Statement> convertForeach(ActivityContext cx, Activity.Foreach foreach) {
-        return convertEmptyAction(cx);
+        List<Statement> body = new ArrayList<>();
+        BallerinaModel.Expression init = convertValueSource(cx, foreach.startCounterValue(), body, INT);
+        BallerinaModel.Expression end = convertValueSource(cx, foreach.finalCounterValue(), body, INT);
+        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+        body.add(result);
+        Statement contextUpdate = addToContext(cx, new XMLTemplate("<root>${%s}</root>".formatted(foreach.counterName())), foreach.counterName());
+        String scopeFn = cx.processContext.analysisResult.getControlFlowFunctions(foreach.scope()).scopeFn();
+        body.add(stmtFrom("""
+                foreach int %1$s in %2$s ..< %3$s {
+                    %4$s
+                    %5$s = %6$s(%7$s);
+                }
+                """.formatted(foreach.counterName(), init, end, contextUpdate, result.ref(), scopeFn, cx.contextVarRef())));
+        body.add(new Return<>(result.ref()));
+        return body;
     }
 
     private static @NotNull List<Statement> convertAssign(ActivityContext cx, Activity.Assign assign) {
         List<Statement> body = new ArrayList<>();
-        BallerinaModel.Expression sourceExp = switch (assign.operation().from()) {
-            case Activity.Expression.XSLT xslt -> {
-                VarDeclStatment init = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
-                body.add(init);
-                yield xsltTransform(cx, init.ref(), xslt);
-            }
-            case Activity.Assign.Copy.VarRef varRef -> getFromContext(cx, varRef.name());
-        };
+        TibcoModel.ValueSource from = assign.operation().from();
+        BallerinaModel.Expression sourceExp = convertValueSource(cx, from, body, XML);
         VarDeclStatment source = new VarDeclStatment(XML, cx.getAnnonVarName(), sourceExp);
         body.add(source);
         body.add(addToContext(cx, source.ref(), assign.operation().to().name()));
         return body;
+    }
+
+    private static BallerinaModel.@NotNull Expression convertValueSource(ActivityContext cx, TibcoModel.ValueSource from,
+                                                                         List<Statement> body, BallerinaModel.TypeDesc expectedType) {
+        return switch (from) {
+            case Activity.Expression.XSLT xslt -> {
+                VarDeclStatment init = new VarDeclStatment(expectedType, cx.getAnnonVarName(), defaultEmptyXml());
+                body.add(init);
+                yield xsltTransform(cx, init.ref(), xslt);
+            }
+            case TibcoModel.ValueSource.VarRef varRef -> getFromContext(cx, varRef.name());
+            case Activity.Expression.XPath xPath -> {
+                VarDeclStatment result = new VarDeclStatment(expectedType, cx.getAnnonVarName(),
+                        new FunctionCall("xPath",
+                                List.of(ConversionUtils.fromXPath(xPath, cx.contextVarRef()))));
+                body.add(result);
+                yield result.ref();
+            }
+            case TibcoModel.ValueSource.Constant constant -> {
+                VarDeclStatment result = new VarDeclStatment(expectedType, cx.getAnnonVarName(),
+                        exprFrom(constant.value()));
+                body.add(result);
+                yield result.ref();
+            }
+        };
     }
 
     private static List<Statement> convertThrowActivity(ActivityContext cx, Throw throwActivity) {

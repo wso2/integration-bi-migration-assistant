@@ -256,7 +256,11 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static TibcoModel.Scope.Flow.Activity.Foreach parseForeach(Element element) {
-        return new TibcoModel.Scope.Flow.Activity.Foreach(element);
+        String counterName = element.getAttribute("counterName");
+        TibcoModel.ValueSource startCounterValue = parseValueSource(getFirstChildWithTag(element, "startCounterValue"));
+        TibcoModel.ValueSource finalCounterValue = parseValueSource(getFirstChildWithTag(element, "finalCounterValue"));
+        TibcoModel.Scope scope = parseScope(getFirstChildWithTag(element, "scope"));
+        return new TibcoModel.Scope.Flow.Activity.Foreach(counterName, scope, startCounterValue, finalCounterValue, element);
     }
 
     private static TibcoModel.Scope.Flow.Activity.Assign parseAssign(Element element) {
@@ -273,28 +277,30 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static TibcoModel.Scope.Flow.Activity.Assign.Copy parseCopy(Element element) {
-        TibcoModel.Scope.Flow.Activity.Assign.Copy.CopySource from = parseCopySource(getFirstChildWithTag(element, "from"));
-        TibcoModel.Scope.Flow.Activity.Assign.Copy.VarRef to = parseVarRef(getFirstChildWithTag(element, "to"));
+        TibcoModel.ValueSource from = parseValueSource(getFirstChildWithTag(element, "from"));
+        TibcoModel.ValueSource.VarRef to = parseVarRef(getFirstChildWithTag(element, "to"));
         return new TibcoModel.Scope.Flow.Activity.Assign.Copy(from, to);
     }
 
-    private static TibcoModel.Scope.Flow.Activity.Assign.Copy.CopySource parseCopySource(Element element) {
+    private static TibcoModel.ValueSource parseValueSource(Element element) {
         String variable = element.getAttribute("variable");
         if (variable.isEmpty()) {
             String expressionLanguage = element.getAttribute("expressionLanguage");
+            String expression = element.getTextContent();
             if (expressionLanguage.contains("xslt")) {
-                String expression = element.getTextContent();
                 return new TibcoModel.Scope.Flow.Activity.Expression.XSLT(expression);
+            } else if (expressionLanguage.contains("xpath")) {
+                return new TibcoModel.Scope.Flow.Activity.Expression.XPath(expression);
             } else {
-                throw new ParserException("Unsupported expression language: " + expressionLanguage, element);
+                return new TibcoModel.ValueSource.Constant(expression);
             }
         }
         return parseVarRef(element);
     }
 
-    private static TibcoModel.Scope.Flow.Activity.Assign.Copy.VarRef parseVarRef(Element element) {
+    private static TibcoModel.ValueSource.VarRef parseVarRef(Element element) {
         String variable = element.getAttribute("variable");
-        return new TibcoModel.Scope.Flow.Activity.Assign.Copy.VarRef(variable);
+        return new TibcoModel.ValueSource.VarRef(variable);
     }
 
     private static TibcoModel.Scope.Flow.Activity.NestedScope parseNestedScope(Element element) {

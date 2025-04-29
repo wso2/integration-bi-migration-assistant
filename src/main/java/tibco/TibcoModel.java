@@ -80,6 +80,16 @@ public class TibcoModel {
         }
     }
 
+    sealed public interface ValueSource {
+        record VarRef(String name) implements ValueSource {
+
+        }
+
+        record Constant(String value) implements ValueSource {
+
+        }
+    }
+
     public record Process(String name, Collection<Type> types, ProcessInfo processInfo,
                           Optional<ProcessInterface> processInterface,
                           Optional<ProcessTemplateConfigurations> processTemplateConfigurations,
@@ -396,11 +406,11 @@ public class TibcoModel {
 
                 sealed interface Expression {
 
-                    record XSLT(String expression) implements Expression, Assign.Copy.CopySource {
+                    record XSLT(String expression) implements Expression, ValueSource {
 
                     }
 
-                    record XPath(String expression) implements Expression, Source.Predicate {
+                    record XPath(String expression) implements Expression, Source.Predicate, ValueSource {
 
                     }
                 }
@@ -429,17 +439,13 @@ public class TibcoModel {
 
                 record Assign(List<Source> sources, Collection<Target> targets, Copy operation,
                               Element element) implements Activity, ActivityWithSources, ActivityWithTargets {
-                    public record Copy(CopySource from, VarRef to) {
-                        sealed public interface CopySource {
-                        }
+                    public record Copy(ValueSource from, ValueSource.VarRef to) {
 
-                        public record VarRef(String name) implements CopySource {
-
-                        }
                     }
                 }
 
-                record Foreach(Element element) implements Activity {
+                record Foreach(String counterName, Scope scope, ValueSource startCounterValue,
+                               ValueSource finalCounterValue, Element element) implements Activity, ActivityWithScope {
 
                 }
 
