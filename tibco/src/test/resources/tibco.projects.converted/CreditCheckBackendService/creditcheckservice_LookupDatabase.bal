@@ -88,7 +88,7 @@ function receiveEvent(map<xml> context) returns xml|error {
     return context.get("$input");
 }
 
-function scope_8ActivityRunner(map<xml> cx) returns xml|error {
+function scope_3ActivityRunner(map<xml> cx) returns xml|error {
     xml result0 = check receiveEvent(cx);
     xml result1 = check activityExtension_9(cx);
     xml result2;
@@ -107,23 +107,23 @@ function scope_8ActivityRunner(map<xml> cx) returns xml|error {
     return result4;
 }
 
-function scope_8FaultHandler(error err, map<xml> cx) returns xml {
+function scope_3FaultHandler(error err, map<xml> cx) returns xml {
     panic err;
 }
 
-function scope_8ScopeFn(xml input, map<xml> params) returns xml {
+function scope_3ScopeFn(xml input, map<xml> params) returns xml {
     map<xml> context = {...params};
     addToContext(context, "$input", input);
-    xml|error result = scope_8ActivityRunner(context);
+    xml|error result = scope_3ActivityRunner(context);
     if result is error {
-        return scope_8FaultHandler(result, context);
+        return scope_3FaultHandler(result, context);
     }
     return result;
 }
 
 function start_creditcheckservice_LookupDatabase(Element input, map<xml> params = {}) returns Response {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = scope_8ScopeFn(inputXML, params);
+    xml xmlResult = scope_3ScopeFn(inputXML, params);
     Response result = convertToResponse(xmlResult);
     return result;
 }

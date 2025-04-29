@@ -264,6 +264,7 @@ public class ModelAnalyser {
         cx.allocateLinkIfNeeded(link);
     }
 
+    // NOTE: any static field here may need to be explicitly cleared between tests
     private static class ProcessAnalysisContext {
 
         public int unhandledActivityCount = 0;
@@ -293,7 +294,7 @@ public class ModelAnalyser {
         private final Map<String, String> variableTypes = new HashMap<>();
 
         private final Map<TibcoModel.Scope, AnalysisResult.ControlFlowFunctions> controlFlowFunctions = new HashMap<>();
-        private static final Set<String> controlFlowFunctionNames = new HashSet<>();
+        private static final Set<String> controlFlowFunctionNames = new LinkedHashSet<>();
         private final Map<TibcoModel.Scope, Graph<AnalysisResult.GraphNode>> dependencyGraphs = new HashMap<>();
         private final Stack<TibcoModel.Scope> scopeStack = new Stack<>();
         final Stack<Boolean> inSequence = new Stack<>();

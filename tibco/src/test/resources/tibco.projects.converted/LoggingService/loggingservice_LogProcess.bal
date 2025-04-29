@@ -66,7 +66,7 @@ function receiveEvent(map<xml> context) returns xml|error {
     return context.get("$input");
 }
 
-function scope_4ActivityRunner(map<xml> cx) returns xml|error {
+function scopeActivityRunner(map<xml> cx) returns xml|error {
     xml result0 = check receiveEvent(cx);
     xml result1;
     if predicate_2(result0) {
@@ -91,23 +91,23 @@ function scope_4ActivityRunner(map<xml> cx) returns xml|error {
     return result5;
 }
 
-function scope_4FaultHandler(error err, map<xml> cx) returns xml {
+function scopeFaultHandler(error err, map<xml> cx) returns xml {
     panic err;
 }
 
-function scope_4ScopeFn(xml input, map<xml> params) returns xml {
+function scopeScopeFn(xml input, map<xml> params) returns xml {
     map<xml> context = {...params};
     addToContext(context, "$input", input);
-    xml|error result = scope_4ActivityRunner(context);
+    xml|error result = scopeActivityRunner(context);
     if result is error {
-        return scope_4FaultHandler(result, context);
+        return scopeFaultHandler(result, context);
     }
     return result;
 }
 
 function start_loggingservice_LogProcess(LogMessage input, map<xml> params = {}) returns result {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = scope_4ScopeFn(inputXML, params);
+    xml xmlResult = scopeScopeFn(inputXML, params);
     result result = convertToresult(xmlResult);
     return result;
 }

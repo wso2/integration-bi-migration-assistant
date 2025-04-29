@@ -83,7 +83,7 @@ function extActivity(map<xml> context) returns xml|error {
 }
 
 function pick(map<xml> context) returns xml|error {
-    return scope1_6ScopeFn(context);
+    return scope1ScopeFn(context);
 }
 
 function reply(map<xml> context) returns xml|error {
@@ -135,7 +135,7 @@ function reply_6(map<xml> context) returns xml|error {
     return var3;
 }
 
-function scope1_6ActivityRunner(map<xml> cx) returns xml|error {
+function scope1ActivityRunner(map<xml> cx) returns xml|error {
     xml result0 = check catchAll(cx);
     xml result1 = check extActivity(cx);
     xml result2 = check activityExtension(cx);
@@ -143,15 +143,15 @@ function scope1_6ActivityRunner(map<xml> cx) returns xml|error {
     return result3;
 }
 
-function scope1_6FaultHandler(error err, map<xml> cx) returns xml {
+function scope1FaultHandler(error err, map<xml> cx) returns xml {
     xml result0 = checkpanic catchAll(cx);
     return result0;
 }
 
-function scope1_6ScopeFn(map<xml> cx) returns xml {
-    xml|error result = scope1_6ActivityRunner(cx);
+function scope1ScopeFn(map<xml> cx) returns xml {
+    xml|error result = scope1ActivityRunner(cx);
     if result is error {
-        return scope1_6FaultHandler(result, cx);
+        return scope1FaultHandler(result, cx);
     }
     return result;
 }
@@ -174,28 +174,28 @@ function scope2ScopeFn(map<xml> cx) returns xml {
     return result;
 }
 
-function scope_5ActivityRunner(map<xml> cx) returns xml|error {
+function scopeActivityRunner(map<xml> cx) returns xml|error {
     xml result0 = check pick(cx);
     return result0;
 }
 
-function scope_5FaultHandler(error err, map<xml> cx) returns xml {
+function scopeFaultHandler(error err, map<xml> cx) returns xml {
     panic err;
 }
 
-function scope_5ScopeFn(xml input, map<xml> params) returns xml {
+function scopeScopeFn(xml input, map<xml> params) returns xml {
     map<xml> context = {...params};
     addToContext(context, "$input", input);
-    xml|error result = scope_5ActivityRunner(context);
+    xml|error result = scopeActivityRunner(context);
     if result is error {
-        return scope_5FaultHandler(result, context);
+        return scopeFaultHandler(result, context);
     }
     return result;
 }
 
 function start_creditcheckservice_Process(()|Request input, map<xml> params = {}) returns Response {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = scope_5ScopeFn(inputXML, params);
+    xml xmlResult = scopeScopeFn(inputXML, params);
     Response result = convertToResponse(xmlResult);
     return result;
 }

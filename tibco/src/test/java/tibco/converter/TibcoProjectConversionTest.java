@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 
@@ -47,14 +48,24 @@ public class TibcoProjectConversionTest {
 
             // Clear static state after test
             try {
-                Class<?> contextClass = Class.forName("tibco.analyzer.ModelAnalyser$ProcessAnalysisContext");
-                java.lang.reflect.Field field = contextClass.getDeclaredField("activityFunctionNames");
-                field.setAccessible(true);
-                ((Map<?, ?>) field.get(null)).clear();
+                cleanupModelAnalyzerContext();
             } catch (Exception e) {
                 throw new RuntimeException("Failed to clear activityFunctionNames", e);
             }
         }
+    }
+
+    private static void cleanupModelAnalyzerContext() throws ClassNotFoundException, NoSuchFieldException,
+            IllegalAccessException {
+        Class<?> contextClass = Class.forName("tibco.analyzer.ModelAnalyser$ProcessAnalysisContext");
+        java.lang.reflect.Field activityFunctionNames = contextClass.getDeclaredField("activityFunctionNames");
+        activityFunctionNames.setAccessible(true);
+        ((Map<?, ?>) activityFunctionNames.get(null)).clear();
+
+
+        java.lang.reflect.Field controlFlowFunctionNames = contextClass.getDeclaredField("controlFlowFunctionNames");
+        controlFlowFunctionNames.setAccessible(true);
+        ((Set<?>) controlFlowFunctionNames.get(null)).clear();
     }
 
     private void compareDirectories(Path actual, Path expected) throws IOException {

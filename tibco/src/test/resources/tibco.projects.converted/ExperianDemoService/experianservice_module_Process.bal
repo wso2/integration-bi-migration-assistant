@@ -72,7 +72,7 @@ function receiveEvent(map<xml> context) returns xml|error {
     return context.get("$input");
 }
 
-function scope_9ActivityRunner(map<xml> cx) returns xml|error {
+function scopeActivityRunner(map<xml> cx) returns xml|error {
     xml result0 = check receiveEvent(cx);
     xml result1 = check activityExtension_3(cx);
     xml result2 = check activityExtension_2(cx);
@@ -81,23 +81,23 @@ function scope_9ActivityRunner(map<xml> cx) returns xml|error {
     return result4;
 }
 
-function scope_9FaultHandler(error err, map<xml> cx) returns xml {
+function scopeFaultHandler(error err, map<xml> cx) returns xml {
     panic err;
 }
 
-function scope_9ScopeFn(xml input, map<xml> params) returns xml {
+function scopeScopeFn(xml input, map<xml> params) returns xml {
     map<xml> context = {...params};
     addToContext(context, "$input", input);
-    xml|error result = scope_9ActivityRunner(context);
+    xml|error result = scopeActivityRunner(context);
     if result is error {
-        return scope_9FaultHandler(result, context);
+        return scopeFaultHandler(result, context);
     }
     return result;
 }
 
 function start_experianservice_module_Process(InputElement input, map<xml> params = {}) returns ExperianResponseSchemaElement {
     xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = scope_9ScopeFn(inputXML, params);
+    xml xmlResult = scopeScopeFn(inputXML, params);
     ExperianResponseSchemaElement result = convertToExperianResponseSchemaElement(xmlResult);
     return result;
 }
