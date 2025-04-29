@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import dataweave.parser.DataWeaveBaseVisitor;
-import dataweave.parser.DataWeaveParser;
+import mule.dataweave.parser.DataWeaveBaseVisitor;
+import mule.dataweave.parser.DataWeaveParser;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.List;

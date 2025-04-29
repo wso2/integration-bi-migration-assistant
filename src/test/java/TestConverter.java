@@ -10,8 +10,8 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
-import static converter.MigrationTool.convertMuleProject;
-import static converter.MuleToBalConverter.convertStandaloneXMLFileToBallerina;
+import static mule.MuleConverter.convertMuleProject;
+import static mule.MuleToBalConverter.convertStandaloneXMLFileToBallerina;
 
 public class TestConverter {
 

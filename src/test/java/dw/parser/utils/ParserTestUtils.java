@@ -2,8 +2,8 @@ package dw.parser.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dataweave.parser.DataWeaveLexer;
-import dataweave.parser.DataWeaveParser;
+import mule.dataweave.parser.DataWeaveLexer;
+import mule.dataweave.parser.DataWeaveParser;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;

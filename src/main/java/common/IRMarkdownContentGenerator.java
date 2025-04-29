@@ -24,7 +24,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
 import java.util.logging.Logger;
 
-import static converter.MuleToBalConverter.getBallerinaModel;
+import static mule.MuleToBalConverter.getBallerinaModel;
 
 public class IRMarkdownContentGenerator {
 

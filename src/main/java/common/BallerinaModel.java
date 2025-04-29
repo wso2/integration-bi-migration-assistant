@@ -223,6 +223,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             NEVER("never"),
             NIL("()"),
             STRING("string"),
+            HANDLE("handle"),
             XML("xml");
 
             private final String name;
