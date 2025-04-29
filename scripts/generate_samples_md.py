@@ -4,7 +4,7 @@ import os
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 # Define the relative paths from the root directory
-relative_samples_dir = 'src/test/resources/blocks/mule3'
+relative_samples_dir = 'mule/src/test/resources/blocks/mule3'
 relative_output_md_path = 'samples/MULE_COMPONENT_SAMPLES.md'
 relative_readme_md_path = 'README.md'
 relative_dw_md_path = 'samples/MULE_DATAWEAVE_SAMPLES.md'
