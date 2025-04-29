@@ -21,11 +21,26 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          java-version: "21"
+          distribution: "temurin"
 
       - name: Build with Gradle
+        id: build
         env:
           packageUser: ${{ github.actor }}
           packagePAT: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew build
+        run: ./gradlew build || echo "::set-output name=build_failed::true"
+
+      - name: Upload HTML reports on failure
+        if: steps.build.outputs.build_failed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-reports
+          path: |
+            **/build/reports/**/index.html
+            **/build/reports/**/*.html
+          retention-days: 7
+      
+      - name: Fail workflow if build failed
+        if: steps.build.outputs.build_failed == 'true'
+        run: exit 1
