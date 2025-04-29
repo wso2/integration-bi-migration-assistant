@@ -60,8 +60,20 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static ballerina.BallerinaModel.Expression.*;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.*;
+import static ballerina.BallerinaModel.Expression.CheckPanic;
+import static ballerina.BallerinaModel.Expression.FieldAccess;
+import static ballerina.BallerinaModel.Expression.MethodCall;
+import static ballerina.BallerinaModel.Expression.StringConstant;
+import static ballerina.BallerinaModel.Expression.TypeCast;
+import static ballerina.BallerinaModel.Expression.TypeCheckExpression;
+import static ballerina.BallerinaModel.Expression.XMLTemplate;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.INT;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
+import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static converter.ConversionUtils.exprFrom;
 import static converter.ConversionUtils.stmtFrom;
 
@@ -129,14 +141,16 @@ final class ActivityConverter {
         BallerinaModel.Expression end = convertValueSource(cx, foreach.finalCounterValue(), body, INT);
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
         body.add(result);
-        Statement contextUpdate = addToContext(cx, new XMLTemplate("<root>${%s}</root>".formatted(foreach.counterName())), foreach.counterName());
+        Statement contextUpdate = addToContext(cx,
+                new XMLTemplate("<root>${%s}</root>".formatted(foreach.counterName())), foreach.counterName());
         String scopeFn = cx.processContext.analysisResult.getControlFlowFunctions(foreach.scope()).scopeFn();
         body.add(stmtFrom("""
                 foreach int %1$s in %2$s ..< %3$s {
                     %4$s
                     %5$s = %6$s(%7$s);
                 }
-                """.formatted(foreach.counterName(), init, end, contextUpdate, result.ref(), scopeFn, cx.contextVarRef())));
+                """.formatted(foreach.counterName(), init, end, contextUpdate, result.ref(), scopeFn,
+                cx.contextVarRef())));
         body.add(new Return<>(result.ref()));
         return body;
     }
@@ -151,8 +165,9 @@ final class ActivityConverter {
         return body;
     }
 
-    private static BallerinaModel.@NotNull Expression convertValueSource(ActivityContext cx, TibcoModel.ValueSource from,
-                                                                         List<Statement> body, BallerinaModel.TypeDesc expectedType) {
+    private static BallerinaModel.@NotNull Expression convertValueSource(
+            ActivityContext cx, TibcoModel.ValueSource from, List<Statement> body,
+            BallerinaModel.TypeDesc expectedType) {
         return switch (from) {
             case Activity.Expression.XSLT xslt -> {
                 VarDeclStatment init = new VarDeclStatment(expectedType, cx.getAnnonVarName(), defaultEmptyXml());
@@ -202,7 +217,8 @@ final class ActivityConverter {
         return convertActivityWithScope(cx, catchAll);
     }
 
-    private static @NotNull List<Statement> convertActivityWithScope(ActivityContext cx, Activity.ActivityWithScope activityWithScope) {
+    private static @NotNull List<Statement> convertActivityWithScope(
+            ActivityContext cx, Activity.ActivityWithScope activityWithScope) {
         String scopeFn = cx.processContext.analysisResult.getControlFlowFunctions(activityWithScope.scope()).scopeFn();
         return List.of(new Return<>(new FunctionCall(scopeFn, List.of(cx.contextVarRef()))));
     }
@@ -272,7 +288,7 @@ final class ActivityConverter {
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.RenderXML ignored -> emptyExtensionConversion(result);
             case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(result);
-            case ActivityExtension.Config.AccumulateEnd accumulateEnd -> createAccumulateEnd(cx, result, accumulateEnd,
+            case ActivityExtension.Config.AccumulateEnd accumulateEnd -> createAccumulateEnd(cx, accumulateEnd,
                     activityExtension.outVariableName().orElseThrow(
                             () -> new IllegalStateException("accumulate end should have output variable")));
         };
@@ -283,23 +299,30 @@ final class ActivityConverter {
         return body;
     }
 
-    private static ActivityExtensionConfigConversion createAccumulateEnd(ActivityContext cx, VariableReference result, ActivityExtension.Config.AccumulateEnd accumulateEnd, String resultName) {
+    private static ActivityExtensionConfigConversion createAccumulateEnd(
+            ActivityContext cx, ActivityExtension.Config.AccumulateEnd accumulateEnd,
+            String resultName) {
         AnalysisResult ar = cx.processContext.analysisResult;
         Activity source = ar.findActivity(accumulateEnd.activityName()).orElseThrow(() ->
                 new IllegalStateException("Cannot find activity: " + accumulateEnd.activityName()));
-        if (!(source instanceof Activity.ActivityWithOutput activityWithOutput && activityWithOutput.outVariableName().isPresent())) {
-            throw new IllegalStateException("Cannot find output variable for activity: " + accumulateEnd.activityName());
+        if (!(source instanceof Activity.ActivityWithOutput activityWithOutput &&
+                activityWithOutput.outVariableName().isPresent())) {
+            throw new IllegalStateException(
+                    "Cannot find output variable for activity: " + accumulateEnd.activityName());
         }
         List<Statement> body = new ArrayList<>();
         String outputVariable = activityWithOutput.outVariableName().get();
-        VarDeclStatment currentValue = new VarDeclStatment(UnionTypeDesc.of(XML, NIL), cx.getAnnonVarName(), exprFrom("%s[\"%s\"]".formatted(cx.contextVarRef(), resultName)));
+        VarDeclStatment currentValue = new VarDeclStatment(UnionTypeDesc.of(XML, NIL), cx.getAnnonVarName(),
+                exprFrom("%s[\"%s\"]".formatted(cx.contextVarRef(), resultName)));
         body.add(currentValue);
         VarDeclStatment addition = new VarDeclStatment(XML, cx.getAnnonVarName(), getFromContext(cx, outputVariable));
         body.add(addition);
         VarDeclStatment accumResult = new VarDeclStatment(XML, cx.getAnnonVarName());
         body.add(accumResult);
-        Statement.IfElseStatement accum = new Statement.IfElseStatement(new TypeCheckExpression(currentValue.ref(), XML),
-                List.of(new Statement.VarAssignStatement(accumResult.ref(), exprFrom("%s + %s".formatted(currentValue.ref(), addition.ref())))),
+        Statement.IfElseStatement accum = new Statement.IfElseStatement(
+                new TypeCheckExpression(currentValue.ref(), XML),
+                List.of(new Statement.VarAssignStatement(accumResult.ref(),
+                        exprFrom("%s + %s".formatted(currentValue.ref(), addition.ref())))),
                 List.of(),
                 List.of(new Statement.VarAssignStatement(accumResult.ref(), addition.ref())));
         body.add(accum);

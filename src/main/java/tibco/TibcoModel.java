@@ -80,7 +80,7 @@ public class TibcoModel {
         }
     }
 
-    sealed public interface ValueSource {
+    public sealed interface ValueSource {
         record VarRef(String name) implements ValueSource {
 
         }
@@ -424,8 +424,8 @@ public class TibcoModel {
 
                 record NestedScope(String name, List<Source> sources, Collection<Target> targets,
                                    Collection<Sequence> sequences, Collection<Flow> flows,
-                                   Collection<FaultHandler> faultHandlers,
-                                   Element element) implements Activity, ActivityWithSources, ActivityWithTargets, ActivityWithScope, ActivityWithName {
+                                   Collection<FaultHandler> faultHandlers, Element element) implements Activity,
+                        ActivityWithSources, ActivityWithTargets, ActivityWithScope, ActivityWithName {
                     public Scope scope() {
                         return new Scope(name, flows, sequences, faultHandlers);
                     }
@@ -510,8 +510,8 @@ public class TibcoModel {
 
                 record ExtActivity(Optional<Expression> expression, String inputVariable, String outputVariable,
                                    List<Source> sources, List<Target> targets, List<InputBinding> inputBindings,
-                                   CallProcess callProcess,
-                                   Element element) implements Activity, ActivityWithSources, ActivityWithTargets, ActivityWithOutput {
+                                   CallProcess callProcess, Element element) implements Activity,
+                        ActivityWithSources, ActivityWithTargets, ActivityWithOutput {
 
                     public ExtActivity {
                         assert expression != null;
@@ -533,10 +533,10 @@ public class TibcoModel {
                 }
 
                 record ActivityExtension(Optional<String> name, Optional<String> inputVariable,
-                                         Optional<String> outputVariable,
-                                         Collection<Target> targets, List<Source> sources,
-                                         List<InputBinding> inputBindings, Config config, Element element)
-                        implements Activity, ActivityWithTargets, ActivityWithSources, ActivityWithName, ActivityWithOutput {
+                                         Optional<String> outputVariable, Collection<Target> targets,
+                                         List<Source> sources, List<InputBinding> inputBindings, Config config,
+                                         Element element) implements Activity, ActivityWithTargets, ActivityWithSources,
+                        ActivityWithName, ActivityWithOutput {
 
                     @Override
                     public Optional<String> getName() {

@@ -54,7 +54,8 @@ public final class AnalysisResult {
                    Map<TibcoModel.Process, Map<String, String>> variableTypes,
                    Map<TibcoModel.Scope, Graph<GraphNode>> dependencyGraphs,
                    Map<TibcoModel.Scope, ControlFlowFunctions> controlFlowFunctions,
-                   Map<TibcoModel.Process, Collection<TibcoModel.Scope>> scopes, Map<String, TibcoModel.Scope.Flow.Activity> activityByName) {
+                   Map<TibcoModel.Process, Collection<TibcoModel.Scope>> scopes,
+                   Map<String, TibcoModel.Scope.Flow.Activity> activityByName) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.activityData = activityData;
