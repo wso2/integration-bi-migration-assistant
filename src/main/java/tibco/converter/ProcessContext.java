@@ -39,7 +39,7 @@ import static common.BallerinaModel.Expression;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static common.BallerinaModel.TypeDesc.BuiltinType.UnionTypeDesc;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
-import static mule.ConversionUtils.exprFrom;
+import static common.ConversionUtils.exprFrom;
 
 public class ProcessContext implements ContextWithFile {
 

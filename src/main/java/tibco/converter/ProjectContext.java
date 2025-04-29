@@ -48,7 +48,7 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.JSON;
 import static common.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
-import static mule.ConversionUtils.exprFrom;
+import static common.ConversionUtils.exprFrom;
 import static tibco.converter.Library.HTTP;
 import static tibco.converter.Library.IO;
 import static tibco.converter.Library.JDBC;

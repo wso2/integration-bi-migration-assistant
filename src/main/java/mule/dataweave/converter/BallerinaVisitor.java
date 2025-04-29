@@ -37,7 +37,7 @@ import java.util.Optional;
 import static mule.Constants.BAL_HANDLE_TYPE;
 import static mule.Constants.BAL_INT_TYPE;
 import static mule.Constants.BAL_STRING_TYPE;
-import static mule.ConversionUtils.typeFrom;
+import static common.ConversionUtils.typeFrom;
 
 public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 

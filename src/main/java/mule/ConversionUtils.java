@@ -18,7 +18,6 @@
 
 package mule;
 
-import common.BallerinaModel.TypeDesc.BallerinaType;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import io.ballerina.compiler.syntax.tree.SyntaxInfo;
@@ -40,9 +39,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import static common.BallerinaModel.Expression.BallerinaExpression;
 import static common.BallerinaModel.ModuleTypeDef;
-import static common.BallerinaModel.Statement.BallerinaStatement;
 import static mule.MELConverter.convertMELToBal;
 
 public class ConversionUtils {
@@ -315,15 +312,4 @@ public class ConversionUtils {
         }
     }
 
-    public static BallerinaExpression exprFrom(String expr) {
-        return new BallerinaExpression(expr);
-    }
-
-    public static BallerinaStatement stmtFrom(String stmt) {
-        return new BallerinaStatement(stmt);
-    }
-
-    public static BallerinaType typeFrom(String type) {
-        return new BallerinaType(type);
-    }
 }

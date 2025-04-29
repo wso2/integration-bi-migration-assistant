@@ -25,7 +25,7 @@ import common.BallerinaModel.TypeDesc.BallerinaType;
 import java.util.Collections;
 import java.util.List;
 
-import static mule.ConversionUtils.typeFrom;
+import static common.ConversionUtils.typeFrom;
 
 public class Constants {
 

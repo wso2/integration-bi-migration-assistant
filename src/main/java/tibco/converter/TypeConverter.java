@@ -51,7 +51,7 @@ import java.util.stream.Stream;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
-import static mule.ConversionUtils.exprFrom;
+import static common.ConversionUtils.exprFrom;
 import static io.ballerina.xsd.core.XSDToRecord.generateNodes;
 
 class TypeConverter {

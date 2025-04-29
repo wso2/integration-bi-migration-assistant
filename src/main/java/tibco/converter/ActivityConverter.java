@@ -60,22 +60,22 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static ballerina.BallerinaModel.Expression.CheckPanic;
-import static ballerina.BallerinaModel.Expression.FieldAccess;
-import static ballerina.BallerinaModel.Expression.MethodCall;
-import static ballerina.BallerinaModel.Expression.StringConstant;
-import static ballerina.BallerinaModel.Expression.TypeCast;
-import static ballerina.BallerinaModel.Expression.TypeCheckExpression;
-import static ballerina.BallerinaModel.Expression.XMLTemplate;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.INT;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
-import static converter.ConversionUtils.exprFrom;
-import static converter.ConversionUtils.stmtFrom;
+import static common.BallerinaModel.Expression.CheckPanic;
+import static common.BallerinaModel.Expression.FieldAccess;
+import static common.BallerinaModel.Expression.MethodCall;
+import static common.BallerinaModel.Expression.StringConstant;
+import static common.BallerinaModel.Expression.TypeCast;
+import static common.BallerinaModel.Expression.TypeCheckExpression;
+import static common.BallerinaModel.Expression.XMLTemplate;
+import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
+import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
+import static common.BallerinaModel.TypeDesc.BuiltinType.INT;
+import static common.BallerinaModel.TypeDesc.BuiltinType.JSON;
+import static common.BallerinaModel.TypeDesc.BuiltinType.NIL;
+import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
+import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static common.ConversionUtils.exprFrom;
+import static common.ConversionUtils.stmtFrom;
 
 final class ActivityConverter {
 
