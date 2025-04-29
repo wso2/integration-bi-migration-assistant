@@ -18,7 +18,6 @@
 
 package tibco.converter;
 
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import common.BallerinaModel;
 import common.BallerinaModel.Expression;
 import common.BallerinaModel.Expression.BinaryLogical;
@@ -38,13 +37,14 @@ import common.BallerinaModel.Statement.Return;
 import common.BallerinaModel.Statement.VarAssignStatement;
 import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc;
-import tibco.TibcoToBalConverter;
-import tibco.analyzer.AnalysisResult;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Resource;
 import tibco.TibcoModel.Scope.Flow.Activity;
 import tibco.TibcoModel.Scope.Flow.Activity.Expression.XPath;
+import tibco.TibcoToBalConverter;
+import tibco.analyzer.AnalysisResult;
 
 import java.util.ArrayList;
 import java.util.Collection;

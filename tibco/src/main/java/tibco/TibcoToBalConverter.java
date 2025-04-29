@@ -89,12 +89,14 @@ public class TibcoToBalConverter {
             TibcoToBalConverter::getXSDFiles, XmlToTibcoModelConverter::parseSchema);
     private static final ParsingUnit<TibcoModel.Resource.JDBCResource> JDBC_RESOURCE_PARSING_UNIT = new ParsingUnit<>(
             TibcoToBalConverter::getJDBCResourceFiles, XmlToTibcoModelConverter::parseJDBCResource);
-    private static final ParsingUnit<TibcoModel.Resource.HTTPConnectionResource> HTTP_CONN_RESOURCE_PARSING_UNIT = new ParsingUnit<>(
-            TibcoToBalConverter::getHTTPConnectionResourceFiles,
-            XmlToTibcoModelConverter::parseHTTPConnectionResource);
-    private static final ParsingUnit<TibcoModel.Resource.HTTPClientResource> HTTP_CLIENT_RESOURCE_PARSING_UNIT = new ParsingUnit<>(
-            TibcoToBalConverter::getHTTPClientResourceFiles,
-            XmlToTibcoModelConverter::parseHTTPClientResource);
+    private static final ParsingUnit<TibcoModel.Resource.HTTPConnectionResource> HTTP_CONN_RESOURCE_PARSING_UNIT =
+            new ParsingUnit<>(
+                    TibcoToBalConverter::getHTTPConnectionResourceFiles,
+                    XmlToTibcoModelConverter::parseHTTPConnectionResource);
+    private static final ParsingUnit<TibcoModel.Resource.HTTPClientResource> HTTP_CLIENT_RESOURCE_PARSING_UNIT =
+            new ParsingUnit<>(
+                    TibcoToBalConverter::getHTTPClientResourceFiles,
+                    XmlToTibcoModelConverter::parseHTTPClientResource);
 
     private record ParsingUnit<E>(FileFinder fileFinder, Function<Element, E> parsingFn) {
 
