@@ -18,19 +18,19 @@
 
 package converter.tibco;
 
-import ballerina.BallerinaModel;
-import ballerina.BallerinaModel.Action.RemoteMethodCallAction;
-import ballerina.BallerinaModel.Expression.Check;
-import ballerina.BallerinaModel.Expression.FunctionCall;
-import ballerina.BallerinaModel.Expression.Trap;
-import ballerina.BallerinaModel.Expression.VariableReference;
-import ballerina.BallerinaModel.Statement;
-import ballerina.BallerinaModel.Statement.CallStatement;
-import ballerina.BallerinaModel.Statement.Comment;
-import ballerina.BallerinaModel.Statement.Return;
-import ballerina.BallerinaModel.Statement.VarDeclStatment;
-import ballerina.BallerinaModel.TypeDesc.StreamTypeDesc;
-import ballerina.BallerinaModel.TypeDesc.UnionTypeDesc;
+import common.BallerinaModel;
+import common.BallerinaModel.Action.RemoteMethodCallAction;
+import common.BallerinaModel.Expression.Check;
+import common.BallerinaModel.Expression.FunctionCall;
+import common.BallerinaModel.Expression.Trap;
+import common.BallerinaModel.Expression.VariableReference;
+import common.BallerinaModel.Statement;
+import common.BallerinaModel.Statement.CallStatement;
+import common.BallerinaModel.Statement.Comment;
+import common.BallerinaModel.Statement.Return;
+import common.BallerinaModel.Statement.VarDeclStatment;
+import common.BallerinaModel.TypeDesc.StreamTypeDesc;
+import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import converter.tibco.analyzer.AnalysisResult;
 import converter.tibco.xslt.IgnoreRootWrapper;
 import converter.tibco.xslt.ReplaceDotAccessWithXPath;

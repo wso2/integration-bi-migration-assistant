@@ -18,14 +18,14 @@
 
 package converter.tibco;
 
-import ballerina.BallerinaModel;
+import common.BallerinaModel;
 import tibco.TibcoModel;
 
 import java.util.List;
 import java.util.Optional;
 
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
+import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 
 public class ActivityContext {
 

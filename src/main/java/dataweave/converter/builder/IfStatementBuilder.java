@@ -1,8 +1,8 @@
 package dataweave.converter.builder;
 
-import ballerina.BallerinaModel;
-import ballerina.BallerinaModel.Statement.ElseIfClause;
-import ballerina.BallerinaModel.Statement.IfElseStatement;
+import common.BallerinaModel;
+import common.BallerinaModel.Statement.ElseIfClause;
+import common.BallerinaModel.Statement.IfElseStatement;
 
 import java.util.ArrayList;
 import java.util.List;

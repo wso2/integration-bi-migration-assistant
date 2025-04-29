@@ -1,8 +1,8 @@
 package converter;
 
-import ballerina.BallerinaModel.TypeDesc.BallerinaType;
-import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc;
-import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
+import common.BallerinaModel.TypeDesc.BallerinaType;
+import common.BallerinaModel.TypeDesc.RecordTypeDesc;
+import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import io.ballerina.compiler.syntax.tree.SyntaxInfo;
 import org.w3c.dom.Element;
 
@@ -22,9 +22,9 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import static ballerina.BallerinaModel.Expression.BallerinaExpression;
-import static ballerina.BallerinaModel.ModuleTypeDef;
-import static ballerina.BallerinaModel.Statement.BallerinaStatement;
+import static common.BallerinaModel.Expression.BallerinaExpression;
+import static common.BallerinaModel.ModuleTypeDef;
+import static common.BallerinaModel.Statement.BallerinaStatement;
 import static converter.MELConverter.convertMELToBal;
 
 public class ConversionUtils {

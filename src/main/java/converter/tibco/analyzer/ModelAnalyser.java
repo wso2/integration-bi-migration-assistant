@@ -38,7 +38,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 
 public class ModelAnalyser {
 

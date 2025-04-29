@@ -1,7 +1,7 @@
 package dataweave.converter;
 
-import ballerina.BallerinaModel;
-import ballerina.BallerinaModel.Statement.BallerinaStatement;
+import common.BallerinaModel;
+import common.BallerinaModel.Statement.BallerinaStatement;
 import converter.Constants;
 import converter.ConversionUtils;
 import converter.MuleToBalConverter;

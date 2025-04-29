@@ -1,4 +1,22 @@
-package ballerina;
+/*
+ *  Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com). All Rights Reserved.
+ *
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
+
+package common;
 
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
@@ -24,18 +42,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
-import static ballerina.BallerinaModel.Function;
-import static ballerina.BallerinaModel.Import;
-import static ballerina.BallerinaModel.Listener;
-import static ballerina.BallerinaModel.Module;
-import static ballerina.BallerinaModel.ModuleTypeDef;
-import static ballerina.BallerinaModel.ModuleVar;
-import static ballerina.BallerinaModel.ObjectField;
-import static ballerina.BallerinaModel.Parameter;
-import static ballerina.BallerinaModel.Resource;
-import static ballerina.BallerinaModel.Service;
-import static ballerina.BallerinaModel.Statement;
-import static ballerina.BallerinaModel.TextDocument;
+import static common.BallerinaModel.Function;
+import static common.BallerinaModel.Import;
+import static common.BallerinaModel.Listener;
+import static common.BallerinaModel.Module;
+import static common.BallerinaModel.ModuleTypeDef;
+import static common.BallerinaModel.ModuleVar;
+import static common.BallerinaModel.ObjectField;
+import static common.BallerinaModel.Parameter;
+import static common.BallerinaModel.Resource;
+import static common.BallerinaModel.Service;
+import static common.BallerinaModel.Statement;
+import static common.BallerinaModel.TextDocument;
 
 public class CodeGenerator {
     private final BallerinaModel ballerinaModel;

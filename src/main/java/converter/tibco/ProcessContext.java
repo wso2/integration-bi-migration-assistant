@@ -18,8 +18,8 @@
 
 package converter.tibco;
 
-import ballerina.BallerinaModel;
-import ballerina.BallerinaModel.Statement.VarDeclStatment;
+import common.BallerinaModel;
+import common.BallerinaModel.Statement.VarDeclStatment;
 import converter.tibco.analyzer.AnalysisResult;
 import converter.tibco.analyzer.ModelAnalyser;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
@@ -35,10 +35,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import static ballerina.BallerinaModel.Expression;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.UnionTypeDesc;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static common.BallerinaModel.Expression;
+import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
+import static common.BallerinaModel.TypeDesc.BuiltinType.UnionTypeDesc;
+import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static converter.ConversionUtils.exprFrom;
 
 public class ProcessContext implements ContextWithFile {

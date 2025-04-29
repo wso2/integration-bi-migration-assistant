@@ -18,7 +18,7 @@
 
 package converter.tibco.analyzer;
 
-import ballerina.BallerinaModel;
+import common.BallerinaModel;
 import tibco.TibcoModel;
 
 import java.util.Collection;

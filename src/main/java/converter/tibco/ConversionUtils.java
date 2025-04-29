@@ -18,9 +18,9 @@
 
 package converter.tibco;
 
-import ballerina.BallerinaModel;
-import ballerina.BallerinaModel.Expression;
-import ballerina.BallerinaModel.Statement.VarDeclStatment;
+import common.BallerinaModel;
+import common.BallerinaModel.Expression;
+import common.BallerinaModel.Statement.VarDeclStatment;
 import org.w3c.dom.Element;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL;

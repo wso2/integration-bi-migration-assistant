@@ -18,17 +18,17 @@
 
 package converter.tibco;
 
-import ballerina.BallerinaModel;
-import ballerina.BallerinaModel.Expression.CheckPanic;
-import ballerina.BallerinaModel.Expression.FunctionCall;
-import ballerina.BallerinaModel.Expression.TypeCheckExpression;
-import ballerina.BallerinaModel.Expression.VariableReference;
-import ballerina.BallerinaModel.Expression.XMLTemplate;
-import ballerina.BallerinaModel.Statement.IfElseStatement;
-import ballerina.BallerinaModel.Statement.Return;
-import ballerina.BallerinaModel.Statement.VarDeclStatment;
-import ballerina.BallerinaModel.TypeDesc.MapTypeDesc;
-import ballerina.CodeGenerator;
+import common.BallerinaModel;
+import common.BallerinaModel.Expression.CheckPanic;
+import common.BallerinaModel.Expression.FunctionCall;
+import common.BallerinaModel.Expression.TypeCheckExpression;
+import common.BallerinaModel.Expression.VariableReference;
+import common.BallerinaModel.Expression.XMLTemplate;
+import common.BallerinaModel.Statement.IfElseStatement;
+import common.BallerinaModel.Statement.Return;
+import common.BallerinaModel.Statement.VarDeclStatment;
+import common.BallerinaModel.TypeDesc.MapTypeDesc;
+import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.text.TextDocuments;
 import io.ballerina.xsd.core.response.NodeResponse;
@@ -49,8 +49,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
+import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static converter.ConversionUtils.exprFrom;
 import static io.ballerina.xsd.core.XSDToRecord.generateNodes;
 

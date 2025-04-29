@@ -1,15 +1,33 @@
+/*
+ *  Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com). All Rights Reserved.
+ *
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
+
 package converter;
 
-import ballerina.BallerinaModel;
-import ballerina.BallerinaModel.ObjectField;
-import ballerina.BallerinaModel.OnFailClause;
-import ballerina.BallerinaModel.Statement.DoStatement;
-import ballerina.BallerinaModel.Statement.ElseIfClause;
-import ballerina.BallerinaModel.Statement.NamedWorkerDecl;
-import ballerina.BallerinaModel.TypeBindingPattern;
-import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc;
-import ballerina.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
-import ballerina.CodeGenerator;
+import common.BallerinaModel;
+import common.BallerinaModel.ObjectField;
+import common.BallerinaModel.OnFailClause;
+import common.BallerinaModel.Statement.DoStatement;
+import common.BallerinaModel.Statement.ElseIfClause;
+import common.BallerinaModel.Statement.NamedWorkerDecl;
+import common.BallerinaModel.TypeBindingPattern;
+import common.BallerinaModel.TypeDesc.RecordTypeDesc;
+import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
+import common.CodeGenerator;
 import converter.MuleXMLNavigator.MuleElement;
 import dataweave.converter.DWConversionStats;
 import dataweave.converter.DWReader;
@@ -39,23 +57,23 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import static ballerina.BallerinaModel.Expression.BallerinaExpression;
-import static ballerina.BallerinaModel.Statement.BallerinaStatement;
-import static ballerina.BallerinaModel.BlockFunctionBody;
-import static ballerina.BallerinaModel.DefaultPackage;
-import static ballerina.BallerinaModel.Function;
-import static ballerina.BallerinaModel.Statement.IfElseStatement;
-import static ballerina.BallerinaModel.Import;
-import static ballerina.BallerinaModel.Listener;
-import static ballerina.BallerinaModel.ListenerType;
-import static ballerina.BallerinaModel.Module;
-import static ballerina.BallerinaModel.ModuleTypeDef;
-import static ballerina.BallerinaModel.ModuleVar;
-import static ballerina.BallerinaModel.Parameter;
-import static ballerina.BallerinaModel.Resource;
-import static ballerina.BallerinaModel.Service;
-import static ballerina.BallerinaModel.Statement;
-import static ballerina.BallerinaModel.TextDocument;
+import static common.BallerinaModel.Expression.BallerinaExpression;
+import static common.BallerinaModel.Statement.BallerinaStatement;
+import static common.BallerinaModel.BlockFunctionBody;
+import static common.BallerinaModel.DefaultPackage;
+import static common.BallerinaModel.Function;
+import static common.BallerinaModel.Statement.IfElseStatement;
+import static common.BallerinaModel.Import;
+import static common.BallerinaModel.Listener;
+import static common.BallerinaModel.ListenerType;
+import static common.BallerinaModel.Module;
+import static common.BallerinaModel.ModuleTypeDef;
+import static common.BallerinaModel.ModuleVar;
+import static common.BallerinaModel.Parameter;
+import static common.BallerinaModel.Resource;
+import static common.BallerinaModel.Service;
+import static common.BallerinaModel.Statement;
+import static common.BallerinaModel.TextDocument;
 import static converter.Constants.BAL_ANYDATA_TYPE;
 import static converter.Constants.BAL_ERROR_TYPE;
 import static converter.Constants.FUNC_NAME_ASYC_TEMPLATE;

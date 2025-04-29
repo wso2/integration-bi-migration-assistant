@@ -18,8 +18,8 @@
 
 package converter.tibco;
 
-import ballerina.BallerinaModel;
-import ballerina.CodeGenerator;
+import common.BallerinaModel;
+import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;

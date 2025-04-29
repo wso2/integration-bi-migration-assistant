@@ -18,10 +18,10 @@
 
 package converter.tibco;
 
-import ballerina.BallerinaModel;
-import ballerina.BallerinaModel.Expression.FunctionCall;
-import ballerina.BallerinaModel.Statement.Return;
-import ballerina.BallerinaModel.TypeDesc.UnionTypeDesc;
+import common.BallerinaModel;
+import common.BallerinaModel.Expression.FunctionCall;
+import common.BallerinaModel.Statement.Return;
+import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import tibco.TibcoModel;
 
@@ -37,15 +37,15 @@ import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
-import static ballerina.BallerinaModel.Expression.TernaryExpression;
-import static ballerina.BallerinaModel.Expression.VariableReference;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.ERROR;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.JSON;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.NIL;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static common.BallerinaModel.Expression.TernaryExpression;
+import static common.BallerinaModel.Expression.VariableReference;
+import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
+import static common.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
+import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
+import static common.BallerinaModel.TypeDesc.BuiltinType.JSON;
+import static common.BallerinaModel.TypeDesc.BuiltinType.NIL;
+import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
+import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static converter.ConversionUtils.exprFrom;
 import static converter.tibco.Library.HTTP;
 import static converter.tibco.Library.IO;

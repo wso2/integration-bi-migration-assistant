@@ -18,11 +18,11 @@
 
 package converter.tibco;
 
-import ballerina.BallerinaModel.Expression;
-import ballerina.BallerinaModel.Expression.CheckPanic;
-import ballerina.BallerinaModel.Expression.NewExpression;
-import ballerina.BallerinaModel.Expression.StringConstant;
-import ballerina.BallerinaModel.ModuleVar;
+import common.BallerinaModel.Expression;
+import common.BallerinaModel.Expression.CheckPanic;
+import common.BallerinaModel.Expression.NewExpression;
+import common.BallerinaModel.Expression.StringConstant;
+import common.BallerinaModel.ModuleVar;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Resource.HTTPClientResource;
 import tibco.TibcoModel.Resource.HTTPConnectionResource;
@@ -35,7 +35,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static ballerina.BallerinaModel.TypeDesc.BuiltinType.STRING;
+import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 
 final class ResourceConvertor {
 

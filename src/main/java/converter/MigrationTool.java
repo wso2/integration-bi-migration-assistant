@@ -1,7 +1,7 @@
 package converter;
 
-import ballerina.BallerinaModel;
-import ballerina.CodeGenerator;
+import common.BallerinaModel;
+import common.CodeGenerator;
 import converter.tibco.ConversionResult;
 import converter.tibco.TibcoToBalConverter;
 import dataweave.converter.DWConversionStats;
