@@ -29,19 +29,18 @@ dependencies {
     implementation group: 'org.ballerinalang', name: 'formatter-core', version: "${ballerinaLangVersion}"
     implementation group: 'org.ballerinalang', name: 'ballerina-tools-api', version: "${ballerinaLangVersion}"
     implementation group: 'org.ballerinalang', name: 'ballerina-cli', version: "${ballerinaLangVersion}"
-
-    // fasterxml
+    // misc
+    implementation group: 'org.antlr', name: 'antlr4', version: "${antlrVersion}"
+    implementation group: 'info.picocli', name: 'picocli', version: "${picocliVersion}"
+    
+    // Jackson dependencies
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${fasterXmlVersion}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: "${fasterXmlVersion}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${fasterXmlVersion}"
     implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8', version: "${fasterXmlVersion}"
 
-    // misc
-    implementation group: 'org.antlr', name: 'antlr4', version: "${antlrVersion}"
-    implementation group: 'info.picocli', name: 'picocli', version: "${picocliVersion}"
-
-    // TIBCO dependencies
-    implementation group: 'io.ballerina', name: 'xsd-core', version: "${xsdCoreVersion}"
+    // common
+    implementation project(path: ':common')
 
     // Dev dependencies
     implementation group: 'org.jetbrains', name: 'annotations', version: "${jetbrainsAnnotationsVersion}"
@@ -59,7 +58,7 @@ checkstyleMain
 
 spotbugs {
     reportLevel = 'high'
-    excludeFilter = file('spotbugs-exclude.xml')
+    excludeFilter = file("${rootProject.projectDir}/spotbugs-exclude.xml")
 }
 
 tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
@@ -75,23 +74,8 @@ test {
     }
 }
 
-application {
-    mainClassName = 'converter.MigrationTool'
-}
-
-jar {
-    manifest {
-        attributes(
-                'Main-Class': 'converter.MigrationTool'
-        )
-    }
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
 build {
+    dependsOn ":common:build"
     dependsOn checkstyleMain
     dependsOn spotbugsMain
 }

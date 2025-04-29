@@ -8,6 +8,7 @@ plugins {
 group 'com.wso2'
 version '0.1.0-SNAPSHOT'
 
+
 repositories {
     mavenLocal()
     mavenCentral()
@@ -36,13 +37,6 @@ dependencies {
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${fasterXmlVersion}"
     implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8', version: "${fasterXmlVersion}"
 
-    // misc
-    implementation group: 'org.antlr', name: 'antlr4', version: "${antlrVersion}"
-    implementation group: 'info.picocli', name: 'picocli', version: "${picocliVersion}"
-
-    // TIBCO dependencies
-    implementation group: 'io.ballerina', name: 'xsd-core', version: "${xsdCoreVersion}"
-
     // Dev dependencies
     implementation group: 'org.jetbrains', name: 'annotations', version: "${jetbrainsAnnotationsVersion}"
     testImplementation group: 'org.testng', name: 'testng', version: "${testngVersion}"
@@ -59,7 +53,7 @@ checkstyleMain
 
 spotbugs {
     reportLevel = 'high'
-    excludeFilter = file('spotbugs-exclude.xml')
+    excludeFilter = file("${rootProject.projectDir}/spotbugs-exclude.xml")
 }
 
 tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
@@ -69,36 +63,7 @@ tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
     }
 }
 
-test {
-    useTestNG() {
-        suites 'src/test/resources/testng.xml'
-    }
-}
-
-application {
-    mainClassName = 'converter.MigrationTool'
-}
-
-jar {
-    manifest {
-        attributes(
-                'Main-Class': 'converter.MigrationTool'
-        )
-    }
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
 build {
     dependsOn checkstyleMain
     dependsOn spotbugsMain
-}
-
-// Apply a specific Java toolchain to ease working on different environments.
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
 }
