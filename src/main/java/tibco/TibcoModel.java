@@ -582,6 +582,14 @@ public class TibcoModel {
                             }
                         }
 
+                        record Mapper() implements Config {
+
+                            @Override
+                            public ExtensionKind kind() {
+                                return ExtensionKind.MAPPER;
+                            }
+                        }
+
                         record SQL(String sharedResourcePropertyName, String query,
                                    List<Column> resultColumns, List<SQLParameter> parameters) implements Config {
 
@@ -649,6 +657,7 @@ public class TibcoModel {
                             LOG,
                             RENDER_XML,
                             SEND_HTTP_RESPONSE,
+                            MAPPER,
                             SQL;
 
                             public static ExtensionKind fromTypeId(String typeId) {
@@ -661,6 +670,7 @@ public class TibcoModel {
                                     case "bw.file.write" -> FILE_WRITE;
                                     case "bw.generalactivities.log" -> LOG;
                                     case "bw.xml.renderxml" -> RENDER_XML;
+                                    case "bw.generalactivities.mapper" -> MAPPER;
                                     default -> patternMatch(typeId);
                                 };
                             }
