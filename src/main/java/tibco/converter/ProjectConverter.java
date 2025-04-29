@@ -27,8 +27,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Logger;
 
 public class ProjectConverter {
+
+    public static final Logger LOGGER = Logger.getLogger(ProjectConverter.class.getName());
     public static ConversionResult convertProject(
             TibcoToBalConverter.ProjectConversionContext conversionContext, Collection<TibcoModel.Process> processes,
             Collection<TibcoModel.Type.Schema> types, Collection<TibcoModel.Resource.JDBCResource> jdbcResources,

@@ -18,7 +18,6 @@
 
 package tibco;
 
-import cli.Main;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -28,6 +27,7 @@ import tibco.TibcoModel;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.AccumulateEnd;
 import tibco.converter.ConversionUtils;
+import tibco.converter.ProjectConverter;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,7 +47,7 @@ import java.util.stream.StreamSupport;
 
 public final class XmlToTibcoModelConverter {
 
-    private static final Logger logger = Main.LOGGER;
+    private static final Logger logger = ProjectConverter.LOGGER;
 
     private XmlToTibcoModelConverter() {
     }

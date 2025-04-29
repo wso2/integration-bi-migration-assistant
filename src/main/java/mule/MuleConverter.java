@@ -18,7 +18,6 @@
 
 package mule;
 
-import cli.Main;
 import common.BallerinaModel;
 import common.CodeGenerator;
 import io.ballerina.cli.cmd.NewCommand;
@@ -35,6 +34,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Logger;
 
 import static mule.HtmlReportWriter.writeHtmlReport;
 import static mule.MuleToBalConverter.convertProjectXMLFileToBallerina;
@@ -47,6 +47,7 @@ public class MuleConverter {
     public static final String BAL_PROJECT_SUFFIX = "-ballerina";
     public static final String MIGRATION_REPORT_NAME = "migration_summary.html";
     private static final PrintStream OUT = System.out;
+    private static final Logger logger = Logger.getLogger(MuleConverter.class.getName());
 
     public static void migrateMuleProject(String[] args) {
         String inputPath = args[0];
@@ -65,9 +66,9 @@ public class MuleConverter {
         Path outputPath = Paths.get(outputBalFilePath);
         try {
             Files.writeString(outputPath, ballerinaCode);
-            Main.LOGGER.info("Conversion successful. Output written to " + outputBalFilePath);
+            logger.info("Conversion successful. Output written to " + outputBalFilePath);
         } catch (Exception e) {
-            Main.LOGGER.severe("Error writing to file: " + e.getMessage());
+            logger.severe("Error writing to file: " + e.getMessage());
             System.exit(1);
         }
     }
@@ -91,7 +92,7 @@ public class MuleConverter {
         collectXmlFiles(sourceFolderPath.toFile(), xmlFiles);
 
         if (xmlFiles.isEmpty()) {
-            Main.LOGGER.severe("No XML files found in the directory: " + sourceFolderPath);
+            logger.severe("No XML files found in the directory: " + sourceFolderPath);
             System.exit(1);
         }
 
@@ -110,7 +111,7 @@ public class MuleConverter {
         genAndWriteInternalTypesBalFile(sharedProjectData, targetFolderPath);
 
         Path reportFilePath = Paths.get(targetFolderPath, MIGRATION_REPORT_NAME);
-        int conversionPercentage = writeHtmlReport(Main.LOGGER, reportFilePath,
+        int conversionPercentage = writeHtmlReport(logger, reportFilePath,
                 muleXMLNavigator.getXmlCompatibleTagCountMap(), muleXMLNavigator.getXmlIncompatibleTagCountMap(),
                 muleXMLNavigator.getDwConversionStats());
         printConversionPercentage(conversionPercentage);
@@ -133,14 +134,14 @@ public class MuleConverter {
         try {
             syntaxTree = convertProjectXMLFileToBallerina(muleXMLNavigator, sharedProjectData, xmlFile.getPath());
         } catch (Exception e) {
-            Main.LOGGER.severe(String.format("Error converting the file: %s%n%s", xmlFile.getName(), e.getMessage()));
+            logger.severe(String.format("Error converting the file: %s%n%s", xmlFile.getName(), e.getMessage()));
             return;
         }
 
         try {
             Files.writeString(targetFilePath, syntaxTree.toSourceCode());
         } catch (IOException e) {
-            Main.LOGGER.severe("Error writing to file: " + e.getMessage());
+            logger.severe("Error writing to file: " + e.getMessage());
         }
     }
 
@@ -165,7 +166,7 @@ public class MuleConverter {
         try {
             Files.writeString(targetFilePath, syntaxTree.toSourceCode());
         } catch (IOException e) {
-            Main.LOGGER.severe("Error writing to file: " + e.getMessage());
+            logger.severe("Error writing to file: " + e.getMessage());
         }
     }
 
@@ -200,7 +201,7 @@ public class MuleConverter {
             try {
                 Files.createDirectories(path);
             } catch (IOException e) {
-                Main.LOGGER.severe("Error creating directories: " + path);
+                logger.severe("Error creating directories: " + path);
             }
         }
     }

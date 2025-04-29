@@ -18,9 +18,9 @@
 
 package tibco.analyzer;
 
-import cli.Main;
 import tibco.TibcoModel;
 import tibco.converter.ConversionUtils;
+import tibco.converter.ProjectConverter;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,7 +43,7 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 
 public class ModelAnalyser {
 
-    private static final Logger logger = Main.LOGGER;
+    private static final Logger logger = ProjectConverter.LOGGER;
 
     private ModelAnalyser() {
 
