@@ -19,26 +19,18 @@
 package cli;
 
 import mule.MuleConverter;
-import tibco.converter.TibcoConverter;
 
 import java.util.logging.Logger;
 
-public class Main {
+public class MuleCli {
 
-    private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(MuleCli.class.getName());
 
     public static void main(String[] args) {
         if (args.length < 1) {
-            LOGGER.severe("Usage: java -jar integration-bi-migration-assistant.jar " +
-                    "[-t|--tibco] <mule-or-tibco-xml-config-file-or-project-directory>");
+            LOGGER.severe("Usage: java -jar mule-migration-assistant.jar <mule-xml-config-file-or-project-directory>");
             System.exit(1);
         }
-        boolean isTibcoMigration = args[0].equals("--tibco") || args[0].equals("-t");
-        if (isTibcoMigration) {
-            TibcoConverter.migrateTibco(args);
-        } else {
-            MuleConverter.migrateMuleProject(args);
-        }
+        MuleConverter.migrateMuleProject(args);
     }
-
 }

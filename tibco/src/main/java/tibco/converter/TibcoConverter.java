@@ -36,16 +36,16 @@ public class TibcoConverter {
     private static final Logger logger = ProjectConverter.LOGGER;
 
     public static void migrateTibco(String[] args) {
-        if (args.length < 2) {
+        if (args.length < 1) {
             logger.severe(
-                    "Usage: java -jar integration-bi-migration-assistant --tibco <path to bwp file or project> " +
+                    "Usage: java -jar integration-bi-migration-assistant <path to bwp file or project> " +
                             "[-o <output path>]");
             System.exit(1);
         }
-        Path inputPath = Paths.get(args[1]);
+        Path inputPath = Paths.get(args[0]);
         String outputPath = null;
-        if (args.length >= 4 && args[2].equals("-o")) {
-            outputPath = args[3];
+        if (args.length >= 3 && args[1].equals("-o")) {
+            outputPath = args[2];
         }
 
         if (Files.isRegularFile(inputPath)) {

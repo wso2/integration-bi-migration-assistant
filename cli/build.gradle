@@ -60,10 +60,12 @@ test {
     }
 }
 
+// Keep this for backward compatibility
 application {
-    mainClassName = 'converter.MigrationTool'
+    mainClassName = 'cli.Main'
 }
 
+// Default jar task - we'll keep it for backward compatibility
 jar {
     manifest {
         attributes(
@@ -74,6 +76,43 @@ jar {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveFileName = 'integration-bi-migration-assistant.jar'
+}
+
+// Create a separate JAR for Mule migrations
+task muleJar(type: Jar) {
+    manifest {
+        attributes(
+                'Main-Class': 'cli.MuleCli'
+        )
+    }
+    from {
+        sourceSets.main.output
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveBaseName = 'mule-migration-assistant'
+    archiveVersion = project.version
+}
+
+// Create a separate JAR for Tibco migrations
+task tibcoJar(type: Jar) {
+    manifest {
+        attributes(
+                'Main-Class': 'cli.TibcoCli'
+        )
+    }
+    from {
+        sourceSets.main.output
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveBaseName = 'tibco-migration-assistant'
+    archiveVersion = project.version
 }
 
 build {
@@ -81,6 +120,8 @@ build {
     dependsOn ":mule:build"
     dependsOn checkstyleMain
     dependsOn spotbugsMain
+    dependsOn muleJar
+    dependsOn tibcoJar
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
