@@ -31,7 +31,7 @@ service / on creditcheckservice_Process_listener {
 }
 
 function activityExtension(map<xml> context) returns xml|error {
-    xml var0 = xml `<root></root>`;
+    xml var0 = context.get("LogSuccess-input");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" version="2.0"><xsl:template name="LogSuccess-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'Invoation Successful'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`, context);
     LogParametersType var2 = convertToLogParametersType(var1);
@@ -40,7 +40,7 @@ function activityExtension(map<xml> context) returns xml|error {
 }
 
 function activityExtension_5(map<xml> context) returns xml|error {
-    xml var0 = xml `<root></root>`;
+    xml var0 = context.get("LogFailure-input");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" version="2.0"><xsl:template name="LogFailure-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'Invocation Failed'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`, context);
     LogParametersType var2 = convertToLogParametersType(var1);
