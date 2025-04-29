@@ -22,6 +22,7 @@ import ballerina.BallerinaModel;
 import ballerina.BallerinaModel.Expression;
 import ballerina.BallerinaModel.Statement.VarDeclStatment;
 import org.w3c.dom.Element;
+import tibco.TibcoModel;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL;
 
 import java.io.StringWriter;
@@ -104,6 +105,29 @@ public final class ConversionUtils {
         Expression.BallerinaExpression templateExpr = exprFrom(sb.toString());
         return new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE), cx.getAnnonVarName(),
                 templateExpr);
+    }
+
+    public static Expression.XMLTemplate fromXPath(TibcoModel.Scope.Flow.Activity.Expression.XPath xPath,
+                                                   Expression.VariableReference context) {
+        String xPathStr = xPath.expression();
+        StringBuilder sb = new StringBuilder();
+        char[] chars = xPathStr.toCharArray();
+        int i = 0;
+        while (i < chars.length) {
+            if (chars[i] == '$') {
+                StringBuilder accum = new StringBuilder();
+                i++;
+                while (i < chars.length && (Character.isLetterOrDigit(chars[i]) || chars[i] == '_')) {
+                    accum.append(chars[i]);
+                    i++;
+                }
+                sb.append("${%s}".formatted(accum));
+            } else {
+                sb.append(chars[i]);
+                i++;
+            }
+        }
+        return new Expression.XMLTemplate(sb.toString());
     }
 
     public static String elementToString(Element element) {
