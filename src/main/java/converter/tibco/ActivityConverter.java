@@ -247,7 +247,8 @@ final class ActivityConverter {
 
     private static List<Statement> convertActivityExtension(ActivityContext cx, ActivityExtension activityExtension) {
         List<Statement> body = new ArrayList<>();
-        VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+        VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                getFromContext(cx, activityExtension.inputVariable()));
         body.add(inputDecl);
         List<VarDeclStatment> inputBindings =
                 convertInputBindings(cx, inputDecl.ref(), activityExtension.inputBindings());
@@ -268,6 +269,7 @@ final class ActivityConverter {
             case ActivityExtension.Config.FileWrite fileWrite -> createFileWriteOperation(cx, result, fileWrite);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.RenderXML ignored -> emptyExtensionConversion(result);
+            case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(result);
         };
         body.addAll(conversion.body());
         activityExtension.outputVariable()
