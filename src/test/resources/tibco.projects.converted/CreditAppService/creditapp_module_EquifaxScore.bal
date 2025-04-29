@@ -40,7 +40,7 @@ service / on creditapp_module_EquifaxScore_listener {
 }
 
 function activityExtension_6(map<xml> context) returns xml|error {
-    xml var0 = xml `<root></root>`;
+    xml var0 = context.get("End-input");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" version="2.0">
     <xsl:param name="post"/>

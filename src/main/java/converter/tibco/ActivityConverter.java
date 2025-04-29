@@ -249,7 +249,7 @@ final class ActivityConverter {
         List<Statement> body = new ArrayList<>();
         VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 activityExtension.inputVariable()
-                        .map(name -> (BallerinaModel.Expression) getFromContext(cx, cx.functionName()))
+                        .map(name -> (BallerinaModel.Expression) getFromContext(cx, name))
                         .orElseGet(ActivityConverter::defaultEmptyXml));
         body.add(inputDecl);
         List<VarDeclStatment> inputBindings =
