@@ -18,6 +18,7 @@
 
 package tibco.converter;
 
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import common.BallerinaModel;
 import common.BallerinaModel.Expression;
 import common.BallerinaModel.Expression.BinaryLogical;
@@ -39,7 +40,6 @@ import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Resource;
@@ -71,22 +71,21 @@ public class ProcessConverter {
     }
 
     static ConversionResult convertProject(TibcoToBalConverter.ProjectConversionContext conversionContext,
-                                           Collection<TibcoModel.Process> processes,
-                                           Collection<TibcoModel.Type.Schema> types,
-                                           Collection<Resource.JDBCResource> jdbcResources,
-                                           Collection<Resource.HTTPConnectionResource> httpConnectionResources,
-                                           Set<Resource.HTTPClientResource> httpClientResources) {
+            Collection<TibcoModel.Process> processes,
+            Collection<TibcoModel.Type.Schema> types,
+            Collection<Resource.JDBCResource> jdbcResources,
+            Collection<Resource.HTTPConnectionResource> httpConnectionResources,
+            Set<Resource.HTTPClientResource> httpClientResources) {
         ProjectContext cx = new ProjectContext(conversionContext);
         convertResources(cx, jdbcResources, httpConnectionResources, httpClientResources);
 
         record ProcessResult(TibcoModel.Process process, TypeConversionResult result) {
 
         }
-        List<ProcessResult> results =
-                processes.stream()
-                        .map(process -> new ProcessResult(process,
-                                convertTypes(cx.getProcessContext(process), process)))
-                        .toList();
+        List<ProcessResult> results = processes.stream()
+                .map(process -> new ProcessResult(process,
+                        convertTypes(cx.getProcessContext(process), process)))
+                .toList();
         List<TibcoModel.Type.Schema> schemas = new ArrayList<>(types);
         for (TibcoModel.Process each : processes) {
             accumSchemas(each, schemas);
@@ -111,8 +110,8 @@ public class ProcessConverter {
     }
 
     private static void convertResources(ProjectContext cx, Collection<Resource.JDBCResource> jdbcResources,
-                                         Collection<Resource.HTTPConnectionResource> httpConnectionResources,
-                                         Set<Resource.HTTPClientResource> httpClientResources) {
+            Collection<Resource.HTTPConnectionResource> httpConnectionResources,
+            Set<Resource.HTTPClientResource> httpClientResources) {
         for (Resource.JDBCResource resource : jdbcResources) {
             ResourceConvertor.convertJDBCResource(cx, resource);
         }
@@ -142,7 +141,7 @@ public class ProcessConverter {
     }
 
     static BallerinaModel.TextDocument convertBody(ProcessContext cx, TibcoModel.Process process,
-                                                   TypeConversionResult result) {
+            TypeConversionResult result) {
         process.variables().stream()
                 .filter(each -> each instanceof TibcoModel.Variable.PropertyVariable)
                 .forEach(var -> cx.addResourceVariable((TibcoModel.Variable.PropertyVariable) var));
@@ -172,7 +171,7 @@ public class ProcessConverter {
     }
 
     private static void addTransitionPredicates(ProcessContext cx, Activity.ActivityWithSources activity,
-                                                List<BallerinaModel.Function> accum) {
+            List<BallerinaModel.Function> accum) {
         Expression prev = null;
         VariableReference value = new VariableReference("input");
         for (Activity.Source source : activity.sources()) {
@@ -202,8 +201,8 @@ public class ProcessConverter {
     }
 
     private static BallerinaModel.Function getTransitionPredicateFn(ProcessContext cx,
-                                                                    Activity.Source.Predicate predicate,
-                                                                    Expression expr) {
+            Activity.Source.Predicate predicate,
+            Expression expr) {
         return new BallerinaModel.Function(cx.predicateFunction(predicate),
                 List.of(new Parameter("input", XML)), BOOLEAN, List.of(new Return<>(expr)));
     }
@@ -276,7 +275,8 @@ public class ProcessConverter {
         generateScopeFnBody(controlFlowFunctions, context.ref(), body);
         return new BallerinaModel.Function(name,
                 List.of(new Parameter(inputVarName, XML),
-                        new Parameter(paramsVarName, new TypeDesc.MapTypeDesc(XML))), XML,
+                        new Parameter(paramsVarName, new TypeDesc.MapTypeDesc(XML))),
+                XML,
                 body);
     }
 
@@ -303,7 +303,7 @@ public class ProcessConverter {
     }
 
     private static void generateScopeFnBody(AnalysisResult.ControlFlowFunctions controlFlowFunctions,
-                                            VariableReference context, List<Statement> body) {
+            VariableReference context, List<Statement> body) {
         VarDeclStatment result = new VarDeclStatment(TypeDesc.UnionTypeDesc.of(XML, ERROR), "result",
                 new FunctionCall(controlFlowFunctions.activityRunner(), List.of(context)));
         body.add(result);
@@ -312,13 +312,12 @@ public class ProcessConverter {
     }
 
     private static void handleErrorResult(VarDeclStatment result, VariableReference context,
-                                          String errorHandlerFn, List<Statement> body) {
+            String errorHandlerFn, List<Statement> body) {
         TypeCheckExpression typeCheck = new TypeCheckExpression(result.ref(), ERROR);
-        Statement.IfElseStatement ifElse =
-                new Statement.IfElseStatement(typeCheck,
-                        List.of(new Return<>(
-                                new FunctionCall(errorHandlerFn, List.of(result.ref(), context)))),
-                        List.of(), List.of());
+        Statement.IfElseStatement ifElse = new Statement.IfElseStatement(typeCheck,
+                List.of(new Return<>(
+                        new FunctionCall(errorHandlerFn, List.of(result.ref(), context)))),
+                List.of(), List.of());
         body.add(ifElse);
     }
 
@@ -344,7 +343,7 @@ public class ProcessConverter {
     }
 
     private static BallerinaModel.@NotNull Function generateErrorFlowFunction(ProcessContext cx,
-                                                                              TibcoModel.Scope scope) {
+            TibcoModel.Scope scope) {
         Parameter context = new Parameter("cx", new TypeDesc.MapTypeDesc(XML));
         AnalysisResult analysisResult = cx.analysisResult;
         Collection<TibcoModel.Scope.FaultHandler> faultHandlers = scope.faultHandlers();
@@ -372,8 +371,8 @@ public class ProcessConverter {
     }
 
     private static VariableReference generateActivityFlowFunctionInner(ProcessContext cx, List<Activity> activities,
-                                                                       Function<FunctionCall, Expression> callHandler,
-                                                                       List<Statement> body, VariableReference input) {
+            Function<FunctionCall, Expression> callHandler,
+            List<Statement> body, VariableReference input) {
         VariableReference context = new VariableReference("cx");
         Map<Activity, VariableReference> activityResult = new HashMap<>();
         for (int i = 0; i < activities.size(); i++) {
@@ -387,11 +386,11 @@ public class ProcessConverter {
     }
 
     private static VarDeclStatment generateActivityFunctionCall(ProcessContext cx,
-                                                                Map<Activity, VariableReference> activityResults,
-                                                                Activity activity, String varName,
-                                                                Function<FunctionCall, Expression> callHandler,
-                                                                List<Statement> body, VariableReference input,
-                                                                VariableReference context) {
+            Map<Activity, VariableReference> activityResults,
+            Activity activity, String varName,
+            Function<FunctionCall, Expression> callHandler,
+            List<Statement> body, VariableReference input,
+            VariableReference context) {
         AnalysisResult analysisResult = cx.analysisResult;
         record TransitionFunctionData(VariableReference inputVar, String functionName) {
 
@@ -424,15 +423,15 @@ public class ProcessConverter {
     }
 
     private static VarDeclStatment activityFunctionCallResult(Activity activity, String varName,
-                                                              Function<FunctionCall, Expression> callHandler,
-                                                              VariableReference context,
-                                                              AnalysisResult analysisResult) {
+            Function<FunctionCall, Expression> callHandler,
+            VariableReference context,
+            AnalysisResult analysisResult) {
         return new VarDeclStatment(XML, varName, callHandler.apply(
                 activityFunctionCall(activity, context, analysisResult)));
     }
 
     private static @NotNull FunctionCall activityFunctionCall(Activity activity, VariableReference context,
-                                                              AnalysisResult analysisResult) {
+            AnalysisResult analysisResult) {
         return new FunctionCall(analysisResult.from(activity).functionName(), List.of(context));
     }
 }

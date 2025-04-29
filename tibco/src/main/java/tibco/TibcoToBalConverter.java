@@ -57,8 +57,7 @@ public class TibcoToBalConverter {
             throw new RuntimeException("Error while parsing the XML file: " + xmlFilePath, e);
         }
         TibcoModel.Process process = XmlToTibcoModelConverter.parseProcess(root);
-        BallerinaModel.Module ballerinaModule =
-                ProcessConverter.convertProcess(process);
+        BallerinaModel.Module ballerinaModule = ProcessConverter.convertProcess(process);
         BallerinaModel ballerinaModel = new BallerinaModel(new BallerinaModel.DefaultPackage("tibco", "sample", "0.1"),
                 List.of(ballerinaModule));
         return new CodeGenerator(ballerinaModel).generateBalCode();
@@ -84,18 +83,18 @@ public class TibcoToBalConverter {
                 httpClientResources);
     }
 
-    private static final ParsingUnit<TibcoModel.Process> PROCESS_PARSING_UNIT =
-            new ParsingUnit<>(TibcoToBalConverter::getBwpFiles, XmlToTibcoModelConverter::parseProcess);
-    private static final ParsingUnit<TibcoModel.Type.Schema> XSD_PARSING_UNIT =
-            new ParsingUnit<>(TibcoToBalConverter::getXSDFiles, XmlToTibcoModelConverter::parseSchema);
-    private static final ParsingUnit<TibcoModel.Resource.JDBCResource> JDBC_RESOURCE_PARSING_UNIT =
-            new ParsingUnit<>(TibcoToBalConverter::getJDBCResourceFiles, XmlToTibcoModelConverter::parseJDBCResource);
-    private static final ParsingUnit<TibcoModel.Resource.HTTPConnectionResource> HTTP_CONN_RESOURCE_PARSING_UNIT =
-            new ParsingUnit<>(TibcoToBalConverter::getHTTPConnectionResourceFiles,
-                    XmlToTibcoModelConverter::parseHTTPConnectionResource);
-    private static final ParsingUnit<TibcoModel.Resource.HTTPClientResource> HTTP_CLIENT_RESOURCE_PARSING_UNIT =
-            new ParsingUnit<>(TibcoToBalConverter::getHTTPClientResourceFiles,
-                    XmlToTibcoModelConverter::parseHTTPClientResource);
+    private static final ParsingUnit<TibcoModel.Process> PROCESS_PARSING_UNIT = new ParsingUnit<>(
+            TibcoToBalConverter::getBwpFiles, XmlToTibcoModelConverter::parseProcess);
+    private static final ParsingUnit<TibcoModel.Type.Schema> XSD_PARSING_UNIT = new ParsingUnit<>(
+            TibcoToBalConverter::getXSDFiles, XmlToTibcoModelConverter::parseSchema);
+    private static final ParsingUnit<TibcoModel.Resource.JDBCResource> JDBC_RESOURCE_PARSING_UNIT = new ParsingUnit<>(
+            TibcoToBalConverter::getJDBCResourceFiles, XmlToTibcoModelConverter::parseJDBCResource);
+    private static final ParsingUnit<TibcoModel.Resource.HTTPConnectionResource> HTTP_CONN_RESOURCE_PARSING_UNIT = new ParsingUnit<>(
+            TibcoToBalConverter::getHTTPConnectionResourceFiles,
+            XmlToTibcoModelConverter::parseHTTPConnectionResource);
+    private static final ParsingUnit<TibcoModel.Resource.HTTPClientResource> HTTP_CLIENT_RESOURCE_PARSING_UNIT = new ParsingUnit<>(
+            TibcoToBalConverter::getHTTPClientResourceFiles,
+            XmlToTibcoModelConverter::parseHTTPClientResource);
 
     private record ParsingUnit<E>(FileFinder fileFinder, Function<Element, E> parsingFn) {
 
@@ -167,6 +166,7 @@ public class TibcoToBalConverter {
                 version = "2.0.206"
                 groupId = "com.h2database"
                 """);
+
         public final String dependencyParam;
 
         JavaDependencies(String dependencyParam) {
