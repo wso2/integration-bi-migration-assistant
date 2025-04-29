@@ -108,8 +108,3 @@ return {namespace: namespace, name: name};
 }
 return {namespace: (), name: name};
 }
-
-function test(xml input, string xpath) returns boolean {
-    // TODO: support XPath
-    return false;
-}

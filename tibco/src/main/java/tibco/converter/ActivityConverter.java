@@ -179,8 +179,7 @@ final class ActivityConverter {
             case TibcoModel.ValueSource.VarRef varRef -> getFromContext(cx, varRef.name());
             case Activity.Expression.XPath xPath -> {
                 VarDeclStatment result = new VarDeclStatment(expectedType, cx.getAnnonVarName(),
-                        new FunctionCall("xPath",
-                                List.of(ConversionUtils.fromXPath(xPath, cx.contextVarRef()))));
+                        ConversionUtils.xPath(cx.processContext, defaultEmptyXml(), cx.contextVarRef(), xPath));
                 body.add(result);
                 yield result.ref();
             }

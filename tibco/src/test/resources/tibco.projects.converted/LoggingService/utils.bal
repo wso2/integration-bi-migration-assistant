@@ -46,8 +46,3 @@ function logWrapper(LogParametersType input) {
         }
     }
 }
-
-function test(xml input, string xpath) returns boolean {
-    // TODO: support XPath
-    return false;
-}

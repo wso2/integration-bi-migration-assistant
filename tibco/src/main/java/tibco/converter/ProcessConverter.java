@@ -181,7 +181,7 @@ public class ProcessConverter {
             }
             switch (predicate.get()) {
                 case XPath xPath -> {
-                    Expression expr = expr(cx, value, xPath);
+                    Expression expr = ConversionUtils.xPath(cx, value, new VariableReference("cx"), xPath);
                     prev = expr;
                     accum.add(getTransitionPredicateFn(cx, xPath, expr));
                 }
@@ -194,17 +194,12 @@ public class ProcessConverter {
         }
     }
 
-    private static Expression expr(ProcessContext cx, VariableReference value, XPath predicate) {
-        String predicateTestFn = cx.getPredicateTestFunction();
-        StringConstant xPathExpr = new StringConstant(ConversionUtils.escapeString(predicate.expression()));
-        return new FunctionCall(predicateTestFn, List.of(value, xPathExpr));
-    }
-
     private static BallerinaModel.Function getTransitionPredicateFn(ProcessContext cx,
             Activity.Source.Predicate predicate,
             Expression expr) {
         return new BallerinaModel.Function(cx.predicateFunction(predicate),
-                List.of(new Parameter("input", XML)), BOOLEAN, List.of(new Return<>(expr)));
+                List.of(new Parameter("input", XML), new Parameter("cx", new TypeDesc.MapTypeDesc(XML))),
+                BOOLEAN, List.of(new Return<>(expr)));
     }
 
     static TypeConversionResult convertTypes(ProcessContext cx, TibcoModel.Process process) {
@@ -398,7 +393,7 @@ public class ProcessConverter {
         List<FunctionCall> predicates = analysisResult.transitionConditions(activity)
                 .map(data -> new TransitionFunctionData(activityResults.get(data.activity()),
                         cx.predicateFunction(data.predicate())))
-                .map(data -> new FunctionCall(data.functionName, List.of(data.inputVar)))
+                .map(data -> new FunctionCall(data.functionName, List.of(data.inputVar, context)))
                 .toList();
 
         if (predicates.isEmpty()) {

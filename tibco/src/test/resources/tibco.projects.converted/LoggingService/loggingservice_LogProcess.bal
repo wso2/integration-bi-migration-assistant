@@ -1,3 +1,4 @@
+import ballerina/data.xmldata;
 import ballerina/io;
 import ballerina/xslt;
 
@@ -49,16 +50,16 @@ function activityExtension_5(map<xml> context) returns xml|error {
     return var1;
 }
 
-function predicate_0(xml input) returns boolean {
-    return test(input, "matches($Start/ns0:handler, \"console\")");
+function predicate_0(xml input, map<xml> cx) returns boolean {
+    return xmldata:transform(input, `matches(${cx.get("Start")}/ns0:handler, "console")`);
 }
 
-function predicate_1(xml input) returns boolean {
-    return test(input, "matches($Start/ns0:handler, \"file\") and matches($Start/ns0:formatter, \"text\")");
+function predicate_1(xml input, map<xml> cx) returns boolean {
+    return xmldata:transform(input, `matches(${cx.get("Start")}/ns0:handler, "file") and matches(${cx.get("Start")}/ns0:formatter, "text")`);
 }
 
-function predicate_2(xml input) returns boolean {
-    return test(input, "matches($Start/ns0:handler, \"file\") and matches($Start/ns0:formatter, \"xml\")");
+function predicate_2(xml input, map<xml> cx) returns boolean {
+    return xmldata:transform(input, `matches(${cx.get("Start")}/ns0:handler, "file") and matches(${cx.get("Start")}/ns0:formatter, "xml")`);
 }
 
 function receiveEvent(map<xml> context) returns xml|error {
@@ -69,20 +70,20 @@ function receiveEvent(map<xml> context) returns xml|error {
 function scopeActivityRunner(map<xml> cx) returns xml|error {
     xml result0 = check receiveEvent(cx);
     xml result1;
-    if predicate_2(result0) {
+    if predicate_2(result0, cx) {
         result1 = check activityExtension_4(cx);
     } else {
         result1 = result0;
     }
     xml result2 = check activityExtension_5(cx);
     xml result3;
-    if predicate_1(result0) {
+    if predicate_1(result0, cx) {
         result3 = check activityExtension_3(cx);
     } else {
         result3 = result2;
     }
     xml result4;
-    if predicate_0(result0) {
+    if predicate_0(result0, cx) {
         result4 = check activityExtension_2(cx);
     } else {
         result4 = result3;

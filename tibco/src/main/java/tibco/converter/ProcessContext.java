@@ -207,8 +207,9 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getLogFunction();
     }
 
-    String getPredicateTestFunction() {
-        return projectContext.getPredicateTestFunction();
+    String getXPathFunction() {
+        addLibraryImport(Library.XML_DATA);
+        return "xmldata:transform";
     }
 
     BallerinaModel.TypeDesc getProcessInputType() {

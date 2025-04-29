@@ -27,6 +27,7 @@ import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL;
 
 import java.io.StringWriter;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import javax.xml.transform.OutputKeys;
@@ -107,12 +108,13 @@ public final class ConversionUtils {
                 templateExpr);
     }
 
-    public static Expression.XMLTemplate fromXPath(TibcoModel.Scope.Flow.Activity.Expression.XPath xPath,
-                                                   Expression.VariableReference context) {
+    private static Expression templateExpression(
+            TibcoModel.Scope.Flow.Activity.Expression.XPath xPath, Expression.VariableReference context) {
         String xPathStr = xPath.expression();
         StringBuilder sb = new StringBuilder();
         char[] chars = xPathStr.toCharArray();
         int i = 0;
+        sb.append("`");
         while (i < chars.length) {
             if (chars[i] == '$') {
                 StringBuilder accum = new StringBuilder();
@@ -121,13 +123,14 @@ public final class ConversionUtils {
                     accum.append(chars[i]);
                     i++;
                 }
-                sb.append("${%s}".formatted(accum));
+                sb.append("${%s.get(\"%s\")}".formatted(context, accum));
             } else {
                 sb.append(chars[i]);
                 i++;
             }
         }
-        return new Expression.XMLTemplate(sb.toString());
+        sb.append("`");
+        return exprFrom(sb.toString());
     }
 
     public static String elementToString(Element element) {
@@ -160,6 +163,13 @@ public final class ConversionUtils {
         }
         assert parts.length == 2 && !parts[1].isEmpty();
         return parts[1];
+    }
+
+    static Expression xPath(ProcessContext cx, Expression value, Expression.VariableReference context,
+                            TibcoModel.Scope.Flow.Activity.Expression.XPath predicate) {
+        String predicateTestFn = cx.getXPathFunction();
+        Expression xPathExpr = templateExpression(predicate, context);
+        return new Expression.FunctionCall(predicateTestFn, List.of(value, xPathExpr));
     }
 
     public enum Constants {
