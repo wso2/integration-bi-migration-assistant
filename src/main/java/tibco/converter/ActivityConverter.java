@@ -31,14 +31,9 @@ import common.BallerinaModel.Statement.Return;
 import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc.StreamTypeDesc;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
-import tibco.TibcoModel;
-import tibco.analyzer.AnalysisResult;
-import tibco.xslt.IgnoreRootWrapper;
-import tibco.xslt.ReplaceDotAccessWithXPath;
-import tibco.xslt.ReplaceVariableReference;
-import tibco.xslt.TransformPipeline;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
+import tibco.TibcoModel;
 import tibco.TibcoModel.Scope.Flow.Activity;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension;
 import tibco.TibcoModel.Scope.Flow.Activity.CatchAll;
@@ -51,6 +46,11 @@ import tibco.TibcoModel.Scope.Flow.Activity.ReceiveEvent;
 import tibco.TibcoModel.Scope.Flow.Activity.Reply;
 import tibco.TibcoModel.Scope.Flow.Activity.Throw;
 import tibco.TibcoModel.Scope.Flow.Activity.UnhandledActivity;
+import tibco.analyzer.AnalysisResult;
+import tibco.xslt.IgnoreRootWrapper;
+import tibco.xslt.ReplaceDotAccessWithXPath;
+import tibco.xslt.ReplaceVariableReference;
+import tibco.xslt.TransformPipeline;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -101,10 +101,12 @@ final class ActivityConverter {
         try {
             body = tryConvertActivityBody(cx, activity);
         } catch (Exception e) {
-            List<Activity.Source> sources = activity instanceof Activity.ActivityWithSources activityWithSources ?
-                    activityWithSources.sources() : List.of();
-            Collection<Activity.Target> targets = activity instanceof Activity.ActivityWithTargets activityWithTargets ?
-                    activityWithTargets.targets() : List.of();
+            List<Activity.Source> sources = activity instanceof Activity.ActivityWithSources activityWithSources
+                    ? activityWithSources.sources()
+                    : List.of();
+            Collection<Activity.Target> targets = activity instanceof Activity.ActivityWithTargets activityWithTargets
+                    ? activityWithTargets.targets()
+                    : List.of();
             UnhandledActivity unhandledActivity = new UnhandledActivity(
                     "Failed to codegen activity due to %s".formatted(e.getMessage()),
                     sources, targets, activity.element());
@@ -268,12 +270,12 @@ final class ActivityConverter {
                         .map(name -> (BallerinaModel.Expression) getFromContext(cx, name))
                         .orElseGet(ActivityConverter::defaultEmptyXml));
         body.add(inputDecl);
-        List<VarDeclStatment> inputBindings =
-                convertInputBindings(cx, inputDecl.ref(), activityExtension.inputBindings());
+        List<VarDeclStatment> inputBindings = convertInputBindings(cx, inputDecl.ref(),
+                activityExtension.inputBindings());
         body.addAll(inputBindings);
 
-        VariableReference result = inputBindings.isEmpty() ? inputDecl.ref() :
-                new VariableReference(inputBindings.getLast().varName());
+        VariableReference result = inputBindings.isEmpty() ? inputDecl.ref()
+                : new VariableReference(inputBindings.getLast().varName());
 
         ActivityExtension.Config config = activityExtension.config();
         ActivityExtensionConfigConversion conversion = switch (config) {
@@ -350,7 +352,7 @@ final class ActivityConverter {
     }
 
     private static ActivityExtensionConfigConversion createJsonRenderOperation(ActivityContext cx,
-                                                                               VariableReference result) {
+            VariableReference result) {
         String jsonRenderFn = cx.getRenderJsonFn();
         VarDeclStatment jsonResult = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new FunctionCall(jsonRenderFn, List.of(result)));
@@ -362,7 +364,7 @@ final class ActivityConverter {
     }
 
     private static ActivityExtensionConfigConversion createLogOperation(ActivityContext cx, VariableReference result,
-                                                                        ActivityExtension.Config.Log log) {
+            ActivityExtension.Config.Log log) {
         List<Statement> body = new ArrayList<>();
 
         BallerinaModel.TypeDesc dataType = cx.getLogInputType();
@@ -430,7 +432,7 @@ final class ActivityConverter {
     }
 
     private static Map<String, VariableReference> addParamDecl(List<Statement> body, VariableReference dataValue,
-                                                               ActivityExtension.Config.SQL sql) {
+            ActivityExtension.Config.SQL sql) {
         Map<String, VariableReference> vars = new HashMap<>();
         for (ActivityExtension.Config.SQL.SQLParameter each : sql.parameters()) {
             String name = each.name();
@@ -483,9 +485,10 @@ final class ActivityConverter {
                 exprFrom("(%s/**/<RequestURI>[0]).data()".formatted(configVar.varName())));
         body.add(requestURI);
         // TODO: how to get map<json> from xml?
-        //   VarDeclStatment headers = new VarDeclStatment(JSON, cx.getAnnonVarName(),
-        //           new BallerinaExpression("%s/**/<Headers>[0]".formatted(configVar.varName())));
-        //   body.add(headers);
+        // VarDeclStatment headers = new VarDeclStatment(JSON, cx.getAnnonVarName(),
+        // new
+        // BallerinaExpression("%s/**/<Headers>[0]".formatted(configVar.varName())));
+        // body.add(headers);
 
         VarDeclStatment result = new VarDeclStatment(JSON, cx.getAnnonVarName(), exprFrom("()"));
         body.add(result);
@@ -574,8 +577,8 @@ final class ActivityConverter {
             if (!(expression instanceof Activity.Expression.XSLT xslt)) {
                 throw new IllegalArgumentException("Only XSLT supported as Ext activity expression");
             }
-            VarDeclStatment transformDecl =
-                    new VarDeclStatment(XML, cx.getAnnonVarName(), xsltTransform(cx, result, xslt));
+            VarDeclStatment transformDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                    xsltTransform(cx, result, xslt));
             body.add(transformDecl);
             result = transformDecl.ref();
         }
@@ -593,9 +596,8 @@ final class ActivityConverter {
         Optional<ProcessContext.DefaultClientDetails> client = cx.getDefaultClientDetails(targetProcess);
 
         VarDeclStatment resultDecl = client.map(cl -> callProcessUsingClient(cx, cl, finalResult))
-                .orElseGet(() ->
-                        callProcessDirectlyUsingStartFunction(
-                                cx, cx.getProcessStartFunctionName(targetProcess), finalResult));
+                .orElseGet(() -> callProcessDirectlyUsingStartFunction(
+                        cx, cx.getProcessStartFunctionName(targetProcess), finalResult));
         body.add(resultDecl);
         VariableReference resultRef = resultDecl.ref();
         body.add(addToContext(cx, resultRef, extActivity.outputVariable()));
@@ -604,8 +606,8 @@ final class ActivityConverter {
     }
 
     private static @NotNull VarDeclStatment callProcessUsingClient(ActivityContext cx,
-                                                                   ProcessContext.DefaultClientDetails client,
-                                                                   VariableReference result) {
+            ProcessContext.DefaultClientDetails client,
+            VariableReference result) {
         if (client.method.equalsIgnoreCase("get")) {
             // TODO: properly set path parameters
             return new VarDeclStatment(XML, cx.getAnnonVarName(),
@@ -631,15 +633,15 @@ final class ActivityConverter {
     }
 
     private static List<VarDeclStatment> convertInputBindings(ActivityContext cx, VariableReference input,
-                                                              Collection<InputBinding> inputBindings) {
+            Collection<InputBinding> inputBindings) {
         List<VarDeclStatment> varDelStatements = new ArrayList<>();
         VariableReference last = input;
         for (InputBinding transform : inputBindings) {
             VarDeclStatment varDecl = switch (transform) {
                 case InputBinding.CompleteBinding completeBinding ->
-                        new VarDeclStatment(XML, cx.getAnnonVarName(), xsltTransform(cx, last, completeBinding.xslt()));
+                    new VarDeclStatment(XML, cx.getAnnonVarName(), xsltTransform(cx, last, completeBinding.xslt()));
                 case InputBinding.PartialBindings partialBindings ->
-                        convertPartialInputBinding(cx, partialBindings, last, varDelStatements);
+                    convertPartialInputBinding(cx, partialBindings, last, varDelStatements);
             };
             varDelStatements.add(varDecl);
             last = varDecl.ref();
@@ -648,9 +650,9 @@ final class ActivityConverter {
     }
 
     private static @NotNull VarDeclStatment convertPartialInputBinding(ActivityContext cx,
-                                                                       InputBinding.PartialBindings partialBindings,
-                                                                       VariableReference last,
-                                                                       List<VarDeclStatment> varDelStatements) {
+            InputBinding.PartialBindings partialBindings,
+            VariableReference last,
+            List<VarDeclStatment> varDelStatements) {
         List<VarDeclStatment> statements = partialBindings.xslt().stream()
                 .map(each -> xsltTransform(cx, last, each))
                 .map(each -> new VarDeclStatment(XML, cx.getAnnonVarName(), each)).toList();
@@ -660,7 +662,7 @@ final class ActivityConverter {
     }
 
     private static BallerinaModel.Expression xsltTransform(ActivityContext cx, VariableReference inputVariable,
-                                                           Activity.Expression.XSLT xslt) {
+            Activity.Expression.XSLT xslt) {
         cx.addLibraryImport(Library.XSLT);
         String styleSheet = xsltTransformer.apply(cx, xslt.expression());
         return new Check(new FunctionCall(XSLTConstants.XSLT_TRANSFORM_FUNCTION,

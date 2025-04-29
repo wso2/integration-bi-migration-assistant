@@ -57,7 +57,7 @@ import static io.ballerina.xsd.core.XSDToRecord.generateNodes;
 
 class TypeConverter {
 
-    private static final Logger logger = Main.logger;
+    private static final Logger logger = Main.LOGGER;
     private TypeConverter() {
     }
 

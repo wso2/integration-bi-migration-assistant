@@ -20,10 +20,10 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import common.BallerinaModel.Statement.VarDeclStatment;
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import tibco.TibcoModel;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.ModelAnalyser;
-import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 
 import java.util.Collection;
 import java.util.HashMap;

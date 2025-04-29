@@ -47,7 +47,7 @@ import java.util.stream.StreamSupport;
 
 public final class XmlToTibcoModelConverter {
 
-    private static final Logger logger = Main.logger;
+    private static final Logger logger = Main.LOGGER;
 
     private XmlToTibcoModelConverter() {
     }

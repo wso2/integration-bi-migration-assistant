@@ -28,11 +28,11 @@ import common.BallerinaModel.TypeBindingPattern;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.CodeGenerator;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.MuleXMLNavigator.MuleElement;
 import mule.dataweave.converter.DWConversionStats;
 import mule.dataweave.converter.DWReader;
 import mule.dataweave.converter.DWUtils;
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -258,8 +258,8 @@ public class MuleToBalConverter {
     }
 
     public static SyntaxTree convertProjectXMLFileToBallerina(MuleXMLNavigator muleXMLNavigator,
-                                                              SharedProjectData sharedProjectData,
-                                                              String xmlFilePath) {
+            SharedProjectData sharedProjectData,
+            String xmlFilePath) {
         MuleToBalConverter.Data data = new MuleToBalConverter.Data(sharedProjectData);
         SyntaxTree syntaxTree = convertXMLFileToBallerina(muleXMLNavigator, xmlFilePath, data);
         sharedProjectData.sharedHttpListenerConfigsMap.putAll(data.globalHttpListenerConfigsMap);
@@ -270,7 +270,7 @@ public class MuleToBalConverter {
     }
 
     private static SyntaxTree convertXMLFileToBallerina(MuleXMLNavigator muleXMLNavigator, String xmlFilePath,
-                                                        Data data) {
+            Data data) {
         BallerinaModel ballerinaModel = getBallerinaModel(muleXMLNavigator, data, xmlFilePath);
         return new CodeGenerator(ballerinaModel).generateBalCode();
     }
@@ -441,7 +441,7 @@ public class MuleToBalConverter {
     }
 
     private static void genVMInboundEndpointSource(Data data, Flow flow, VMInboundEndpoint vmInboundEndpoint,
-                                                   Set<Function> functions) {
+            Set<Function> functions) {
         String path = vmInboundEndpoint.path();
         String funcName = data.sharedProjectData.vmPathToBalFuncMap.get(path);
         if (funcName == null) {
@@ -454,7 +454,7 @@ public class MuleToBalConverter {
     }
 
     private static void genHttpSource(Data data, Flow flow, HttpListener src, List<Service> services,
-                                      Set<Function> functions) {
+            Set<Function> functions) {
         SharedProjectData.FlowInfo flowInfo = new SharedProjectData.FlowInfo(flow.name(), Context.HTTP_LISTENER);
         data.sharedProjectData.flowInfoMap.put(flow.name(), flowInfo);
         data.sharedProjectData.currentFlowInfo = flowInfo;
@@ -487,7 +487,7 @@ public class MuleToBalConverter {
         services.add(service);
     }
 
-    // FIXME
+    // TODO:
     public static void createContextInfoHoldingDataStructures(SharedProjectData sharedProjectData) {
         List<RecordField> contextRecFields = new ArrayList<>();
         contextRecFields.add(new RecordField("payload", BAL_ANYDATA_TYPE, false));
@@ -531,7 +531,7 @@ public class MuleToBalConverter {
     }
 
     private static void genBalFuncForGlobalExceptionStrategy(Data data, MuleRecord muleRecord,
-                                                             Set<Function> functions) {
+            Set<Function> functions) {
         List<Statement> body;
         String name;
         if (muleRecord instanceof CatchExceptionStrategy catchExceptionStrategy) {
@@ -559,7 +559,7 @@ public class MuleToBalConverter {
     }
 
     private static void genBalFuncForPrivateOrSubFlow(Data data, Set<Function> functions, String flowName,
-                                                      List<MuleRecord> flowBlocks) {
+            List<MuleRecord> flowBlocks) {
         putFlowInfoIfAbsent(data, flowName);
         data.sharedProjectData.currentFlowInfo = data.sharedProjectData.flowInfoMap.get(flowName);
 
@@ -584,7 +584,7 @@ public class MuleToBalConverter {
     }
 
     private static Service genBalService(Data data, HttpListener httpListener, List<MuleRecord> flowBlocks,
-                                         Set<Function> functions) {
+            Set<Function> functions) {
         List<String> pathParams = new ArrayList<>();
         String resourcePath = getBallerinaResourcePath(httpListener.resourcePath(), pathParams);
         String[] resourceMethodNames = httpListener.allowedMethods();
@@ -663,11 +663,11 @@ public class MuleToBalConverter {
         return workers;
     }
 
-    // FIXME:
+    // TODO:
     public static BallerinaModel createBallerinaModel(List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
-                                                         List<ModuleVar> moduleVars, List<Listener> listeners,
-                                                         List<Service> services, List<Function> functions,
-                                                         List<String> comments) {
+            List<ModuleVar> moduleVars, List<Listener> listeners,
+            List<Service> services, List<Function> functions,
+            List<String> comments) {
         // TODO: figure out package, module names properly
         String projectName = "muleDemoProject";
         String moduleName = "muleDemoModule";
@@ -990,8 +990,8 @@ public class MuleToBalConverter {
                 String dbQueryVarName = Constants.VAR_DB_QUERY_TEMPLATE
                         .formatted(data.sharedProjectData.dbQueryVarCount++);
                 statementList.add(stmtFrom("%s %s = %s;".formatted(Constants.SQL_PARAMETERIZED_QUERY_TYPE,
-                        dbQueryVarName, database.queryType() == QueryType.TEMPLATE_QUERY_REF ? database.query() :
-                                String.format("`%s`", database.query()))));
+                        dbQueryVarName, database.queryType() == QueryType.TEMPLATE_QUERY_REF ? database.query()
+                                : String.format("`%s`", database.query()))));
 
                 String dbStreamVarName = Constants.VAR_DB_STREAM_TEMPLATE
                         .formatted(data.sharedProjectData.dbStreamVarCount++);
@@ -1023,7 +1023,8 @@ public class MuleToBalConverter {
             case UnsupportedBlock unsupportedBlock -> {
                 String comment = ConversionUtils.wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());
                 // TODO: comment is not a statement. Find a better way to handle this
-                // This works for now because we concatenate and create a body block `{ stmts }` before parsing.
+                // This works for now because we concatenate and create a body block `{ stmts }`
+                // before parsing.
                 statementList.add(stmtFrom(comment));
             }
             case null -> throw new IllegalStateException();
@@ -1038,8 +1039,7 @@ public class MuleToBalConverter {
     }
 
     private static List<Statement> getChoiceExceptionBody(Data data, ChoiceExceptionStrategy choiceExceptionStrategy) {
-        List<CatchExceptionStrategy> catchExceptionStrategies =
-                choiceExceptionStrategy.catchExceptionStrategyList();
+        List<CatchExceptionStrategy> catchExceptionStrategies = choiceExceptionStrategy.catchExceptionStrategyList();
         assert !catchExceptionStrategies.isEmpty();
 
         CatchExceptionStrategy firstCatch = catchExceptionStrategies.getFirst();
@@ -1103,7 +1103,7 @@ public class MuleToBalConverter {
     }
 
     private static MuleRecord readExpressionComponent(Data data, MuleElement muleElement) {
-            return new ExpressionComponent(muleElement.getElement().getTextContent());
+        return new ExpressionComponent(muleElement.getElement().getTextContent());
     }
 
     // Flow Control

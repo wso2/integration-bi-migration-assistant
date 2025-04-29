@@ -19,8 +19,8 @@
 package tibco.analyzer;
 
 import cli.Main;
-import tibco.converter.ConversionUtils;
 import tibco.TibcoModel;
+import tibco.converter.ConversionUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,7 +43,7 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 
 public class ModelAnalyser {
 
-    private static final Logger logger = Main.logger;
+    private static final Logger logger = Main.LOGGER;
 
     private ModelAnalyser() {
 
@@ -54,8 +54,8 @@ public class ModelAnalyser {
         analyseProcess(cx, process);
 
         Map<TibcoModel.Scope.Flow.Activity, AnalysisResult.ActivityData> activityData = cx.activityData();
-        Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings =
-                Collections.unmodifiableMap(cx.partnerLinkBindings);
+        Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings = Collections
+                .unmodifiableMap(cx.partnerLinkBindings);
 
         logger.info(String.format("Process Statistics - Name: %s, Total Activities: %d, Unhandled Activities: %d",
                 process.name(), cx.totalActivityCount, cx.unhandledActivityCount));
@@ -149,11 +149,11 @@ public class ModelAnalyser {
 
     private static Optional<String> getMessageTypeName(TibcoModel.Type.WSDLDefinition.Message message) {
         Optional<TibcoModel.Type.WSDLDefinition.Message.Part> part;
-//        if (message.parts().size() == 1) {
-//            part = Optional.ofNullable(message.parts().getFirst());
-//        } else {
-            part = message.parts().stream().filter(each -> each.name().equals("item")).findFirst();
-//        }
+        // if (message.parts().size() == 1) {
+        // part = Optional.ofNullable(message.parts().getFirst());
+        // } else {
+        part = message.parts().stream().filter(each -> each.name().equals("item")).findFirst();
+        // }
         if (part.isEmpty()) {
             return Optional.empty();
         }
@@ -166,8 +166,9 @@ public class ModelAnalyser {
 
     private static void analysePartnerLinks(ProcessAnalysisContext cx, Collection<TibcoModel.PartnerLink> links) {
         links.stream()
-                .flatMap(link -> link instanceof TibcoModel.PartnerLink.NonEmptyPartnerLink nonEmptyPartnerLink ?
-                        Stream.of(nonEmptyPartnerLink) : Stream.empty())
+                .flatMap(link -> link instanceof TibcoModel.PartnerLink.NonEmptyPartnerLink nonEmptyPartnerLink
+                        ? Stream.of(nonEmptyPartnerLink)
+                        : Stream.empty())
                 .forEach(link -> cx.partnerLinkBindings.put(link.name(), link.binding()));
     }
 

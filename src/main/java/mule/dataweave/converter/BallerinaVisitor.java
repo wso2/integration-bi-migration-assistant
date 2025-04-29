@@ -20,12 +20,12 @@ package mule.dataweave.converter;
 
 import common.BallerinaModel;
 import common.BallerinaModel.Statement.BallerinaStatement;
+import io.ballerina.compiler.internal.parser.LexerTerminals;
 import mule.Constants;
 import mule.MuleToBalConverter;
 import mule.dataweave.converter.builder.IfStatementBuilder;
 import mule.dataweave.parser.DataWeaveBaseVisitor;
 import mule.dataweave.parser.DataWeaveParser;
-import io.ballerina.compiler.internal.parser.LexerTerminals;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
@@ -113,7 +113,6 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         dwContext.addUnsupportedComment(ctx.getText());
         return null;
     }
-
 
     private String refineNumberType(String valueExpr, String ballerinaType) {
         if (valueExpr.contains(".")) {
@@ -276,7 +275,6 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         return visit(ctx.defaultExpressionRest());
     }
 
-
     @Override
     public Void visitMapExpression(DataWeaveParser.MapExpressionContext ctx) {
         boolean supported = Objects.equals(dwContext.currentScriptContext.inputType, LexerTerminals.JSON);
@@ -292,8 +290,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             dwContext.append(varName).append(".'map(");
             visit(ctx.implicitLambdaExpression());
             dwContext.append(")");
-            if (ctx.defaultExpressionRest() != null || !(ctx.defaultExpressionRest() instanceof
-                    DataWeaveParser.DefaultExpressionEndContext)) {
+            if (ctx.defaultExpressionRest() != null
+                    || !(ctx.defaultExpressionRest() instanceof DataWeaveParser.DefaultExpressionEndContext)) {
                 visit(ctx.defaultExpressionRest());
             }
         } else {
@@ -333,8 +331,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             dwContext.append(varName).append(".filter(");
             visit(ctx.implicitLambdaExpression());
             dwContext.append(")");
-            if (ctx.defaultExpressionRest() != null || !(ctx.defaultExpressionRest() instanceof
-                    DataWeaveParser.DefaultExpressionEndContext)) {
+            if (ctx.defaultExpressionRest() != null
+                    || !(ctx.defaultExpressionRest() instanceof DataWeaveParser.DefaultExpressionEndContext)) {
                 visit(ctx.defaultExpressionRest());
             }
         } else {
@@ -381,24 +379,23 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 String leftArr = DWUtils.VAR_PREFIX + varCount++;
                 String leftArrayStatement = "any[] " + leftArr + " = " + leftExpr + ";";
                 dwContext.currentScriptContext.statements.add(
-                    new BallerinaStatement(leftArrayStatement));
+                        new BallerinaStatement(leftArrayStatement));
                 String rightArr = DWUtils.VAR_PREFIX + varCount++;
                 String rightArrayStatement = "var " + rightArr + " = " + rightExpr + ";";
                 dwContext.currentScriptContext.statements.add(
-                    new BallerinaStatement(rightArrayStatement));
+                        new BallerinaStatement(rightArrayStatement));
                 dwContext.append(leftArr).append(".push(...").append(rightArr).append(")");
                 break;
             default:
                 String leftMap = DWUtils.VAR_PREFIX + varCount++;
                 String leftMapStatement = "var " + leftMap + " = " + leftExpr + ";";
                 dwContext.currentScriptContext.statements.add(
-                    new BallerinaStatement(leftMapStatement));
+                        new BallerinaStatement(leftMapStatement));
                 dwContext.append(rightExpr.replaceFirst("\\{", "{ " + leftMap + ", "));
         }
         stats.record(DWConstruct.CONCAT, true);
         return null;
     }
-
 
     @Override
     public Void visitGrouped(DataWeaveParser.GroupedContext ctx) {
@@ -474,7 +471,6 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         }
         return visit(ctx.expression());
     }
-
 
     @Override
     public Void visitEqualityExpression(DataWeaveParser.EqualityExpressionContext ctx) {
@@ -651,11 +647,11 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         data.utilFunctions.add(DWUtils.PARSE_DATE_TIME);
         BallerinaModel.ExternFunctionBody body = new BallerinaModel.ExternFunctionBody("java.time.LocalDateTime",
                 Optional.of("parse"), "@java:Method", Optional.of(List.of("java.lang.CharSequence",
-                "java.time.format.DateTimeFormatter")));
+                        "java.time.format.DateTimeFormatter")));
         data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.PARSE_DATE_TIME,
                 List.of(new BallerinaModel.Parameter("date", BAL_HANDLE_TYPE),
-                        new BallerinaModel.Parameter("formatter", BAL_HANDLE_TYPE)
-                ), Optional.of(LexerTerminals.HANDLE), body));
+                        new BallerinaModel.Parameter("formatter", BAL_HANDLE_TYPE)),
+                Optional.of(LexerTerminals.HANDLE), body));
 
         // create toInstant() function
         data.utilFunctions.add(DWUtils.TO_INSTANT);
@@ -664,8 +660,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 Optional.of(List.of("java.time.ZoneOffset")));
         data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.TO_INSTANT,
                 List.of(new BallerinaModel.Parameter("localDateTime", BAL_HANDLE_TYPE),
-                        new BallerinaModel.Parameter("zoneOffset", BAL_HANDLE_TYPE))
-                , Optional.of(LexerTerminals.HANDLE), body));
+                        new BallerinaModel.Parameter("zoneOffset", BAL_HANDLE_TYPE)),
+                Optional.of(LexerTerminals.HANDLE), body));
 
         // create utcZoneOffset() function
         data.utilFunctions.add(DWUtils.UTC_ZONE_OFFSET);
@@ -724,7 +720,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         data.utilFunctions.add(DWUtils.GET_DATE_TIME);
         body = new BallerinaModel.ExternFunctionBody("java.time.LocalDateTime",
                 Optional.of("ofInstant"), "@java:Method", Optional.of(List.of("java.time.Instant",
-                "java.time.ZoneId")));
+                        "java.time.ZoneId")));
         data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.GET_DATE_TIME,
                 List.of(new BallerinaModel.Parameter("instant", BAL_HANDLE_TYPE),
                         new BallerinaModel.Parameter("zoneId", BAL_HANDLE_TYPE)),
@@ -775,12 +771,13 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         if (!data.utilFunctions.contains(DWUtils.GET_FORMATTED_STRING_FROM_NUMBER)) {
             data.utilFunctions.add(DWUtils.GET_FORMATTED_STRING_FROM_NUMBER);
             BallerinaModel.ExternFunctionBody body = new BallerinaModel.ExternFunctionBody("java.text.NumberFormat",
-                    Optional.of("format"),  "@java:Method", Optional.of(List.of("long")));
+                    Optional.of("format"), "@java:Method", Optional.of(List.of("long")));
             data.functions.add(new BallerinaModel.Function(Optional.of("public"),
                     DWUtils.GET_FORMATTED_STRING_FROM_NUMBER,
                     List.of(new BallerinaModel.Parameter("formatObject", BAL_HANDLE_TYPE),
                             new BallerinaModel.Parameter("value", BAL_INT_TYPE,
-                                    Optional.empty())), Optional.of(LexerTerminals.HANDLE), body));
+                                    Optional.empty())),
+                    Optional.of(LexerTerminals.HANDLE), body));
         }
         List<BallerinaModel.Parameter> params = new ArrayList<>();
         params.add(new BallerinaModel.Parameter("intValue", BAL_INT_TYPE));
@@ -869,8 +866,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     private BallerinaModel.Function getCurrentTimeStringFunction() {
         return new BallerinaModel.Function(Optional.of("public"), DWUtils.GET_CURRENT_TIME_STRING, new ArrayList<>(),
                 Optional.of(LexerTerminals.STRING), new BallerinaModel.BlockFunctionBody(List.of(
-                new BallerinaStatement("return time:utcToString(time:utcNow());")
-        )));
+                        new BallerinaStatement("return time:utcToString(time:utcNow());"))));
     }
 
     @Override
@@ -883,7 +879,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     @Override
     public Void visitIndexIdentifierExpression(DataWeaveParser.IndexIdentifierExpressionContext ctx) {
         this.dwContext.append(this.dwContext.currentScriptContext.varNames.get(
-                        DWUtils.DW_INDEX_IDENTIFIER))
+                DWUtils.DW_INDEX_IDENTIFIER))
                 .append(".indexOf(").append(DWUtils.ELEMENT_ARG).append(")");
         stats.record(DWConstruct.IDENTIFIER, true);
         return null;

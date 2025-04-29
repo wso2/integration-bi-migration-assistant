@@ -21,9 +21,9 @@ package mule;
 import cli.Main;
 import common.BallerinaModel;
 import common.CodeGenerator;
-import mule.dataweave.converter.DWConversionStats;
 import io.ballerina.cli.cmd.NewCommand;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import mule.dataweave.converter.DWConversionStats;
 import picocli.CommandLine;
 
 import java.io.File;
@@ -37,7 +37,10 @@ import java.util.Collections;
 import java.util.List;
 
 import static mule.HtmlReportWriter.writeHtmlReport;
-import static mule.MuleToBalConverter.*;
+import static mule.MuleToBalConverter.convertProjectXMLFileToBallerina;
+import static mule.MuleToBalConverter.convertStandaloneXMLFileToBallerina;
+import static mule.MuleToBalConverter.createBallerinaModel;
+import static mule.MuleToBalConverter.createContextInfoHoldingDataStructures;
 
 public class MuleConverter {
     public static final String MULE_DEFAULT_APP_DIR_NAME = "app";
@@ -62,9 +65,9 @@ public class MuleConverter {
         Path outputPath = Paths.get(outputBalFilePath);
         try {
             Files.writeString(outputPath, ballerinaCode);
-            Main.logger.info("Conversion successful. Output written to " + outputBalFilePath);
+            Main.LOGGER.info("Conversion successful. Output written to " + outputBalFilePath);
         } catch (Exception e) {
-            Main.logger.severe("Error writing to file: " + e.getMessage());
+            Main.LOGGER.severe("Error writing to file: " + e.getMessage());
             System.exit(1);
         }
     }
@@ -76,7 +79,7 @@ public class MuleConverter {
         Path balProjectPath = muleProjectPath.resolve(balProjectName);
 
         // create ballerina project
-        String[] args = {balProjectPath.toString()};
+        String[] args = { balProjectPath.toString() };
         NewCommand newCommand = new NewCommand(System.out, false);
         new CommandLine(newCommand).parseArgs(args);
         newCommand.execute();
@@ -88,12 +91,13 @@ public class MuleConverter {
         collectXmlFiles(sourceFolderPath.toFile(), xmlFiles);
 
         if (xmlFiles.isEmpty()) {
-            Main.logger.severe("No XML files found in the directory: " + sourceFolderPath);
+            Main.LOGGER.severe("No XML files found in the directory: " + sourceFolderPath);
             System.exit(1);
         }
 
         MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator();
-        MuleToBalConverter.SharedProjectData sharedProjectData = new MuleToBalConverter.SharedProjectData(muleXMLNavigator);
+        MuleToBalConverter.SharedProjectData sharedProjectData = new MuleToBalConverter.SharedProjectData(
+                muleXMLNavigator);
         for (File xmlFile : xmlFiles) {
             Path relativePath = sourceFolderPath.relativize(xmlFile.toPath());
             String balFileName = relativePath.toString().replace(File.separator, ".").replace(".xml", ".bal");
@@ -106,7 +110,7 @@ public class MuleConverter {
         genAndWriteInternalTypesBalFile(sharedProjectData, targetFolderPath);
 
         Path reportFilePath = Paths.get(targetFolderPath, MIGRATION_REPORT_NAME);
-        int conversionPercentage = writeHtmlReport(Main.logger, reportFilePath,
+        int conversionPercentage = writeHtmlReport(Main.LOGGER, reportFilePath,
                 muleXMLNavigator.getXmlCompatibleTagCountMap(), muleXMLNavigator.getXmlIncompatibleTagCountMap(),
                 muleXMLNavigator.getDwConversionStats());
         printConversionPercentage(conversionPercentage);
@@ -122,20 +126,21 @@ public class MuleConverter {
      * @param targetFilePath    path to the target file where the Ballerina code
      *                          will be written
      */
-    private static void genAndWriteBalFileFromXMLFile(File xmlFile, MuleXMLNavigator muleXMLNavigator,
-                                                      MuleToBalConverter.SharedProjectData sharedProjectData, Path targetFilePath) {
+    private static void genAndWriteBalFileFromXMLFile(
+            File xmlFile, MuleXMLNavigator muleXMLNavigator, MuleToBalConverter.SharedProjectData sharedProjectData,
+            Path targetFilePath) {
         SyntaxTree syntaxTree;
         try {
             syntaxTree = convertProjectXMLFileToBallerina(muleXMLNavigator, sharedProjectData, xmlFile.getPath());
         } catch (Exception e) {
-            Main.logger.severe(String.format("Error converting the file: %s%n%s", xmlFile.getName(), e.getMessage()));
+            Main.LOGGER.severe(String.format("Error converting the file: %s%n%s", xmlFile.getName(), e.getMessage()));
             return;
         }
 
         try {
             Files.writeString(targetFilePath, syntaxTree.toSourceCode());
         } catch (IOException e) {
-            Main.logger.severe("Error writing to file: " + e.getMessage());
+            Main.LOGGER.severe("Error writing to file: " + e.getMessage());
         }
     }
 
@@ -147,7 +152,8 @@ public class MuleConverter {
      * @param targetFolderPath  path to the target folder where the
      *                          internal-types.bal file will be created
      */
-    private static void genAndWriteInternalTypesBalFile(MuleToBalConverter.SharedProjectData sharedProjectData, String targetFolderPath) {
+    private static void genAndWriteInternalTypesBalFile(MuleToBalConverter.SharedProjectData sharedProjectData,
+            String targetFolderPath) {
         createContextInfoHoldingDataStructures(sharedProjectData);
 
         Path targetFilePath = Paths.get(targetFolderPath, "internal-types.bal");
@@ -159,7 +165,7 @@ public class MuleConverter {
         try {
             Files.writeString(targetFilePath, syntaxTree.toSourceCode());
         } catch (IOException e) {
-            Main.logger.severe("Error writing to file: " + e.getMessage());
+            Main.LOGGER.severe("Error writing to file: " + e.getMessage());
         }
     }
 
@@ -194,7 +200,7 @@ public class MuleConverter {
             try {
                 Files.createDirectories(path);
             } catch (IOException e) {
-                Main.logger.severe("Error creating directories: " + path);
+                Main.LOGGER.severe("Error creating directories: " + path);
             }
         }
     }

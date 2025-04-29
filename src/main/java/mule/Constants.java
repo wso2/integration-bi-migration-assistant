@@ -18,7 +18,6 @@
 
 package mule;
 
-import common.BallerinaModel;
 import common.BallerinaModel.Import;
 import common.BallerinaModel.Parameter;
 import common.BallerinaModel.TypeDesc.BallerinaType;

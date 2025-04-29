@@ -29,12 +29,11 @@ import java.util.List;
 import java.util.Set;
 
 public class ProjectConverter {
-    public static ConversionResult convertProject(TibcoToBalConverter.ProjectConversionContext conversionContext,
-                                                  Collection<TibcoModel.Process> processes,
-                                                  Collection<TibcoModel.Type.Schema> types,
-                                                  Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
-                                                  Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
-                                                  Set<TibcoModel.Resource.HTTPClientResource> httpClientResources) {
+    public static ConversionResult convertProject(
+            TibcoToBalConverter.ProjectConversionContext conversionContext, Collection<TibcoModel.Process> processes,
+            Collection<TibcoModel.Type.Schema> types, Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
+            Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
+            Set<TibcoModel.Resource.HTTPClientResource> httpClientResources) {
         ProjectContext cx = new ProjectContext(conversionContext);
         convertResources(cx, jdbcResources, httpConnectionResources, httpClientResources);
 
