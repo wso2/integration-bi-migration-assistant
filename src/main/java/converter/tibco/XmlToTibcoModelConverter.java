@@ -585,8 +585,9 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static TibcoModel.Scope.Flow.Activity.ActivityExtension parseActivityExtension(Element activity) {
-        String inputVariable = activity.getAttribute("inputVariable");
-        var outputVariable = tryGetAttributeIgnoringNamespace(activity, "outputVariable");
+        Optional<String> inputVariable = tryGetAttributeIgnoringNamespace(activity, "inputVariable");
+        Optional<String> name = tryGetAttributeIgnoringNamespace(activity, "name");
+        Optional<String> outputVariable = tryGetAttributeIgnoringNamespace(activity, "outputVariable");
         Optional<Element> targetsElement = tryGetFirstChildWithTag(activity, "targets");
         Collection<TibcoModel.Scope.Flow.Activity.Target> targets =
                 targetsElement.map(ElementIterable::of).map(ElementIterable::stream)
@@ -603,7 +604,7 @@ public final class XmlToTibcoModelConverter {
         inputBindingElement.ifPresent(elem -> inputBindings.addAll(parseInputBindings(elem)));
         TibcoModel.Scope.Flow.Activity.ActivityExtension.Config config =
                 parseActivityExtensionConfig(getFirstChildWithTag(activity, "config"));
-        return new TibcoModel.Scope.Flow.Activity.ActivityExtension(inputVariable, outputVariable, targets, sources,
+        return new TibcoModel.Scope.Flow.Activity.ActivityExtension(name, inputVariable, outputVariable, targets, sources,
                 inputBindings, config, activity);
     }
 
@@ -641,7 +642,16 @@ public final class XmlToTibcoModelConverter {
             case SEND_HTTP_RESPONSE -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SendHTTPResponse();
             case MAPPER -> new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.Mapper();
             case SQL -> parasSqlActivityExtension(config);
+            case ACCUMULATE_END -> parseAccumulateEnd(activity);
         };
+    }
+
+    private static TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.AccumulateEnd parseAccumulateEnd(Element activity) {
+        Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
+        Element properties = getFirstChildWithTag(activityConfig, "properties");
+        Element value = getFirstChildWithTag(properties, "value");
+        Element activityNames = getFirstChildWithTag(value, "activityNames");
+        return new TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.AccumulateEnd(activityNames.getTextContent());
     }
 
     private static TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.HTTPSend parseHTTPSend(Element activity) {

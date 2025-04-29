@@ -18,13 +18,13 @@
 
 package converter.tibco.analyzer;
 
-import ballerina.BallerinaModel;
 import converter.tibco.ConversionUtils;
 import tibco.TibcoModel;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static ballerina.BallerinaModel.TypeDesc.BuiltinType.XML;
@@ -51,9 +51,17 @@ public class ModelAnalyser {
         Map<TibcoModel.Process, String> outputTypeName = Map.of(process, cx.getOutputTypeName());
         Map<TibcoModel.Process, Map<String, String>> variableTypes = Map.of(process, cx.variableTypes);
         Map<TibcoModel.Process, Collection<TibcoModel.Scope>> scopes = Map.of(process, cx.dependencyGraphs.keySet());
+        record ActivityNames(String name, TibcoModel.Scope.Flow.Activity activity) {
+        }
+        Map<String, TibcoModel.Scope.Flow.Activity> activityByName = cx.activities.stream()
+                .filter(each -> each instanceof TibcoModel.Scope.Flow.Activity.ActivityWithName)
+                .map(each -> (TibcoModel.Scope.Flow.Activity.ActivityWithName) each)
+                .filter(each -> each.getName().isPresent())
+                .map(each -> new ActivityNames(each.getName().get(), each))
+                .collect(Collectors.toMap(ActivityNames::name, ActivityNames::activity));
         return new AnalysisResult(cx.destinationMap, cx.sourceMap,
                 activityData, partnerLinkBindings, cx.queryIndex, inputTypeNames,
-                outputTypeName, variableTypes, cx.dependencyGraphs, cx.controlFlowFunctions, scopes);
+                outputTypeName, variableTypes, cx.dependencyGraphs, cx.controlFlowFunctions, scopes, activityByName);
     }
 
     private static void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
