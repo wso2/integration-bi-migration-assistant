@@ -106,7 +106,7 @@ task mulePack(type: Exec, dependsOn: muleJar) {
 
 task muleRelease(type: Exec, dependsOn: mulePack) {
     workingDir "${projectDir}/src/main/java/baltool/mule/tool-bi-migrate-mule"
-    commandLine 'bal', 'push', '--repository=local'
+    commandLine 'bal', 'push'
     group = 'build'
 }
 

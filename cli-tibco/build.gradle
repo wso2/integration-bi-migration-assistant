@@ -103,7 +103,7 @@ task tibcoPack(type: Exec, dependsOn: tibcoJar) {
 
 task tibcoRelease(type: Exec, dependsOn: tibcoPack) {
     workingDir "${projectDir}/src/main/java/baltool/tibco/tool-bi-migrate-tibco"
-    commandLine 'bal', 'push', '--repository=local'
+    commandLine 'bal', 'push'
     group = 'build'
 }
 
