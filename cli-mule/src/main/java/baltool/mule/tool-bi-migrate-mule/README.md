@@ -5,9 +5,9 @@ standalone Mule XML file as input and produces an equivalent Ballerina Integrato
 
 ## Installation
 
-To pull the `bi-migrate-mule` tool from Ballerina Central, run the following command:
+To pull the `migrate-mule` tool from Ballerina Central, run the following command:
 ```bash
-$ bal tool pull bi-migrate-mule:1.0.0
+$ bal tool pull migrate-mule:0.9.0
 ```
 
 ## Usage
