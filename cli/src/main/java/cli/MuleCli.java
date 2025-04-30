@@ -15,22 +15,13 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
 package cli;
 
 import mule.MuleConverter;
 
-import java.util.logging.Logger;
-
 public class MuleCli {
 
-    private static final Logger LOGGER = Logger.getLogger(MuleCli.class.getName());
-
     public static void main(String[] args) {
-        if (args.length < 1) {
-            LOGGER.severe("Usage: java -jar mule-migration-assistant.jar <mule-xml-config-file-or-project-directory>");
-            System.exit(1);
-        }
         MuleConverter.migrateMuleProject(args);
     }
 }

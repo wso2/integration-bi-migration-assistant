@@ -37,9 +37,8 @@ public class TibcoConverter {
 
     public static void migrateTibco(String[] args) {
         if (args.length < 1) {
-            logger.severe(
-                    "Usage: java -jar integration-bi-migration-assistant <path to bwp file or project> " +
-                            "[-o <output path>]");
+            logger.severe("Usage: java -jar tibco-migration-assistant.jar <source-project-directory-or-file> " +
+                    "[--out <output-directory>]");
             System.exit(1);
         }
         Path inputPath = Paths.get(args[0]);

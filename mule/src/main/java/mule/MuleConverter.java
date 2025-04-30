@@ -50,6 +50,11 @@ public class MuleConverter {
     private static final Logger logger = Logger.getLogger(MuleConverter.class.getName());
 
     public static void migrateMuleProject(String[] args) {
+        if (args.length < 1) {
+            logger.severe("Usage: java -jar mule-migration-assistant.jar <source-project-directory-or-file> " +
+                    "[--out <output-directory>]");
+            System.exit(1);
+        }
         String inputPath = args[0];
         boolean standaloneFile = inputPath.endsWith(".xml");
         if (standaloneFile) {
