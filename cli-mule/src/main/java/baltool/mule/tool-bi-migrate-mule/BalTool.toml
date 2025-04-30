@@ -1,5 +1,5 @@
 [tool]
-id = "bi-migrate-mule"
+id = "migrate-mule"
 
 [[dependency]]
 path = "../../../../../../build/libs/mule-migration-assistant-0.1.0-SNAPSHOT.jar"

@@ -25,19 +25,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * This class represents the "bi-migrate-tibco" bal tool command.
+ * This class represents the "migrate-tibco" bal tool command.
  *
  * @since 1.0.0
  */
-@CommandLine.Command(name = "bi-migrate-tibco",
+@CommandLine.Command(name = "migrate-tibco",
         description = "Accepts a TIBCO BusinessWorks project directory or `.bwp` file path as input")
-public class BiMigrateTibcoCommand implements BLauncherCmd {
+public class MigrateTibcoCommand implements BLauncherCmd {
 
-    private static final String CMD_NAME = "bi-migrate-tibco";
+    private static final String CMD_NAME = "migrate-tibco";
     private static final String USAGE =
-            "bal bi-migrate-tibco <source-project-directory-or-file> [--out <output-directory>]";
+            "bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>]";
 
-    public BiMigrateTibcoCommand() {
+    public MigrateTibcoCommand() {
     }
 
     @CommandLine.Parameters(description = "Source TIBCO BusinessWorks project directory or `.bwp` file path")
@@ -76,10 +76,10 @@ public class BiMigrateTibcoCommand implements BLauncherCmd {
     public void printUsage(StringBuilder stringBuilder) {
         stringBuilder.append(USAGE).append("\n\n");
         stringBuilder.append("Examples:\n");
-        stringBuilder.append("  bal bi-migrate-tibco /path/to/mule-project\n");
-        stringBuilder.append("  bal bi-migrate-tibco /path/to/mule-project --out /path/to/output\n");
-        stringBuilder.append("  bal bi-migrate-tibco /path/to/tibco_process.bwp\n");
-        stringBuilder.append("  bal bi-migrate-tibco /path/to/tibco_process.bwp --out /path/to/output\n");
+        stringBuilder.append("  bal migrate-tibco /path/to/mule-project\n");
+        stringBuilder.append("  bal migrate-tibco /path/to/mule-project --out /path/to/output\n");
+        stringBuilder.append("  bal migrate-tibco /path/to/tibco_process.bwp\n");
+        stringBuilder.append("  bal migrate-tibco /path/to/tibco_process.bwp --out /path/to/output\n");
     }
 
     @Override
