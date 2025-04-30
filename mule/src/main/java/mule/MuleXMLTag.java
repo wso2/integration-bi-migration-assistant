@@ -28,6 +28,7 @@ public enum MuleXMLTag {
     HTTP_LISTENER_CONFIG("http:listener-config", 5),
     HTTP_REQUEST_CONFIG("http:request-config", 5),
     DB_MYSQL_CONFIG("db:mysql-config", 4),
+    DB_ORACLE_CONFIG("db:oracle-config", 4),
     DB_TEMPLATE_QUERY("db:template-query", 3),
 
     // Flow Control
