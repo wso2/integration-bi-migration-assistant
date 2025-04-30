@@ -23,11 +23,11 @@ service /mule3 on config {
 
     resource function get demo(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: logger invoked");
 
     ctx.inboundProperties.response.setPayload(ctx.payload);

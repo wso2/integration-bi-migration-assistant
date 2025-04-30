@@ -22,7 +22,7 @@ service /foo on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
@@ -31,7 +31,7 @@ function _dwMethod0_(json payload) returns json|error {
     return {"s1": "Hello World", "s2": "Hello World", "n": 1.23, "b": true, "a": check [1, 2, 3].ensureType(json), "o": check {"name": "Anne"}.ensureType(json)};
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     json _dwOutput_ = check _dwMethod0_(ctx.payload.toJson());
     ctx.payload = _dwOutput_;
 

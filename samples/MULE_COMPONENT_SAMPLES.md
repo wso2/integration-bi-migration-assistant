@@ -38,15 +38,15 @@ public type Context record {|
 public function mainFlow(Context ctx) {
 
     // set payload
-    string _payload0_ = "Hello";
-    ctx.payload = _payload0_;
+    string payload0 = "Hello";
+    ctx.payload = payload0;
 
     // async operation
-    _ = start _async0_(ctx);
+    _ = start async0(ctx);
     log:printInfo("Main flow continues immediately.");
 }
 
-public function _async0_(Context ctx) {
+public function async0(Context ctx) {
     log:printInfo(string `Doing something in background: ${ctx.payload.toString()}`);
 }
 
@@ -148,11 +148,11 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     do {
         log:printInfo("xxx: logger invoked via http end point");
     } on fail {
@@ -288,11 +288,11 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     ctx.flowVars.marks = 73;
     if ctx.flowVars.marks > 75 {
         log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is A.`);
@@ -487,11 +487,11 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     do {
         log:printInfo("xxx: logger invoked via http end point");
     } on fail error e {
@@ -571,18 +571,18 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
 
     // database operation
-    sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
-    stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
-    Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
+    sql:ParameterizedQuery dbQuery0 = `SELECT * FROM users;`;
+    stream<Record, sql:Error?> dbStream0 = MySQL_Configuration->query(dbQuery0);
+    Record[] dbSelect0 = check from Record _iterator_ in dbStream0
         select _iterator_;
-    ctx.payload = _dbSelect0_;
+    ctx.payload = dbSelect0;
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
     return ctx.inboundProperties.response;
@@ -653,18 +653,18 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
 
     // database operation
-    sql:ParameterizedQuery _dbQuery0_ = Template_Select_Query;
-    stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
-    Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
+    sql:ParameterizedQuery dbQuery0 = Template_Select_Query;
+    stream<Record, sql:Error?> dbStream0 = MySQL_Configuration->query(dbQuery0);
+    Record[] dbSelect0 = check from Record _iterator_ in dbStream0
         select _iterator_;
-    ctx.payload = _dbSelect0_;
+    ctx.payload = dbSelect0;
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
     return ctx.inboundProperties.response;
@@ -716,8 +716,8 @@ public function combineFlowVarsAndPayloadFlow(Context ctx) {
     ctx.flowVars.name = "Alice";
 
     // set payload
-    string _payload0_ = "Welcome";
-    ctx.payload = _payload0_;
+    string payload0 = "Welcome";
+    ctx.payload = payload0;
     ctx.flowVars.name = "Alice";
     ctx.payload = "Hello " + ctx.flowVars.name;
     log:printInfo(string `Message: ${ctx.payload.toString()}`);
@@ -775,11 +775,11 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: logger invoked via http end point");
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -841,11 +841,11 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: logger invoked via http end point");
     demoPrivateFlow(ctx);
     log:printInfo("xxx: end of main flow");
@@ -910,11 +910,11 @@ service /mule3 on config {
 
     resource function default demo(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: logger invoked");
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -971,11 +971,11 @@ service /mule3 on config {
 
     resource function post .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: logger invoked");
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -1032,21 +1032,21 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 
     resource function post .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 
     resource function delete .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: logger invoked");
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -1102,11 +1102,11 @@ service /mule3 on config {
 
     resource function get demo(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: logger invoked");
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -1162,11 +1162,11 @@ service / on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: logger invoked");
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -1222,11 +1222,11 @@ service / on config {
 
     resource function get demo(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: logger invoked");
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -1282,11 +1282,11 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: logger invoked");
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -1342,11 +1342,11 @@ service /mule3 on config {
 
     resource function get demo(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: logger invoked");
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -1403,11 +1403,11 @@ service /mule3 on config {
     resource function get [string version]/demo/[string id](http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.uriParams = {version, id};
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: logger invoked");
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -1463,11 +1463,11 @@ service /mule\-3 on config {
 
     resource function get v\-1/demo/main\-contract(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: logger invoked");
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -1515,8 +1515,8 @@ public function callExternalApiFlow(Context ctx) {
 
     // http client request
     http:Client HTTP_Request_Config = check new ("jsonplaceholder.typicode.com:80");
-    http:Response _clientResult0_ = check HTTP_Request_Config->/posts/latest.get();
-    ctx.payload = check _clientResult0_.getJsonPayload();
+    http:Response clientResult0 = check HTTP_Request_Config->/posts/latest.get();
+    ctx.payload = check clientResult0.getJsonPayload();
     log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
 }
 
@@ -1559,8 +1559,8 @@ public function callExternalApiFlow(Context ctx) {
 
     // http client request
     http:Client HTTP_Request_Config = check new ("jsonplaceholder.typicode.com:80");
-    http:Response _clientResult0_ = check HTTP_Request_Config->/car\-posts/[12]/honda\-civic/[991]/latest.get();
-    ctx.payload = check _clientResult0_.getJsonPayload();
+    http:Response clientResult0 = check HTTP_Request_Config->/car\-posts/[12]/honda\-civic/[991]/latest.get();
+    ctx.payload = check clientResult0.getJsonPayload();
     log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
 }
 
@@ -1619,16 +1619,16 @@ service /mule3 on HTTP_Listener_Config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
 
     // http client request
     http:Client HTTP_Request_Config = check new ("jsonplaceholder.typicode.com:80");
-    http:Response _clientResult0_ = check HTTP_Request_Config->/posts/latest.get();
-    ctx.payload = check _clientResult0_.getJsonPayload();
+    http:Response clientResult0 = check HTTP_Request_Config->/posts/latest.get();
+    ctx.payload = check clientResult0.getJsonPayload();
     log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -1687,11 +1687,11 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: first logger invoked");
     log:printInfo("xxx: second logger invoked");
 
@@ -1753,11 +1753,11 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: INFO level logger invoked");
     log:printDebug("xxx: DEBUG level logger invoked");
     log:printError("xxx: ERROR level logger invoked");
@@ -1856,11 +1856,11 @@ public type Context record {|
 public function variableEnricherFlow(Context ctx) {
     ctx.flowVars.userId = "st455u";
     ctx.flowVars.enrichedUserId = "null";
-    ctx.flowVars.enrichedUserId = _enricher0_(ctx.clone());
+    ctx.flowVars.enrichedUserId = enricher0(ctx.clone());
     log:printInfo(string `User ID: ${ctx.flowVars.userId.toString()}, Enriched User ID: ${ctx.flowVars.enrichedUserId.toString()}`);
 }
 
-public function _enricher0_(Context ctx) returns string? {
+public function enricher0(Context ctx) returns string? {
     flow1(ctx);
     return ctx.flowVars.userId;
 }
@@ -1906,16 +1906,16 @@ public type Context record {|
     FlowVars flowVars;
 |};
 
-public function _enricher0_(Context ctx) returns string? {
-    log:printInfo("xxx: logger inside the message enricher invoked");
-    return ctx.flowVars.userId;
-}
-
 public function variableEnricherFlow(Context ctx) {
     ctx.flowVars.userId = "st455u";
     ctx.flowVars.enrichedUserId = "null";
-    ctx.flowVars.enrichedUserId = _enricher0_(ctx.clone());
+    ctx.flowVars.enrichedUserId = enricher0(ctx.clone());
     log:printInfo(string `User ID: ${ctx.flowVars.userId.toString()}, Enriched User ID: ${ctx.flowVars.enrichedUserId.toString()}`);
+}
+
+public function enricher0(Context ctx) returns string? {
+    log:printInfo("xxx: logger inside the message enricher invoked");
+    return ctx.flowVars.userId;
 }
 
 ```
@@ -1982,22 +1982,22 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
 
     // database operation
-    sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
-    stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
-    Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
+    sql:ParameterizedQuery dbQuery0 = `SELECT * FROM users;`;
+    stream<Record, sql:Error?> dbStream0 = MySQL_Configuration->query(dbQuery0);
+    Record[] dbSelect0 = check from Record _iterator_ in dbStream0
         select _iterator_;
-    ctx.payload = _dbSelect0_;
+    ctx.payload = dbSelect0;
 
     // json transformation
-    json _to_json0_ = _dbSelect0_.toJson();
-    ctx.payload = _to_json0_;
+    json to_json0 = dbSelect0.toJson();
+    ctx.payload = to_json0;
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
     return ctx.inboundProperties.response;
@@ -2067,22 +2067,22 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
 
     // database operation
-    sql:ParameterizedQuery _dbQuery0_ = `SELECT * FROM users;`;
-    stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
-    Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
+    sql:ParameterizedQuery dbQuery0 = `SELECT * FROM users;`;
+    stream<Record, sql:Error?> dbStream0 = MySQL_Configuration->query(dbQuery0);
+    Record[] dbSelect0 = check from Record _iterator_ in dbStream0
         select _iterator_;
-    ctx.payload = _dbSelect0_;
+    ctx.payload = dbSelect0;
 
     // string transformation
-    string _to_string0_ = _dbSelect0_.toString();
-    ctx.payload = _to_string0_;
+    string to_string0 = dbSelect0.toString();
+    ctx.payload = to_string0;
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
     return ctx.inboundProperties.response;
@@ -2189,11 +2189,15 @@ service / on httpConfig {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function catch\-exception\-strategy(Context ctx, error e) {
+    log:printInfo("xxx: inside catch exception strategy");
+}
+
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     do {
         log:printInfo("xxx: end of flow reached");
     } on fail error e {
@@ -2202,10 +2206,6 @@ public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
     return ctx.inboundProperties.response;
-}
-
-public function catch\-exception\-strategy(Context ctx, error e) {
-    log:printInfo("xxx: inside catch exception strategy");
 }
 
 ```
@@ -2326,19 +2326,19 @@ service /mule3 on HTTP_Config {
 
     resource function get session(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     ctx.sessionVars.sessionVarExample = "Initial Value";
     log:printInfo(string `Session Variable (Initial): ${ctx.sessionVars.sessionVarExample.toString()}`);
     ctx.sessionVars.sessionVarExample = "Modified Value";
     log:printInfo(string `Session Variable (Modified): ${ctx.sessionVars.sessionVarExample.toString()}`);
 
     // set payload
-    string _payload0_ = "{\"message\":\"Check logs for session variable values\"}";
-    ctx.payload = _payload0_;
+    string payload0 = "{\"message\":\"Check logs for session variable values\"}";
+    ctx.payload = payload0;
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
     return ctx.inboundProperties.response;
@@ -2475,15 +2475,15 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
 
     // set payload
-    string _payload0_ = "Hello world!";
-    ctx.payload = _payload0_;
+    string payload0 = "Hello world!";
+    ctx.payload = payload0;
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
     return ctx.inboundProperties.response;
@@ -2540,23 +2540,23 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
 
     // set payload
-    string _payload0_ = "First payload";
-    ctx.payload = _payload0_;
+    string payload0 = "First payload";
+    ctx.payload = payload0;
 
     // set payload
-    string _payload1_ = "Second payload";
-    ctx.payload = _payload1_;
+    string payload1 = "Second payload";
+    ctx.payload = payload1;
 
     // set payload
-    string _payload2_ = "Third payload";
-    ctx.payload = _payload2_;
+    string payload2 = "Third payload";
+    ctx.payload = payload2;
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
     return ctx.inboundProperties.response;
@@ -2620,11 +2620,11 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: logger invoked via http end point");
     demoSub_Flow(ctx);
     log:printInfo("xxx: logger after flow reference invoked");
@@ -2637,8 +2637,8 @@ public function demoSub_Flow(Context ctx) {
     log:printInfo("xxx: sub flow logger invoked");
 
     // set payload
-    string _payload0_ = "This is a sub flow set-payload call";
-    ctx.payload = _payload0_;
+    string payload0 = "This is a sub flow set-payload call";
+    ctx.payload = payload0;
 }
 
 ```
@@ -2701,11 +2701,11 @@ service /foo on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     json myVariable = _dwMethod0_(ctx.payload.toJson());
     json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
     json mySessionVariable = _dwMethod0_(ctx.payload.toJson());
@@ -2776,7 +2776,7 @@ service /foo on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
@@ -2785,7 +2785,7 @@ function _dwMethod0_(json payload) returns json|error {
     return {"s1": "Hello World", "s2": "Hello World", "n": 1.23, "b": true, "a": check [1, 2, 3].ensureType(json), "o": check {"name": "Anne"}.ensureType(json)};
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     json _dwOutput_ = check _dwMethod0_(ctx.payload.toJson());
     ctx.payload = _dwOutput_;
 
@@ -2924,11 +2924,11 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     ctx.flowVars.name = "lochana";
     ctx.flowVars.age = "29";
 
@@ -3020,8 +3020,8 @@ public function outboundVmFlow(Context ctx) {
     }
 
     // set payload
-    string _payload0_ = "Hello World";
-    ctx.payload = _payload0_;
+    string payload0 = "Hello World";
+    ctx.payload = payload0;
 
     // VM Outbound Endpoint
     ctx.payload -> W;
@@ -3086,34 +3086,34 @@ service / on HTTP_Listener_Configuration {
 
     resource function get vm(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function vmReceive0(Context ctx) {
+    log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
+}
+
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
 
     // set payload
-    string _payload0_ = "Hello World";
-    ctx.payload = _payload0_;
+    string payload0 = "Hello World";
+    ctx.payload = payload0;
 
     // async operation
-    _ = start _async0_(ctx);
+    _ = start async0(ctx);
     log:printInfo("xxx: logger after async block invoked");
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
     return ctx.inboundProperties.response;
 }
 
-public function _vmReceive0_(Context ctx) {
-    log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
-}
-
-public function _async0_(Context ctx) {
+public function async0(Context ctx) {
     worker W returns error? {
         // VM Inbound Endpoint
         anydata receivedPayload = <- function;
         ctx.payload = receivedPayload;
-        _vmReceive0_(ctx);
+        vmReceive0(ctx);
     }
 
     // VM Outbound Endpoint
@@ -3176,21 +3176,21 @@ service / on HTTP_Listener_Configuration {
 
     resource function get vm(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     worker W returns error? {
         // VM Inbound Endpoint
         anydata receivedPayload = <- function;
         ctx.payload = receivedPayload;
-        _vmReceive0_(ctx);
+        vmReceive0(ctx);
     }
 
     // set payload
-    string _payload0_ = "Hello World";
-    ctx.payload = _payload0_;
+    string payload0 = "Hello World";
+    ctx.payload = payload0;
 
     // VM Outbound Endpoint
     ctx.payload -> W;
@@ -3199,7 +3199,7 @@ public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
     return ctx.inboundProperties.response;
 }
 
-public function _vmReceive0_(Context ctx) {
+public function vmReceive0(Context ctx) {
     log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
 }
 

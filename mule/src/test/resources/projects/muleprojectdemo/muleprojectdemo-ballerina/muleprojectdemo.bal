@@ -12,7 +12,7 @@ service / on httpConfig {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
@@ -21,7 +21,7 @@ function _dwMethod1_(json payload) returns json|error {
     return {"s": "Hello World", "n": 1.23, "b": true, "a": check [1, 2, 3].ensureType(json), "o": check {"name": "Anne"}.ensureType(json)};
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     mainconfigSub_Flow(ctx);
     commonConfig1Flow(ctx);
     commonConfig2Sub_Flow(ctx);

@@ -23,11 +23,15 @@ service / on httpConfig {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function catch\-exception\-strategy(Context ctx, error e) {
+    log:printInfo("xxx: inside catch exception strategy");
+}
+
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     do {
         log:printInfo("xxx: end of flow reached");
     } on fail error e {
@@ -36,8 +40,4 @@ public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
     return ctx.inboundProperties.response;
-}
-
-public function catch\-exception\-strategy(Context ctx, error e) {
-    log:printInfo("xxx: inside catch exception strategy");
 }

@@ -30,18 +30,18 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
 
     // database operation
-    sql:ParameterizedQuery _dbQuery0_ = Template_Select_Query;
-    stream<Record, sql:Error?> _dbStream0_ = MySQL_Configuration->query(_dbQuery0_);
-    Record[] _dbSelect0_ = check from Record _iterator_ in _dbStream0_
+    sql:ParameterizedQuery dbQuery0 = Template_Select_Query;
+    stream<Record, sql:Error?> dbStream0 = MySQL_Configuration->query(dbQuery0);
+    Record[] dbSelect0 = check from Record _iterator_ in dbStream0
         select _iterator_;
-    ctx.payload = _dbSelect0_;
+    ctx.payload = dbSelect0;
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
     return ctx.inboundProperties.response;

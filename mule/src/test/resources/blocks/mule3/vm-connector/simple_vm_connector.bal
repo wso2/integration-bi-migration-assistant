@@ -17,8 +17,8 @@ public function outboundVmFlow(Context ctx) {
     }
 
     // set payload
-    string _payload0_ = "Hello World";
-    ctx.payload = _payload0_;
+    string payload0 = "Hello World";
+    ctx.payload = payload0;
 
     // VM Outbound Endpoint
     ctx.payload -> W;

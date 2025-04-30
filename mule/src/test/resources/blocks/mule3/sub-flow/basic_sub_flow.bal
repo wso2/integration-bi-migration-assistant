@@ -23,11 +23,11 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: logger invoked via http end point");
     demoSub_Flow(ctx);
     log:printInfo("xxx: logger after flow reference invoked");
@@ -40,6 +40,6 @@ public function demoSub_Flow(Context ctx) {
     log:printInfo("xxx: sub flow logger invoked");
 
     // set payload
-    string _payload0_ = "This is a sub flow set-payload call";
-    ctx.payload = _payload0_;
+    string payload0 = "This is a sub flow set-payload call";
+    ctx.payload = payload0;
 }
