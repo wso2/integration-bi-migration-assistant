@@ -55,7 +55,8 @@ build {
     dependsOn "common:build"
     dependsOn "mule:build"
     dependsOn "tibco:build"
-    dependsOn "cli:build"
+    dependsOn "cli-mule:build"
+    dependsOn "cli-tibco:build"
 }
 
 // Apply a specific Java toolchain to ease working on different environments.

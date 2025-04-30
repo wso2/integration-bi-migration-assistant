@@ -17,10 +17,12 @@ include ':checkstyle'
 include ':common'
 include ':tibco'
 include ':mule'
-include ':cli'
+include ':cli-mule'
+include ':cli-tibco'
 
 project(':checkstyle').projectDir = file("build-config${File.separator}checkstyle")
 project(':common').projectDir = file('common')
 project(':mule').projectDir = file('mule')
 project(':tibco').projectDir = file('tibco')
-project(':cli').projectDir = file('cli')
+project(':cli-mule').projectDir = file('cli-mule')
+project(':cli-tibco').projectDir = file('cli-tibco')

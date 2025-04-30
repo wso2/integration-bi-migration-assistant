@@ -24,8 +24,7 @@ repositories {
 }
 
 dependencies {
-    // common
-    implementation project(path: ':mule')
+    // tibco
     implementation project(path: ':tibco')
 
     // Dev dependencies
@@ -40,9 +39,6 @@ checkstyle {
     toolVersion = '10.12.5'
     config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
 }
-
-checkstyleMain
-        .exclude("mule/dataweave/parser/*.java")
 
 spotbugs {
     reportLevel = 'high'
@@ -81,24 +77,6 @@ jar {
     archiveFileName = 'integration-bi-migration-assistant.jar'
 }
 
-// Create a separate JAR for Mule migrations
-task muleJar(type: Jar) {
-    manifest {
-        attributes(
-                'Main-Class': 'cli.MuleCli'
-        )
-    }
-    from {
-        sourceSets.main.output
-    }
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    archiveBaseName = 'mule-migration-assistant'
-    archiveVersion = project.version
-}
-
 // Create a separate JAR for Tibco migrations
 task tibcoJar(type: Jar) {
     manifest {
@@ -117,12 +95,22 @@ task tibcoJar(type: Jar) {
     archiveVersion = project.version
 }
 
+task tibcoPack(type: Exec, dependsOn: tibcoJar) {
+    workingDir "${projectDir}/src/main/java/baltool/tibco/tool-bi-migrate-tibco"
+    commandLine 'bal', 'pack'
+    group = 'build'
+}
+
+task tibcoRelease(type: Exec, dependsOn: tibcoPack) {
+    workingDir "${projectDir}/src/main/java/baltool/tibco/tool-bi-migrate-tibco"
+    commandLine 'bal', 'push', '--repository=local'
+    group = 'build'
+}
+
 build {
     dependsOn ":tibco:build"
-    dependsOn ":mule:build"
     dependsOn checkstyleMain
     dependsOn spotbugsMain
-    dependsOn muleJar
     dependsOn tibcoJar
 }
 

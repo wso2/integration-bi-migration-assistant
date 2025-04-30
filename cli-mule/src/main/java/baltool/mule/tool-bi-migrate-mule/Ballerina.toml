@@ -1,5 +1,5 @@
 [package]
-org = "lochanaj"
+org = "wso2"
 name = "tool_bi_migrate_mule"
-version = "0.1.0"
+version = "1.0.0"
 distribution = "2201.12.3"
