@@ -94,6 +94,7 @@ import static mule.MuleModel.Choice;
 import static mule.MuleModel.Database;
 import static mule.MuleModel.DbInParam;
 import static mule.MuleModel.DbMSQLConfig;
+import static mule.MuleModel.DbOracleConfig;
 import static mule.MuleModel.DbTemplateQuery;
 import static mule.MuleModel.Enricher;
 import static mule.MuleModel.ExpressionComponent;
@@ -134,6 +135,7 @@ public class MuleToBalConverter {
         HashMap<String, HTTPListenerConfig> globalHttpListenerConfigsMap = new LinkedHashMap<>();
         HashMap<String, HTTPRequestConfig> globalHttpRequestConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbMSQLConfig> globalDbMySQLConfigsMap = new LinkedHashMap<>();
+        HashMap<String, DbOracleConfig> globalDbOracleConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbTemplateQuery> globalDbTemplateQueryMap = new LinkedHashMap<>();
         List<UnsupportedBlock> globalUnsupportedBlocks = new ArrayList<>();
         List<MuleRecord> globalExceptionStrategies = new ArrayList<>();
@@ -158,6 +160,7 @@ public class MuleToBalConverter {
         HashMap<String, HTTPListenerConfig> sharedHttpListenerConfigsMap = new LinkedHashMap<>();
         HashMap<String, HTTPRequestConfig> sharedHttpRequestConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbMSQLConfig> sharedDbMySQLConfigsMap = new LinkedHashMap<>();
+        HashMap<String, DbOracleConfig> sharedDbOracleConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbTemplateQuery> sharedDbTemplateQueryMap = new LinkedHashMap<>();
         HashMap<String, String> vmPathToBalFuncMap = new LinkedHashMap<>();
 
@@ -265,6 +268,7 @@ public class MuleToBalConverter {
         sharedProjectData.sharedHttpListenerConfigsMap.putAll(data.globalHttpListenerConfigsMap);
         sharedProjectData.sharedHttpRequestConfigsMap.putAll(data.globalHttpRequestConfigsMap);
         sharedProjectData.sharedDbMySQLConfigsMap.putAll(data.globalDbMySQLConfigsMap);
+        sharedProjectData.sharedDbOracleConfigsMap.putAll(data.globalDbOracleConfigsMap);
         sharedProjectData.sharedDbTemplateQueryMap.putAll(data.globalDbTemplateQueryMap);
         return syntaxTree;
     }
@@ -343,6 +347,10 @@ public class MuleToBalConverter {
             DbMSQLConfig dbMSQLConfig = readDbMySQLConfig(data, muleElement);
             data.globalDbMySQLConfigsMap.put(dbMSQLConfig.name(), dbMSQLConfig);
             data.sharedProjectData.sharedDbMySQLConfigsMap.put(dbMSQLConfig.name(), dbMSQLConfig);
+        } else if (MuleXMLTag.DB_ORACLE_CONFIG.tag().equals(elementTagName)) {
+            DbOracleConfig dbOracleConfig = readDbOracleConfig(data, muleElement);
+            data.globalDbOracleConfigsMap.put(dbOracleConfig.name(), dbOracleConfig);
+            data.sharedProjectData.sharedDbOracleConfigsMap.put(dbOracleConfig.name(), dbOracleConfig);
         } else if (MuleXMLTag.DB_TEMPLATE_QUERY.tag().equals(elementTagName)) {
             DbTemplateQuery dbTemplateQuery = readDbTemplateQuery(data, muleElement);
             data.globalDbTemplateQueryMap.put(dbTemplateQuery.name(), dbTemplateQuery);
@@ -406,6 +414,13 @@ public class MuleToBalConverter {
                     dbMSQLConfig.host(), dbMSQLConfig.user(), dbMSQLConfig.password(), dbMSQLConfig.database(),
                     dbMSQLConfig.port()));
             moduleVars.add(new ModuleVar(dbMSQLConfig.name(), typeFrom(Constants.MYSQL_CLIENT_TYPE), balExpr));
+        }
+
+        for (DbOracleConfig dbOracleConfig : data.globalDbOracleConfigsMap.values()) {
+            var balExpr = exprFrom(String.format("check new (\"%s\", \"%s\", \"%s\", \"%s\", %s)",
+                    dbOracleConfig.host(), dbOracleConfig.user(), dbOracleConfig.password(), dbOracleConfig.instance(),
+                    dbOracleConfig.port()));
+            moduleVars.add(new ModuleVar(dbOracleConfig.name(), typeFrom(Constants.ORACLEDB_CLIENT_TYPE), balExpr));
         }
 
         for (DbTemplateQuery dbTemplateQuery : data.globalDbTemplateQueryMap.values()) {
@@ -1480,6 +1495,19 @@ public class MuleToBalConverter {
         String password = element.getAttribute("password");
         String database = element.getAttribute("database");
         return new DbMSQLConfig(name, host, port, user, password, database);
+    }
+
+    private static DbOracleConfig readDbOracleConfig(Data data, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        data.imports.add(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_ORACLEDB));
+        data.imports.add(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_ORACLEDB_DRIVER, Optional.of("_")));
+        String name = element.getAttribute("name");
+        String host = element.getAttribute("host");
+        String port = element.getAttribute("port");
+        String user = element.getAttribute("user");
+        String password = element.getAttribute("password");
+        String instance = element.getAttribute("instance");
+        return new DbOracleConfig(name, host, port, user, password, instance);
     }
 
     private static DbTemplateQuery readDbTemplateQuery(Data data, MuleElement muleElement) {

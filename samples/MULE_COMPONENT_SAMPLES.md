@@ -672,6 +672,85 @@ public function invokeEndPoint0(Context ctx) returns http:Response|error {
 
 ```
 
+- ### Oracle Db Select
+
+**Input (oracle_db_select.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="config" host="localhost" port="8081" basePath="/mule3" doc:name="HTTP Listener Configuration"/>
+    <db:oracle-config name="Oracle_Configuration" doc:name="Oracle Configuration" host="localhost" password="admin123" port="3306" user="root" instance="test_db"/>
+    <flow name="demoFlow">
+        <http:listener config-ref="config" path="/demo" allowedMethods="GET" doc:name="HTTP"/>
+        <logger message="xxx: logger invoked" level="INFO" doc:name="Logger"/>
+        <db:select config-ref="Oracle_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[SELECT * FROM users;]]></db:parameterized-query>
+        </db:select>
+    </flow>
+</mule>
+
+```
+**Output (oracle_db_select.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+import ballerina/sql;
+import ballerinax/oracledb;
+import ballerinax/oracledb.driver as _;
+
+public type InboundProperties record {|
+    http:Response response;
+    http:Request request;
+    map<string> uriParams;
+|};
+
+public type Context record {|
+    anydata payload;
+    InboundProperties inboundProperties;
+|};
+
+public type Record record {
+};
+
+oracledb:Client Oracle_Configuration = check new ("localhost", "root", "admin123", "test_db", 3306);
+public listener http:Listener config = new (8081, {host: "localhost"});
+
+service /mule3 on config {
+    Context ctx;
+
+    function init() {
+        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
+    }
+
+    resource function get demo(http:Request request) returns http:Response|error {
+        self.ctx.inboundProperties.request = request;
+        return invokeEndPoint0(self.ctx);
+    }
+}
+
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
+    log:printInfo("xxx: logger invoked");
+
+    // database operation
+    sql:ParameterizedQuery dbQuery0 = `SELECT * FROM users;`;
+    stream<Record, sql:Error?> dbStream0 = Oracle_Configuration->query(dbQuery0);
+    Record[] dbSelect0 = check from Record _iterator_ in dbStream0
+        select _iterator_;
+    ctx.payload = dbSelect0;
+
+    ctx.inboundProperties.response.setPayload(ctx.payload);
+    return ctx.inboundProperties.response;
+}
+
+```
+
 ## Expression Component
 
 - ### Simple Expression Component

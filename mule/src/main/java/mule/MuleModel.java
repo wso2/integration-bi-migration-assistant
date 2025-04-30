@@ -231,6 +231,13 @@ public record MuleModel() {
         }
     }
 
+    public record DbOracleConfig(Kind kind, String name, String host, String port, String user, String password,
+                               String instance) implements MuleRecord {
+        public DbOracleConfig(String name, String host, String port, String user, String password, String instance) {
+            this(Kind.DB_ORACLE_CONFIG, name, host, port, user, password, instance);
+        }
+    }
+
     public record DbTemplateQuery(Kind kind, String name, String parameterizedQuery,
                                   List<DbInParam> dbInParams) implements MuleRecord {
         public DbTemplateQuery(String name, String parameterizedQuery, List<DbInParam> dbInParams) {
@@ -273,6 +280,7 @@ public record MuleModel() {
         HTTP_LISTENER_CONFIG,
         HTTP_REQUEST_CONFIG,
         DB_MYSQL_CONFIG,
+        DB_ORACLE_CONFIG,
         DB_TEMPLATE_QUERY,
         DB_INSERT,
         DB_SELECT,
