@@ -7,13 +7,13 @@ The bi-migrate-tibco tool helps you migrate existing TIBCO BusinessWorks integra
 ## Command Syntax
 
 ``` bash
-bal name <source-project-directory-or-file> [--out <output-directory>]
+bal name <source-project-directory-or-file> [-o|--out <output-directory>]
 ```
 
 ## Parameters
 
 - **source-project-directory-or-file** - Required. The TIBCO BusinessWorks project directory or `bwp` file to migrate.
-- **—out** - *Optional*. The directory where the new Ballerina package will be created. If the directory does not exist tool will create it for you. If not provided,
+- **-o or --out** - *Optional*. The directory where the new Ballerina package will be created. If the directory does not exist tool will create it for you. If not provided,
   - If source-project-directory-or-file is a directory it will create new directory named \${source-project-directory-or-file}<sub>converted</sub> in the root of source-project-directory-or-file
   - if source-project-directory-or-file is a file a new `bal` will be created at the same location
 

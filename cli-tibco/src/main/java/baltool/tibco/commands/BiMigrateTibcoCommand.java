@@ -53,6 +53,7 @@ public class BiMigrateTibcoCommand implements BLauncherCmd {
             args.add(sourcePath);
         }
         if (outputPath != null) {
+            args.add("-o");
             args.add(outputPath);
         }
         TibcoConverter.migrateTibco(args.toArray(String[]::new));

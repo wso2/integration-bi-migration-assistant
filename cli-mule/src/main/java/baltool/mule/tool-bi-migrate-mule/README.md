@@ -7,14 +7,14 @@ standalone Mule XML file as input and produces an equivalent Ballerina Integrato
 #### Command Syntax
 
 ```bash
-bal bi-migrate-mule <source-project-directory-or-file> [--out <output-directory>]
+bal bi-migrate-mule <source-project-directory-or-file> [-o|--out <output-directory>]
 ```
 
 ### Parameters
 
 - **source-project-directory-or-file** - *Required*. The path to the MuleSoft project directory or a standalone Mule
   XML file to be migrated.
-- **--out** - *Optional*. The directory where the new Ballerina package will be created. If not provided,
+- **-o or --out** - *Optional*. The directory where the new Ballerina package will be created. If not provided,
     - For a project directory input, the new Ballerina package is created inside the source project directory.
     - For a standalone XML file, the new Ballerina package is created in the same directory as the source file.
 
