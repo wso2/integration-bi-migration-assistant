@@ -51,58 +51,75 @@ public class MuleConverter {
     public static void migrateMuleProject(String[] args) {
         if (args.length < 1) {
             logger.severe("Usage: java -jar mule-migration-assistant.jar <source-project-directory-or-file> " +
-                    "[--out <output-directory>]");
+                    "[-o|--out <output-directory>]");
             System.exit(1);
         }
-        String inputPath = args[0];
-        boolean standaloneFile = inputPath.endsWith(".xml");
+        String inputPathArg = args[0];
+        String outputPathArg = null;
+        if (args.length >= 3 && (args[1].equals("-o") || args[1].equals("--out"))) {
+            outputPathArg = args[2];
+        }
+
+        boolean standaloneFile = inputPathArg.endsWith(".xml");
         if (standaloneFile) {
-            convertMuleXmlFile(inputPath);
+            convertMuleXmlFile(inputPathArg, outputPathArg);
         } else {
-            convertMuleProject(inputPath);
+            convertMuleProject(inputPathArg, outputPathArg);
         }
     }
 
-    public static void convertMuleXmlFile(String inputXmlFilePath) {
-        Path filePath = Paths.get(inputXmlFilePath);
-        String fileName = filePath.getFileName().toString().split(".xml")[0];
-        String balProjectName = fileName.concat(BAL_PROJECT_SUFFIX);
+    public static void convertMuleXmlFile(String inputPathArg, String outputPathArg) {
+        Path inputPath = Paths.get(inputPathArg);
+        String inputFileName = inputPath.getFileName().toString().split(".xml")[0];
+        String balPackageName = inputFileName.concat(BAL_PROJECT_SUFFIX);
 
-        Path parent = filePath.getParent();
-        Path balProjectPath = parent == null ? Path.of(balProjectName) : parent.resolve(balProjectName);
-        String targetFolderPath = balProjectPath.toString();
+        Path balPackageDir;
+        if (outputPathArg != null) {
+            balPackageDir = Path.of(outputPathArg).resolve(balPackageName);
+        } else {
+            Path parent = inputPath.getParent();
+            if (parent == null) {
+                // e.g. bar.xml
+                balPackageDir = Path.of(balPackageName);
+            } else {
+                // e.g foo/bar.xml
+                balPackageDir = parent.resolve(balPackageName);
+            }
+        }
+        convertMuleXmlFile(balPackageDir, inputFileName, inputPathArg);
+    }
 
-        // TODO: merge repeated logic with convertMuleProject()
-        // create ballerina project
-        String[] args = { balProjectPath.toString() };
-        NewCommand newCommand = new NewCommand(System.out, false);
-        new CommandLine(newCommand).parseArgs(args);
-        newCommand.execute();
-
+    private static void convertMuleXmlFile(Path balPackageDir, String inputFileName, String inputXmlFilePath) {
         MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator();
         MuleToBalConverter.SharedProjectData sharedProjectData = new MuleToBalConverter.SharedProjectData(
                 muleXMLNavigator);
 
-        String outputBalFile = fileName.concat(".bal");
+        String targetBalFile = inputFileName.concat(".bal");
         SyntaxTree syntaxTree;
         try {
             syntaxTree = convertProjectXMLFileToBallerina(muleXMLNavigator, sharedProjectData, inputXmlFilePath);
         } catch (Exception e) {
-            logger.severe(String.format("Error converting the file: %s%n%s",
-                    filePath.getFileName().toString(), e.getMessage()));
+            logger.severe("Error converting the file: %s%n%s".formatted(inputFileName.concat(".xml"), e.getMessage()));
             return;
         }
 
-        Path outputPath = balProjectPath.resolve(outputBalFile);
+        // TODO: merge repeated logic with convertMuleProject()
+        // create ballerina project
+        String[] args = {balPackageDir.toString()};
+        NewCommand newCommand = new NewCommand(System.out, false);
+        new CommandLine(newCommand).parseArgs(args);
+        newCommand.execute();
+
+        Path targetBalFilePath = balPackageDir.resolve(targetBalFile);
         try {
-            Files.writeString(outputPath, syntaxTree.toSourceCode());
+            Files.writeString(targetBalFilePath, syntaxTree.toSourceCode());
         } catch (Exception e) {
             logger.severe("Error writing to file: " + e.getMessage());
             System.exit(1);
         }
 
-        genAndWriteInternalTypesBalFile(sharedProjectData, targetFolderPath);
-        Path reportFilePath = Paths.get(targetFolderPath, MIGRATION_REPORT_NAME);
+        genAndWriteInternalTypesBalFile(sharedProjectData, balPackageDir.toString());
+        Path reportFilePath = Paths.get(balPackageDir.toString(), MIGRATION_REPORT_NAME);
         int conversionPercentage = writeHtmlReport(logger, reportFilePath,
                 muleXMLNavigator.getXmlCompatibleTagCountMap(), muleXMLNavigator.getXmlIncompatibleTagCountMap(),
                 muleXMLNavigator.getDwConversionStats());
@@ -110,20 +127,28 @@ public class MuleConverter {
         printOverallProjectConversionPercentage(conversionPercentage);
     }
 
-    public static void convertMuleProject(String projectPath) {
-        Path muleProjectPath = Path.of(projectPath);
+    public static void convertMuleProject(String inputPathArg, String outputPathArg) {
+        Path inputPath = Paths.get(inputPathArg);
+        String balPackageName = inputPath.getFileName().toString().concat(BAL_PROJECT_SUFFIX);
 
-        String balProjectName = muleProjectPath.getFileName().toString().concat(BAL_PROJECT_SUFFIX);
-        Path balProjectPath = muleProjectPath.resolve(balProjectName);
+        Path balPackageDir;
+        if (outputPathArg != null) {
+            balPackageDir = Path.of(outputPathArg).resolve(balPackageName);
+        } else {
+            balPackageDir = inputPath.resolve(balPackageName);
+        }
+        convertMuleProject(balPackageDir, inputPathArg);
+    }
 
+    public static void convertMuleProject(Path balPackageDir, String inputPathArg) {
         // create ballerina project
-        String[] args = { balProjectPath.toString() };
+        String[] args = { balPackageDir.toString() };
         NewCommand newCommand = new NewCommand(System.out, false);
         new CommandLine(newCommand).parseArgs(args);
         newCommand.execute();
 
-        Path sourceFolderPath = muleProjectPath.resolve("src").resolve("main").resolve(MULE_DEFAULT_APP_DIR_NAME);
-        String targetFolderPath = balProjectPath.toString();
+        Path sourceFolderPath = Path.of(inputPathArg).resolve("src").resolve("main").resolve(MULE_DEFAULT_APP_DIR_NAME);
+        String targetFolderPath = balPackageDir.toString();
 
         List<File> xmlFiles = new ArrayList<>();
         collectXmlFiles(sourceFolderPath.toFile(), xmlFiles);
