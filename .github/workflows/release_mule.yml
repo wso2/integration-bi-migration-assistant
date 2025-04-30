@@ -25,6 +25,11 @@ jobs:
           distribution: "temurin"
           java-version: 21.0.3
 
+      - uses: ballerina-platform/setup-ballerina@v1
+        name: Install Ballerina
+        with:
+          version: 2201.12.3
+
       - name: Set ENV Variables
         run: |
           echo -e '${{ toJson(secrets) }}' | jq -r 'to_entries[] | .key + "=" + .value' >> $GITHUB_ENV
