@@ -35,7 +35,7 @@ public class MigrateTibcoCommand implements BLauncherCmd {
 
     private static final String CMD_NAME = "migrate-tibco";
     private static final String USAGE =
-            "bal migrate-tibco <source-project-directory-or-file> [--out <output-directory>]";
+            "bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>]";
 
     public MigrateTibcoCommand() {
     }
