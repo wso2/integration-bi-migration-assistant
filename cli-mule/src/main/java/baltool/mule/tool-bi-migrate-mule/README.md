@@ -1,5 +1,5 @@
 ## Tool Overview
-The `bi-migrate-mule` tool enables the conversion of MuleSoft applications into WSO2 Ballerina Integrator
+The `migrate-mule` tool enables the conversion of MuleSoft applications into WSO2 Ballerina Integrator
 applications by generating the corresponding Ballerina packages. It accepts either a MuleSoft project directory or a
 standalone Mule XML file as input and produces an equivalent Ballerina Integrator application.
 
@@ -15,7 +15,7 @@ $ bal tool pull bi-migrate-mule:1.0.0
 ### Command Syntax
 
 ```bash
-$ bal bi-migrate-mule <source-project-directory-or-file> [-o|--out <output-directory>]
+$ bal migrate-mule <source-project-directory-or-file> [-o|--out <output-directory>]
 ```
 
 ### Parameters
@@ -39,7 +39,7 @@ Make sure your project follows this structure.
 ### Convert a MuleSoft Project with Default Output Location
 
 ```bash
-$ bal bi-migrate-mule /path/to/mule-project
+$ bal migrate-mule /path/to/mule-project
 ```
 
 This will create a Ballerina package inside `/path/to/mule-project` directory.
@@ -47,7 +47,7 @@ This will create a Ballerina package inside `/path/to/mule-project` directory.
 ### Convert a MuleSoft Project with Custom Output Location
 
 ```bash
-$ bal bi-migrate-mule /path/to/mule-project --out /path/to/output-dir
+$ bal migrate-mule /path/to/mule-project --out /path/to/output-dir
 ```
 
 This will create a Ballerina package at `/path/to/output-dir`.
@@ -55,7 +55,7 @@ This will create a Ballerina package at `/path/to/output-dir`.
 ### Convert a Standalone Mule XML File
 
 ```bash
-$ bal bi-migrate-mule /path/to/mule-flow.xml
+$ bal migrate-mule /path/to/mule-flow.xml
 ```
 
 This will create a Ballerina package in the same directory as the input XML file.
@@ -63,7 +63,7 @@ This will create a Ballerina package in the same directory as the input XML file
 ### Convert a Standalone Mule XML File with Custom Output Location
 
 ```bash
-$ bal bi-migrate-mule /path/to/mule-flow.xml --out /path/to/output-dir
+$ bal migrate-mule /path/to/mule-flow.xml --out /path/to/output-dir
 ```
 
 This will create a Ballerina package at `/path/to/output-dir`.
@@ -86,7 +86,7 @@ This will create a Ballerina package at `/path/to/output-dir`.
 
 ### Migration Summary
 
-- When you run `bal bi-migrate-mule <path>`, the tool displays the migration progress in two stages:
+- When you run `bal migrate-mule <path>`, the tool displays the migration progress in two stages:
 1. **DataWeave Conversion Percentage** – Indicates the conversion success rate of all DataWeave scripts within the
    project.
 2. **Overall Project Conversion Percentage** – Represents the combined conversion rate based on both component-level

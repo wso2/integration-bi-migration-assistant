@@ -22,19 +22,20 @@ import mule.MuleConverter;
 import picocli.CommandLine;
 
 /**
- * This class represents the "bi-migrate-mule" bal tool command.
+ * This class represents the "migrate-mule" bal tool command.
  *
  * @since 1.0.0
  */
-@CommandLine.Command(name = "bi-migrate-mule",
+@CommandLine.Command(
+        name = "migrate-mule",
         description = "Accepts a Mule project directory or a standalone Mule `.xml` file path as input")
-public class BiMigrateMuleCommand implements BLauncherCmd {
+public class MigrateMuleCommand implements BLauncherCmd {
 
-    private static final String CMD_NAME = "bi-migrate-mule";
+    private static final String CMD_NAME = "migrate-mule";
     private static final String USAGE =
-            "bal bi-migrate-mule <source-project-directory-or-file> [--out <output-directory>]";
+            "bal migrate-mule <source-project-directory-or-file> [--out <output-directory>]";
 
-    public BiMigrateMuleCommand() {
+    public MigrateMuleCommand() {
     }
 
     @CommandLine.Parameters(description = "Source Mule project directory or standalone Mule `.xml` file path")
@@ -65,10 +66,10 @@ public class BiMigrateMuleCommand implements BLauncherCmd {
     public void printUsage(StringBuilder stringBuilder) {
         stringBuilder.append(USAGE).append("\n\n");
         stringBuilder.append("Examples:\n");
-        stringBuilder.append("  bal bi-migrate-mule /path/to/mule-project\n");
-        stringBuilder.append("  bal bi-migrate-mule /path/to/mule-project --out /path/to/output\n");
-        stringBuilder.append("  bal bi-migrate-mule /path/to/mule-flow.xml");
-        stringBuilder.append("  bal bi-migrate-mule /path/to/mule-flow.xml --out /path/to/output\n");
+        stringBuilder.append("  bal migrate-mule /path/to/mule-project\n");
+        stringBuilder.append("  bal migrate-mule /path/to/mule-project --out /path/to/output\n");
+        stringBuilder.append("  bal migrate-mule /path/to/mule-flow.xml");
+        stringBuilder.append("  bal migrate-mule /path/to/mule-flow.xml --out /path/to/output\n");
     }
 
     @Override
