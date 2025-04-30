@@ -23,11 +23,11 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     log:printInfo("xxx: INFO level logger invoked");
     log:printDebug("xxx: DEBUG level logger invoked");
     log:printError("xxx: ERROR level logger invoked");

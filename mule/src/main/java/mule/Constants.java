@@ -51,17 +51,17 @@ public class Constants {
     public static final String SESSION_VARS_FIELD_ACCESS = CONTEXT_REFERENCE + "." + SESSION_VARS_REF;
     public static final String INBOUND_PROPERTIES_FIELD_ACCESS = CONTEXT_REFERENCE + "." + INBOUND_PROPERTIES_REF;
 
-    public static final String FUNC_NAME_HTTP_ENDPOINT_TEMPLATE = "_invokeEndPoint%s_";
-    public static final String VAR_DB_STREAM_TEMPLATE = "_dbStream%s_";
-    public static final String VAR_DB_QUERY_TEMPLATE = "_dbQuery%s_";
-    public static final String VAR_DB_SELECT_TEMPLATE = "_dbSelect%s_";
-    public static final String VAR_OBJ_TO_JSON_TEMPLATE = "_to_json%s_";
-    public static final String VAR_OBJ_TO_STRING_TEMPLATE = "_to_string%s_";
-    public static final String FUNC_NAME_ENRICHER_TEMPLATE = "_enricher%s_";
-    public static final String FUNC_NAME_ASYC_TEMPLATE = "_async%s_";
-    public static final String VAR_PAYLOAD_TEMPLATE = "_payload%s_";
-    public static final String VAR_CLIENT_RESULT_TEMPLATE = "_clientResult%s_";
-    public static final String FUNC_NAME_VM_RECEIVE_TEMPLATE = "_vmReceive%s_";
+    public static final String FUNC_NAME_HTTP_ENDPOINT_TEMPLATE = "invokeEndPoint%s";
+    public static final String VAR_DB_STREAM_TEMPLATE = "dbStream%s";
+    public static final String VAR_DB_QUERY_TEMPLATE = "dbQuery%s";
+    public static final String VAR_DB_SELECT_TEMPLATE = "dbSelect%s";
+    public static final String VAR_OBJ_TO_JSON_TEMPLATE = "to_json%s";
+    public static final String VAR_OBJ_TO_STRING_TEMPLATE = "to_string%s";
+    public static final String FUNC_NAME_ENRICHER_TEMPLATE = "enricher%s";
+    public static final String FUNC_NAME_ASYC_TEMPLATE = "async%s";
+    public static final String VAR_PAYLOAD_TEMPLATE = "payload%s";
+    public static final String VAR_CLIENT_RESULT_TEMPLATE = "clientResult%s";
+    public static final String FUNC_NAME_VM_RECEIVE_TEMPLATE = "vmReceive%s";
 
     // Types
     public static final String HTTP_RESPONSE_TYPE = "http:Response";

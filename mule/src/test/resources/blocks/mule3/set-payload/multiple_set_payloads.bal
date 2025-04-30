@@ -22,23 +22,23 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
 
     // set payload
-    string _payload0_ = "First payload";
-    ctx.payload = _payload0_;
+    string payload0 = "First payload";
+    ctx.payload = payload0;
 
     // set payload
-    string _payload1_ = "Second payload";
-    ctx.payload = _payload1_;
+    string payload1 = "Second payload";
+    ctx.payload = payload1;
 
     // set payload
-    string _payload2_ = "Third payload";
-    ctx.payload = _payload2_;
+    string payload2 = "Third payload";
+    ctx.payload = payload2;
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
     return ctx.inboundProperties.response;

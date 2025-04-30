@@ -23,16 +23,16 @@ service /mule3 on HTTP_Listener_Config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
 
     // http client request
     http:Client HTTP_Request_Config = check new ("jsonplaceholder.typicode.com:80");
-    http:Response _clientResult0_ = check HTTP_Request_Config->/posts/latest.get();
-    ctx.payload = check _clientResult0_.getJsonPayload();
+    http:Response clientResult0 = check HTTP_Request_Config->/posts/latest.get();
+    ctx.payload = check clientResult0.getJsonPayload();
     log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
 
     ctx.inboundProperties.response.setPayload(ctx.payload);

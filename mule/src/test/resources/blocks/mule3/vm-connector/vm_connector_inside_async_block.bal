@@ -23,34 +23,34 @@ service / on HTTP_Listener_Configuration {
 
     resource function get vm(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function vmReceive0(Context ctx) {
+    log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
+}
+
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
 
     // set payload
-    string _payload0_ = "Hello World";
-    ctx.payload = _payload0_;
+    string payload0 = "Hello World";
+    ctx.payload = payload0;
 
     // async operation
-    _ = start _async0_(ctx);
+    _ = start async0(ctx);
     log:printInfo("xxx: logger after async block invoked");
 
     ctx.inboundProperties.response.setPayload(ctx.payload);
     return ctx.inboundProperties.response;
 }
 
-public function _vmReceive0_(Context ctx) {
-    log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
-}
-
-public function _async0_(Context ctx) {
+public function async0(Context ctx) {
     worker W returns error? {
         // VM Inbound Endpoint
         anydata receivedPayload = <- function;
         ctx.payload = receivedPayload;
-        _vmReceive0_(ctx);
+        vmReceive0(ctx);
     }
 
     // VM Outbound Endpoint

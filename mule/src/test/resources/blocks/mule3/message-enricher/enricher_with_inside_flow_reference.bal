@@ -13,11 +13,11 @@ public type Context record {|
 public function variableEnricherFlow(Context ctx) {
     ctx.flowVars.userId = "st455u";
     ctx.flowVars.enrichedUserId = "null";
-    ctx.flowVars.enrichedUserId = _enricher0_(ctx.clone());
+    ctx.flowVars.enrichedUserId = enricher0(ctx.clone());
     log:printInfo(string `User ID: ${ctx.flowVars.userId.toString()}, Enriched User ID: ${ctx.flowVars.enrichedUserId.toString()}`);
 }
 
-public function _enricher0_(Context ctx) returns string? {
+public function enricher0(Context ctx) returns string? {
     flow1(ctx);
     return ctx.flowVars.userId;
 }

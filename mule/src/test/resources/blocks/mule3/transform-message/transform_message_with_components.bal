@@ -22,11 +22,11 @@ service /foo on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     json myVariable = _dwMethod0_(ctx.payload.toJson());
     json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
     json mySessionVariable = _dwMethod0_(ctx.payload.toJson());

@@ -7,14 +7,14 @@ public type Context record {|
 public function mainFlow(Context ctx) {
 
     // set payload
-    string _payload0_ = "Hello";
-    ctx.payload = _payload0_;
+    string payload0 = "Hello";
+    ctx.payload = payload0;
 
     // async operation
-    _ = start _async0_(ctx);
+    _ = start async0(ctx);
     log:printInfo("Main flow continues immediately.");
 }
 
-public function _async0_(Context ctx) {
+public function async0(Context ctx) {
     log:printInfo(string `Doing something in background: ${ctx.payload.toString()}`);
 }

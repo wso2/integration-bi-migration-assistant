@@ -28,11 +28,11 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
-        return _invokeEndPoint0_(self.ctx);
+        return invokeEndPoint0(self.ctx);
     }
 }
 
-public function _invokeEndPoint0_(Context ctx) returns http:Response|error {
+public function invokeEndPoint0(Context ctx) returns http:Response|error {
     ctx.flowVars.marks = 73;
     if ctx.flowVars.marks > 75 {
         log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is A.`);
