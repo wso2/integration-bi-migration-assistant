@@ -117,6 +117,30 @@ task tibcoJar(type: Jar) {
     archiveVersion = project.version
 }
 
+task mulePack(type: Exec, dependsOn: muleJar) {
+    workingDir "${projectDir}/src/main/java/baltool/mule/tool-bi-migrate-mule"
+    commandLine 'bal', 'pack'
+    group = 'build'
+}
+
+task muleRelease(type: Exec, dependsOn: mulePack) {
+    workingDir "${projectDir}/src/main/java/baltool/mule/tool-bi-migrate-mule"
+    commandLine 'bal', 'push', '--repository=local'
+    group = 'build'
+}
+
+task tibcoPack(type: Exec, dependsOn: tibcoJar) {
+    workingDir "${projectDir}/src/main/java/baltool/tibco/tool-bi-migrate-tibco"
+    commandLine 'bal', 'pack'
+    group = 'build'
+}
+
+task tibcoRelease(type: Exec, dependsOn: tibcoPack) {
+    workingDir "${projectDir}/src/main/java/baltool/tibco/tool-bi-migrate-tibco"
+    commandLine 'bal', 'push', '--repository=local'
+    group = 'build'
+}
+
 build {
     dependsOn ":tibco:build"
     dependsOn ":mule:build"

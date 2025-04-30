@@ -9,9 +9,9 @@ distribution-version = "2201.12.3"
 
 [[package]]
 org = "wso2"
-name = "tool_bi_migrate_mule"
+name = "tool_bi_migrate_tibco"
 version = "0.1.0"
 modules = [
-	{org = "wso2", packageName = "tool_bi_migrate_mule", moduleName = "tool_bi_migrate_mule"}
+	{org = "wso2", packageName = "tool_bi_migrate_tibco", moduleName = "tool_bi_migrate_tibco"}
 ]
 
