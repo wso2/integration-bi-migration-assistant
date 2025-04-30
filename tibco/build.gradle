@@ -30,18 +30,11 @@ dependencies {
     implementation group: 'org.ballerinalang', name: 'ballerina-tools-api', version: "${ballerinaLangVersion}"
     implementation group: 'org.ballerinalang', name: 'ballerina-cli', version: "${ballerinaLangVersion}"
 
-    // fasterxml
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${fasterXmlVersion}"
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: "${fasterXmlVersion}"
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${fasterXmlVersion}"
-    implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8', version: "${fasterXmlVersion}"
-
-    // misc
-    implementation group: 'org.antlr', name: 'antlr4', version: "${antlrVersion}"
-    implementation group: 'info.picocli', name: 'picocli', version: "${picocliVersion}"
-
     // TIBCO dependencies
     implementation group: 'io.ballerina', name: 'xsd-core', version: "${xsdCoreVersion}"
+
+    // common
+    implementation project(path: ':common')
 
     // Dev dependencies
     implementation group: 'org.jetbrains', name: 'annotations', version: "${jetbrainsAnnotationsVersion}"
@@ -49,13 +42,33 @@ dependencies {
     spotbugs group: 'com.github.spotbugs', name: 'spotbugs', version: "${spotbugsVersion}"
 }
 
+checkstyle {
+    toolVersion = '10.12.5'
+    config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
+}
 
+spotbugs {
+    reportLevel = 'high'
+    excludeFilter = file("${rootProject.projectDir}/spotbugs-exclude.xml")
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+    reports {
+        html.required = true
+        xml.required = false
+    }
+}
+
+test {
+    useTestNG() {
+        suites 'src/test/resources/testng.xml'
+    }
+}
 
 build {
-    dependsOn "common:build"
-    dependsOn "mule:build"
-    dependsOn "tibco:build"
-    dependsOn "cli:build"
+    dependsOn ":common:build"
+    dependsOn checkstyleMain
+    dependsOn spotbugsMain
 }
 
 // Apply a specific Java toolchain to ease working on different environments.

@@ -12,3 +12,15 @@ plugins {
 }
 
 rootProject.name = 'integration-bi-migration-assistant'
+
+include ':checkstyle'
+include ':common'
+include ':tibco'
+include ':mule'
+include ':cli'
+
+project(':checkstyle').projectDir = file("build-config${File.separator}checkstyle")
+project(':common').projectDir = file('common')
+project(':mule').projectDir = file('mule')
+project(':tibco').projectDir = file('tibco')
+project(':cli').projectDir = file('cli')
