@@ -15,7 +15,6 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
 package mule;
 
 import common.BallerinaModel;
@@ -113,6 +112,7 @@ import static mule.MuleModel.ObjectToString;
 import static mule.MuleModel.Payload;
 import static mule.MuleModel.QueryType;
 import static mule.MuleModel.ReferenceExceptionStrategy;
+import static mule.MuleModel.RemoveVariable;
 import static mule.MuleModel.SetVariable;
 import static mule.MuleModel.SetSessionVariable;
 import static mule.MuleModel.SubFlow;
@@ -454,7 +454,7 @@ public class MuleToBalConverter {
     }
 
     private static void genHttpSource(Data data, Flow flow, HttpListener src, List<Service> services,
-            Set<Function> functions) {
+                                      Set<Function> functions) {
         SharedProjectData.FlowInfo flowInfo = new SharedProjectData.FlowInfo(flow.name(), Context.HTTP_LISTENER);
         data.sharedProjectData.flowInfoMap.put(flow.name(), flowInfo);
         data.sharedProjectData.currentFlowInfo = flowInfo;
@@ -704,6 +704,12 @@ public class MuleToBalConverter {
             case MuleXMLTag.SET_SESSION_VARIABLE -> {
                 return readSetSessionVariable(data, muleElement);
             }
+            case MuleXMLTag.REMOVE_VARIABLE -> {
+                return readRemoveVariable(data, muleElement);
+            }
+            case MuleXMLTag.REMOVE_SESSION_VARIABLE -> {
+                return readRemoveSessionVariable(data, muleElement);
+            }
             case MuleXMLTag.HTTP_REQUEST -> {
                 return readHttpRequest(data, muleElement);
             }
@@ -834,6 +840,17 @@ public class MuleToBalConverter {
                 }
                 statementList.add(stmtFrom(String.format("%s.%s = %s;", Constants.FLOW_VARS_FIELD_ACCESS,
                         varName, balExpr)));
+            }
+            case RemoveVariable removeVariable -> {
+                String varName = ConversionUtils.escapeSpecialCharacters(removeVariable.variableName());
+                if (removeVariable.kind() == Kind.REMOVE_VARIABLE && data.sharedProjectData.existingFlowVar(varName)) {
+                    statementList.add(stmtFrom(String.format("%s.%s = %s;", Constants.FLOW_VARS_FIELD_ACCESS, varName,
+                            "()")));
+                } else if (removeVariable.kind() == Kind.REMOVE_SESSION_VARIABLE &&
+                        data.sharedProjectData.existingSessionVar(varName)) {
+                    statementList.add(stmtFrom(String.format("%s.%s = %s;", Constants.SESSION_VARS_FIELD_ACCESS,
+                            varName, "()")));
+                }
             }
             case SetSessionVariable setSessionVariable -> {
                 String varName = ConversionUtils.escapeSpecialCharacters(setSessionVariable.variableName());
@@ -1230,6 +1247,18 @@ public class MuleToBalConverter {
         String varName = element.getAttribute("variableName");
         String val = element.getAttribute("value");
         return new SetSessionVariable(varName, val);
+    }
+
+    private static RemoveVariable readRemoveVariable(Data data, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String varName = element.getAttribute("variableName");
+        return new RemoveVariable(Kind.REMOVE_VARIABLE, varName);
+    }
+
+    private static RemoveVariable readRemoveSessionVariable(Data data, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String varName = element.getAttribute("variableName");
+        return new RemoveVariable(Kind.REMOVE_SESSION_VARIABLE, varName);
     }
 
     private static ObjectToJson readObjectToJson(Data data, MuleElement muleElement) {

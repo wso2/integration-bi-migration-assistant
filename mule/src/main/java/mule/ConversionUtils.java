@@ -162,7 +162,7 @@ public class ConversionUtils {
     static String[] getAllowedMethods(String allowedMethods) {
         if (allowedMethods.isEmpty()) {
             // Leaving empty will allow all methods
-            return new String[]{"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE", "CONNECT"};
+            return new String[]{"DEFAULT"};
         }
         return allowedMethods.split(",\\s*");
     }

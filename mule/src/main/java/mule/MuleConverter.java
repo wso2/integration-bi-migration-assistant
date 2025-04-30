@@ -114,8 +114,8 @@ public class MuleConverter {
         int conversionPercentage = writeHtmlReport(logger, reportFilePath,
                 muleXMLNavigator.getXmlCompatibleTagCountMap(), muleXMLNavigator.getXmlIncompatibleTagCountMap(),
                 muleXMLNavigator.getDwConversionStats());
-        printConversionPercentage(conversionPercentage);
-        printDataWeaveConversionSummary(muleXMLNavigator);
+        printDataWeaveConversionPercentage(muleXMLNavigator);
+        printOverallProjectConversionPercentage(conversionPercentage);
     }
 
     /**
@@ -170,16 +170,16 @@ public class MuleConverter {
         }
     }
 
-    private static void printDataWeaveConversionSummary(MuleXMLNavigator muleXMLNavigator) {
+    private static void printDataWeaveConversionPercentage(MuleXMLNavigator muleXMLNavigator) {
         DWConversionStats stats = muleXMLNavigator.getDwConversionStats();
         OUT.println("________________________________________________________________");
         OUT.println("Dataweave conversion percentage: " + String.format("%.2f", stats.getConversionPercentage()) + "%");
         OUT.println("________________________________________________________________");
     }
 
-    private static void printConversionPercentage(int conversionPercentage) {
+    private static void printOverallProjectConversionPercentage(int conversionPercentage) {
         OUT.println("________________________________________________________________");
-        OUT.println("Project conversion percentage: " + conversionPercentage + "%");
+        OUT.println("Overall project conversion percentage: " + conversionPercentage + "%");
         OUT.println("________________________________________________________________");
     }
 
