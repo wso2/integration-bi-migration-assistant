@@ -29,6 +29,8 @@ dependencies {
     implementation project(path: ':tibco')
 
     // Dev dependencies
+    implementation group: 'org.ballerinalang', name: 'ballerina-cli', version: "${ballerinaLangVersion}"
+    implementation group: 'info.picocli', name: 'picocli', version: "${picocliVersion}"
     implementation group: 'org.jetbrains', name: 'annotations', version: "${jetbrainsAnnotationsVersion}"
     testImplementation group: 'org.testng', name: 'testng', version: "${testngVersion}"
     spotbugs group: 'com.github.spotbugs', name: 'spotbugs', version: "${spotbugsVersion}"

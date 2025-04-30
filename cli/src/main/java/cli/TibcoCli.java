@@ -20,18 +20,9 @@ package cli;
 
 import tibco.converter.TibcoConverter;
 
-import java.util.logging.Logger;
-
 public class TibcoCli {
 
-    private static final Logger LOGGER = Logger.getLogger(TibcoCli.class.getName());
-
     public static void main(String[] args) {
-        if (args.length < 1) {
-            LOGGER.severe(
-                    "Usage: java -jar tibco-migration-assistant.jar <tibco-xml-config-file-or-project-directory>");
-            System.exit(1);
-        }
         TibcoConverter.migrateTibco(args);
     }
 }
