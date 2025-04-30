@@ -1,13 +1,21 @@
-### Module Overview
+## Tool Overview
 The `bi-migrate-mule` tool enables the conversion of MuleSoft applications into WSO2 Ballerina Integrator
 applications by generating the corresponding Ballerina packages. It accepts either a MuleSoft project directory or a
 standalone Mule XML file as input and produces an equivalent Ballerina Integrator application.
 
-### Usage
-#### Command Syntax
+## Installation
+
+To pull the `bi-migrate-mule` tool from Ballerina Central, run the following command:
+```bash
+$ bal tool pull bi-migrate-mule:1.0.0
+```
+
+## Usage
+
+### Command Syntax
 
 ```bash
-bal bi-migrate-mule <source-project-directory-or-file> [-o|--out <output-directory>]
+$ bal bi-migrate-mule <source-project-directory-or-file> [-o|--out <output-directory>]
 ```
 
 ### Parameters
@@ -26,41 +34,41 @@ The migration tool expects a standard MuleSoft project hierarchy with configurat
 When using a MuleSoft project directory as input, the tool will look for XML files in this location by default.
 Make sure your project follows this structure.
 
-### Examples
+## Examples
 
-#### Convert a MuleSoft Project with Default Output Location
+### Convert a MuleSoft Project with Default Output Location
 
 ```bash
-bal bi-migrate-mule /path/to/mule-project
+$ bal bi-migrate-mule /path/to/mule-project
 ```
 
 This will create a Ballerina package inside `/path/to/mule-project` directory.
 
-#### Convert a MuleSoft Project with Custom Output Location
+### Convert a MuleSoft Project with Custom Output Location
 
 ```bash
-bal bi-migrate-mule /path/to/mule-project --out /path/to/output-dir
+$ bal bi-migrate-mule /path/to/mule-project --out /path/to/output-dir
 ```
 
 This will create a Ballerina package at `/path/to/output-dir`.
 
-#### Convert a Standalone Mule XML File
+### Convert a Standalone Mule XML File
 
 ```bash
-bal bi-migrate-mule /path/to/mule-flow.xml
+$ bal bi-migrate-mule /path/to/mule-flow.xml
 ```
 
 This will create a Ballerina package in the same directory as the input XML file.
 
-#### Convert a Standalone Mule XML File with Custom Output Location
+### Convert a Standalone Mule XML File with Custom Output Location
 
 ```bash
-bal bi-migrate-mule /path/to/mule-flow.xml --out /path/to/output-dir
+$ bal bi-migrate-mule /path/to/mule-flow.xml --out /path/to/output-dir
 ```
 
 This will create a Ballerina package at `/path/to/output-dir`.
 
-### Output
+## Output
 - For a mule project directory input: A new Ballerina package is created with the same name as the input project
   directory, appended with a `-ballerina` suffix.
     - For example,  if the input project directory is `my-project`, the
@@ -125,9 +133,9 @@ public function endpoint(Context ctx) returns http:Response|error {
 // ------------------------------------------------------------------------
 ```
 
-### Supported Features
+## Supported Features
 
-#### Mule Components
+### Mule Components
 The migration tool currently supports converting the following MuleSoft components:
 
 - Async
@@ -160,7 +168,7 @@ The migration tool currently supports the following DataWeave expressions:
 - Concat String Expression
 - Date Type Expression
 - Filter Value Identifier Expression
-- Lower Expression]
+- Lower Expression
 - Map Combination Expression
 - Map Index Identifier Expression
 - Map Index Identifier Only Expression
@@ -179,6 +187,6 @@ The migration tool currently supports the following DataWeave expressions:
 - When Otherwise Expression
 - When Otherwise Nested Expression
 
-### Limitations
+## Limitations
 - Currently supports Mule **3.x only**. Support for Mule **4.x** is planned for future releases.
 - Some moderate to advance MuleSoft features may require manual adjustments after migration.
