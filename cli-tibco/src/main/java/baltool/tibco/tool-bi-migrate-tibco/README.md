@@ -7,14 +7,14 @@ The bi-migrate-tibco tool helps you migrate existing TIBCO BusinessWorks integra
 ## Command Syntax
 
 ``` bash
-bal name <source-project-directory-or-file> [-o|--out <output-directory>]
+bal bi-migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>]
 ```
 
 ## Parameters
 
 - **source-project-directory-or-file** - Required. The TIBCO BusinessWorks project directory or `bwp` file to migrate.
 - **-o or --out** - *Optional*. The directory where the new Ballerina package will be created. If the directory does not exist tool will create it for you. If not provided,
-  - If source-project-directory-or-file is a directory it will create new directory named \${source-project-directory-or-file}<sub>converted</sub> in the root of source-project-directory-or-file
+  - If source-project-directory-or-file is a directory it will create new directory named ${source-project-directory-or-file}_converted in the root of source-project-directory-or-file
   - if source-project-directory-or-file is a file a new `bal` will be created at the same location
 
 # Examples
@@ -22,7 +22,7 @@ bal name <source-project-directory-or-file> [-o|--out <output-directory>]
 ## Convert a TIBCO BusinessWorks project with the default output path
 
 ``` bash
-bal name path/to/tibco-project
+bal bi-migrate-tibco path/to/tibco-project
 ```
 
 This will create a new Ballerina package inside the root of `path/to/tibco-project`
@@ -30,7 +30,7 @@ This will create a new Ballerina package inside the root of `path/to/tibco-proje
 ## Convert a TIBCO BusinessWorks project with a custom output path
 
 ``` bash
-bal name path/to/tibco-project --out path/to/output-dir
+bal bi-migrate-tibco path/to/tibco-project --out path/to/output-dir
 ```
 
 This will create a new Ballerina package inside `path/to/output-dir`. If `path/to/output-dir` doesn't exist tool will create it for you. If the output path already exists tool will simply overwrite any file as needed without purging the directory.
@@ -38,7 +38,7 @@ This will create a new Ballerina package inside `path/to/output-dir`. If `path/t
 ## Convert a standalone `bwp` file
 
 ``` bash
-bal name path/to/bwp-file
+bal bi-migrate-tibco path/to/bwp-file
 ```
 
 This will create a new `bal` file in the same directory as the `bwp` file.
@@ -46,7 +46,7 @@ This will create a new `bal` file in the same directory as the `bwp` file.
 ## Convert a standalone `bwp` file with a custom output path
 
 ``` bash
-bal name path/to/bwp-file --out path/to/bal-file
+bal bi-migrate-tibco path/to/bwp-file --out path/to/bal-file
 ```
 
 This will create a new `bal` file at `path/to/bal-file`. Note if the file already exists this will overwrite the file.
