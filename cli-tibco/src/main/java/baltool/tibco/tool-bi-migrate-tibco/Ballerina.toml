@@ -1,5 +1,5 @@
 [package]
-org = "wso2"
+org = "wso2_enterprise"
 name = "tool_bi_migrate_tibco"
 version = "1.0.0"
 distribution = "2201.12.3"
