@@ -21,9 +21,6 @@ import io.ballerina.cli.BLauncherCmd;
 import mule.MuleConverter;
 import picocli.CommandLine;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * This class represents the "bi-migrate-mule" bal tool command.
  *
@@ -48,14 +45,7 @@ public class BiMigrateMuleCommand implements BLauncherCmd {
 
     @Override
     public void execute() {
-        List<String> args = new ArrayList<>();
-        if (sourcePath != null) {
-            args.add(sourcePath);
-        }
-        if (outputPath != null) {
-            args.add(outputPath);
-        }
-        MuleConverter.migrateMuleProject(args.toArray(String[]::new));
+        MuleConverter.migrateMuleProject(sourcePath, outputPath);
     }
 
     @Override

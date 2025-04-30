@@ -60,6 +60,10 @@ public class MuleConverter {
             outputPathArg = args[2];
         }
 
+        migrateMuleProject(inputPathArg, outputPathArg);
+    }
+
+    public static void migrateMuleProject(String inputPathArg, String outputPathArg) {
         boolean standaloneFile = inputPathArg.endsWith(".xml");
         if (standaloneFile) {
             convertMuleXmlFile(inputPathArg, outputPathArg);
