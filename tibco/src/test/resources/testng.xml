@@ -1,0 +1,8 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
+<suite name="Suite" time-out="120000">
+    <test name="Tibco Tests">
+        <classes>
+            <class name="tibco.converter.TibcoProjectConversionTest"/>
+        </classes>
+    </test>
+</suite>
