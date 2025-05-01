@@ -62,8 +62,15 @@ public class TibcoConverter {
     }
 
     private static void migrateTibcoFile(Path inputPath, String outputPath) {
-        SyntaxTree syntaxTree = TibcoToBalConverter.convertFile(inputPath.toString());
-        String ballerinaCode = syntaxTree.toSourceCode();
+        String ballerinaCode;
+        try {
+            SyntaxTree syntaxTree = TibcoToBalConverter.convertFile(inputPath.toString());
+            ballerinaCode = syntaxTree.toSourceCode();
+        } catch (Exception e) {
+            logger.severe("Error converting file: " + inputPath);
+            System.exit(1);
+            return;
+        }
         Path outputFilePath = Paths.get(outputPath);
         try {
             Files.writeString(outputFilePath, ballerinaCode);
@@ -81,9 +88,17 @@ public class TibcoConverter {
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Error creating target directory: " + targetDir, e);
             System.exit(1);
+            return;
         }
         TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext();
-        ConversionResult result = TibcoToBalConverter.convertProject(cx, projectPath);
+        ConversionResult result;
+        try {
+            result = TibcoToBalConverter.convertProject(cx, projectPath);
+        } catch (Exception e) {
+            logger.severe("Unrecoverable error while converting project");
+            System.exit(1);
+            return;
+        }
         BallerinaModel.DefaultPackage balPackage = new BallerinaModel.DefaultPackage("tibco", "sample", "0.1");
         for (BallerinaModel.TextDocument textDocument : result.module().textDocuments()) {
             try {
