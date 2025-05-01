@@ -104,7 +104,7 @@ public class TibcoToBalConverter {
             httpConnectionResources = HTTP_CONN_RESOURCE_PARSING_UNIT.parse(projectPath);
             httpClientResources = HTTP_CLIENT_RESOURCE_PARSING_UNIT.parse(projectPath);
         } catch (IOException | SAXException | ParserConfigurationException e) {
-            logger.severe("Unrecoverable error while parsing project file");
+            logger.severe("Unrecoverable error while parsing project file: " + projectPath);
             throw new RuntimeException("Error while parsing the XML file: ", e);
         }
 
