@@ -21,8 +21,7 @@ import io.ballerina.cli.BLauncherCmd;
 import picocli.CommandLine;
 import tibco.converter.TibcoConverter;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.PrintStream;
 
 /**
  * This class represents the "migrate-tibco" bal tool command.
@@ -33,14 +32,17 @@ import java.util.List;
         description = "Accepts a TIBCO BusinessWorks project directory or `.bwp` file path as input")
 public class MigrateTibcoCommand implements BLauncherCmd {
 
+    private final PrintStream errStream;
     private static final String CMD_NAME = "migrate-tibco";
     private static final String USAGE =
             "bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>]";
 
     public MigrateTibcoCommand() {
+        errStream = System.err;
     }
 
-    @CommandLine.Parameters(description = "Source TIBCO BusinessWorks project directory or `.bwp` file path")
+    @CommandLine.Parameters(description = "Source TIBCO BusinessWorks project directory or `.bwp` file path",
+            arity = "0..1")
     private String sourcePath;
 
     @CommandLine.Option(names = { "--out", "-o" }, description = "Output directory path")
@@ -48,15 +50,17 @@ public class MigrateTibcoCommand implements BLauncherCmd {
 
     @Override
     public void execute() {
-        List<String> args = new ArrayList<>();
-        if (sourcePath != null) {
-            args.add(sourcePath);
+        if (sourcePath == null) {
+            errStream.println("Error: Source TIBCO BusinessWorks project directory or `.bwp` file path is required.");
+            onInvalidInput();
         }
-        if (outputPath != null) {
-            args.add("-o");
-            args.add(outputPath);
-        }
-        TibcoConverter.migrateTibco(args.toArray(String[]::new));
+        TibcoConverter.migrateTibco(sourcePath, outputPath);
+    }
+
+    private void onInvalidInput() {
+        errStream.println("Usage: bal migrate-tibco <source-project-directory-or-file> " +
+                "[-o|--out <output-directory>]");
+        System.exit(1);
     }
 
     @Override

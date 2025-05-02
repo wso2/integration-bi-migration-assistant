@@ -20,9 +20,31 @@ package cli;
 
 import tibco.converter.TibcoConverter;
 
+import java.io.PrintStream;
+
 public class TibcoCli {
 
     public static void main(String[] args) {
-        TibcoConverter.migrateTibco(args);
+
+        PrintStream errStream = System.err;
+        if (args.length < 1) {
+            errStream.println("Usage: java -jar cli-tibco.jar <source_path> [output_path]");
+            System.exit(1);
+        }
+        String sourcePath = args[0];
+        if (args.length > 1) {
+            if (!args[1].equals("-o") && !args[1].equals("--out")) {
+                errStream.println("Invalid option: " + args[1]);
+                errStream.println("Usage: java -jar cli-tibco.jar <source_path> [output_path]");
+                System.exit(1);
+            } else {
+                if (args.length < 3) {
+                    errStream.println("Output path is required when using -o or --out option.");
+                    System.exit(1);
+                }
+                String outputPath = args[2];
+                TibcoConverter.migrateTibco(sourcePath, outputPath);
+            }
+        }
     }
 }
