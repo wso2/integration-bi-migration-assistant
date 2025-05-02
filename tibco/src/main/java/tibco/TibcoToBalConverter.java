@@ -38,6 +38,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -45,6 +46,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 public class TibcoToBalConverter {
 
+    private static final Logger logger = Logger.getLogger(TibcoToBalConverter.class.getName());
     private TibcoToBalConverter() {
     }
 
@@ -54,13 +56,39 @@ public class TibcoToBalConverter {
             root = parseXmlFile(xmlFilePath);
             assert root != null;
         } catch (Exception e) {
+            logger.severe(errorMessage(xmlFilePath, "Unrecoverable error while parsing the XML file",
+                    "Perhaps file is not a valid xml"));
             throw new RuntimeException("Error while parsing the XML file: " + xmlFilePath, e);
         }
-        TibcoModel.Process process = XmlToTibcoModelConverter.parseProcess(root);
-        BallerinaModel.Module ballerinaModule = ProcessConverter.convertProcess(process);
-        BallerinaModel ballerinaModel = new BallerinaModel(new BallerinaModel.DefaultPackage("tibco", "sample", "0.1"),
-                List.of(ballerinaModule));
-        return new CodeGenerator(ballerinaModel).generateBalCode();
+        TibcoModel.Process process;
+        try {
+            process = XmlToTibcoModelConverter.parseProcess(root);
+        } catch (Exception e) {
+            logger.severe(errorMessage(xmlFilePath, "Unrecoverable error while parsing bwp file",
+                    "Perhaps file is not a valid TIBCO BWP file"));
+            throw new RuntimeException("Error while parsing bwp file: " + xmlFilePath, e);
+        }
+        BallerinaModel ballerinaModel;
+        try {
+            BallerinaModel.Module ballerinaModule = ProcessConverter.convertProcess(process);
+            ballerinaModel = new BallerinaModel(new BallerinaModel.DefaultPackage("tibco", "sample", "0.1"),
+                    List.of(ballerinaModule));
+        } catch (Exception e) {
+            logger.severe(errorMessage(xmlFilePath, "Unrecoverable error while converting the bwp file",
+                    "Internal error please report"));
+            throw new RuntimeException("Error while parsing bwp file: " + xmlFilePath, e);
+        }
+        try {
+            return new CodeGenerator(ballerinaModel).generateBalCode();
+        } catch (Exception e) {
+            logger.severe(errorMessage(xmlFilePath, "Unrecoverable error during code gen",
+                    "Internal error please report"));
+            throw new RuntimeException("Error while code gen bwp file: " + xmlFilePath, e);
+        }
+    }
+
+    private static String errorMessage(String xmlFilePath, String prefix, String reason) {
+        return prefix + ". " + reason + ": " + xmlFilePath;
     }
 
     public static ConversionResult convertProject(ProjectConversionContext cx, String projectPath) {
@@ -76,6 +104,7 @@ public class TibcoToBalConverter {
             httpConnectionResources = HTTP_CONN_RESOURCE_PARSING_UNIT.parse(projectPath);
             httpClientResources = HTTP_CLIENT_RESOURCE_PARSING_UNIT.parse(projectPath);
         } catch (IOException | SAXException | ParserConfigurationException e) {
+            logger.severe("Unrecoverable error while parsing project file: " + projectPath);
             throw new RuntimeException("Error while parsing the XML file: ", e);
         }
 
