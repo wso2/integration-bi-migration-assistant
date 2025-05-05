@@ -35,17 +35,8 @@ public class TibcoConverter {
 
     private static final Logger logger = ProjectConverter.LOGGER;
 
-    public static void migrateTibco(String[] args) {
-        if (args.length < 1) {
-            logger.severe("Usage: java -jar tibco-migration-assistant.jar <source-project-directory-or-file> " +
-                    "[-o|--out <output-directory>]");
-            System.exit(1);
-        }
-        Path inputPath = Paths.get(args[0]);
-        String outputPath = null;
-        if (args.length >= 3 && (args[1].equals("-o") || args[1].equals("--out"))) {
-            outputPath = args[2];
-        }
+    public static void migrateTibco(String sourcePath, String outputPath) {
+        Path inputPath = Paths.get(sourcePath);
 
         if (Files.isRegularFile(inputPath)) {
             if (outputPath == null) {
