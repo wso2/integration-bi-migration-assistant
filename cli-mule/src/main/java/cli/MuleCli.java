@@ -22,6 +22,6 @@ import mule.MuleConverter;
 public class MuleCli {
 
     public static void main(String[] args) {
-        MuleConverter.migrateMuleProject(args);
+        MuleConverter.migrateMuleSource(args);
     }
 }

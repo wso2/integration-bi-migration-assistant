@@ -279,12 +279,6 @@ public class MuleToBalConverter {
         return new CodeGenerator(ballerinaModel).generateBalCode();
     }
 
-    public static BallerinaModel getBallerinaModel(String xmlFilePath) {
-        MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator();
-        Data data = new Data(new SharedProjectData(muleXMLNavigator));
-        return getBallerinaModel(muleXMLNavigator, data, xmlFilePath);
-    }
-
     private static BallerinaModel getBallerinaModel(MuleXMLNavigator muleXMLNavigator, Data data, String xmlFilePath) {
         Element root;
         try {
