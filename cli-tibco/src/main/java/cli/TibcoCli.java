@@ -28,14 +28,14 @@ public class TibcoCli {
 
         PrintStream errStream = System.err;
         if (args.length < 1) {
-            errStream.println("Usage: java -jar cli-tibco.jar <source_path> [output_path]");
+            errStream.println("Usage: java -jar cli-tibco.jar <source_path> [-o|--out output_path]");
             System.exit(1);
         }
         String sourcePath = args[0];
         if (args.length > 1) {
             if (!args[1].equals("-o") && !args[1].equals("--out")) {
                 errStream.println("Invalid option: " + args[1]);
-                errStream.println("Usage: java -jar cli-tibco.jar <source_path> [output_path]");
+                errStream.println("Usage: java -jar cli-tibco.jar <source_path> [-o|--out output_path]");
                 System.exit(1);
             } else {
                 if (args.length < 3) {
