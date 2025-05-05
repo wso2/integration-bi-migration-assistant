@@ -1,6 +1,6 @@
 [package]
 org = "wso2"
 name = "tool_migrate_mule"
-version = "0.9.0"
+version = "1.0.0"
 distribution = "2201.12.3"
 keywords = ["migrate-mule", "mule-migrate", "mule", "migrator"]
