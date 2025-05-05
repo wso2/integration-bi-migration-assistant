@@ -52,10 +52,10 @@ public class MigrateMuleCommand implements BLauncherCmd {
     @Override
     public void execute() {
         if (sourcePath == null) {
-            errStream.println("Error: source mule project directory or mule xml file path is required.");
+            errStream.println("Error: mule project directory or mule xml file path is required.");
             onInvalidInput();
         }
-        MuleConverter.migrateMuleProject(sourcePath, outputPath);
+        MuleConverter.migrateMuleSource(sourcePath, outputPath);
     }
 
     private void onInvalidInput() {

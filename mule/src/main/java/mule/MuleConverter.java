@@ -48,27 +48,55 @@ public class MuleConverter {
     private static final PrintStream OUT = System.out;
     private static final Logger logger = Logger.getLogger(MuleConverter.class.getName());
 
-    public static void migrateMuleProject(String[] args) {
-        if (args.length < 1) {
+    public static void migrateMuleSource(String[] args) {
+        if (args.length != 1 && args.length != 3) {
             logger.severe("Usage: java -jar mule-migration-assistant.jar <source-project-directory-or-file> " +
                     "[-o|--out <output-directory>]");
             System.exit(1);
         }
         String inputPathArg = args[0];
         String outputPathArg = null;
-        if (args.length >= 3 && (args[1].equals("-o") || args[1].equals("--out"))) {
+        if (args.length == 3 && (args[1].equals("-o") || args[1].equals("--out"))) {
             outputPathArg = args[2];
         }
 
-        migrateMuleProject(inputPathArg, outputPathArg);
+        migrateMuleSource(inputPathArg, outputPathArg);
     }
 
-    public static void migrateMuleProject(String inputPathArg, String outputPathArg) {
-        boolean standaloneFile = inputPathArg.endsWith(".xml");
-        if (standaloneFile) {
+    public static void migrateMuleSource(String inputPathArg, String outputPathArg) {
+        Path sourcePath = Paths.get(inputPathArg);
+        if (!Files.exists(sourcePath)) {
+            logger.severe("Source path does not exist: '" + sourcePath + "'");
+            System.exit(1);
+        }
+
+        if (Files.isDirectory(sourcePath)) {
+            validateOutputPathArg(outputPathArg);
+            convertMuleProject(inputPathArg, outputPathArg);
+        } else if (Files.isRegularFile(sourcePath) && inputPathArg.endsWith(".xml")) {
+            validateOutputPathArg(outputPathArg);
             convertMuleXmlFile(inputPathArg, outputPathArg);
         } else {
-            convertMuleProject(inputPathArg, outputPathArg);
+            logger.severe("Invalid source path: '" + sourcePath + "'. Must be a directory or .xml file.");
+            System.exit(1);
+        }
+    }
+
+    private static void validateOutputPathArg(String outputPathArg) {
+        if (outputPathArg != null) {
+            Path outputPath = Paths.get(outputPathArg);
+            if (!Files.exists(outputPath)) {
+                try {
+                    Files.createDirectories(outputPath);
+                    logger.info("Created output directory: " + outputPath);
+                } catch (IOException e) {
+                    logger.severe("Cannot create output directory: " + outputPath + " - " + e.getMessage());
+                    System.exit(1);
+                }
+            } else if (!Files.isDirectory(outputPath)) {
+                logger.severe("Output path exists but is not a directory: " + outputPath);
+                System.exit(1);
+            }
         }
     }
 
