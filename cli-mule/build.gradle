@@ -98,15 +98,24 @@ task muleJar(type: Jar) {
     archiveVersion = project.version
 }
 
-task mulePack(type: Exec, dependsOn: muleJar) {
-    workingDir "${projectDir}/src/main/java/baltool/mule/tool-bi-migrate-mule"
+tasks.register('mulePack', Exec) {
+    dependsOn muleJar
+    workingDir "${projectDir}/src/main/ballerina/tool-bi-migrate-mule"
     commandLine 'bal', 'pack'
     group = 'build'
 }
 
-task muleRelease(type: Exec, dependsOn: mulePack) {
-    workingDir "${projectDir}/src/main/java/baltool/mule/tool-bi-migrate-mule"
+tasks.register('muleRelease', Exec) {
+    dependsOn mulePack
+    workingDir "${projectDir}/src/main/ballerina/tool-bi-migrate-mule"
     commandLine 'bal', 'push'
+    group = 'build'
+}
+
+tasks.register('muleReleaseLocal', Exec) {
+    dependsOn mulePack
+    workingDir "${projectDir}/src/main/ballerina/tool-bi-migrate-mule"
+    commandLine 'bal', 'push', '--repository=local'
     group = 'build'
 }
 
