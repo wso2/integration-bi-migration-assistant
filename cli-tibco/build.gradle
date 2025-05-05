@@ -78,7 +78,7 @@ jar {
 }
 
 // Create a separate JAR for Tibco migrations
-task tibcoJar(type: Jar) {
+tasks.register('tibcoJar', Jar) {
     manifest {
         attributes(
                 'Main-Class': 'cli.TibcoCli'
@@ -95,15 +95,24 @@ task tibcoJar(type: Jar) {
     archiveVersion = project.version
 }
 
-task tibcoPack(type: Exec, dependsOn: tibcoJar) {
-    workingDir "${projectDir}/src/main/java/baltool/tibco/tool-bi-migrate-tibco"
+tasks.register('tibcoPack', Exec) {
+    dependsOn tibcoJar
+    workingDir "${projectDir}/src/main/ballerina/tool-bi-migrate-tibco"
     commandLine 'bal', 'pack'
     group = 'build'
 }
 
-task tibcoRelease(type: Exec, dependsOn: tibcoPack) {
-    workingDir "${projectDir}/src/main/java/baltool/tibco/tool-bi-migrate-tibco"
+tasks.register('tibcoRelease', Exec) {
+    dependsOn tibcoPack
+    workingDir "${projectDir}/src/main/ballerina/tool-bi-migrate-tibco"
     commandLine 'bal', 'push'
+    group = 'build'
+}
+
+tasks.register('tibcoReleaseLocal', Exec) {
+    dependsOn tibcoPack
+    workingDir "${projectDir}/src/main/ballerina/tool-bi-migrate-tibco"
+    commandLine 'bal', 'push', '--repository=local'
     group = 'build'
 }
 

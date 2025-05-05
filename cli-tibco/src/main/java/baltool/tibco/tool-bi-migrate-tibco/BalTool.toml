@@ -1,5 +1,0 @@
-[tool]
-id = "migrate-tibco"
-
-[[dependency]]
-path = "../../../../../../build/libs/tibco-migration-assistant-0.1.0-SNAPSHOT.jar"
