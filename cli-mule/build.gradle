@@ -6,6 +6,8 @@ plugins {
 }
 
 def ballerinaToolDir = "${projectDir}/src/main/ballerina/tool-bi-migrate-mule"
+def balToolVersion = "${muleVersion}"
+def ballerinaVersion = "${ballerinaLangVersion}"
 
 group 'com.wso2'
 version '0.1.0-SNAPSHOT'
@@ -68,6 +70,18 @@ application {
     mainClassName = 'cli.Main'
 }
 
+task updateTomlFile {
+    def tomlFile = file("${ballerinaToolDir}/Ballerina.toml")
+    doLast {
+        if (tomlFile.exists()) {
+            def text = tomlFile.text
+            text = text.replaceAll('version\\s*=\\s*"[^"]*"', 'version = "' + balToolVersion + '"')
+            text = text.replaceAll('distribution\\s*=\\s*"[^"]*"', 'distribution = "' + ballerinaVersion + '"')
+            tomlFile.text = text
+        }
+    }
+}
+
 // Default jar task - we'll keep it for backward compatibility
 jar {
     manifest {
@@ -101,7 +115,7 @@ task muleJar(type: Jar) {
 }
 
 tasks.register('mulePack', Exec) {
-    dependsOn muleJar
+    dependsOn muleJar, updateTomlFile
     workingDir ballerinaToolDir
     commandLine 'bal', 'pack'
     group = 'build'

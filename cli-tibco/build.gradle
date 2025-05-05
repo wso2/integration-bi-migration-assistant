@@ -6,6 +6,8 @@ plugins {
 }
 
 def ballerinaToolDir = "${projectDir}/src/main/ballerina/tool-bi-migrate-tibco"
+def balToolVersion = "${tibcoVersion}"
+def ballerinaVersion = "${ballerinaLangVersion}"
 
 group 'com.wso2'
 version '0.1.0-SNAPSHOT'
@@ -79,6 +81,18 @@ jar {
     archiveFileName = 'integration-bi-migration-assistant.jar'
 }
 
+task updateTomlFile {
+    def tomlFile = file("${ballerinaToolDir}/Ballerina.toml")
+    doLast {
+        if (tomlFile.exists()) {
+            def text = tomlFile.text
+            text = text.replaceAll('version\\s*=\\s*"[^"]*"', 'version = "' + balToolVersion + '"')
+            text = text.replaceAll('distribution\\s*=\\s*"[^"]*"', 'distribution = "' + ballerinaVersion + '"')
+            tomlFile.text = text
+        }
+    }
+}
+
 // Create a separate JAR for Tibco migrations
 tasks.register('tibcoJar', Jar) {
     manifest {
@@ -98,7 +112,7 @@ tasks.register('tibcoJar', Jar) {
 }
 
 tasks.register('tibcoPack', Exec) {
-    dependsOn tibcoJar
+    dependsOn tibcoJar, updateTomlFile
     workingDir ballerinaToolDir
     commandLine 'bal', 'pack'
     group = 'build'
