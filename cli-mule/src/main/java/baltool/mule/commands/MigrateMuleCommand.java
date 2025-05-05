@@ -21,6 +21,8 @@ import io.ballerina.cli.BLauncherCmd;
 import mule.MuleConverter;
 import picocli.CommandLine;
 
+import java.io.PrintStream;
+
 /**
  * This class represents the "migrate-mule" bal tool command.
  *
@@ -31,14 +33,17 @@ import picocli.CommandLine;
         description = "Accepts a Mule project directory or a standalone Mule `.xml` file path as input")
 public class MigrateMuleCommand implements BLauncherCmd {
 
+    private final PrintStream errStream;
     private static final String CMD_NAME = "migrate-mule";
     private static final String USAGE =
             "bal migrate-mule <source-project-directory-or-file> [--out <output-directory>]";
 
     public MigrateMuleCommand() {
+        errStream = System.err;
     }
 
-    @CommandLine.Parameters(description = "Source Mule project directory or standalone Mule `.xml` file path")
+    @CommandLine.Parameters(description = "Source Mule project directory or standalone Mule `.xml` file path",
+            arity = "0..1")
     private String sourcePath;
 
     @CommandLine.Option(names = { "--out", "-o" }, description = "Output directory path")
@@ -46,7 +51,17 @@ public class MigrateMuleCommand implements BLauncherCmd {
 
     @Override
     public void execute() {
+        if (sourcePath == null) {
+            errStream.println("Error: source mule project directory or mule xml file path is required.");
+            onInvalidInput();
+        }
         MuleConverter.migrateMuleProject(sourcePath, outputPath);
+    }
+
+    private void onInvalidInput() {
+        errStream.println("Usage: bal migrate-mule <source-project-directory-or-file> " +
+                "[-o|--out <output-directory>]");
+        System.exit(1);
     }
 
     @Override
