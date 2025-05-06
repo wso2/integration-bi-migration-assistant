@@ -36,7 +36,13 @@ public class TibcoConverter {
     private static final Logger logger = ProjectConverter.LOGGER;
 
     public static void migrateTibco(String sourcePath, String outputPath) {
-        Path inputPath = Paths.get(sourcePath);
+        Path inputPath = null;
+        try {
+            inputPath = Paths.get(sourcePath).toRealPath();
+        } catch (IOException e) {
+            logger.severe("Invalid path: " + inputPath);
+            System.exit(1);
+        }
 
         if (Files.isRegularFile(inputPath)) {
             String inputRootDirectory = inputPath.getParent().toString();
@@ -46,6 +52,7 @@ public class TibcoConverter {
             String targetPath = outputPath != null ? outputPath : inputPath + "_converted";
             migrateTibcoProject(inputPath.toString(), targetPath);
         } else {
+            // I don't think this can ever happen but just in case
             logger.severe("Invalid path: " + inputPath);
             System.exit(1);
         }

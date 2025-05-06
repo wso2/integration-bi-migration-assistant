@@ -1,6 +1,6 @@
 [package]
 org = "wso2"
 name = "tool_migrate_tibco"
-version = "1.0.1"
+version = "1.0.2"
 distribution = "2201.12.3"
 keywords = ["migrate-tibco", "tibco-migrate", "tibco", "migrator"]
