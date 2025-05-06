@@ -7,7 +7,7 @@ standalone Mule XML file as input and produces an equivalent Ballerina Integrato
 
 To pull the `migrate-mule` tool from Ballerina Central, run the following command:
 ```bash
-$ bal tool pull migrate-mule:0.9.0
+$ bal tool pull migrate-mule
 ```
 
 ## Usage
