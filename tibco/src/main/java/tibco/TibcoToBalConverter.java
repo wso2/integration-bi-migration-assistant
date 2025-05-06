@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -118,7 +119,10 @@ public class TibcoToBalConverter {
     }
 
     private static List<String> getBwpFiles(String projectPath) throws IOException {
-        return getFilesWithExtension(projectPath, "bwp");
+        List<String> bwpFiles = getFilesWithExtension(projectPath, "bwp");
+        List<String> processFiles = getFilesWithExtension(projectPath, "process");
+        return Stream.concat(bwpFiles.stream(), processFiles.stream())
+                .toList();
     }
 
     private static List<String> getFilesWithExtension(String projectPath, String extension) throws IOException {
