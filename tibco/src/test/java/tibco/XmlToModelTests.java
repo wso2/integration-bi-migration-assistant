@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.io.StringReader;
 
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
 
 
 public class XmlToModelTests {
@@ -44,7 +43,24 @@ public class XmlToModelTests {
     }
 
     @Test
-    public void parseInlineActivityProcess() throws Exception {
+    public void testParseHttpSharedResource() throws Exception {
+        String xmlText = """
+                <ns0:httpSharedResource xmlns:ns0="www.tibco.com/shared/HTTPConnection">
+                    <config>
+                        <Host>localhost</Host>
+                        <serverType>Tomcat</serverType>
+                        <Port>9090</Port>
+                    </config>
+                </ns0:httpSharedResource>
+                """;
+        TibcoModel.Resource.HTTPSharedResource resource = XmlToTibcoModelConverter.parseHTTPSharedResource("test", stringToElement(xmlText));
+        assertEquals(resource.name(), "test");
+        assertEquals(resource.host(), "localhost");
+        assertEquals(resource.port(), 9090);
+    }
+
+    @Test
+    public void testParseInlineActivityProcess() throws Exception {
         String processXml = """
                 <pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
                     <pd:name>Processes/MainProcessStarter.process</pd:name>
@@ -71,8 +87,7 @@ public class XmlToModelTests {
                     </pd:transition>
                 </pd:ProcessDefinition>
                 """;
-        Element processElement = stringToElement(processXml);
-        TibcoModel.Process process = XmlToTibcoModelConverter.parseProcess(processElement);
+        TibcoModel.Process process = XmlToTibcoModelConverter.parseProcess(stringToElement(processXml));
         assertEquals(process.name(), "Processes/MainProcessStarter.process");
         TibcoModel.Process.ExplicitTransitionGroup transitionGroup = process.transitionGroup();
         Assert.assertEquals(transitionGroup.startActivity().name(), "HTTP Receiver");
@@ -99,10 +114,8 @@ public class XmlToModelTests {
                     </pd:activity>\
                 """;
 
-        Element activityElement = stringToElement(activityXml);
-
-        XmlToTibcoModelConverter.ParseContext parseContext = new XmlToTibcoModelConverter.ParseContext();
-        InlineActivity actual = XmlToTibcoModelConverter.parseInlineActivity(parseContext, activityElement);
+        InlineActivity actual = XmlToTibcoModelConverter.parseInlineActivity(new XmlToTibcoModelConverter.ParseContext(),
+                stringToElement(activityXml));
         InlineActivity.MapperActivity expected = new InlineActivity.MapperActivity("Failed tests count",
                 new TibcoModel.Scope.Flow.Activity.InputBinding.CompleteBinding(
                         new TibcoModel.Scope.Flow.Activity.Expression.XSLT("""

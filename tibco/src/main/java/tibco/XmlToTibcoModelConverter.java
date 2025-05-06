@@ -93,6 +93,13 @@ public final class XmlToTibcoModelConverter {
         return new TibcoModel.Resource.HTTPConnectionResource(name, svcRegServiceName, substitutionBindings);
     }
 
+    public static TibcoModel.Resource.HTTPSharedResource parseHTTPSharedResource(String name, Element root) {
+        Element config = getFirstChildWithTag(root, "config");
+        String host = getFirstChildWithTag(config, "Host").getTextContent();
+        int port = Integer.parseInt(getFirstChildWithTag(config, "Port").getTextContent());
+        return new TibcoModel.Resource.HTTPSharedResource(name, host, port);
+    }
+
     public static TibcoModel.Resource.HTTPClientResource parseHTTPClientResource(Element root) {
         String name = root.getAttribute("name");
         Element configuration = getFirstChildWithTag(root, "configuration");

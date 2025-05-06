@@ -70,6 +70,14 @@ public class TibcoModel {
 
         }
 
+        record HTTPSharedResource(String name, String host, int port) implements Resource {
+
+            @Override
+            public Collection<SubstitutionBinding> substitutionBindings() {
+                return List.of();
+            }
+        }
+
         record HTTPClientResource(String name, Optional<Integer> port,
                                   Collection<SubstitutionBinding> substitutionBindings)
                 implements Resource {
