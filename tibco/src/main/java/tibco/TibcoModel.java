@@ -20,6 +20,7 @@ package tibco;
 
 import org.w3c.dom.Element;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -90,10 +91,75 @@ public class TibcoModel {
         }
     }
 
+    // TODO: either we have scope, flow stuff or transition groups. Need to model
+    // this properly
     public record Process(String name, Collection<Type> types, ProcessInfo processInfo,
                           Optional<ProcessInterface> processInterface,
                           Optional<ProcessTemplateConfigurations> processTemplateConfigurations,
-                          Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope) {
+                          Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope,
+                          ExplicitTransitionGroup transitionGroup) {
+
+        record ExplicitTransitionGroup(List<InlineActivity> activities, List<Transition> transitions) {
+            ExplicitTransitionGroup() {
+                this(List.of(), List.of());
+            }
+
+            ExplicitTransitionGroup {
+                activities = Collections.unmodifiableList(activities);
+                transitions = Collections.unmodifiableList(transitions);
+            }
+
+            ExplicitTransitionGroup append(InlineActivity activity) {
+                List<InlineActivity> newActivities = new ArrayList<>(activities);
+                newActivities.add(activity);
+                return new ExplicitTransitionGroup(newActivities, transitions);
+            }
+
+            ExplicitTransitionGroup append(Transition transition) {
+                List<Transition> newTransitions = new ArrayList<>(transitions);
+                newTransitions.add(transition);
+                return new ExplicitTransitionGroup(activities, newTransitions);
+            }
+
+            public record Transition(String from, String to) {
+            }
+
+            public sealed interface InlineActivity {
+                String name();
+
+                InlineActivityType type();
+
+                boolean hasInputBinding();
+
+                Scope.Flow.Activity.InputBinding inputBinding();
+
+                enum InlineActivityType {
+                    MAPPER;
+
+                    public static InlineActivityType parse(String type) {
+                        if (type.endsWith("MapperActivity")) {
+                            return MAPPER;
+                        }
+                        throw new IllegalArgumentException("Unknown inline activity type: " + type);
+                    }
+                }
+
+                record MapperActivity(String name,
+                                      Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.MAPPER;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+            }
+        }
 
         @Override
         public boolean equals(Object obj) {
@@ -362,11 +428,9 @@ public class TibcoModel {
             Scope scope();
         }
 
-
         public record Sequence(String name, List<Flow.Activity> activities) {
 
         }
-
 
         public record Flow(String name, Collection<Link> links, List<Activity> activities) {
 
@@ -375,7 +439,6 @@ public class TibcoModel {
                 assert links != null;
                 assert activities != null;
             }
-
 
             public record Link(String name) {
 
@@ -397,6 +460,7 @@ public class TibcoModel {
                 sealed interface ActivityWithOutput extends Activity {
                     Optional<String> outVariableName();
                 }
+
                 sealed interface ActivityWithScope extends Activity {
 
                     Scope scope();
@@ -414,7 +478,25 @@ public class TibcoModel {
                 sealed interface Expression {
 
                     record XSLT(String expression) implements Expression, ValueSource {
+                        public XSLT {
+                            assert expression != null;
+                        }
 
+                        @Override
+                        public boolean equals(Object o) {
+                            if (this == o)
+                                return true;
+                            if (!(o instanceof XSLT xslt))
+                                return false;
+                            String expr1 = expression.replaceAll("\\s+", "");
+                            String expr2 = xslt.expression.replaceAll("\\s+", "");
+                            return expr1.equals(expr2);
+                        }
+
+                        @Override
+                        public int hashCode() {
+                            return expression.replaceAll("\\s+", "").hashCode();
+                        }
                     }
 
                     record XPath(String expression) implements Expression, Source.Predicate, ValueSource {
@@ -736,7 +818,6 @@ public class TibcoModel {
                               List<InputBinding> inputBindings, Collection<Target> targets, List<Source> sources,
                               Element element)
                         implements Activity, ActivityWithSources, ActivityWithTargets, ActivityWithOutput {
-
 
                     @Override
                     public Optional<String> outVariableName() {
