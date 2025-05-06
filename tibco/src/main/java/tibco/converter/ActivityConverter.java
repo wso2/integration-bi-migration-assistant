@@ -34,6 +34,7 @@ import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.TibcoModel;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.TibcoModel.Scope.Flow.Activity;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension;
 import tibco.TibcoModel.Scope.Flow.Activity.CatchAll;
@@ -153,11 +154,21 @@ final class ActivityConverter {
                     emptyExtensionConversion(result);
             case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.MapperActivity mapperActivity ->
                     emptyExtensionConversion(result);
+            case UnhandledInlineActivity unhandledInlineActivity ->
+                    convertUnhandledActivity(cx, result, unhandledInlineActivity);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
         body.add(new Return<>(conversion.result()));
         return body;
+    }
+
+    private static ActivityExtensionConfigConversion convertUnhandledActivity(
+            ActivityContext cx, VariableReference result, UnhandledInlineActivity unhandledInlineActivity) {
+        List<Statement> body = List.of(
+                new Comment("FIXME: Failed to convert rest of activity"),
+                elementAsComment(unhandledInlineActivity.element()));
+        return new ActivityExtensionConfigConversion(result, body);
     }
 
     private static @NotNull List<Statement> convertNestedScope(ActivityContext cx, Activity.NestedScope nestedScope) {

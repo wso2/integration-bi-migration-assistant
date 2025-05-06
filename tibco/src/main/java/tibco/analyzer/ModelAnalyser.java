@@ -373,6 +373,10 @@ public class ModelAnalyser {
                     unhandledActivityCount++;
                     yield "unhandled";
                 }
+                case ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity unhandledInlineActivity -> {
+                    unhandledActivityCount++;
+                    yield unhandledInlineActivity.name();
+                }
                 case ExplicitTransitionGroup.InlineActivity inlineActivity -> inlineActivity.name();
             };
             String activityName = ConversionUtils.getSanitizedUniqueName(prefix, activityFunctionNames.values());

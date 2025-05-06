@@ -146,6 +146,7 @@ public class TibcoModel {
 
                 enum InlineActivityType {
                     HTTP_EVENT_SOURCE,
+                    UNHANDLED,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
@@ -155,7 +156,21 @@ public class TibcoModel {
                         if (type.endsWith("HTTPEventSource")) {
                             return HTTP_EVENT_SOURCE;
                         }
-                        throw new IllegalArgumentException("Unknown inline activity type: " + type);
+                        return UNHANDLED;
+                    }
+                }
+
+                record UnhandledInlineActivity(Element element, String name,
+                                               InputBinding inputBinding) implements InlineActivity {
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.UNHANDLED;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
                     }
                 }
 
