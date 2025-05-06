@@ -56,6 +56,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static common.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
@@ -87,20 +88,56 @@ public class ProcessConverter {
         List<ProcessResult> results = processes.stream()
                 .map(process -> new ProcessResult(process,
                         convertTypes(cx.getProcessContext(process), process)))
+                .map(processResult -> {
+                    TibcoModel.Process process = processResult.process;
+                    if (process.transitionGroup() == null) {
+                        return processResult;
+                    }
+                    BallerinaModel.Service startService =
+                            convertStartActivityService(cx.getProcessContext(process),
+                                    process.transitionGroup().startActivity());
+                    return new ProcessResult(process, new TypeConversionResult(
+                            Stream.concat(processResult.result.service().stream(), Stream.of(startService)).toList()));
+                })
                 .toList();
         List<TibcoModel.Type.Schema> schemas = new ArrayList<>(types);
         for (TibcoModel.Process each : processes) {
             accumSchemas(each, schemas);
         }
         SyntaxTree typeSyntaxTree = convertTypes(cx, schemas);
-        // We need to ensure all the type definitions have been processed before we
-        // start processing the functions
         List<BallerinaModel.TextDocument> textDocuments = results.stream()
                 .map(result -> {
                     TibcoModel.Process process = result.process();
                     return convertBody(cx.getProcessContext(process), process, result.result());
                 }).toList();
         return new ConversionResult(cx.serialize(textDocuments), typeSyntaxTree);
+    }
+
+    private static BallerinaModel.Service convertStartActivityService(
+            ProcessContext cx,
+            TibcoModel.Process.ExplicitTransitionGroup.InlineActivity startActivity) {
+        List<Statement> body = new ArrayList<>();
+        Parameter parameter = new Parameter("input", XML);
+        XMLTemplate inputXml = new XMLTemplate("""
+                <root>
+                    <item>
+                        ${%s}
+                    </item>
+                </root>
+                """.formatted(parameter.name()));
+        VarDeclStatment inputValDecl = new VarDeclStatment(XML, "inputVal", inputXml);
+        body.add(inputValDecl);
+        VarDeclStatment paramXmlDecl = new VarDeclStatment(new TypeDesc.MapTypeDesc(XML), "paramXML",
+                common.ConversionUtils.exprFrom("{post: %s}".formatted(inputValDecl.varName())));
+        body.add(paramXmlDecl);
+        body.add(new Return<>(new FunctionCall(cx.getProcessStartFunction().name(), List.of(common.ConversionUtils.exprFrom("()"), paramXmlDecl.ref()))));
+        BallerinaModel.Resource resource = new BallerinaModel.Resource("default", "",
+                List.of(parameter), Optional.of("xml"), body);
+        assert startActivity instanceof TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource;
+        VariableReference listner = cx.getProjectContext().httpListener(
+                ((TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource) startActivity).sharedChannel());
+        return new BallerinaModel.Service("", List.of(listner.varName()), Optional.empty(), List.of(resource),
+                List.of(), List.of(), List.of(), List.of());
     }
 
     private static void accumSchemas(TibcoModel.Process process, Collection<TibcoModel.Type.Schema> accum) {

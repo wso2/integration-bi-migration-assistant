@@ -64,7 +64,7 @@ public class TibcoToBalConverter {
         }
 
         return ProjectConverter.convertProject(cx, processes, types, jdbcResources, httpConnectionResources,
-                httpClientResources);
+                httpClientResources, httpSharedResources);
     }
 
     private static final ParsingUnit<TibcoModel.Process> PROCESS_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(

@@ -107,13 +107,13 @@ public class TibcoModel {
                           Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope,
                           ExplicitTransitionGroup transitionGroup) {
 
-        record ExplicitTransitionGroup(List<InlineActivity> activities, List<Transition> transitions,
+        public record ExplicitTransitionGroup(List<InlineActivity> activities, List<Transition> transitions,
                                        InlineActivity startActivity) {
             ExplicitTransitionGroup(InlineActivity startActivity) {
                 this(List.of(), List.of(), startActivity);
             }
 
-            ExplicitTransitionGroup {
+            public ExplicitTransitionGroup {
                 activities = Collections.unmodifiableList(activities);
                 transitions = Collections.unmodifiableList(transitions);
                 assert startActivity != null;

@@ -396,6 +396,14 @@ public class ProjectContext {
         return new BallerinaModel.Expression.VariableReference(varName);
     }
 
+    public VariableReference httpListener(String name) {
+        String varName = generatedResources.get(name);
+        if (varName == null) {
+            throw new RuntimeException("Failed to find listener for " + name);
+        }
+        return new BallerinaModel.Expression.VariableReference(varName);
+    }
+
     void addResourceDeclaration(String resourceName, BallerinaModel.ModuleVar resourceVar,
                                 Collection<BallerinaModel.ModuleVar> configurables, Collection<Library> imports) {
         imports.forEach(this::importLibraryIfNeededToUtility);
