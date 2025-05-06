@@ -130,7 +130,34 @@ final class ActivityConverter {
             case Activity.Assign assign -> convertAssign(cx, assign);
             case Activity.Foreach foreach -> convertForeach(cx, foreach);
             case Activity.NestedScope nestedScope -> convertNestedScope(cx, nestedScope);
+            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity inlineActivity ->
+                    convertInlineActivity(cx, inlineActivity);
         };
+    }
+
+    private static @NotNull List<Statement> convertInlineActivity(ActivityContext cx, TibcoModel.Process.ExplicitTransitionGroup.InlineActivity inlineActivity) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+        body.add(inputDecl);
+        VariableReference result;
+        if (inlineActivity.hasInputBinding()) {
+            List<VarDeclStatment> inputBindings = convertInputBindings(cx, inputDecl.ref(),
+                    List.of(inlineActivity.inputBinding()));
+            body.addAll(inputBindings);
+            result = new VariableReference(inputBindings.getLast().varName());
+        } else {
+            result = inputDecl.ref();
+        }
+        ActivityExtensionConfigConversion conversion = switch (inlineActivity) {
+            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource httpEventSource ->
+                    emptyExtensionConversion(result);
+            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.MapperActivity mapperActivity ->
+                    emptyExtensionConversion(result);
+        };
+        body.addAll(conversion.body());
+        body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
+        body.add(new Return<>(conversion.result()));
+        return body;
     }
 
     private static @NotNull List<Statement> convertNestedScope(ActivityContext cx, Activity.NestedScope nestedScope) {

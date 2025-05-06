@@ -114,9 +114,10 @@ public class XmlToModelTests {
                     </pd:activity>\
                 """;
 
+        Element element = stringToElement(activityXml);
         InlineActivity actual = XmlToTibcoModelConverter.parseInlineActivity(new XmlToTibcoModelConverter.ParseContext(),
-                stringToElement(activityXml));
-        InlineActivity.MapperActivity expected = new InlineActivity.MapperActivity("Failed tests count",
+                element);
+        InlineActivity.MapperActivity expected = new InlineActivity.MapperActivity(element, "Failed tests count",
                 new TibcoModel.Scope.Flow.Activity.InputBinding.CompleteBinding(
                         new TibcoModel.Scope.Flow.Activity.Expression.XSLT("""
                                 <?xml version="1.0" encoding="UTF-8"?>

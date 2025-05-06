@@ -84,9 +84,9 @@ final class ResourceConvertor {
     public static void convertHttpSharedResource(ProjectContext cx, TibcoModel.Resource.HTTPSharedResource resource) {
         // public listener http:Listener creditapp_module_MainProcess_listener = new (8082, {host: "localhost"});
         Expression.BallerinaExpression init = ConversionUtils.exprFrom(
-                "new (%d, {host: \"%s\"".formatted(resource.port(), resource.host()));
+                "checkpanic new (%d, {host: \"%s\"})".formatted(resource.port(), resource.host()));
         ModuleVar resourceVar =
-                new ModuleVar(tibco.converter.ConversionUtils.sanitizes(resource.name()), "http:Listener",
+                new ModuleVar(tibco.converter.ConversionUtils.sanitizes(resource.name()), "listener http:Listener",
                         Optional.of(init), false, false);
         cx.addResourceDeclaration(resource.name(), resourceVar, List.of(), List.of(Library.HTTP));
     }

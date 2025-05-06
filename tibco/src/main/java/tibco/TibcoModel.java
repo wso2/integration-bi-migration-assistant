@@ -105,6 +105,7 @@ public class TibcoModel {
                           Optional<ProcessInterface> processInterface,
                           Optional<ProcessTemplateConfigurations> processTemplateConfigurations,
                           Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope,
+                          // FIXME: this should be an optional
                           ExplicitTransitionGroup transitionGroup) {
 
         public record ExplicitTransitionGroup(List<InlineActivity> activities, List<Transition> transitions,
@@ -134,7 +135,7 @@ public class TibcoModel {
             public record Transition(String from, String to) {
             }
 
-            public sealed interface InlineActivity {
+            public sealed interface InlineActivity extends Scope.Flow.Activity {
                 String name();
 
                 InlineActivityType type();
@@ -158,7 +159,7 @@ public class TibcoModel {
                     }
                 }
 
-                record MapperActivity(String name,
+                record MapperActivity(Element element, String name,
                                       Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
                     public MapperActivity {
                         assert inputBinding != null;
@@ -176,7 +177,7 @@ public class TibcoModel {
                 }
 
 
-                record HttpEventSource(String name, String sharedChannel,
+                record HttpEventSource(Element element, String name, String sharedChannel,
                                        Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
 
                     @Override

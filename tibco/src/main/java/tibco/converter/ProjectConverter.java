@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 public class ProjectConverter {
 
@@ -47,6 +48,17 @@ public class ProjectConverter {
                 processes.stream()
                         .map(process -> new ProcessResult(process,
                                 ProcessConverter.convertTypes(cx.getProcessContext(process), process)))
+                        .map(processResult -> {
+                            TibcoModel.Process process = processResult.process;
+                            if (process.transitionGroup() == null) {
+                                return processResult;
+                            }
+                            BallerinaModel.Service startService =
+                                    ProcessConverter.convertStartActivityService(cx.getProcessContext(process),
+                                            process.transitionGroup().startActivity());
+                            return new ProcessResult(process, new ProcessConverter.TypeConversionResult(
+                                    Stream.concat(processResult.result.service().stream(), Stream.of(startService)).toList()));
+                        })
                         .toList();
         List<TibcoModel.Type.Schema> schemas = new ArrayList<>(types);
         for (TibcoModel.Process each : processes) {

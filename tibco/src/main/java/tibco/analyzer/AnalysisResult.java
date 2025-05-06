@@ -19,7 +19,9 @@
 package tibco.analyzer;
 
 import common.BallerinaModel;
+import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup;
 
 import java.util.Collection;
 import java.util.List;
@@ -43,6 +45,8 @@ public final class AnalysisResult {
     private final Map<TibcoModel.Scope, ControlFlowFunctions> controlFlowFunctions;
     private final Map<TibcoModel.Process, Collection<TibcoModel.Scope>> scopes;
     private final Map<String, TibcoModel.Scope.Flow.Activity> activityByName;
+    private final Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencies;
+    private final Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions;
 
     AnalysisResult(Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap,
                    Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap,
@@ -55,7 +59,9 @@ public final class AnalysisResult {
                    Map<TibcoModel.Scope, Graph<GraphNode>> dependencyGraphs,
                    Map<TibcoModel.Scope, ControlFlowFunctions> controlFlowFunctions,
                    Map<TibcoModel.Process, Collection<TibcoModel.Scope>> scopes,
-                   Map<String, TibcoModel.Scope.Flow.Activity> activityByName) {
+                   Map<String, TibcoModel.Scope.Flow.Activity> activityByName,
+                   Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencies,
+                   Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.activityData = activityData;
@@ -68,6 +74,8 @@ public final class AnalysisResult {
         this.controlFlowFunctions = controlFlowFunctions;
         this.scopes = scopes;
         this.activityByName = activityByName;
+        this.explicitTransitionGroupDependencies = explicitTransitionGroupDependencies;
+        this.explicitTransitionGroupControlFlowFunctions = explicitTransitionGroupControlFlowFunctions;
     }
 
     public Collection<String> inputTypeName(TibcoModel.Process process) {
@@ -165,8 +173,22 @@ public final class AnalysisResult {
         if (dependencyGraph == null) {
             throw new IllegalArgumentException("No dependency graph found for scope: " + scope);
         }
+        return sortedActivitiesInner(dependencyGraph);
+    }
+
+
+    public Stream<TibcoModel.Scope.Flow.Activity> sortedActivities(ExplicitTransitionGroup group) {
+        Graph<GraphNode> dependencyGraph = explicitTransitionGroupDependencies.get(group);
+        if (dependencyGraph == null) {
+            throw new IllegalArgumentException("No dependency graph found for group: " + group);
+        }
+        return sortedActivitiesInner(dependencyGraph);
+    }
+
+    private static @NotNull Stream<TibcoModel.Scope.Flow.Activity> sortedActivitiesInner(Graph<GraphNode> dependencyGraph) {
         return dependencyGraph.topologicalSort().stream()
-                .filter(node -> node.kid == GraphNode.Kind.ACTIVITY)
+                .filter(node -> node.kind == GraphNode.Kind.ACTIVITY ||
+                        node.kind == GraphNode.Kind.INLINE_ACTIVITY)
                 .map(node -> (TibcoModel.Scope.Flow.Activity) node.data);
     }
 
@@ -180,6 +202,10 @@ public final class AnalysisResult {
 
     public ControlFlowFunctions getControlFlowFunctions(TibcoModel.Scope scope) {
         return Objects.requireNonNull(controlFlowFunctions.get(scope));
+    }
+
+    public ControlFlowFunctions getControlFlowFunctions(ExplicitTransitionGroup group) {
+        return explicitTransitionGroupControlFlowFunctions.get(group);
     }
 
     public record LinkData(Collection<TibcoModel.Scope.Flow.Activity> sourceActivities,
@@ -197,10 +223,10 @@ public final class AnalysisResult {
 
     }
 
-    public record GraphNode(String name, Kind kid, Object data) {
+    public record GraphNode(String name, Kind kind, Object data) {
 
         public enum Kind {
-            ACTIVITY, LINK
+            ACTIVITY, LINK, INLINE_ACTIVITY
         }
     }
 

@@ -19,6 +19,9 @@
 package tibco.analyzer;
 
 import tibco.TibcoModel;
+import tibco.TibcoModel.PartnerLink;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup;
+import tibco.analyzer.AnalysisResult.GraphNode;
 import tibco.converter.ConversionUtils;
 import tibco.converter.ProjectConverter;
 
@@ -54,7 +57,7 @@ public class ModelAnalyser {
         analyseProcess(cx, process);
 
         Map<TibcoModel.Scope.Flow.Activity, AnalysisResult.ActivityData> activityData = cx.activityData();
-        Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings = Collections
+        Map<String, PartnerLink.RestPartnerLink.Binding> partnerLinkBindings = Collections
                 .unmodifiableMap(cx.partnerLinkBindings);
 
         logger.info(String.format("Process Statistics - Name: %s, Total Activities: %d, Unhandled Activities: %d",
@@ -73,15 +76,42 @@ public class ModelAnalyser {
                 .collect(Collectors.toMap(ActivityNames::name, ActivityNames::activity));
         return new AnalysisResult(cx.destinationMap, cx.sourceMap,
                 activityData, partnerLinkBindings, cx.queryIndex, inputTypeNames,
-                outputTypeName, variableTypes, cx.dependencyGraphs, cx.controlFlowFunctions, scopes, activityByName);
+                outputTypeName, variableTypes, cx.dependencyGraphs, cx.controlFlowFunctions, scopes, activityByName,
+                cx.explicitTransitionGroupDependencyGraph, cx.transitionGroupControlFlowFunctions);
     }
 
     private static void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
         analyzeVariables(cx, process.variables());
         analysePartnerLinks(cx, process.partnerLinks());
         analyseTypes(cx, process.types());
-        analyseScope(cx, process.scope());
+        if (process.scope() != null) {
+            analyseScope(cx, process.scope());
+        }
         process.processInterface().ifPresent(i -> analyzeProcessInterface(cx, i));
+        if (process.transitionGroup() != null) {
+            analyseExplicitTransitionGroup(cx, process.transitionGroup());
+        }
+    }
+
+    private static void analyseExplicitTransitionGroup(ProcessAnalysisContext cx, ExplicitTransitionGroup explicitTransitionGroup) {
+        cx.allocateControlFlowFunctionsIfNeeded(explicitTransitionGroup);
+        Graph<GraphNode> graph = cx.getExplicitTransitionGroupGraph(explicitTransitionGroup);
+        record ActivityGraphData(String name, GraphNode node) {
+        }
+        Map<String, GraphNode> activityNodes = explicitTransitionGroup.activities().stream()
+                .map(activity -> new ActivityGraphData(activity.name(), cx.activityNode(activity)))
+                .collect(Collectors.toMap(ActivityGraphData::name, ActivityGraphData::node));
+        ExplicitTransitionGroup.InlineActivity startActivity = explicitTransitionGroup.startActivity();
+        activityNodes.put(startActivity.name(), cx.activityNode(startActivity));
+        graph.addRoot(activityNodes.get(startActivity.name()));
+        explicitTransitionGroup.transitions().forEach(transition -> {
+            if (activityNodes.containsKey(transition.from()) && activityNodes.containsKey(transition.to())) {
+                graph.addEdge(activityNodes.get(transition.from()), activityNodes.get(transition.to()));
+            }
+            // Start and end transitions can be safely skipped
+        });
+        cx.allocateActivityNameIfNeeded(startActivity);
+        explicitTransitionGroup.activities().forEach(cx::allocateActivityNameIfNeeded);
     }
 
     private static void analyzeVariables(ProcessAnalysisContext cx, Collection<TibcoModel.Variable> variables) {
@@ -164,9 +194,9 @@ public class ModelAnalyser {
         return Optional.of(typeName);
     }
 
-    private static void analysePartnerLinks(ProcessAnalysisContext cx, Collection<TibcoModel.PartnerLink> links) {
+    private static void analysePartnerLinks(ProcessAnalysisContext cx, Collection<PartnerLink> links) {
         links.stream()
-                .flatMap(link -> link instanceof TibcoModel.PartnerLink.NonEmptyPartnerLink nonEmptyPartnerLink
+                .flatMap(link -> link instanceof PartnerLink.NonEmptyPartnerLink nonEmptyPartnerLink
                         ? Stream.of(nonEmptyPartnerLink)
                         : Stream.empty())
                 .forEach(link -> cx.partnerLinkBindings.put(link.name(), link.binding()));
@@ -282,7 +312,7 @@ public class ModelAnalyser {
 
         private final Set<TibcoModel.Scope.Flow.Activity> activities = new HashSet<>();
         private final Set<TibcoModel.Scope.Flow.Link> links = new HashSet<>();
-        private final Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings =
+        private final Map<String, PartnerLink.RestPartnerLink.Binding> partnerLinkBindings =
                 new HashMap<>();
 
         private static final Map<TibcoModel.Scope.Flow.Activity, String> activityFunctionNames =
@@ -295,9 +325,15 @@ public class ModelAnalyser {
 
         private final Map<TibcoModel.Scope, AnalysisResult.ControlFlowFunctions> controlFlowFunctions = new HashMap<>();
         private static final Set<String> controlFlowFunctionNames = new LinkedHashSet<>();
-        private final Map<TibcoModel.Scope, Graph<AnalysisResult.GraphNode>> dependencyGraphs = new HashMap<>();
+        private final Map<TibcoModel.Scope, Graph<GraphNode>> dependencyGraphs = new HashMap<>();
         private final Stack<TibcoModel.Scope> scopeStack = new Stack<>();
         final Stack<Boolean> inSequence = new Stack<>();
+
+        private final Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencyGraph =
+                new HashMap<>();
+
+        private final Map<ExplicitTransitionGroup, AnalysisResult.ControlFlowFunctions>
+                transitionGroupControlFlowFunctions = new HashMap<>();
 
         public void addEndActivity(TibcoModel.Scope.Flow.Activity activity) {
             endActivities.add(activity);
@@ -337,6 +373,7 @@ public class ModelAnalyser {
                     unhandledActivityCount++;
                     yield "unhandled";
                 }
+                case ExplicitTransitionGroup.InlineActivity inlineActivity -> inlineActivity.name();
             };
             String activityName = ConversionUtils.getSanitizedUniqueName(prefix, activityFunctionNames.values());
             activityFunctionNames.put(activity, activityName);
@@ -419,6 +456,21 @@ public class ModelAnalyser {
                     name + "ActivityRunner", name + "FaultHandler"));
         }
 
+
+        public void allocateControlFlowFunctionsIfNeeded(ExplicitTransitionGroup transitionGroup) {
+            if (transitionGroupControlFlowFunctions.containsKey(transitionGroup)) {
+                return;
+            }
+            String name = "scope" + transitionGroupControlFlowFunctions.size();
+            name = ConversionUtils.getSanitizedUniqueName(name, controlFlowFunctionNames);
+            controlFlowFunctionNames.add(name);
+            transitionGroupControlFlowFunctions.put(transitionGroup,
+                    new AnalysisResult.ControlFlowFunctions(
+                            name + "ScopeFn",
+                            name + "ActivityRunner",
+                            name + "FaultHandler"));
+        }
+
         public String getOutputTypeName() {
             if (outputTypeName == null) {
                 return "UNKNOWN";
@@ -426,13 +478,22 @@ public class ModelAnalyser {
             return outputTypeName;
         }
 
-        private AnalysisResult.GraphNode activityNode(TibcoModel.Scope.Flow.Activity activity) {
-            String name = activityNodeName(activity);
-            return new AnalysisResult.GraphNode(name, AnalysisResult.GraphNode.Kind.ACTIVITY, activity);
+        private GraphNode activityNode(ExplicitTransitionGroup.InlineActivity inlineActivity) {
+            String name = ConversionUtils.sanitizes(inlineActivity.name());
+            return new GraphNode(name, GraphNode.Kind.INLINE_ACTIVITY, inlineActivity);
         }
 
-        private AnalysisResult.GraphNode linkNode(TibcoModel.Scope.Flow.Link link) {
-            return new AnalysisResult.GraphNode(link.name(), AnalysisResult.GraphNode.Kind.LINK, link);
+        private GraphNode activityNode(TibcoModel.Scope.Flow.Activity activity) {
+            String name = activityNodeName(activity);
+            return new GraphNode(name, GraphNode.Kind.ACTIVITY, activity);
+        }
+
+        private GraphNode linkNode(TibcoModel.Scope.Flow.Link link) {
+            return new GraphNode(link.name(), GraphNode.Kind.LINK, link);
+        }
+
+        private Graph<GraphNode> getExplicitTransitionGroupGraph(ExplicitTransitionGroup group) {
+            return explicitTransitionGroupDependencyGraph.computeIfAbsent(group, (ignored) -> new Graph<>());
         }
     }
 }

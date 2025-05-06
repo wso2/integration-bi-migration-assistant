@@ -210,7 +210,7 @@ public final class XmlToTibcoModelConverter {
                 getFirstChildWithTag(element, "type").getTextContent());
         return switch (type) {
             case HTTP_EVENT_SOURCE -> parseHttpEventSource(name, inputBinding, element);
-            case MAPPER -> parseMapperActivity(name, inputBinding);
+            case MAPPER -> parseMapperActivity(name, inputBinding, element);
         };
     }
 
@@ -219,12 +219,13 @@ public final class XmlToTibcoModelConverter {
                                                                        Element element) {
         Element config = getFirstChildWithTag(element, "config");
         String sharedChannel = getFirstChildWithTag(config, "sharedChannel").getTextContent();
-        return new InlineActivity.HttpEventSource(name, sharedChannel, inputBinding);
+        return new InlineActivity.HttpEventSource(element, name, sharedChannel, inputBinding);
     }
 
     private static InlineActivity.MapperActivity parseMapperActivity(String name,
-                                                                     TibcoModel.Scope.Flow.Activity.InputBinding inputBinding) {
-        return new InlineActivity.MapperActivity(name, inputBinding);
+                                                                     TibcoModel.Scope.Flow.Activity.InputBinding inputBinding,
+                                                                     Element element) {
+        return new InlineActivity.MapperActivity(element, name, inputBinding);
     }
 
     private static TibcoModel.Scope.Flow.Activity.InputBinding.CompleteBinding parseInlineActivityInputBinding(
