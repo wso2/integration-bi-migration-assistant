@@ -99,26 +99,28 @@ public class TibcoModel {
                           Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope,
                           ExplicitTransitionGroup transitionGroup) {
 
-        record ExplicitTransitionGroup(List<InlineActivity> activities, List<Transition> transitions) {
-            ExplicitTransitionGroup() {
-                this(List.of(), List.of());
+        record ExplicitTransitionGroup(List<InlineActivity> activities, List<Transition> transitions,
+                                       InlineActivity startActivity) {
+            ExplicitTransitionGroup(InlineActivity startActivity) {
+                this(List.of(), List.of(), startActivity);
             }
 
             ExplicitTransitionGroup {
                 activities = Collections.unmodifiableList(activities);
                 transitions = Collections.unmodifiableList(transitions);
+                assert startActivity != null;
             }
 
             ExplicitTransitionGroup append(InlineActivity activity) {
                 List<InlineActivity> newActivities = new ArrayList<>(activities);
                 newActivities.add(activity);
-                return new ExplicitTransitionGroup(newActivities, transitions);
+                return new ExplicitTransitionGroup(newActivities, transitions, startActivity);
             }
 
             ExplicitTransitionGroup append(Transition transition) {
                 List<Transition> newTransitions = new ArrayList<>(transitions);
                 newTransitions.add(transition);
-                return new ExplicitTransitionGroup(activities, newTransitions);
+                return new ExplicitTransitionGroup(activities, newTransitions, startActivity);
             }
 
             public record Transition(String from, String to) {
@@ -134,11 +136,15 @@ public class TibcoModel {
                 Scope.Flow.Activity.InputBinding inputBinding();
 
                 enum InlineActivityType {
+                    HTTP_EVENT_SOURCE,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
                         if (type.endsWith("MapperActivity")) {
                             return MAPPER;
+                        }
+                        if (type.endsWith("HTTPEventSource")) {
+                            return HTTP_EVENT_SOURCE;
                         }
                         throw new IllegalArgumentException("Unknown inline activity type: " + type);
                     }
@@ -146,6 +152,9 @@ public class TibcoModel {
 
                 record MapperActivity(String name,
                                       Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
+                    public MapperActivity {
+                        assert inputBinding != null;
+                    }
 
                     @Override
                     public InlineActivityType type() {
@@ -155,6 +164,21 @@ public class TibcoModel {
                     @Override
                     public boolean hasInputBinding() {
                         return true;
+                    }
+                }
+
+
+                record HttpEventSource(String name, String sharedChannel,
+                                       Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.HTTP_EVENT_SOURCE;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
                     }
                 }
 
@@ -175,9 +199,6 @@ public class TibcoModel {
         }
 
         public Process {
-            if (scope == null) {
-                throw new IllegalArgumentException("Scope cannot be null");
-            }
             if (name == null) {
                 throw new IllegalArgumentException("Name cannot be null");
             }

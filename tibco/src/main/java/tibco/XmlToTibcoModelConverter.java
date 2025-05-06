@@ -23,10 +23,12 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import tibco.TibcoModel.PartnerLink;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.Transition;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.AccumulateEnd;
+import tibco.TibcoModel.Type;
 import tibco.converter.ConversionUtils;
 import tibco.converter.ProjectConverter;
 
@@ -120,14 +122,14 @@ public final class XmlToTibcoModelConverter {
             name = tryGetFirstChildWithTag(root, "name").map(Node::getTextContent)
                     .orElseGet(cx::getNextAnonymousProcessName);
         }
-        Collection<TibcoModel.Type> types = null;
+        Collection<Type> types = null;
         TibcoModel.ProcessInfo processInfo = null;
-        Collection<TibcoModel.PartnerLink> partnerLinks = null;
+        Collection<PartnerLink> partnerLinks = null;
         Collection<TibcoModel.Variable> variables = null;
         TibcoModel.Scope scope = null;
         Optional<TibcoModel.ProcessInterface> processInterface = Optional.empty();
         Optional<TibcoModel.ProcessTemplateConfigurations> processTemplateConfigurations = Optional.empty();
-        TibcoModel.Process.ExplicitTransitionGroup transitionGroup = new TibcoModel.Process.ExplicitTransitionGroup();
+        TibcoModel.Process.ExplicitTransitionGroup transitionGroup = null;
         for (Element element : new ElementIterable(root)) {
             String tag = getTagNameWithoutNameSpace(element);
             switch (tag) {
@@ -175,11 +177,15 @@ public final class XmlToTibcoModelConverter {
                     processTemplateConfigurations = Optional.of(parseProcessTemplateConfigurations(element));
                 }
                 case "activity" -> {
+                    assert transitionGroup != null;
                     transitionGroup = transitionGroup.append(parseInlineActivity(cx, element));
                 }
                 case "transition" -> {
+                    assert transitionGroup != null;
                     transitionGroup = transitionGroup.append(parseTransition(cx, element));
                 }
+                case "starter" ->
+                        transitionGroup = new TibcoModel.Process.ExplicitTransitionGroup(parseInlineActivity(cx, element));
                 default -> {
                     // ignore
                 }
@@ -196,8 +202,17 @@ public final class XmlToTibcoModelConverter {
         InlineActivity.InlineActivityType type = InlineActivity.InlineActivityType.parse(
                 getFirstChildWithTag(element, "type").getTextContent());
         return switch (type) {
+            case HTTP_EVENT_SOURCE -> parseHttpEventSource(name, inputBinding, element);
             case MAPPER -> parseMapperActivity(name, inputBinding);
         };
+    }
+
+    private static InlineActivity.HttpEventSource parseHttpEventSource(String name,
+                                                                       TibcoModel.Scope.Flow.Activity.InputBinding inputBinding,
+                                                                       Element element) {
+        Element config = getFirstChildWithTag(element, "config");
+        String sharedChannel = getFirstChildWithTag(config, "sharedChannel").getTextContent();
+        return new InlineActivity.HttpEventSource(name, sharedChannel, inputBinding);
     }
 
     private static InlineActivity.MapperActivity parseMapperActivity(String name,
@@ -222,8 +237,7 @@ public final class XmlToTibcoModelConverter {
                 new TibcoModel.Scope.Flow.Activity.Expression.XSLT(xslt));
     }
 
-    private static Transition parseTransition(ParseContext cx,
-                                              Element element) {
+    private static Transition parseTransition(ParseContext cx, Element element) {
         String from = getFirstChildWithTag(element, "from").getTextContent();
         String to = getFirstChildWithTag(element, "to").getTextContent();
         return new Transition(from, to);
@@ -694,10 +708,10 @@ public final class XmlToTibcoModelConverter {
             case HTTP_SEND -> parseHTTPSend(activity);
             case JSON_RENDER -> new Config.JsonOperation(
                     Config.ExtensionKind.JSON_RENDER,
-                    TibcoModel.Type.Schema.TibcoType.of("nil"));
+                    Type.Schema.TibcoType.of("nil"));
             case JSON_PARSER -> new Config.JsonOperation(
                     Config.ExtensionKind.JSON_PARSER,
-                    TibcoModel.Type.Schema.TibcoType.of("nil"));
+                    Type.Schema.TibcoType.of("nil"));
             case LOG -> new Config.Log();
             case RENDER_XML -> new Config.RenderXML();
             case SEND_HTTP_RESPONSE -> new Config.SendHTTPResponse();
@@ -849,42 +863,42 @@ public final class XmlToTibcoModelConverter {
                 () -> new ParserException("Attribute not found: " + attributeName, element));
     }
 
-    private static Collection<TibcoModel.PartnerLink> parsePartnerLinks(Element element) {
+    private static Collection<PartnerLink> parsePartnerLinks(Element element) {
         return ElementIterable.of(element).stream().map(XmlToTibcoModelConverter::parsePartnerLink).toList();
     }
 
-    private static TibcoModel.PartnerLink parsePartnerLink(Element element) {
+    private static PartnerLink parsePartnerLink(Element element) {
         try {
             return tryParsePartnerLink(element);
         } catch (Exception ex) {
-            return new TibcoModel.PartnerLink.UnhandledPartnerLink(element.getAttribute("name"), ex.getMessage());
+            return new PartnerLink.UnhandledPartnerLink(element.getAttribute("name"), ex.getMessage());
         }
     }
 
-    private static TibcoModel.PartnerLink tryParsePartnerLink(Element element) {
+    private static PartnerLink tryParsePartnerLink(Element element) {
         String name = element.getAttribute("name");
         Optional<Element> referenceBinding = tryGetFirstChildWithTag(element, "ReferenceBinding");
         return referenceBinding.map(value -> finishParsingTibexReferenceBinding(value, name))
-                .orElseGet(() -> new TibcoModel.PartnerLink.EmptyPartnerLink(name));
+                .orElseGet(() -> new PartnerLink.EmptyPartnerLink(name));
     }
 
-    private static TibcoModel.PartnerLink finishParsingTibexReferenceBinding(Element referenceBinding, String name) {
+    private static PartnerLink finishParsingTibexReferenceBinding(Element referenceBinding, String name) {
         return finishParsingTibexBinding(getFirstChildWithTag(referenceBinding, "binding"), name);
     }
 
-    private static TibcoModel.PartnerLink finishParsingTibexBinding(Element binding, String name) {
+    private static PartnerLink finishParsingTibexBinding(Element binding, String name) {
         return finishParsingBWBaseBinding(getFirstChildWithTag(binding, "BWBaseBinding"), name);
     }
 
-    private static TibcoModel.PartnerLink finishParsingBWBaseBinding(Element bwBaseBinding, String name) {
+    private static PartnerLink finishParsingBWBaseBinding(Element bwBaseBinding, String name) {
         return finishParsingReferenceBinding(getFirstChildWithTag(bwBaseBinding, "referenceBinding"), name);
     }
 
-    private static TibcoModel.PartnerLink finishParsingReferenceBinding(Element referenceBinding, String name) {
+    private static PartnerLink finishParsingReferenceBinding(Element referenceBinding, String name) {
         return finishParsingBinding(getFirstChildWithTag(referenceBinding, "binding"), name);
     }
 
-    private static TibcoModel.PartnerLink finishParsingBinding(Element binding, String name) {
+    private static PartnerLink finishParsingBinding(Element binding, String name) {
         String bindingName = binding.getAttribute("name");
         return switch (bindingName) {
             case "RestReference" -> finishParsingRestBinding(binding, name);
@@ -894,46 +908,46 @@ public final class XmlToTibcoModelConverter {
         };
     }
 
-    private static TibcoModel.PartnerLink.SoapPartnerLink finishParsingSoapBinding(Element binding, String name) {
+    private static PartnerLink.SoapPartnerLink finishParsingSoapBinding(Element binding, String name) {
         String path = binding.getAttribute("locationURI");
-        return new TibcoModel.PartnerLink.SoapPartnerLink(name, path);
+        return new PartnerLink.SoapPartnerLink(name, path);
     }
 
-    private static TibcoModel.PartnerLink.@NotNull RestPartnerLink finishParsingRestBinding(Element binding,
+    private static PartnerLink.@NotNull RestPartnerLink finishParsingRestBinding(Element binding,
                                                                                             String name) {
         String basePath = binding.getAttribute("basePath");
         String path = binding.getAttribute("path");
-        var connector = TibcoModel.PartnerLink.Binding.Connector.from(binding.getAttribute("connector"));
+        var connector = PartnerLink.Binding.Connector.from(binding.getAttribute("connector"));
         var operation = parseBindingOperation(getFirstChildWithTag(binding, "operation"));
-        return new TibcoModel.PartnerLink.RestPartnerLink(name, new TibcoModel.PartnerLink.RestPartnerLink.Binding(
-                new TibcoModel.PartnerLink.RestPartnerLink.Binding.Path(basePath, path),
+        return new PartnerLink.RestPartnerLink(name, new PartnerLink.RestPartnerLink.Binding(
+                new PartnerLink.RestPartnerLink.Binding.Path(basePath, path),
                 connector, operation));
     }
 
-    private static TibcoModel.PartnerLink.RestPartnerLink.Binding.Operation parseBindingOperation(Element operation) {
+    private static PartnerLink.RestPartnerLink.Binding.Operation parseBindingOperation(Element operation) {
         TibcoModel.Method method = TibcoModel.Method.from(
                 operation.getAttribute("httpMethod"));
 
-        Optional<TibcoModel.PartnerLink.Binding.Operation.RequestEntityProcessing> requestEntityProcessing = parseIfPresent(
-                TibcoModel.PartnerLink.Binding.Operation.RequestEntityProcessing::from,
+        Optional<PartnerLink.Binding.Operation.RequestEntityProcessing> requestEntityProcessing = parseIfPresent(
+                PartnerLink.Binding.Operation.RequestEntityProcessing::from,
                 operation.getAttribute("requestEntityProcessing"));
-        Optional<TibcoModel.PartnerLink.Binding.Operation.MessageStyle> requestStyle = parseIfPresent(
-                TibcoModel.PartnerLink.Binding.Operation.MessageStyle::from,
+        Optional<PartnerLink.Binding.Operation.MessageStyle> requestStyle = parseIfPresent(
+                PartnerLink.Binding.Operation.MessageStyle::from,
                 operation.getAttribute("requestStyle"));
-        Optional<TibcoModel.PartnerLink.Binding.Operation.MessageStyle> responseStyle = parseIfPresent(
-                TibcoModel.PartnerLink.Binding.Operation.MessageStyle::from,
+        Optional<PartnerLink.Binding.Operation.MessageStyle> responseStyle = parseIfPresent(
+                PartnerLink.Binding.Operation.MessageStyle::from,
                 operation.getAttribute("responseStyle"));
-        Optional<TibcoModel.PartnerLink.Binding.Operation.Format> clientFormat = parseIfPresent(
+        Optional<PartnerLink.Binding.Operation.Format> clientFormat = parseIfPresent(
                 XmlToTibcoModelConverter::parseFormat,
                 tryGetFirstChildWithTag(operation, "clientFormat"));
 
-        Optional<TibcoModel.PartnerLink.Binding.Operation.Format> clientRequestFormat = parseIfPresent(
+        Optional<PartnerLink.Binding.Operation.Format> clientRequestFormat = parseIfPresent(
                 XmlToTibcoModelConverter::parseFormat,
                 tryGetFirstChildWithTag(operation, "clientRequestFormat"));
-        List<TibcoModel.PartnerLink.RestPartnerLink.Binding.Operation.Parameter> parameters = tryGetFirstChildWithTag(
+        List<PartnerLink.RestPartnerLink.Binding.Operation.Parameter> parameters = tryGetFirstChildWithTag(
                 operation, "parameters").map(XmlToTibcoModelConverter::parseParameters)
                 .orElseGet(Collections::emptyList);
-        return new TibcoModel.PartnerLink.RestPartnerLink.Binding.Operation(method, requestEntityProcessing,
+        return new PartnerLink.RestPartnerLink.Binding.Operation(method, requestEntityProcessing,
                 requestStyle, responseStyle, clientFormat, clientRequestFormat, parameters);
     }
 
@@ -948,22 +962,22 @@ public final class XmlToTibcoModelConverter {
         return element.map(parseFunction);
     }
 
-    private static List<TibcoModel.PartnerLink.RestPartnerLink.Binding.Operation.Parameter> parseParameters(
+    private static List<PartnerLink.RestPartnerLink.Binding.Operation.Parameter> parseParameters(
             Element parameters) {
         return List.of();
         // return
         // ElementIterable.of(parameters).stream().map(XmlToTibcoModelConverter::parseParameter).toList();
     }
 
-    private static TibcoModel.PartnerLink.RestPartnerLink.Binding.Operation.Parameter parseParameter(Element element) {
+    private static PartnerLink.RestPartnerLink.Binding.Operation.Parameter parseParameter(Element element) {
         // TODO: support this when we properly support path parameters
         throw new UnsupportedOperationException("unimplemented");
     }
 
-    private static TibcoModel.PartnerLink.RestPartnerLink.Binding.Operation.Format parseFormat(Element clientFormat) {
+    private static PartnerLink.RestPartnerLink.Binding.Operation.Format parseFormat(Element clientFormat) {
         String body = clientFormat.getTextContent();
         if (body.equals("json")) {
-            return TibcoModel.PartnerLink.Binding.Operation.Format.JSON;
+            return PartnerLink.Binding.Operation.Format.JSON;
         } else {
             throw new ParserException("Unsupported format: " + body, clientFormat);
         }
@@ -1002,8 +1016,8 @@ public final class XmlToTibcoModelConverter {
         return new TibcoModel.ProcessInfo(callable, modifiers, scalable, singleton, stateless, type);
     }
 
-    private static Collection<TibcoModel.Type> parseTypes(Element element) {
-        List<TibcoModel.Type> members = new ArrayList<>();
+    private static Collection<Type> parseTypes(Element element) {
+        List<Type> members = new ArrayList<>();
         for (Element child : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
@@ -1015,15 +1029,15 @@ public final class XmlToTibcoModelConverter {
         return members;
     }
 
-    static TibcoModel.Type.Schema parseSchema(Element element) {
-        return new TibcoModel.Type.Schema(element);
+    static Type.Schema parseSchema(Element element) {
+        return new Type.Schema(element);
     }
 
     private static TibcoModel.NameSpace parseImport(Element each) {
         return new TibcoModel.NameSpace(each.getAttribute("namespace"));
     }
 
-    private static Optional<TibcoModel.Type.WSDLDefinition> tryParseWSDLDefinition(Element element) {
+    private static Optional<Type.WSDLDefinition> tryParseWSDLDefinition(Element element) {
         try {
             return parseWSDLDefinition(element);
         } catch (Exception e) {
@@ -1034,15 +1048,15 @@ public final class XmlToTibcoModelConverter {
         }
     }
 
-    private static Optional<TibcoModel.Type.WSDLDefinition> parseWSDLDefinition(Element element) {
+    private static Optional<Type.WSDLDefinition> parseWSDLDefinition(Element element) {
         if (element.getChildNodes().getLength() == 0) {
             return Optional.empty();
         }
         Map<String, String> namespaces = getNamespaces(element);
-        Collection<TibcoModel.Type.WSDLDefinition.PartnerLinkType> partnerLinkTypes = new ArrayList<>();
+        Collection<Type.WSDLDefinition.PartnerLinkType> partnerLinkTypes = new ArrayList<>();
         List<TibcoModel.NameSpace> imports = new ArrayList<>();
-        List<TibcoModel.Type.WSDLDefinition.Message> messages = new ArrayList<>();
-        List<TibcoModel.Type.WSDLDefinition.PortType> portTypes = new ArrayList<>();
+        List<Type.WSDLDefinition.Message> messages = new ArrayList<>();
+        List<Type.WSDLDefinition.PortType> portTypes = new ArrayList<>();
         for (Element child : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
@@ -1057,7 +1071,7 @@ public final class XmlToTibcoModelConverter {
             throw new ParserException("PartnerLinkType not found in WSDL definition", element);
         }
         return Optional.of(
-                new TibcoModel.Type.WSDLDefinition(namespaces, partnerLinkTypes, imports, messages, portTypes));
+                new Type.WSDLDefinition(namespaces, partnerLinkTypes, imports, messages, portTypes));
     }
 
     private static Map<String, String> getNamespaces(Element element) {
@@ -1077,18 +1091,18 @@ public final class XmlToTibcoModelConverter {
         return Collections.unmodifiableMap(namespaces);
     }
 
-    private static TibcoModel.Type.WSDLDefinition.PortType parsePortType(Element element) {
+    private static Type.WSDLDefinition.PortType parsePortType(Element element) {
         String name = element.getAttribute("name");
         String apiPath = getAttributeIgnoringNamespace(element, "bw.rest.apipath");
         String basePath = tryGetAttributeIgnoringNamespace(element, "bw.rest.basepath").orElse("/");
         Element operation = getFistMatchingChild(element,
                 (child) -> getTagNameWithoutNameSpace(child).equals("operation")).orElseThrow(
                 () -> new ParserException("Operation not found in portType", element));
-        TibcoModel.Type.WSDLDefinition.PortType.Operation portOperation = parsePortOperation(operation);
-        return new TibcoModel.Type.WSDLDefinition.PortType(name, apiPath, basePath, portOperation);
+        Type.WSDLDefinition.PortType.Operation portOperation = parsePortOperation(operation);
+        return new Type.WSDLDefinition.PortType(name, apiPath, basePath, portOperation);
     }
 
-    private static TibcoModel.Type.WSDLDefinition.PortType.Operation parsePortOperation(Element operation) {
+    private static Type.WSDLDefinition.PortType.Operation parsePortOperation(Element operation) {
 
         record MessageNamePair(TibcoModel.NameSpaceValue message, String name) {
 
@@ -1098,9 +1112,9 @@ public final class XmlToTibcoModelConverter {
             }
         }
         String name = operation.getAttribute("name");
-        TibcoModel.Type.WSDLDefinition.PortType.Operation.Input input = null;
-        TibcoModel.Type.WSDLDefinition.PortType.Operation.Output output = null;
-        List<TibcoModel.Type.WSDLDefinition.PortType.Operation.Fault> faults = new ArrayList<>();
+        Type.WSDLDefinition.PortType.Operation.Input input = null;
+        Type.WSDLDefinition.PortType.Operation.Output output = null;
+        List<Type.WSDLDefinition.PortType.Operation.Fault> faults = new ArrayList<>();
         for (Element child : ElementIterable.of(operation)) {
             String tag = getTagNameWithoutNameSpace(child);
             if (!(tag.equals("input") || tag.equals("output") || tag.equals("fault"))) {
@@ -1108,14 +1122,11 @@ public final class XmlToTibcoModelConverter {
             }
             MessageNamePair messageNamePair = MessageNamePair.from(child);
             switch (tag) {
-                case "input" ->
-                        input = new TibcoModel.Type.WSDLDefinition.PortType.Operation.Input(messageNamePair.message,
+                case "input" -> input = new Type.WSDLDefinition.PortType.Operation.Input(messageNamePair.message,
                                 messageNamePair.name);
-                case "output" ->
-                        output = new TibcoModel.Type.WSDLDefinition.PortType.Operation.Output(messageNamePair.message,
+                case "output" -> output = new Type.WSDLDefinition.PortType.Operation.Output(messageNamePair.message,
                                 messageNamePair.name);
-                case "fault" ->
-                        faults.add(new TibcoModel.Type.WSDLDefinition.PortType.Operation.Fault(messageNamePair.message,
+                case "fault" -> faults.add(new Type.WSDLDefinition.PortType.Operation.Fault(messageNamePair.message,
                                 messageNamePair.name));
                 default -> throw new ParserException("Unsupported port operation tag: " + tag, operation);
             }
@@ -1126,17 +1137,17 @@ public final class XmlToTibcoModelConverter {
         if (output == null) {
             throw new ParserException("Output not found in port operation", operation);
         }
-        return new TibcoModel.Type.WSDLDefinition.PortType.Operation(name, input, output, faults);
+        return new Type.WSDLDefinition.PortType.Operation(name, input, output, faults);
     }
 
-    private static TibcoModel.Type.WSDLDefinition.Message parseMessage(Element element) {
+    private static Type.WSDLDefinition.Message parseMessage(Element element) {
         String name = element.getAttribute("name");
-        List<TibcoModel.Type.WSDLDefinition.Message.Part> parts = parseSequence(element,
+        List<Type.WSDLDefinition.Message.Part> parts = parseSequence(element,
                 XmlToTibcoModelConverter::parseMessagePart);
-        return new TibcoModel.Type.WSDLDefinition.Message(name, parts);
+        return new Type.WSDLDefinition.Message(name, parts);
     }
 
-    private static TibcoModel.Type.WSDLDefinition.Message.Part parseMessagePart(Element node) {
+    private static Type.WSDLDefinition.Message.Part parseMessagePart(Element node) {
         if (node.hasAttribute("element")) {
             return parseReferencePart(node);
         } else {
@@ -1144,28 +1155,28 @@ public final class XmlToTibcoModelConverter {
         }
     }
 
-    private static TibcoModel.Type.WSDLDefinition.Message.Part.InlineError parseInlinePart(Element node) {
+    private static Type.WSDLDefinition.Message.Part.InlineError parseInlinePart(Element node) {
         String name = node.getAttribute("name");
         String typeName = node.getAttribute("type");
         String value = getAttributeIgnoringNamespace(node, "reasonPhrase");
-        return new TibcoModel.Type.WSDLDefinition.Message.Part.InlineError(name, value, typeName);
+        return new Type.WSDLDefinition.Message.Part.InlineError(name, value, typeName);
     }
 
-    private static TibcoModel.Type.WSDLDefinition.Message.Part.Reference parseReferencePart(Element node) {
+    private static Type.WSDLDefinition.Message.Part.Reference parseReferencePart(Element node) {
         String name = node.getAttribute("name");
         TibcoModel.NameSpaceValue element = TibcoModel.NameSpaceValue.from(node.getAttribute("element"));
         // TODO: is this correct?
         boolean multipleNamespaces = node.hasAttribute("multipleNamespaces");
-        return new TibcoModel.Type.WSDLDefinition.Message.Part.Reference(name, element, multipleNamespaces);
+        return new Type.WSDLDefinition.Message.Part.Reference(name, element, multipleNamespaces);
     }
 
-    private static TibcoModel.Type.WSDLDefinition.PartnerLinkType parsePartnerLinkType(Element element) {
+    private static Type.WSDLDefinition.PartnerLinkType parsePartnerLinkType(Element element) {
         String name = element.getAttribute("name");
         Element role = expectNChildren(element, 1).iterator().next();
         String roleName = role.getAttribute("name");
         String portTypeName = role.getAttribute("portType");
-        return new TibcoModel.Type.WSDLDefinition.PartnerLinkType(name,
-                new TibcoModel.Type.WSDLDefinition.PartnerLinkType.Role(roleName,
+        return new Type.WSDLDefinition.PartnerLinkType(name,
+                new Type.WSDLDefinition.PartnerLinkType.Role(roleName,
                         TibcoModel.NameSpaceValue.from(portTypeName)));
     }
 

@@ -18,8 +18,8 @@
 
 package tibco;
 
+import org.testng.Assert;
 import org.testng.annotations.Test;
-import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -37,24 +37,49 @@ import static org.testng.Assert.assertNotNull;
 
 public class XmlToModelTests {
 
-    /**
-     * Converts a XML string to an Element object
-     *
-     * @param xmlString the XML string to convert
-     * @return the Element object
-     * @throws ParserConfigurationException if a DocumentBuilder cannot be created
-     * @throws IOException                  if there is an error reading the string
-     * @throws SAXException                 if there is an error parsing the XML
-     */
-    private Element stringToElement(String xmlString) throws ParserConfigurationException, IOException, SAXException {
+    private static Element stringToElement(String xmlString) throws ParserConfigurationException, IOException, SAXException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
         return builder.parse(new InputSource(new StringReader(xmlString))).getDocumentElement();
     }
 
     @Test
+    public void parseInlineActivityProcess() throws Exception {
+        String processXml = """
+                <pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+                    <pd:name>Processes/MainProcessStarter.process</pd:name>
+                    <pd:startName>HTTP Receiver</pd:startName>
+                    <pd:returnBindings/>
+                    <pd:starter name="HTTP Receiver">
+                        <pd:type>com.tibco.plugin.http.HTTPEventSource</pd:type>
+                        <config>
+                            <sharedChannel>/SharedResources/GeneralConnection.sharedhttp</sharedChannel>
+                        </config>
+                        <pd:inputBindings/>
+                    </pd:starter>
+                    <pd:endName>End</pd:endName>
+                    <pd:transition>
+                        <pd:from>HTTP Receiver</pd:from>
+                        <pd:to>GetProcesName</pd:to>
+                        <pd:lineType>Default</pd:lineType>
+                        <pd:lineColor>-16777216</pd:lineColor>
+                        <pd:conditionType>always</pd:conditionType>
+                    </pd:transition>
+                    <pd:transition>
+                        <pd:from>Start</pd:from>
+                        <pd:to>HTTP Receiver</pd:to>
+                    </pd:transition>
+                </pd:ProcessDefinition>
+                """;
+        Element processElement = stringToElement(processXml);
+        TibcoModel.Process process = XmlToTibcoModelConverter.parseProcess(processElement);
+        assertEquals(process.name(), "Processes/MainProcessStarter.process");
+        TibcoModel.Process.ExplicitTransitionGroup transitionGroup = process.transitionGroup();
+        Assert.assertEquals(transitionGroup.startActivity().name(), "HTTP Receiver");
+    }
+
+    @Test
     public void testParseInlineActivity() throws Exception {
-        // Setup
         String activityXml = """
                  <pd:activity name="Failed tests count">
                         <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
