@@ -44,9 +44,4 @@ bin/
 .settings/
 .classpath
 .project
-src/test/resources/tibco.projects.converted/LoggingService_converted/types.bal
-src/test/resources/tibco.projects.converted/LoggingService/types.bal
-src/test/resources/tibco.projects.converted/ExperianDemoService/types.bal
-src/test/resources/tibco.projects.converted/Database/types.bal
-src/test/resources/tibco.projects.converted/CreditCheckBackendService/types.bal
-src/test/resources/tibco.projects.converted/CreditAppService/types.bal
+tibco/src/test/resources/tibco.projects.converted/*/types.bal
