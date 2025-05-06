@@ -61,6 +61,8 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static common.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static common.BallerinaModel.TypeDesc.BuiltinType.JSON;
+import static common.BallerinaModel.TypeDesc.BuiltinType.NIL;
+import static common.BallerinaModel.TypeDesc.BuiltinType.UnionTypeDesc;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
 import static common.ConversionUtils.stmtFrom;
@@ -246,6 +248,8 @@ public class ProcessConverter {
         TypeDesc inputType = startFuncData.inputType();
         if (inputType == ANYDATA) {
             inputType = JSON;
+        } else if (inputType == NIL) {
+            inputType = UnionTypeDesc.of(new TypeDesc.MapTypeDesc(ANYDATA), NIL);
         }
         return new BallerinaModel.Function(startFuncData.name(),
                 List.of(new Parameter(inputVar.varName(), inputType),

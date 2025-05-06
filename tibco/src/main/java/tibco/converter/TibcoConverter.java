@@ -39,35 +39,14 @@ public class TibcoConverter {
         Path inputPath = Paths.get(sourcePath);
 
         if (Files.isRegularFile(inputPath)) {
-            if (outputPath == null) {
-                outputPath = inputPath.toString().replaceAll("\\.bwp$", ".bal");
-            }
-            migrateTibcoFile(inputPath, outputPath);
+            String inputRootDirectory = inputPath.getParent().toString();
+            String targetPath = outputPath != null ? outputPath : inputRootDirectory + "_converted";
+            migrateTibcoProject(inputRootDirectory, targetPath);
         } else if (Files.isDirectory(inputPath)) {
             String targetPath = outputPath != null ? outputPath : inputPath + "_converted";
             migrateTibcoProject(inputPath.toString(), targetPath);
         } else {
             logger.severe("Invalid path: " + inputPath);
-            System.exit(1);
-        }
-    }
-
-    private static void migrateTibcoFile(Path inputPath, String outputPath) {
-        String ballerinaCode;
-        try {
-            SyntaxTree syntaxTree = TibcoToBalConverter.convertFile(inputPath.toString());
-            ballerinaCode = syntaxTree.toSourceCode();
-        } catch (Exception e) {
-            logger.severe("Error converting file: " + inputPath);
-            System.exit(1);
-            return;
-        }
-        Path outputFilePath = Paths.get(outputPath);
-        try {
-            Files.writeString(outputFilePath, ballerinaCode);
-            logger.info("Conversion successful. Output written to " + outputPath);
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Error writing output to file: " + outputPath, e);
             System.exit(1);
         }
     }
