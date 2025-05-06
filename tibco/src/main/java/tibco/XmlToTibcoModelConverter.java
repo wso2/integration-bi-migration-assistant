@@ -45,6 +45,13 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public final class XmlToTibcoModelConverter {
+    private static final class ParseContext {
+        private static long nextAnonProcessIndex = 0;
+
+        public String getNextAnonymousProcessName() {
+            return "AnonymousProcess" + nextAnonProcessIndex++;
+        }
+    }
 
     private static final Logger logger = ProjectConverter.LOGGER;
 
@@ -96,7 +103,15 @@ public final class XmlToTibcoModelConverter {
     }
 
     public static TibcoModel.Process parseProcess(Element root) {
+        return parseProcessInner(new ParseContext(), root);
+    }
+
+    private static TibcoModel.@NotNull Process parseProcessInner(ParseContext cx, Element root) {
         String name = root.getAttribute("name");
+        if (name.isBlank()) {
+            name = tryGetFirstChildWithTag(root, "name").map(Node::getTextContent)
+                    .orElseGet(cx::getNextAnonymousProcessName);
+        }
         Collection<TibcoModel.Type> types = null;
         TibcoModel.ProcessInfo processInfo = null;
         Collection<TibcoModel.PartnerLink> partnerLinks = null;
