@@ -35,6 +35,7 @@ import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.AssignActivity;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HTTPResponse;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.TibcoModel.Scope.Flow.Activity;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension;
@@ -160,11 +161,21 @@ final class ActivityConverter {
             case AssignActivity assignActivity -> convertAssignActivity(cx, result, assignActivity);
             case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.NullActivity ignored ->
                     emptyExtensionConversion(result);
+            case HTTPResponse httpResponse -> convertHttpResponse(cx, result, httpResponse);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
         body.add(new Return<>(conversion.result()));
         return body;
+    }
+
+    private static ActivityExtensionConfigConversion convertHttpResponse(
+            ActivityContext cx, VariableReference result, HTTPResponse httpResponse) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment responseValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                exprFrom("%s/**/<asciiContent>/*".formatted(result.varName())));
+        body.add(responseValue);
+        return new ActivityExtensionConfigConversion(responseValue.ref(), body);
     }
 
     private static ActivityExtensionConfigConversion convertAssignActivity(

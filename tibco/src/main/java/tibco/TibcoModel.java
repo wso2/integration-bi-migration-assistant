@@ -171,6 +171,7 @@ public class TibcoModel {
                 enum InlineActivityType {
                     ASSIGN,
                     HTTP_EVENT_SOURCE,
+                    HTTP_RESPONSE,
                     UNHANDLED,
                     NULL,
                     MAPPER;
@@ -188,7 +189,26 @@ public class TibcoModel {
                         if (type.endsWith("NullActivity")) {
                             return NULL;
                         }
+                        if (type.endsWith("HTTPResponseActivity")) {
+                            return HTTP_RESPONSE;
+                        }
                         return UNHANDLED;
+                    }
+                }
+
+                record HTTPResponse(Element element, String name, InputBinding inputBinding) implements InlineActivity {
+                    public HTTPResponse {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.HTTP_RESPONSE;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
                     }
                 }
 
