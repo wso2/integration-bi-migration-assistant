@@ -36,6 +36,7 @@ import org.w3c.dom.Element;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.AssignActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.CallProcess;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.FileRead;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.FileWrite;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HTTPResponse;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
@@ -171,6 +172,7 @@ final class ActivityConverter {
             case WriteLog writeLog -> convertWriteLogActivity(cx, result, writeLog);
             case CallProcess callProcess -> convertCallProcess(cx, result, callProcess);
             case FileWrite fileWrite -> convertFileWrite(cx, result, fileWrite);
+            case FileRead fileRead -> convertFileRead(cx, result, fileRead);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
@@ -187,6 +189,29 @@ final class ActivityConverter {
         return new ActivityExtensionConfigConversion(returnVal.ref(), List.of(returnVal));
     }
 
+    private static ActivityExtensionConfigConversion convertFileRead(
+            ActivityContext cx, VariableReference result, FileRead fileRead) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment fileName = new VarDeclStatment(STRING, "fileName",
+                exprFrom("(%s/**/<fileName>/*).toString()".formatted(result.varName())));
+        body.add(fileName);
+
+        cx.addLibraryImport(Library.IO);
+        VarDeclStatment content = new VarDeclStatment(STRING, "content",
+                new Check(new FunctionCall(IOConstants.FILE_READ_FUNCTION, List.of(fileName.ref()))));
+        body.add(content);
+        VarDeclStatment wrapped = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("""
+                        <ns:ReadActivityOutputTextClass xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/file">
+                            <fileContent>
+                                <textContent>${%s}</textContent>
+                            </fileContent>
+                        </ns:ReadActivityOutputTextClass>
+                        """.formatted(content.varName())));
+        body.add(wrapped);
+        return new ActivityExtensionConfigConversion(wrapped.ref(), body);
+    }
+
     private static ActivityExtensionConfigConversion convertFileWrite(
             ActivityContext cx, VariableReference result, FileWrite fileWrite) {
         assert fileWrite.encoding().equals("text");
@@ -198,6 +223,7 @@ final class ActivityConverter {
                 exprFrom("(%s/**/<textContent>/*).toString()".formatted(result.varName())));
         body.add(textContent);
         StringConstant mode = fileWrite.append() ? new StringConstant("APPEND") : new StringConstant("OVERWRITE");
+        cx.addLibraryImport(Library.IO);
         body.add(new CallStatement(new Check(new FunctionCall(IOConstants.FILE_WRITE_FUNCTION,
                 List.of(fileName.ref(), textContent.ref(), mode)))));
         return new ActivityExtensionConfigConversion(result, body);
@@ -824,6 +850,7 @@ final class ActivityConverter {
 
     static final class IOConstants {
         static final String FILE_WRITE_FUNCTION = "io:fileWriteString";
+        static final String FILE_READ_FUNCTION = "io:fileReadString";
 
         private IOConstants() {
 

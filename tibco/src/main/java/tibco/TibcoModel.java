@@ -189,6 +189,7 @@ public class TibcoModel {
                     WRITE_LOG,
                     CALL_PROCESS,
                     FILE_WRITE,
+                    FILE_READ,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
@@ -202,6 +203,7 @@ public class TibcoModel {
                                         new LookUpData("NullActivity", NULL),
                                         new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
                                         new LookUpData("WriteToLogActivity", WRITE_LOG),
+                                        new LookUpData("FileReadActivity", FILE_READ),
                                         new LookUpData("FileWriteActivity", FILE_WRITE))
                                         new LookUpData("CallProcessActivity", CALL_PROCESS)
                                 ).filter(each -> type.endsWith(each.suffix)).findFirst()
@@ -218,6 +220,23 @@ public class TibcoModel {
                     @Override
                     public InlineActivityType type() {
                         return InlineActivityType.CALL_PROCESS;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record FileRead(Element element, String name, InputBinding inputBinding,
+                        String encoding) implements InlineActivity {
+                    public FileRead {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.FILE_READ;
                     }
 
                     @Override

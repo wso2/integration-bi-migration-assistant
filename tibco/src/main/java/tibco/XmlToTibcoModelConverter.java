@@ -234,6 +234,7 @@ public final class XmlToTibcoModelConverter {
             case WRITE_LOG -> new InlineActivity.WriteLog(element, name, inputBinding);
             case CALL_PROCESS -> parseCallProcess(element, name, inputBinding);
             case FILE_WRITE -> parseFileWrite(element, name, inputBinding);
+            case FILE_READ -> parseFileRead(element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
         };
     }
@@ -243,6 +244,16 @@ public final class XmlToTibcoModelConverter {
         String processName = getInlineActivityConfigValue(element, "processName");
         return new InlineActivity.CallProcess(element, name, inputBinding, processName);
     }
+    private static InlineActivity.FileRead parseFileRead(
+            Element element, String name, Flow.Activity.InputBinding inputBinding) {
+        Element config = getFirstChildWithTag(element, "config");
+        String encoding = getFirstChildWithTag(config, "encoding").getTextContent();
+        if (!encoding.equals("text")) {
+            throw new ParserException("Unsupported encoding" + encoding, element);
+        }
+        return new InlineActivity.FileRead(element, name, inputBinding, encoding);
+    }
+
     private static InlineActivity.FileWrite parseFileWrite(
             Element element, String name, Flow.Activity.InputBinding inputBinding) {
         Element config = getFirstChildWithTag(element, "config");
