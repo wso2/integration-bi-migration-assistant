@@ -34,6 +34,7 @@ import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.TibcoModel;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.AssignActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.TibcoModel.Scope.Flow.Activity;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension;
@@ -150,17 +151,28 @@ final class ActivityConverter {
             result = inputDecl.ref();
         }
         ActivityExtensionConfigConversion conversion = switch (inlineActivity) {
-            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource httpEventSource ->
+            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource ignored ->
                     emptyExtensionConversion(result);
-            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.MapperActivity mapperActivity ->
+            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.MapperActivity ignored ->
                     emptyExtensionConversion(result);
             case UnhandledInlineActivity unhandledInlineActivity ->
                     convertUnhandledActivity(cx, result, unhandledInlineActivity);
+            case AssignActivity assignActivity -> convertAssignActivity(cx, result, assignActivity);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
         body.add(new Return<>(conversion.result()));
         return body;
+    }
+
+    private static ActivityExtensionConfigConversion convertAssignActivity(
+            ActivityContext cx, VariableReference result, AssignActivity assignActivity) {
+        List<Statement> body = new ArrayList<>();
+        body.add(addToContext(cx, result, assignActivity.variableName()));
+        VarDeclStatment assignedValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                getFromContext(cx, assignActivity.variableName()));
+        body.add(assignedValue);
+        return new ActivityExtensionConfigConversion(assignedValue.ref(), body);
     }
 
     private static ActivityExtensionConfigConversion convertUnhandledActivity(

@@ -223,10 +223,18 @@ public final class XmlToTibcoModelConverter {
         InlineActivity.InlineActivityType type = InlineActivity.InlineActivityType.parse(
                 getFirstChildWithTag(element, "type").getTextContent());
         return switch (type) {
+            case ASSIGN -> parseAssignActivity(name, inputBinding, element);
             case HTTP_EVENT_SOURCE -> parseHttpEventSource(name, inputBinding, element);
             case UNHANDLED -> new InlineActivity.UnhandledInlineActivity(element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
         };
+    }
+
+    private static InlineActivity.AssignActivity parseAssignActivity(
+            String name, Flow.Activity.InputBinding inputBinding, Element element) {
+        Element config = getFirstChildWithTag(element, "config");
+        String variableName = getFirstChildWithTag(config, "variableName").getTextContent();
+        return new InlineActivity.AssignActivity(element, name, variableName, inputBinding);
     }
 
     private static InlineActivity.HttpEventSource parseHttpEventSource(String name,

@@ -169,6 +169,7 @@ public class TibcoModel {
                 Scope.Flow.Activity.InputBinding inputBinding();
 
                 enum InlineActivityType {
+                    ASSIGN,
                     HTTP_EVENT_SOURCE,
                     UNHANDLED,
                     MAPPER;
@@ -179,6 +180,9 @@ public class TibcoModel {
                         }
                         if (type.endsWith("HTTPEventSource")) {
                             return HTTP_EVENT_SOURCE;
+                        }
+                        if (type.endsWith("AssignActivity")) {
+                            return ASSIGN;
                         }
                         return UNHANDLED;
                     }
@@ -212,6 +216,20 @@ public class TibcoModel {
                     @Override
                     public boolean hasInputBinding() {
                         return true;
+                    }
+                }
+
+                record AssignActivity(Element element, String name, String variableName,
+                                      InputBinding inputBinding) implements InlineActivity {
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.ASSIGN;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
                     }
                 }
 
