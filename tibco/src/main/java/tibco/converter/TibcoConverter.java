@@ -40,7 +40,7 @@ public class TibcoConverter {
         try {
             inputPath = Paths.get(sourcePath).toRealPath();
         } catch (IOException e) {
-            logger.severe("Invalid path: " + inputPath);
+            logger.severe("Invalid path: " + sourcePath);
             System.exit(1);
         }
 
