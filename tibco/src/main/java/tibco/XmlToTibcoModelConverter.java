@@ -245,6 +245,9 @@ public final class XmlToTibcoModelConverter {
 
     private static Flow.Activity.InputBinding.CompleteBinding parseInlineActivityInputBinding(
             ParseContext cx, Element element) {
+        if (isEmpty(element)) {
+            return null;
+        }
         Flow.Activity.Expression.XSLT expression = parseXSLTTag(cx, element);
         return new Flow.Activity.InputBinding.CompleteBinding(expression);
     }

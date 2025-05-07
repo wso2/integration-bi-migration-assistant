@@ -15,21 +15,15 @@ service on GeneralConnection_sharedhttp {
 
 function HTTP_Receiver(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
-     <xsl:template name="Transform0" match="/">
-        
-    </xsl:template>
-</xsl:stylesheet>`, context);
-    addToContext(context, "HTTP Receiver", var1);
-    return var1;
+    addToContext(context, "HTTP Receiver", var0);
+    return var0;
 }
 
 function Mapper(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
-     <xsl:template name="Transform1" match="/">
+     <xsl:template name="Transform0" match="/">
         <failedTestsCount>
                     
     <xsl:value-of select="count($runAllTests/root/ns:test-suites-results-msg/test-suites-results/ns3:test-suites-results//ns3:test-failure)" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
