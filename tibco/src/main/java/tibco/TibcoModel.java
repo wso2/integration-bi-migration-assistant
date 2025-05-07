@@ -172,6 +172,7 @@ public class TibcoModel {
                     ASSIGN,
                     HTTP_EVENT_SOURCE,
                     UNHANDLED,
+                    NULL,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
@@ -184,7 +185,23 @@ public class TibcoModel {
                         if (type.endsWith("AssignActivity")) {
                             return ASSIGN;
                         }
+                        if (type.endsWith("NullActivity")) {
+                            return NULL;
+                        }
                         return UNHANDLED;
+                    }
+                }
+
+                record NullActivity(Element element, String name, InputBinding inputBinding) implements InlineActivity {
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.NULL;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
                     }
                 }
 

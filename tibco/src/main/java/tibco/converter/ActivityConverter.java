@@ -158,6 +158,8 @@ final class ActivityConverter {
             case UnhandledInlineActivity unhandledInlineActivity ->
                     convertUnhandledActivity(cx, result, unhandledInlineActivity);
             case AssignActivity assignActivity -> convertAssignActivity(cx, result, assignActivity);
+            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.NullActivity ignored ->
+                    emptyExtensionConversion(result);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));

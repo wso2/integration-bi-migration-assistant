@@ -226,6 +226,7 @@ public final class XmlToTibcoModelConverter {
             case ASSIGN -> parseAssignActivity(name, inputBinding, element);
             case HTTP_EVENT_SOURCE -> parseHttpEventSource(name, inputBinding, element);
             case UNHANDLED -> new InlineActivity.UnhandledInlineActivity(element, name, inputBinding);
+            case NULL -> new InlineActivity.NullActivity(element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
         };
     }
