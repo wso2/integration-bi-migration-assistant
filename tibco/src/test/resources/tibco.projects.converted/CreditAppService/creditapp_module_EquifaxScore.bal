@@ -144,3 +144,15 @@ function start_creditapp_module_EquifaxScore(GiveNewSchemaNameHere input, map<xm
     SuccessSchema result = convertToSuccessSchema(xmlResult);
     return result;
 }
+
+xmlns "http://www.tibco.com/bpel/2007/extensions" as tibex;
+xmlns "http://www.tibco.com/pe/EngineTypes" as ns;
+xmlns "/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" as ns2;
+xmlns "http://www.tibco.com/bw/process/info" as info;
+xmlns "http://docs.oasis-open.org/ns/opencsa/sca/200912" as sca;
+xmlns "http://tns.tibco.com/bw/palette/internal/activityerror+44ece17e-f278-4255-b693-65bb9cf58bca" as ns3;
+xmlns "http://docs.oasis-open.org/wsbpel/2.0/process/executable" as bpws;
+xmlns "http://tns.tibco.com/bw/palette/internal/activityerror+2632841e-3358-4851-a82f-2f2cd3aeec16" as ns1;
+xmlns "http://www.w3.org/2001/XMLSchema" as xsd;
+xmlns "http://ns.tibco.com/bw/property" as tibprop;
+xmlns "http://xmlns.example.com/20180827154353PLT" as ns0;

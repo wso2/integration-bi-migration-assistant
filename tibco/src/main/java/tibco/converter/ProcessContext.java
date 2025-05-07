@@ -57,6 +57,7 @@ public class ProcessContext implements ContextWithFile {
 
     private DefaultClientDetails processClient;
     final Set<TibcoModel.Scope> handledScopes = new HashSet<>();
+    final Set<String> intrinsics = new HashSet<>();
 
     ProcessContext(ProjectContext projectContext, TibcoModel.Process process) {
         this.projectContext = projectContext;
@@ -152,7 +153,20 @@ public class ProcessContext implements ContextWithFile {
         List<BallerinaModel.ModuleVar> moduleVars = Stream
                 .concat(constants.values().stream(), configurables.values().stream()).toList();
         return new BallerinaModel.TextDocument(name, imports.stream().toList(), List.of(),
-                moduleVars, listeners, processServices.stream().toList(), functions, List.of());
+                moduleVars, listeners, processServices.stream().toList(), functions, List.of(),
+                intrinsics.stream().toList(), List.of());
+    }
+
+    void addNameSpace(TibcoModel.NameSpace nameSpace) {
+        if (nameSpace.prefix().isEmpty()) {
+            return;
+        }
+        String prefix = nameSpace.prefix().get();
+        if (!prefix.chars().allMatch(Character::isLetterOrDigit)) {
+            return;
+        }
+        String decl = "xmlns \"%s\" as %s;".formatted(nameSpace.uri(), prefix);
+        intrinsics.add(decl);
     }
 
     ProjectContext.FunctionData getProcessStartFunction() {

@@ -101,8 +101,8 @@ public class TibcoModel {
 
     // TODO: either we have scope, flow stuff or transition groups. Need to model
     // this properly
-    public record Process(String name, Collection<Type> types, ProcessInfo processInfo,
-                          Optional<ProcessInterface> processInterface,
+    public record Process(String name, Collection<NameSpace> nameSpaces, Collection<Type> types,
+                          ProcessInfo processInfo, Optional<ProcessInterface> processInterface,
                           Optional<ProcessTemplateConfigurations> processTemplateConfigurations,
                           Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope,
                           // TODO: this should be an optional
