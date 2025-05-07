@@ -62,12 +62,12 @@ public class TibcoModel {
         Collection<SubstitutionBinding> substitutionBindings();
 
         record JDBCResource(String name, String userName, String password, String jdbcDriver, String dbUrl,
-                            Collection<SubstitutionBinding> substitutionBindings) implements Resource {
+                Collection<SubstitutionBinding> substitutionBindings) implements Resource {
 
         }
 
         record HTTPConnectionResource(String name, String svcRegServiceName,
-                                      Collection<SubstitutionBinding> substitutionBindings) implements Resource {
+                Collection<SubstitutionBinding> substitutionBindings) implements Resource {
 
         }
 
@@ -80,7 +80,7 @@ public class TibcoModel {
         }
 
         record HTTPClientResource(String name, Optional<Integer> port,
-                                  Collection<SubstitutionBinding> substitutionBindings)
+                Collection<SubstitutionBinding> substitutionBindings)
                 implements Resource {
 
         }
@@ -103,15 +103,15 @@ public class TibcoModel {
     // TODO: either we have scope, flow stuff or transition groups. Need to model
     // this properly
     public record Process(String name, Collection<NameSpace> nameSpaces, Collection<Type> types,
-                          ProcessInfo processInfo, Optional<ProcessInterface> processInterface,
-                          Optional<ProcessTemplateConfigurations> processTemplateConfigurations,
-                          Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope,
-                          // TODO: this should be an optional
-                          ExplicitTransitionGroup transitionGroup) {
+            ProcessInfo processInfo, Optional<ProcessInterface> processInterface,
+            Optional<ProcessTemplateConfigurations> processTemplateConfigurations,
+            Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope,
+            // TODO: this should be an optional
+            ExplicitTransitionGroup transitionGroup) {
 
         public record ExplicitTransitionGroup(List<InlineActivity> activities, List<Transition> transitions,
-                                              InlineActivity startActivity,
-                                              Optional<Scope.Flow.Activity.Expression.XSLT> returnBindings) {
+                InlineActivity startActivity,
+                Optional<Scope.Flow.Activity.Expression.XSLT> returnBindings) {
 
             ExplicitTransitionGroup() {
                 this(null);
@@ -195,22 +195,22 @@ public class TibcoModel {
 
                         }
                         return Stream.of(
-                                        new LookUpData("MapperActivity", MAPPER),
-                                        new LookUpData("HTTPEventSource", HTTP_EVENT_SOURCE),
-                                        new LookUpData("AssignActivity", ASSIGN),
-                                        new LookUpData("NullActivity", NULL),
-                                        new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
-                                        new LookUpData("WriteToLogActivity", WRITE_LOG),
-                                        new LookUpData("FileReadActivity", FILE_READ),
-                                        new LookUpData("FileWriteActivity", FILE_WRITE),
-                                        new LookUpData("CallProcessActivity", CALL_PROCESS)
-                                ).filter(each -> type.endsWith(each.suffix)).findFirst()
+                                new LookUpData("MapperActivity", MAPPER),
+                                new LookUpData("HTTPEventSource", HTTP_EVENT_SOURCE),
+                                new LookUpData("AssignActivity", ASSIGN),
+                                new LookUpData("NullActivity", NULL),
+                                new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
+                                new LookUpData("WriteToLogActivity", WRITE_LOG),
+                                new LookUpData("FileReadActivity", FILE_READ),
+                                new LookUpData("FileWriteActivity", FILE_WRITE),
+                                new LookUpData("CallProcessActivity", CALL_PROCESS))
+                                .filter(each -> type.endsWith(each.suffix)).findFirst()
                                 .map(LookUpData::activityType).orElse(UNHANDLED);
                     }
                 }
 
                 record CallProcess(Element element, String name, InputBinding inputBinding,
-                                   String processName) implements InlineActivity {
+                        String processName) implements InlineActivity {
                     public CallProcess {
                         assert inputBinding != null;
                     }
@@ -227,7 +227,7 @@ public class TibcoModel {
                 }
 
                 record FileRead(Element element, String name, InputBinding inputBinding,
-                                String encoding) implements InlineActivity {
+                        String encoding) implements InlineActivity {
                     public FileRead {
                         assert inputBinding != null;
                     }
@@ -244,7 +244,7 @@ public class TibcoModel {
                 }
 
                 record FileWrite(Element element, String name, InputBinding inputBinding, String encoding,
-                                 boolean append) implements InlineActivity {
+                        boolean append) implements InlineActivity {
                     public FileWrite {
                         assert inputBinding != null;
                     }
@@ -306,7 +306,7 @@ public class TibcoModel {
                 }
 
                 record UnhandledInlineActivity(Element element, String name,
-                                               InputBinding inputBinding) implements InlineActivity {
+                        InputBinding inputBinding) implements InlineActivity {
 
                     @Override
                     public InlineActivityType type() {
@@ -320,7 +320,7 @@ public class TibcoModel {
                 }
 
                 record MapperActivity(Element element, String name,
-                                      Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
+                        Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
                     public MapperActivity {
                         assert inputBinding != null;
                     }
@@ -337,7 +337,7 @@ public class TibcoModel {
                 }
 
                 record AssignActivity(Element element, String name, String variableName,
-                                      InputBinding inputBinding) implements InlineActivity {
+                        InputBinding inputBinding) implements InlineActivity {
 
                     @Override
                     public InlineActivityType type() {
@@ -351,7 +351,7 @@ public class TibcoModel {
                 }
 
                 record HttpEventSource(Element element, String name, String sharedChannel,
-                                       Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
+                        Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
 
                     @Override
                     public InlineActivityType type() {
@@ -406,8 +406,8 @@ public class TibcoModel {
     public sealed interface Type {
 
         record WSDLDefinition(Map<String, String> namespaces, Collection<PartnerLinkType> partnerLinkTypes,
-                              Collection<NameSpace> imports, Collection<Message> messages,
-                              Collection<PortType> portType) implements Type {
+                Collection<NameSpace> imports, Collection<Message> messages,
+                Collection<PortType> portType) implements Type {
 
             public record PartnerLinkType(String name, Role role) {
 
@@ -484,7 +484,7 @@ public class TibcoModel {
     }
 
     public record ProcessInfo(boolean callable, Set<Modifier> modifiers, boolean scalable,
-                              boolean singleton, boolean stateless, Type type) {
+            boolean singleton, boolean stateless, Type type) {
 
         public enum Modifier {
             PUBLIC
@@ -577,9 +577,9 @@ public class TibcoModel {
             }
 
             public record Operation(Method method, Optional<RequestEntityProcessing> requestEntityProcessing,
-                                    Optional<MessageStyle> requestStyle, Optional<MessageStyle> responseStyle,
-                                    Optional<Format> clientFormat, Optional<Format> clientRequestFormat,
-                                    List<Parameter> parameters) {
+                    Optional<MessageStyle> requestStyle, Optional<MessageStyle> responseStyle,
+                    Optional<Format> clientFormat, Optional<Format> clientRequestFormat,
+                    List<Parameter> parameters) {
 
                 public Operation(Method method, RequestEntityProcessing requestEntityProcessing,
                         MessageStyle requestStyle, MessageStyle responseStyle, Format clientFormat,
@@ -625,7 +625,7 @@ public class TibcoModel {
     }
 
     public record Scope(String name, Collection<Flow> flows, Collection<Sequence> sequence,
-                        Collection<FaultHandler> faultHandlers) {
+            Collection<FaultHandler> faultHandlers) {
 
         public sealed interface FaultHandler extends Flow.Activity {
             Scope scope();
@@ -710,8 +710,8 @@ public class TibcoModel {
                 }
 
                 record NestedScope(String name, List<Source> sources, Collection<Target> targets,
-                                   Collection<Sequence> sequences, Collection<Flow> flows,
-                                   Collection<FaultHandler> faultHandlers, Element element) implements Activity,
+                        Collection<Sequence> sequences, Collection<Flow> flows,
+                        Collection<FaultHandler> faultHandlers, Element element) implements Activity,
                         ActivityWithSources, ActivityWithTargets, ActivityWithScope, ActivityWithName {
                     public Scope scope() {
                         return new Scope(name, flows, sequences, faultHandlers);
@@ -724,31 +724,31 @@ public class TibcoModel {
                 }
 
                 record CatchAll(Scope scope,
-                                Element element) implements FaultHandler, ActivityWithScope, StartActivity {
+                        Element element) implements FaultHandler, ActivityWithScope, StartActivity {
 
                 }
 
                 record UnhandledActivity(String reason, List<Source> sources,
-                                         Collection<Target> targets,
-                                         Element element) implements Activity, ActivityWithSources,
+                        Collection<Target> targets,
+                        Element element) implements Activity, ActivityWithSources,
                         ActivityWithTargets {
 
                 }
 
                 record Assign(List<Source> sources, Collection<Target> targets, Copy operation,
-                              Element element) implements Activity, ActivityWithSources, ActivityWithTargets {
+                        Element element) implements Activity, ActivityWithSources, ActivityWithTargets {
                     public record Copy(ValueSource from, ValueSource.VarRef to) {
 
                     }
                 }
 
                 record Foreach(String counterName, Scope scope, ValueSource startCounterValue,
-                               ValueSource finalCounterValue, Element element) implements Activity, ActivityWithScope {
+                        ValueSource finalCounterValue, Element element) implements Activity, ActivityWithScope {
 
                 }
 
                 record Reply(String name, Method operation, String partnerLink, String portType,
-                             List<InputBinding> inputBindings, Collection<Target> targets, Element element)
+                        List<InputBinding> inputBindings, Collection<Target> targets, Element element)
                         implements Activity, ActivityWithTargets, ActivityWithName {
 
                     @Override
@@ -771,7 +771,7 @@ public class TibcoModel {
                 }
 
                 record Pick(boolean createInstance, OnMessage onMessage,
-                            Element element) implements Activity, ActivityWithScope, StartActivity {
+                        Element element) implements Activity, ActivityWithScope, StartActivity {
 
                     @Override
                     public Scope scope() {
@@ -779,15 +779,15 @@ public class TibcoModel {
                     }
 
                     public record OnMessage(Method operation, String partnerLink, String portType, String variable,
-                                            Scope scope) {
+                            Scope scope) {
 
                     }
                 }
 
                 record ReceiveEvent(boolean createInstance, float eventTimeout, Optional<String> variable,
-                                    List<Source> sources, Element element) implements Activity, ActivityWithSources {
+                        List<Source> sources, Element element) implements Activity, ActivityWithSources {
                     public ReceiveEvent(boolean createInstance, float eventTimeout, String variable,
-                                        List<Source> sources, Element element) {
+                            List<Source> sources, Element element) {
                         this(createInstance, eventTimeout,
                                 variable.isEmpty() ? Optional.empty() : Optional.of(variable), sources, element);
                     }
@@ -795,8 +795,8 @@ public class TibcoModel {
                 }
 
                 record ExtActivity(Optional<Expression> expression, String inputVariable, String outputVariable,
-                                   List<Source> sources, List<Target> targets, List<InputBinding> inputBindings,
-                                   CallProcess callProcess, Element element) implements Activity,
+                        List<Source> sources, List<Target> targets, List<InputBinding> inputBindings,
+                        CallProcess callProcess, Element element) implements Activity,
                         ActivityWithSources, ActivityWithTargets, ActivityWithOutput {
 
                     public ExtActivity {
@@ -819,9 +819,9 @@ public class TibcoModel {
                 }
 
                 record ActivityExtension(Optional<String> name, Optional<String> inputVariable,
-                                         Optional<String> outputVariable, Collection<Target> targets,
-                                         List<Source> sources, List<InputBinding> inputBindings, Config config,
-                                         Element element) implements Activity, ActivityWithTargets, ActivityWithSources,
+                        Optional<String> outputVariable, Collection<Target> targets,
+                        List<Source> sources, List<InputBinding> inputBindings, Config config,
+                        Element element) implements Activity, ActivityWithTargets, ActivityWithSources,
                         ActivityWithName, ActivityWithOutput {
 
                     @Override
@@ -920,7 +920,7 @@ public class TibcoModel {
                         }
 
                         record SQL(String sharedResourcePropertyName, String query,
-                                   List<Column> resultColumns, List<SQLParameter> parameters) implements Config {
+                                List<Column> resultColumns, List<SQLParameter> parameters) implements Config {
 
                             @Override
                             public ExtensionKind kind() {
@@ -1019,8 +1019,8 @@ public class TibcoModel {
                 }
 
                 record Invoke(String inputVariable, String outputVariable, Method operation, String partnerLink,
-                              List<InputBinding> inputBindings, Collection<Target> targets, List<Source> sources,
-                              Element element)
+                        List<InputBinding> inputBindings, Collection<Target> targets, List<Source> sources,
+                        Element element)
                         implements Activity, ActivityWithSources, ActivityWithTargets, ActivityWithOutput {
 
                     @Override
