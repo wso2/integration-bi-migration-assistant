@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 public class ProjectConverter {
 
@@ -36,9 +37,10 @@ public class ProjectConverter {
             TibcoToBalConverter.ProjectConversionContext conversionContext, Collection<TibcoModel.Process> processes,
             Collection<TibcoModel.Type.Schema> types, Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
             Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
-            Set<TibcoModel.Resource.HTTPClientResource> httpClientResources) {
+            Set<TibcoModel.Resource.HTTPClientResource> httpClientResources,
+            Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources) {
         ProjectContext cx = new ProjectContext(conversionContext);
-        convertResources(cx, jdbcResources, httpConnectionResources, httpClientResources);
+        convertResources(cx, jdbcResources, httpConnectionResources, httpClientResources, httpSharedResources);
 
         record ProcessResult(TibcoModel.Process process, ProcessConverter.TypeConversionResult result) {
 
@@ -47,6 +49,18 @@ public class ProjectConverter {
                 processes.stream()
                         .map(process -> new ProcessResult(process,
                                 ProcessConverter.convertTypes(cx.getProcessContext(process), process)))
+                        .map(processResult -> {
+                            TibcoModel.Process process = processResult.process;
+                            if (process.transitionGroup() == null) {
+                                return processResult;
+                            }
+                            BallerinaModel.Service startService =
+                                    ProcessConverter.convertStartActivityService(cx.getProcessContext(process),
+                                            process.transitionGroup());
+                            return new ProcessResult(process, new ProcessConverter.TypeConversionResult(
+                                    Stream.concat(processResult.result.service().stream(), Stream.of(startService))
+                                            .toList()));
+                        })
                         .toList();
         List<TibcoModel.Type.Schema> schemas = new ArrayList<>(types);
         for (TibcoModel.Process each : processes) {
@@ -73,7 +87,8 @@ public class ProjectConverter {
 
     private static void convertResources(ProjectContext cx, Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
                                          Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
-                                         Set<TibcoModel.Resource.HTTPClientResource> httpClientResources) {
+                                         Set<TibcoModel.Resource.HTTPClientResource> httpClientResources,
+                                         Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources) {
         for (TibcoModel.Resource.JDBCResource resource : jdbcResources) {
             ResourceConvertor.convertJDBCResource(cx, resource);
         }
@@ -82,6 +97,9 @@ public class ProjectConverter {
         }
         for (TibcoModel.Resource.HTTPClientResource resource : httpClientResources) {
             ResourceConvertor.convertHttpClientResource(cx, resource);
+        }
+        for (TibcoModel.Resource.HTTPSharedResource resource : httpSharedResources) {
+            ResourceConvertor.convertHttpSharedResource(cx, resource);
         }
     }
 

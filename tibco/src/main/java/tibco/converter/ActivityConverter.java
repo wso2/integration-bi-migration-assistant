@@ -34,6 +34,9 @@ import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.TibcoModel;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.AssignActivity;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HTTPResponse;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.TibcoModel.Scope.Flow.Activity;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension;
 import tibco.TibcoModel.Scope.Flow.Activity.CatchAll;
@@ -130,7 +133,68 @@ final class ActivityConverter {
             case Activity.Assign assign -> convertAssign(cx, assign);
             case Activity.Foreach foreach -> convertForeach(cx, foreach);
             case Activity.NestedScope nestedScope -> convertNestedScope(cx, nestedScope);
+            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity inlineActivity ->
+                    convertInlineActivity(cx, inlineActivity);
         };
+    }
+
+    private static @NotNull List<Statement> convertInlineActivity(
+            ActivityContext cx, TibcoModel.Process.ExplicitTransitionGroup.InlineActivity inlineActivity) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+        body.add(inputDecl);
+        VariableReference result;
+        if (inlineActivity.hasInputBinding()) {
+            List<VarDeclStatment> inputBindings = convertInputBindings(cx, inputDecl.ref(),
+                    List.of(inlineActivity.inputBinding()));
+            body.addAll(inputBindings);
+            result = new VariableReference(inputBindings.getLast().varName());
+        } else {
+            result = inputDecl.ref();
+        }
+        ActivityExtensionConfigConversion conversion = switch (inlineActivity) {
+            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource ignored ->
+                    emptyExtensionConversion(result);
+            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.MapperActivity ignored ->
+                    emptyExtensionConversion(result);
+            case UnhandledInlineActivity unhandledInlineActivity ->
+                    convertUnhandledActivity(cx, result, unhandledInlineActivity);
+            case AssignActivity assignActivity -> convertAssignActivity(cx, result, assignActivity);
+            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.NullActivity ignored ->
+                    emptyExtensionConversion(result);
+            case HTTPResponse httpResponse -> convertHttpResponse(cx, result, httpResponse);
+        };
+        body.addAll(conversion.body());
+        body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
+        body.add(new Return<>(conversion.result()));
+        return body;
+    }
+
+    private static ActivityExtensionConfigConversion convertHttpResponse(
+            ActivityContext cx, VariableReference result, HTTPResponse httpResponse) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment responseValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                exprFrom("%s/**/<asciiContent>/*".formatted(result.varName())));
+        body.add(responseValue);
+        return new ActivityExtensionConfigConversion(responseValue.ref(), body);
+    }
+
+    private static ActivityExtensionConfigConversion convertAssignActivity(
+            ActivityContext cx, VariableReference result, AssignActivity assignActivity) {
+        List<Statement> body = new ArrayList<>();
+        body.add(addToContext(cx, result, assignActivity.variableName()));
+        VarDeclStatment assignedValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                getFromContext(cx, assignActivity.variableName()));
+        body.add(assignedValue);
+        return new ActivityExtensionConfigConversion(assignedValue.ref(), body);
+    }
+
+    private static ActivityExtensionConfigConversion convertUnhandledActivity(
+            ActivityContext cx, VariableReference result, UnhandledInlineActivity unhandledInlineActivity) {
+        List<Statement> body = List.of(
+                new Comment("FIXME: Failed to convert rest of activity"),
+                elementAsComment(unhandledInlineActivity.element()));
+        return new ActivityExtensionConfigConversion(result, body);
     }
 
     private static @NotNull List<Statement> convertNestedScope(ActivityContext cx, Activity.NestedScope nestedScope) {
@@ -698,7 +762,7 @@ final class ActivityConverter {
     }
 
     static final class XSLTConstants {
-        private static final String XSLT_TRANSFORM_FUNCTION = "xslt:transform";
+        static final String XSLT_TRANSFORM_FUNCTION = "xslt:transform";
 
         private XSLTConstants() {
 

@@ -37,6 +37,7 @@ import java.util.stream.Stream;
 
 import static common.BallerinaModel.Expression;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
+import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static common.BallerinaModel.TypeDesc.BuiltinType.UnionTypeDesc;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
@@ -113,10 +114,14 @@ public class ProcessContext implements ContextWithFile {
     String declareConstant(String name, String valueRepr, String type) {
         name = ConversionUtils.sanitizes(name);
         BallerinaModel.TypeDesc td = getTypeByName(type);
-        assert td == BallerinaModel.TypeDesc.BuiltinType.STRING;
+        assert td == STRING;
         String expr = "\"" + valueRepr + "\"";
         constants.put(name, BallerinaModel.ModuleVar.constant(name, td, exprFrom(expr)));
         return name;
+    }
+
+    void declareModuleVar(String name, BallerinaModel.ModuleVar var) {
+        constants.put(name, var);
     }
 
     @Override
@@ -322,5 +327,9 @@ public class ProcessContext implements ContextWithFile {
             assert isUsed;
             return new Expression.VariableReference(varDecl.name());
         }
+    }
+
+    String getAnonName() {
+        return projectContext.getAnonName();
     }
 }

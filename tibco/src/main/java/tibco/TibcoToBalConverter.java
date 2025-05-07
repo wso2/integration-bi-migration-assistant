@@ -31,10 +31,12 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -52,46 +54,72 @@ public class TibcoToBalConverter {
         Set<TibcoModel.Resource.JDBCResource> jdbcResources;
         Set<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources;
         Set<TibcoModel.Resource.HTTPClientResource> httpClientResources;
+        Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources;
         try {
             processes = PROCESS_PARSING_UNIT.parse(projectPath);
             types = XSD_PARSING_UNIT.parse(projectPath);
             jdbcResources = JDBC_RESOURCE_PARSING_UNIT.parse(projectPath);
             httpConnectionResources = HTTP_CONN_RESOURCE_PARSING_UNIT.parse(projectPath);
             httpClientResources = HTTP_CLIENT_RESOURCE_PARSING_UNIT.parse(projectPath);
+            var httpSharedResourceParser = new HTTPSharedResourceParsingUnit();
+            httpSharedResources = httpSharedResourceParser.parse(projectPath);
         } catch (IOException | SAXException | ParserConfigurationException e) {
             logger.severe("Unrecoverable error while parsing project file: " + projectPath);
             throw new RuntimeException("Error while parsing the XML file: ", e);
         }
 
         return ProjectConverter.convertProject(cx, processes, types, jdbcResources, httpConnectionResources,
-                httpClientResources);
+                httpClientResources, httpSharedResources);
     }
 
-    private static final ParsingUnit<TibcoModel.Process> PROCESS_PARSING_UNIT = new ParsingUnit<>(
+    private static final ParsingUnit<TibcoModel.Process> PROCESS_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(
             TibcoToBalConverter::getBwpFiles, XmlToTibcoModelConverter::parseProcess);
-    private static final ParsingUnit<TibcoModel.Type.Schema> XSD_PARSING_UNIT = new ParsingUnit<>(
+    private static final ParsingUnit<TibcoModel.Type.Schema> XSD_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(
             TibcoToBalConverter::getXSDFiles, XmlToTibcoModelConverter::parseSchema);
-    private static final ParsingUnit<TibcoModel.Resource.JDBCResource> JDBC_RESOURCE_PARSING_UNIT = new ParsingUnit<>(
+    private static final ParsingUnit<TibcoModel.Resource.JDBCResource> JDBC_RESOURCE_PARSING_UNIT =
+            new ParsingUnit.SimpleParsingUnit<>(
             TibcoToBalConverter::getJDBCResourceFiles, XmlToTibcoModelConverter::parseJDBCResource);
     private static final ParsingUnit<TibcoModel.Resource.HTTPConnectionResource> HTTP_CONN_RESOURCE_PARSING_UNIT =
-            new ParsingUnit<>(
+            new ParsingUnit.SimpleParsingUnit<>(
                     TibcoToBalConverter::getHTTPConnectionResourceFiles,
                     XmlToTibcoModelConverter::parseHTTPConnectionResource);
     private static final ParsingUnit<TibcoModel.Resource.HTTPClientResource> HTTP_CLIENT_RESOURCE_PARSING_UNIT =
-            new ParsingUnit<>(
+            new ParsingUnit.SimpleParsingUnit<>(
                     TibcoToBalConverter::getHTTPClientResourceFiles,
                     XmlToTibcoModelConverter::parseHTTPClientResource);
 
-    private record ParsingUnit<E>(FileFinder fileFinder, Function<Element, E> parsingFn) {
+    static final class HTTPSharedResourceParsingUnit implements ParsingUnit<TibcoModel.Resource.HTTPSharedResource> {
 
-        Set<E> parse(String projectPath) throws IOException, ParserConfigurationException, SAXException {
-            Set<E> elements = new HashSet<>();
-            for (String s : fileFinder.findFiles(projectPath)) {
-                Element element = parseXmlFile(s);
-                E parsedElement = parsingFn.apply(element);
-                elements.add(parsedElement);
+        @Override
+        public Set<TibcoModel.Resource.HTTPSharedResource> parse(String projectPath) throws
+                IOException, ParserConfigurationException, SAXException {
+            Set<TibcoModel.Resource.HTTPSharedResource> result = new LinkedHashSet<>();
+            for (String file : getHTTPSharedResourceFiles(projectPath)) {
+                Element element = parseXmlFile(file);
+                Path filePath = Path.of(file);
+                String fileName = filePath.getFileName().toString();
+                result.add(XmlToTibcoModelConverter.parseHTTPSharedResource(fileName, element));
             }
-            return elements;
+            return result;
+        }
+    }
+
+    interface ParsingUnit<E> {
+        Set<E> parse(String projectPath) throws IOException, ParserConfigurationException, SAXException;
+
+        record SimpleParsingUnit<E>(FileFinder fileFinder,
+                                    Function<Element, E> parsingFn) implements ParsingUnit<E> {
+
+            @Override
+            public Set<E> parse(String projectPath) throws IOException, ParserConfigurationException, SAXException {
+                Set<E> elements = new HashSet<>();
+                for (String s : fileFinder.findFiles(projectPath)) {
+                    Element element = parseXmlFile(s);
+                    E parsedElement = parsingFn.apply(element);
+                    elements.add(parsedElement);
+                }
+                return elements;
+            }
         }
     }
 
@@ -109,6 +137,10 @@ public class TibcoToBalConverter {
         return getFilesWithExtension(projectPath, "httpClientResource");
     }
 
+    private static List<String> getHTTPSharedResourceFiles(String projectPath) throws IOException {
+        return getFilesWithExtension(projectPath, "sharedhttp");
+    }
+
     private static List<String> getHTTPConnectionResourceFiles(String projectPath) throws IOException {
         return getFilesWithExtension(projectPath, "httpConnResource");
     }
@@ -118,7 +150,10 @@ public class TibcoToBalConverter {
     }
 
     private static List<String> getBwpFiles(String projectPath) throws IOException {
-        return getFilesWithExtension(projectPath, "bwp");
+        List<String> bwpFiles = getFilesWithExtension(projectPath, "bwp");
+        List<String> processFiles = getFilesWithExtension(projectPath, "process");
+        return Stream.concat(bwpFiles.stream(), processFiles.stream())
+                .toList();
     }
 
     private static List<String> getFilesWithExtension(String projectPath, String extension) throws IOException {

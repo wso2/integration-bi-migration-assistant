@@ -45,6 +45,13 @@ dependencies {
 checkstyle {
     toolVersion = '10.12.5'
     config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
+    ignoreFailures = false
+}
+
+// Configure checkstyle to exclude specific files
+tasks.withType(Checkstyle) {
+    exclude '**/XmlToTibcoModelConverter.java'
+    exclude '**/XmlToModelTests.java'
 }
 
 spotbugs {

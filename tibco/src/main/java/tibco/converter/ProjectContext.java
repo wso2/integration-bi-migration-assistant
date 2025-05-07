@@ -71,6 +71,7 @@ public class ProjectContext {
     private String logFunction = null;
     private int nextPort = 8080;
     private int typeCount = 0;
+    private int annonVarCount = 0;
 
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
     private static final Logger logger = ProjectConverter.LOGGER;
@@ -379,6 +380,10 @@ public class ProjectContext {
         return process;
     }
 
+    public String getAnonName() {
+        return "proj_annon_var" + annonVarCount++;
+    }
+
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
 
         FunctionData {
@@ -392,6 +397,14 @@ public class ProjectContext {
         String varName = generatedResources.get(sharedResourcePropertyName);
         if (varName == null) {
             throw new RuntimeException("Failed to find db client for " + sharedResourcePropertyName);
+        }
+        return new BallerinaModel.Expression.VariableReference(varName);
+    }
+
+    public VariableReference httpListener(String name) {
+        String varName = generatedResources.get(name);
+        if (varName == null) {
+            throw new RuntimeException("Failed to find listener for " + name);
         }
         return new BallerinaModel.Expression.VariableReference(varName);
     }
