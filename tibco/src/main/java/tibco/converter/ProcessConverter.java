@@ -478,7 +478,7 @@ public class ProcessConverter {
     private static BallerinaModel.Expression xsltTransform(ProcessContext cx, VariableReference inputVariable,
                                                            Activity.Expression.XSLT xslt) {
         cx.addLibraryImport(Library.XSLT);
-        return new Check(new FunctionCall(ActivityConverter.XSLTConstants.XSLT_TRANSFORM_FUNCTION,
-                List.of(inputVariable, new XMLTemplate(xslt.expression()), cx.contextVarRef())));
+        return new CheckPanic(new FunctionCall(ActivityConverter.XSLTConstants.XSLT_TRANSFORM_FUNCTION,
+                List.of(inputVariable, new XMLTemplate(xslt.expression()))));
     }
 }
