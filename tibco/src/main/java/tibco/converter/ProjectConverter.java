@@ -55,7 +55,7 @@ public class ProjectConverter {
                             }
                             BallerinaModel.Service startService =
                                     ProcessConverter.convertStartActivityService(cx.getProcessContext(process),
-                                            process.transitionGroup().startActivity());
+                                            process.transitionGroup());
                             return new ProcessResult(process, new ProcessConverter.TypeConversionResult(
                                     Stream.concat(processResult.result.service().stream(), Stream.of(startService)).toList()));
                         })

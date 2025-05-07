@@ -70,7 +70,20 @@ public class ProcessConverter {
 
     static BallerinaModel.Service convertStartActivityService(
             ProcessContext cx,
-            TibcoModel.Process.ExplicitTransitionGroup.InlineActivity startActivity) {
+            TibcoModel.Process.ExplicitTransitionGroup group) {
+        BallerinaModel.Resource resource = generateResourceFunctionForStartActivity(cx, group);
+        TibcoModel.Process.ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity();
+        assert startActivity instanceof TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource;
+        String name = ((TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource) startActivity).sharedChannel();
+        String[] parts = name.split("/");
+        name = parts[parts.length - 1];
+        VariableReference listener = cx.getProjectContext().httpListener(name);
+        return new BallerinaModel.Service("", List.of(listener.varName()), Optional.empty(), List.of(resource),
+                List.of(), List.of(), List.of(), List.of());
+    }
+
+    private static BallerinaModel.@NotNull Resource generateResourceFunctionForStartActivity(
+            ProcessContext cx, TibcoModel.Process.ExplicitTransitionGroup group) {
         List<Statement> body = new ArrayList<>();
         Parameter parameter = new Parameter("input", XML);
         XMLTemplate inputXml = new XMLTemplate("""
@@ -85,17 +98,15 @@ public class ProcessConverter {
         VarDeclStatment paramXmlDecl = new VarDeclStatment(new TypeDesc.MapTypeDesc(XML), "paramXML",
                 common.ConversionUtils.exprFrom("{post: %s}".formatted(inputValDecl.varName())));
         body.add(paramXmlDecl);
-        body.add(new Return<>(new FunctionCall(cx.getProcessStartFunction().name(),
-                List.of(new VariableReference(parameter.name()), paramXmlDecl.ref()))));
-        BallerinaModel.Resource resource = new BallerinaModel.Resource("'default[string... path]", "",
+        FunctionCall procFnCall = new FunctionCall(cx.getProcessStartFunction().name(),
+                List.of(new VariableReference(parameter.name()), paramXmlDecl.ref()));
+        VarDeclStatment resultDecl = new VarDeclStatment(XML, "result", procFnCall);
+        body.add(resultDecl);
+        group.returnBindings().ifPresent(binding ->
+                body.add(new VarAssignStatement(resultDecl.ref(), xsltTransform(cx, resultDecl.ref(), binding))));
+        body.add(new Return<>(resultDecl.ref()));
+        return new BallerinaModel.Resource("'default[string... path]", "",
                 List.of(parameter), Optional.of("xml"), body);
-        assert startActivity instanceof TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource;
-        String name = ((TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource) startActivity).sharedChannel();
-        String[] parts = name.split("/");
-        name = parts[parts.length - 1];
-        VariableReference listener = cx.getProjectContext().httpListener(name);
-        return new BallerinaModel.Service("", List.of(listener.varName()), Optional.empty(), List.of(resource),
-                List.of(), List.of(), List.of(), List.of());
     }
 
     public static BallerinaModel.Module convertProcess(TibcoModel.Process process) {
@@ -462,5 +473,12 @@ public class ProcessConverter {
     private static @NotNull FunctionCall activityFunctionCall(Activity activity, VariableReference context,
             AnalysisResult analysisResult) {
         return new FunctionCall(analysisResult.from(activity).functionName(), List.of(context));
+    }
+
+    private static BallerinaModel.Expression xsltTransform(ProcessContext cx, VariableReference inputVariable,
+                                                           Activity.Expression.XSLT xslt) {
+        cx.addLibraryImport(Library.XSLT);
+        return new Check(new FunctionCall(ActivityConverter.XSLTConstants.XSLT_TRANSFORM_FUNCTION,
+                List.of(inputVariable, new XMLTemplate(xslt.expression()), cx.contextVarRef())));
     }
 }

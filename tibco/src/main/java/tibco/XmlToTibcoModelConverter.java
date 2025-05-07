@@ -143,7 +143,7 @@ public final class XmlToTibcoModelConverter {
         Scope scope = null;
         Optional<TibcoModel.ProcessInterface> processInterface = Optional.empty();
         Optional<TibcoModel.ProcessTemplateConfigurations> processTemplateConfigurations = Optional.empty();
-        TibcoModel.Process.ExplicitTransitionGroup transitionGroup = null;
+        TibcoModel.Process.ExplicitTransitionGroup transitionGroup = new TibcoModel.Process.ExplicitTransitionGroup();
         for (Element element : new ElementIterable(root)) {
             String tag = getTagNameWithoutNameSpace(element);
             switch (tag) {
@@ -191,22 +191,29 @@ public final class XmlToTibcoModelConverter {
                     processTemplateConfigurations = Optional.of(parseProcessTemplateConfigurations(element));
                 }
                 case "activity" -> {
-                    assert transitionGroup != null;
                     transitionGroup = transitionGroup.append(parseInlineActivity(cx, element));
                 }
                 case "transition" -> {
-                    assert transitionGroup != null;
                     transitionGroup = transitionGroup.append(parseTransition(cx, element));
                 }
-                case "starter" ->
-                        transitionGroup = new TibcoModel.Process.ExplicitTransitionGroup(parseInlineActivity(cx, element));
+                case "starter" -> transitionGroup = transitionGroup.setStartActivity(parseInlineActivity(cx, element));
+                case "returnBindings" -> {
+                    if (!isEmpty(element)) {
+                        transitionGroup = transitionGroup.setReturnBindings(parseReturnBindings(cx, element));
+                    }
+                }
                 default -> {
                     // ignore
                 }
             }
         }
+        transitionGroup = transitionGroup.resolve();
         return new TibcoModel.Process(name, types, processInfo, processInterface, processTemplateConfigurations,
                 partnerLinks, variables, scope, transitionGroup);
+    }
+
+    private static Flow.Activity.Expression.XSLT parseReturnBindings(ParseContext cx, Element element) {
+        return parseXSLTTag(cx, element);
     }
 
     static InlineActivity parseInlineActivity(ParseContext cx, Element element) {
@@ -238,6 +245,17 @@ public final class XmlToTibcoModelConverter {
 
     private static Flow.Activity.InputBinding.CompleteBinding parseInlineActivityInputBinding(
             ParseContext cx, Element element) {
+        Flow.Activity.Expression.XSLT expression = parseXSLTTag(cx, element);
+        return new Flow.Activity.InputBinding.CompleteBinding(expression);
+    }
+
+    private static boolean isEmpty(Element element) {
+        String content = ElementIterable.of(element).stream().map(ConversionUtils::elementToString).
+                collect(Collectors.joining());
+        return content.isBlank();
+    }
+
+    private static Flow.Activity.Expression.@NotNull XSLT parseXSLTTag(ParseContext cx, Element element) {
         String content = ElementIterable.of(element).stream().map(ConversionUtils::elementToString).
                 collect(Collectors.joining());
         String xslt = """
@@ -249,8 +267,7 @@ public final class XmlToTibcoModelConverter {
                 </xsl:stylesheet>
                 """
                 .formatted(cx.getAnonymousXSLTName(), content);
-        return new Flow.Activity.InputBinding.CompleteBinding(
-                new Flow.Activity.Expression.XSLT(xslt));
+        return new Flow.Activity.Expression.XSLT(xslt);
     }
 
     private static Transition parseTransition(ParseContext cx, Element element) {

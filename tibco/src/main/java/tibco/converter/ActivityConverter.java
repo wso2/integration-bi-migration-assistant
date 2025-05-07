@@ -736,7 +736,7 @@ final class ActivityConverter {
     }
 
     static final class XSLTConstants {
-        private static final String XSLT_TRANSFORM_FUNCTION = "xslt:transform";
+        static final String XSLT_TRANSFORM_FUNCTION = "xslt:transform";
 
         private XSLTConstants() {
 

@@ -20,14 +20,7 @@ package tibco;
 
 import org.w3c.dom.Element;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 public class TibcoModel {
 
@@ -109,27 +102,58 @@ public class TibcoModel {
                           ExplicitTransitionGroup transitionGroup) {
 
         public record ExplicitTransitionGroup(List<InlineActivity> activities, List<Transition> transitions,
-                                       InlineActivity startActivity) {
+                                              InlineActivity startActivity,
+                                              Optional<Scope.Flow.Activity.Expression.XSLT> returnBindings) {
+            ExplicitTransitionGroup() {
+                this(null);
+            }
             ExplicitTransitionGroup(InlineActivity startActivity) {
-                this(List.of(), List.of(), startActivity);
+                this(List.of(), List.of(), startActivity, Optional.empty());
             }
 
             public ExplicitTransitionGroup {
                 activities = Collections.unmodifiableList(activities);
                 transitions = Collections.unmodifiableList(transitions);
-                assert startActivity != null;
             }
 
             ExplicitTransitionGroup append(InlineActivity activity) {
                 List<InlineActivity> newActivities = new ArrayList<>(activities);
                 newActivities.add(activity);
-                return new ExplicitTransitionGroup(newActivities, transitions, startActivity);
+                return new ExplicitTransitionGroup(newActivities, transitions, startActivity, returnBindings);
             }
 
             ExplicitTransitionGroup append(Transition transition) {
                 List<Transition> newTransitions = new ArrayList<>(transitions);
                 newTransitions.add(transition);
-                return new ExplicitTransitionGroup(activities, newTransitions, startActivity);
+                return new ExplicitTransitionGroup(activities, newTransitions, startActivity, returnBindings);
+            }
+
+            ExplicitTransitionGroup setStartActivity(InlineActivity startActivity) {
+                List<InlineActivity> remainingActivities = activities.stream()
+                        .filter(each -> !each.equals(startActivity)).toList();
+                return new ExplicitTransitionGroup(remainingActivities, transitions, startActivity, returnBindings);
+            }
+
+            ExplicitTransitionGroup setReturnBindings(Scope.Flow.Activity.Expression.XSLT expression) {
+                return new ExplicitTransitionGroup(activities, transitions, startActivity, Optional.of(expression));
+            }
+
+            public ExplicitTransitionGroup resolve() {
+                if (startActivity != null) {
+                    return this;
+                }
+                if (activities.isEmpty()) {
+                    return null;
+                }
+                String startActivityName = transitions.stream()
+                        .filter(transition -> transition.from().equalsIgnoreCase("start"))
+                        .findFirst().map(Transition::to).orElseThrow(() ->
+                                new IllegalStateException("failed to find start activity"));
+                InlineActivity startActivity = activities.stream()
+                        .filter(each -> each.name().equals(startActivityName))
+                        .findFirst().orElseThrow(() ->
+                                new IllegalStateException("no such activity" + startActivityName));
+                return this.setStartActivity(startActivity);
             }
 
             public record Transition(String from, String to) {

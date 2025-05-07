@@ -8,7 +8,8 @@ service on GeneralConnection_sharedhttp {
     </item>
 </root>`;
         map<xml> paramXML = {post: inputVal};
-        return start_Processes_MainProcessStarter_process(input, paramXML);
+        xml result = start_Processes_MainProcessStarter_process(input, paramXML);
+        return result;
     }
 }
 
