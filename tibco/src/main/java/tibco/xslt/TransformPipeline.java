@@ -48,7 +48,7 @@ public class TransformPipeline {
         TransformContext cx = new TransformContext(acx, xsltContent);
         AnalysisResult analysisResult = cx.getAnalysisResult();
         StringBuilder sb = new StringBuilder();
-        Collection<ChunkData> paths = analysisResult.parse().stream()
+        Collection<ChunkData> paths = analysisResult.paths().stream()
                 .map(path -> new ChunkData(path, transform::transformPath))
                 .toList();
         Collection<ChunkData> parameterUsages = analysisResult.parameterUsage().stream()

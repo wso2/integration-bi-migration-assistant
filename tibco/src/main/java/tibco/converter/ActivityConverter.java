@@ -51,6 +51,7 @@ import tibco.TibcoModel.Scope.Flow.Activity.Reply;
 import tibco.TibcoModel.Scope.Flow.Activity.Throw;
 import tibco.TibcoModel.Scope.Flow.Activity.UnhandledActivity;
 import tibco.analyzer.AnalysisResult;
+import tibco.xslt.AddMissingParameters;
 import tibco.xslt.IgnoreRootWrapper;
 import tibco.xslt.ReplaceDotAccessWithXPath;
 import tibco.xslt.ReplaceVariableReference;
@@ -90,6 +91,7 @@ final class ActivityConverter {
 
     private static TransformPipeline createXsltTransformer() {
         TransformPipeline xsltTransformer = new TransformPipeline();
+        xsltTransformer.append(new AddMissingParameters());
         xsltTransformer.append(new ReplaceVariableReference());
         xsltTransformer.append(new ReplaceDotAccessWithXPath());
         xsltTransformer.append(new IgnoreRootWrapper());

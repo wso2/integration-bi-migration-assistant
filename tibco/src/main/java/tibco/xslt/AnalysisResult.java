@@ -26,11 +26,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
-record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> parse, Collection<Chunk> parameterUsage) {
+record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Collection<Chunk> parameterUsage) {
 
     AnalysisResult {
         parameters = Collections.unmodifiableCollection(parameters);
-        parse = Collections.unmodifiableCollection(parse);
+        paths = Collections.unmodifiableCollection(paths);
         parameterUsage = Collections.unmodifiableCollection(parameterUsage);
     }
 

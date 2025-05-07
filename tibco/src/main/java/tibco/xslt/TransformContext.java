@@ -44,4 +44,8 @@ public class TransformContext {
     public String getConfigVarName(String propertyName) {
         return activityContext.getConfigVarName(propertyName);
     }
+
+    public Stream<String> parameterUsages() {
+        return analysisResult.parameterUsage().stream().map(AnalysisResult.Chunk::value);
+    }
 }
