@@ -196,7 +196,8 @@ public class TibcoModel {
                                 new LookUpData("NullActivity", NULL),
                                 new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
                                 new LookUpData("WriteToLogActivity", WRITE_LOG)
-                        ).filter(each -> type.endsWith(each.suffix)).findFirst().map(LookUpData::activityType).orElse(UNHANDLED);
+                                ).filter(each -> type.endsWith(each.suffix)).findFirst()
+                                .map(LookUpData::activityType).orElse(UNHANDLED);
                     }
                 }
 
