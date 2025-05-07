@@ -1,6 +1,9 @@
+import ballerina/http;
 import ballerina/xslt;
 
-service on GeneralConnection_sharedhttp {
+listener http:Listener proj_annon_var0 = GeneralConnection_sharedhttp;
+
+service on proj_annon_var0 {
     resource function 'default [string... path](xml input) returns xml {
         xml inputVal = xml `<root>
     <item>

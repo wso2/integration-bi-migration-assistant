@@ -71,6 +71,7 @@ public class ProjectContext {
     private String logFunction = null;
     private int nextPort = 8080;
     private int typeCount = 0;
+    private int annonVarCount = 0;
 
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
     private static final Logger logger = ProjectConverter.LOGGER;
@@ -377,6 +378,10 @@ public class ProjectContext {
                 .findAny()
                 .orElseThrow(() -> new IndexOutOfBoundsException("failed to find process" + processName));
         return process;
+    }
+
+    public String getAnonName() {
+        return "proj_annon_var" + annonVarCount++;
     }
 
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {

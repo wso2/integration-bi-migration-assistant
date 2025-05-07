@@ -79,7 +79,13 @@ public class ProcessConverter {
         String[] parts = name.split("/");
         name = parts[parts.length - 1];
         VariableReference listener = cx.getProjectContext().httpListener(name);
-        return new BallerinaModel.Service("", List.of(listener.varName()), Optional.empty(), List.of(resource),
+        // Workaround for https://github.com/ballerina-platform/ballerina-library/issues/7893
+        String localListenerName = cx.getAnonName();
+        BallerinaModel.ModuleVar localRef = new BallerinaModel.ModuleVar(localListenerName, "listener http:Listener",
+                Optional.of(listener), false, false);
+        cx.addLibraryImport(Library.HTTP);
+        cx.declareModuleVar(localListenerName, localRef);
+        return new BallerinaModel.Service("", List.of(localListenerName), Optional.empty(), List.of(resource),
                 List.of(), List.of(), List.of(), List.of());
     }
 
