@@ -74,7 +74,8 @@ public class ProcessConverter {
         BallerinaModel.Resource resource = generateResourceFunctionForStartActivity(cx, group);
         TibcoModel.Process.ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity();
         assert startActivity instanceof TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource;
-        String name = ((TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource) startActivity).sharedChannel();
+        String name = ((TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource) startActivity).
+                sharedChannel();
         String[] parts = name.split("/");
         name = parts[parts.length - 1];
         VariableReference listener = cx.getProjectContext().httpListener(name);
@@ -330,7 +331,8 @@ public class ProcessConverter {
         return generateScopeFunctionInner(controlFlowFunctions);
     }
 
-    private static BallerinaModel.@NotNull Function generateScopeFunctionInner(AnalysisResult.ControlFlowFunctions controlFlowFunctions) {
+    private static BallerinaModel.@NotNull Function generateScopeFunctionInner(
+            AnalysisResult.ControlFlowFunctions controlFlowFunctions) {
         String name = controlFlowFunctions.scopeFn();
         List<Statement> body = new ArrayList<>();
         Parameter parameter = new Parameter("cx", new TypeDesc.MapTypeDesc(XML));
@@ -368,7 +370,8 @@ public class ProcessConverter {
         return generateActivityFlowFunctionInner(cx, activities, activityRunnerFunction);
     }
 
-    private static BallerinaModel.@NotNull Function generateActivityFlowFunctionInner(ProcessContext cx, List<Activity> activities, String activityRunnerFunction) {
+    private static BallerinaModel.@NotNull Function generateActivityFlowFunctionInner(
+            ProcessContext cx, List<Activity> activities, String activityRunnerFunction) {
         List<Statement> body = new ArrayList<>();
         VariableReference result = generateActivityFlowFunctionInner(cx, activities,
                 Check::new, body, new VariableReference("input"));

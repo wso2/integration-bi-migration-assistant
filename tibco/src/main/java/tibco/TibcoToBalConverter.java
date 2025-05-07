@@ -28,7 +28,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -71,7 +76,8 @@ public class TibcoToBalConverter {
             TibcoToBalConverter::getBwpFiles, XmlToTibcoModelConverter::parseProcess);
     private static final ParsingUnit<TibcoModel.Type.Schema> XSD_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(
             TibcoToBalConverter::getXSDFiles, XmlToTibcoModelConverter::parseSchema);
-    private static final ParsingUnit<TibcoModel.Resource.JDBCResource> JDBC_RESOURCE_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(
+    private static final ParsingUnit<TibcoModel.Resource.JDBCResource> JDBC_RESOURCE_PARSING_UNIT =
+            new ParsingUnit.SimpleParsingUnit<>(
             TibcoToBalConverter::getJDBCResourceFiles, XmlToTibcoModelConverter::parseJDBCResource);
     private static final ParsingUnit<TibcoModel.Resource.HTTPConnectionResource> HTTP_CONN_RESOURCE_PARSING_UNIT =
             new ParsingUnit.SimpleParsingUnit<>(
@@ -85,7 +91,8 @@ public class TibcoToBalConverter {
     static final class HTTPSharedResourceParsingUnit implements ParsingUnit<TibcoModel.Resource.HTTPSharedResource> {
 
         @Override
-        public Set<TibcoModel.Resource.HTTPSharedResource> parse(String projectPath) throws IOException, ParserConfigurationException, SAXException {
+        public Set<TibcoModel.Resource.HTTPSharedResource> parse(String projectPath) throws
+                IOException, ParserConfigurationException, SAXException {
             Set<TibcoModel.Resource.HTTPSharedResource> result = new LinkedHashSet<>();
             for (String file : getHTTPSharedResourceFiles(projectPath)) {
                 Element element = parseXmlFile(file);

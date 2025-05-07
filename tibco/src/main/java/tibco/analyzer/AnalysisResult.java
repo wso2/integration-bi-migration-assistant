@@ -185,7 +185,8 @@ public final class AnalysisResult {
         return sortedActivitiesInner(dependencyGraph);
     }
 
-    private static @NotNull Stream<TibcoModel.Scope.Flow.Activity> sortedActivitiesInner(Graph<GraphNode> dependencyGraph) {
+    private static @NotNull Stream<TibcoModel.Scope.Flow.Activity> sortedActivitiesInner(
+            Graph<GraphNode> dependencyGraph) {
         return dependencyGraph.topologicalSort().stream()
                 .filter(node -> node.kind == GraphNode.Kind.ACTIVITY ||
                         node.kind == GraphNode.Kind.INLINE_ACTIVITY)

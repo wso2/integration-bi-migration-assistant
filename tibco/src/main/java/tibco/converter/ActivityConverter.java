@@ -138,7 +138,8 @@ final class ActivityConverter {
         };
     }
 
-    private static @NotNull List<Statement> convertInlineActivity(ActivityContext cx, TibcoModel.Process.ExplicitTransitionGroup.InlineActivity inlineActivity) {
+    private static @NotNull List<Statement> convertInlineActivity(
+            ActivityContext cx, TibcoModel.Process.ExplicitTransitionGroup.InlineActivity inlineActivity) {
         List<Statement> body = new ArrayList<>();
         VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
         body.add(inputDecl);

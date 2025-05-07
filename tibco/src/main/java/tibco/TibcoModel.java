@@ -20,7 +20,14 @@ package tibco;
 
 import org.w3c.dom.Element;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public class TibcoModel {
 
@@ -98,7 +105,7 @@ public class TibcoModel {
                           Optional<ProcessInterface> processInterface,
                           Optional<ProcessTemplateConfigurations> processTemplateConfigurations,
                           Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope,
-                          // FIXME: this should be an optional
+                          // TODO: this should be an optional
                           ExplicitTransitionGroup transitionGroup) {
 
         public record ExplicitTransitionGroup(List<InlineActivity> activities, List<Transition> transitions,
@@ -608,12 +615,14 @@ public class TibcoModel {
 
                         @Override
                         public boolean equals(Object o) {
-                            if (this == o)
+                            if (this == o) {
                                 return true;
-                            if (!(o instanceof XSLT xslt))
+                            }
+                            if (!(o instanceof XSLT(String expression1))) {
                                 return false;
+                            }
                             String expr1 = expression.replaceAll("\\s+", "");
-                            String expr2 = xslt.expression.replaceAll("\\s+", "");
+                            String expr2 = expression1.replaceAll("\\s+", "");
                             return expr1.equals(expr2);
                         }
 

@@ -37,7 +37,8 @@ public class ProjectConverter {
             TibcoToBalConverter.ProjectConversionContext conversionContext, Collection<TibcoModel.Process> processes,
             Collection<TibcoModel.Type.Schema> types, Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
             Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
-            Set<TibcoModel.Resource.HTTPClientResource> httpClientResources, Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources) {
+            Set<TibcoModel.Resource.HTTPClientResource> httpClientResources,
+            Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources) {
         ProjectContext cx = new ProjectContext(conversionContext);
         convertResources(cx, jdbcResources, httpConnectionResources, httpClientResources, httpSharedResources);
 
@@ -57,7 +58,8 @@ public class ProjectConverter {
                                     ProcessConverter.convertStartActivityService(cx.getProcessContext(process),
                                             process.transitionGroup());
                             return new ProcessResult(process, new ProcessConverter.TypeConversionResult(
-                                    Stream.concat(processResult.result.service().stream(), Stream.of(startService)).toList()));
+                                    Stream.concat(processResult.result.service().stream(), Stream.of(startService))
+                                            .toList()));
                         })
                         .toList();
         List<TibcoModel.Type.Schema> schemas = new ArrayList<>(types);

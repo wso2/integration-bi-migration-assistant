@@ -93,7 +93,8 @@ public class ModelAnalyser {
         }
     }
 
-    private static void analyseExplicitTransitionGroup(ProcessAnalysisContext cx, ExplicitTransitionGroup explicitTransitionGroup) {
+    private static void analyseExplicitTransitionGroup(
+            ProcessAnalysisContext cx, ExplicitTransitionGroup explicitTransitionGroup) {
         cx.allocateControlFlowFunctionsIfNeeded(explicitTransitionGroup);
         Graph<GraphNode> graph = cx.getExplicitTransitionGroupGraph(explicitTransitionGroup);
         record ActivityGraphData(String name, GraphNode node) {
