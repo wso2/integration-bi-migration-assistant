@@ -79,6 +79,28 @@
                     <xsl:value-of select="$HTTP-Receiver/ProcessStarterOutput/QueryString"/>
                 </options>
             </InvokeProcessInput>
+    <pd:activity name="Write File">
+        <pd:type>com.tibco.plugin.file.FileWriteActivity</pd:type>
+        <pd:resourceType>ae.activities.FileWriteActivity</pd:resourceType>
+        <pd:x>688</pd:x>
+        <pd:y>68</pd:y>
+        <config>
+            <encoding>text</encoding>
+            <compressFile>None</compressFile>
+            <append>true</append>
+        </config>
+        <pd:inputBindings>
+            <ns0:WriteActivityInputTextClass xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/file">
+                <fileName>
+                    <xsl:value-of select="&quot;output.txt&quot;"/>
+                </fileName>
+                <textContent>
+                    <xsl:value-of select="$Mapper"/>
+                </textContent>
+                <addLineSeparator>
+                    <xsl:value-of select="true()"/>
+                </addLineSeparator>
+            </ns0:WriteActivityInputTextClass>
         </pd:inputBindings>
     </pd:activity>
     <pd:activity name="Log">
@@ -127,6 +149,13 @@
     </pd:transition>
     <pd:transition>
         <pd:from>InvokeProcess</pd:from>
+        <pd:to>Write File</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Write File</pd:from>
         <pd:to>End</pd:to>
         <pd:lineType>Default</pd:lineType>
         <pd:lineColor>-16777216</pd:lineColor>

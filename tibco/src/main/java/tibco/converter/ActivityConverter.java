@@ -36,6 +36,7 @@ import org.w3c.dom.Element;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.AssignActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.CallProcess;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.FileWrite;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HTTPResponse;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.WriteLog;
@@ -138,7 +139,7 @@ final class ActivityConverter {
             case Activity.Foreach foreach -> convertForeach(cx, foreach);
             case Activity.NestedScope nestedScope -> convertNestedScope(cx, nestedScope);
             case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity inlineActivity ->
-                    convertInlineActivity(cx, inlineActivity);
+                convertInlineActivity(cx, inlineActivity);
         };
     }
 
@@ -158,17 +159,18 @@ final class ActivityConverter {
         }
         ActivityExtensionConfigConversion conversion = switch (inlineActivity) {
             case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource ignored ->
-                    emptyExtensionConversion(result);
+                emptyExtensionConversion(result);
             case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.MapperActivity ignored ->
-                    emptyExtensionConversion(result);
+                emptyExtensionConversion(result);
             case UnhandledInlineActivity unhandledInlineActivity ->
-                    convertUnhandledActivity(cx, result, unhandledInlineActivity);
+                convertUnhandledActivity(cx, result, unhandledInlineActivity);
             case AssignActivity assignActivity -> convertAssignActivity(cx, result, assignActivity);
             case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.NullActivity ignored ->
-                    emptyExtensionConversion(result);
+                emptyExtensionConversion(result);
             case HTTPResponse httpResponse -> convertHttpResponse(cx, result, httpResponse);
             case WriteLog writeLog -> convertWriteLogActivity(cx, result, writeLog);
             case CallProcess callProcess -> convertCallProcess(cx, result, callProcess);
+            case FileWrite fileWrite -> convertFileWrite(cx, result, fileWrite);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
@@ -183,6 +185,22 @@ final class ActivityConverter {
                 new Check(new RemoteMethodCallAction(client, "post",
                         List.of(new StringConstant(""), result))));
         return new ActivityExtensionConfigConversion(returnVal.ref(), List.of(returnVal));
+    }
+
+    private static ActivityExtensionConfigConversion convertFileWrite(
+            ActivityContext cx, VariableReference result, FileWrite fileWrite) {
+        assert fileWrite.encoding().equals("text");
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment fileName = new VarDeclStatment(STRING, "fileName",
+                exprFrom("(%s/**/<fileName>/*).toString()".formatted(result.varName())));
+        body.add(fileName);
+        VarDeclStatment textContent = new VarDeclStatment(STRING, "content",
+                exprFrom("(%s/**/<textContent>/*).toString()".formatted(result.varName())));
+        body.add(textContent);
+        StringConstant mode = fileWrite.append() ? new StringConstant("APPEND") : new StringConstant("OVERWRITE");
+        body.add(new CallStatement(new Check(new FunctionCall(IOConstants.FILE_WRITE_FUNCTION,
+                List.of(fileName.ref(), textContent.ref(), mode)))));
+        return new ActivityExtensionConfigConversion(result, body);
     }
 
     private static ActivityExtensionConfigConversion convertWriteLogActivity(
@@ -395,8 +413,8 @@ final class ActivityConverter {
             ActivityContext cx, ActivityExtension.Config.AccumulateEnd accumulateEnd,
             String resultName) {
         AnalysisResult ar = cx.processContext.analysisResult;
-        Activity source = ar.findActivity(accumulateEnd.activityName()).orElseThrow(() ->
-                new IllegalStateException("Cannot find activity: " + accumulateEnd.activityName()));
+        Activity source = ar.findActivity(accumulateEnd.activityName())
+                .orElseThrow(() -> new IllegalStateException("Cannot find activity: " + accumulateEnd.activityName()));
         if (!(source instanceof Activity.ActivityWithOutput activityWithOutput &&
                 activityWithOutput.outVariableName().isPresent())) {
             throw new IllegalStateException(
@@ -803,4 +821,13 @@ final class ActivityConverter {
 
         }
     }
+
+    static final class IOConstants {
+        static final String FILE_WRITE_FUNCTION = "io:fileWriteString";
+
+        private IOConstants() {
+
+        }
+    }
+
 }
