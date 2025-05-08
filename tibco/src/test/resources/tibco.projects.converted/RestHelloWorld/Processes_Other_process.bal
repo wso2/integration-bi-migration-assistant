@@ -19,7 +19,7 @@ service on proj_annon_var2 {
     }
 }
 
-function HTTP_Receiver_9(map<xml> context) returns xml|error {
+function HTTP_Receiver_11(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
     addToContext(context, "HTTP Receiver", var1);
@@ -70,7 +70,7 @@ function InnerLogIndex(map<xml> context) returns xml|error {
     return var2;
 }
 
-function Log_11(map<xml> context) returns xml|error {
+function Log_13(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform1" match="/">
@@ -110,7 +110,7 @@ function Loop(map<xml> context) returns xml|error {
     return var1;
 }
 
-function Mapper_10(map<xml> context) returns xml|error {
+function Mapper_12(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="runAllTests"/>     <xsl:template name="Transform0" match="/">
@@ -209,9 +209,9 @@ function SOAPSendReply(map<xml> context) returns xml|error {
 }
 
 function scope0_1ActivityRunner(map<xml> cx) returns xml|error {
-    xml result0 = check HTTP_Receiver_9(cx);
-    xml result1 = check Mapper_10(cx);
-    xml result2 = check Log_11(cx);
+    xml result0 = check HTTP_Receiver_11(cx);
+    xml result1 = check Mapper_12(cx);
+    xml result2 = check Log_13(cx);
     xml result3 = check SOAPSendReply(cx);
     return result3;
 }

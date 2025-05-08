@@ -20,6 +20,36 @@ service on proj_annon_var0 {
     }
 }
 
+function Catch(map<xml> context) returns xml|error {
+    xml var0 = xml `<root></root>`;
+    xml var1 = xml `<root>${var0}</root>`;
+    addToContext(context, "Catch", var1);
+    return var1;
+}
+
+function ErrorLog(map<xml> context) returns xml|error {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
+     <xsl:template name="Transform8" match="/">
+        <ActivityInput>
+                    
+    <message>
+                            
+        <xsl:value-of select="Error" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                        
+    </message>
+                
+</ActivityInput>
+
+    </xsl:template>
+</xsl:stylesheet>`, context);
+    xml var2 = var1/**/<message>/*;
+    log:printInfo(var2.toString());
+    addToContext(context, "ErrorLog", var2);
+    return var2;
+}
+
 function HTTP_Receiver(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
@@ -221,8 +251,10 @@ function scope0ActivityRunner(map<xml> cx) returns xml|error {
     return result4;
 }
 
-function scope0FaultHandler(error err, map<xml> cx) returns xml {
-    panic err;
+function scope0FaultHandler(map<xml> cx) returns xml {
+    xml result0 = checkpanic Catch(cx);
+    xml result1 = checkpanic ErrorLog(cx);
+    return result1;
 }
 
 function scope0ScopeFn(map<xml> cx) returns xml {

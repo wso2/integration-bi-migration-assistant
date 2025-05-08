@@ -22,6 +22,7 @@ import common.BallerinaModel;
 import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup;
+import tibco.converter.ConversionUtils;
 
 import java.util.Collection;
 import java.util.List;
@@ -185,9 +186,34 @@ public final class AnalysisResult {
         return sortedActivitiesInner(dependencyGraph);
     }
 
+    public Stream<TibcoModel.Scope.Flow.Activity> sortedErrorHandlerActivities(ExplicitTransitionGroup group) {
+        Graph<GraphNode> dependencyGraph = explicitTransitionGroupDependencies.get(group);
+        if (dependencyGraph == null) {
+            throw new IllegalArgumentException("No dependency graph found for group: " + group);
+        }
+
+        List<GraphNode> errorRoots = group.activities().stream()
+                .filter(each -> each instanceof ExplicitTransitionGroup.InlineActivity.ErrorHandlerInlineActivity)
+                .map(each ->
+                        new GraphNode(ConversionUtils.sanitizes(each.name()), GraphNode.Kind.INLINE_ACTIVITY, each))
+                .toList();
+        if (errorRoots.isEmpty()) {
+            return Stream.empty();
+        }
+        return sortedActivitiesInner(dependencyGraph, errorRoots);
+    }
+
     private static @NotNull Stream<TibcoModel.Scope.Flow.Activity> sortedActivitiesInner(
             Graph<GraphNode> dependencyGraph) {
         return dependencyGraph.topologicalSort().stream()
+                .filter(node -> node.kind == GraphNode.Kind.ACTIVITY ||
+                        node.kind == GraphNode.Kind.INLINE_ACTIVITY)
+                .map(node -> (TibcoModel.Scope.Flow.Activity) node.data);
+    }
+
+    private static @NotNull Stream<TibcoModel.Scope.Flow.Activity> sortedActivitiesInner(
+            Graph<GraphNode> dependencyGraph, Collection<GraphNode> roots) {
+        return dependencyGraph.topologicalSortWithRoots(roots).stream()
                 .filter(node -> node.kind == GraphNode.Kind.ACTIVITY ||
                         node.kind == GraphNode.Kind.INLINE_ACTIVITY)
                 .map(node -> (TibcoModel.Scope.Flow.Activity) node.data);

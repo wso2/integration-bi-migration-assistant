@@ -227,6 +227,7 @@ public class TibcoModel {
                     SOAP_SEND_REPLY,
                     LOOP_GROUP,
                     REST,
+                    CATCH,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
@@ -234,15 +235,16 @@ public class TibcoModel {
 
                         }
                         return Stream.of(
-                                new LookUpData("MapperActivity", MAPPER),
-                                new LookUpData("HTTPEventSource", HTTP_EVENT_SOURCE),
-                                new LookUpData("AssignActivity", ASSIGN),
-                                new LookUpData("NullActivity", NULL),
-                                new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
+                                        new LookUpData("MapperActivity", MAPPER),
+                                        new LookUpData("HTTPEventSource", HTTP_EVENT_SOURCE),
+                                        new LookUpData("AssignActivity", ASSIGN),
+                                        new LookUpData("NullActivity", NULL),
+                                        new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
                                 new LookUpData("XMLRendererActivity", XML_RENDER_ACTIVITY),
                                 new LookUpData("XMLParseActivity", XML_PARSE_ACTIVITY),
                                 new LookUpData("LoopGroup", LOOP_GROUP),
-                                new LookUpData("WriteToLogActivity", WRITE_LOG),
+                                        new LookUpData("WriteToLogActivity", WRITE_LOG),
+                                        new LookUpData("CatchActivity", CATCH),
                                 new LookUpData("FileReadActivity", FILE_READ),
                                 new LookUpData("FileWriteActivity", FILE_WRITE),
                                 new LookUpData("RestActivity", REST),
@@ -407,6 +409,24 @@ public class TibcoModel {
                     @Override
                     public InlineActivityType type() {
                         return InlineActivityType.SOAP_SEND_RECEIVE;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
+                    }
+                }
+
+                sealed interface ErrorHandlerInlineActivity {
+
+                }
+
+                record Catch(Element element, String name,
+                             InputBinding inputBinding) implements InlineActivity, ErrorHandlerInlineActivity {
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.CATCH;
                     }
 
                     @Override
