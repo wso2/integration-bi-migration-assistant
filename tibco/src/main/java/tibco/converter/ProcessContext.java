@@ -41,6 +41,7 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static common.BallerinaModel.TypeDesc.BuiltinType.UnionTypeDesc;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
+import static tibco.converter.ConversionUtils.baseName;
 
 public class ProcessContext implements ContextWithFile {
 
@@ -123,6 +124,19 @@ public class ProcessContext implements ContextWithFile {
 
     void declareModuleVar(String name, BallerinaModel.ModuleVar var) {
         constants.put(name, var);
+    }
+
+    // TODO: properly handle the on demand part
+    void addOnDemandModuleVar(String name, BallerinaModel.ModuleVar var) {
+        constants.put(name, var);
+    }
+
+    void registerProcessClient(String name) {
+        projectContext.registerProcessClient(baseName(process.name()).toLowerCase(), name);
+    }
+
+    public Expression.VariableReference getProcessClient(String processName) {
+        return projectContext.getProcessClient(baseName(processName).toLowerCase());
     }
 
     @Override

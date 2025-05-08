@@ -39,6 +39,7 @@ import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc;
 import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource;
 import tibco.TibcoModel.Scope.Flow.Activity;
 import tibco.TibcoModel.Scope.Flow.Activity.Expression.XPath;
 import tibco.analyzer.AnalysisResult;
@@ -62,6 +63,7 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.UnionTypeDesc;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
 import static common.ConversionUtils.stmtFrom;
+import static tibco.converter.ConversionUtils.baseName;
 
 public class ProcessConverter {
 
@@ -73,11 +75,8 @@ public class ProcessConverter {
             TibcoModel.Process.ExplicitTransitionGroup group) {
         BallerinaModel.Resource resource = generateResourceFunctionForStartActivity(cx, group);
         TibcoModel.Process.ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity();
-        assert startActivity instanceof TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource;
-        String name = ((TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource) startActivity).
-                sharedChannel();
-        String[] parts = name.split("/");
-        name = parts[parts.length - 1];
+        assert startActivity instanceof HttpEventSource;
+        String name = baseName(((HttpEventSource) startActivity).sharedChannel());
         VariableReference listener = cx.getProjectContext().httpListener(name);
         // Workaround for https://github.com/ballerina-platform/ballerina-library/issues/7893
         String localListenerName = cx.getAnonName();
@@ -87,6 +86,26 @@ public class ProcessConverter {
         cx.declareModuleVar(localListenerName, localRef);
         return new BallerinaModel.Service("", List.of(localListenerName), Optional.empty(), List.of(resource),
                 List.of(), List.of(), List.of(), List.of());
+    }
+
+    static void addProcessClient(ProcessContext cx, TibcoModel.Process.ExplicitTransitionGroup group,
+                                 Collection<TibcoModel.Resource.HTTPSharedResource> httpSharedResources) {
+        TibcoModel.Process.ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity();
+        if (!(startActivity instanceof HttpEventSource httpEventSource)) {
+            return;
+        }
+        String name = baseName(httpEventSource.sharedChannel());
+        TibcoModel.Resource.HTTPSharedResource http = httpSharedResources.stream()
+                .filter(each -> each.name().equals(name))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Failed to find http source for " + name));
+        String path = http.host() + ":" + http.port();
+        cx.addLibraryImport(Library.HTTP);
+        BallerinaModel.ModuleVar moduleVar = new BallerinaModel.ModuleVar(cx.getAnonName(), "http:Client",
+                Optional.of(new CheckPanic(common.ConversionUtils.exprFrom("new (\"%s\")".formatted(path)))),
+                false, false);
+        cx.addOnDemandModuleVar(moduleVar.name(), moduleVar);
+        cx.registerProcessClient(moduleVar.name());
     }
 
     private static BallerinaModel.@NotNull Resource generateResourceFunctionForStartActivity(

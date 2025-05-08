@@ -132,4 +132,8 @@ public class ActivityContext {
     String getRenderJsonAsXMLFunction(String type) {
         return processContext.getRenderJsonAsXMLFunction(type);
     }
+
+    BallerinaModel.Expression.VariableReference getProcessClient(String processName) {
+        return processContext.getProcessClient(processName);
+    }
 }

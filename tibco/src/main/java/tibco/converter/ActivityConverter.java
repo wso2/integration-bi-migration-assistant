@@ -35,6 +35,7 @@ import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.AssignActivity;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.CallProcess;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HTTPResponse;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.WriteLog;
@@ -167,14 +168,21 @@ final class ActivityConverter {
                     emptyExtensionConversion(result);
             case HTTPResponse httpResponse -> convertHttpResponse(cx, result, httpResponse);
             case WriteLog writeLog -> convertWriteLogActivity(cx, result, writeLog);
-            // FIXME:
-            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.CallProcess callProcess ->
-                    emptyExtensionConversion(result);
+            case CallProcess callProcess -> convertCallProcess(cx, result, callProcess);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
         body.add(new Return<>(conversion.result()));
         return body;
+    }
+
+    private static ActivityExtensionConfigConversion convertCallProcess(
+            ActivityContext cx, VariableReference result, CallProcess callProcess) {
+        VariableReference client = cx.getProcessClient(callProcess.processName());
+        VarDeclStatment returnVal = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(new RemoteMethodCallAction(client, "post",
+                        List.of(new StringConstant(""), result))));
+        return new ActivityExtensionConfigConversion(returnVal.ref(), List.of(returnVal));
     }
 
     private static ActivityExtensionConfigConversion convertWriteLogActivity(
