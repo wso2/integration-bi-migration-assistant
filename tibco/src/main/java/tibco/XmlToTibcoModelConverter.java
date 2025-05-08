@@ -259,8 +259,7 @@ public final class XmlToTibcoModelConverter {
         return new InlineActivity.FileRead(element, name, inputBinding, encoding);
     }
 
-    private static XMLParseActivity parseXmlParseActivity(Element element, String name,
-            Flow.Activity.InputBinding inputBinding) {
+    private static XMLParseActivity parseXmlParseActivity(Element element, String name, Flow.Activity.InputBinding inputBinding) {
         Element config = getFirstChildWithTag(element, "config");
         String inputStyle = getFirstChildWithTag(config, "inputStyle").getTextContent();
         if (!inputStyle.equalsIgnoreCase("text")) {
@@ -269,15 +268,14 @@ public final class XmlToTibcoModelConverter {
         return new XMLParseActivity(element, name, inputBinding);
     }
 
-    private static XMLRenderActivity parseXmlRenderActivity(Element element, String name,
-            Flow.Activity.InputBinding inputBinding) {
+    private static XMLRenderActivity parseXmlRenderActivity(Element element, String name, Flow.Activity.InputBinding inputBinding) {
         // TODO: extract this to a method
         Element config = getFirstChildWithTag(element, "config");
-        String encoding = getFirstChildWithTag(config, "encoding").getTextContent();
-        if (!encoding.equals("text")) {
-            throw new ParserException("Unsupported encoding" + encoding, element);
+        String renderAsText = getFirstChildWithTag(config, "renderAsText").getTextContent();
+        if (!renderAsText.equalsIgnoreCase("text")) {
+            throw new ParserException("Unsupported renderAsText value: " + renderAsText, element);
         }
-        return new InlineActivity.FileRead(element, name, inputBinding, encoding);
+        return new XMLRenderActivity(element, name, inputBinding);
     }
 
     private static InlineActivity.FileWrite parseFileWrite(

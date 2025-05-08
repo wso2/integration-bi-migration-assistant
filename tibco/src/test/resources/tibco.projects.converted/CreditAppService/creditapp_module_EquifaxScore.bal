@@ -64,7 +64,8 @@ function activityExtension_6(map<xml> context) returns xml|error {
         </tns3:SuccessSchema>
     </xsl:template>
 </xsl:stylesheet>`, context);
-    return var1;
+    xml var2 = xml `<root>${var1}</root>`;
+    return var2;
 }
 
 function invoke(map<xml> context) returns xml|error {

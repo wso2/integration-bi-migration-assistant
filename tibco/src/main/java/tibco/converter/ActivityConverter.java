@@ -162,14 +162,14 @@ final class ActivityConverter {
         }
         ActivityExtensionConfigConversion conversion = switch (inlineActivity) {
             case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource ignored ->
-                emptyExtensionConversion(result);
+                emptyExtensionConversion(cx, result);
             case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.MapperActivity ignored ->
-                emptyExtensionConversion(result);
+                emptyExtensionConversion(cx, result);
             case UnhandledInlineActivity unhandledInlineActivity ->
                 convertUnhandledActivity(cx, result, unhandledInlineActivity);
             case AssignActivity assignActivity -> convertAssignActivity(cx, result, assignActivity);
             case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.NullActivity ignored ->
-                emptyExtensionConversion(result);
+                emptyExtensionConversion(cx, result);
             case HTTPResponse httpResponse -> convertHttpResponse(cx, result, httpResponse);
             case WriteLog writeLog -> convertWriteLogActivity(cx, result, writeLog);
             case CallProcess callProcess -> convertCallProcess(cx, result, callProcess);
@@ -447,17 +447,17 @@ final class ActivityConverter {
 
         ActivityExtension.Config config = activityExtension.config();
         ActivityExtensionConfigConversion conversion = switch (config) {
-            case ActivityExtension.Config.End ignored -> emptyExtensionConversion(result);
+            case ActivityExtension.Config.End ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.HTTPSend httpSend -> createHttpSend(cx, result, httpSend);
             case ActivityExtension.Config.JsonOperation jsonOperation -> createJsonOperation(cx, result, jsonOperation,
                     activityExtension.outputVariable().orElseThrow(
                             () -> new IllegalStateException("json operation should have output variable")));
             case ActivityExtension.Config.SQL sql -> createSQLOperation(cx, result, sql);
-            case ActivityExtension.Config.SendHTTPResponse ignored -> emptyExtensionConversion(result);
+            case ActivityExtension.Config.SendHTTPResponse ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.FileWrite fileWrite -> createFileWriteOperation(cx, result, fileWrite);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
-            case ActivityExtension.Config.RenderXML ignored -> emptyExtensionConversion(result);
-            case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(result);
+            case ActivityExtension.Config.RenderXML ignored -> emptyExtensionConversion(cx, result);
+            case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.AccumulateEnd accumulateEnd -> createAccumulateEnd(cx, accumulateEnd,
                     activityExtension.outVariableName().orElseThrow(
                             () -> new IllegalStateException("accumulate end should have output variable")));
@@ -527,8 +527,11 @@ final class ActivityConverter {
         return new ActivityExtensionConfigConversion(jsonResult.ref(), List.of(jsonResult));
     }
 
-    private static @NotNull ActivityExtensionConfigConversion emptyExtensionConversion(VariableReference result) {
-        return new ActivityExtensionConfigConversion(result, List.of());
+    private static @NotNull ActivityExtensionConfigConversion emptyExtensionConversion(ActivityContext cx,
+            VariableReference result) {
+        VarDeclStatment wrapped = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("<root>${%s}</root>".formatted(result.varName())));
+        return new ActivityExtensionConfigConversion(wrapped.ref(), List.of(wrapped));
     }
 
     private static ActivityExtensionConfigConversion createLogOperation(ActivityContext cx, VariableReference result,
