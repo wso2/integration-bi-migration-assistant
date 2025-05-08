@@ -190,6 +190,7 @@ public class TibcoModel {
                     FILE_READ,
                     XML_RENDER_ACTIVITY,
                     XML_PARSE_ACTIVITY,
+                    SOAP_SEND_RECEIVE,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
@@ -207,7 +208,9 @@ public class TibcoModel {
                                         new LookUpData("WriteToLogActivity", WRITE_LOG),
                                         new LookUpData("FileReadActivity", FILE_READ),
                                         new LookUpData("FileWriteActivity", FILE_WRITE),
-                                        new LookUpData("CallProcessActivity", CALL_PROCESS))
+                                        new LookUpData("CallProcessActivity", CALL_PROCESS),
+                                        new LookUpData("SOAPSendReceiveActivity", SOAP_SEND_RECEIVE),
+                                        new LookUpData("WriteToLogActivity", WRITE_LOG))
                                 .filter(each -> type.endsWith(each.suffix)).findFirst()
                                 .map(LookUpData::activityType).orElse(UNHANDLED);
                     }
@@ -295,6 +298,20 @@ public class TibcoModel {
                     @Override
                     public boolean hasInputBinding() {
                         return true;
+                    }
+                }
+
+                record SOAPSendReceive(Element element, String name, InputBinding inputBinding,
+                                       Optional<String> soapAction, String endpointURL) implements InlineActivity {
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.SOAP_SEND_RECEIVE;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
                     }
                 }
 

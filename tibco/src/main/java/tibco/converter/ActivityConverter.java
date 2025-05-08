@@ -39,6 +39,7 @@ import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.CallProce
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.FileRead;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.FileWrite;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HTTPResponse;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.SOAPSendReceive;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.WriteLog;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
@@ -177,11 +178,38 @@ final class ActivityConverter {
             case FileRead fileRead -> convertFileRead(cx, result, fileRead);
             case XMLRenderActivity xmlRenderActivity -> convertXmlRenderActivity(cx, result, xmlRenderActivity);
             case XMLParseActivity xmlParseActivity -> convertXmlParseActivity(cx, result, xmlParseActivity);
+            case SOAPSendReceive soapSendReceive -> convertSoapSendReceive(cx, result, soapSendReceive);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
         body.add(new Return<>(conversion.result()));
         return body;
+    }
+
+    private static ActivityExtensionConfigConversion convertSoapSendReceive(
+            ActivityContext cx, VariableReference result, SOAPSendReceive soapSendReceive) {
+        String clientName = cx.getAnnonVarName();
+        List<Statement> body = new ArrayList<>(initSoapClient(cx, soapSendReceive, clientName));
+
+        VarDeclStatment envelope = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate(ConversionUtils.createSoapEnvelope(result)));
+        body.add(envelope);
+        // We only support SOAP 1.1
+        BallerinaModel.Expression soapAction = soapSendReceive.soapAction().map(StringConstant::new)
+                .orElseThrow(() -> new IllegalArgumentException("SOAP action is required"));
+        VarDeclStatment res = new VarDeclStatment(XML, cx.getAnnonVarName(), new Check(
+                new RemoteMethodCallAction(new VariableReference(clientName), "sendReceive",
+                        List.of(envelope.ref(), soapAction))));
+        body.add(res);
+
+        return new ActivityExtensionConfigConversion(res.ref(), body);
+    }
+
+    private static Collection<Statement> initSoapClient(ActivityContext cx, SOAPSendReceive soapSendReceive,
+            String clientName) {
+        cx.addLibraryImport(Library.SOAP);
+        return List.of(common.ConversionUtils.stmtFrom("soap11:Client %s = check new (\"%s\");"
+                .formatted(clientName, soapSendReceive.endpointURL())));
     }
 
     private static ActivityExtensionConfigConversion convertCallProcess(

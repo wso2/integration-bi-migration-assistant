@@ -213,7 +213,8 @@ public final class XmlToTibcoModelConverter {
         Collection<TibcoModel.NameSpace> nameSpaces = getNamespaces(root).entrySet().stream()
                 .map(each -> new TibcoModel.NameSpace(each.getKey(), each.getValue()))
                 .toList();
-        return new TibcoModel.Process(name, nameSpaces, types, processInfo, processInterface, processTemplateConfigurations,
+        return new TibcoModel.Process(name, nameSpaces, types, processInfo, processInterface,
+                processTemplateConfigurations,
                 partnerLinks, variables, scope, transitionGroup);
     }
 
@@ -239,12 +240,20 @@ public final class XmlToTibcoModelConverter {
             case FILE_READ -> parseFileRead(element, name, inputBinding);
             case XML_RENDER_ACTIVITY -> parseXmlRenderActivity(element, name, inputBinding);
             case XML_PARSE_ACTIVITY -> parseXmlParseActivity(element, name, inputBinding);
+            case SOAP_SEND_RECEIVE -> parseSoapSendReceive(element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
         };
     }
 
+    private static InlineActivity.SOAPSendReceive parseSoapSendReceive(Element element, String name,
+            Flow.Activity.InputBinding inputBinding) {
+        String endpointURL = getInlineActivityConfigValue(element, "endpointURL");
+        Optional<String> soapAction = tryGetInlineActivityConfigValue(element, "soapAction");
+        return new InlineActivity.SOAPSendReceive(element, name, inputBinding, soapAction, endpointURL);
+    }
+
     private static InlineActivity.CallProcess parseCallProcess(Element element, String name,
-                                                               Flow.Activity.InputBinding inputBinding) {
+            Flow.Activity.InputBinding inputBinding) {
         String processName = getInlineActivityConfigValue(element, "processName");
         return new InlineActivity.CallProcess(element, name, inputBinding, processName);
     }
@@ -259,7 +268,8 @@ public final class XmlToTibcoModelConverter {
         return new InlineActivity.FileRead(element, name, inputBinding, encoding);
     }
 
-    private static XMLParseActivity parseXmlParseActivity(Element element, String name, Flow.Activity.InputBinding inputBinding) {
+    private static XMLParseActivity parseXmlParseActivity(Element element, String name,
+            Flow.Activity.InputBinding inputBinding) {
         Element config = getFirstChildWithTag(element, "config");
         String inputStyle = getFirstChildWithTag(config, "inputStyle").getTextContent();
         if (!inputStyle.equalsIgnoreCase("text")) {
@@ -268,7 +278,8 @@ public final class XmlToTibcoModelConverter {
         return new XMLParseActivity(element, name, inputBinding);
     }
 
-    private static XMLRenderActivity parseXmlRenderActivity(Element element, String name, Flow.Activity.InputBinding inputBinding) {
+    private static XMLRenderActivity parseXmlRenderActivity(Element element, String name,
+            Flow.Activity.InputBinding inputBinding) {
         // TODO: extract this to a method
         Element config = getFirstChildWithTag(element, "config");
         String renderAsText = getFirstChildWithTag(config, "renderAsText").getTextContent();
@@ -296,21 +307,28 @@ public final class XmlToTibcoModelConverter {
         return new InlineActivity.AssignActivity(element, name, variableName, inputBinding);
     }
 
+    private static Optional<String> tryGetInlineActivityConfigValue(Element element, String name) {
+        return tryGetFirstChildWithTag(element, "config")
+                .flatMap(config -> tryGetFirstChildWithTag(config, name))
+                .map(Node::getTextContent)
+                .filter(Predicate.not(String::isBlank));
+    }
+
     private static String getInlineActivityConfigValue(Element element, String name) {
         Element config = getFirstChildWithTag(element, "config");
         return getFirstChildWithTag(config, name).getTextContent();
     }
 
     private static InlineActivity.HttpEventSource parseHttpEventSource(String name,
-                                                                       Flow.Activity.InputBinding inputBinding,
-                                                                       Element element) {
+            Flow.Activity.InputBinding inputBinding,
+            Element element) {
         String sharedChannel = getInlineActivityConfigValue(element, "sharedChannel");
         return new InlineActivity.HttpEventSource(element, name, sharedChannel, inputBinding);
     }
 
     private static InlineActivity.MapperActivity parseMapperActivity(String name,
-                                                                     Flow.Activity.InputBinding inputBinding,
-                                                                     Element element) {
+            Flow.Activity.InputBinding inputBinding,
+            Element element) {
         return new InlineActivity.MapperActivity(element, name, inputBinding);
     }
 
@@ -324,14 +342,14 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static boolean isEmpty(Element element) {
-        String content = ElementIterable.of(element).stream().map(ConversionUtils::elementToString).
-                collect(Collectors.joining());
+        String content = ElementIterable.of(element).stream().map(ConversionUtils::elementToString)
+                .collect(Collectors.joining());
         return content.isBlank();
     }
 
     private static Flow.Activity.Expression.@NotNull XSLT parseXSLTTag(ParseContext cx, Element element) {
-        String content = ElementIterable.of(element).stream().map(ConversionUtils::elementToString).
-                collect(Collectors.joining());
+        String content = ElementIterable.of(element).stream().map(ConversionUtils::elementToString)
+                .collect(Collectors.joining());
         String xslt = """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
@@ -545,7 +563,7 @@ public final class XmlToTibcoModelConverter {
     }
 
     private record ActivityInputOutput(List<Flow.Activity.InputBinding> inputBindings,
-                                       List<Flow.Activity.Target> targets) {
+            List<Flow.Activity.Target> targets) {
 
     }
 
@@ -742,7 +760,7 @@ public final class XmlToTibcoModelConverter {
                             .map(XmlToTibcoModelConverter::parseTarget).toList();
                 }
                 case "inputBinding" -> inputBindings.add(new Flow.Activity.InputBinding.CompleteBinding(
-                                parseExpressionNode(each)));
+                        parseExpressionNode(each)));
                 case "inputBindings" -> inputBindings.addAll(parseInputBindings(each));
                 case "CallProcess" -> {
                     if (callProcess != null) {
@@ -937,7 +955,7 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static TibcoModel.Variable.@NotNull PropertyVariable parsePropertyVariable(Element element, String name,
-                                                                                       String type) {
+            String type) {
         Optional<Element> from = tryGetFirstChildWithTag(element, "from");
         if (from.isPresent()) {
             Optional<Element> literal = tryGetFirstChildWithTag(from.get(), "literal");
@@ -1020,7 +1038,7 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static PartnerLink.@NotNull RestPartnerLink finishParsingRestBinding(Element binding,
-                                                                                            String name) {
+            String name) {
         String basePath = binding.getAttribute("basePath");
         String path = binding.getAttribute("path");
         var connector = PartnerLink.Binding.Connector.from(binding.getAttribute("connector"));
@@ -1203,7 +1221,7 @@ public final class XmlToTibcoModelConverter {
         String basePath = tryGetAttributeIgnoringNamespace(element, "bw.rest.basepath").orElse("/");
         Element operation = getFistMatchingChild(element,
                 (child) -> getTagNameWithoutNameSpace(child).equals("operation")).orElseThrow(
-                () -> new ParserException("Operation not found in portType", element));
+                        () -> new ParserException("Operation not found in portType", element));
         Type.WSDLDefinition.PortType.Operation portOperation = parsePortOperation(operation);
         return new Type.WSDLDefinition.PortType(name, apiPath, basePath, portOperation);
     }
@@ -1229,11 +1247,11 @@ public final class XmlToTibcoModelConverter {
             MessageNamePair messageNamePair = MessageNamePair.from(child);
             switch (tag) {
                 case "input" -> input = new Type.WSDLDefinition.PortType.Operation.Input(messageNamePair.message,
-                                messageNamePair.name);
+                        messageNamePair.name);
                 case "output" -> output = new Type.WSDLDefinition.PortType.Operation.Output(messageNamePair.message,
-                                messageNamePair.name);
+                        messageNamePair.name);
                 case "fault" -> faults.add(new Type.WSDLDefinition.PortType.Operation.Fault(messageNamePair.message,
-                                messageNamePair.name));
+                        messageNamePair.name));
                 default -> throw new ParserException("Unsupported port operation tag: " + tag, operation);
             }
         }
