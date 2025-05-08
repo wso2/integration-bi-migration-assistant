@@ -41,6 +41,7 @@ import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.FileWrite
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HTTPResponse;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.WriteLog;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLRenderActivity;
 import tibco.TibcoModel.Scope.Flow.Activity;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension;
@@ -175,6 +176,7 @@ final class ActivityConverter {
             case FileWrite fileWrite -> convertFileWrite(cx, result, fileWrite);
             case FileRead fileRead -> convertFileRead(cx, result, fileRead);
             case XMLRenderActivity xmlRenderActivity -> convertXmlRenderActivity(cx, result, xmlRenderActivity);
+            case XMLParseActivity xmlParseActivity -> convertXmlParseActivity(cx, result, xmlParseActivity);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
@@ -229,6 +231,24 @@ final class ActivityConverter {
         body.add(new CallStatement(new Check(new FunctionCall(IOConstants.FILE_WRITE_FUNCTION,
                 List.of(fileName.ref(), textContent.ref(), mode)))));
         return new ActivityExtensionConfigConversion(result, body);
+    }
+
+    private static ActivityExtensionConfigConversion convertXmlParseActivity(
+            ActivityContext cx, VariableReference result, XMLParseActivity xmlParseActivity) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment xmlString = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                common.ConversionUtils.exprFrom("%s/<xmlString>/*".formatted(result.varName())));
+        body.add(xmlString);
+        VarDeclStatment asString = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                new MethodCall(xmlString.ref(), "toString", List.of()));
+        body.add(asString);
+        VarDeclStatment xmlValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(new FunctionCall("xml:fromString", List.of(asString.ref()))));
+        body.add(xmlValue);
+        VarDeclStatment wrappedValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("<root>${%s}</root>".formatted(xmlValue.ref())));
+        body.add(wrappedValue);
+        return new ActivityExtensionConfigConversion(wrappedValue.ref(), body);
     }
 
     private static ActivityExtensionConfigConversion convertXmlRenderActivity(
