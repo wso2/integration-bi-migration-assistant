@@ -188,6 +188,7 @@ public class TibcoModel {
                     CALL_PROCESS,
                     FILE_WRITE,
                     FILE_READ,
+                    XML_RENDER_ACTIVITY,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
@@ -200,6 +201,7 @@ public class TibcoModel {
                                 new LookUpData("AssignActivity", ASSIGN),
                                 new LookUpData("NullActivity", NULL),
                                 new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
+                                new LookUpData("XMLRendererActivity", XML_RENDER_ACTIVITY),
                                 new LookUpData("WriteToLogActivity", WRITE_LOG),
                                 new LookUpData("FileReadActivity", FILE_READ),
                                 new LookUpData("FileWriteActivity", FILE_WRITE),
@@ -252,6 +254,23 @@ public class TibcoModel {
                     @Override
                     public InlineActivityType type() {
                         return InlineActivityType.FILE_WRITE;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record XMLRenderActivity(Element element, String name,
+                        InputBinding inputBinding) implements InlineActivity {
+                    public XMLRenderActivity {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.XML_RENDER_ACTIVITY;
                     }
 
                     @Override

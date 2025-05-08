@@ -41,6 +41,7 @@ import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.FileWrite
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HTTPResponse;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.WriteLog;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLRenderActivity;
 import tibco.TibcoModel.Scope.Flow.Activity;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension;
 import tibco.TibcoModel.Scope.Flow.Activity.CatchAll;
@@ -173,6 +174,7 @@ final class ActivityConverter {
             case CallProcess callProcess -> convertCallProcess(cx, result, callProcess);
             case FileWrite fileWrite -> convertFileWrite(cx, result, fileWrite);
             case FileRead fileRead -> convertFileRead(cx, result, fileRead);
+            case XMLRenderActivity xmlRenderActivity -> convertXmlRenderActivity(cx, result, xmlRenderActivity);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
@@ -227,6 +229,18 @@ final class ActivityConverter {
         body.add(new CallStatement(new Check(new FunctionCall(IOConstants.FILE_WRITE_FUNCTION,
                 List.of(fileName.ref(), textContent.ref(), mode)))));
         return new ActivityExtensionConfigConversion(result, body);
+    }
+
+    private static ActivityExtensionConfigConversion convertXmlRenderActivity(
+            ActivityContext cx, VariableReference result, XMLRenderActivity xmlRenderActivity) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment stringValue = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                new MethodCall(result, "toBalString", List.of()));
+        body.add(stringValue);
+        VarDeclStatment res = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("<root>/<xmlString>${%s}</xmlString></root>".formatted(stringValue.ref())));
+        body.add(res);
+        return new ActivityExtensionConfigConversion(res.ref(), body);
     }
 
     private static ActivityExtensionConfigConversion convertWriteLogActivity(

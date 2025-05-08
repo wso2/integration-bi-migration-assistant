@@ -25,6 +25,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import tibco.TibcoModel.PartnerLink;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLRenderActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.Transition;
 import tibco.TibcoModel.Scope;
 import tibco.TibcoModel.Scope.Flow;
@@ -235,6 +236,7 @@ public final class XmlToTibcoModelConverter {
             case CALL_PROCESS -> parseCallProcess(element, name, inputBinding);
             case FILE_WRITE -> parseFileWrite(element, name, inputBinding);
             case FILE_READ -> parseFileRead(element, name, inputBinding);
+            case XML_RENDER_ACTIVITY -> parseXmlRenderActivity(element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
         };
     }
@@ -244,6 +246,7 @@ public final class XmlToTibcoModelConverter {
         String processName = getInlineActivityConfigValue(element, "processName");
         return new InlineActivity.CallProcess(element, name, inputBinding, processName);
     }
+
     private static InlineActivity.FileRead parseFileRead(
             Element element, String name, Flow.Activity.InputBinding inputBinding) {
         Element config = getFirstChildWithTag(element, "config");
@@ -266,6 +269,15 @@ public final class XmlToTibcoModelConverter {
         return new InlineActivity.FileWrite(element, name, inputBinding, encoding, append);
     }
 
+    private static XMLRenderActivity parseXmlRenderActivity(Element element, String name,
+            Flow.Activity.InputBinding inputBinding) {
+        String renderAsText = getInlineActivityConfigValue(element, "renderAsText");
+        if (!renderAsText.equalsIgnoreCase("text")) {
+            throw new ParserException("Unsupported renderAsText value: " + renderAsText, element);
+        }
+        return new XMLRenderActivity(element, name, inputBinding);
+    }
+
     private static InlineActivity.AssignActivity parseAssignActivity(
             String name, Flow.Activity.InputBinding inputBinding, Element element) {
         String variableName = getInlineActivityConfigValue(element, "variableName");
@@ -278,15 +290,15 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static InlineActivity.HttpEventSource parseHttpEventSource(String name,
-                                                                       Flow.Activity.InputBinding inputBinding,
-                                                                       Element element) {
+            Flow.Activity.InputBinding inputBinding,
+            Element element) {
         String sharedChannel = getInlineActivityConfigValue(element, "sharedChannel");
         return new InlineActivity.HttpEventSource(element, name, sharedChannel, inputBinding);
     }
 
     private static InlineActivity.MapperActivity parseMapperActivity(String name,
-                                                                     Flow.Activity.InputBinding inputBinding,
-                                                                     Element element) {
+            Flow.Activity.InputBinding inputBinding,
+            Element element) {
         return new InlineActivity.MapperActivity(element, name, inputBinding);
     }
 

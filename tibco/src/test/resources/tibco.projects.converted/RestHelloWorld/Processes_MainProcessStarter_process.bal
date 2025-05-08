@@ -112,6 +112,20 @@ function Read_file(map<xml> context) returns xml|error {
     return var2;
 }
 
+function Render(map<xml> context) returns xml|error {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform5" match="/">
+        <xsl:copy-of select="$Mapper" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+
+    </xsl:template>
+</xsl:stylesheet>`, context);
+    string var2 = var1.toBalString();
+    xml var3 = xml `<root>/<xmlString>${var2}</xmlString></root>`;
+    addToContext(context, "Render", var3);
+    return var3;
+}
+
 function Write_File(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
@@ -154,7 +168,8 @@ function scope0ActivityRunner(map<xml> cx) returns xml|error {
     xml result3 = check InvokeProcess(cx);
     xml result4 = check Write_File(cx);
     xml result5 = check Read_file(cx);
-    return result5;
+    xml result6 = check Render(cx);
+    return result6;
 }
 
 function scope0FaultHandler(error err, map<xml> cx) returns xml {
