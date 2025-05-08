@@ -40,6 +40,7 @@ import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.FileRead;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.FileWrite;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HTTPResponse;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.SOAPSendReceive;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.SOAPSendReply;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.WriteLog;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
@@ -179,11 +180,19 @@ final class ActivityConverter {
             case XMLRenderActivity xmlRenderActivity -> convertXmlRenderActivity(cx, result, xmlRenderActivity);
             case XMLParseActivity xmlParseActivity -> convertXmlParseActivity(cx, result, xmlParseActivity);
             case SOAPSendReceive soapSendReceive -> convertSoapSendReceive(cx, result, soapSendReceive);
+            case SOAPSendReply soapSendReply -> convertSoapSendReply(cx, result, soapSendReply);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
         body.add(new Return<>(conversion.result()));
         return body;
+    }
+
+    private static ActivityExtensionConfigConversion convertSoapSendReply(
+            ActivityContext cx, VariableReference result, SOAPSendReply soapSendReply) {
+        VarDeclStatment envelop = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate(ConversionUtils.createSoapEnvelope(result)));
+        return new ActivityExtensionConfigConversion(envelop.ref(), List.of(envelop));
     }
 
     private static ActivityExtensionConfigConversion convertSoapSendReceive(
@@ -208,7 +217,7 @@ final class ActivityConverter {
     private static Collection<Statement> initSoapClient(ActivityContext cx, SOAPSendReceive soapSendReceive,
             String clientName) {
         cx.addLibraryImport(Library.SOAP);
-        return List.of(common.ConversionUtils.stmtFrom("soap11:Client %s = check new (\"%s\");"
+        return List.of(stmtFrom("soap11:Client %s = check new (\"%s\");"
                 .formatted(clientName, soapSendReceive.endpointURL())));
     }
 

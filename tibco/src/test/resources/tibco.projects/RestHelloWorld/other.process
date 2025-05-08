@@ -70,8 +70,6 @@
     <pd:activity name="Log">
         <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
         <pd:resourceType>ae.activities.log</pd:resourceType>
-        <pd:x>255</pd:x>
-        <pd:y>56</pd:y>
         <config>
             <role>User</role>
         </config>
@@ -81,6 +79,20 @@
                     <xsl:value-of select="$Mapper"/>
                 </message>
             </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="SOAPSendReply">
+        <pd:type>com.tibco.plugin.soap.SOAPSendReplyActivity</pd:type>
+        <pd:resourceType>ae.activities.SOAPSendReplyUI</pd:resourceType>
+        <config>
+            <eventSource>HTTP Receiver</eventSource>
+        </config>
+        <pd:inputBindings>
+            <Response>
+                <Body>
+                    "Foo bar"
+                </Body>
+            </Response>
         </pd:inputBindings>
     </pd:activity>
     <pd:transition>
@@ -106,6 +118,13 @@
     </pd:transition>
     <pd:transition>
         <pd:from>Log</pd:from>
+        <pd:to>SOAPSendReply</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>SOAPSendReply</pd:from>
         <pd:to>End</pd:to>
         <pd:lineType>Default</pd:lineType>
         <pd:lineColor>-16777216</pd:lineColor>

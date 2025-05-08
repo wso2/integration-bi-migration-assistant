@@ -181,6 +181,7 @@ public final class ConversionUtils {
         return """
                 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
                   soap:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+                    <soap:Header/>
                     <soap:Body>
                         ${%s}
                     </soap:Body>

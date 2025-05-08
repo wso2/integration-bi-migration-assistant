@@ -167,6 +167,7 @@ function SOAPRequestReply(map<xml> context) returns xml|error {
     soap11:Client var2 = check new ("http://localhost:8800");
     xml var3 = xml `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
     soap:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+    <soap:Header/>
     <soap:Body>
         ${var1}
     </soap:Body>

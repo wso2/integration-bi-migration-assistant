@@ -241,6 +241,7 @@ public final class XmlToTibcoModelConverter {
             case XML_RENDER_ACTIVITY -> parseXmlRenderActivity(element, name, inputBinding);
             case XML_PARSE_ACTIVITY -> parseXmlParseActivity(element, name, inputBinding);
             case SOAP_SEND_RECEIVE -> parseSoapSendReceive(element, name, inputBinding);
+            case SOAP_SEND_REPLY -> new InlineActivity.SOAPSendReply(element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
         };
     }
