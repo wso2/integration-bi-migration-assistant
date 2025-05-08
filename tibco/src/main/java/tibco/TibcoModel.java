@@ -183,6 +183,7 @@ public class TibcoModel {
                     UNHANDLED,
                     NULL,
                     WRITE_LOG,
+                    CALL_PROCESS,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
@@ -190,14 +191,32 @@ public class TibcoModel {
 
                         }
                         return Stream.of(
-                                new LookUpData("MapperActivity", MAPPER),
-                                new LookUpData("HTTPEventSource", HTTP_EVENT_SOURCE),
-                                new LookUpData("AssignActivity", ASSIGN),
-                                new LookUpData("NullActivity", NULL),
-                                new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
-                                new LookUpData("WriteToLogActivity", WRITE_LOG)
+                                        new LookUpData("MapperActivity", MAPPER),
+                                        new LookUpData("HTTPEventSource", HTTP_EVENT_SOURCE),
+                                        new LookUpData("AssignActivity", ASSIGN),
+                                        new LookUpData("NullActivity", NULL),
+                                        new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
+                                        new LookUpData("WriteToLogActivity", WRITE_LOG),
+                                        new LookUpData("CallProcessActivity", CALL_PROCESS)
                                 ).filter(each -> type.endsWith(each.suffix)).findFirst()
                                 .map(LookUpData::activityType).orElse(UNHANDLED);
+                    }
+                }
+
+                record CallProcess(Element element, String name, InputBinding inputBinding,
+                                   String processName) implements InlineActivity {
+                    public CallProcess {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.CALL_PROCESS;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
                     }
                 }
 

@@ -167,6 +167,9 @@ final class ActivityConverter {
                     emptyExtensionConversion(result);
             case HTTPResponse httpResponse -> convertHttpResponse(cx, result, httpResponse);
             case WriteLog writeLog -> convertWriteLogActivity(cx, result, writeLog);
+            // FIXME:
+            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.CallProcess callProcess ->
+                    emptyExtensionConversion(result);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));

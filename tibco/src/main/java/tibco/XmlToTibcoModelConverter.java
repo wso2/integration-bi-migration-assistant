@@ -232,22 +232,32 @@ public final class XmlToTibcoModelConverter {
             case UNHANDLED -> new InlineActivity.UnhandledInlineActivity(element, name, inputBinding);
             case NULL -> new InlineActivity.NullActivity(element, name, inputBinding);
             case WRITE_LOG -> new InlineActivity.WriteLog(element, name, inputBinding);
+            case CALL_PROCESS -> parseCallProcess(element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
         };
     }
 
+    private static InlineActivity.CallProcess parseCallProcess(Element element, String name,
+                                                               Flow.Activity.InputBinding inputBinding) {
+        String processName = getInlineActivityConfigValue(element, "processName");
+        return new InlineActivity.CallProcess(element, name, inputBinding, processName);
+    }
+
     private static InlineActivity.AssignActivity parseAssignActivity(
             String name, Flow.Activity.InputBinding inputBinding, Element element) {
-        Element config = getFirstChildWithTag(element, "config");
-        String variableName = getFirstChildWithTag(config, "variableName").getTextContent();
+        String variableName = getInlineActivityConfigValue(element, "variableName");
         return new InlineActivity.AssignActivity(element, name, variableName, inputBinding);
+    }
+
+    private static String getInlineActivityConfigValue(Element element, String name) {
+        Element config = getFirstChildWithTag(element, "config");
+        return getFirstChildWithTag(config, name).getTextContent();
     }
 
     private static InlineActivity.HttpEventSource parseHttpEventSource(String name,
                                                                        Flow.Activity.InputBinding inputBinding,
                                                                        Element element) {
-        Element config = getFirstChildWithTag(element, "config");
-        String sharedChannel = getFirstChildWithTag(config, "sharedChannel").getTextContent();
+        String sharedChannel = getInlineActivityConfigValue(element, "sharedChannel");
         return new InlineActivity.HttpEventSource(element, name, sharedChannel, inputBinding);
     }
 

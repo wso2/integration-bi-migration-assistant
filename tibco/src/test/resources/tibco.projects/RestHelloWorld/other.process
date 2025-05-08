@@ -67,20 +67,6 @@
             </failedTestsCount>
         </pd:inputBindings>
     </pd:activity>
-    <pd:activity name="InvokeProcess">
-        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
-        <pd:resourceType>ae.process.subprocess</pd:resourceType>
-        <config>
-            <processName>other.process</processName>
-        </config>
-        <pd:inputBindings>
-            <InvokeProcessInput>
-                <options>
-                    <xsl:value-of select="$HTTP-Receiver/ProcessStarterOutput/QueryString"/>
-                </options>
-            </InvokeProcessInput>
-        </pd:inputBindings>
-    </pd:activity>
     <pd:activity name="Log">
         <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
         <pd:resourceType>ae.activities.log</pd:resourceType>
