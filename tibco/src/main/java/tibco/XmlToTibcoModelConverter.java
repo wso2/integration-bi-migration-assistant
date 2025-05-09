@@ -302,15 +302,15 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static InlineActivity.HttpEventSource parseHttpEventSource(String name,
-            Flow.Activity.InputBinding inputBinding,
-            Element element) {
+                                                                       Flow.Activity.InputBinding inputBinding,
+                                                                       Element element) {
         String sharedChannel = getInlineActivityConfigValue(element, "sharedChannel");
         return new InlineActivity.HttpEventSource(element, name, sharedChannel, inputBinding);
     }
 
     private static InlineActivity.MapperActivity parseMapperActivity(String name,
-            Flow.Activity.InputBinding inputBinding,
-            Element element) {
+                                                                     Flow.Activity.InputBinding inputBinding,
+                                                                     Element element) {
         return new InlineActivity.MapperActivity(element, name, inputBinding);
     }
 
