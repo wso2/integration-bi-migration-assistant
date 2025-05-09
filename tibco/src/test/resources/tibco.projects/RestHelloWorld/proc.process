@@ -79,6 +79,8 @@
                     <xsl:value-of select="$HTTP-Receiver/ProcessStarterOutput/QueryString"/>
                 </options>
             </InvokeProcessInput>
+        </pd:inputBindings>
+    </pd:activity>
     <pd:activity name="Write File">
         <pd:type>com.tibco.plugin.file.FileWriteActivity</pd:type>
         <pd:resourceType>ae.activities.FileWriteActivity</pd:resourceType>

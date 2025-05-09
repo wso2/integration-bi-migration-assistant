@@ -121,9 +121,7 @@ public class TibcoModel {
                 this(List.of(), List.of(), startActivity, Optional.empty());
             }
 
-            public ExplicitTransitionGroup
-
-            {
+            public ExplicitTransitionGroup {
                 activities = Collections.unmodifiableList(activities);
                 transitions = Collections.unmodifiableList(transitions);
             }
@@ -204,7 +202,7 @@ public class TibcoModel {
                                         new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
                                         new LookUpData("WriteToLogActivity", WRITE_LOG),
                                         new LookUpData("FileReadActivity", FILE_READ),
-                                        new LookUpData("FileWriteActivity", FILE_WRITE))
+                                        new LookUpData("FileWriteActivity", FILE_WRITE),
                                         new LookUpData("CallProcessActivity", CALL_PROCESS)
                                 ).filter(each -> type.endsWith(each.suffix)).findFirst()
                                 .map(LookUpData::activityType).orElse(UNHANDLED);
