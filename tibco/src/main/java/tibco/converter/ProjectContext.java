@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -65,6 +66,7 @@ public class ProjectContext {
     private final Map<String, BallerinaModel.ModuleVar> utilityVars = new HashMap<>();
     private final Set<Intrinsics> utilityIntrinsics = new HashSet<>();
     private final Set<ComptimeFunction> utilityCompTimeFunctions = new HashSet<>();
+    private final Map<String, String> processClients = new HashMap<>();
 
     private String toXMLFunction = null;
     private String jsonToXMLFunction = null;
@@ -384,6 +386,10 @@ public class ProjectContext {
         return "proj_annon_var" + annonVarCount++;
     }
 
+    public VariableReference getProcessClient(String processName) {
+        return new VariableReference(Objects.requireNonNull(processClients.get(processName)));
+    }
+
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
 
         FunctionData {
@@ -436,6 +442,10 @@ public class ProjectContext {
         utilityIntrinsics.add(Intrinsics.XML_PARSER);
         utilityIntrinsics.add(Intrinsics.RENDER_JSON);
         return Intrinsics.RENDER_JSON.name;
+    }
+
+    public void registerProcessClient(String processName, String clientName) {
+        processClients.put(processName, clientName);
     }
 
     private static class ContextWrapperForTypeFile implements ContextWithFile {

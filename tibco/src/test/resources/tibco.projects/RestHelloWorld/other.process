@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-    <pd:name>Processes/MainProcessStarter.process</pd:name>
+    <pd:name>Processes/Other.process</pd:name>
     <pd:startName>HTTP Receiver</pd:startName>
     <pd:returnBindings/>
     <pd:starter name="HTTP Receiver">
@@ -67,20 +67,6 @@
             </failedTestsCount>
         </pd:inputBindings>
     </pd:activity>
-    <pd:activity name="InvokeProcess">
-        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
-        <pd:resourceType>ae.process.subprocess</pd:resourceType>
-        <config>
-            <processName>other.process</processName>
-        </config>
-        <pd:inputBindings>
-            <InvokeProcessInput>
-                <options>
-                    <xsl:value-of select="$HTTP-Receiver/ProcessStarterOutput/QueryString"/>
-                </options>
-            </InvokeProcessInput>
-        </pd:inputBindings>
-    </pd:activity>
     <pd:activity name="Log">
         <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
         <pd:resourceType>ae.activities.log</pd:resourceType>
@@ -120,13 +106,6 @@
     </pd:transition>
     <pd:transition>
         <pd:from>Log</pd:from>
-        <pd:to>InvokeProcess</pd:to>
-        <pd:lineType>Default</pd:lineType>
-        <pd:lineColor>-16777216</pd:lineColor>
-        <pd:conditionType>always</pd:conditionType>
-    </pd:transition>
-    <pd:transition>
-        <pd:from>InvokeProcess</pd:from>
         <pd:to>End</pd:to>
         <pd:lineType>Default</pd:lineType>
         <pd:lineColor>-16777216</pd:lineColor>
