@@ -112,9 +112,11 @@ public class TibcoModel {
         public record ExplicitTransitionGroup(List<InlineActivity> activities, List<Transition> transitions,
                                               InlineActivity startActivity,
                                               Optional<Scope.Flow.Activity.Expression.XSLT> returnBindings) {
+
             ExplicitTransitionGroup() {
                 this(null);
             }
+
             ExplicitTransitionGroup(InlineActivity startActivity) {
                 this(List.of(), List.of(), startActivity, Optional.empty());
             }
@@ -155,12 +157,12 @@ public class TibcoModel {
                 }
                 String startActivityName = transitions.stream()
                         .filter(transition -> transition.from().equalsIgnoreCase("start"))
-                        .findFirst().map(Transition::to).orElseThrow(() ->
-                                new IllegalStateException("failed to find start activity"));
+                        .findFirst().map(Transition::to)
+                        .orElseThrow(() -> new IllegalStateException("failed to find start activity"));
                 InlineActivity startActivity = activities.stream()
                         .filter(each -> each.name().equals(startActivityName))
-                        .findFirst().orElseThrow(() ->
-                                new IllegalStateException("no such activity" + startActivityName));
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalStateException("no such activity" + startActivityName));
                 return this.setStartActivity(startActivity);
             }
 
@@ -184,6 +186,8 @@ public class TibcoModel {
                     NULL,
                     WRITE_LOG,
                     CALL_PROCESS,
+                    FILE_WRITE,
+                    FILE_READ,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
@@ -197,6 +201,8 @@ public class TibcoModel {
                                         new LookUpData("NullActivity", NULL),
                                         new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
                                         new LookUpData("WriteToLogActivity", WRITE_LOG),
+                                        new LookUpData("FileReadActivity", FILE_READ),
+                                        new LookUpData("FileWriteActivity", FILE_WRITE),
                                         new LookUpData("CallProcessActivity", CALL_PROCESS)
                                 ).filter(each -> type.endsWith(each.suffix)).findFirst()
                                 .map(LookUpData::activityType).orElse(UNHANDLED);
@@ -212,6 +218,40 @@ public class TibcoModel {
                     @Override
                     public InlineActivityType type() {
                         return InlineActivityType.CALL_PROCESS;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record FileRead(Element element, String name, InputBinding inputBinding,
+                                String encoding) implements InlineActivity {
+                    public FileRead {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.FILE_READ;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record FileWrite(Element element, String name, InputBinding inputBinding, String encoding,
+                                 boolean append) implements InlineActivity {
+                    public FileWrite {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.FILE_WRITE;
                     }
 
                     @Override
@@ -309,7 +349,6 @@ public class TibcoModel {
                         return inputBinding != null;
                     }
                 }
-
 
                 record HttpEventSource(Element element, String name, String sharedChannel,
                                        Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
@@ -543,8 +582,8 @@ public class TibcoModel {
                                     List<Parameter> parameters) {
 
                 public Operation(Method method, RequestEntityProcessing requestEntityProcessing,
-                                 MessageStyle requestStyle, MessageStyle responseStyle, Format clientFormat,
-                                 Format clientRequestFormat, List<Parameter> parameters) {
+                        MessageStyle requestStyle, MessageStyle responseStyle, Format clientFormat,
+                        Format clientRequestFormat, List<Parameter> parameters) {
                     this(method, Optional.of(requestEntityProcessing), Optional.of(requestStyle),
                             Optional.of(responseStyle), Optional.of(clientFormat), Optional.of(clientRequestFormat),
                             parameters);
@@ -739,9 +778,8 @@ public class TibcoModel {
                         return onMessage().scope();
                     }
 
-                    public record OnMessage(Method operation,
-                                            String partnerLink,
-                                            String portType, String variable, Scope scope) {
+                    public record OnMessage(Method operation, String partnerLink, String portType, String variable,
+                                            Scope scope) {
 
                     }
                 }

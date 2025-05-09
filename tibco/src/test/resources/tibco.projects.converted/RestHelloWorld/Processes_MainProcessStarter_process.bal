@@ -1,4 +1,5 @@
 import ballerina/http;
+import ballerina/io;
 import ballerina/log;
 import ballerina/xslt;
 
@@ -48,7 +49,7 @@ function InvokeProcess(map<xml> context) returns xml|error {
 function Log(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform2" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform4" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
                     
     <message>
@@ -83,12 +84,77 @@ function Mapper(map<xml> context) returns xml|error {
     return var1;
 }
 
+function Read_file(map<xml> context) returns xml|error {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
+     <xsl:template name="Transform3" match="/">
+        <ReadActivityInputClass>
+                    
+    <fileName>
+                            
+        <xsl:value-of select="&quot;input.txt&quot;" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                        
+    </fileName>
+                
+</ReadActivityInputClass>
+
+    </xsl:template>
+</xsl:stylesheet>`, context);
+    string fileName = (var1/**/<fileName>/*).toString();
+    string content = check io:fileReadString(fileName);
+    xml var2 = xml `<ns:ReadActivityOutputTextClass xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/file">
+    <fileContent>
+        <textContent>${content}</textContent>
+    </fileContent>
+</ns:ReadActivityOutputTextClass>`;
+    addToContext(context, "Read file", var2);
+    return var2;
+}
+
+function Write_File(map<xml> context) returns xml|error {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform2" match="/">
+        <ns0:WriteActivityInputTextClass xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/file">
+                    
+    <fileName>
+                            
+        <xsl:value-of select="&quot;output.txt&quot;" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                        
+    </fileName>
+                    
+    <textContent>
+                            
+        <xsl:value-of select="$Mapper" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                        
+    </textContent>
+                    
+    <addLineSeparator>
+                            
+        <xsl:value-of select="true()" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                        
+    </addLineSeparator>
+                
+</ns0:WriteActivityInputTextClass>
+
+    </xsl:template>
+</xsl:stylesheet>`, context);
+    string fileName = (var1/**/<fileName>/*).toString();
+    string content = (var1/**/<textContent>/*).toString();
+    check io:fileWriteString(fileName, content, "APPEND");
+    addToContext(context, "Write File", var1);
+    return var1;
+}
+
 function scope0ActivityRunner(map<xml> cx) returns xml|error {
     xml result0 = check HTTP_Receiver(cx);
     xml result1 = check Mapper(cx);
     xml result2 = check Log(cx);
     xml result3 = check InvokeProcess(cx);
-    return result3;
+    xml result4 = check Write_File(cx);
+    xml result5 = check Read_file(cx);
+    return result5;
 }
 
 function scope0FaultHandler(error err, map<xml> cx) returns xml {
