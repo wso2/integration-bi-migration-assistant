@@ -151,7 +151,7 @@ public class ProcessConverter {
                 .flatMap(Collection::stream).forEach(functions::add);
 
         functions.sort(Comparator.comparing(BallerinaModel.Function::functionName));
-
+        process.nameSpaces().forEach(cx::addNameSpace);
         return cx.serialize(result.service(), functions);
     }
 

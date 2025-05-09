@@ -196,3 +196,15 @@ function start_creditapp_module_MainProcess(GiveNewSchemaNameHere input, map<xml
     CreditScoreSuccessSchema result = convertToCreditScoreSuccessSchema(xmlResult);
     return result;
 }
+
+xmlns "http://xmlns.example.com/20180827160122PLT" as ns0;
+xmlns "/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" as ns1;
+xmlns "http://www.tibco.com/bpel/2007/extensions" as tibex;
+xmlns "http://www.tibco.com/pe/EngineTypes" as ns;
+xmlns "http://www.tibco.com/bw/process/info" as info;
+xmlns "http://tns.tibco.com/bw/json/1535671685533" as ns3;
+xmlns "http://docs.oasis-open.org/ns/opencsa/sca/200912" as sca;
+xmlns "http://xmlns.example.com/Creditscore/parameters" as ns2;
+xmlns "http://docs.oasis-open.org/wsbpel/2.0/process/executable" as bpws;
+xmlns "http://www.w3.org/2001/XMLSchema" as xsd;
+xmlns "http://ns.tibco.com/bw/property" as tibprop;

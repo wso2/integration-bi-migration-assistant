@@ -208,7 +208,10 @@ public final class XmlToTibcoModelConverter {
             }
         }
         transitionGroup = transitionGroup.resolve();
-        return new TibcoModel.Process(name, types, processInfo, processInterface, processTemplateConfigurations,
+        Collection<TibcoModel.NameSpace> nameSpaces = getNamespaces(root).entrySet().stream()
+                .map(each -> new TibcoModel.NameSpace(each.getKey(), each.getValue()))
+                .toList();
+        return new TibcoModel.Process(name, nameSpaces, types, processInfo, processInterface, processTemplateConfigurations,
                 partnerLinks, variables, scope, transitionGroup);
     }
 

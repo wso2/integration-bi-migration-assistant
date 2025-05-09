@@ -60,3 +60,8 @@ function scope0ScopeFn(map<xml> cx) returns xml {
 function start_Processes_MainProcessStarter_process(xml inputXML, map<xml> params) returns xml {
     return scope0ScopeFn(params);
 }
+
+xmlns "http://xmlns.tibco.com/bw/process/2003" as pd;
+xmlns "http://www.w3.org/1999/XSL/Transform" as xsl;
+xmlns "http://www.tibco.com/pe/EngineTypes" as ns;
+xmlns "http://www.w3.org/2001/XMLSchema" as xsd;
