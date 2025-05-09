@@ -132,6 +132,48 @@ public class XmlToModelTests {
         assertEquals(actual, expected);
     }
 
+
+    @Test
+    public void testParseWriteToLogActivity() throws Exception {
+        String activityXml = """
+                <pd:activity name="Log">
+                    <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+                    <pd:resourceType>ae.activities.log</pd:resourceType>
+                    <pd:x>255</pd:x>
+                    <pd:y>56</pd:y>
+                    <config>
+                        <role>User</role>
+                    </config>
+                    <pd:inputBindings>
+                        <ns:ActivityInput>
+                            <message>
+                                <xsl:value-of select="$JMS-Queue-Receiver/ns1:ActivityOutput/Body"/>
+                            </message>
+                        </ns:ActivityInput>
+                    </pd:inputBindings>
+                </pd:activity>
+                """;
+
+        Element element = stringToElement(activityXml);
+        InlineActivity actual = XmlToTibcoModelConverter.parseInlineActivity(new XmlToTibcoModelConverter.ParseContext(),
+                element);
+        InlineActivity.WriteLog expected = new InlineActivity.WriteLog(element, "Log",
+                new TibcoModel.Scope.Flow.Activity.InputBinding.CompleteBinding(
+                        new TibcoModel.Scope.Flow.Activity.Expression.XSLT("""
+                                <?xml version="1.0" encoding="UTF-8"?>
+                                <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
+                                     <xsl:template name="Transform0" match="/">
+                                        <ns:ActivityInput>
+                                            <message>
+                                                <xsl:value-of select="$JMS-Queue-Receiver/ns1:ActivityOutput/Body"/>
+                                            </message>
+                                        </ns:ActivityInput>
+                                    </xsl:template>
+                                </xsl:stylesheet>
+                                """)));
+        assertEquals(actual, expected);
+    }
+
     @Test
     public void testParseAssignActivity() throws Exception {
         String activityXml = """

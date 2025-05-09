@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 public class TibcoModel {
 
@@ -181,25 +182,38 @@ public class TibcoModel {
                     HTTP_RESPONSE,
                     UNHANDLED,
                     NULL,
+                    WRITE_LOG,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
-                        if (type.endsWith("MapperActivity")) {
-                            return MAPPER;
+                        record LookUpData(String suffix, InlineActivityType activityType) {
+
                         }
-                        if (type.endsWith("HTTPEventSource")) {
-                            return HTTP_EVENT_SOURCE;
-                        }
-                        if (type.endsWith("AssignActivity")) {
-                            return ASSIGN;
-                        }
-                        if (type.endsWith("NullActivity")) {
-                            return NULL;
-                        }
-                        if (type.endsWith("HTTPResponseActivity")) {
-                            return HTTP_RESPONSE;
-                        }
-                        return UNHANDLED;
+                        return Stream.of(
+                                new LookUpData("MapperActivity", MAPPER),
+                                new LookUpData("HTTPEventSource", HTTP_EVENT_SOURCE),
+                                new LookUpData("AssignActivity", ASSIGN),
+                                new LookUpData("NullActivity", NULL),
+                                new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
+                                new LookUpData("WriteToLogActivity", WRITE_LOG)
+                                ).filter(each -> type.endsWith(each.suffix)).findFirst()
+                                .map(LookUpData::activityType).orElse(UNHANDLED);
+                    }
+                }
+
+                record WriteLog(Element element, String name, InputBinding inputBinding) implements InlineActivity {
+                    public WriteLog {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.WRITE_LOG;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
                     }
                 }
 

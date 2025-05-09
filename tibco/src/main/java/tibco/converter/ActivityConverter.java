@@ -37,6 +37,7 @@ import tibco.TibcoModel;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.AssignActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HTTPResponse;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.WriteLog;
 import tibco.TibcoModel.Scope.Flow.Activity;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension;
 import tibco.TibcoModel.Scope.Flow.Activity.CatchAll;
@@ -50,6 +51,7 @@ import tibco.TibcoModel.Scope.Flow.Activity.Reply;
 import tibco.TibcoModel.Scope.Flow.Activity.Throw;
 import tibco.TibcoModel.Scope.Flow.Activity.UnhandledActivity;
 import tibco.analyzer.AnalysisResult;
+import tibco.xslt.AddMissingParameters;
 import tibco.xslt.IgnoreRootWrapper;
 import tibco.xslt.ReplaceDotAccessWithXPath;
 import tibco.xslt.ReplaceVariableReference;
@@ -89,6 +91,7 @@ final class ActivityConverter {
 
     private static TransformPipeline createXsltTransformer() {
         TransformPipeline xsltTransformer = new TransformPipeline();
+        xsltTransformer.append(new AddMissingParameters());
         xsltTransformer.append(new ReplaceVariableReference());
         xsltTransformer.append(new ReplaceDotAccessWithXPath());
         xsltTransformer.append(new IgnoreRootWrapper());
@@ -163,11 +166,24 @@ final class ActivityConverter {
             case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.NullActivity ignored ->
                     emptyExtensionConversion(result);
             case HTTPResponse httpResponse -> convertHttpResponse(cx, result, httpResponse);
+            case WriteLog writeLog -> convertWriteLogActivity(cx, result, writeLog);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
         body.add(new Return<>(conversion.result()));
         return body;
+    }
+
+    private static ActivityExtensionConfigConversion convertWriteLogActivity(
+            ActivityContext cx, VariableReference result, WriteLog writeLog) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment message = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                exprFrom("%s/**/<message>/*".formatted(result.varName())));
+        body.add(message);
+        cx.addLibraryImport(Library.LOG);
+        body.add(new CallStatement(new FunctionCall(LogConstants.LOG_INFO_FUNCTION,
+                List.of(new MethodCall(message.ref(), "toString", List.of())))));
+        return new ActivityExtensionConfigConversion(message.ref(), body);
     }
 
     private static ActivityExtensionConfigConversion convertHttpResponse(
@@ -765,6 +781,14 @@ final class ActivityConverter {
         static final String XSLT_TRANSFORM_FUNCTION = "xslt:transform";
 
         private XSLTConstants() {
+
+        }
+    }
+
+    static final class LogConstants {
+        static final String LOG_INFO_FUNCTION = "log:printInfo";
+
+        private LogConstants() {
 
         }
     }

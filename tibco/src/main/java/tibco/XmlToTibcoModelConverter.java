@@ -231,6 +231,7 @@ public final class XmlToTibcoModelConverter {
             case HTTP_RESPONSE -> new InlineActivity.HTTPResponse(element, name, inputBinding);
             case UNHANDLED -> new InlineActivity.UnhandledInlineActivity(element, name, inputBinding);
             case NULL -> new InlineActivity.NullActivity(element, name, inputBinding);
+            case WRITE_LOG -> new InlineActivity.WriteLog(element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
         };
     }
