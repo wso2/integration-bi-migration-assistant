@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json">
     <pd:name>Processes/Other.process</pd:name>
     <pd:startName>HTTP Receiver</pd:startName>
     <pd:returnBindings/>
@@ -163,6 +163,40 @@
             <pd:conditionType>always</pd:conditionType>
         </pd:transition>
     </pd:group>
+    <pd:activity name="Rest call">
+        <pd:type>com.tibco.plugin.json.activities.RestActivity</pd:type>
+        <pd:resourceType>ae.activities.RestActivity</pd:resourceType>
+        <pd:x>357</pd:x>
+        <pd:y>225</pd:y>
+        <config>
+            <enableProtocolUI>None</enableProtocolUI>
+            <restMethodUI>POST</restMethodUI>
+            <restResponseType>JSON</restResponseType>
+            <authChoiceUI>No Authentication</authChoiceUI>
+            <restURI>https://eieio.azurewebsites.net/schedulepolling/uploadschedule</restURI>
+        </config>
+        <pd:inputBindings>
+            <ns1:ActivityInput>
+                <ns1:Parameters>
+                    <Body>
+                        <Multipart>
+                            <name>
+                                <xsl:value-of select="&quot;schedule&quot;"/>
+                            </name>
+                            <filename>
+                                <xsl:value-of select="$Schedule-Poller/ns:EventSourceOuputTextClass/fileInfo/fileName"/>
+                            </filename>
+                            <content>
+                                <fileName>
+                                    <xsl:value-of select="concat($Schedule-Poller/ns:EventSourceOuputTextClass/fileInfo/location, &quot;\&quot;, $Schedule-Poller/ns:EventSourceOuputTextClass/fileInfo/fileName)"/>
+                                </fileName>
+                            </content>
+                        </Multipart>
+                    </Body>
+                </ns1:Parameters>
+            </ns1:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
     <pd:transition>
         <pd:from>Start</pd:from>
         <pd:to>HTTP Receiver</pd:to>

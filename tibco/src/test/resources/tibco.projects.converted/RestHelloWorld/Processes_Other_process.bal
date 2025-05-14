@@ -127,6 +127,61 @@ function Mapper_10(map<xml> context) returns xml|error {
     return var2;
 }
 
+function Rest_call(map<xml> context) returns xml|error {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Schedule-Poller"/>     <xsl:template name="Transform5" match="/">
+        <ns1:ActivityInput xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json">
+                    
+    <ns1:Parameters>
+                            
+        <Body>
+                                    
+            <Multipart>
+                                            
+                <name>
+                                                    
+                    <xsl:value-of select="&quot;schedule&quot;" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                                                
+                </name>
+                                            
+                <filename>
+                                                    
+                    <xsl:value-of select="$Schedule-Poller/root/ns:EventSourceOuputTextClass/fileInfo/fileName" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                                                
+                </filename>
+                                            
+                <content>
+                                                    
+                    <fileName>
+                                                            
+                        <xsl:value-of select="concat($Schedule-Poller/root/ns:EventSourceOuputTextClass/fileInfo/location, &quot;\&quot;, $Schedule-Poller/root/ns:EventSourceOuputTextClass/fileInfo/fileName)" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                                                        
+                    </fileName>
+                                                
+                </content>
+                                        
+            </Multipart>
+                                
+        </Body>
+                        
+    </ns1:Parameters>
+                
+</ns1:ActivityInput>
+
+    </xsl:template>
+</xsl:stylesheet>`, context);
+    xmlns "http://www.tibco.com/namespaces/tnt/plugins/json" as ns;
+    xml var2 = var1/**/<ns:Body>;
+    json var3 = xmlToJson(var2);
+    http:Client var4 = check new ("https://eieio.azurewebsites.net/schedulepolling/uploadschedule");
+    json var5 = check var4->post("/", var3);
+    xml var6 = check toXML(<map<json>>var5);
+    xml var7 = xml `<ns:RESTOutput><msg>${var6}</msg></ns:RESTOutput>`;
+    addToContext(context, "Rest call", var7);
+    return var7;
+}
+
 function SOAPSendReply(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
@@ -198,4 +253,5 @@ function start_Processes_Other_process(xml inputXML, map<xml> params) returns xm
 xmlns "http://xmlns.tibco.com/bw/process/2003" as pd;
 xmlns "http://www.w3.org/1999/XSL/Transform" as xsl;
 xmlns "http://www.tibco.com/pe/EngineTypes" as ns;
+xmlns "http://www.tibco.com/namespaces/tnt/plugins/json" as ns1;
 xmlns "http://www.w3.org/2001/XMLSchema" as xsd;

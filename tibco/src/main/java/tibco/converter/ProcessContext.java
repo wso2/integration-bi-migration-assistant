@@ -341,6 +341,10 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getRenderJsonFn();
     }
 
+    public String getToJsonFunction() {
+        return projectContext.getToJsonFunction();
+    }
+
     static final class DefaultClientDetails {
         final BallerinaModel.ModuleVar varDecl;
         final String method;

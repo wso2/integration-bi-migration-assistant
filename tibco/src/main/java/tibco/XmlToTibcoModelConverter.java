@@ -245,18 +245,20 @@ public final class XmlToTibcoModelConverter {
             case SOAP_SEND_RECEIVE -> parseSoapSendReceive(element, name, inputBinding);
             case SOAP_SEND_REPLY -> new InlineActivity.SOAPSendReply(element, name, inputBinding);
             case LOOP_GROUP -> parseLoopGroup(cx, element, name, inputBinding);
+            case REST -> parseREST(element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
         };
     }
 
     private static InlineActivity.SOAPSendReceive parseSoapSendReceive(Element element, String name,
-                                                                       Flow.Activity.InputBinding inputBinding) {
+            Flow.Activity.InputBinding inputBinding) {
         String endpointURL = getInlineActivityConfigValue(element, "endpointURL");
         Optional<String> soapAction = tryGetInlineActivityConfigValue(element, "soapAction");
         return new InlineActivity.SOAPSendReceive(element, name, inputBinding, soapAction, endpointURL);
     }
 
-    private static LoopGroup parseLoopGroup(ParseContext cx, Element element, String name, Flow.Activity.InputBinding inputBinding) {
+    private static LoopGroup parseLoopGroup(ParseContext cx, Element element, String name,
+            Flow.Activity.InputBinding inputBinding) {
         SourceExpression overExpr = parseSourceExpression(getInlineActivityConfigValue(element, "over"));
         Optional<String> iterationElementSlot = tryGetInlineActivityConfigValue(element, "iterationElementSlot");
         Optional<String> indexSlot = tryGetInlineActivityConfigValue(element, "indexSlot");
@@ -307,8 +309,22 @@ public final class XmlToTibcoModelConverter {
         return new SourceExpression(variable, Optional.of(path));
     }
 
+    private static InlineActivity.REST parseREST(Element element, String name,
+            Flow.Activity.InputBinding inputBinding) {
+        String authChoice = getInlineActivityConfigValue(element, "authChoiceUI");
+        if (!authChoice.equals("No Authentication")) {
+            throw new ParserException("Authentication in REST activities not supported", element);
+        }
+        InlineActivity.REST.Method method = InlineActivity.REST.Method.from(
+                getInlineActivityConfigValue(element, "restMethodUI"));
+        InlineActivity.REST.ResponseType responseType = InlineActivity.REST.ResponseType.from(
+                getInlineActivityConfigValue(element, "restResponseType"));
+        String url = getInlineActivityConfigValue(element, "restURI");
+        return new InlineActivity.REST(element, name, inputBinding, method, responseType, url);
+    }
+
     private static InlineActivity.CallProcess parseCallProcess(Element element, String name,
-                                                               Flow.Activity.InputBinding inputBinding) {
+            Flow.Activity.InputBinding inputBinding) {
         String processName = getInlineActivityConfigValue(element, "processName");
         return new InlineActivity.CallProcess(element, name, inputBinding, processName);
     }
@@ -324,7 +340,7 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static XMLParseActivity parseXmlParseActivity(Element element, String name,
-                                                          Flow.Activity.InputBinding inputBinding) {
+            Flow.Activity.InputBinding inputBinding) {
         Element config = getFirstChildWithTag(element, "config");
         String inputStyle = getFirstChildWithTag(config, "inputStyle").getTextContent();
         if (!inputStyle.equalsIgnoreCase("text")) {
@@ -334,7 +350,7 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static XMLRenderActivity parseXmlRenderActivity(Element element, String name,
-                                                            Flow.Activity.InputBinding inputBinding) {
+            Flow.Activity.InputBinding inputBinding) {
         // TODO: extract this to a method
         Element config = getFirstChildWithTag(element, "config");
         String renderAsText = getFirstChildWithTag(config, "renderAsText").getTextContent();
@@ -375,15 +391,15 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static InlineActivity.HttpEventSource parseHttpEventSource(String name,
-                                                                       Flow.Activity.InputBinding inputBinding,
-                                                                       Element element) {
+            Flow.Activity.InputBinding inputBinding,
+            Element element) {
         String sharedChannel = getInlineActivityConfigValue(element, "sharedChannel");
         return new InlineActivity.HttpEventSource(element, name, sharedChannel, inputBinding);
     }
 
     private static InlineActivity.MapperActivity parseMapperActivity(String name,
-                                                                     Flow.Activity.InputBinding inputBinding,
-                                                                     Element element) {
+            Flow.Activity.InputBinding inputBinding,
+            Element element) {
         return new InlineActivity.MapperActivity(element, name, inputBinding);
     }
 
@@ -618,7 +634,7 @@ public final class XmlToTibcoModelConverter {
     }
 
     private record ActivityInputOutput(List<Flow.Activity.InputBinding> inputBindings,
-                                       List<Flow.Activity.Target> targets) {
+            List<Flow.Activity.Target> targets) {
 
     }
 
@@ -1010,7 +1026,7 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static TibcoModel.Variable.@NotNull PropertyVariable parsePropertyVariable(Element element, String name,
-                                                                                       String type) {
+            String type) {
         Optional<Element> from = tryGetFirstChildWithTag(element, "from");
         if (from.isPresent()) {
             Optional<Element> literal = tryGetFirstChildWithTag(from.get(), "literal");
@@ -1093,7 +1109,7 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static PartnerLink.@NotNull RestPartnerLink finishParsingRestBinding(Element binding,
-                                                                                 String name) {
+            String name) {
         String basePath = binding.getAttribute("basePath");
         String path = binding.getAttribute("path");
         var connector = PartnerLink.Binding.Connector.from(binding.getAttribute("connector"));
@@ -1276,7 +1292,7 @@ public final class XmlToTibcoModelConverter {
         String basePath = tryGetAttributeIgnoringNamespace(element, "bw.rest.basepath").orElse("/");
         Element operation = getFistMatchingChild(element,
                 (child) -> getTagNameWithoutNameSpace(child).equals("operation")).orElseThrow(
-                () -> new ParserException("Operation not found in portType", element));
+                        () -> new ParserException("Operation not found in portType", element));
         Type.WSDLDefinition.PortType.Operation portOperation = parsePortOperation(operation);
         return new Type.WSDLDefinition.PortType(name, apiPath, basePath, portOperation);
     }
