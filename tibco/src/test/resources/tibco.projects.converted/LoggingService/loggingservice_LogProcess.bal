@@ -6,7 +6,8 @@ function activityExtension(map<xml> context) returns xml|error {
     xml var0 = context.get("End-input");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns2="http://www.example.org/LogResult" version="2.0"><xsl:template name="End-input" match="/"><tns2:result><xsl:value-of select="'Logging Done'"/></tns2:result></xsl:template></xsl:stylesheet>`, context);
-    return var1;
+    xml var2 = xml `<root>${var1}</root>`;
+    return var2;
 }
 
 function activityExtension_2(map<xml> context) returns xml|error {
@@ -34,8 +35,9 @@ function activityExtension_4(map<xml> context) returns xml|error {
     xml var0 = context.get("RenderXml-input");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://www.example.org/LogSchema" xmlns:tns="http://www.tibco.com/xml/render/example" version="2.0"><xsl:param name="Start"/><xsl:template name="RenderXml-input" match="/"><tns:InputElement><level><xsl:value-of select="$Start/root/tns1:level"/></level><message><xsl:value-of select="$Start/root/tns1:message"/></message><logger><xsl:value-of select="$Start/root/tns1:loggerName"/></logger><timestamp><xsl:value-of select="current-dateTime()"/></timestamp></tns:InputElement></xsl:template></xsl:stylesheet>`, context);
-    addToContext(context, "RenderXml", var1);
-    return var1;
+    xml var2 = xml `<root>${var1}</root>`;
+    addToContext(context, "RenderXml", var2);
+    return var2;
 }
 
 function activityExtension_5(map<xml> context) returns xml|error {

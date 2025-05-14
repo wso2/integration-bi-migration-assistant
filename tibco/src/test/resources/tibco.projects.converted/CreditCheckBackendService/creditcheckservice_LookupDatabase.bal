@@ -55,7 +55,8 @@ function activityExtension_8(map<xml> context) returns xml|error {
         </tns2:Response>
     </xsl:template>
 </xsl:stylesheet>`, context);
-    return var1;
+    xml var2 = xml `<root>${var1}</root>`;
+    return var2;
 }
 
 function activityExtension_9(map<xml> context) returns xml|error {

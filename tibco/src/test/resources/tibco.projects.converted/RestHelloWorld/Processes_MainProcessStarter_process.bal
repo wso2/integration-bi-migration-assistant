@@ -21,8 +21,9 @@ service on proj_annon_var0 {
 
 function HTTP_Receiver(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
-    addToContext(context, "HTTP Receiver", var0);
-    return var0;
+    xml var1 = xml `<root>${var0}</root>`;
+    addToContext(context, "HTTP Receiver", var1);
+    return var1;
 }
 
 function InvokeProcess(map<xml> context) returns xml|error {
@@ -80,8 +81,29 @@ function Mapper(map<xml> context) returns xml|error {
 
     </xsl:template>
 </xsl:stylesheet>`, context);
-    addToContext(context, "Mapper", var1);
-    return var1;
+    xml var2 = xml `<root>${var1}</root>`;
+    addToContext(context, "Mapper", var2);
+    return var2;
+}
+
+function Parse(map<xml> context) returns xml|error {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Render"/>     <xsl:template name="Transform6" match="/">
+        <xmlString>
+                    
+    <xsl:value-of select="$Render/root/xmlString" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                
+</xmlString>
+
+    </xsl:template>
+</xsl:stylesheet>`, context);
+    xml var2 = var1/<xmlString>/*;
+    string var3 = var2.toString();
+    xml var4 = check xml:fromString(var3);
+    xml var5 = xml `<root>${var4}</root>`;
+    addToContext(context, "Parse", var5);
+    return var5;
 }
 
 function Read_file(map<xml> context) returns xml|error {
@@ -110,6 +132,20 @@ function Read_file(map<xml> context) returns xml|error {
 </ns:ReadActivityOutputTextClass>`;
     addToContext(context, "Read file", var2);
     return var2;
+}
+
+function Render(map<xml> context) returns xml|error {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform5" match="/">
+        <xsl:copy-of select="$Mapper" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+
+    </xsl:template>
+</xsl:stylesheet>`, context);
+    string var2 = var1.toBalString();
+    xml var3 = xml `<root>/<xmlString>${var2}</xmlString></root>`;
+    addToContext(context, "Render", var3);
+    return var3;
 }
 
 function Write_File(map<xml> context) returns xml|error {
@@ -154,7 +190,9 @@ function scope0ActivityRunner(map<xml> cx) returns xml|error {
     xml result3 = check InvokeProcess(cx);
     xml result4 = check Write_File(cx);
     xml result5 = check Read_file(cx);
-    return result5;
+    xml result6 = check Render(cx);
+    xml result7 = check Parse(cx);
+    return result7;
 }
 
 function scope0FaultHandler(error err, map<xml> cx) returns xml {

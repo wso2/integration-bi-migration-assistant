@@ -25,6 +25,8 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import tibco.TibcoModel.PartnerLink;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLRenderActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.Transition;
 import tibco.TibcoModel.Scope;
 import tibco.TibcoModel.Scope.Flow;
@@ -235,6 +237,8 @@ public final class XmlToTibcoModelConverter {
             case CALL_PROCESS -> parseCallProcess(element, name, inputBinding);
             case FILE_WRITE -> parseFileWrite(element, name, inputBinding);
             case FILE_READ -> parseFileRead(element, name, inputBinding);
+            case XML_RENDER_ACTIVITY -> parseXmlRenderActivity(element, name, inputBinding);
+            case XML_PARSE_ACTIVITY -> parseXmlParseActivity(element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
         };
     }
@@ -244,6 +248,7 @@ public final class XmlToTibcoModelConverter {
         String processName = getInlineActivityConfigValue(element, "processName");
         return new InlineActivity.CallProcess(element, name, inputBinding, processName);
     }
+
     private static InlineActivity.FileRead parseFileRead(
             Element element, String name, Flow.Activity.InputBinding inputBinding) {
         Element config = getFirstChildWithTag(element, "config");
@@ -252,6 +257,25 @@ public final class XmlToTibcoModelConverter {
             throw new ParserException("Unsupported encoding" + encoding, element);
         }
         return new InlineActivity.FileRead(element, name, inputBinding, encoding);
+    }
+
+    private static XMLParseActivity parseXmlParseActivity(Element element, String name, Flow.Activity.InputBinding inputBinding) {
+        Element config = getFirstChildWithTag(element, "config");
+        String inputStyle = getFirstChildWithTag(config, "inputStyle").getTextContent();
+        if (!inputStyle.equalsIgnoreCase("text")) {
+            throw new ParserException("Unsupported inputStyle value: " + inputStyle, element);
+        }
+        return new XMLParseActivity(element, name, inputBinding);
+    }
+
+    private static XMLRenderActivity parseXmlRenderActivity(Element element, String name, Flow.Activity.InputBinding inputBinding) {
+        // TODO: extract this to a method
+        Element config = getFirstChildWithTag(element, "config");
+        String renderAsText = getFirstChildWithTag(config, "renderAsText").getTextContent();
+        if (!renderAsText.equalsIgnoreCase("text")) {
+            throw new ParserException("Unsupported renderAsText value: " + renderAsText, element);
+        }
+        return new XMLRenderActivity(element, name, inputBinding);
     }
 
     private static InlineActivity.FileWrite parseFileWrite(

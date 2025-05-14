@@ -41,6 +41,8 @@ import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.FileWrite
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HTTPResponse;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.WriteLog;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLRenderActivity;
 import tibco.TibcoModel.Scope.Flow.Activity;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension;
 import tibco.TibcoModel.Scope.Flow.Activity.CatchAll;
@@ -160,19 +162,21 @@ final class ActivityConverter {
         }
         ActivityExtensionConfigConversion conversion = switch (inlineActivity) {
             case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource ignored ->
-                emptyExtensionConversion(result);
+                emptyExtensionConversion(cx, result);
             case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.MapperActivity ignored ->
-                emptyExtensionConversion(result);
+                emptyExtensionConversion(cx, result);
             case UnhandledInlineActivity unhandledInlineActivity ->
                 convertUnhandledActivity(cx, result, unhandledInlineActivity);
             case AssignActivity assignActivity -> convertAssignActivity(cx, result, assignActivity);
             case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.NullActivity ignored ->
-                emptyExtensionConversion(result);
+                emptyExtensionConversion(cx, result);
             case HTTPResponse httpResponse -> convertHttpResponse(cx, result, httpResponse);
             case WriteLog writeLog -> convertWriteLogActivity(cx, result, writeLog);
             case CallProcess callProcess -> convertCallProcess(cx, result, callProcess);
             case FileWrite fileWrite -> convertFileWrite(cx, result, fileWrite);
             case FileRead fileRead -> convertFileRead(cx, result, fileRead);
+            case XMLRenderActivity xmlRenderActivity -> convertXmlRenderActivity(cx, result, xmlRenderActivity);
+            case XMLParseActivity xmlParseActivity -> convertXmlParseActivity(cx, result, xmlParseActivity);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
@@ -227,6 +231,36 @@ final class ActivityConverter {
         body.add(new CallStatement(new Check(new FunctionCall(IOConstants.FILE_WRITE_FUNCTION,
                 List.of(fileName.ref(), textContent.ref(), mode)))));
         return new ActivityExtensionConfigConversion(result, body);
+    }
+
+    private static ActivityExtensionConfigConversion convertXmlParseActivity(
+            ActivityContext cx, VariableReference result, XMLParseActivity xmlParseActivity) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment xmlString = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                common.ConversionUtils.exprFrom("%s/<xmlString>/*".formatted(result.varName())));
+        body.add(xmlString);
+        VarDeclStatment asString = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                new MethodCall(xmlString.ref(), "toString", List.of()));
+        body.add(asString);
+        VarDeclStatment xmlValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(new FunctionCall("xml:fromString", List.of(asString.ref()))));
+        body.add(xmlValue);
+        VarDeclStatment wrappedValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("<root>${%s}</root>".formatted(xmlValue.ref())));
+        body.add(wrappedValue);
+        return new ActivityExtensionConfigConversion(wrappedValue.ref(), body);
+    }
+
+    private static ActivityExtensionConfigConversion convertXmlRenderActivity(
+            ActivityContext cx, VariableReference result, XMLRenderActivity xmlRenderActivity) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment stringValue = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                new MethodCall(result, "toBalString", List.of()));
+        body.add(stringValue);
+        VarDeclStatment res = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("<root>/<xmlString>${%s}</xmlString></root>".formatted(stringValue.ref())));
+        body.add(res);
+        return new ActivityExtensionConfigConversion(res.ref(), body);
     }
 
     private static ActivityExtensionConfigConversion convertWriteLogActivity(
@@ -413,17 +447,17 @@ final class ActivityConverter {
 
         ActivityExtension.Config config = activityExtension.config();
         ActivityExtensionConfigConversion conversion = switch (config) {
-            case ActivityExtension.Config.End ignored -> emptyExtensionConversion(result);
+            case ActivityExtension.Config.End ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.HTTPSend httpSend -> createHttpSend(cx, result, httpSend);
             case ActivityExtension.Config.JsonOperation jsonOperation -> createJsonOperation(cx, result, jsonOperation,
                     activityExtension.outputVariable().orElseThrow(
                             () -> new IllegalStateException("json operation should have output variable")));
             case ActivityExtension.Config.SQL sql -> createSQLOperation(cx, result, sql);
-            case ActivityExtension.Config.SendHTTPResponse ignored -> emptyExtensionConversion(result);
+            case ActivityExtension.Config.SendHTTPResponse ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.FileWrite fileWrite -> createFileWriteOperation(cx, result, fileWrite);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
-            case ActivityExtension.Config.RenderXML ignored -> emptyExtensionConversion(result);
-            case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(result);
+            case ActivityExtension.Config.RenderXML ignored -> emptyExtensionConversion(cx, result);
+            case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.AccumulateEnd accumulateEnd -> createAccumulateEnd(cx, accumulateEnd,
                     activityExtension.outVariableName().orElseThrow(
                             () -> new IllegalStateException("accumulate end should have output variable")));
@@ -493,8 +527,11 @@ final class ActivityConverter {
         return new ActivityExtensionConfigConversion(jsonResult.ref(), List.of(jsonResult));
     }
 
-    private static @NotNull ActivityExtensionConfigConversion emptyExtensionConversion(VariableReference result) {
-        return new ActivityExtensionConfigConversion(result, List.of());
+    private static @NotNull ActivityExtensionConfigConversion emptyExtensionConversion(ActivityContext cx,
+            VariableReference result) {
+        VarDeclStatment wrapped = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("<root>${%s}</root>".formatted(result.varName())));
+        return new ActivityExtensionConfigConversion(wrapped.ref(), List.of(wrapped));
     }
 
     private static ActivityExtensionConfigConversion createLogOperation(ActivityContext cx, VariableReference result,

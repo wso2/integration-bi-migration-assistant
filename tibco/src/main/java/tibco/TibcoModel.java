@@ -188,6 +188,8 @@ public class TibcoModel {
                     CALL_PROCESS,
                     FILE_WRITE,
                     FILE_READ,
+                    XML_RENDER_ACTIVITY,
+                    XML_PARSE_ACTIVITY,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
@@ -200,11 +202,13 @@ public class TibcoModel {
                                         new LookUpData("AssignActivity", ASSIGN),
                                         new LookUpData("NullActivity", NULL),
                                         new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
+                                        new LookUpData("XMLRendererActivity", XML_RENDER_ACTIVITY),
+                                        new LookUpData("XMLParseActivity", XML_PARSE_ACTIVITY),
                                         new LookUpData("WriteToLogActivity", WRITE_LOG),
                                         new LookUpData("FileReadActivity", FILE_READ),
                                         new LookUpData("FileWriteActivity", FILE_WRITE),
-                                        new LookUpData("CallProcessActivity", CALL_PROCESS)
-                                ).filter(each -> type.endsWith(each.suffix)).findFirst()
+                                        new LookUpData("CallProcessActivity", CALL_PROCESS))
+                                .filter(each -> type.endsWith(each.suffix)).findFirst()
                                 .map(LookUpData::activityType).orElse(UNHANDLED);
                     }
                 }
@@ -252,6 +256,40 @@ public class TibcoModel {
                     @Override
                     public InlineActivityType type() {
                         return InlineActivityType.FILE_WRITE;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record XMLParseActivity(Element element, String name,
+                                        InputBinding inputBinding) implements InlineActivity {
+                    public XMLParseActivity {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.XML_PARSE_ACTIVITY;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record XMLRenderActivity(Element element, String name,
+                        InputBinding inputBinding) implements InlineActivity {
+                    public XMLRenderActivity {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.XML_RENDER_ACTIVITY;
                     }
 
                     @Override

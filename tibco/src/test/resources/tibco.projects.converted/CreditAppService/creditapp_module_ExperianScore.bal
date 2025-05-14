@@ -25,7 +25,8 @@ function activityExtension(map<xml> context) returns xml|error {
     xml var0 = context.get("End-input");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://tns.tibco.com/bw/json/1535671685533" version="2.0"><xsl:param name="ParseJSON"/><xsl:template name="End-input" match="/"><tns3:ExperianResponseSchemaElement><xsl:if test="$ParseJSON/root/tns3:fiCOScore"><tns3:fiCOScore><xsl:value-of select="$ParseJSON/root/tns3:fiCOScore"/></tns3:fiCOScore></xsl:if><xsl:if test="$ParseJSON/root/tns3:rating"><tns3:rating><xsl:value-of select="$ParseJSON/root/tns3:rating"/></tns3:rating></xsl:if><xsl:if test="$ParseJSON/root/tns3:noOfInquiries"><tns3:noOfInquiries><xsl:value-of select="$ParseJSON/root/tns3:noOfInquiries"/></tns3:noOfInquiries></xsl:if></tns3:ExperianResponseSchemaElement></xsl:template></xsl:stylesheet>`, context);
-    return var1;
+    xml var2 = xml `<root>${var1}</root>`;
+    return var2;
 }
 
 function activityExtension_2(map<xml> context) returns xml|error {
