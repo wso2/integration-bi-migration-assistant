@@ -3,6 +3,7 @@
     <test name="Tibco Tests">
         <classes>
             <class name="tibco.converter.TibcoProjectConversionTest"/>
+            <class name="tibco.XmlToModelTests"/>
         </classes>
     </test>
 </suite>

@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -65,12 +66,14 @@ public class ProjectContext {
     private final Map<String, BallerinaModel.ModuleVar> utilityVars = new HashMap<>();
     private final Set<Intrinsics> utilityIntrinsics = new HashSet<>();
     private final Set<ComptimeFunction> utilityCompTimeFunctions = new HashSet<>();
+    private final Map<String, String> processClients = new HashMap<>();
 
     private String toXMLFunction = null;
     private String jsonToXMLFunction = null;
     private String logFunction = null;
     private int nextPort = 8080;
     private int typeCount = 0;
+    private int annonVarCount = 0;
 
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
     private static final Logger logger = ProjectConverter.LOGGER;
@@ -379,6 +382,14 @@ public class ProjectContext {
         return process;
     }
 
+    public String getAnonName() {
+        return "proj_annon_var" + annonVarCount++;
+    }
+
+    public VariableReference getProcessClient(String processName) {
+        return new VariableReference(Objects.requireNonNull(processClients.get(processName)));
+    }
+
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
 
         FunctionData {
@@ -392,6 +403,14 @@ public class ProjectContext {
         String varName = generatedResources.get(sharedResourcePropertyName);
         if (varName == null) {
             throw new RuntimeException("Failed to find db client for " + sharedResourcePropertyName);
+        }
+        return new BallerinaModel.Expression.VariableReference(varName);
+    }
+
+    public VariableReference httpListener(String name) {
+        String varName = generatedResources.get(name);
+        if (varName == null) {
+            throw new RuntimeException("Failed to find listener for " + name);
         }
         return new BallerinaModel.Expression.VariableReference(varName);
     }
@@ -423,6 +442,10 @@ public class ProjectContext {
         utilityIntrinsics.add(Intrinsics.XML_PARSER);
         utilityIntrinsics.add(Intrinsics.RENDER_JSON);
         return Intrinsics.RENDER_JSON.name;
+    }
+
+    public void registerProcessClient(String processName, String clientName) {
+        processClients.put(processName, clientName);
     }
 
     private static class ContextWrapperForTypeFile implements ContextWithFile {

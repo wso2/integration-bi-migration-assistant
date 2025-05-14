@@ -21,9 +21,9 @@ package tibco.xslt;
 public class ReplaceVariableReference implements Transform {
 
     @Override
-    public String transform(TransformContext cx, String path) {
+    public String transform(TransformContext cx, String content) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("bw:getModuleProperty\\('([^']+)'\\)");
-        java.util.regex.Matcher matcher = pattern.matcher(path);
+        java.util.regex.Matcher matcher = pattern.matcher(content);
         StringBuilder result = new StringBuilder();
 
         while (matcher.find()) {

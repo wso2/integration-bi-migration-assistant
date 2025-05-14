@@ -1,12 +1,12 @@
 ## Tool Overview
 
-The `migrate-tibco` tool helps you migrate existing TIBCO BusinessWorks integrations to Ballerina. It accepts a TIBCO BusinessWorks project directory or a single `bwp` file as input and converts it to equivalent Ballerina code.
+The `migrate-tibco` tool helps you migrate existing TIBCO BusinessWorks integrations to Ballerina. It accepts a TIBCO BusinessWorks project directory or a single process file as input and converts it to equivalent Ballerina code.
 
 ## Installation
 
 Execute the command below to pull the `migrate-tibco` tool from Ballerina Central
 ```bash
-$ bal tool pull migrate-tibco:0.9.0
+$ bal tool pull migrate-tibco
 ```
 
 ## Usage
@@ -19,10 +19,10 @@ $ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directo
 
 ### Parameters
 
-- **source-project-directory-or-file** - Required. The TIBCO BusinessWorks project directory or `bwp` file to migrate.
+- **source-project-directory-or-file** - Required. The TIBCO BusinessWorks project directory or process file to migrate.
 - **-o or --out** - *Optional*. The directory where the new Ballerina package will be created. If the directory does not exist tool will create it for you. If not provided,
   - If source-project-directory-or-file is a directory it will create new directory named ${source-project-directory-or-file}_converted in the root of source-project-directory-or-file
-  - if source-project-directory-or-file is a file a new `bal` will be created at the same location
+  - if source-project-directory-or-file is a file it will create a new directory named ${root}_converted in the parent of the root directory where root is the directory containing the given file.
 
 ## Examples
 
@@ -42,26 +42,26 @@ $ bal migrate-tibco path/to/tibco-project --out path/to/output-dir
 
 This will create a new Ballerina package inside `path/to/output-dir`. If `path/to/output-dir` doesn't exist tool will create it for you. If the output path already exists tool will simply overwrite any file as needed without purging the directory.
 
-### Convert a standalone bwp file
+### Convert a standalone process file
 
 ```bash
-$ bal migrate-tibco path/to/bwp-file
+$ bal migrate-tibco path/to/process-file
 ```
 
-This will create a new `bal` file in the same directory as the `bwp` file.
+This will create a new Ballerina package in the root directory of directory containing the file.
 
-### Convert a standalone bwp file with a custom output path
+### Convert a standalone process file with a custom output path
 
 ```bash
-$ bal migrate-tibco path/to/bwp-file --out path/to/bal-file
+$ bal migrate-tibco path/to/process-file --out path/to/output-dir
 ```
 
-This will create a new `bal` file at `path/to/bal-file`. Note if the file already exists this will overwrite the file.
+This will create a new Ballerina package at `path/to/bal-file`. If the output path already exists tool will simply overwrite any file as needed without 
+purging the directory.
 
 ## Output
 
-- When processing a `bwp` file: Generates a standalone `bal` file with the same name as the input file but with a `bal` extension if no output is given otherwise generate `bal` file at the output path
-- When processing a TIBCO BusinessWorks project directory: Creates a new Ballerina package with `_converted` suffix in the parent directory.
+- Creates a new Ballerina package with `_converted` suffix in the parent directory.
 
 ### Migration summary
 
@@ -69,7 +69,7 @@ This will create a new `bal` file at `path/to/bal-file`. Note if the file alread
 
 ### Unhandled activities
 
-- If the tool encounters any activity which it does not know how to convert it will generate a placeholder "unhandled" function with a comment containing the relevant part of the `bwp` file.
+- If the tool encounters any activity which it does not know how to convert it will generate a placeholder "unhandled" function with a comment containing the relevant part of the process file.
 
 ```
 function unhandled(map<xml> context) returns xml|error {

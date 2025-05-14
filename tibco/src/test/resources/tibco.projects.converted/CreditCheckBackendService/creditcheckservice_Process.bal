@@ -199,3 +199,17 @@ function start_creditcheckservice_Process(()|Request input, map<xml> params = {}
     Response result = convertToResponse(xmlResult);
     return result;
 }
+
+xmlns "http://www.tibco.com/bpel/2007/extensions" as tibex;
+xmlns "http://www.tibco.com/bw/process/info" as info;
+xmlns "http://docs.oasis-open.org/ns/opencsa/sca/200912" as sca;
+xmlns "http://docs.oasis-open.org/wsbpel/2.0/process/executable" as bpws;
+xmlns "http://www.w3.org/2001/XMLSchema" as xsd;
+xmlns "http://ns.tibco.com/bw/property" as tibprop;
+xmlns "http://xmlns.example.com/20180831151624PLT" as ns0;
+xmlns "http://tns.tibco.com/bw/palette/internal/activityerror+c04dc831-5560-484a-a8f6-7ad811f4006c" as ns1;
+xmlns "/T1535753828744Converted/JsonSchema" as ns4;
+xmlns "http://www.tibco.com/pe/EngineTypes" as ns;
+xmlns "http://www.tibco.com/pe/WriteToLogActivitySchema" as ns2;
+xmlns "http://schemas.tibco.com/bw/plugins/basic/6.0/Exceptions" as ns5;
+xmlns "http://www.example.com/namespaces/tns/1535845694732" as ns3;

@@ -20,6 +20,7 @@ package tibco;
 
 import org.w3c.dom.Element;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 public class TibcoModel {
 
@@ -69,6 +71,14 @@ public class TibcoModel {
 
         }
 
+        record HTTPSharedResource(String name, String host, int port) implements Resource {
+
+            @Override
+            public Collection<SubstitutionBinding> substitutionBindings() {
+                return List.of();
+            }
+        }
+
         record HTTPClientResource(String name, Optional<Integer> port,
                                   Collection<SubstitutionBinding> substitutionBindings)
                 implements Resource {
@@ -90,10 +100,310 @@ public class TibcoModel {
         }
     }
 
-    public record Process(String name, Collection<Type> types, ProcessInfo processInfo,
-                          Optional<ProcessInterface> processInterface,
+    // TODO: either we have scope, flow stuff or transition groups. Need to model
+    // this properly
+    public record Process(String name, Collection<NameSpace> nameSpaces, Collection<Type> types,
+                          ProcessInfo processInfo, Optional<ProcessInterface> processInterface,
                           Optional<ProcessTemplateConfigurations> processTemplateConfigurations,
-                          Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope) {
+                          Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope,
+                          // TODO: this should be an optional
+                          ExplicitTransitionGroup transitionGroup) {
+
+        public record ExplicitTransitionGroup(List<InlineActivity> activities, List<Transition> transitions,
+                                              InlineActivity startActivity,
+                                              Optional<Scope.Flow.Activity.Expression.XSLT> returnBindings) {
+
+            ExplicitTransitionGroup() {
+                this(null);
+            }
+
+            ExplicitTransitionGroup(InlineActivity startActivity) {
+                this(List.of(), List.of(), startActivity, Optional.empty());
+            }
+
+            public ExplicitTransitionGroup {
+                activities = Collections.unmodifiableList(activities);
+                transitions = Collections.unmodifiableList(transitions);
+            }
+
+            ExplicitTransitionGroup append(InlineActivity activity) {
+                List<InlineActivity> newActivities = new ArrayList<>(activities);
+                newActivities.add(activity);
+                return new ExplicitTransitionGroup(newActivities, transitions, startActivity, returnBindings);
+            }
+
+            ExplicitTransitionGroup append(Transition transition) {
+                List<Transition> newTransitions = new ArrayList<>(transitions);
+                newTransitions.add(transition);
+                return new ExplicitTransitionGroup(activities, newTransitions, startActivity, returnBindings);
+            }
+
+            ExplicitTransitionGroup setStartActivity(InlineActivity startActivity) {
+                List<InlineActivity> remainingActivities = activities.stream()
+                        .filter(each -> !each.equals(startActivity)).toList();
+                return new ExplicitTransitionGroup(remainingActivities, transitions, startActivity, returnBindings);
+            }
+
+            ExplicitTransitionGroup setReturnBindings(Scope.Flow.Activity.Expression.XSLT expression) {
+                return new ExplicitTransitionGroup(activities, transitions, startActivity, Optional.of(expression));
+            }
+
+            public ExplicitTransitionGroup resolve() {
+                if (startActivity != null) {
+                    return this;
+                }
+                if (activities.isEmpty()) {
+                    return null;
+                }
+                String startActivityName = transitions.stream()
+                        .filter(transition -> transition.from().equalsIgnoreCase("start"))
+                        .findFirst().map(Transition::to)
+                        .orElseThrow(() -> new IllegalStateException("failed to find start activity"));
+                InlineActivity startActivity = activities.stream()
+                        .filter(each -> each.name().equals(startActivityName))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalStateException("no such activity" + startActivityName));
+                return this.setStartActivity(startActivity);
+            }
+
+            public record Transition(String from, String to) {
+            }
+
+            public sealed interface InlineActivity extends Scope.Flow.Activity {
+                String name();
+
+                InlineActivityType type();
+
+                boolean hasInputBinding();
+
+                Scope.Flow.Activity.InputBinding inputBinding();
+
+                enum InlineActivityType {
+                    ASSIGN,
+                    HTTP_EVENT_SOURCE,
+                    HTTP_RESPONSE,
+                    UNHANDLED,
+                    NULL,
+                    WRITE_LOG,
+                    CALL_PROCESS,
+                    FILE_WRITE,
+                    FILE_READ,
+                    XML_RENDER_ACTIVITY,
+                    XML_PARSE_ACTIVITY,
+                    MAPPER;
+
+                    public static InlineActivityType parse(String type) {
+                        record LookUpData(String suffix, InlineActivityType activityType) {
+
+                        }
+                        return Stream.of(
+                                        new LookUpData("MapperActivity", MAPPER),
+                                        new LookUpData("HTTPEventSource", HTTP_EVENT_SOURCE),
+                                        new LookUpData("AssignActivity", ASSIGN),
+                                        new LookUpData("NullActivity", NULL),
+                                        new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
+                                        new LookUpData("XMLRendererActivity", XML_RENDER_ACTIVITY),
+                                        new LookUpData("XMLParseActivity", XML_PARSE_ACTIVITY),
+                                        new LookUpData("WriteToLogActivity", WRITE_LOG),
+                                        new LookUpData("FileReadActivity", FILE_READ),
+                                        new LookUpData("FileWriteActivity", FILE_WRITE),
+                                        new LookUpData("CallProcessActivity", CALL_PROCESS))
+                                .filter(each -> type.endsWith(each.suffix)).findFirst()
+                                .map(LookUpData::activityType).orElse(UNHANDLED);
+                    }
+                }
+
+                record CallProcess(Element element, String name, InputBinding inputBinding,
+                                   String processName) implements InlineActivity {
+                    public CallProcess {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.CALL_PROCESS;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record FileRead(Element element, String name, InputBinding inputBinding,
+                                String encoding) implements InlineActivity {
+                    public FileRead {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.FILE_READ;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record FileWrite(Element element, String name, InputBinding inputBinding, String encoding,
+                                 boolean append) implements InlineActivity {
+                    public FileWrite {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.FILE_WRITE;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record XMLParseActivity(Element element, String name,
+                                        InputBinding inputBinding) implements InlineActivity {
+                    public XMLParseActivity {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.XML_PARSE_ACTIVITY;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record XMLRenderActivity(Element element, String name,
+                        InputBinding inputBinding) implements InlineActivity {
+                    public XMLRenderActivity {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.XML_RENDER_ACTIVITY;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record WriteLog(Element element, String name, InputBinding inputBinding) implements InlineActivity {
+                    public WriteLog {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.WRITE_LOG;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record HTTPResponse(Element element, String name, InputBinding inputBinding) implements InlineActivity {
+                    public HTTPResponse {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.HTTP_RESPONSE;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record NullActivity(Element element, String name, InputBinding inputBinding) implements InlineActivity {
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.NULL;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
+                    }
+                }
+
+                record UnhandledInlineActivity(Element element, String name,
+                                               InputBinding inputBinding) implements InlineActivity {
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.UNHANDLED;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
+                    }
+                }
+
+                record MapperActivity(Element element, String name,
+                                      Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
+                    public MapperActivity {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.MAPPER;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record AssignActivity(Element element, String name, String variableName,
+                                      InputBinding inputBinding) implements InlineActivity {
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.ASSIGN;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
+                    }
+                }
+
+                record HttpEventSource(Element element, String name, String sharedChannel,
+                                       Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.HTTP_EVENT_SOURCE;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
+                    }
+                }
+
+            }
+        }
 
         @Override
         public boolean equals(Object obj) {
@@ -109,9 +419,6 @@ public class TibcoModel {
         }
 
         public Process {
-            if (scope == null) {
-                throw new IllegalArgumentException("Scope cannot be null");
-            }
             if (name == null) {
                 throw new IllegalArgumentException("Name cannot be null");
             }
@@ -313,8 +620,8 @@ public class TibcoModel {
                                     List<Parameter> parameters) {
 
                 public Operation(Method method, RequestEntityProcessing requestEntityProcessing,
-                                 MessageStyle requestStyle, MessageStyle responseStyle, Format clientFormat,
-                                 Format clientRequestFormat, List<Parameter> parameters) {
+                        MessageStyle requestStyle, MessageStyle responseStyle, Format clientFormat,
+                        Format clientRequestFormat, List<Parameter> parameters) {
                     this(method, Optional.of(requestEntityProcessing), Optional.of(requestStyle),
                             Optional.of(responseStyle), Optional.of(clientFormat), Optional.of(clientRequestFormat),
                             parameters);
@@ -362,11 +669,9 @@ public class TibcoModel {
             Scope scope();
         }
 
-
         public record Sequence(String name, List<Flow.Activity> activities) {
 
         }
-
 
         public record Flow(String name, Collection<Link> links, List<Activity> activities) {
 
@@ -375,7 +680,6 @@ public class TibcoModel {
                 assert links != null;
                 assert activities != null;
             }
-
 
             public record Link(String name) {
 
@@ -397,6 +701,7 @@ public class TibcoModel {
                 sealed interface ActivityWithOutput extends Activity {
                     Optional<String> outVariableName();
                 }
+
                 sealed interface ActivityWithScope extends Activity {
 
                     Scope scope();
@@ -414,7 +719,27 @@ public class TibcoModel {
                 sealed interface Expression {
 
                     record XSLT(String expression) implements Expression, ValueSource {
+                        public XSLT {
+                            assert expression != null;
+                        }
 
+                        @Override
+                        public boolean equals(Object o) {
+                            if (this == o) {
+                                return true;
+                            }
+                            if (!(o instanceof XSLT(String expression1))) {
+                                return false;
+                            }
+                            String expr1 = expression.replaceAll("\\s+", "");
+                            String expr2 = expression1.replaceAll("\\s+", "");
+                            return expr1.equals(expr2);
+                        }
+
+                        @Override
+                        public int hashCode() {
+                            return expression.replaceAll("\\s+", "").hashCode();
+                        }
                     }
 
                     record XPath(String expression) implements Expression, Source.Predicate, ValueSource {
@@ -491,9 +816,8 @@ public class TibcoModel {
                         return onMessage().scope();
                     }
 
-                    public record OnMessage(Method operation,
-                                            String partnerLink,
-                                            String portType, String variable, Scope scope) {
+                    public record OnMessage(Method operation, String partnerLink, String portType, String variable,
+                                            Scope scope) {
 
                     }
                 }
@@ -736,7 +1060,6 @@ public class TibcoModel {
                               List<InputBinding> inputBindings, Collection<Target> targets, List<Source> sources,
                               Element element)
                         implements Activity, ActivityWithSources, ActivityWithTargets, ActivityWithOutput {
-
 
                     @Override
                     public Optional<String> outVariableName() {

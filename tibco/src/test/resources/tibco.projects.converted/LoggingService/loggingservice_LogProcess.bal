@@ -6,7 +6,8 @@ function activityExtension(map<xml> context) returns xml|error {
     xml var0 = context.get("End-input");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns2="http://www.example.org/LogResult" version="2.0"><xsl:template name="End-input" match="/"><tns2:result><xsl:value-of select="'Logging Done'"/></tns2:result></xsl:template></xsl:stylesheet>`, context);
-    return var1;
+    xml var2 = xml `<root>${var1}</root>`;
+    return var2;
 }
 
 function activityExtension_2(map<xml> context) returns xml|error {
@@ -34,8 +35,9 @@ function activityExtension_4(map<xml> context) returns xml|error {
     xml var0 = context.get("RenderXml-input");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://www.example.org/LogSchema" xmlns:tns="http://www.tibco.com/xml/render/example" version="2.0"><xsl:param name="Start"/><xsl:template name="RenderXml-input" match="/"><tns:InputElement><level><xsl:value-of select="$Start/root/tns1:level"/></level><message><xsl:value-of select="$Start/root/tns1:message"/></message><logger><xsl:value-of select="$Start/root/tns1:loggerName"/></logger><timestamp><xsl:value-of select="current-dateTime()"/></timestamp></tns:InputElement></xsl:template></xsl:stylesheet>`, context);
-    addToContext(context, "RenderXml", var1);
-    return var1;
+    xml var2 = xml `<root>${var1}</root>`;
+    addToContext(context, "RenderXml", var2);
+    return var2;
 }
 
 function activityExtension_5(map<xml> context) returns xml|error {
@@ -112,3 +114,19 @@ function start_loggingservice_LogProcess(LogMessage input, map<xml> params = {})
     result result = convertToresult(xmlResult);
     return result;
 }
+
+xmlns "http://www.example.org/LogResult" as ns2;
+xmlns "http://www.tibco.com/bpel/2007/extensions" as tibex;
+xmlns "http://www.tibco.com/bw/process/info" as info;
+xmlns "http://docs.oasis-open.org/ns/opencsa/sca/200912" as sca;
+xmlns "http://tns.tibco.com/bw/palette/internal/activityerror+bw.file.write" as ns4;
+xmlns "http://www.tibco.com/namespaces/tnt/plugins/file" as ns3;
+xmlns "http://docs.oasis-open.org/wsbpel/2.0/process/executable" as bpws;
+xmlns "http://www.w3.org/2001/XMLSchema" as xsd;
+xmlns "http://ns.tibco.com/bw/property" as tibprop;
+xmlns "http://www.tibco.com/namespaces/tnt/plugins/renderxml" as ns6;
+xmlns "http://www.tibco.com/pe/EngineTypes" as ns;
+xmlns "http://www.tibco.com/xml/render/example" as ns5;
+xmlns "http://tns.tibco.com/bw/palette/internal/activityerror+bw.xml.renderxml" as ns7;
+xmlns "http://www.tibco.com/pe/WriteToLogActivitySchema" as ns1;
+xmlns "http://www.example.org/LogSchema" as ns0;

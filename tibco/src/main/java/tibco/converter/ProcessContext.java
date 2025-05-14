@@ -37,9 +37,11 @@ import java.util.stream.Stream;
 
 import static common.BallerinaModel.Expression;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
+import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static common.BallerinaModel.TypeDesc.BuiltinType.UnionTypeDesc;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
+import static tibco.converter.ConversionUtils.baseName;
 
 public class ProcessContext implements ContextWithFile {
 
@@ -56,6 +58,7 @@ public class ProcessContext implements ContextWithFile {
 
     private DefaultClientDetails processClient;
     final Set<TibcoModel.Scope> handledScopes = new HashSet<>();
+    final Set<String> intrinsics = new HashSet<>();
 
     ProcessContext(ProjectContext projectContext, TibcoModel.Process process) {
         this.projectContext = projectContext;
@@ -113,10 +116,27 @@ public class ProcessContext implements ContextWithFile {
     String declareConstant(String name, String valueRepr, String type) {
         name = ConversionUtils.sanitizes(name);
         BallerinaModel.TypeDesc td = getTypeByName(type);
-        assert td == BallerinaModel.TypeDesc.BuiltinType.STRING;
+        assert td == STRING;
         String expr = "\"" + valueRepr + "\"";
         constants.put(name, BallerinaModel.ModuleVar.constant(name, td, exprFrom(expr)));
         return name;
+    }
+
+    void declareModuleVar(String name, BallerinaModel.ModuleVar var) {
+        constants.put(name, var);
+    }
+
+    // TODO: properly handle the on demand part
+    void addOnDemandModuleVar(String name, BallerinaModel.ModuleVar var) {
+        constants.put(name, var);
+    }
+
+    void registerProcessClient(String name) {
+        projectContext.registerProcessClient(baseName(process.name()).toLowerCase(), name);
+    }
+
+    public Expression.VariableReference getProcessClient(String processName) {
+        return projectContext.getProcessClient(baseName(processName).toLowerCase());
     }
 
     @Override
@@ -147,7 +167,20 @@ public class ProcessContext implements ContextWithFile {
         List<BallerinaModel.ModuleVar> moduleVars = Stream
                 .concat(constants.values().stream(), configurables.values().stream()).toList();
         return new BallerinaModel.TextDocument(name, imports.stream().toList(), List.of(),
-                moduleVars, listeners, processServices.stream().toList(), functions, List.of());
+                moduleVars, listeners, processServices.stream().toList(), functions, List.of(),
+                intrinsics.stream().toList(), List.of());
+    }
+
+    void addNameSpace(TibcoModel.NameSpace nameSpace) {
+        if (nameSpace.prefix().isEmpty()) {
+            return;
+        }
+        String prefix = nameSpace.prefix().get();
+        if (!prefix.chars().allMatch(Character::isLetterOrDigit)) {
+            return;
+        }
+        String decl = "xmlns \"%s\" as %s;".formatted(nameSpace.uri(), prefix);
+        intrinsics.add(decl);
     }
 
     ProjectContext.FunctionData getProcessStartFunction() {
@@ -322,5 +355,9 @@ public class ProcessContext implements ContextWithFile {
             assert isUsed;
             return new Expression.VariableReference(varDecl.name());
         }
+    }
+
+    String getAnonName() {
+        return projectContext.getAnonName();
     }
 }

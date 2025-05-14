@@ -172,6 +172,11 @@ public final class ConversionUtils {
         return new Expression.FunctionCall(predicateTestFn, List.of(value, xPathExpr));
     }
 
+    public static String baseName(String value) {
+        String[] parts = value.split("/");
+        return parts[parts.length - 1];
+    }
+
     public enum Constants {
         ;
 

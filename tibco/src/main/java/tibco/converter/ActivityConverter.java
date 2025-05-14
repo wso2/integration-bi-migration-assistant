@@ -34,6 +34,15 @@ import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.TibcoModel;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.AssignActivity;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.CallProcess;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.FileRead;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.FileWrite;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HTTPResponse;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.WriteLog;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLRenderActivity;
 import tibco.TibcoModel.Scope.Flow.Activity;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension;
 import tibco.TibcoModel.Scope.Flow.Activity.CatchAll;
@@ -47,6 +56,7 @@ import tibco.TibcoModel.Scope.Flow.Activity.Reply;
 import tibco.TibcoModel.Scope.Flow.Activity.Throw;
 import tibco.TibcoModel.Scope.Flow.Activity.UnhandledActivity;
 import tibco.analyzer.AnalysisResult;
+import tibco.xslt.AddMissingParameters;
 import tibco.xslt.IgnoreRootWrapper;
 import tibco.xslt.ReplaceDotAccessWithXPath;
 import tibco.xslt.ReplaceVariableReference;
@@ -86,6 +96,7 @@ final class ActivityConverter {
 
     private static TransformPipeline createXsltTransformer() {
         TransformPipeline xsltTransformer = new TransformPipeline();
+        xsltTransformer.append(new AddMissingParameters());
         xsltTransformer.append(new ReplaceVariableReference());
         xsltTransformer.append(new ReplaceDotAccessWithXPath());
         xsltTransformer.append(new IgnoreRootWrapper());
@@ -130,7 +141,165 @@ final class ActivityConverter {
             case Activity.Assign assign -> convertAssign(cx, assign);
             case Activity.Foreach foreach -> convertForeach(cx, foreach);
             case Activity.NestedScope nestedScope -> convertNestedScope(cx, nestedScope);
+            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity inlineActivity ->
+                convertInlineActivity(cx, inlineActivity);
         };
+    }
+
+    private static @NotNull List<Statement> convertInlineActivity(
+            ActivityContext cx, TibcoModel.Process.ExplicitTransitionGroup.InlineActivity inlineActivity) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+        body.add(inputDecl);
+        VariableReference result;
+        if (inlineActivity.hasInputBinding()) {
+            List<VarDeclStatment> inputBindings = convertInputBindings(cx, inputDecl.ref(),
+                    List.of(inlineActivity.inputBinding()));
+            body.addAll(inputBindings);
+            result = new VariableReference(inputBindings.getLast().varName());
+        } else {
+            result = inputDecl.ref();
+        }
+        ActivityExtensionConfigConversion conversion = switch (inlineActivity) {
+            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource ignored ->
+                emptyExtensionConversion(cx, result);
+            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.MapperActivity ignored ->
+                emptyExtensionConversion(cx, result);
+            case UnhandledInlineActivity unhandledInlineActivity ->
+                convertUnhandledActivity(cx, result, unhandledInlineActivity);
+            case AssignActivity assignActivity -> convertAssignActivity(cx, result, assignActivity);
+            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.NullActivity ignored ->
+                emptyExtensionConversion(cx, result);
+            case HTTPResponse httpResponse -> convertHttpResponse(cx, result, httpResponse);
+            case WriteLog writeLog -> convertWriteLogActivity(cx, result, writeLog);
+            case CallProcess callProcess -> convertCallProcess(cx, result, callProcess);
+            case FileWrite fileWrite -> convertFileWrite(cx, result, fileWrite);
+            case FileRead fileRead -> convertFileRead(cx, result, fileRead);
+            case XMLRenderActivity xmlRenderActivity -> convertXmlRenderActivity(cx, result, xmlRenderActivity);
+            case XMLParseActivity xmlParseActivity -> convertXmlParseActivity(cx, result, xmlParseActivity);
+        };
+        body.addAll(conversion.body());
+        body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
+        body.add(new Return<>(conversion.result()));
+        return body;
+    }
+
+    private static ActivityExtensionConfigConversion convertCallProcess(
+            ActivityContext cx, VariableReference result, CallProcess callProcess) {
+        VariableReference client = cx.getProcessClient(callProcess.processName());
+        VarDeclStatment returnVal = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(new RemoteMethodCallAction(client, "post",
+                        List.of(new StringConstant(""), result))));
+        return new ActivityExtensionConfigConversion(returnVal.ref(), List.of(returnVal));
+    }
+
+    private static ActivityExtensionConfigConversion convertFileRead(
+            ActivityContext cx, VariableReference result, FileRead fileRead) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment fileName = new VarDeclStatment(STRING, "fileName",
+                exprFrom("(%s/**/<fileName>/*).toString()".formatted(result.varName())));
+        body.add(fileName);
+
+        cx.addLibraryImport(Library.IO);
+        VarDeclStatment content = new VarDeclStatment(STRING, "content",
+                new Check(new FunctionCall(IOConstants.FILE_READ_FUNCTION, List.of(fileName.ref()))));
+        body.add(content);
+        VarDeclStatment wrapped = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("""
+                        <ns:ReadActivityOutputTextClass xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/file">
+                            <fileContent>
+                                <textContent>${%s}</textContent>
+                            </fileContent>
+                        </ns:ReadActivityOutputTextClass>
+                        """.formatted(content.varName())));
+        body.add(wrapped);
+        return new ActivityExtensionConfigConversion(wrapped.ref(), body);
+    }
+
+    private static ActivityExtensionConfigConversion convertFileWrite(
+            ActivityContext cx, VariableReference result, FileWrite fileWrite) {
+        assert fileWrite.encoding().equals("text");
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment fileName = new VarDeclStatment(STRING, "fileName",
+                exprFrom("(%s/**/<fileName>/*).toString()".formatted(result.varName())));
+        body.add(fileName);
+        VarDeclStatment textContent = new VarDeclStatment(STRING, "content",
+                exprFrom("(%s/**/<textContent>/*).toString()".formatted(result.varName())));
+        body.add(textContent);
+        StringConstant mode = fileWrite.append() ? new StringConstant("APPEND") : new StringConstant("OVERWRITE");
+        cx.addLibraryImport(Library.IO);
+        body.add(new CallStatement(new Check(new FunctionCall(IOConstants.FILE_WRITE_FUNCTION,
+                List.of(fileName.ref(), textContent.ref(), mode)))));
+        return new ActivityExtensionConfigConversion(result, body);
+    }
+
+    private static ActivityExtensionConfigConversion convertXmlParseActivity(
+            ActivityContext cx, VariableReference result, XMLParseActivity xmlParseActivity) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment xmlString = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                common.ConversionUtils.exprFrom("%s/<xmlString>/*".formatted(result.varName())));
+        body.add(xmlString);
+        VarDeclStatment asString = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                new MethodCall(xmlString.ref(), "toString", List.of()));
+        body.add(asString);
+        VarDeclStatment xmlValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(new FunctionCall("xml:fromString", List.of(asString.ref()))));
+        body.add(xmlValue);
+        VarDeclStatment wrappedValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("<root>${%s}</root>".formatted(xmlValue.ref())));
+        body.add(wrappedValue);
+        return new ActivityExtensionConfigConversion(wrappedValue.ref(), body);
+    }
+
+    private static ActivityExtensionConfigConversion convertXmlRenderActivity(
+            ActivityContext cx, VariableReference result, XMLRenderActivity xmlRenderActivity) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment stringValue = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                new MethodCall(result, "toBalString", List.of()));
+        body.add(stringValue);
+        VarDeclStatment res = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("<root>/<xmlString>${%s}</xmlString></root>".formatted(stringValue.ref())));
+        body.add(res);
+        return new ActivityExtensionConfigConversion(res.ref(), body);
+    }
+
+    private static ActivityExtensionConfigConversion convertWriteLogActivity(
+            ActivityContext cx, VariableReference result, WriteLog writeLog) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment message = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                exprFrom("%s/**/<message>/*".formatted(result.varName())));
+        body.add(message);
+        cx.addLibraryImport(Library.LOG);
+        body.add(new CallStatement(new FunctionCall(LogConstants.LOG_INFO_FUNCTION,
+                List.of(new MethodCall(message.ref(), "toString", List.of())))));
+        return new ActivityExtensionConfigConversion(message.ref(), body);
+    }
+
+    private static ActivityExtensionConfigConversion convertHttpResponse(
+            ActivityContext cx, VariableReference result, HTTPResponse httpResponse) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment responseValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                exprFrom("%s/**/<asciiContent>/*".formatted(result.varName())));
+        body.add(responseValue);
+        return new ActivityExtensionConfigConversion(responseValue.ref(), body);
+    }
+
+    private static ActivityExtensionConfigConversion convertAssignActivity(
+            ActivityContext cx, VariableReference result, AssignActivity assignActivity) {
+        List<Statement> body = new ArrayList<>();
+        body.add(addToContext(cx, result, assignActivity.variableName()));
+        VarDeclStatment assignedValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                getFromContext(cx, assignActivity.variableName()));
+        body.add(assignedValue);
+        return new ActivityExtensionConfigConversion(assignedValue.ref(), body);
+    }
+
+    private static ActivityExtensionConfigConversion convertUnhandledActivity(
+            ActivityContext cx, VariableReference result, UnhandledInlineActivity unhandledInlineActivity) {
+        List<Statement> body = List.of(
+                new Comment("FIXME: Failed to convert rest of activity"),
+                elementAsComment(unhandledInlineActivity.element()));
+        return new ActivityExtensionConfigConversion(result, body);
     }
 
     private static @NotNull List<Statement> convertNestedScope(ActivityContext cx, Activity.NestedScope nestedScope) {
@@ -278,17 +447,17 @@ final class ActivityConverter {
 
         ActivityExtension.Config config = activityExtension.config();
         ActivityExtensionConfigConversion conversion = switch (config) {
-            case ActivityExtension.Config.End ignored -> emptyExtensionConversion(result);
+            case ActivityExtension.Config.End ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.HTTPSend httpSend -> createHttpSend(cx, result, httpSend);
             case ActivityExtension.Config.JsonOperation jsonOperation -> createJsonOperation(cx, result, jsonOperation,
                     activityExtension.outputVariable().orElseThrow(
                             () -> new IllegalStateException("json operation should have output variable")));
             case ActivityExtension.Config.SQL sql -> createSQLOperation(cx, result, sql);
-            case ActivityExtension.Config.SendHTTPResponse ignored -> emptyExtensionConversion(result);
+            case ActivityExtension.Config.SendHTTPResponse ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.FileWrite fileWrite -> createFileWriteOperation(cx, result, fileWrite);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
-            case ActivityExtension.Config.RenderXML ignored -> emptyExtensionConversion(result);
-            case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(result);
+            case ActivityExtension.Config.RenderXML ignored -> emptyExtensionConversion(cx, result);
+            case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.AccumulateEnd accumulateEnd -> createAccumulateEnd(cx, accumulateEnd,
                     activityExtension.outVariableName().orElseThrow(
                             () -> new IllegalStateException("accumulate end should have output variable")));
@@ -304,8 +473,8 @@ final class ActivityConverter {
             ActivityContext cx, ActivityExtension.Config.AccumulateEnd accumulateEnd,
             String resultName) {
         AnalysisResult ar = cx.processContext.analysisResult;
-        Activity source = ar.findActivity(accumulateEnd.activityName()).orElseThrow(() ->
-                new IllegalStateException("Cannot find activity: " + accumulateEnd.activityName()));
+        Activity source = ar.findActivity(accumulateEnd.activityName())
+                .orElseThrow(() -> new IllegalStateException("Cannot find activity: " + accumulateEnd.activityName()));
         if (!(source instanceof Activity.ActivityWithOutput activityWithOutput &&
                 activityWithOutput.outVariableName().isPresent())) {
             throw new IllegalStateException(
@@ -358,8 +527,11 @@ final class ActivityConverter {
         return new ActivityExtensionConfigConversion(jsonResult.ref(), List.of(jsonResult));
     }
 
-    private static @NotNull ActivityExtensionConfigConversion emptyExtensionConversion(VariableReference result) {
-        return new ActivityExtensionConfigConversion(result, List.of());
+    private static @NotNull ActivityExtensionConfigConversion emptyExtensionConversion(ActivityContext cx,
+            VariableReference result) {
+        VarDeclStatment wrapped = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("<root>${%s}</root>".formatted(result.varName())));
+        return new ActivityExtensionConfigConversion(wrapped.ref(), List.of(wrapped));
     }
 
     private static ActivityExtensionConfigConversion createLogOperation(ActivityContext cx, VariableReference result,
@@ -698,10 +870,28 @@ final class ActivityConverter {
     }
 
     static final class XSLTConstants {
-        private static final String XSLT_TRANSFORM_FUNCTION = "xslt:transform";
+        static final String XSLT_TRANSFORM_FUNCTION = "xslt:transform";
 
         private XSLTConstants() {
 
         }
     }
+
+    static final class LogConstants {
+        static final String LOG_INFO_FUNCTION = "log:printInfo";
+
+        private LogConstants() {
+
+        }
+    }
+
+    static final class IOConstants {
+        static final String FILE_WRITE_FUNCTION = "io:fileWriteString";
+        static final String FILE_READ_FUNCTION = "io:fileReadString";
+
+        private IOConstants() {
+
+        }
+    }
+
 }
