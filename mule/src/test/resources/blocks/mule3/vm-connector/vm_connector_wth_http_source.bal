@@ -23,6 +23,7 @@ service / on HTTP_Listener_Configuration {
 
     resource function get vm(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }

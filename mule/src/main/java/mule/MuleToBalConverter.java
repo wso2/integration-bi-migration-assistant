@@ -284,7 +284,7 @@ public class MuleToBalConverter {
         try {
             root = parseMuleXMLConfigurationFile(xmlFilePath);
         } catch (Exception e) {
-            throw new RuntimeException("Error while parsing the mule XML configuration file", e);
+            throw new RuntimeException("Error while parsing the mule XML configuration file: ", e);
         }
 
         MuleElement muleElement = muleXMLNavigator.createRootMuleElement(root);
@@ -614,6 +614,7 @@ public class MuleToBalConverter {
             resourceBody.add(stmtFrom(String.format("self.ctx.inboundProperties.uriParams = {%s};", pathParamValue)));
         }
         resourceBody.add(stmtFrom("self.ctx.inboundProperties.request = request;"));
+        resourceBody.add(stmtFrom("self.ctx.inboundProperties.response = new;"));
         resourceBody.add(stmtFrom(String.format("return %s(self.%s);", invokeEndPointMethodName,
                 Constants.CONTEXT_REFERENCE)));
 

@@ -148,6 +148,7 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -288,6 +289,7 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -487,6 +489,7 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -571,6 +574,7 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -653,6 +657,7 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -731,6 +736,7 @@ service /mule3 on config {
 
     resource function get demo(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -854,6 +860,7 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -920,6 +927,7 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -989,6 +997,7 @@ service /mule3 on config {
 
     resource function default demo(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -1050,6 +1059,7 @@ service /mule3 on config {
 
     resource function post .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -1111,16 +1121,19 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 
     resource function post .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 
     resource function delete .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -1181,6 +1194,7 @@ service /mule3 on config {
 
     resource function get demo(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -1241,6 +1255,7 @@ service / on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -1301,6 +1316,7 @@ service / on config {
 
     resource function get demo(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -1361,6 +1377,7 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -1421,6 +1438,7 @@ service /mule3 on config {
 
     resource function get demo(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -1482,6 +1500,7 @@ service /mule3 on config {
     resource function get [string version]/demo/[string id](http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.uriParams = {version, id};
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -1509,7 +1528,7 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule-3"/>
     <flow name="demoFlow">
-        <http:listener config-ref="config" path="/v-1/demo/main-contract/" allowedMethods="GET" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/v-1/demo/1.0/main-contract/" allowedMethods="GET" doc:name="HTTP"/>
         <logger message="xxx: logger invoked" level="INFO" doc:name="Logger"/>
     </flow>
 </mule>
@@ -1540,8 +1559,9 @@ service /mule\-3 on config {
         self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get v\-1/demo/main\-contract(http:Request request) returns http:Response|error {
+    resource function get v\-1/demo/'1\.0/main\-contract(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -1618,7 +1638,7 @@ http://www.mulesoft.org/schema/mule/jbossts http://www.mulesoft.org/schema/mule/
     <flow name="callExternalApiFlow">
         <http:request method="GET"
                       config-ref="HTTP_Request_Config"
-                      path="/car-posts/12/honda-civic/991/latest"
+                      path="/car-posts/12/honda-civic/991/1.1/latest"
                       doc:name="Call External API"/>
         <logger message="Received from external API: #[payload]" level="INFO" />
     </flow>
@@ -1638,7 +1658,7 @@ public function callExternalApiFlow(Context ctx) {
 
     // http client request
     http:Client HTTP_Request_Config = check new ("jsonplaceholder.typicode.com:80");
-    http:Response clientResult0 = check HTTP_Request_Config->/car\-posts/[12]/honda\-civic/[991]/latest.get();
+    http:Response clientResult0 = check HTTP_Request_Config->/car\-posts/'12/honda\-civic/'991/'1\.1/latest.get();
     ctx.payload = check clientResult0.getJsonPayload();
     log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
 }
@@ -1698,6 +1718,7 @@ service /mule3 on HTTP_Listener_Config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -1766,6 +1787,7 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -1832,6 +1854,7 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -2061,6 +2084,7 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -2146,6 +2170,7 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -2268,6 +2293,7 @@ service / on httpConfig {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -2405,6 +2431,7 @@ service /mule3 on HTTP_Config {
 
     resource function get session(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -2554,6 +2581,7 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -2619,6 +2647,7 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -2699,6 +2728,7 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -2780,6 +2810,7 @@ service /foo on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -2855,6 +2886,7 @@ service /foo on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -3003,6 +3035,7 @@ service /mule3 on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -3165,6 +3198,7 @@ service / on HTTP_Listener_Configuration {
 
     resource function get vm(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
@@ -3255,6 +3289,7 @@ service / on HTTP_Listener_Configuration {
 
     resource function get vm(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }

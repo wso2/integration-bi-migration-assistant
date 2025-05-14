@@ -23,6 +23,7 @@ service /mule\-3 on config {
 
     resource function get v\-1/demo/'1\.0/main\-contract(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }

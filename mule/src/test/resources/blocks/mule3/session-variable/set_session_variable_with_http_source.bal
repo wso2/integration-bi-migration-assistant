@@ -28,6 +28,7 @@ service /mule3 on HTTP_Config {
 
     resource function get session(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
+        self.ctx.inboundProperties.response = new;
         return invokeEndPoint0(self.ctx);
     }
 }
