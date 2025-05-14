@@ -18,15 +18,11 @@
 
 package mule;
 
-import common.BallerinaModel.TypeDesc.RecordTypeDesc;
-import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import io.ballerina.compiler.syntax.tree.SyntaxInfo;
 import org.w3c.dom.Element;
 
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +35,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import static common.BallerinaModel.ModuleTypeDef;
 import static mule.MELConverter.convertMELToBal;
 
 public class ConversionUtils {
@@ -291,40 +286,4 @@ public class ConversionUtils {
         sb.append("// ------------------------------------------------------------------------\n\n");
         return sb.toString();
     }
-
-    public static String getRecordInitValue(HashMap<String, ModuleTypeDef> contextTypeDefMap,
-                                            RecordTypeDesc recordType) {
-        List<String> requiredFields = new ArrayList<>();
-        for (RecordField recordField : recordType.fields()) {
-            if (!recordField.isOptional()) {
-                String value = getRequiredRecFieldDefaultValue(contextTypeDefMap, recordField);
-                requiredFields.add(String.format("%s: %s", recordField.name(), value));
-            }
-        }
-        String recordBody = String.join(", ", requiredFields);
-        return String.format("{%s}", recordBody);
-    }
-
-    private static String getRequiredRecFieldDefaultValue(HashMap<String, ModuleTypeDef> contextTypeDefMap,
-                                                          RecordField recordField) {
-        assert !recordField.isOptional();
-        String typeStr = recordField.typeDesc().toString();
-        switch (typeStr) {
-            case "anydata" -> {
-                return "()";
-            }
-            case Constants.HTTP_RESPONSE_TYPE, Constants.HTTP_REQUEST_TYPE -> {
-                return "new";
-            }
-            case "map<string>" -> {
-                return "{}";
-            }
-            case Constants.INBOUND_PROPERTIES_TYPE, Constants.FLOW_VARS_TYPE, Constants.SESSION_VARS_TYPE -> {
-                ModuleTypeDef moduleTypeDef = contextTypeDefMap.get(typeStr);
-                return getRecordInitValue(contextTypeDefMap, (RecordTypeDesc) moduleTypeDef.typeDesc());
-            }
-            default -> throw new IllegalStateException();
-        }
-    }
-
 }

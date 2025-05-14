@@ -3,8 +3,8 @@ public type FlowVars record {|
 |};
 
 public type Context record {|
-    anydata payload;
-    FlowVars flowVars;
+    anydata payload = ();
+    FlowVars flowVars = {};
 |};
 
 public function weatherServiceFlow(Context ctx) {

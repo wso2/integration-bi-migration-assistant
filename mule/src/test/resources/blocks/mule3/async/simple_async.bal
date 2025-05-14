@@ -1,7 +1,7 @@
 import ballerina/log;
 
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function mainFlow(Context ctx) {

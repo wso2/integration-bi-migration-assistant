@@ -1,5 +1,5 @@
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 function _dwMethod0_(json payload) returns json|error {

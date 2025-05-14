@@ -1,7 +1,7 @@
 import ballerina/time;
 
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 function _dwMethod0_() returns json|error {

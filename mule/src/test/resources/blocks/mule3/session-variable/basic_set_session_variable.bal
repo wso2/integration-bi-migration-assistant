@@ -6,8 +6,8 @@ public type SessionVars record {|
 |};
 
 public type Context record {|
-    anydata payload;
-    SessionVars sessionVars;
+    anydata payload = ();
+    SessionVars sessionVars = {};
 |};
 
 public function myFlow(Context ctx) {

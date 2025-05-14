@@ -2,7 +2,7 @@ import ballerina/jballerina.java;
 import ballerina/time;
 
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function UTC() returns handle = @java:FieldGet {

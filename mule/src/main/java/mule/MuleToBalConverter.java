@@ -18,7 +18,6 @@
 package mule;
 
 import common.BallerinaModel;
-import common.BallerinaModel.ObjectField;
 import common.BallerinaModel.OnFailClause;
 import common.BallerinaModel.Statement.DoStatement;
 import common.BallerinaModel.Statement.ElseIfClause;
@@ -84,7 +83,6 @@ import static mule.ConversionUtils.genQueryParam;
 import static mule.ConversionUtils.getAllowedMethods;
 import static mule.ConversionUtils.getBallerinaAbsolutePath;
 import static mule.ConversionUtils.getBallerinaResourcePath;
-import static mule.ConversionUtils.getRecordInitValue;
 import static mule.ConversionUtils.inferTypeFromBalExpr;
 import static mule.ConversionUtils.insertLeadingSlash;
 import static mule.MuleModel.Async;
@@ -432,13 +430,9 @@ public class MuleToBalConverter {
             comments.add(comment);
         }
 
-        if (data.sharedProjectData.contextTypeDefMap.get(Constants.CONTEXT_RECORD_TYPE) == null) {
-            // We reach here, when there is no source
-            createContextInfoHoldingDataStructures(data.sharedProjectData);
-        }
-
         List<ModuleTypeDef> typeDefs;
         if (data.sharedProjectData.isStandaloneBalFile) {
+            createContextTypeDefns(data.sharedProjectData);
             data.sharedProjectData.contextTypeDefMap.putAll(data.typeDefMap);
             typeDefs = data.sharedProjectData.contextTypeDefMap.values().stream().toList();
             data.imports.addAll(data.sharedProjectData.contextTypeDefImports);
@@ -469,51 +463,42 @@ public class MuleToBalConverter {
         data.sharedProjectData.currentFlowInfo = flowInfo;
 
         data.sharedProjectData.inboundProperties.add(new SharedProjectData.TypeAndNamePair(
-                Constants.HTTP_RESPONSE_TYPE, "response"));
+                Constants.HTTP_REQUEST_TYPE, Constants.HTTP_REQUEST_REF));
         data.sharedProjectData.inboundProperties.add(new SharedProjectData.TypeAndNamePair(
-                Constants.HTTP_REQUEST_TYPE, "request"));
+                Constants.HTTP_RESPONSE_TYPE, Constants.HTTP_RESPONSE_REF));
         data.sharedProjectData.inboundProperties.add(new SharedProjectData.TypeAndNamePair(
-                "map<string>", "uriParams"));
+                "map<string>", Constants.URI_PARAMS_REF));
         data.sharedProjectData.contextTypeDefImports.add(Constants.HTTP_MODULE_IMPORT);
 
         // Create a service from the flow
         Service service = genBalService(data, src, flow.flowBlocks(), functions);
 
-        createContextInfoHoldingDataStructures(data.sharedProjectData);
-
-        // gen init function
-        ModuleTypeDef moduleTypeDef = data.sharedProjectData.contextTypeDefMap.get(Constants.CONTEXT_RECORD_TYPE);
-        RecordTypeDesc contextRecord = (RecordTypeDesc) moduleTypeDef.typeDesc();
-        String recordInitValue = getRecordInitValue(data.sharedProjectData.contextTypeDefMap, contextRecord);
-        List<Statement> initBody = Collections.singletonList(stmtFrom(
-                String.format("self.%s = %s;", Constants.CONTEXT_REFERENCE, recordInitValue)));
-        Function initFunc = new Function("init", Collections.emptyList(), initBody);
-
         // Modify service with init function
-        service = new Service(service.basePath(), service.listenerRefs(), Optional.of(initFunc),
+        service = new Service(service.basePath(), service.listenerRefs(), Optional.empty(),
                 service.resources(), service.functions(), service.pathParams(), service.queryParams(),
                 service.fields());
         services.add(service);
     }
 
-    // TODO:
-    public static void createContextInfoHoldingDataStructures(SharedProjectData sharedProjectData) {
+    public static void createContextTypeDefns(SharedProjectData sharedProjectData) {
         List<RecordField> contextRecFields = new ArrayList<>();
-        contextRecFields.add(new RecordField("payload", BAL_ANYDATA_TYPE, false));
+        contextRecFields.add(new RecordField(Constants.PAYLOAD_REF, BAL_ANYDATA_TYPE, exprFrom("()")));
 
         if (!sharedProjectData.flowVars.isEmpty()) {
-            contextRecFields.add(new RecordField(Constants.FLOW_VARS_REF, typeFrom(Constants.FLOW_VARS_TYPE), false));
+            contextRecFields.add(new RecordField(Constants.FLOW_VARS_REF, typeFrom(Constants.FLOW_VARS_TYPE),
+                    exprFrom("{}")));
             List<RecordField> flowVarRecFields = new ArrayList<>();
             for (SharedProjectData.TypeAndNamePair tnp : sharedProjectData.flowVars) {
                 flowVarRecFields.add(new RecordField(tnp.name, typeFrom(tnp.type), true));
             }
             RecordTypeDesc flowVarsRecord = RecordTypeDesc.closedRecord(flowVarRecFields);
-            sharedProjectData.contextTypeDefMap.put("FlowVars", new ModuleTypeDef("FlowVars", flowVarsRecord));
+            sharedProjectData.contextTypeDefMap.put(Constants.FLOW_VARS_TYPE,
+                    new ModuleTypeDef(Constants.FLOW_VARS_TYPE, flowVarsRecord));
         }
 
         if (!sharedProjectData.sessionVars.isEmpty()) {
             contextRecFields.add(new RecordField(Constants.SESSION_VARS_REF, typeFrom(Constants.SESSION_VARS_TYPE),
-                    false));
+                    exprFrom("{}")));
             List<RecordField> sessionVarRecFields = new ArrayList<>();
             for (SharedProjectData.TypeAndNamePair tnp : sharedProjectData.sessionVars) {
                 sessionVarRecFields.add(new RecordField(tnp.name, typeFrom(tnp.type), true));
@@ -527,7 +512,13 @@ public class MuleToBalConverter {
                     false));
             List<RecordField> inboundPropRecordFields = new ArrayList<>();
             for (SharedProjectData.TypeAndNamePair tnp : sharedProjectData.inboundProperties) {
-                inboundPropRecordFields.add(new RecordField(tnp.name, typeFrom(tnp.type), false));
+                RecordField inboundPropField;
+                if (tnp.type.startsWith("map<") && tnp.type.endsWith(">")) {
+                    inboundPropField = new RecordField(tnp.name, typeFrom(tnp.type), exprFrom("{}"));
+                } else {
+                    inboundPropField = new RecordField(tnp.name, typeFrom(tnp.type), false);
+                }
+                inboundPropRecordFields.add(inboundPropField);
             }
             RecordTypeDesc inboundPropertiesRecord = RecordTypeDesc.closedRecord(inboundPropRecordFields);
             sharedProjectData.contextTypeDefMap.put(Constants.INBOUND_PROPERTIES_TYPE,
@@ -604,48 +595,90 @@ public class MuleToBalConverter {
 
         // Add services
         List<Parameter> queryPrams = new ArrayList<>();
-        queryPrams.add(new Parameter("request", typeFrom(Constants.HTTP_REQUEST_TYPE), Optional.empty()));
+        queryPrams.add(new Parameter(Constants.HTTP_REQUEST_REF, typeFrom(Constants.HTTP_REQUEST_TYPE)));
 
-        List<Statement> resourceBody = new ArrayList<>();
-        String invokeEndPointMethodName = String.format(Constants.FUNC_NAME_HTTP_ENDPOINT_TEMPLATE,
-                data.sharedProjectData.invokeEndPointMethodCount++);
-        if (!pathParams.isEmpty()) {
-            String pathParamValue = String.join(",", pathParams);
-            resourceBody.add(stmtFrom(String.format("self.ctx.inboundProperties.uriParams = {%s};", pathParamValue)));
-        }
-        resourceBody.add(stmtFrom("self.ctx.inboundProperties.request = request;"));
-        resourceBody.add(stmtFrom("self.ctx.inboundProperties.response = new;"));
-        resourceBody.add(stmtFrom(String.format("return %s(self.%s);", invokeEndPointMethodName,
-                Constants.CONTEXT_REFERENCE)));
+        List<Statement> bodyStmts = new ArrayList<>();
+        String inboundPropInitValue = getInboundPropInitValue(data, pathParams);
+        bodyStmts.add(stmtFrom("Context %s = {%s: %s};".formatted(Constants.CONTEXT_REFERENCE,
+                Constants.INBOUND_PROPERTIES_REF, inboundPropInitValue)));
+
+        List<Statement> bodyCoreStmts = genFuncBodyStatements(data, flowBlocks);
+        bodyStmts.addAll(bodyCoreStmts);
+
+        // Add return statement
+        bodyStmts.add(stmtFrom("\n\n%s.%s.setPayload(%s.payload);".formatted(Constants.INBOUND_PROPERTIES_FIELD_ACCESS,
+                        Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
+        bodyStmts.add(stmtFrom("return %s.%s;".formatted(Constants.INBOUND_PROPERTIES_FIELD_ACCESS,
+                Constants.HTTP_RESPONSE_REF)));
 
         // Add service resources
         List<Resource> resources = new ArrayList<>();
         String returnType = Constants.HTTP_RESOURCE_RETURN_TYPE_DEFAULT;
         data.imports.add(Constants.HTTP_MODULE_IMPORT);
-        for (String resourceMethodName : resourceMethodNames) {
-            resourceMethodName = resourceMethodName.toLowerCase();
+
+        if (resourceMethodNames.length > 1) {
+            // same logic is shared, thus extracting it to a function
+            String invokeEndPointMethodName = String.format(Constants.FUNC_NAME_HTTP_ENDPOINT_TEMPLATE,
+                    data.sharedProjectData.invokeEndPointMethodCount++);
+            List<Statement> body = Collections.singletonList(stmtFrom("return %s(%s);"
+                    .formatted(invokeEndPointMethodName, Constants.HTTP_REQUEST_REF)));
+
+            for (String resourceMethodName : resourceMethodNames) {
+                resourceMethodName = resourceMethodName.toLowerCase();
+                Resource resource = new Resource(resourceMethodName, resourcePath, queryPrams, Optional.of(returnType),
+                        body);
+                resources.add(resource);
+            }
+
+            // Add body as a top level function
+            functions.add(new Function(Optional.of("public"), invokeEndPointMethodName, Collections.singletonList(
+                    new Parameter(Constants.HTTP_REQUEST_REF, typeFrom(Constants.HTTP_REQUEST_TYPE))),
+                    Optional.of(returnType), new BlockFunctionBody(bodyStmts)));
+        } else if (resourceMethodNames.length == 1) {
+            String resourceMethodName = resourceMethodNames[0].toLowerCase();
             Resource resource = new Resource(resourceMethodName, resourcePath, queryPrams, Optional.of(returnType),
-                    resourceBody);
+                    bodyStmts);
             resources.add(resource);
+        } else {
+            throw new IllegalStateException();
         }
 
-        List<Statement> body = genFuncBodyStatements(data, flowBlocks);
-
-        // Add return statement
-        body.add(stmtFrom(String.format("\n\n%s.response.setPayload(ctx.payload);",
-                Constants.INBOUND_PROPERTIES_FIELD_ACCESS)));
-        body.add(stmtFrom(String.format("return %s.response;", Constants.INBOUND_PROPERTIES_FIELD_ACCESS)));
-
-        // Add body as a top level function
-        functions.add(new Function(Optional.of("public"), invokeEndPointMethodName, Collections.singletonList(
-                new Parameter(Constants.CONTEXT_REFERENCE, typeFrom(Constants.CONTEXT_RECORD_TYPE))),
-                Optional.of(returnType), new BlockFunctionBody(body)));
-
-        // Add service fields
-        List<ObjectField> fields = Collections.singletonList(
-                new ObjectField(typeFrom(Constants.CONTEXT_RECORD_TYPE), Constants.CONTEXT_REFERENCE));
         return new Service(basePath, listenerRefs, Optional.empty(), resources, Collections.emptyList(),
-                Collections.emptyList(), Collections.emptyList(), fields);
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+    }
+
+    private static String getInboundPropInitValue(Data data, List<String> pathParams) {
+        Map<String, String> inboundPropMap = new LinkedHashMap<>();
+        for (SharedProjectData.TypeAndNamePair tnp : data.sharedProjectData.inboundProperties) {
+            switch (tnp.name) {
+                case Constants.HTTP_REQUEST_REF -> {
+                    inboundPropMap.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_REF);
+                }
+                case Constants.HTTP_RESPONSE_REF -> {
+                    inboundPropMap.put(Constants.HTTP_RESPONSE_REF, "new");
+                }
+                case Constants.URI_PARAMS_REF -> {
+                    // TODO: add test
+                    if (!pathParams.isEmpty()) {
+                        String pathParamValue = String.join(",", pathParams);
+                        inboundPropMap.put(Constants.URI_PARAMS_REF, "{%s};".formatted(pathParamValue));
+                    }
+                }
+                default -> throw new IllegalStateException();
+            }
+        }
+
+        List<String> fields = new ArrayList<>();
+        inboundPropMap.forEach((key, value) -> {
+            if (key.equals(value)) {
+                fields.add(key);
+            } else {
+                fields.add("%s: %s".formatted(key, value));
+            }
+        });
+
+        String recordBody = String.join(", ", fields);
+        return String.format("{%s}", recordBody);
     }
 
     private static List<Statement> genFuncBodyStatements(Data data, List<MuleRecord> flowBlocks) {

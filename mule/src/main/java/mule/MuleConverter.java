@@ -39,7 +39,7 @@ import java.util.logging.Logger;
 import static mule.HtmlReportWriter.writeHtmlReport;
 import static mule.MuleToBalConverter.convertProjectXMLFileToBallerina;
 import static mule.MuleToBalConverter.createBallerinaModel;
-import static mule.MuleToBalConverter.createContextInfoHoldingDataStructures;
+import static mule.MuleToBalConverter.createContextTypeDefns;
 
 public class MuleConverter {
     public static final String MULE_DEFAULT_APP_DIR_NAME = "app";
@@ -265,7 +265,8 @@ public class MuleConverter {
      */
     private static void genAndWriteInternalTypesBalFile(MuleToBalConverter.SharedProjectData sharedProjectData,
             String targetFolderPath) {
-        createContextInfoHoldingDataStructures(sharedProjectData);
+        // TODO: consider multi-flow-multi-context scenario
+        createContextTypeDefns(sharedProjectData);
 
         Path targetFilePath = Paths.get(targetFolderPath, "internal-types.bal");
         BallerinaModel ballerinaModel = createBallerinaModel(sharedProjectData.contextTypeDefImports.stream().toList(),

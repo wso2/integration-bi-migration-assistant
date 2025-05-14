@@ -2,7 +2,7 @@ import ballerina/http;
 import ballerina/log;
 
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public listener http:Listener config = new (8081);
