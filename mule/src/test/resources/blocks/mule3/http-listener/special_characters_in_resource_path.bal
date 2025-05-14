@@ -21,7 +21,7 @@ service /mule\-3 on config {
         self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
     }
 
-    resource function get v\-1/demo/main\-contract(http:Request request) returns http:Response|error {
+    resource function get v\-1/demo/'1\.0/main\-contract(http:Request request) returns http:Response|error {
         self.ctx.inboundProperties.request = request;
         return invokeEndPoint0(self.ctx);
     }
