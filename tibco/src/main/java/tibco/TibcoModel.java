@@ -148,6 +148,39 @@ public class TibcoModel {
                 return new ExplicitTransitionGroup(activities, transitions, startActivity, Optional.of(expression));
             }
 
+            public sealed interface InlineActivityWithBody extends InlineActivity {
+                ExplicitTransitionGroup body();
+            }
+
+            public sealed interface NestedGroup extends InlineActivityWithBody {
+                record LoopGroup(Element element, String name, InputBinding inputBinding, SourceExpression over,
+                                 Optional<String> elementSlot, Optional<String> indexSlot,
+                                 Optional<String> activityOutputName, boolean accumulateOutput,
+                                 ExplicitTransitionGroup body) implements NestedGroup {
+                    public LoopGroup {
+                        assert !accumulateOutput || activityOutputName.isPresent();
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.LOOP_GROUP;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
+                    }
+
+                    public record SourceExpression(String variableName, Optional<String> xPath) {
+                        public SourceExpression {
+                            assert xPath != null;
+                            assert variableName != null && !variableName.isEmpty();
+                        }
+                    }
+
+                }
+            }
+
             public ExplicitTransitionGroup resolve() {
                 if (startActivity != null) {
                     return this;
@@ -192,6 +225,7 @@ public class TibcoModel {
                     XML_PARSE_ACTIVITY,
                     SOAP_SEND_RECEIVE,
                     SOAP_SEND_REPLY,
+                    LOOP_GROUP,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
@@ -206,6 +240,7 @@ public class TibcoModel {
                                         new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
                                         new LookUpData("XMLRendererActivity", XML_RENDER_ACTIVITY),
                                         new LookUpData("XMLParseActivity", XML_PARSE_ACTIVITY),
+                                        new LookUpData("LoopGroup", LOOP_GROUP),
                                         new LookUpData("WriteToLogActivity", WRITE_LOG),
                                         new LookUpData("FileReadActivity", FILE_READ),
                                         new LookUpData("FileWriteActivity", FILE_WRITE),

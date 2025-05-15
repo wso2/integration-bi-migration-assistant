@@ -1,3 +1,4 @@
+import ballerina/data.xmldata;
 import ballerina/http;
 import ballerina/log;
 import ballerina/xslt;
@@ -25,6 +26,50 @@ function HTTP_Receiver_9(map<xml> context) returns xml|error {
     return var1;
 }
 
+function InnerLogElement(map<xml> context) returns xml|error {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="element"/>     <xsl:template name="Transform3" match="/">
+        <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
+                        
+    <message>
+                                
+        <xsl:value-of select="$element" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                            
+    </message>
+                    
+</ns:ActivityInput>
+
+    </xsl:template>
+</xsl:stylesheet>`, context);
+    xml var2 = var1/**/<message>/*;
+    log:printInfo(var2.toString());
+    addToContext(context, "InnerLogElement", var2);
+    return var2;
+}
+
+function InnerLogIndex(map<xml> context) returns xml|error {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="index"/>     <xsl:template name="Transform4" match="/">
+        <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
+                        
+    <message>
+                                
+        <xsl:value-of select="$index" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                            
+    </message>
+                    
+</ns:ActivityInput>
+
+    </xsl:template>
+</xsl:stylesheet>`, context);
+    xml var2 = var1/**/<message>/*;
+    log:printInfo(var2.toString());
+    addToContext(context, "InnerLogIndex", var2);
+    return var2;
+}
+
 function Log_11(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
@@ -45,6 +90,24 @@ function Log_11(map<xml> context) returns xml|error {
     log:printInfo(var2.toString());
     addToContext(context, "Log", var2);
     return var2;
+}
+
+function Loop(map<xml> context) returns xml|error {
+    xml var0 = xml `<root></root>`;
+    xml var1 = xml `<root></root>`;
+    xml var2 = context.get("Mapper");
+    var2 = check xmldata:transform(var2, `foo/bar`);
+    int var3 = -1;
+    addToContext(context, "element", xml `<root></root>`);
+    foreach xml each in var2 {
+        var3 = var3 + 1;
+        addToContext(context, "index", xml `<root>${var3}</root>`);
+        addToContext(context, "element", each);
+        xml var4 = scope1ScopeFn(context);
+        var1 = var4;
+    }
+    addToContext(context, "Loop", var1);
+    return var1;
 }
 
 function Mapper_10(map<xml> context) returns xml|error {
@@ -106,6 +169,24 @@ function scope0_1ScopeFn(map<xml> cx) returns xml {
     xml|error result = scope0_1ActivityRunner(cx);
     if result is error {
         return scope0_1FaultHandler(result, cx);
+    }
+    return result;
+}
+
+function scope1ActivityRunner(map<xml> cx) returns xml|error {
+    xml result0 = check InnerLogIndex(cx);
+    xml result1 = check InnerLogElement(cx);
+    return result1;
+}
+
+function scope1FaultHandler(error err, map<xml> cx) returns xml {
+    panic err;
+}
+
+function scope1ScopeFn(map<xml> cx) returns xml {
+    xml|error result = scope1ActivityRunner(cx);
+    if result is error {
+        return scope1FaultHandler(result, cx);
     }
     return result;
 }

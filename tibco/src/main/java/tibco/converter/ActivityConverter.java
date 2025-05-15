@@ -45,6 +45,7 @@ import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.Unhandled
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.WriteLog;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLRenderActivity;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.NestedGroup.LoopGroup;
 import tibco.TibcoModel.Scope.Flow.Activity;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension;
 import tibco.TibcoModel.Scope.Flow.Activity.CatchAll;
@@ -181,6 +182,7 @@ final class ActivityConverter {
             case XMLParseActivity xmlParseActivity -> convertXmlParseActivity(cx, result, xmlParseActivity);
             case SOAPSendReceive soapSendReceive -> convertSoapSendReceive(cx, result, soapSendReceive);
             case SOAPSendReply soapSendReply -> convertSoapSendReply(cx, result, soapSendReply);
+            case LoopGroup loopGroup -> convertLoopGroup(cx, result, loopGroup);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
@@ -219,6 +221,60 @@ final class ActivityConverter {
         cx.addLibraryImport(Library.SOAP);
         return List.of(stmtFrom("soap11:Client %s = check new (\"%s\");"
                 .formatted(clientName, soapSendReceive.endpointURL())));
+    }
+
+    private static ActivityExtensionConfigConversion convertLoopGroup(
+            ActivityContext cx, VariableReference result, LoopGroup loopGroup) {
+        // TODO: deal with result once we have examples for loops with input bindings
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment resultValue = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+        body.add(resultValue);
+        VarDeclStatment loopSequence = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                getFromContext(cx, loopGroup.over().variableName()));
+        body.add(loopSequence);
+        if (loopGroup.over().xPath().isPresent()) {
+            String xPath = loopGroup.over().xPath().get();
+            cx.addLibraryImport(Library.XML_DATA);
+            body.add(new Statement.VarAssignStatement(loopSequence.ref(),
+                    new Check(
+                            new FunctionCall(XMLDataConstants.X_PATH_FUNCTION,
+                                    List.of(loopSequence.ref(),
+                                            common.ConversionUtils.exprFrom("`%s`".formatted(xPath)))))));
+        }
+        VarDeclStatment indexValue = new VarDeclStatment(INT, cx.getAnnonVarName(), exprFrom("-1"));
+        body.add(indexValue);
+        loopGroup.elementSlot().map(elementSlot -> addToContext(cx, defaultEmptyXml(), elementSlot))
+                .ifPresent(body::add);
+        body.add(loopBody(cx, loopGroup, loopSequence.ref(), resultValue.ref(), indexValue.varName()));
+        loopGroup.activityOutputName()
+                .map(name -> addToContext(cx, resultValue.ref(), name)).ifPresent(body::add);
+        return new ActivityExtensionConfigConversion(resultValue.ref(), body);
+    }
+
+    private static Statement loopBody(ActivityContext cx, LoopGroup loop, VariableReference loopSequence,
+            VariableReference result, String indexVar) {
+        StringBuilder sb = new StringBuilder();
+        String element = "each";
+        sb.append("foreach xml %s in %s {".formatted(element, loopSequence));
+        sb.append("%1$s = %1$s + 1;".formatted(indexVar));
+        loop.indexSlot().map(
+                indexSlot -> addToContext(cx, new XMLTemplate("<root>${%s}</root>".formatted(indexVar)), indexSlot))
+                .ifPresent(sb::append);
+        loop.elementSlot().ifPresent(s -> sb.append(addToContext(cx, new VariableReference(element), s)));
+        AnalysisResult analysisResult = cx.processContext.analysisResult;
+        String scopeFn = analysisResult.getControlFlowFunctions(loop.body()).scopeFn();
+        VarDeclStatment res = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new FunctionCall(scopeFn, List.of(cx.contextVarRef())));
+        sb.append(res);
+        BallerinaModel.Expression resultUpdate;
+        if (loop.accumulateOutput()) {
+            resultUpdate = common.ConversionUtils.exprFrom("%s + %s".formatted(result, res));
+        } else {
+            resultUpdate = res.ref();
+        }
+        sb.append(new Statement.VarAssignStatement(result, resultUpdate));
+        sb.append("}");
+        return common.ConversionUtils.stmtFrom(sb.toString());
     }
 
     private static ActivityExtensionConfigConversion convertCallProcess(
@@ -931,4 +987,11 @@ final class ActivityConverter {
         }
     }
 
+    static final class XMLDataConstants {
+        static final String X_PATH_FUNCTION = "xmldata:transform";
+
+        private XMLDataConstants() {
+
+        }
+    }
 }

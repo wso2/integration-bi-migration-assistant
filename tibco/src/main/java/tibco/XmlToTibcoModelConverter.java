@@ -27,6 +27,8 @@ import tibco.TibcoModel.PartnerLink;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLRenderActivity;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.NestedGroup.LoopGroup;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.NestedGroup.LoopGroup.SourceExpression;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.Transition;
 import tibco.TibcoModel.Scope;
 import tibco.TibcoModel.Scope.Flow;
@@ -192,7 +194,7 @@ public final class XmlToTibcoModelConverter {
                     }
                     processTemplateConfigurations = Optional.of(parseProcessTemplateConfigurations(element));
                 }
-                case "activity" -> {
+                case "activity", "group" -> {
                     transitionGroup = transitionGroup.append(parseInlineActivity(cx, element));
                 }
                 case "transition" -> {
@@ -242,6 +244,7 @@ public final class XmlToTibcoModelConverter {
             case XML_PARSE_ACTIVITY -> parseXmlParseActivity(element, name, inputBinding);
             case SOAP_SEND_RECEIVE -> parseSoapSendReceive(element, name, inputBinding);
             case SOAP_SEND_REPLY -> new InlineActivity.SOAPSendReply(element, name, inputBinding);
+            case LOOP_GROUP -> parseLoopGroup(cx, element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
         };
     }
@@ -251,6 +254,57 @@ public final class XmlToTibcoModelConverter {
         String endpointURL = getInlineActivityConfigValue(element, "endpointURL");
         Optional<String> soapAction = tryGetInlineActivityConfigValue(element, "soapAction");
         return new InlineActivity.SOAPSendReceive(element, name, inputBinding, soapAction, endpointURL);
+    }
+
+    private static LoopGroup parseLoopGroup(ParseContext cx, Element element, String name, Flow.Activity.InputBinding inputBinding) {
+        SourceExpression overExpr = parseSourceExpression(getInlineActivityConfigValue(element, "over"));
+        Optional<String> iterationElementSlot = tryGetInlineActivityConfigValue(element, "iterationElementSlot");
+        Optional<String> indexSlot = tryGetInlineActivityConfigValue(element, "indexSlot");
+        Optional<String> activityOutputName = tryGetInlineActivityConfigValue(element, "activityOutputName");
+        boolean accumulateOutput = tryGetInlineActivityConfigValue(element, "accumulateOutput")
+                .map(val -> val.equals("true")).orElse(false);
+        TibcoModel.Process.ExplicitTransitionGroup transitionGroup = new TibcoModel.Process.ExplicitTransitionGroup();
+        for (Element child : new ElementIterable(element)) {
+            String tag = getTagNameWithoutNameSpace(child);
+            switch (tag) {
+                case "activity" -> {
+                    transitionGroup = transitionGroup.append(parseInlineActivity(cx, child));
+                }
+                case "transition" -> {
+                    transitionGroup = transitionGroup.append(parseTransition(cx, child));
+                }
+                case "starter" -> transitionGroup = transitionGroup.setStartActivity(parseInlineActivity(cx, child));
+                case "returnBindings" -> {
+                    if (!isEmpty(child)) {
+                        transitionGroup = transitionGroup.setReturnBindings(parseReturnBindings(cx, child));
+                    }
+                }
+                default -> {
+                    // ignore
+                }
+            }
+        }
+        transitionGroup = transitionGroup.resolve();
+        return new LoopGroup(element, name, inputBinding, overExpr, iterationElementSlot, indexSlot,
+                activityOutputName, accumulateOutput, transitionGroup);
+    }
+
+    private static SourceExpression parseSourceExpression(String expression) {
+        StringBuilder varSB = new StringBuilder();
+        assert expression.charAt(0) == '$';
+        int index = 1;
+        while (index < expression.length() && expression.charAt(index) != '/') {
+            varSB.append(expression.charAt(index));
+            index++;
+        }
+        String variable = varSB.toString();
+        if (index == expression.length()) {
+            return new SourceExpression(variable, Optional.empty());
+        }
+        assert expression.charAt(index) == '/';
+        index++;
+        String path = expression.substring(index);
+        return new SourceExpression(variable, Optional.of(path));
     }
 
     private static InlineActivity.CallProcess parseCallProcess(Element element, String name,

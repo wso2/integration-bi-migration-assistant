@@ -40,6 +40,7 @@ import common.BallerinaModel.TypeDesc;
 import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivityWithBody;
 import tibco.TibcoModel.Scope.Flow.Activity;
 import tibco.TibcoModel.Scope.Flow.Activity.Expression.XPath;
 import tibco.analyzer.AnalysisResult;
@@ -53,6 +54,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static common.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
@@ -176,11 +178,28 @@ public class ProcessConverter {
 
     private static Collection<BallerinaModel.Function> convertExplicitTransitionGroup(
             ProcessContext cx, TibcoModel.Process.ExplicitTransitionGroup group) {
-        return List.of(
-                generateExplicitTransitionBlockStartFunction(cx, group),
+        return Stream.concat(convertExplicitTransitionGroupInner(cx, group),
+                        Stream.of(generateExplicitTransitionBlockStartFunction(cx, group)))
+                .collect(Collectors.toList());
+    }
+
+    private static Stream<BallerinaModel.Function> convertExplicitTransitionGroupInner(
+            ProcessContext cx, TibcoModel.Process.ExplicitTransitionGroup group) {
+        Stream<BallerinaModel.Function> childFunctions = group.activities().stream()
+                .flatMap(each -> {
+                    if (each instanceof InlineActivityWithBody inlineActivityWithBody) {
+                        return Stream.of(inlineActivityWithBody);
+                    } else {
+                        return Stream.empty();
+                    }
+                })
+                .map(InlineActivityWithBody::body)
+                .flatMap(each -> convertExplicitTransitionGroupInner(cx, each));
+        Stream<BallerinaModel.Function> functions = Stream.of(
                 generateExplicitTransitionBlockErrorFunction(cx, group),
                 generateExplicitTransitionBlockActivityFunction(cx, group),
                 generateExplicitTransitionBlockScopeFunction(cx, group));
+        return Stream.concat(functions, childFunctions);
     }
 
     private static void addTransitionPredicates(ProcessContext cx, List<BallerinaModel.Function> accum) {

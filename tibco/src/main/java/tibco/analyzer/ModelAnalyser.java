@@ -113,6 +113,16 @@ public class ModelAnalyser {
         });
         cx.allocateActivityNameIfNeeded(startActivity);
         explicitTransitionGroup.activities().forEach(cx::allocateActivityNameIfNeeded);
+        explicitTransitionGroup.activities().stream()
+                .flatMap(each -> {
+                    if (each instanceof ExplicitTransitionGroup.InlineActivityWithBody inlineActivityWithBody) {
+                        return Stream.of(inlineActivityWithBody);
+                    } else {
+                        return Stream.empty();
+                    }
+                })
+                .map(ExplicitTransitionGroup.InlineActivityWithBody::body)
+                .forEach(each -> analyseExplicitTransitionGroup(cx, each));
     }
 
     private static void analyzeVariables(ProcessAnalysisContext cx, Collection<TibcoModel.Variable> variables) {
