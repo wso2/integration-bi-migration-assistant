@@ -18,6 +18,7 @@
 
 package tibco.converter;
 
+import common.BICodeConverter;
 import common.BallerinaModel;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
@@ -76,8 +77,12 @@ public class TibcoConverter {
             System.exit(1);
             return;
         }
+        BallerinaModel.Module biModule = new BICodeConverter(BICodeConverter.DEFAULT_IS_CONFIGURABLE_PREDICATE,
+                BICodeConverter.DEFAULT_IS_CONNECTION_PREDICATE,
+                (doc) -> doc.documentName().equals("utils"))
+                .convert(result.module());
         BallerinaModel.DefaultPackage balPackage = new BallerinaModel.DefaultPackage("tibco", "sample", "0.1");
-        for (BallerinaModel.TextDocument textDocument : result.module().textDocuments()) {
+        for (BallerinaModel.TextDocument textDocument : biModule.textDocuments()) {
             try {
                 writeTextDocument(result.module(), balPackage, textDocument, targetDir);
             } catch (IOException e) {
