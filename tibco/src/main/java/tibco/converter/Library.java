@@ -26,6 +26,7 @@ enum Library {
     JDBC("ballerinax", "java.jdbc"),
     IO("ballerina", "io"),
     LOG("ballerina", "log"),
+    SOAP("ballerina", "soap.soap11"),
     SQL("ballerina", "sql");
 
     public final String moduleName;

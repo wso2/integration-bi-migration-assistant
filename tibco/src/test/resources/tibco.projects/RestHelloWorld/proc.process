@@ -173,6 +173,23 @@
             </xmlString>
         </pd:inputBindings>
     </pd:activity>
+    <pd:activity name="SOAPRequestReply">
+        <pd:type>com.tibco.plugin.soap.SOAPSendReceiveActivity</pd:type>
+        <pd:resourceType>ae.activities.SOAPSendReceiveUI</pd:resourceType>
+        <pd:x>311</pd:x>
+        <pd:y>63</pd:y>
+        <config>
+            <soapAction>SOAPAction</soapAction>
+            <endpointURL>http://localhost:8800</endpointURL>
+        </config>
+        <pd:inputBindings>
+            <inputMessage>
+                <message>
+                    "foo bar"
+                </message>
+            </inputMessage>
+        </pd:inputBindings>
+    </pd:activity>
     <pd:transition>
         <pd:from>Start</pd:from>
         <pd:to>HTTP Receiver</pd:to>
@@ -203,34 +220,13 @@
     </pd:transition>
     <pd:transition>
         <pd:from>InvokeProcess</pd:from>
-        <pd:to>Write File</pd:to>
+        <pd:to>SOAPRequestReply</pd:to>
         <pd:lineType>Default</pd:lineType>
         <pd:lineColor>-16777216</pd:lineColor>
         <pd:conditionType>always</pd:conditionType>
     </pd:transition>
     <pd:transition>
-        <pd:from>Write File</pd:from>
-        <pd:to>Read file</pd:to>
-        <pd:lineType>Default</pd:lineType>
-        <pd:lineColor>-16777216</pd:lineColor>
-        <pd:conditionType>always</pd:conditionType>
-    </pd:transition>
-    <pd:transition>
-        <pd:from>Read file</pd:from>
-        <pd:to>Render</pd:to>
-        <pd:lineType>Default</pd:lineType>
-        <pd:lineColor>-16777216</pd:lineColor>
-        <pd:conditionType>always</pd:conditionType>
-    </pd:transition>
-    <pd:transition>
-        <pd:from>Render</pd:from>
-        <pd:to>Parse</pd:to>
-        <pd:lineType>Default</pd:lineType>
-        <pd:lineColor>-16777216</pd:lineColor>
-        <pd:conditionType>always</pd:conditionType>
-    </pd:transition>
-    <pd:transition>
-        <pd:from>Parse</pd:from>
+        <pd:from>SOAPRequestReply</pd:from>
         <pd:to>End</pd:to>
         <pd:lineType>Default</pd:lineType>
         <pd:lineColor>-16777216</pd:lineColor>

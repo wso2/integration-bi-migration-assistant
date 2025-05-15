@@ -18,14 +18,14 @@ service on proj_annon_var2 {
     }
 }
 
-function HTTP_Receiver_8(map<xml> context) returns xml|error {
+function HTTP_Receiver_9(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
     addToContext(context, "HTTP Receiver", var1);
     return var1;
 }
 
-function Log_10(map<xml> context) returns xml|error {
+function Log_11(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform1" match="/">
@@ -47,7 +47,7 @@ function Log_10(map<xml> context) returns xml|error {
     return var2;
 }
 
-function Mapper_9(map<xml> context) returns xml|error {
+function Mapper_10(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="runAllTests"/>     <xsl:template name="Transform0" match="/">
@@ -64,11 +64,38 @@ function Mapper_9(map<xml> context) returns xml|error {
     return var2;
 }
 
+function SOAPSendReply(map<xml> context) returns xml|error {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
+     <xsl:template name="Transform2" match="/">
+        <Response>
+                    
+    <Body>
+                    "Foo bar"
+                </Body>
+                
+</Response>
+
+    </xsl:template>
+</xsl:stylesheet>`, context);
+    xml var2 = xml `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+    soap:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+    <soap:Header/>
+    <soap:Body>
+        ${var1}
+    </soap:Body>
+</soap:Envelope>`;
+    addToContext(context, "SOAPSendReply", var2);
+    return var2;
+}
+
 function scope0_1ActivityRunner(map<xml> cx) returns xml|error {
-    xml result0 = check HTTP_Receiver_8(cx);
-    xml result1 = check Mapper_9(cx);
-    xml result2 = check Log_10(cx);
-    return result2;
+    xml result0 = check HTTP_Receiver_9(cx);
+    xml result1 = check Mapper_10(cx);
+    xml result2 = check Log_11(cx);
+    xml result3 = check SOAPSendReply(cx);
+    return result3;
 }
 
 function scope0_1FaultHandler(error err, map<xml> cx) returns xml {

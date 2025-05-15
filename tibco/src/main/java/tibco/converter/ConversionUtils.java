@@ -177,6 +177,18 @@ public final class ConversionUtils {
         return parts[parts.length - 1];
     }
 
+    public static String createSoapEnvelope(Expression.VariableReference body) {
+        return """
+                <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+                  soap:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+                    <soap:Header/>
+                    <soap:Body>
+                        ${%s}
+                    </soap:Body>
+                </soap:Envelope>
+                """.formatted(body.varName());
+    }
+
     public enum Constants {
         ;
 

@@ -190,6 +190,8 @@ public class TibcoModel {
                     FILE_READ,
                     XML_RENDER_ACTIVITY,
                     XML_PARSE_ACTIVITY,
+                    SOAP_SEND_RECEIVE,
+                    SOAP_SEND_REPLY,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
@@ -207,7 +209,10 @@ public class TibcoModel {
                                         new LookUpData("WriteToLogActivity", WRITE_LOG),
                                         new LookUpData("FileReadActivity", FILE_READ),
                                         new LookUpData("FileWriteActivity", FILE_WRITE),
-                                        new LookUpData("CallProcessActivity", CALL_PROCESS))
+                                        new LookUpData("CallProcessActivity", CALL_PROCESS),
+                                        new LookUpData("SOAPSendReceiveActivity", SOAP_SEND_RECEIVE),
+                                        new LookUpData("SOAPSendReplyActivity", SOAP_SEND_REPLY),
+                                        new LookUpData("WriteToLogActivity", WRITE_LOG))
                                 .filter(each -> type.endsWith(each.suffix)).findFirst()
                                 .map(LookUpData::activityType).orElse(UNHANDLED);
                     }
@@ -282,7 +287,7 @@ public class TibcoModel {
                 }
 
                 record XMLRenderActivity(Element element, String name,
-                        InputBinding inputBinding) implements InlineActivity {
+                                         InputBinding inputBinding) implements InlineActivity {
                     public XMLRenderActivity {
                         assert inputBinding != null;
                     }
@@ -295,6 +300,37 @@ public class TibcoModel {
                     @Override
                     public boolean hasInputBinding() {
                         return true;
+                    }
+                }
+
+                record SOAPSendReply(Element element, String name,
+                                     InputBinding inputBinding) implements InlineActivity {
+                    public SOAPSendReply {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.SOAP_SEND_REPLY;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record SOAPSendReceive(Element element, String name, InputBinding inputBinding,
+                                       Optional<String> soapAction, String endpointURL) implements InlineActivity {
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.SOAP_SEND_RECEIVE;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
                     }
                 }
 
@@ -620,8 +656,8 @@ public class TibcoModel {
                                     List<Parameter> parameters) {
 
                 public Operation(Method method, RequestEntityProcessing requestEntityProcessing,
-                        MessageStyle requestStyle, MessageStyle responseStyle, Format clientFormat,
-                        Format clientRequestFormat, List<Parameter> parameters) {
+                                 MessageStyle requestStyle, MessageStyle responseStyle, Format clientFormat,
+                                 Format clientRequestFormat, List<Parameter> parameters) {
                     this(method, Optional.of(requestEntityProcessing), Optional.of(requestStyle),
                             Optional.of(responseStyle), Optional.of(clientFormat), Optional.of(clientRequestFormat),
                             parameters);

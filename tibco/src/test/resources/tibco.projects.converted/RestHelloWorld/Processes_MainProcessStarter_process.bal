@@ -1,6 +1,7 @@
 import ballerina/http;
 import ballerina/io;
 import ballerina/log;
+import ballerina/soap.soap11;
 import ballerina/xslt;
 
 listener http:Listener proj_annon_var0 = GeneralConnection_sharedhttp;
@@ -148,6 +149,34 @@ function Render(map<xml> context) returns xml|error {
     return var3;
 }
 
+function SOAPRequestReply(map<xml> context) returns xml|error {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
+     <xsl:template name="Transform7" match="/">
+        <inputMessage>
+                    
+    <message>
+                    "foo bar"
+                </message>
+                
+</inputMessage>
+
+    </xsl:template>
+</xsl:stylesheet>`, context);
+    soap11:Client var2 = check new ("http://localhost:8800");
+    xml var3 = xml `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+    soap:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+    <soap:Header/>
+    <soap:Body>
+        ${var1}
+    </soap:Body>
+</soap:Envelope>`;
+    xml var4 = check var2->sendReceive(var3, "SOAPAction");
+    addToContext(context, "SOAPRequestReply", var4);
+    return var4;
+}
+
 function Write_File(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
@@ -188,11 +217,8 @@ function scope0ActivityRunner(map<xml> cx) returns xml|error {
     xml result1 = check Mapper(cx);
     xml result2 = check Log(cx);
     xml result3 = check InvokeProcess(cx);
-    xml result4 = check Write_File(cx);
-    xml result5 = check Read_file(cx);
-    xml result6 = check Render(cx);
-    xml result7 = check Parse(cx);
-    return result7;
+    xml result4 = check SOAPRequestReply(cx);
+    return result4;
 }
 
 function scope0FaultHandler(error err, map<xml> cx) returns xml {
