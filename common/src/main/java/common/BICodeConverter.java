@@ -33,7 +33,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public final class BICodeConverter {
-    public static final Predicate<BallerinaModel.ModuleVar> DEFAULT_IS_CONFIGURABLE_PREDICATE = BallerinaModel.ModuleVar::isConfigurable;
+    public static final Predicate<BallerinaModel.ModuleVar> DEFAULT_IS_CONFIGURABLE_PREDICATE =
+            BallerinaModel.ModuleVar::isConfigurable;
 
     public static final Predicate<BallerinaModel.ModuleVar> DEFAULT_IS_CONNECTION_PREDICATE = new TypeNamePredicate(
             Set.of("http:Client"));

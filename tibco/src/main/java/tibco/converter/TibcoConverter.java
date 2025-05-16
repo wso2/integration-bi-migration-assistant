@@ -18,7 +18,6 @@
 
 package tibco.converter;
 
-import common.BICodeConverter;
 import common.BallerinaModel;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
@@ -78,10 +77,10 @@ public class TibcoConverter {
             return;
         }
         // TODO: enable after https://github.com/wso2-enterprise/integration-bi-migration-assistant/issues/73
-        //        BallerinaModel.Module biModule = new BICodeConverter(BICodeConverter.DEFAULT_IS_CONFIGURABLE_PREDICATE,
-        //                BICodeConverter.DEFAULT_IS_CONNECTION_PREDICATE,
-        //                (doc) -> doc.documentName().equals("utils.bal"))
-        //                .convert(result.module());
+        //      BallerinaModel.Module biModule = new BICodeConverter(BICodeConverter.DEFAULT_IS_CONFIGURABLE_PREDICATE,
+        //              BICodeConverter.DEFAULT_IS_CONNECTION_PREDICATE,
+        //              (doc) -> doc.documentName().equals("utils.bal"))
+        //              .convert(result.module());
         BallerinaModel.DefaultPackage balPackage = new BallerinaModel.DefaultPackage("tibco", "sample", "0.1");
         for (BallerinaModel.TextDocument textDocument : result.module().textDocuments()) {
             try {
