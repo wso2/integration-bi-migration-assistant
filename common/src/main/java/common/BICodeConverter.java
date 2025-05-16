@@ -19,22 +19,25 @@
 package common;
 
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public final class BICodeConverter {
-    public static final Predicate<BallerinaModel.ModuleVar> DEFAULT_IS_CONFIGURABLE_PREDICATE =
-            BallerinaModel.ModuleVar::isConfigurable;
+    public static final Predicate<BallerinaModel.ModuleVar> DEFAULT_IS_CONFIGURABLE_PREDICATE = BallerinaModel.ModuleVar::isConfigurable;
 
-    public static final Predicate<BallerinaModel.ModuleVar> DEFAULT_IS_CONNECTION_PREDICATE =
-            new TypeNamePredicate(Set.of("http:client"));
-    public static final Predicate<BallerinaModel.TextDocument> DEFAULT_SKIP_CONVERSION_PREDICATE =
-            ignored -> false;
+    public static final Predicate<BallerinaModel.ModuleVar> DEFAULT_IS_CONNECTION_PREDICATE = new TypeNamePredicate(
+            Set.of("http:Client"));
+    public static final Predicate<BallerinaModel.TextDocument> DEFAULT_SKIP_CONVERSION_PREDICATE = ignored -> false;
 
     private final Predicate<BallerinaModel.ModuleVar> isConfigurable;
     private final Predicate<BallerinaModel.ModuleVar> isConnection;
@@ -55,8 +58,8 @@ public final class BICodeConverter {
         BallerinaModel.TextDocument connections = fixImports(mergeWithExistingIfNeeded(connections(module), module));
         BallerinaModel.TextDocument types = fixImports(mergeWithExistingIfNeeded(types(module), module));
         BallerinaModel.TextDocument functions = fixImports(mergeWithExistingIfNeeded(functions(module), module));
-        List<BallerinaModel.TextDocument> docs =
-                Stream.concat(Stream.of(main, configs, connections, types, functions), skipped).toList();
+        List<BallerinaModel.TextDocument> docs = Stream
+                .concat(Stream.of(main, configs, connections, types, functions), skipped).toList();
         return new BallerinaModel.Module(module.name(), docs);
     }
 
@@ -74,7 +77,7 @@ public final class BICodeConverter {
 
     private BallerinaModel.TextDocument mainFile(BallerinaModel.Module module) {
         List<BallerinaModel.Service> services = extractServices(module);
-        List<BallerinaModel.Listener> listeners = extractListners(module);
+        List<BallerinaModel.Listener> listeners = extractListeners(module);
 
         return new BallerinaModel.TextDocument("main.bal", List.of(), List.of(), List.of(),
                 listeners, services, List.of(), List.of());
@@ -93,11 +96,45 @@ public final class BICodeConverter {
     }
 
     private BallerinaModel.TextDocument fixImports(BallerinaModel.TextDocument doc) {
-        // FIXME:
-        return doc;
+        // TODO: we can do this better by visiting tree and figure out types and
+        //  function calls. But should be good enough for now
+        BallerinaModel.Module tmpModule = new BallerinaModel.Module("temp", List.of(doc));
+        BallerinaModel ballerinaModel = new BallerinaModel(new BallerinaModel.DefaultPackage("tmp", "tmp", "0.0.1"),
+                List.of(tmpModule));
+        SyntaxTree st = new CodeGenerator(ballerinaModel).generateBalCode();
+        String content = st.toSourceCode();
+        Pattern searchPattern = Pattern.compile("([a-zA-Z0-9]+):[a-zA-Z0-9]+");
+
+        // Find all matches in content
+        Matcher matcher = searchPattern.matcher(content);
+        Set<BallerinaModel.Import> imports = new HashSet<>();
+
+        while (matcher.find()) {
+            prefixToImport(matcher.group(1)).ifPresent(imports::add);
+        }
+
+        List<BallerinaModel.Import> combinedImports = Stream.concat(doc.imports().stream(), imports.stream()).toList();
+        return new BallerinaModel.TextDocument(doc.documentName(), combinedImports, doc.moduleTypeDefs(),
+                doc.moduleVars(), doc.listeners(), doc.services(), doc.functions(), doc.Comments());
     }
 
-    private BallerinaModel.TextDocument mergeWithExistingIfNeeded(BallerinaModel.TextDocument doc, BallerinaModel.Module existing) {
+    private Optional<BallerinaModel.Import> prefixToImport(String prefix) {
+        return switch (prefix) {
+            case "http" -> Optional.of(new BallerinaModel.Import("ballerina", "http"));
+            case "xslt" -> Optional.of(new BallerinaModel.Import("ballerina", "xslt"));
+            case "xmldata" -> Optional.of(new BallerinaModel.Import("ballerina", "data.xmldata"));
+            case "jsondata" -> Optional.of(new BallerinaModel.Import("ballerina", "data.jsondata"));
+            case "java.jdbc" -> Optional.of(new BallerinaModel.Import("ballerinax", "java.jdbc"));
+            case "io" -> Optional.of(new BallerinaModel.Import("ballerina", "io"));
+            case "log" -> Optional.of(new BallerinaModel.Import("ballerina", "log"));
+            case "soap11" -> Optional.of(new BallerinaModel.Import("ballerina", "soap.soap11"));
+            case "sql" -> Optional.of(new BallerinaModel.Import("ballerina", "sql"));
+            default -> Optional.empty();
+        };
+    }
+
+    private BallerinaModel.TextDocument mergeWithExistingIfNeeded(BallerinaModel.TextDocument doc,
+                                                                  BallerinaModel.Module existing) {
         String name = doc.documentName();
         return existing.textDocuments().stream()
                 .filter(each -> each.documentName().equalsIgnoreCase(name))
@@ -110,8 +147,7 @@ public final class BICodeConverter {
                                                            BallerinaModel.TextDocument doc2) {
         assert doc1.documentName().equals(doc2.documentName());
         List<BallerinaModel.Import> imports = mergeList(doc1.imports(), doc2.imports());
-        List<BallerinaModel.ModuleTypeDef> moduleTypeDefs =
-                mergeList(doc1.moduleTypeDefs(), doc2.moduleTypeDefs());
+        List<BallerinaModel.ModuleTypeDef> moduleTypeDefs = mergeList(doc1.moduleTypeDefs(), doc2.moduleTypeDefs());
         List<BallerinaModel.ModuleVar> moduleVars = mergeList(doc1.moduleVars(), doc2.moduleVars());
         List<BallerinaModel.Listener> listeners = mergeList(doc1.listeners(), doc2.listeners());
         List<BallerinaModel.Service> services = mergeList(doc1.services(), doc2.services());
@@ -142,7 +178,7 @@ public final class BICodeConverter {
                 .toList();
     }
 
-    private List<BallerinaModel.Listener> extractListners(BallerinaModel.Module module) {
+    private List<BallerinaModel.Listener> extractListeners(BallerinaModel.Module module) {
         return getTextDocumentStream(module).flatMap(doc -> doc.listeners().stream())
                 .toList();
     }

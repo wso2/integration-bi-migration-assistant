@@ -77,12 +77,13 @@ public class TibcoConverter {
             System.exit(1);
             return;
         }
-        BallerinaModel.Module biModule = new BICodeConverter(BICodeConverter.DEFAULT_IS_CONFIGURABLE_PREDICATE,
-                BICodeConverter.DEFAULT_IS_CONNECTION_PREDICATE,
-                (doc) -> doc.documentName().equals("utils"))
-                .convert(result.module());
+        // TODO: enable after https://github.com/wso2-enterprise/integration-bi-migration-assistant/issues/73
+        //        BallerinaModel.Module biModule = new BICodeConverter(BICodeConverter.DEFAULT_IS_CONFIGURABLE_PREDICATE,
+        //                BICodeConverter.DEFAULT_IS_CONNECTION_PREDICATE,
+        //                (doc) -> doc.documentName().equals("utils.bal"))
+        //                .convert(result.module());
         BallerinaModel.DefaultPackage balPackage = new BallerinaModel.DefaultPackage("tibco", "sample", "0.1");
-        for (BallerinaModel.TextDocument textDocument : biModule.textDocuments()) {
+        for (BallerinaModel.TextDocument textDocument : result.module().textDocuments()) {
             try {
                 writeTextDocument(result.module(), balPackage, textDocument, targetDir);
             } catch (IOException e) {
