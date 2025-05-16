@@ -4,13 +4,13 @@ import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
 public type InboundProperties record {|
-    http:Response response;
     http:Request request;
-    map<string> uriParams;
+    http:Response response;
+    map<string> uriParams = {};
 |};
 
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
     InboundProperties inboundProperties;
 |};
 
@@ -22,27 +22,17 @@ sql:ParameterizedQuery Template_Select_Query = `SELECT * FROM users;`;
 public listener http:Listener config = new (8081);
 
 service /mule3 on config {
-    Context ctx;
-
-    function init() {
-        self.ctx = {payload: (), inboundProperties: {response: new, request: new, uriParams: {}}};
-    }
-
     resource function get .(http:Request request) returns http:Response|error {
-        self.ctx.inboundProperties.request = request;
-        return invokeEndPoint0(self.ctx);
+        Context ctx = {inboundProperties: {request, response: new}};
+
+        // database operation
+        sql:ParameterizedQuery dbQuery0 = Template_Select_Query;
+        stream<Record, sql:Error?> dbStream0 = MySQL_Configuration->query(dbQuery0);
+        Record[] dbSelect0 = check from Record _iterator_ in dbStream0
+            select _iterator_;
+        ctx.payload = dbSelect0;
+
+        ctx.inboundProperties.response.setPayload(ctx.payload);
+        return ctx.inboundProperties.response;
     }
-}
-
-public function invokeEndPoint0(Context ctx) returns http:Response|error {
-
-    // database operation
-    sql:ParameterizedQuery dbQuery0 = Template_Select_Query;
-    stream<Record, sql:Error?> dbStream0 = MySQL_Configuration->query(dbQuery0);
-    Record[] dbSelect0 = check from Record _iterator_ in dbStream0
-        select _iterator_;
-    ctx.payload = dbSelect0;
-
-    ctx.inboundProperties.response.setPayload(ctx.payload);
-    return ctx.inboundProperties.response;
 }

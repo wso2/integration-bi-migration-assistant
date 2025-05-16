@@ -1,5 +1,5 @@
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function sampleFlow(Context ctx) {

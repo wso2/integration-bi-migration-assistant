@@ -18,15 +18,11 @@
 
 package mule;
 
-import common.BallerinaModel.TypeDesc.RecordTypeDesc;
-import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import io.ballerina.compiler.syntax.tree.SyntaxInfo;
 import org.w3c.dom.Element;
 
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +35,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import static common.BallerinaModel.ModuleTypeDef;
 import static mule.MELConverter.convertMELToBal;
 
 public class ConversionUtils {
@@ -59,7 +54,7 @@ public class ConversionUtils {
                     if (s.startsWith("{") && s.endsWith("}")) {
                         // We come here for mule path params. e.g. foo/{bar}/baz
                         String pathParamName = s.substring(1, s.length() - 1);
-                        pathParamName = escapeSpecialCharacters(pathParamName);
+                        pathParamName = formatToBalIdentifier(pathParamName);
                         pathParams.add(pathParamName);
                         return "[string " + pathParamName + "]";
                     }
@@ -68,7 +63,7 @@ public class ConversionUtils {
                         String balExpr = convertMELToBal(s, false);
                         return "[" + balExpr + "]";
                     }
-                    return escapeSpecialCharacters(s);
+                    return formatToBalIdentifier(s);
                 }).toList();
 
         return list.isEmpty() ? "." : String.join("/", list);
@@ -82,7 +77,7 @@ public class ConversionUtils {
      */
     static String getBallerinaAbsolutePath(String basePath) {
         List<String> list = Arrays.stream(basePath.split("/")).filter(s -> !s.isEmpty())
-                .map(ConversionUtils::escapeSpecialCharacters).toList();
+                .map(ConversionUtils::formatToBalIdentifier).toList();
 
         return list.isEmpty() ? "/" : "/" + String.join("/", list);
     }
@@ -96,15 +91,12 @@ public class ConversionUtils {
     static String getBallerinaClientResourcePath(String basePath) {
         List<String> list = Arrays.stream(basePath.split("/")).filter(s -> !s.isEmpty())
                 .map(s -> {
-                    if (isInt(s)) {
-                        return "[" + s + "]";
-                    }
                     if (s.startsWith("#[") && s.endsWith("]")) {
                         // Handle MEL in url. e.g. /users/#[flowVars.userId]
                         String balExpr = convertMELToBal(s, false);
                         return "[" + balExpr + "]";
                     }
-                    return ConversionUtils.escapeSpecialCharacters(s);
+                    return ConversionUtils.formatToBalIdentifier(s);
                 }).toList();
         return list.isEmpty() ? "/" : "/" + String.join("/", list);
     }
@@ -150,13 +142,31 @@ public class ConversionUtils {
     }
 
     /**
-     * Escape the special characters in an identifier with a preceding `\`.
+     * Escapes special characters in an identifier with a preceding backslash (\).
+     * This is part of making an identifier valid in Ballerina syntax.
      *
-     * @param identifier encoded identifier string
-     * @return decoded identifier
+     * @param identifier the original identifier string
+     * @return identifier with special characters escaped
      */
     public static String escapeSpecialCharacters(String identifier) {
         return UNESCAPED_SPECIAL_CHAR_SET.matcher(identifier).replaceAll("\\\\$1");
+    }
+
+    /**
+     * Processes an identifier to make it valid for Ballerina identifier syntax by:
+     * 1. Escaping special characters with a preceding `\`
+     * 2. Adding a single quote prefix if the identifier starts with a digit (0-9)
+     *
+     * @param identifier the original identifier string
+     * @return the processed identifier that's valid in Ballerina
+     */
+    public static String formatToBalIdentifier(String identifier) {
+        identifier = escapeSpecialCharacters(identifier);
+        // Add single quote prefix if identifier starts with a digit
+        if (!identifier.isEmpty() && Character.isDigit(identifier.charAt(0))) {
+            identifier = "'" + identifier;
+        }
+        return identifier;
     }
 
     static String[] getAllowedMethods(String allowedMethods) {
@@ -276,40 +286,4 @@ public class ConversionUtils {
         sb.append("// ------------------------------------------------------------------------\n\n");
         return sb.toString();
     }
-
-    public static String getRecordInitValue(HashMap<String, ModuleTypeDef> contextTypeDefMap,
-                                            RecordTypeDesc recordType) {
-        List<String> requiredFields = new ArrayList<>();
-        for (RecordField recordField : recordType.fields()) {
-            if (!recordField.isOptional()) {
-                String value = getRequiredRecFieldDefaultValue(contextTypeDefMap, recordField);
-                requiredFields.add(String.format("%s: %s", recordField.name(), value));
-            }
-        }
-        String recordBody = String.join(", ", requiredFields);
-        return String.format("{%s}", recordBody);
-    }
-
-    private static String getRequiredRecFieldDefaultValue(HashMap<String, ModuleTypeDef> contextTypeDefMap,
-                                                          RecordField recordField) {
-        assert !recordField.isOptional();
-        String typeStr = recordField.typeDesc().toString();
-        switch (typeStr) {
-            case "anydata" -> {
-                return "()";
-            }
-            case Constants.HTTP_RESPONSE_TYPE, Constants.HTTP_REQUEST_TYPE -> {
-                return "new";
-            }
-            case "map<string>" -> {
-                return "{}";
-            }
-            case Constants.INBOUND_PROPERTIES_TYPE, Constants.FLOW_VARS_TYPE, Constants.SESSION_VARS_TYPE -> {
-                ModuleTypeDef moduleTypeDef = contextTypeDefMap.get(typeStr);
-                return getRecordInitValue(contextTypeDefMap, (RecordTypeDesc) moduleTypeDef.typeDesc());
-            }
-            default -> throw new IllegalStateException();
-        }
-    }
-
 }

@@ -43,16 +43,25 @@ public class Constants {
     public static final String MODULE_INT = "lang.'int";
     public static final String MODULE_JAVA = "jballerina.java";
 
-    // Variable/Func Names
-    public static final String VAR_ITERATOR = "_iterator_";
+    // Context Type Def
+    public static final String CONTEXT_RECORD_TYPE = "Context";
+    public static final String FLOW_VARS_TYPE = "FlowVars";
+    public static final String SESSION_VARS_TYPE = "SessionVars";
+    public static final String INBOUND_PROPERTIES_TYPE = "InboundProperties";
     public static final String CONTEXT_REFERENCE = "ctx";
     public static final String FLOW_VARS_REF = "flowVars";
     public static final String SESSION_VARS_REF = "sessionVars";
     public static final String INBOUND_PROPERTIES_REF = "inboundProperties";
+    public static final String HTTP_REQUEST_REF = "request";
+    public static final String HTTP_RESPONSE_REF = "response";
+    public static final String PAYLOAD_REF = "payload";
+    public static final String URI_PARAMS_REF = "uriParams";
     public static final String FLOW_VARS_FIELD_ACCESS = CONTEXT_REFERENCE + "." + FLOW_VARS_REF;
     public static final String SESSION_VARS_FIELD_ACCESS = CONTEXT_REFERENCE + "." + SESSION_VARS_REF;
     public static final String INBOUND_PROPERTIES_FIELD_ACCESS = CONTEXT_REFERENCE + "." + INBOUND_PROPERTIES_REF;
 
+    // Variable/Func Names
+    public static final String VAR_ITERATOR = "_iterator_";
     public static final String FUNC_NAME_HTTP_ENDPOINT_TEMPLATE = "invokeEndPoint%s";
     public static final String VAR_DB_STREAM_TEMPLATE = "dbStream%s";
     public static final String VAR_DB_QUERY_TEMPLATE = "dbQuery%s";
@@ -77,10 +86,6 @@ public class Constants {
     public static final String GENERIC_RECORD_TYPE = "record {}";
     public static final String GENERIC_RECORD_TYPE_REF = "Record";
     public static final String SQL_PARAMETERIZED_QUERY_TYPE = "sql:ParameterizedQuery";
-    public static final String CONTEXT_RECORD_TYPE = "Context";
-    public static final String FLOW_VARS_TYPE = "FlowVars";
-    public static final String SESSION_VARS_TYPE = "SessionVars";
-    public static final String INBOUND_PROPERTIES_TYPE = "InboundProperties";
 
     //DataWeave
     public static final String CLASSPATH_DIR = "src/main/resources/";

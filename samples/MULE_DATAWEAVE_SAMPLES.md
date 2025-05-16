@@ -20,7 +20,7 @@ This section provides examples of DataWeave scripts and their corresponding Ball
 **Ballerina Output (transform_message_with_concat_array.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 function _dwMethod0_() returns json|error {
@@ -50,7 +50,7 @@ concat: {aa: "a"} ++ {cc: "c"}
 **Ballerina Output (transform_message_with_concat_object.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function sampleFlow(Context ctx) {
@@ -81,7 +81,7 @@ function _dwMethod0_() returns json|error {
 **Ballerina Output (transform_message_with_concat_string.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 function _dwMethod0_() returns json {
@@ -117,7 +117,7 @@ public function sampleFlow(Context ctx) {
 import ballerina/time;
 
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 function _dwMethod0_() returns json|error {
@@ -146,7 +146,7 @@ public function sampleFlow(Context ctx) {
 **Ballerina Output (transform_message_with_filter_value_identifier.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function sampleFlow(Context ctx) {
@@ -175,7 +175,7 @@ lower "APPLE"
 **Ballerina Output (transform_message_with_lower.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function sampleFlow(Context ctx) {
@@ -203,7 +203,7 @@ users: ["john", "peter", "matt"] map  upper $
 **Ballerina Output (transform_message_with_map_combination.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function sampleFlow(Context ctx) {
@@ -233,7 +233,7 @@ function _dwMethod0_() returns json {
 **Ballerina Output (transform_message_with_map_index_identifier.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function sampleFlow(Context ctx) {
@@ -263,7 +263,7 @@ function _dwMethod0_(json payload) returns json {
 **Ballerina Output (transform_message_with_map_index_identifier_only.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function sampleFlow(Context ctx) {
@@ -293,7 +293,7 @@ function _dwMethod0_(json payload) returns json {
 **Ballerina Output (transform_message_with_map_value_identifier.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function sampleFlow(Context ctx) {
@@ -321,7 +321,7 @@ function _dwMethod0_(json payload) returns json {
 **Ballerina Output (transform_message_with_map_with_parameters.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function sampleFlow(Context ctx) {
@@ -350,7 +350,7 @@ b: "admin123" replace /(\d+)/ with "ID"
 **Ballerina Output (transform_message_with_replace_with.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function sampleFlow(Context ctx) {
@@ -383,7 +383,7 @@ function _dwMethod0_() returns json {
 **Ballerina Output (transform_message_with_single_selector.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 function _dwMethod0_(json payload) returns json|error {
@@ -414,7 +414,7 @@ public function sampleFlow(Context ctx) {
 **Ballerina Output (transform_message_with_sizeof.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function sampleFlow(Context ctx) {
@@ -443,7 +443,7 @@ function _dwMethod0_(json payload) returns json {
 **Ballerina Output (transform_message_with_string_return.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function sampleFlow(Context ctx) {
@@ -477,7 +477,7 @@ function _dwMethod0_() returns string {
 import ballerina/time;
 
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 function _dwMethod0_() returns json|error {
@@ -513,7 +513,7 @@ import ballerina/jballerina.java;
 import ballerina/time;
 
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function getFormattedStringFromDate(string dateString, string format) returns string {
@@ -594,7 +594,7 @@ public function getCurrentTimeString() returns string {
 **Ballerina Output (transform_message_with_type_coercion_number.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function sampleFlow(Context ctx) {
@@ -622,7 +622,7 @@ function _dwMethod0_() returns json|error {
 **Ballerina Output (transform_message_with_type_coercion_string.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 function _dwMethod0_() returns string {
@@ -656,7 +656,7 @@ import ballerina/jballerina.java;
 import ballerina/time;
 
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function UTC() returns handle = @java:FieldGet {
@@ -711,7 +711,7 @@ upper "apple"
 **Ballerina Output (transform_message_with_upper.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 public function sampleFlow(Context ctx) {
@@ -746,7 +746,7 @@ otherwise
 **Ballerina Output (transform_message_with_when_otherwise.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 function _dwMethod0_(json payload) returns json|error {
@@ -790,7 +790,7 @@ otherwise
 **Ballerina Output (transform_message_with_when_otherwise_nested.bal):**
 ```ballerina
 public type Context record {|
-    anydata payload;
+    anydata payload = ();
 |};
 
 function _dwMethod0_(json payload) returns json|error {
