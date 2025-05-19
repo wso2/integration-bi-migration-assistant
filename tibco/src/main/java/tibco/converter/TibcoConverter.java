@@ -23,6 +23,7 @@ import common.BallerinaModel;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import tibco.TibcoToBalConverter;
+import tibco.analyzer.AnalysisReport;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -102,6 +103,18 @@ public class TibcoConverter {
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Error creating types files", e);
         }
+        try {
+            writeAnalysisReport(targetDir, result.report());
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Error creating analysis report", e);
+        }
+    }
+
+    private static void writeAnalysisReport(Path targetDir, AnalysisReport report) throws IOException {
+        Path reportFilePath = targetDir.resolve("report.html");
+        String htmlContent = report.toHTML();
+        Files.writeString(reportFilePath, htmlContent);
+        logger.info("Created analysis report at: " + reportFilePath);
     }
 
     private static void writeTextDocument(BallerinaModel.Module module, BallerinaModel.DefaultPackage balPackage,

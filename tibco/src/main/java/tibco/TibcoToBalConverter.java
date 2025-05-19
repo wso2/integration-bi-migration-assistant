@@ -21,6 +21,7 @@ package tibco;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
+import tibco.analyzer.AnalysisReport;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.DefaultAnalysisPass;
 import tibco.analyzer.LoggingAnalysisPass;
@@ -40,6 +41,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Logger;
@@ -81,10 +83,12 @@ public class TibcoToBalConverter {
                 new LoggingAnalysisPass(),
                 new ReportGenerationPass()));
         Map<TibcoModel.Process, AnalysisResult> analysisResult =
-                analyser.analyseProcesses(new ProjectAnalysisContext(), processes);
+                analyser.analyseProcesses(new ProjectAnalysisContext(cx), processes);
+        AnalysisReport report = analysisResult.values().stream().map(AnalysisResult::getReport).flatMap(Optional::stream).reduce(AnalysisReport.empty(),
+                AnalysisReport::combine);
 
         return ProjectConverter.convertProject(cx, analysisResult, processes, types, jdbcResources,
-                httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource);
+                httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource, report);
     }
 
     private static final ParsingUnit<TibcoModel.Process> PROCESS_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(
@@ -215,6 +219,7 @@ public class TibcoToBalConverter {
     }
 
     public record ProjectConversionContext(List<JavaDependencies> javaDependencies) {
+
 
         public ProjectConversionContext() {
             this(new ArrayList<>());

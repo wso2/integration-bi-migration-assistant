@@ -19,6 +19,7 @@
 package tibco.analyzer;
 
 import tibco.TibcoModel;
+import tibco.TibcoToBalConverter;
 
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -30,6 +31,11 @@ public class ProjectAnalysisContext {
     private final Set<String> controlFlowFunctionNames = new LinkedHashSet<>();
     private final Map<TibcoModel.Scope.Flow.Activity, String> activityFunctionNames =
             new ConcurrentHashMap<>();
+    private final TibcoToBalConverter.ProjectConversionContext cx;
+
+    public ProjectAnalysisContext(TibcoToBalConverter.ProjectConversionContext cx) {
+        this.cx = cx;
+    }
 
     public Set<String> controlFlowFunctionNames() {
         return controlFlowFunctionNames;

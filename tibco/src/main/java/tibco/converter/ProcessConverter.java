@@ -99,7 +99,7 @@ public class ProcessConverter {
         String path = http.host() + ":" + http.port();
         cx.addLibraryImport(Library.HTTP);
         BallerinaModel.ModuleVar moduleVar = new BallerinaModel.ModuleVar(cx.getAnonName(), "http:Client",
-                Optional.of(new CheckPanic(common.ConversionUtils.exprFrom("new (\"%s\")".formatted(path)))),
+                Optional.of(new CheckPanic(exprFrom("new (\"%s\")".formatted(path)))),
                 false, false);
         cx.addOnDemandModuleVar(moduleVar.name(), moduleVar);
         cx.registerProcessClient(moduleVar.name());
@@ -119,7 +119,7 @@ public class ProcessConverter {
         VarDeclStatment inputValDecl = new VarDeclStatment(XML, "inputVal", inputXml);
         body.add(inputValDecl);
         VarDeclStatment paramXmlDecl = new VarDeclStatment(new TypeDesc.MapTypeDesc(XML), "paramXML",
-                common.ConversionUtils.exprFrom("{post: %s}".formatted(inputValDecl.varName())));
+                exprFrom("{post: %s}".formatted(inputValDecl.varName())));
         body.add(paramXmlDecl);
         FunctionCall procFnCall = new FunctionCall(cx.getProcessStartFunction().name(),
                 List.of(new VariableReference(parameter.name()), paramXmlDecl.ref()));
@@ -381,7 +381,7 @@ public class ProcessConverter {
 
     private static void generateScopeFnBody(AnalysisResult.ControlFlowFunctions controlFlowFunctions,
             VariableReference context, List<Statement> body) {
-        VarDeclStatment result = new VarDeclStatment(TypeDesc.UnionTypeDesc.of(XML, ERROR), "result",
+        VarDeclStatment result = new VarDeclStatment(UnionTypeDesc.of(XML, ERROR), "result",
                 new FunctionCall(controlFlowFunctions.activityRunner(), List.of(context)));
         body.add(result);
         handleErrorResult(result, context, controlFlowFunctions.errorHandler(), body);
@@ -493,7 +493,7 @@ public class ProcessConverter {
         body.add(result);
         Expression cond = predicates.getFirst();
         for (int i = 1; i < predicates.size(); i++) {
-            cond = new Expression.BinaryLogical(cond, predicates.get(i), BinaryLogical.Operator.OR);
+            cond = new BinaryLogical(cond, predicates.get(i), BinaryLogical.Operator.OR);
         }
         Statement.IfElseStatement ifElse = new Statement.IfElseStatement(cond,
                 List.of(new VarAssignStatement(result.ref(),
@@ -516,7 +516,7 @@ public class ProcessConverter {
         return new FunctionCall(analysisResult.from(activity).functionName(), List.of(context));
     }
 
-    private static BallerinaModel.Expression xsltTransform(ProcessContext cx, VariableReference inputVariable,
+    private static Expression xsltTransform(ProcessContext cx, VariableReference inputVariable,
                                                            Activity.Expression.XSLT xslt) {
         cx.addLibraryImport(Library.XSLT);
         return new CheckPanic(new FunctionCall(ActivityConverter.XSLTConstants.XSLT_TRANSFORM_FUNCTION,
