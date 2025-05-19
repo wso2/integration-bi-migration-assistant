@@ -45,27 +45,7 @@ public class TibcoProjectConversionTest {
         } finally {
             // Clean up temporary directory
             deleteDirectory(tempDir);
-
-            // Clear static state after test
-            try {
-                cleanupModelAnalyzerContext();
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to clear activityFunctionNames", e);
-            }
         }
-    }
-
-    private static void cleanupModelAnalyzerContext() throws ClassNotFoundException, NoSuchFieldException,
-            IllegalAccessException {
-        Class<?> contextClass = Class.forName("tibco.analyzer.ModelAnalyser$ProcessAnalysisContext");
-        java.lang.reflect.Field activityFunctionNames = contextClass.getDeclaredField("activityFunctionNames");
-        activityFunctionNames.setAccessible(true);
-        ((Map<?, ?>) activityFunctionNames.get(null)).clear();
-
-
-        java.lang.reflect.Field controlFlowFunctionNames = contextClass.getDeclaredField("controlFlowFunctionNames");
-        controlFlowFunctionNames.setAccessible(true);
-        ((Set<?>) controlFlowFunctionNames.get(null)).clear();
     }
 
     private void compareDirectories(Path actual, Path expected) throws IOException {

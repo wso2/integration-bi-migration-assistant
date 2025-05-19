@@ -25,11 +25,14 @@ import tibco.TibcoModel.Process.ExplicitTransitionGroup;
 import tibco.converter.ConversionUtils;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class AnalysisResult {
@@ -235,6 +238,32 @@ public final class AnalysisResult {
         return explicitTransitionGroupControlFlowFunctions.get(group);
     }
 
+    public AnalysisResult combine(AnalysisResult other) {
+        return new AnalysisResult(
+                combineMap(this.destinationMap, other.destinationMap),
+                combineMap(this.sourceMap, other.sourceMap),
+                combineMap(this.activityData, other.activityData),
+                combineMap(this.partnerLinkBindings, other.partnerLinkBindings),
+                combineMap(this.queryIndex, other.queryIndex),
+                combineMap(this.inputTypeNames, other.inputTypeNames),
+                combineMap(this.outputTypeName, other.outputTypeName),
+                combineMap(this.variableTypes, other.variableTypes),
+                combineMap(this.dependencyGraphs, other.dependencyGraphs),
+                combineMap(this.controlFlowFunctions, other.controlFlowFunctions),
+                combineMap(this.scopes, other.scopes),
+                combineMap(this.activityByName, other.activityByName),
+                combineMap(this.explicitTransitionGroupDependencies, other.explicitTransitionGroupDependencies),
+                combineMap(this.explicitTransitionGroupControlFlowFunctions, other.explicitTransitionGroupControlFlowFunctions)
+        );
+    }
+
+    private static <K, V> Map<K, V> combineMap(Map<K, V> map1, Map<K, V> map2) {
+        Map<K, V> map = new HashMap<>(map1.size() + map2.size());
+        map.putAll(map1);
+        map.putAll(map2);
+        return Collections.unmodifiableMap(map);
+    }
+
     public record LinkData(Collection<TibcoModel.Scope.Flow.Activity> sourceActivities,
                            Collection<TibcoModel.Scope.Flow.Activity> destinationActivities) {
 
@@ -258,5 +287,12 @@ public final class AnalysisResult {
     }
 
     public record ControlFlowFunctions(String scopeFn, String activityRunner, String errorHandler) {
+    }
+
+    public static AnalysisResult empty() {
+        return new AnalysisResult(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
     }
 }

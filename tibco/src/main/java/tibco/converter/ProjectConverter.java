@@ -22,10 +22,12 @@ import common.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import tibco.TibcoModel;
 import tibco.TibcoToBalConverter;
+import tibco.analyzer.AnalysisResult;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -34,12 +36,14 @@ public class ProjectConverter {
 
     public static final Logger LOGGER = Logger.getLogger(ProjectConverter.class.getName());
     public static ConversionResult convertProject(
-            TibcoToBalConverter.ProjectConversionContext conversionContext, Collection<TibcoModel.Process> processes,
+            TibcoToBalConverter.ProjectConversionContext conversionContext, Map<TibcoModel.Process, AnalysisResult> analysisResult,
+            // FIXME: put these in to a record
+            Collection<TibcoModel.Process> processes,
             Collection<TibcoModel.Type.Schema> types, Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
             Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
             Set<TibcoModel.Resource.HTTPClientResource> httpClientResources,
             Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources) {
-        ProjectContext cx = new ProjectContext(conversionContext);
+        ProjectContext cx = new ProjectContext(conversionContext, analysisResult);
         convertResources(cx, jdbcResources, httpConnectionResources, httpClientResources, httpSharedResources);
 
         record ProcessResult(TibcoModel.Process process, ProcessConverter.TypeConversionResult result) {

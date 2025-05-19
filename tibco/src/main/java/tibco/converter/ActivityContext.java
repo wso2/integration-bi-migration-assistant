@@ -51,7 +51,7 @@ public class ActivityContext {
     }
 
     String functionName() {
-        return processContext.analysisResult.from(activity).functionName();
+        return processContext.getAnalysisResult().from(activity).functionName();
     }
 
     List<BallerinaModel.Parameter> parameters() {

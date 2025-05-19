@@ -269,7 +269,7 @@ final class ActivityConverter {
                                     indexSlot))
                     .ifPresent(sb::append);
             loop.elementSlot().ifPresent(s -> sb.append(addToContext(cx, new VariableReference(element), s)));
-            AnalysisResult analysisResult = cx.processContext.analysisResult;
+            AnalysisResult analysisResult = cx.processContext.analysisResult();
             String scopeFn = analysisResult.getControlFlowFunctions(loop.body()).scopeFn();
             VarDeclStatment res = new VarDeclStatment(XML, cx.getAnnonVarName(),
                     new FunctionCall(scopeFn, List.of(cx.contextVarRef())));
@@ -484,7 +484,7 @@ final class ActivityConverter {
             Statement contextUpdate = addToContext(cx,
                     new XMLTemplate("<root>${%s}</root>".formatted(foreach.counterName())),
                     foreach.counterName());
-            String scopeFn = cx.processContext.analysisResult.getControlFlowFunctions(foreach.scope()).scopeFn();
+            String scopeFn = cx.processContext.analysisResult().getControlFlowFunctions(foreach.scope()).scopeFn();
             body.add(stmtFrom("""
                     foreach int %1$s in %2$s ..< %3$s {
                         %4$s
@@ -562,7 +562,7 @@ final class ActivityConverter {
 
         private static @NotNull List<Statement> convertActivityWithScope(
                 ActivityContext cx, Activity.ActivityWithScope activityWithScope) {
-            String scopeFn = cx.processContext.analysisResult.getControlFlowFunctions(activityWithScope.scope())
+            String scopeFn = cx.processContext.analysisResult().getControlFlowFunctions(activityWithScope.scope())
                     .scopeFn();
             return List.of(new Return<>(new FunctionCall(scopeFn, List.of(cx.contextVarRef()))));
         }
@@ -652,7 +652,7 @@ final class ActivityConverter {
         private static ActivityExtensionConfigConversion createAccumulateEnd(
                 ActivityContext cx, ActivityExtension.Config.AccumulateEnd accumulateEnd,
                 String resultName) {
-            AnalysisResult ar = cx.processContext.analysisResult;
+            AnalysisResult ar = cx.processContext.analysisResult();
             Activity source = ar.findActivity(accumulateEnd.activityName())
                     .orElseThrow(() -> new IllegalStateException(
                             "Cannot find activity: " + accumulateEnd.activityName()));
@@ -900,7 +900,7 @@ final class ActivityConverter {
             body.addAll(inputBindings);
             VariableReference input = inputBindings.isEmpty() ? inputDecl.ref() : inputBindings.getLast().ref();
 
-            AnalysisResult ar = cx.processContext.analysisResult;
+            AnalysisResult ar = cx.processContext.analysisResult();
             TibcoModel.PartnerLink.Binding binding = ar.getBinding(invoke.partnerLink());
             String path = binding.path().basePath();
             VariableReference client = cx.getHttpClient(path);
