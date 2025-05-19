@@ -27,7 +27,7 @@ import java.util.Collections;
 
 public record AnalysisReport(int totalActivityCount, int unhandledActivityCount,
                              Collection<UnhandledActivityElement> unhandledActivityElements) {
-    private final static String HEADING = "TIBCO migration analysis report";
+    private static final String HEADING = "TIBCO migration analysis report";
 
     public AnalysisReport {
         assert totalActivityCount >= unhandledActivityCount;
@@ -75,7 +75,8 @@ public record AnalysisReport(int totalActivityCount, int unhandledActivityCount,
                 """);
         html.append("        <p>Total Activities: ").append(totalActivityCount).append("</p>\n");
         html.append("        <p>Unhandled Activities: ").append(unhandledActivityCount)
-                .append(" (").append(calculatePercentage(unhandledActivityCount, totalActivityCount)).append("%)</p>\n");
+                .append(" (").append(calculatePercentage(unhandledActivityCount, totalActivityCount))
+                .append("%)</p>\n");
         html.append("    </div>\n");
 
         // Unhandled activities list
@@ -118,7 +119,8 @@ public record AnalysisReport(int totalActivityCount, int unhandledActivityCount,
         html.append("""
                         <p>XML Element:</p>
                 """);
-        html.append("        <pre>").append(escapeHtml(ConversionUtils.elementToString(element.element()))).append("</pre>\n");
+        html.append("        <pre>").append(escapeHtml(ConversionUtils.elementToString(element.element())))
+                .append("</pre>\n");
         html.append("    </div>\n");
 
         return html.toString();
@@ -135,7 +137,9 @@ public record AnalysisReport(int totalActivityCount, int unhandledActivityCount,
     }
 
     private double calculatePercentage(int part, int total) {
-        if (total == 0) return 0;
+        if (total == 0) {
+            return 0;
+        }
         return Math.round(((double) part / total) * 1000) / 10.0; // Round to 1 decimal place
     }
 

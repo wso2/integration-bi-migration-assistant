@@ -84,8 +84,10 @@ public class TibcoToBalConverter {
                 new ReportGenerationPass()));
         Map<TibcoModel.Process, AnalysisResult> analysisResult =
                 analyser.analyseProcesses(new ProjectAnalysisContext(cx), processes);
-        AnalysisReport report = analysisResult.values().stream().map(AnalysisResult::getReport).flatMap(Optional::stream).reduce(AnalysisReport.empty(),
-                AnalysisReport::combine);
+        AnalysisReport report = analysisResult.values().stream()
+                .map(AnalysisResult::getReport)
+                .flatMap(Optional::stream)
+                .reduce(AnalysisReport.empty(), AnalysisReport::combine);
 
         return ProjectConverter.convertProject(cx, analysisResult, processes, types, jdbcResources,
                 httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource, report);

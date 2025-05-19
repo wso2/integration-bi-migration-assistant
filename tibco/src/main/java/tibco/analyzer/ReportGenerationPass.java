@@ -22,6 +22,8 @@ import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.TibcoModel.Scope.Flow.Activity.UnhandledActivity;
+import tibco.analyzer.AnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
+import tibco.analyzer.AnalysisReport.UnhandledActivityElement.UnNamedUnhandledActivityElement;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,12 +47,14 @@ public class ReportGenerationPass extends AnalysisPass {
         }
     }
 
-    private AnalysisReport.UnhandledActivityElement generateUnhandledActivityReport(UnhandledActivity unhandledActivity) {
-        return new AnalysisReport.UnhandledActivityElement.UnNamedUnhandledActivityElement(unhandledActivity.element());
+    private AnalysisReport.UnhandledActivityElement generateUnhandledActivityReport(
+            UnhandledActivity unhandledActivity) {
+        return new UnNamedUnhandledActivityElement(unhandledActivity.element());
     }
 
-    private AnalysisReport.UnhandledActivityElement generateUnhandledActivityReport(UnhandledInlineActivity unhandledActivity) {
-        return new AnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement(unhandledActivity.name(), unhandledActivity.element());
+    private AnalysisReport.UnhandledActivityElement generateUnhandledActivityReport(
+            UnhandledInlineActivity unhandledActivity) {
+        return new NamedUnhandledActivityElement(unhandledActivity.name(), unhandledActivity.element());
     }
 
     @Override

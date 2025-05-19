@@ -18,6 +18,7 @@
 
 package tibco.analyzer;
 
+import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
 import tibco.converter.ProjectConverter;
 
@@ -25,10 +26,22 @@ import java.util.logging.Logger;
 
 public class LoggingAnalysisPass extends AnalysisPass {
     private static final Logger logger = ProjectConverter.LOGGER;
+    private int totalActivityCount = 0;
+    private int unhandledActivityCount = 0;
 
     @Override
-    public void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
+    protected void analyseActivity(ProcessAnalysisContext cx, TibcoModel.Scope.Flow.Activity activity) {
+        totalActivityCount++;
+        if (activity instanceof TibcoModel.Scope.Flow.Activity.UnhandledActivity ||
+                activity instanceof TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity) {
+            unhandledActivityCount++;
+        }
+    }
+
+    @Override
+    public @NotNull AnalysisResult getResult(ProcessAnalysisContext cx, TibcoModel.Process process) {
         logger.info(String.format("Process Statistics - Name: %s, Total Activities: %d, Unhandled Activities: %d",
-                process.name(), cx.getTotalActivityCount(), cx.getUnhandledActivityCount()));
+                process.name(), totalActivityCount, unhandledActivityCount));
+        return AnalysisResult.empty();
     }
 }
