@@ -79,13 +79,38 @@ function renderJson(xml value) returns xml {
     return xml `<root><jsonString>${jsonValue.toJsonString()}</jsonString></root>`;
 }
 
-function xmlToJson(xml value) returns json {
-json result = toJsonInner(value);
-if (result is map<json>) {
-return result.get("InputElement");
-} else {
-return result;
+function renderJSONAsXML(json value, string? namespace, string typeName) returns xml|error {
+    anydata body;
+    if (value is map<json>) {
+        xml acum = xml ``;
+        foreach string key in value.keys() {
+            acum += check renderJSONAsXML(value.get(key), namespace, key);
+        }
+        body = acum;
+    } else {
+        body = value;
+    }
+
+    string rep = string `<${typeName}>${body.toString()}</${typeName}>`;
+    xml result = check xml:fromString(rep);
+    if (namespace == ()) {
+        return result;
+    }
+    if (result !is xml:Element) {
+        panic error("Expected XML element");
+    }
+    map<string> attributes = result.getAttributes();
+    attributes["xmlns"] = namespace;
+    return result;
 }
+
+function xmlToJson(xml value) returns json {
+    json result = toJsonInner(value);
+    if (result is map<json> && result.hasKey("InputElement")) {
+        return result.get("InputElement");
+    } else {
+        return result;
+    }
 }
 
 function toJsonInner(xml value) returns json {
@@ -132,31 +157,6 @@ body[childName] = r;
 }
 result[name] = body;
 return result;
-}
-
-function renderJSONAsXML(json value, string? namespace, string typeName) returns xml|error {
-    anydata body;
-    if (value is map<json>) {
-        xml acum = xml ``;
-        foreach string key in value.keys() {
-            acum += check renderJSONAsXML(value.get(key), namespace, key);
-        }
-        body = acum;
-    } else {
-        body = value;
-    }
-
-    string rep = string `<${typeName}>${body.toString()}</${typeName}>`;
-    xml result = check xml:fromString(rep);
-    if (namespace == ()) {
-        return result;
-    }
-    if (result !is xml:Element) {
-        panic error("Expected XML element");
-    }
-    map<string> attributes = result.getAttributes();
-    attributes["xmlns"] = namespace;
-    return result;
 }
 
 type XMLElementParseResult record {|

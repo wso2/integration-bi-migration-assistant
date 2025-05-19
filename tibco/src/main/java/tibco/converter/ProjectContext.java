@@ -390,6 +390,12 @@ public class ProjectContext {
         return new VariableReference(Objects.requireNonNull(processClients.get(processName)));
     }
 
+    public String getToJsonFunction() {
+        utilityIntrinsics.add(Intrinsics.XML_PARSER);
+        utilityIntrinsics.add(Intrinsics.TO_JSON);
+        return Intrinsics.TO_JSON.name;
+    }
+
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
 
         FunctionData {
@@ -441,6 +447,7 @@ public class ProjectContext {
     public String getRenderJsonFn() {
         utilityIntrinsics.add(Intrinsics.XML_PARSER);
         utilityIntrinsics.add(Intrinsics.RENDER_JSON);
+        utilityIntrinsics.add(Intrinsics.TO_JSON);
         return Intrinsics.RENDER_JSON.name;
     }
 

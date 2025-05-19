@@ -87,17 +87,11 @@ public enum Intrinsics {
                     }
                     """
     ),
-    RENDER_JSON(
-            "renderJson",
+    TO_JSON("xmlToJson",
             """
-                    function renderJson(xml value) returns xml {
-                        json jsonValue = xmlToJson(value);
-                        return xml `<root><jsonString>${jsonValue.toJsonString()}</jsonString></root>`;
-                    }
-                    
                     function xmlToJson(xml value) returns json {
                         json result = toJsonInner(value);
-                        if (result is map<json>) {
+                        if (result is map<json> && result.hasKey("InputElement")) {
                             return result.get("InputElement");
                         } else {
                             return result;
@@ -148,6 +142,14 @@ public enum Intrinsics {
                         }
                         result[name] = body;
                         return result;
+                    }
+                    """),
+    RENDER_JSON(
+            "renderJson",
+            """
+                    function renderJson(xml value) returns xml {
+                        json jsonValue = xmlToJson(value);
+                        return xml `<root><jsonString>${jsonValue.toJsonString()}</jsonString></root>`;
                     }
                     """
     ),

@@ -136,4 +136,8 @@ public class ActivityContext {
     BallerinaModel.Expression.VariableReference getProcessClient(String processName) {
         return processContext.getProcessClient(processName);
     }
+
+    public String getToJsonFunction() {
+        return processContext.getToJsonFunction();
+    }
 }
