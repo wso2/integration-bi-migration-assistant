@@ -18,16 +18,19 @@
 
 package tibco.analyzer;
 
+import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
 
 import java.util.Collection;
 import java.util.stream.Stream;
 
 public class AnalysisPass {
-    public AnalysisResult analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
-        return AnalysisResult.empty();
+    public void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
     }
 
+    public @NotNull AnalysisResult getResult(ProcessAnalysisContext cx, TibcoModel.Process process) {
+        return AnalysisResult.empty();
+    }
 
     protected void analyseExplicitTransitionGroup(
             ProcessAnalysisContext cx, TibcoModel.Process.ExplicitTransitionGroup explicitTransitionGroup) {

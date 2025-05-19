@@ -40,7 +40,9 @@ public class ModelAnalyser {
         for (TibcoModel.Process process : processes) {
             AnalysisResult combined = AnalysisResult.empty();
             for (AnalysisPass pass : passes) {
-                AnalysisResult result = pass.analyseProcess(new ProcessAnalysisContext(cx), process);
+                ProcessAnalysisContext analysisContext = new ProcessAnalysisContext(cx);
+                pass.analyseProcess(analysisContext, process);
+                AnalysisResult result = pass.getResult(analysisContext, process);
                 combined = combined.combine(result);
             }
             analysisResults.put(process, combined);

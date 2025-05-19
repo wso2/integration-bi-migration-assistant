@@ -18,17 +18,5 @@
 
 package tibco.analyzer;
 
-import tibco.TibcoModel;
-import tibco.converter.ProjectConverter;
-
-import java.util.logging.Logger;
-
-public class LoggingAnalysisPass extends AnalysisPass {
-    private static final Logger logger = ProjectConverter.LOGGER;
-
-    @Override
-    public void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
-        logger.info(String.format("Process Statistics - Name: %s, Total Activities: %d, Unhandled Activities: %d",
-                process.name(), cx.getTotalActivityCount(), cx.getUnhandledActivityCount()));
-    }
+public class ReportGenerationPass {
 }

@@ -33,6 +33,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+// TODO: we need to break this up
 public final class DefaultAnalysisPass extends AnalysisPass {
     private static final Logger logger = ProjectConverter.LOGGER;
 
@@ -41,12 +42,12 @@ public final class DefaultAnalysisPass extends AnalysisPass {
     }
 
     @Override
-    public AnalysisResult analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
+    public void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
         analyseProcessInner(cx, process);
-        return getAnalysisResult(cx, process);
     }
 
-    private @NotNull AnalysisResult getAnalysisResult(ProcessAnalysisContext cx, TibcoModel.Process process) {
+    @Override
+    public @NotNull AnalysisResult getResult(ProcessAnalysisContext cx, TibcoModel.Process process) {
         Map<TibcoModel.Scope.Flow.Activity, AnalysisResult.ActivityData> activityData = cx.activityData();
         Map<String, TibcoModel.PartnerLink.Binding> partnerLinkBindings = cx.getPartnerLinkBindings();
 
