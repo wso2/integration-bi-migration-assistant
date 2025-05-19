@@ -42,6 +42,7 @@ public class ProcessAnalysisContext {
     private int unhandledActivityCount = 0;
     private int totalActivityCount = 0;
     private TibcoModel.Scope currentScope = null;
+    private Map<String, AnalysisResult.GraphNode> activityNodes;
 
     public ProcessAnalysisContext(ProjectAnalysisContext projectAnalysisContext) {
         this.projectAnalysisContext = projectAnalysisContext;
@@ -310,5 +311,13 @@ public class ProcessAnalysisContext {
 
     Graph<AnalysisResult.GraphNode> getExplicitTransitionGroupGraph(ExplicitTransitionGroup group) {
         return explicitTransitionGroupDependencyGraph.computeIfAbsent(group, (ignored) -> new Graph<>());
+    }
+
+    public void setActivityNodes(Map<String, AnalysisResult.GraphNode> activityNodes) {
+        this.activityNodes = activityNodes;
+    }
+
+    public Map<String, AnalysisResult.GraphNode> getActivityNodes() {
+        return Collections.unmodifiableMap(activityNodes);
     }
 }
