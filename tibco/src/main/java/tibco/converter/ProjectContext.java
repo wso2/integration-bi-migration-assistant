@@ -397,7 +397,8 @@ public class ProjectContext {
     }
 
     public AnalysisResult getAnalysisResult(TibcoModel.Process process) {
-        return analysisResult.get(process);
+        return Objects.requireNonNull(analysisResult.get(process), 
+                "Analysis result not found for process: " + process.name());
     }
 
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {

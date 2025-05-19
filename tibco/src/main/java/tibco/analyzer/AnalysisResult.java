@@ -289,6 +289,14 @@ public final class AnalysisResult {
     public record ControlFlowFunctions(String scopeFn, String activityRunner, String errorHandler) {
     }
 
+    /**
+     * Creates and returns an immutable, empty instance of {@code AnalysisResult}.
+     * <p>
+     * This factory method is intended for cases where an empty result is required.
+     * All internal maps in the returned instance are empty and immutable.
+     *
+     * @return an immutable, empty {@code AnalysisResult} instance
+     */
     public static AnalysisResult empty() {
         return new AnalysisResult(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
