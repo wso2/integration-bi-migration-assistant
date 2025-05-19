@@ -59,8 +59,9 @@ public final class BICodeConverter {
         BallerinaModel.TextDocument connections = fixImports(mergeWithExistingIfNeeded(connections(module), module));
         BallerinaModel.TextDocument types = fixImports(mergeWithExistingIfNeeded(types(module), module));
         BallerinaModel.TextDocument functions = fixImports(mergeWithExistingIfNeeded(functions(module), module));
+        BallerinaModel.TextDocument comments = fixImports(mergeWithExistingIfNeeded(comments(module), module));
         List<BallerinaModel.TextDocument> docs = Stream
-                .concat(Stream.of(main, configs, connections, types, functions), skipped).toList();
+                .concat(Stream.of(main, configs, connections, types, functions, comments), skipped).toList();
         return new BallerinaModel.Module(module.name(), docs);
     }
 
@@ -82,6 +83,13 @@ public final class BICodeConverter {
 
         return new BallerinaModel.TextDocument("main.bal", List.of(), List.of(), List.of(),
                 listeners, services, List.of(), List.of());
+    }
+
+
+    private BallerinaModel.TextDocument comments(BallerinaModel.Module module) {
+        List<String> comments = extractDocComments(module);
+        return new BallerinaModel.TextDocument("todo.bal", List.of(), List.of(), List.of(),
+                List.of(), List.of(), List.of(), comments);
     }
 
     private BallerinaModel.TextDocument types(BallerinaModel.Module module) {
@@ -139,6 +147,7 @@ public final class BICodeConverter {
         String name = doc.documentName();
         return existing.textDocuments().stream()
                 .filter(each -> each.documentName().equalsIgnoreCase(name))
+                .filter(skipConversion)
                 .findAny()
                 .map(current -> mergeTextDocuments(current, doc))
                 .orElse(doc);
@@ -181,6 +190,11 @@ public final class BICodeConverter {
 
     private List<BallerinaModel.Listener> extractListeners(BallerinaModel.Module module) {
         return getTextDocumentStream(module).flatMap(doc -> doc.listeners().stream())
+                .toList();
+    }
+
+    private List<String> extractDocComments(BallerinaModel.Module module) {
+        return getTextDocumentStream(module).flatMap(doc -> doc.Comments().stream())
                 .toList();
     }
 
