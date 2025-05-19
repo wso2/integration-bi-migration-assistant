@@ -50,8 +50,6 @@ public final class DefaultAnalysisPass extends AnalysisPass {
         Map<TibcoModel.Scope.Flow.Activity, AnalysisResult.ActivityData> activityData = cx.activityData();
         Map<String, TibcoModel.PartnerLink.Binding> partnerLinkBindings = cx.getPartnerLinkBindings();
 
-        logger.info(String.format("Process Statistics - Name: %s, Total Activities: %d, Unhandled Activities: %d",
-                process.name(), cx.getTotalActivityCount(), cx.getUnhandledActivityCount()));
         Map<TibcoModel.Process, Collection<String>> inputTypeNames = Map.of(process, cx.getInputTypeName());
         Map<TibcoModel.Process, String> outputTypeName = Map.of(process, cx.getOutputTypeName());
         Map<TibcoModel.Process, Map<String, String>> variableTypes = Map.of(process, cx.getVariableTypes());

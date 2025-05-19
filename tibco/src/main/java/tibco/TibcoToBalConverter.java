@@ -23,6 +23,7 @@ import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.DefaultAnalysisPass;
+import tibco.analyzer.LoggingAnalysisPass;
 import tibco.analyzer.ModelAnalyser;
 import tibco.analyzer.ProjectAnalysisContext;
 import tibco.converter.ConversionResult;
@@ -74,7 +75,9 @@ public class TibcoToBalConverter {
             logger.severe("Unrecoverable error while parsing project file: " + projectPath);
             throw new RuntimeException("Error while parsing the XML file: ", e);
         }
-        ModelAnalyser analyser = new ModelAnalyser(List.of(new DefaultAnalysisPass()));
+        ModelAnalyser analyser = new ModelAnalyser(List.of(
+                new DefaultAnalysisPass(),
+                new LoggingAnalysisPass()));
         Map<TibcoModel.Process, AnalysisResult> analysisResult =
                 analyser.analyseProcesses(new ProjectAnalysisContext(), processes);
 
