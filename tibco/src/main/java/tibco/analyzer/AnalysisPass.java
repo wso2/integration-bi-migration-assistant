@@ -26,6 +26,15 @@ import java.util.stream.Stream;
 
 public class AnalysisPass {
     public void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
+        analyseTypes(cx, process.types());
+        analysePartnerLinks(cx, process.partnerLinks());
+        analyzeVariables(cx, process.variables());
+        if (process.scope() != null) {
+            analyseScope(cx, process.scope());
+        }
+        if (process.transitionGroup() != null) {
+            analyseExplicitTransitionGroup(cx, process.transitionGroup());
+        }
     }
 
     public @NotNull AnalysisResult getResult(ProcessAnalysisContext cx, TibcoModel.Process process) {
@@ -85,6 +94,9 @@ public class AnalysisPass {
     }
 
     protected void analyseActivity(ProcessAnalysisContext cx, TibcoModel.Scope.Flow.Activity activity) {
+        if (activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithScope activityWithScope) {
+            analyseScope(cx, activityWithScope.scope());
+        }
 
     }
 

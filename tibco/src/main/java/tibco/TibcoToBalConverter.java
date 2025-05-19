@@ -26,6 +26,7 @@ import tibco.analyzer.DefaultAnalysisPass;
 import tibco.analyzer.LoggingAnalysisPass;
 import tibco.analyzer.ModelAnalyser;
 import tibco.analyzer.ProjectAnalysisContext;
+import tibco.analyzer.ReportGenerationPass;
 import tibco.converter.ConversionResult;
 import tibco.converter.ProjectConverter;
 
@@ -77,7 +78,8 @@ public class TibcoToBalConverter {
         }
         ModelAnalyser analyser = new ModelAnalyser(List.of(
                 new DefaultAnalysisPass(),
-                new LoggingAnalysisPass()));
+                new LoggingAnalysisPass(),
+                new ReportGenerationPass()));
         Map<TibcoModel.Process, AnalysisResult> analysisResult =
                 analyser.analyseProcesses(new ProjectAnalysisContext(), processes);
 

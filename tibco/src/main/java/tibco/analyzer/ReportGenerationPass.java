@@ -18,5 +18,64 @@
 
 package tibco.analyzer;
 
-public class ReportGenerationPass {
+import org.jetbrains.annotations.NotNull;
+import tibco.TibcoModel;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
+import tibco.TibcoModel.Scope.Flow.Activity.UnhandledActivity;
+import tibco.converter.ConversionUtils;
+
+
+public class ReportGenerationPass extends AnalysisPass {
+    private final StringBuilder stringBuilder = new StringBuilder();
+
+    @Override
+    protected void analyseActivity(ProcessAnalysisContext cx, TibcoModel.Scope.Flow.Activity activity) {
+        String unhandledActivityData = switch (activity) {
+            case UnhandledActivity unhandledActivity -> generateUnhandledActivityReport(unhandledActivity);
+            case UnhandledInlineActivity unhandledInlineActivity ->
+                    generateUnhandledActivityReport(unhandledInlineActivity);
+            default -> defaultReport(activity);
+        };
+        stringBuilder.append(unhandledActivityData);
+    }
+
+    private String defaultReport(TibcoModel.Scope.Flow.Activity activity) {
+        String reference =
+                activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithName activityWithName ?
+                        activityWithName.getName().orElse(ConversionUtils.elementToString(activity.element())) :
+                        ConversionUtils.elementToString(activity.element());
+        return """
+                Successfully converted activity:
+                    %s
+                """.formatted(reference);
+    }
+
+    private String generateUnhandledActivityReport(UnhandledActivity unhandledActivity) {
+        // Implement the logic to generate a report for unhandled activities
+        return """
+                Failed to convert activity:
+                    %s
+                due to:
+                    %s
+                """.formatted(ConversionUtils.elementToString(unhandledActivity.element()), unhandledActivity.reason());
+    }
+
+    private String generateUnhandledActivityReport(UnhandledInlineActivity unhandledActivity) {
+        return """
+                Failed to convert %s
+                    %s
+                """.formatted(unhandledActivity.name(), unhandledActivity.element());
+
+    }
+
+    @Override
+    public @NotNull AnalysisResult getResult(ProcessAnalysisContext cx, TibcoModel.Process process) {
+        String result = stringBuilder.toString();
+        if (!result.isEmpty()) {
+            System.out.println("--------");
+            System.out.println(result);
+            System.out.println("--------");
+        }
+        return AnalysisResult.empty();
+    }
 }
