@@ -235,16 +235,16 @@ public class TibcoModel {
 
                         }
                         return Stream.of(
-                                        new LookUpData("MapperActivity", MAPPER),
-                                        new LookUpData("HTTPEventSource", HTTP_EVENT_SOURCE),
-                                        new LookUpData("AssignActivity", ASSIGN),
-                                        new LookUpData("NullActivity", NULL),
-                                        new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
+                                new LookUpData("MapperActivity", MAPPER),
+                                new LookUpData("HTTPEventSource", HTTP_EVENT_SOURCE),
+                                new LookUpData("AssignActivity", ASSIGN),
+                                new LookUpData("NullActivity", NULL),
+                                new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
                                 new LookUpData("XMLRendererActivity", XML_RENDER_ACTIVITY),
                                 new LookUpData("XMLParseActivity", XML_PARSE_ACTIVITY),
                                 new LookUpData("LoopGroup", LOOP_GROUP),
-                                        new LookUpData("WriteToLogActivity", WRITE_LOG),
-                                        new LookUpData("CatchActivity", CATCH),
+                                new LookUpData("WriteToLogActivity", WRITE_LOG),
+                                new LookUpData("CatchActivity", CATCH),
                                 new LookUpData("FileReadActivity", FILE_READ),
                                 new LookUpData("FileWriteActivity", FILE_WRITE),
                                 new LookUpData("RestActivity", REST),
