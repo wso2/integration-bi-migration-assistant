@@ -43,13 +43,12 @@ public class ModelAnalyser {
 
     }
 
-    // FIXME:
-    public static Map<TibcoModel.Process, AnalysisResult> analyseProcesses(ProjectAnalysisContext cx, Collection<TibcoModel.Process> processes) {
+    public static Map<TibcoModel.Process, AnalysisResult> analyseProcesses(ProjectAnalysisContext cx,
+                                                                           Collection<TibcoModel.Process> processes) {
         record Data(TibcoModel.Process process, AnalysisResult analysisResult) {
         }
         return processes.stream()
                 .map(each -> new Data(each, analyseProcess(new ProcessAnalysisContext(cx), each)))
-//                .reduce(AnalysisResult.empty(), AnalysisResult::combine);
                 .collect(Collectors.toMap(Data::process, Data::analysisResult));
     }
 
@@ -67,7 +66,8 @@ public class ModelAnalyser {
         Map<TibcoModel.Process, Collection<String>> inputTypeNames = Map.of(process, cx.getInputTypeName());
         Map<TibcoModel.Process, String> outputTypeName = Map.of(process, cx.getOutputTypeName());
         Map<TibcoModel.Process, Map<String, String>> variableTypes = Map.of(process, cx.getVariableTypes());
-        Map<TibcoModel.Process, Collection<TibcoModel.Scope>> scopes = Map.of(process, cx.getDependencyGraphs().keySet());
+        Map<TibcoModel.Process, Collection<TibcoModel.Scope>> scopes = Map.of(process,
+                cx.getDependencyGraphs().keySet());
         record ActivityNames(String name, TibcoModel.Scope.Flow.Activity activity) {
         }
         Map<String, TibcoModel.Scope.Flow.Activity> activityByName = cx.getActivities().stream()
@@ -77,8 +77,8 @@ public class ModelAnalyser {
                 .map(each -> new ActivityNames(each.getName().get(), each))
                 .collect(Collectors.toMap(ActivityNames::name, ActivityNames::activity));
         return new AnalysisResult(cx.getDestinationMap(), cx.getSourceMap(),
-                activityData, partnerLinkBindings, cx.getQueryIndex(), inputTypeNames,
-                outputTypeName, variableTypes, cx.getDependencyGraphs(), cx.getControlFlowFunctions(), scopes, activityByName,
+                activityData, partnerLinkBindings, cx.getQueryIndex(), inputTypeNames, outputTypeName, variableTypes,
+                cx.getDependencyGraphs(), cx.getControlFlowFunctions(), scopes, activityByName,
                 cx.getExplicitTransitionGroupDependencyGraph(), cx.getTransitionGroupControlFlowFunctions());
     }
 
@@ -225,7 +225,6 @@ public class ModelAnalyser {
     }
 
     private static void analyseSequence(ProcessAnalysisContext cx, TibcoModel.Scope.Sequence sequence) {
-        // FIXME:
         cx.getInSequence().push(true);
         List<TibcoModel.Scope.Flow.Activity> activities = sequence.activities();
         for (int i = 0; i < activities.size(); i++) {

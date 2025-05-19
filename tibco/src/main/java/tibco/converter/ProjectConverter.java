@@ -36,10 +36,10 @@ public class ProjectConverter {
 
     public static final Logger LOGGER = Logger.getLogger(ProjectConverter.class.getName());
     public static ConversionResult convertProject(
-            TibcoToBalConverter.ProjectConversionContext conversionContext, Map<TibcoModel.Process, AnalysisResult> analysisResult,
-            // FIXME: put these in to a record
-            Collection<TibcoModel.Process> processes,
-            Collection<TibcoModel.Type.Schema> types, Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
+            TibcoToBalConverter.ProjectConversionContext conversionContext,
+            Map<TibcoModel.Process, AnalysisResult> analysisResult,
+            Collection<TibcoModel.Process> processes, Collection<TibcoModel.Type.Schema> types,
+            Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
             Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
             Set<TibcoModel.Resource.HTTPClientResource> httpClientResources,
             Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources) {

@@ -86,7 +86,8 @@ public class ProjectContext {
     private final Map<String, String> renderJsonAsXMLFunction = new HashMap<>();
     private final Map<TibcoModel.Process, AnalysisResult> analysisResult;
 
-    ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext, Map<TibcoModel.Process, AnalysisResult> analysisResult) {
+    ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
+                   Map<TibcoModel.Process, AnalysisResult> analysisResult) {
         this.conversionContext = Optional.of(conversionContext);
         this.analysisResult = analysisResult;
     }

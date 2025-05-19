@@ -562,7 +562,8 @@ final class ActivityConverter {
 
         private static @NotNull List<Statement> convertActivityWithScope(
                 ActivityContext cx, Activity.ActivityWithScope activityWithScope) {
-            String scopeFn = cx.processContext.analysisResult().getControlFlowFunctions(activityWithScope.scope())
+            String scopeFn =
+                cx.processContext.analysisResult().getControlFlowFunctions(activityWithScope.scope())
                     .scopeFn();
             return List.of(new Return<>(new FunctionCall(scopeFn, List.of(cx.contextVarRef()))));
         }

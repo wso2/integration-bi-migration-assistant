@@ -23,7 +23,6 @@ import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.ModelAnalyser;
-import tibco.analyzer.ProcessAnalysisContext;
 import tibco.analyzer.ProjectAnalysisContext;
 import tibco.converter.ConversionResult;
 import tibco.converter.ProjectConverter;
@@ -72,10 +71,11 @@ public class TibcoToBalConverter {
             logger.severe("Unrecoverable error while parsing project file: " + projectPath);
             throw new RuntimeException("Error while parsing the XML file: ", e);
         }
-        Map<TibcoModel.Process, AnalysisResult> analysisResult = ModelAnalyser.analyseProcesses(new ProjectAnalysisContext(), processes);
+        Map<TibcoModel.Process, AnalysisResult> analysisResult =
+                ModelAnalyser.analyseProcesses(new ProjectAnalysisContext(), processes);
 
-        return ProjectConverter.convertProject(cx, analysisResult, processes, types, jdbcResources, httpConnectionResources,
-                httpClientResources, httpSharedResources);
+        return ProjectConverter.convertProject(cx, analysisResult, processes, types, jdbcResources,
+                httpConnectionResources, httpClientResources, httpSharedResources);
     }
 
     private static final ParsingUnit<TibcoModel.Process> PROCESS_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(

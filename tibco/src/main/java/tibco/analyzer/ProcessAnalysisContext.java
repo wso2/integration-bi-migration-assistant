@@ -19,6 +19,7 @@
 package tibco.analyzer;
 
 import tibco.TibcoModel;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup;
 import tibco.converter.ConversionUtils;
 
 import java.util.ArrayList;
@@ -34,7 +35,6 @@ import java.util.Stack;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 
-// NOTE: any static field here may need to be explicitly cleared between tests
 public class ProcessAnalysisContext {
 
     private final ProjectAnalysisContext projectAnalysisContext;
@@ -110,26 +110,25 @@ public class ProcessAnalysisContext {
         return Collections.unmodifiableMap(controlFlowFunctions);
     }
 
-    public Map<TibcoModel.Scope, Graph<AnalysisResult.GraphNode>> getDependencyGraphs() {
+    Map<TibcoModel.Scope, Graph<AnalysisResult.GraphNode>> getDependencyGraphs() {
         return Collections.unmodifiableMap(dependencyGraphs);
     }
 
-    // FIXME: why?
     public Stack<Boolean> getInSequence() {
         return inSequence;
     }
 
-    private final Map<TibcoModel.Process.ExplicitTransitionGroup, Graph<AnalysisResult.GraphNode>> explicitTransitionGroupDependencyGraph =
-            new HashMap<>();
+    private final Map<ExplicitTransitionGroup, Graph<AnalysisResult.GraphNode>> explicitTransitionGroupDependencyGraph
+            = new HashMap<>();
 
-    private final Map<TibcoModel.Process.ExplicitTransitionGroup, AnalysisResult.ControlFlowFunctions>
-            transitionGroupControlFlowFunctions = new HashMap<>();
+    private final Map<ExplicitTransitionGroup, AnalysisResult.ControlFlowFunctions> transitionGroupControlFlowFunctions
+            = new HashMap<>();
 
-    public Map<TibcoModel.Process.ExplicitTransitionGroup, Graph<AnalysisResult.GraphNode>> getExplicitTransitionGroupDependencyGraph() {
+    Map<ExplicitTransitionGroup, Graph<AnalysisResult.GraphNode>> getExplicitTransitionGroupDependencyGraph() {
         return Collections.unmodifiableMap(explicitTransitionGroupDependencyGraph);
     }
 
-    public Map<TibcoModel.Process.ExplicitTransitionGroup, AnalysisResult.ControlFlowFunctions>
+    public Map<ExplicitTransitionGroup, AnalysisResult.ControlFlowFunctions>
     getTransitionGroupControlFlowFunctions() {
         return Collections.unmodifiableMap(transitionGroupControlFlowFunctions);
     }
@@ -151,7 +150,8 @@ public class ProcessAnalysisContext {
     }
 
     public void allocateActivityNameIfNeeded(TibcoModel.Scope.Flow.Activity activity) {
-        Map<TibcoModel.Scope.Flow.Activity, String> activityFunctionNames = projectAnalysisContext.activityFunctionNames();
+        Map<TibcoModel.Scope.Flow.Activity, String> activityFunctionNames =
+                projectAnalysisContext.activityFunctionNames();
         if (activityFunctionNames.containsKey(activity)) {
             return;
         }
@@ -173,11 +173,11 @@ public class ProcessAnalysisContext {
                 unhandledActivityCount++;
                 yield "unhandled";
             }
-            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity unhandledInlineActivity -> {
+            case ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity unhandledInlineActivity -> {
                 unhandledActivityCount++;
                 yield unhandledInlineActivity.name();
             }
-            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity inlineActivity -> inlineActivity.name();
+            case ExplicitTransitionGroup.InlineActivity inlineActivity -> inlineActivity.name();
         };
         String activityName = ConversionUtils.getSanitizedUniqueName(prefix,
                 activityFunctionNames.values());
@@ -263,7 +263,7 @@ public class ProcessAnalysisContext {
     }
 
 
-    public void allocateControlFlowFunctionsIfNeeded(TibcoModel.Process.ExplicitTransitionGroup transitionGroup) {
+    public void allocateControlFlowFunctionsIfNeeded(ExplicitTransitionGroup transitionGroup) {
         if (transitionGroupControlFlowFunctions.containsKey(transitionGroup)) {
             return;
         }
@@ -285,7 +285,8 @@ public class ProcessAnalysisContext {
         return outputTypeName;
     }
 
-    public void setPartnerLinkBinding(TibcoModel.PartnerLink.NonEmptyPartnerLink link, TibcoModel.PartnerLink.RestPartnerLink.Binding binding) {
+    public void setPartnerLinkBinding(TibcoModel.PartnerLink.NonEmptyPartnerLink link,
+                                      TibcoModel.PartnerLink.RestPartnerLink.Binding binding) {
         partnerLinkBindings.put(link.name(), binding);
     }
 
@@ -293,7 +294,7 @@ public class ProcessAnalysisContext {
         return Collections.unmodifiableMap(partnerLinkBindings);
     }
 
-    public AnalysisResult.GraphNode activityNode(TibcoModel.Process.ExplicitTransitionGroup.InlineActivity inlineActivity) {
+    public AnalysisResult.GraphNode activityNode(ExplicitTransitionGroup.InlineActivity inlineActivity) {
         String name = ConversionUtils.sanitizes(inlineActivity.name());
         return new AnalysisResult.GraphNode(name, AnalysisResult.GraphNode.Kind.INLINE_ACTIVITY, inlineActivity);
     }
@@ -307,7 +308,7 @@ public class ProcessAnalysisContext {
         return new AnalysisResult.GraphNode(link.name(), AnalysisResult.GraphNode.Kind.LINK, link);
     }
 
-    public Graph<AnalysisResult.GraphNode> getExplicitTransitionGroupGraph(TibcoModel.Process.ExplicitTransitionGroup group) {
+    Graph<AnalysisResult.GraphNode> getExplicitTransitionGroupGraph(ExplicitTransitionGroup group) {
         return explicitTransitionGroupDependencyGraph.computeIfAbsent(group, (ignored) -> new Graph<>());
     }
 }

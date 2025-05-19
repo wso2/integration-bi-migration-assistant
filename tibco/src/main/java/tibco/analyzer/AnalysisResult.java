@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class AnalysisResult {
@@ -253,7 +252,8 @@ public final class AnalysisResult {
                 combineMap(this.scopes, other.scopes),
                 combineMap(this.activityByName, other.activityByName),
                 combineMap(this.explicitTransitionGroupDependencies, other.explicitTransitionGroupDependencies),
-                combineMap(this.explicitTransitionGroupControlFlowFunctions, other.explicitTransitionGroupControlFlowFunctions)
+                combineMap(this.explicitTransitionGroupControlFlowFunctions,
+                        other.explicitTransitionGroupControlFlowFunctions)
         );
     }
 
