@@ -262,7 +262,7 @@ public class ProcessConverter {
         List<Activity> activities = analysisResult.sortedActivities(group).toList();
         String activityRunnerFunction = analysisResult.getControlFlowFunctions(group).activityRunner();
         return generateActivityFlowFunctionInner(cx, activities, activityRunnerFunction, UnionTypeDesc.of(XML, ERROR),
-                Check::new);
+                Check::new, List.of(new Parameter("cx", new TypeDesc.MapTypeDesc(XML))));
     }
 
 
@@ -283,7 +283,9 @@ public class ProcessConverter {
         if (activities.isEmpty()) {
             return defaultErrorHandlerFunction(errorHandlerFunction);
         }
-        return generateActivityFlowFunctionInner(cx, activities, errorHandlerFunction, XML, CheckPanic::new);
+        return generateActivityFlowFunctionInner(cx, activities, errorHandlerFunction, XML, CheckPanic::new,
+                List.of(new Parameter("err", ERROR),
+                        new Parameter("cx", new TypeDesc.MapTypeDesc(XML))));
     }
 
     private static BallerinaModel.@NotNull Function defaultErrorHandlerFunction(String errorHandlerFunction) {
@@ -410,19 +412,18 @@ public class ProcessConverter {
         List<Activity> activities = analysisResult.sortedActivities(scope).toList();
         String activityRunnerFunction = analysisResult.getControlFlowFunctions(scope).activityRunner();
         return generateActivityFlowFunctionInner(cx, activities, activityRunnerFunction, UnionTypeDesc.of(XML, ERROR),
-                Check::new);
+                Check::new, List.of(new Parameter("cx", new TypeDesc.MapTypeDesc(XML))));
     }
 
     private static BallerinaModel.@NotNull Function generateActivityFlowFunctionInner(
             ProcessContext cx, List<Activity> activities, String functionName, TypeDesc returnType,
-            Function<FunctionCall, Expression> callHandler) {
+            Function<FunctionCall, Expression> callHandler, List<Parameter> parameters) {
         List<Statement> body = new ArrayList<>();
         VariableReference result = generateActivityFlowFunctionInner(cx, activities,
                 callHandler, body, new VariableReference("input"));
         body.add(new Return<>(result));
         return new BallerinaModel.Function(functionName,
-                List.of(new Parameter("cx", new TypeDesc.MapTypeDesc(XML))),
-                returnType, body);
+                parameters, returnType, body);
     }
 
     private static BallerinaModel.Function generateErrorFlowFunction(ProcessContext cx) {

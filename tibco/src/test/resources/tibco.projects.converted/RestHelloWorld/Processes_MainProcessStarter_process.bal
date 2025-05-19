@@ -251,7 +251,7 @@ function scope0ActivityRunner(map<xml> cx) returns xml|error {
     return result4;
 }
 
-function scope0FaultHandler(map<xml> cx) returns xml {
+function scope0FaultHandler(error err, map<xml> cx) returns xml {
     xml result0 = checkpanic Catch(cx);
     xml result1 = checkpanic ErrorLog(cx);
     return result1;
