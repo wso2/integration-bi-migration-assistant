@@ -30,6 +30,7 @@ import tibco.analyzer.ProjectAnalysisContext;
 import tibco.analyzer.ReportGenerationPass;
 import tibco.converter.ConversionResult;
 import tibco.converter.ProjectConverter;
+import tibco.converter.TibcoConverter;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -53,7 +54,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 public class TibcoToBalConverter {
 
-    private static final Logger logger = Logger.getLogger(TibcoToBalConverter.class.getName());
+
     private TibcoToBalConverter() {
     }
 
@@ -75,7 +76,7 @@ public class TibcoToBalConverter {
             httpSharedResources = httpSharedResourceParser.parse(projectPath);
             jdbcSharedResource = SHARED_JDBC_RESOURCE_PARSING_UNIT.parse(projectPath);
         } catch (IOException | SAXException | ParserConfigurationException e) {
-            logger.severe("Unrecoverable error while parsing project file: " + projectPath);
+            logger().severe("Unrecoverable error while parsing project file: " + projectPath);
             throw new RuntimeException("Error while parsing the XML file: ", e);
         }
         ModelAnalyser analyser = new ModelAnalyser(List.of(
@@ -88,7 +89,9 @@ public class TibcoToBalConverter {
                 .map(AnalysisResult::getReport)
                 .flatMap(Optional::stream)
                 .reduce(AnalysisReport.empty(), AnalysisReport::combine);
-
+        if (cx.dryRun()) {
+            return new ConversionResult(null, null, report);
+        }
         return ProjectConverter.convertProject(cx, analysisResult, processes, types, jdbcResources,
                 httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource, report);
     }
@@ -112,6 +115,11 @@ public class TibcoToBalConverter {
             new ParsingUnit.SimpleParsingUnit<>(
                     TibcoToBalConverter::getHTTPClientResourceFiles,
                     XmlToTibcoModelConverter::parseHTTPClientResource);
+
+    public static Logger logger() {
+        return TibcoConverter.logger();
+    }
+
 
     static final class HTTPSharedResourceParsingUnit implements ParsingUnit<TibcoModel.Resource.HTTPSharedResource> {
 
@@ -220,11 +228,11 @@ public class TibcoToBalConverter {
         }
     }
 
-    public record ProjectConversionContext(List<JavaDependencies> javaDependencies) {
+    public record ProjectConversionContext(boolean verbose, boolean dryRun, List<JavaDependencies> javaDependencies) {
 
 
-        public ProjectConversionContext() {
-            this(new ArrayList<>());
+        public ProjectConversionContext(boolean verbose, boolean dryRun) {
+            this(verbose, dryRun, new ArrayList<>());
         }
     }
 }

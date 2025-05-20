@@ -35,7 +35,6 @@ import java.util.stream.Stream;
 
 public class ProjectConverter {
 
-    public static final Logger LOGGER = Logger.getLogger(ProjectConverter.class.getName());
     public static ConversionResult convertProject(
             TibcoToBalConverter.ProjectConversionContext conversionContext,
             Map<TibcoModel.Process, AnalysisResult> analysisResult,
@@ -118,5 +117,9 @@ public class ProjectConverter {
     static SyntaxTree convertTypes(ProjectContext cx, Collection<TibcoModel.Type.Schema> schemas) {
         ContextWithFile typeContext = cx.getTypeContext();
         return TypeConverter.convertSchemas(typeContext, schemas);
+    }
+
+    public static Logger logger() {
+        return TibcoToBalConverter.logger();
     }
 }

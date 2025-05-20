@@ -30,13 +30,14 @@ import java.util.stream.Stream;
 
 public class TibcoProjectConversionTest {
 
+    // FIXME: why the some are is empty (bisect to find out when this happend)
     @Test(groups = {"tibco", "converter"}, dataProvider = "projectTestCaseProvider")
     public void testProjectConversion(Path tibcoProject, Path expectedBallerinaProject) throws IOException {
         // Create a temporary directory for the output
         Path tempDir = Files.createTempDirectory("tibco-conversion-test");
         try {
             // Run the conversion
-            TibcoConverter.migrateTibcoProject(tibcoProject.toString(), tempDir.toString(), false);
+            TibcoConverter.migrateTibcoProject(tibcoProject.toString(), tempDir.toString(), false, true, false);
 
             // Compare the directories
             compareDirectories(tempDir, expectedBallerinaProject);

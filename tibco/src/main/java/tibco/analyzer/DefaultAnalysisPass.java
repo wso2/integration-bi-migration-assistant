@@ -35,7 +35,7 @@ import java.util.stream.Stream;
 
 // TODO: we need to break this up
 public final class DefaultAnalysisPass extends AnalysisPass {
-    private static final Logger logger = ProjectConverter.LOGGER;
+    private static final Logger logger = ProjectConverter.logger();
 
     public DefaultAnalysisPass() {
 

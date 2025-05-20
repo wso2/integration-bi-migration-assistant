@@ -25,7 +25,7 @@ import tibco.converter.ProjectConverter;
 import java.util.logging.Logger;
 
 public class LoggingAnalysisPass extends AnalysisPass {
-    private static final Logger logger = ProjectConverter.LOGGER;
+    private static final Logger logger = ProjectConverter.logger();
     private int totalActivityCount = 0;
     private int unhandledActivityCount = 0;
 

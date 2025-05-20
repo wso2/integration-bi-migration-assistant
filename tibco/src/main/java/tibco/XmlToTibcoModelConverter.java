@@ -75,7 +75,7 @@ public final class XmlToTibcoModelConverter {
         }
     }
 
-    private static final Logger logger = ProjectConverter.LOGGER;
+    private static final Logger logger = ProjectConverter.logger();
 
     private XmlToTibcoModelConverter() {
     }
