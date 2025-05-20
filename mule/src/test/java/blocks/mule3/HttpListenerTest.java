@@ -38,6 +38,8 @@ public class HttpListenerTest extends AbstractBlockTest {
         testMule3ToBal("http-listener/resource_path_params.xml", "http-listener/resource_path_params.bal");
     }
 
+    // TODO: add test for query params
+
     @Test(dataProvider = "httpMethodsTestData")
     public void testAllowedResourceMethods(String inputFile, String outputFile) {
         testMule3ToBal(inputFile, outputFile);
@@ -61,5 +63,11 @@ public class HttpListenerTest extends AbstractBlockTest {
     public void testListenerWithLocalhost() {
         testMule3ToBal("http-listener/http_listener_with_localhost.xml",
                 "http-listener/http_listener_with_localhost.bal");
+    }
+
+    @Test
+    public void testListenerInboundProperties() {
+        testMule3ToBal("http-listener/http_listener_inbound_properties.xml",
+                "http-listener/http_listener_inbound_properties.bal");
     }
 }

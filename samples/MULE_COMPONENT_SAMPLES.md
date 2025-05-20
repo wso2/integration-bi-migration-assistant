@@ -1226,6 +1226,89 @@ service /mule3 on config {
 
 ```
 
+- ### Http Listener Inbound Properties
+
+**Input (http_listener_inbound_properties.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration" />
+    <http:request-config name="HTTP_Request_Config" host="restcountries.com" port="443" protocol="HTTPS" doc:name="HTTP Request Configuration"/>
+
+    <flow name="currency-api-flow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/proptest/{country}/v1" doc:name="HTTP" allowedMethods="GET"/>
+        <set-variable variableName="queryParams" value="#[message.inboundProperties.'http.query.params']" doc:name="Set Query Params Variable"/>
+
+        <set-variable variableName="city" value="#[message.inboundProperties.'http.query.params'.city]" doc:name="Set City Variable"/>
+        <set-variable variableName="queryParams2" value="#[message.inboundProperties['http.query.params']]" doc:name="Set Query Params2 Variable"/>
+        <set-variable variableName="city2" value="#[message.inboundProperties['http.query.params'].city]" doc:name="Set City2 Variable"/>
+        <set-variable variableName="uriParams" value="#[message.inboundProperties.'http.uri.params']" doc:name="Set Uri Params Variable"/>
+        <set-variable variableName="country" value="#[message.inboundProperties.'http.uri.params'.country]" doc:name="Set Country Variable"/>
+        <set-variable variableName="unsupportedProperty" value="#[message.inboundProperties['unsupported.property']]" doc:name="Set Unsupported Property Variable"/>
+        <set-variable variableName="unsupportedPropertyAccess" value="#[message.inboundProperties['unsupported.property'].city]" doc:name="Set Unsupported Property Access Variable"/>
+        <set-variable variableName="httpMethod" value="#[message.inboundProperties.'http.method']" doc:name="Set Http Method Variable"/>
+    </flow>
+</mule>
+
+```
+**Output (http_listener_inbound_properties.bal):**
+```ballerina
+import ballerina/http;
+
+public type FlowVars record {|
+    anydata queryParams?;
+    string city?;
+    anydata queryParams2?;
+    string city2?;
+    string uriParams?;
+    string country?;
+    anydata unsupportedProperty?;
+    anydata unsupportedPropertyAccess?;
+    anydata httpMethod?;
+|};
+
+public type InboundProperties record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    FlowVars flowVars = {};
+    InboundProperties inboundProperties;
+|};
+
+public listener http:Listener HTTP_Listener_Configuration = new (8081);
+
+service / on HTTP_Listener_Configuration {
+    resource function get proptest/[string country]/v1(http:Request request) returns http:Response|error {
+        Context ctx = {inboundProperties: {request, response: new, uriParams: {country}}};
+        ctx.flowVars.queryParams = ctx.inboundProperties.request.getQueryParams();
+        ctx.flowVars.city = ctx.inboundProperties.request.getQueryParamValue("city");
+        ctx.flowVars.queryParams2 = ctx.inboundProperties.request.getQueryParams();
+        ctx.flowVars.city2 = ctx.inboundProperties.request.getQueryParamValue("city");
+        ctx.flowVars.uriParams = ctx.inboundProperties.uriParams;
+        ctx.flowVars.country = ctx.inboundProperties.uriParams.get("country");
+        ctx.flowVars.unsupportedProperty = ctx.inboundProperties["unsupported.property"];
+        ctx.flowVars.unsupportedPropertyAccess = ctx.inboundProperties["unsupported.property"].city;
+        ctx.flowVars.httpMethod = ctx.inboundProperties.request.method;
+
+        ctx.inboundProperties.response.setPayload(ctx.payload);
+        return ctx.inboundProperties.response;
+    }
+}
+
+```
+
 - ### Http Listener With Localhost
 
 **Input (http_listener_with_localhost.xml):**
@@ -1316,7 +1399,7 @@ public listener http:Listener config = new (8081);
 
 service /mule3 on config {
     resource function get [string version]/demo/[string id](http:Request request) returns http:Response|error {
-        Context ctx = {inboundProperties: {request, response: new, uriParams: {version, id};}};
+        Context ctx = {inboundProperties: {request, response: new, uriParams: {version, id}}};
         log:printInfo("xxx: logger invoked");
 
         ctx.inboundProperties.response.setPayload(ctx.payload);

@@ -44,24 +44,27 @@ public class MELConverter {
         for (int i = 0; i < melExpr.length(); i++) {
             char currentChar = melExpr.charAt(i);
 
-            // Handle string literals
+            String tokenStr = token.toString();
             if (currentChar == '\'' || currentChar == '\"') {
+                // Handle string literals
                 processToken(token, result, addToStringCalls);
                 i = processStringLiteral(melExpr, i, result);
                 continue;
             }
 
-            // Handle array access in properties
+            if ((currentChar == '[' || currentChar == '.') && isInboundPropertyToken(tokenStr)) {
+                // We reach here for two kinds of syntax.
+                // 1. message.inboundProperties.'http.query.params'.foo
+                // 2. message.inboundProperties['http.query.params'].foo
+                i = processInboundProperty(melExpr, i, tokenStr, result, addToStringCalls);
+                token.setLength(0);
+                continue;
+            }
+
             if (currentChar == '[' && !token.isEmpty()) {
-                String tokenStr = token.toString();
-                if (isInboundPropertyToken(tokenStr)) {
-                    i = processInboundProperty(melExpr, i, tokenStr, result, addToStringCalls);
-                    token.setLength(0);
-                } else {
-                    // Handle general array access like payload[0].lat
-                    processToken(token, result, false); // Don't add toString here
-                    i = processArrayAccess(melExpr, i, result);
-                }
+                // Handle general array access like payload[0].lat
+                processToken(token, result, false); // Don't add toString here
+                i = processArrayAccess(melExpr, i, result);
                 continue;
             }
 
@@ -163,52 +166,72 @@ public class MELConverter {
 
     private static int processInboundProperty(String melExpr, int startPos, String tokenStr,
                                               StringBuilder result, boolean addToStringCalls) {
-        StringBuilder bracketAccessToken = new StringBuilder();
+        StringBuilder propertyKeyToken = new StringBuilder();
         int i = startPos;
+        i++; // skip the opening bracket or dot
 
-        // Extract the property key inside brackets
-        do {
-            bracketAccessToken.append(melExpr.charAt(i));
+        assert melExpr.charAt(i) == '\'';
+        propertyKeyToken.append('\'');
+        i++;
+
+        while (i < melExpr.length() && melExpr.charAt(i) != '\'') {
+            propertyKeyToken.append(melExpr.charAt(i));
             i++;
-        } while (i < melExpr.length() && melExpr.charAt(i) != ']');
+        }
 
-        bracketAccessToken.append(']');
-        i++; // Skip the closing bracket
+        propertyKeyToken.append('\''); // append the closing quote
+        i++;
 
-        String tokenResult = convertInboundPropertyAccess(tokenStr, bracketAccessToken.toString());
-        result.append(tokenResult);
+        if (i < melExpr.length() && melExpr.charAt(i) == ']') {
+            i++; // Skip the closing bracket
+        }
 
-        // Handle property access if present (e.g., http.query.params.paramName)
+        // Capture property access if present (e.g., http.query.params.paramName)
+        StringBuilder paramAccessToken = new StringBuilder();
         if (i < melExpr.length() && melExpr.charAt(i) == '.') {
             i++; // Skip the dot
-            StringBuilder paramAccessToken = new StringBuilder();
 
             while (i < melExpr.length() && isTokenChar(melExpr.charAt(i))) {
                 paramAccessToken.append(melExpr.charAt(i));
                 i++;
             }
-
-            boolean isQueryParam = tokenResult.contains("getQueryParamValue");
-            if (!isQueryParam) {
-                result.append(".get");
-            }
-            result.append("(\"%s\")".formatted(paramAccessToken));
-
-            i--; // Adjust for the next iteration
-        } else if (i < melExpr.length()) {
-            i--; // Adjust for the next iteration
         }
 
+        String tokenResult = convertInboundPropertyAccess(propertyKeyToken.toString(), paramAccessToken.toString());
+        result.append(tokenResult);
+
+        i--; // Adjust for the next iteration
         return i;
     }
 
-    private static String convertInboundPropertyAccess(String baseToken, String bracketAccess) {
-        return switch (bracketAccess) {
-            case "['http.uri.params']" -> "ctx.inboundProperties.uriParams";
-            case "['http.query.params']" -> "ctx.inboundProperties.request.getQueryParamValue";
-            case "['http.method']" -> "ctx.inboundProperties.method";
-            default -> "ctx.inboundProperties" + bracketAccess;
-        };
+    private static String convertInboundPropertyAccess(String propertyKey, String paramName) {
+        StringBuilder resultantStr = new StringBuilder();
+        resultantStr.append("ctx.inboundProperties");
+        switch (propertyKey) {
+            case "'http.uri.params'" -> {
+                resultantStr.append(".uriParams");
+                if (!paramName.isEmpty()) {
+                    resultantStr.append(".get(\"%s\")".formatted(paramName));
+                }
+            }
+            case "'http.query.params'" -> {
+                resultantStr.append(".request");
+                if (paramName.isEmpty()) {
+                    resultantStr.append(".getQueryParams()");
+                } else {
+                    resultantStr.append(".getQueryParamValue(\"%s\")".formatted(paramName));
+                }
+            }
+
+            case "'http.method'" -> resultantStr.append(".request.method");
+            default -> {
+                resultantStr.append("[\"%s\"]".formatted(propertyKey.substring(1, propertyKey.length() - 1)));
+                if (!paramName.isEmpty()) {
+                    resultantStr.append(".").append(paramName);
+                }
+            }
+        }
+        return resultantStr.toString();
     }
 
     private static boolean isTokenChar(char currentChar) {

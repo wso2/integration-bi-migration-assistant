@@ -16,7 +16,7 @@ public listener http:Listener config = new (8081);
 
 service /mule3 on config {
     resource function get [string version]/demo/[string id](http:Request request) returns http:Response|error {
-        Context ctx = {inboundProperties: {request, response: new, uriParams: {version, id};}};
+        Context ctx = {inboundProperties: {request, response: new, uriParams: {version, id}}};
         log:printInfo("xxx: logger invoked");
 
         ctx.inboundProperties.response.setPayload(ctx.payload);

@@ -661,7 +661,7 @@ public class MuleToBalConverter {
                     // TODO: add test
                     if (!pathParams.isEmpty()) {
                         String pathParamValue = String.join(",", pathParams);
-                        inboundPropMap.put(Constants.URI_PARAMS_REF, "{%s};".formatted(pathParamValue));
+                        inboundPropMap.put(Constants.URI_PARAMS_REF, "{%s}".formatted(pathParamValue));
                     }
                 }
                 default -> throw new IllegalStateException();
