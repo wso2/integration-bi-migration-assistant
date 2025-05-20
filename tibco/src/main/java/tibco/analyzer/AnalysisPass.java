@@ -21,6 +21,7 @@ package tibco.analyzer;
 import tibco.TibcoModel;
 
 import java.util.Collection;
+import java.util.stream.Stream;
 
 public class AnalysisPass {
     public AnalysisResult analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
@@ -32,6 +33,11 @@ public class AnalysisPass {
             ProcessAnalysisContext cx, TibcoModel.Process.ExplicitTransitionGroup explicitTransitionGroup) {
         explicitTransitionGroup.transitions().forEach(each -> analyseTransition(cx, explicitTransitionGroup, each));
         explicitTransitionGroup.activities().forEach(each -> analyseActivity(cx, each));
+        explicitTransitionGroup.activities().stream()
+                .flatMap(each ->
+                        each instanceof TibcoModel.Process.ExplicitTransitionGroup.NestedGroup nestedGroup ?
+                                Stream.of(nestedGroup.body()) : Stream.empty())
+                .forEach(each -> analyseExplicitTransitionGroup(cx, each));
     }
 
     protected void analyseTransition(

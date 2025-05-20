@@ -277,7 +277,7 @@ public class ProcessConverter {
     // TODO: refactor common code with generateErrorFlowFunction
     private static BallerinaModel.Function generateExplicitTransitionBlockErrorFunction(
             ProcessContext cx, TibcoModel.Process.ExplicitTransitionGroup group) {
-        AnalysisResult analysisResult = cx.analysisResult;
+        AnalysisResult analysisResult = cx.getAnalysisResult();
         String errorHandlerFunction = analysisResult.getControlFlowFunctions(group).errorHandler();
         List<Activity> activities = analysisResult.sortedErrorHandlerActivities(group).toList();
         if (activities.isEmpty()) {
@@ -291,7 +291,6 @@ public class ProcessConverter {
     private static BallerinaModel.@NotNull Function defaultErrorHandlerFunction(String errorHandlerFunction) {
         Parameter context = new Parameter("cx", new TypeDesc.MapTypeDesc(XML));
         List<Statement> body = List.of(stmtFrom(new Panic(new VariableReference("err")) + ";\n"));
-        String errorHandlerFunction = cx.getAnalysisResult().getControlFlowFunctions(group).errorHandler();
         return new BallerinaModel.Function(errorHandlerFunction,
                 List.of(new Parameter("err", ERROR),
                         context),
