@@ -84,7 +84,7 @@ public class TibcoToBalConverter {
                 new LoggingAnalysisPass(),
                 new ReportGenerationPass()));
         Map<TibcoModel.Process, AnalysisResult> analysisResult =
-                analyser.analyseProcesses(new ProjectAnalysisContext(cx), processes);
+                analyser.analyseProcesses(new ProjectAnalysisContext(), processes);
         AnalysisReport report = analysisResult.values().stream()
                 .map(AnalysisResult::getReport)
                 .flatMap(Optional::stream)
