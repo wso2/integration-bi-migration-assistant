@@ -30,7 +30,6 @@ import java.util.stream.Stream;
 
 public class TibcoProjectConversionTest {
 
-    // FIXME: why the some are is empty (bisect to find out when this happend)
     @Test(groups = {"tibco", "converter"}, dataProvider = "projectTestCaseProvider")
     public void testProjectConversion(Path tibcoProject, Path expectedBallerinaProject) throws IOException {
         // Create a temporary directory for the output
