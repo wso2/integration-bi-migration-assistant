@@ -188,6 +188,8 @@ final class ActivityConverter {
                 case SOAPSendReply soapSendReply -> convertSoapSendReply(cx, result, soapSendReply);
                 case LoopGroup loopGroup -> convertLoopGroup(cx, result, loopGroup);
                 case REST rest -> convertREST(cx, result, rest);
+                case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.Catch ignored ->
+                        emptyExtensionConversion(cx, result);
             };
             body.addAll(conversion.body());
             body.add(addToContext(cx, conversion.result(), inlineActivity.name()));

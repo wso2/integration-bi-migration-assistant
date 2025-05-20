@@ -246,6 +246,7 @@ public final class XmlToTibcoModelConverter {
             case SOAP_SEND_REPLY -> new InlineActivity.SOAPSendReply(element, name, inputBinding);
             case LOOP_GROUP -> parseLoopGroup(cx, element, name, inputBinding);
             case REST -> parseREST(element, name, inputBinding);
+            case CATCH -> new InlineActivity.Catch(element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
         };
     }

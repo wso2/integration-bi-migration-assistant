@@ -137,18 +137,6 @@ public class ProcessConverter {
                 List.of(parameter), Optional.of("xml"), body);
     }
 
-    public static BallerinaModel.Module convertProcess(TibcoModel.Process process) {
-        ProjectContext cx = new ProjectContext();
-        return convertProcess(cx.getProcessContext(process), process);
-    }
-
-    private static BallerinaModel.Module convertProcess(ProcessContext cx, TibcoModel.Process process) {
-        TypeConversionResult result = convertTypes(cx, process);
-        BallerinaModel.TextDocument textDocument = convertBody(cx, process, result);
-        ProjectContext projectContext = cx.projectContext;
-        return projectContext.serialize(List.of(textDocument));
-    }
-
     static BallerinaModel.TextDocument convertBody(ProcessContext cx, TibcoModel.Process process,
             TypeConversionResult result) {
         process.variables().stream()
@@ -273,7 +261,8 @@ public class ProcessConverter {
         AnalysisResult analysisResult = cx.analysisResult;
         List<Activity> activities = analysisResult.sortedActivities(group).toList();
         String activityRunnerFunction = analysisResult.getControlFlowFunctions(group).activityRunner();
-        return generateActivityFlowFunctionInner(cx, activities, activityRunnerFunction);
+        return generateActivityFlowFunctionInner(cx, activities, activityRunnerFunction, UnionTypeDesc.of(XML, ERROR),
+                Check::new, List.of(new Parameter("cx", new TypeDesc.MapTypeDesc(XML))));
     }
 
 
@@ -288,9 +277,20 @@ public class ProcessConverter {
     // TODO: refactor common code with generateErrorFlowFunction
     private static BallerinaModel.Function generateExplicitTransitionBlockErrorFunction(
             ProcessContext cx, TibcoModel.Process.ExplicitTransitionGroup group) {
+        AnalysisResult analysisResult = cx.analysisResult;
+        String errorHandlerFunction = analysisResult.getControlFlowFunctions(group).errorHandler();
+        List<Activity> activities = analysisResult.sortedErrorHandlerActivities(group).toList();
+        if (activities.isEmpty()) {
+            return defaultErrorHandlerFunction(errorHandlerFunction);
+        }
+        return generateActivityFlowFunctionInner(cx, activities, errorHandlerFunction, XML, CheckPanic::new,
+                List.of(new Parameter("err", ERROR),
+                        new Parameter("cx", new TypeDesc.MapTypeDesc(XML))));
+    }
+
+    private static BallerinaModel.@NotNull Function defaultErrorHandlerFunction(String errorHandlerFunction) {
         Parameter context = new Parameter("cx", new TypeDesc.MapTypeDesc(XML));
         List<Statement> body = List.of(stmtFrom(new Panic(new VariableReference("err")) + ";\n"));
-        String errorHandlerFunction = cx.analysisResult.getControlFlowFunctions(group).errorHandler();
         return new BallerinaModel.Function(errorHandlerFunction,
                 List.of(new Parameter("err", ERROR),
                         context),
@@ -411,18 +411,19 @@ public class ProcessConverter {
         AnalysisResult analysisResult = cx.analysisResult;
         List<Activity> activities = analysisResult.sortedActivities(scope).toList();
         String activityRunnerFunction = analysisResult.getControlFlowFunctions(scope).activityRunner();
-        return generateActivityFlowFunctionInner(cx, activities, activityRunnerFunction);
+        return generateActivityFlowFunctionInner(cx, activities, activityRunnerFunction, UnionTypeDesc.of(XML, ERROR),
+                Check::new, List.of(new Parameter("cx", new TypeDesc.MapTypeDesc(XML))));
     }
 
     private static BallerinaModel.@NotNull Function generateActivityFlowFunctionInner(
-            ProcessContext cx, List<Activity> activities, String activityRunnerFunction) {
+            ProcessContext cx, List<Activity> activities, String functionName, TypeDesc returnType,
+            Function<FunctionCall, Expression> callHandler, List<Parameter> parameters) {
         List<Statement> body = new ArrayList<>();
         VariableReference result = generateActivityFlowFunctionInner(cx, activities,
-                Check::new, body, new VariableReference("input"));
+                callHandler, body, new VariableReference("input"));
         body.add(new Return<>(result));
-        return new BallerinaModel.Function(activityRunnerFunction,
-                List.of(new Parameter("cx", new TypeDesc.MapTypeDesc(XML))),
-                UnionTypeDesc.of(XML, ERROR), body);
+        return new BallerinaModel.Function(functionName,
+                parameters, returnType, body);
     }
 
     private static BallerinaModel.Function generateErrorFlowFunction(ProcessContext cx) {
@@ -457,8 +458,8 @@ public class ProcessConverter {
                 XML.toString(), body);
     }
 
-    private static VariableReference generateActivityFlowFunctionInner(ProcessContext cx, List<Activity> activities,
-            Function<FunctionCall, Expression> callHandler,
+    private static VariableReference generateActivityFlowFunctionInner(
+            ProcessContext cx, List<Activity> activities, Function<FunctionCall, Expression> callHandler,
             List<Statement> body, VariableReference input) {
         VariableReference context = new VariableReference("cx");
         Map<Activity, VariableReference> activityResult = new HashMap<>();
@@ -472,11 +473,9 @@ public class ProcessConverter {
         return input;
     }
 
-    private static VarDeclStatment generateActivityFunctionCall(ProcessContext cx,
-            Map<Activity, VariableReference> activityResults,
-            Activity activity, String varName,
-            Function<FunctionCall, Expression> callHandler,
-            List<Statement> body, VariableReference input,
+    private static VarDeclStatment generateActivityFunctionCall(
+            ProcessContext cx, Map<Activity, VariableReference> activityResults, Activity activity, String varName,
+            Function<FunctionCall, Expression> callHandler, List<Statement> body, VariableReference input,
             VariableReference context) {
         AnalysisResult analysisResult = cx.analysisResult;
         record TransitionFunctionData(VariableReference inputVar, String functionName) {
@@ -503,7 +502,7 @@ public class ProcessConverter {
         }
         Statement.IfElseStatement ifElse = new Statement.IfElseStatement(cond,
                 List.of(new VarAssignStatement(result.ref(),
-                        new Expression.Check(activityFunctionCall(activity, context, analysisResult)))),
+                        new Check(activityFunctionCall(activity, context, analysisResult)))),
                 List.of(), List.of(new VarAssignStatement(result.ref(), input)));
         body.add(ifElse);
         return result;
