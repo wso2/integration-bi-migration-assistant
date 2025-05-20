@@ -52,6 +52,10 @@ public final class BICodeConverter {
         this.skipConversion = skipConversion;
     }
 
+    public BICodeConverter() {
+        this(DEFAULT_IS_CONFIGURABLE_PREDICATE, DEFAULT_IS_CONNECTION_PREDICATE, DEFAULT_SKIP_CONVERSION_PREDICATE);
+    }
+
     public BallerinaModel.Module convert(BallerinaModel.Module module) {
         Stream<BallerinaModel.TextDocument> skipped = module.textDocuments().stream().filter(skipConversion);
         BallerinaModel.TextDocument main = fixImports(mergeWithExistingIfNeeded(mainFile(module), module));
@@ -59,9 +63,15 @@ public final class BICodeConverter {
         BallerinaModel.TextDocument connections = fixImports(mergeWithExistingIfNeeded(connections(module), module));
         BallerinaModel.TextDocument types = fixImports(mergeWithExistingIfNeeded(types(module), module));
         BallerinaModel.TextDocument functions = fixImports(mergeWithExistingIfNeeded(functions(module), module));
-        BallerinaModel.TextDocument comments = fixImports(mergeWithExistingIfNeeded(comments(module), module));
-        List<BallerinaModel.TextDocument> docs = Stream
-                .concat(Stream.of(main, configs, connections, types, functions, comments), skipped).toList();
+        Stream<BallerinaModel.TextDocument> comments =
+                extractDocComments(module).isEmpty() ? Stream.empty() :
+                        Stream.of(fixImports(mergeWithExistingIfNeeded(comments(module), module)));
+        List<BallerinaModel.TextDocument> docs =
+                Stream.concat(Stream.concat(
+                                        Stream.of(main, configs, connections, types, functions),
+                                        skipped),
+                                comments)
+                        .toList();
         return new BallerinaModel.Module(module.name(), docs);
     }
 
@@ -80,9 +90,10 @@ public final class BICodeConverter {
     private BallerinaModel.TextDocument mainFile(BallerinaModel.Module module) {
         List<BallerinaModel.Service> services = extractServices(module);
         List<BallerinaModel.Listener> listeners = extractListeners(module);
+        List<String> intrinsics = extractNamespaceInrinsics(module);
 
         return new BallerinaModel.TextDocument("main.bal", List.of(), List.of(), List.of(),
-                listeners, services, List.of(), List.of());
+                listeners, services, List.of(), List.of(), intrinsics, List.of());
     }
 
 
@@ -94,14 +105,16 @@ public final class BICodeConverter {
 
     private BallerinaModel.TextDocument types(BallerinaModel.Module module) {
         List<BallerinaModel.ModuleTypeDef> types = extractTypeDefinitions(module);
+        List<String> intrinsics = extractTypeInrinsics(module);
         return new BallerinaModel.TextDocument("types.bal", List.of(), types, List.of(),
-                List.of(), List.of(), List.of(), List.of());
+                List.of(), List.of(), List.of(), List.of(), intrinsics, List.of());
     }
 
     private BallerinaModel.TextDocument functions(BallerinaModel.Module module) {
         List<BallerinaModel.Function> functions = extractFunctions(module);
+        List<String> intrinsics = extractFunctionIntrinsics(module);
         return new BallerinaModel.TextDocument("functions.bal", List.of(), List.of(), List.of(),
-                List.of(), List.of(), functions, List.of());
+                List.of(), List.of(), functions, List.of(), intrinsics, List.of());
     }
 
     private BallerinaModel.TextDocument fixImports(BallerinaModel.TextDocument doc) {
@@ -124,7 +137,8 @@ public final class BICodeConverter {
 
         List<BallerinaModel.Import> combinedImports = Stream.concat(doc.imports().stream(), imports.stream()).toList();
         return new BallerinaModel.TextDocument(doc.documentName(), combinedImports, doc.moduleTypeDefs(),
-                doc.moduleVars(), doc.listeners(), doc.services(), doc.functions(), doc.Comments());
+                doc.moduleVars(), doc.listeners(), doc.services(), doc.functions(), doc.Comments(), doc.intrinsics(),
+                doc.astNodes());
     }
 
     private Optional<BallerinaModel.Import> prefixToImport(String prefix) {
@@ -205,6 +219,33 @@ public final class BICodeConverter {
 
     private List<BallerinaModel.Function> extractFunctions(BallerinaModel.Module module) {
         return getTextDocumentStream(module).flatMap(doc -> doc.functions().stream()).toList();
+    }
+
+    private boolean isTypeIntrinsic(String intrinsic) {
+        return intrinsic.trim().startsWith("type ");
+    }
+
+    private boolean isNamespaceIntrinsic(String intrinsic) {
+        return intrinsic.trim().startsWith("xmlns ");
+    }
+
+    private boolean isFunctionIntrinsic(String intrinsic) {
+        return !isTypeIntrinsic(intrinsic) && !isNamespaceIntrinsic(intrinsic);
+    }
+
+    private List<String> extractFunctionIntrinsics(BallerinaModel.Module module) {
+        return getTextDocumentStream(module).flatMap(doc -> doc.intrinsics().stream()).distinct().
+                filter(this::isFunctionIntrinsic).toList();
+    }
+
+    private List<String> extractTypeInrinsics(BallerinaModel.Module module) {
+        return getTextDocumentStream(module).flatMap(doc -> doc.intrinsics().stream()).distinct().
+                filter(this::isTypeIntrinsic).toList();
+    }
+
+    private List<String> extractNamespaceInrinsics(BallerinaModel.Module module) {
+        return getTextDocumentStream(module).flatMap(doc -> doc.intrinsics().stream()).distinct().
+                filter(this::isNamespaceIntrinsic).toList();
     }
 
     private @NotNull Stream<BallerinaModel.TextDocument> getTextDocumentStream(BallerinaModel.Module module) {

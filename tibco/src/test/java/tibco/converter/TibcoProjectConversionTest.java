@@ -36,7 +36,7 @@ public class TibcoProjectConversionTest {
         Path tempDir = Files.createTempDirectory("tibco-conversion-test");
         try {
             // Run the conversion
-            TibcoConverter.migrateTibcoProject(tibcoProject.toString(), tempDir.toString());
+            TibcoConverter.migrateTibcoProject(tibcoProject.toString(), tempDir.toString(), false);
 
             // Compare the directories
             compareDirectories(tempDir, expectedBallerinaProject);

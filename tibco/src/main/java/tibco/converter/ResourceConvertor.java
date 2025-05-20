@@ -18,12 +18,12 @@
 
 package tibco.converter;
 
+import common.BallerinaModel;
 import common.BallerinaModel.Expression;
 import common.BallerinaModel.Expression.CheckPanic;
 import common.BallerinaModel.Expression.NewExpression;
 import common.BallerinaModel.Expression.StringConstant;
 import common.BallerinaModel.ModuleVar;
-import common.ConversionUtils;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Resource.HTTPClientResource;
 import tibco.TibcoModel.Resource.HTTPConnectionResource;
@@ -82,13 +82,10 @@ final class ResourceConvertor {
     }
 
     public static void convertHttpSharedResource(ProjectContext cx, TibcoModel.Resource.HTTPSharedResource resource) {
-        // public listener http:Listener creditapp_module_MainProcess_listener = new (8082, {host: "localhost"});
-        Expression.BallerinaExpression init = ConversionUtils.exprFrom(
-                "checkpanic new (%d, {host: \"%s\"})".formatted(resource.port(), resource.host()));
-        ModuleVar resourceVar =
-                new ModuleVar(tibco.converter.ConversionUtils.sanitizes(resource.name()), "listener http:Listener",
-                        Optional.of(init), false, false);
-        cx.addResourceDeclaration(resource.name(), resourceVar, List.of(), List.of(Library.HTTP));
+        String name = tibco.converter.ConversionUtils.sanitizes(resource.name());
+        BallerinaModel.Listener listener = new BallerinaModel.Listener(BallerinaModel.ListenerType.HTTP, name,
+                Integer.toString(resource.port()), Map.of("host", resource.host()));
+        cx.addListnerDeclartion(resource.name(), listener, List.of(), List.of(Library.HTTP));
     }
 
     private record SubstitutionResult(boolean hasInterpolations, String result) {

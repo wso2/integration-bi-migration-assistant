@@ -14,7 +14,7 @@ $ bal tool pull migrate-tibco
 ### Command Syntax
 
 ```bash
-$ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>]
+$ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>] [-k|--keep-structure]
 ```
 
 ### Parameters
@@ -23,6 +23,7 @@ $ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directo
 - **-o or --out** - *Optional*. The directory where the new Ballerina package will be created. If the directory does not exist tool will create it for you. If not provided,
   - If source-project-directory-or-file is a directory it will create new directory named ${source-project-directory-or-file}_converted in the root of source-project-directory-or-file
   - if source-project-directory-or-file is a file it will create a new directory named ${root}_converted in the parent of the root directory where root is the directory containing the given file.
+- **-k or --keep-structure** - *Optional*. If specified, preserves the original process structure during migration. By default, this option is disabled.
 
 ## Examples
 
@@ -58,6 +59,14 @@ $ bal migrate-tibco path/to/process-file --out path/to/output-dir
 
 This will create a new Ballerina package at `path/to/bal-file`. If the output path already exists tool will simply overwrite any file as needed without 
 purging the directory.
+
+### Preserve process structure during conversion
+
+```bash
+$ bal migrate-tibco path/to/tibco-project -k
+```
+
+By default, the TIBCO project is converted using the standard Ballerina Integration (BI) file structure. However, if the --keep-structure flag is used, each TIBCO process will be converted into a separate .bal file named after the process, maintaining the original process structure instead of following the standard BI layout.
 
 ## Output
 

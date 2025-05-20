@@ -1,5 +1,6 @@
 import ballerina/data.xmldata;
 import ballerina/io;
+import ballerina/log;
 import ballerina/xslt;
 
 function activityExtension(map<xml> context) returns xml|error {
@@ -115,18 +116,46 @@ function start_loggingservice_LogProcess(LogMessage input, map<xml> params = {})
     return result;
 }
 
-xmlns "http://www.example.org/LogResult" as ns2;
-xmlns "http://www.tibco.com/bpel/2007/extensions" as tibex;
-xmlns "http://www.tibco.com/bw/process/info" as info;
-xmlns "http://docs.oasis-open.org/ns/opencsa/sca/200912" as sca;
-xmlns "http://tns.tibco.com/bw/palette/internal/activityerror+bw.file.write" as ns4;
-xmlns "http://www.tibco.com/namespaces/tnt/plugins/file" as ns3;
-xmlns "http://docs.oasis-open.org/wsbpel/2.0/process/executable" as bpws;
-xmlns "http://www.w3.org/2001/XMLSchema" as xsd;
-xmlns "http://ns.tibco.com/bw/property" as tibprop;
-xmlns "http://www.tibco.com/namespaces/tnt/plugins/renderxml" as ns6;
-xmlns "http://www.tibco.com/pe/EngineTypes" as ns;
-xmlns "http://www.tibco.com/xml/render/example" as ns5;
-xmlns "http://tns.tibco.com/bw/palette/internal/activityerror+bw.xml.renderxml" as ns7;
-xmlns "http://www.tibco.com/pe/WriteToLogActivitySchema" as ns1;
-xmlns "http://www.example.org/LogSchema" as ns0;
+function convertToLogParametersType(xml input) returns LogParametersType {
+    return checkpanic xmldata:parseAsType(input);
+}
+
+function convertToWriteActivityInputTextClass(xml input) returns WriteActivityInputTextClass {
+    return checkpanic xmldata:parseAsType(input);
+}
+
+function convertToresult(xml input) returns result {
+    return checkpanic xmldata:parseAsType(input);
+}
+
+function toXML(map<anydata> data) returns error|xml {
+    return xmldata:toXml(data);
+}
+
+function addToContext(map<xml> context, string varName, xml value) {
+    xml children = value/*;
+    xml transformed = xml `<root>${children}</root>`;
+    context[varName] = transformed;
+}
+
+function logWrapper(LogParametersType input) {
+    foreach var body in input {
+        match (body) {
+            {message: var m, logLevel: "info"} => {
+                log:printInfo(m);
+            }
+            {message: var m, logLevel: "debug"} => {
+                log:printDebug(m);
+            }
+            {message: var m, logLevel: "warn"} => {
+                log:printWarn(m);
+            }
+            {message: var m, logLevel: "error"} => {
+                log:printError(m);
+            }
+            {message: var m} => {
+                log:printInfo(m);
+            }
+        }
+    }
+}

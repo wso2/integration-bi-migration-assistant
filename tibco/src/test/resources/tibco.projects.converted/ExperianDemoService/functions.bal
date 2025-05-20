@@ -1,26 +1,7 @@
-import ballerina/http;
+import ballerina/data.jsondata;
+import ballerina/data.xmldata;
 import ballerina/sql;
 import ballerina/xslt;
-
-http:Client experianservice_module_Process_client = checkpanic new ("localhost:8080/Creditscore/creditscore");
-public listener http:Listener experianservice_module_Process_listener = new (8080, {host: "localhost"});
-
-service /Creditscore on experianservice_module_Process_listener {
-    resource function post creditscore(InputElement|xml req) returns ExperianResponseSchemaElement|http:NotFound|http:InternalServerError {
-        InputElement|error input = tryBindToInputElement(req);
-        if input is error {
-            return <http:InternalServerError>{};
-        }
-        xml inputValXml = checkpanic toXML(input);
-        xml extractedBody = inputValXml/*;
-        xml inputXml = xml `<item>
-    ${extractedBody}
-</item>`;
-        xml inputXmlMap = xml `<root>${inputXml}</root>`;
-        map<xml> paramXML = {post: inputXmlMap};
-        return start_experianservice_module_Process(input, paramXML);
-    }
-}
 
 function activityExtension(map<xml> context) returns xml|error {
     xml var0 = context.get("SendHTTPResponse-input");
@@ -103,23 +84,126 @@ function start_experianservice_module_Process(InputElement input, map<xml> param
     return result;
 }
 
-xmlns "http://tns.tibco.com/bw/palette/internal/activityerror+bw.restjson.JsonRender" as ns10;
-xmlns "http://www.tibco.com/namespaces/tnt/plugins/httpreceiver+c9689e27-ed49-43a7-9902-684c436e3a8a+ActivityOutputType" as ns1;
-xmlns "http://xmlns.example.com/20180902175743PLT" as ns0;
-xmlns "http://www.tibco.com/bpel/2007/extensions" as tibex;
-xmlns "http://www.tibco.com/bw/process/info" as info;
-xmlns "http://docs.oasis-open.org/ns/opencsa/sca/200912" as sca;
-xmlns "http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput" as ns2;
-xmlns "http://docs.oasis-open.org/wsbpel/2.0/process/executable" as bpws;
-xmlns "http://www.w3.org/2001/XMLSchema" as xsd;
-xmlns "activity.jsonRender.output+8ccea717-63a9-4d35-945d-ec9437e37100+ActivityOutputType" as ns9;
-xmlns "http://ns.tibco.com/bw/property" as tibprop;
-xmlns "http://tns.tibco.com/bw/palette/internal/activityerror+bw.jdbc.JDBCQuery" as ns6;
-xmlns "http://www.tibco.com/pe/EngineTypes" as ns;
-xmlns "http://www.tibco.com/namespaces/tnt/plugins/jdbc+1d5225ab-4bc8-4898-8f74-01e4317c3e29+input" as ns4;
-xmlns "activity.jsonParser.input+f396d921-0bc7-459d-ae81-0eb1a0f94723+ActivityInputType" as ns7;
-xmlns "http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367" as ns11;
-xmlns "http://tns.tibco.com/bw/palette/internal/activityerror+bw.http.sendHTTPResponse" as ns3;
-xmlns "http://tns.tibco.com/bw/json/1535671685533" as ns12;
-xmlns "http://www.tibco.com/namespaces/tnt/plugins/jdbc+1d5225ab-4bc8-4898-8f74-01e4317c3e29+output" as ns5;
-xmlns "http://tns.tibco.com/bw/palette/internal/activityerror+bw.restjson.JsonParser" as ns8;
+function convertToExperianResponseSchemaElement(xml input) returns ExperianResponseSchemaElement {
+    return checkpanic xmldata:parseAsType(input);
+}
+
+function toXML(map<anydata> data) returns error|xml {
+    return xmldata:toXml(data);
+}
+
+function tryBindToInputElement(xml|json input) returns InputElement|error {
+    return input is xml ? xmldata:parseAsType(input) : jsondata:parseAsType(input);
+}
+
+function addToContext(map<xml> context, string varName, xml value) {
+    xml children = value/*;
+    xml transformed = xml `<root>${children}</root>`;
+    context[varName] = transformed;
+}
+
+function renderJson(xml value) returns xml {
+    json jsonValue = xmlToJson(value);
+    return xml `<root><jsonString>${jsonValue.toJsonString()}</jsonString></root>`;
+}
+
+function renderJSONAsXML(json value, string? namespace, string typeName) returns xml|error {
+    anydata body;
+    if (value is map<json>) {
+        xml acum = xml ``;
+        foreach string key in value.keys() {
+            acum += check renderJSONAsXML(value.get(key), namespace, key);
+        }
+        body = acum;
+    } else {
+        body = value;
+    }
+
+    string rep = string `<${typeName}>${body.toString()}</${typeName}>`;
+    xml result = check xml:fromString(rep);
+    if (namespace == ()) {
+        return result;
+    }
+    if (result !is xml:Element) {
+        panic error("Expected XML element");
+    }
+    map<string> attributes = result.getAttributes();
+    attributes["xmlns"] = namespace;
+    return result;
+}
+
+function xmlToJson(xml value) returns json {
+    json result = toJsonInner(value);
+    if (result is map<json> && result.hasKey("InputElement")) {
+        return result.get("InputElement");
+    } else {
+        return result;
+    }
+}
+
+function toJsonInner(xml value) returns json {
+json result;
+if (value is xml:Element) {
+result = toJsonElement(value);
+} else {
+result = value.toJson();
+}
+return result;
+}
+
+function toJsonElement(xml:Element element) returns json {
+XMLElementParseResult parseResult = parseElement(element);
+string name = parseResult.name;
+
+xml children = element/*;
+map<json> body = {};
+map<json> result = {};
+foreach xml child in children {
+json r = toJsonInner(child);
+if child !is xml:Element {
+result[name] = r;
+return result;
+}
+string childName = parseElement(child).name;
+if r !is map<json> {
+panic error("unexpected");
+} else {
+r = r.get(childName);
+}
+if body.hasKey(childName) {
+json current = body.get(childName);
+if current !is json[] {
+json[] n = [body.get(childName)];
+n.push(r);
+body[childName] = n;
+} else {
+current.push(r);
+}
+} else {
+body[childName] = r;
+}
+}
+result[name] = body;
+return result;
+}
+
+function parseElement(xml:Element element) returns XMLElementParseResult {
+    string name = element.getName();
+    if (name.startsWith("{")) {
+        int? index = name.indexOf("}");
+        if (index == ()) {
+            panic error("Invalid element name: " + name);
+        }
+        string namespace = name.substring(1, index);
+        name = name.substring(index + 1);
+        return {namespace: namespace, name: name};
+    }
+    return {namespace: (), name: name};
+}
+
+function renderJsonAsInputElementXML(xml value) returns xml|error {
+    string jsonString = (value/<jsonString>).data();
+    map<json> jsonValue = check jsondata:parseString(jsonString);
+    string? namespace = (InputElement).@xmldata:Namespace["uri"];
+    return renderJSONAsXML(jsonValue, namespace, "InputElement");
+}

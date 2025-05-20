@@ -64,14 +64,18 @@ public enum Intrinsics {
                     }
                     """
     ),
-    XML_PARSER(
-            "",
+    XML_PARSER_RESULT(
+            "XMLElementParseResult",
             """
                     type XMLElementParseResult record {|
                         string? namespace;
                         string name;
                     |};
-                    
+                    """
+    ),
+    XML_PARSER(
+            "",
+            """
                     function parseElement(xml:Element element) returns XMLElementParseResult {
                         string name = element.getName();
                         if (name.startsWith("{")) {
