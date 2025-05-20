@@ -14,7 +14,7 @@ $ bal tool pull migrate-tibco
 ### Command Syntax
 
 ```bash
-$ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>] [-k|--keep-structure]
+$ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>] [-k|--keep-structure] [--verbose|-v] [--dry-run|-d]
 ```
 
 ### Parameters
@@ -24,6 +24,8 @@ $ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directo
   - If source-project-directory-or-file is a directory it will create new directory named ${source-project-directory-or-file}_converted in the root of source-project-directory-or-file
   - if source-project-directory-or-file is a file it will create a new directory named ${root}_converted in the parent of the root directory where root is the directory containing the given file.
 - **-k or --keep-structure** - *Optional*. If specified, preserves the original process structure during migration. By default, this option is disabled.
+- **-v or --verbose** - *Optional*. Enable verbose output during conversion.
+- **-d or --dry-run** - *Optional*. Run the parsing and analysis phases and generate the `report.html` file without generating the Ballerina package.
 
 ## Examples
 
@@ -73,13 +75,29 @@ $ bal migrate-tibco path/to/tibco-project -k
 
 By default, the TIBCO project is converted using the standard Ballerina Integration (BI) file structure. However, if the `--keep-structure` or `-k` flag is used, each TIBCO process will be converted into a separate `.bal` file named after the process, maintaining the original process structure instead of following the standard BI layout.
 
+### Convert a TIBCO BusinessWorks project with verbose output
+
+```bash
+$ bal migrate-tibco path/to/tibco-project --verbose
+```
+
+This will convert the project with detailed logging during the conversion process.
+
+### Convert a TIBCO BusinessWorks project in dry-run mode
+
+```bash
+$ bal migrate-tibco path/to/tibco-project --dry-run
+```
+
+This will run the parsing and analysis phases and generate the `report.html` file without actually performing Ballerina package generation.
+
 ## Output
 
 - Creates a new Ballerina package with `_converted` suffix in the parent directory.
 
 ### Migration summary
 
-- When you run the tool it will log the number of activities it detected for each process along with the number of activities it failed to convert, if any.
+- When you run the tool it will generate a `report.html` file in the output directory with migration summary.
 
 ### Unhandled activities
 
