@@ -3,10 +3,9 @@ import ballerina/http;
 import ballerina/log;
 import ballerina/xslt;
 
-listener http:Listener proj_annon_var2 = GeneralConnection_sharedhttp;
-http:Client proj_annon_var3 = checkpanic new ("localhost:9090");
+http:Client proj_annon_var1 = checkpanic new ("localhost:9090");
 
-service on proj_annon_var2 {
+service on GeneralConnection_sharedhttp {
     resource function 'default [string... path](xml input) returns xml {
         xml inputVal = xml `<root>
     <item>

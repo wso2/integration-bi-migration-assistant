@@ -4,10 +4,9 @@ import ballerina/log;
 import ballerina/soap.soap11;
 import ballerina/xslt;
 
-listener http:Listener proj_annon_var0 = GeneralConnection_sharedhttp;
-http:Client proj_annon_var1 = checkpanic new ("localhost:9090");
+http:Client proj_annon_var0 = checkpanic new ("localhost:9090");
 
-service on proj_annon_var0 {
+service on GeneralConnection_sharedhttp {
     resource function 'default [string... path](xml input) returns xml {
         xml inputVal = xml `<root>
     <item>
@@ -73,7 +72,7 @@ function InvokeProcess(map<xml> context) returns xml|error {
 
     </xsl:template>
 </xsl:stylesheet>`, context);
-    xml var2 = check proj_annon_var3->post("", var1);
+    xml var2 = check proj_annon_var1->post("", var1);
     addToContext(context, "InvokeProcess", var2);
     return var2;
 }
