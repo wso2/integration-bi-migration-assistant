@@ -18,6 +18,7 @@ service /mule3 on config {
     resource function get [string version]/demo/[string id](http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new, uriParams: {version, id}}};
         log:printInfo("xxx: logger invoked");
+        log:printInfo(string `Path params - version: ${ctx.inboundProperties.uriParams.get("version")}, id: ${ctx.inboundProperties.uriParams.get("id")}`);
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
         return ctx.inboundProperties.response;

@@ -34,11 +34,14 @@ public class HttpListenerTest extends AbstractBlockTest {
     }
 
     @Test
-    public void testResourcePathParams() {
-        testMule3ToBal("http-listener/resource_path_params.xml", "http-listener/resource_path_params.bal");
+    public void testResourceUriParams() {
+        testMule3ToBal("http-listener/resource_uri_params.xml", "http-listener/resource_uri_params.bal");
     }
 
-    // TODO: add test for query params
+    @Test
+    public void testQueryParams() {
+        testMule3ToBal("http-listener/query_params.xml", "http-listener/query_params.bal");
+    }
 
     @Test(dataProvider = "httpMethodsTestData")
     public void testAllowedResourceMethods(String inputFile, String outputFile) {

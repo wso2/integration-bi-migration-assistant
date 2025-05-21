@@ -1359,9 +1359,61 @@ service /mule3 on config {
 
 ```
 
-- ### Resource Path Params
+- ### Query Params
 
-**Input (resource_path_params.xml):**
+**Input (query_params.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="demo"/>
+    <flow name="demoFlow">
+        <http:listener config-ref="config" path="/testquery" allowedMethods="GET" doc:name="HTTP"/>
+        <logger message="xxx: logger invoked" level="INFO" doc:name="Logger"/>
+        <logger message="Path params - version: #[message.inboundProperties['http.query.params'].country], id: #[message.inboundProperties.'http.query.params'.city]" level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>
+
+```
+**Output (query_params.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type InboundProperties record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    InboundProperties inboundProperties;
+|};
+
+public listener http:Listener config = new (8081);
+
+service /demo on config {
+    resource function get testquery(http:Request request) returns http:Response|error {
+        Context ctx = {inboundProperties: {request, response: new}};
+        log:printInfo("xxx: logger invoked");
+        log:printInfo(string `Path params - version: ${ctx.inboundProperties.request.getQueryParamValue("country")}, id: ${ctx.inboundProperties.request.getQueryParamValue("city")}`);
+
+        ctx.inboundProperties.response.setPayload(ctx.payload);
+        return ctx.inboundProperties.response;
+    }
+}
+
+```
+
+- ### Resource Uri Params
+
+**Input (resource_uri_params.xml):**
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 
@@ -1373,13 +1425,14 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule3"/>
     <flow name="demoFlow">
-        <http:listener config-ref="config" path="/{version}/demo/{id}/" allowedMethods="GET" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/{version}/demo/{id}" allowedMethods="GET" doc:name="HTTP"/>
         <logger message="xxx: logger invoked" level="INFO" doc:name="Logger"/>
+        <logger message="Path params - version: #[message.inboundProperties.'http.uri.params'.version], id: #[message.inboundProperties['http.uri.params'].id]" level="INFO" doc:name="Logger"/>
     </flow>
 </mule>
 
 ```
-**Output (resource_path_params.bal):**
+**Output (resource_uri_params.bal):**
 ```ballerina
 import ballerina/http;
 import ballerina/log;
@@ -1401,6 +1454,7 @@ service /mule3 on config {
     resource function get [string version]/demo/[string id](http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new, uriParams: {version, id}}};
         log:printInfo("xxx: logger invoked");
+        log:printInfo(string `Path params - version: ${ctx.inboundProperties.uriParams.get("version")}, id: ${ctx.inboundProperties.uriParams.get("id")}`);
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
         return ctx.inboundProperties.response;

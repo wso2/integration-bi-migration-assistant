@@ -8,7 +8,8 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule3"/>
     <flow name="demoFlow">
-        <http:listener config-ref="config" path="/{version}/demo/{id}/" allowedMethods="GET" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/{version}/demo/{id}" allowedMethods="GET" doc:name="HTTP"/>
         <logger message="xxx: logger invoked" level="INFO" doc:name="Logger"/>
+        <logger message="Path params - version: #[message.inboundProperties.'http.uri.params'.version], id: #[message.inboundProperties['http.uri.params'].id]" level="INFO" doc:name="Logger"/>
     </flow>
 </mule>
