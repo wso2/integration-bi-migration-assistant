@@ -26,6 +26,7 @@ import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import tibco.TibcoModel;
 import tibco.TibcoToBalConverter;
 import tibco.XmlToTibcoModelConverter;
+import tibco.analyzer.AnalysisResult;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -83,13 +84,12 @@ public class ProjectContext {
     private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
     private final Map<BallerinaModel.TypeDesc, String> typeConversionFunction = new HashMap<>();
     private final Map<String, String> renderJsonAsXMLFunction = new HashMap<>();
+    private final Map<TibcoModel.Process, AnalysisResult> analysisResult;
 
-    ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext) {
+    ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
+                   Map<TibcoModel.Process, AnalysisResult> analysisResult) {
         this.conversionContext = Optional.of(conversionContext);
-    }
-
-    ProjectContext() {
-        this.conversionContext = Optional.empty();
+        this.analysisResult = analysisResult;
     }
 
     ProcessContext getProcessContext(TibcoModel.Process process) {
@@ -394,6 +394,11 @@ public class ProjectContext {
         utilityIntrinsics.add(Intrinsics.XML_PARSER);
         utilityIntrinsics.add(Intrinsics.TO_JSON);
         return Intrinsics.TO_JSON.name;
+    }
+
+    public AnalysisResult getAnalysisResult(TibcoModel.Process process) {
+        return Objects.requireNonNull(analysisResult.get(process), 
+                "Analysis result not found for process: " + process.name());
     }
 
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
