@@ -224,21 +224,53 @@ public class ConversionUtils {
             return convertMELToBal(melExpression, addToStringCalls);
         }
 
-        String regex = "#\\[([^]]+)]";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(melExpression);
-
-        boolean hasMELParts = false;
         StringBuilder result = new StringBuilder();
-        while (matcher.find()) {
-            hasMELParts = true;
-            String matchedExpression = matcher.group(0);
-            String replacement = "\\${" + convertMELToBal(matchedExpression, addToStringCalls) + "}";
-            matcher.appendReplacement(result, replacement);
-        }
-        matcher.appendTail(result);
+        StringBuilder currentLiteral = new StringBuilder();
+        int i = 0;
+        boolean hasMELParts = false;
 
-        return hasMELParts ? String.format("string `%s`", result) : "\"" + melExpression.replace("\"", "\\\"") + "\"";
+        while (i < melExpression.length()) {
+            // Look for start of MEL expression
+            if (i + 1 < melExpression.length() &&
+                    melExpression.charAt(i) == '#' && melExpression.charAt(i + 1) == '[') {
+                // Add the accumulated literal text
+                if (!currentLiteral.isEmpty()) {
+                    result.append(currentLiteral);
+                    currentLiteral.setLength(0);
+                }
+
+                hasMELParts = true;
+                int startPos = i;
+                i += 2; // Skip '#['
+                int bracketDepth = 1;
+
+                // Find matching closing bracket
+                while (i < melExpression.length() && bracketDepth > 0) {
+                    char c = melExpression.charAt(i);
+                    if (c == '[') {
+                        bracketDepth++;
+                    } else if (c == ']') {
+                        bracketDepth--;
+                    }
+                    i++;
+                }
+
+                // Extract the complete MEL expression
+                String melExpr = melExpression.substring(startPos, i);
+                String convertedExpr = convertMELToBal(melExpr, addToStringCalls);
+                result.append("${").append(convertedExpr).append("}");
+            } else {
+                currentLiteral.append(melExpression.charAt(i));
+                i++;
+            }
+        }
+
+        // Add any remaining literal text
+        if (!currentLiteral.isEmpty()) {
+            result.append(currentLiteral);
+        }
+
+        return hasMELParts ? "string `%s`".formatted(result) : "\"" + melExpression.replace("\"", "\\\"") + "\"";
     }
 
     public static String inferTypeFromBalExpr(String balExpr) {
