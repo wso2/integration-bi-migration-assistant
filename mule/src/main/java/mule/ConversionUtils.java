@@ -44,10 +44,11 @@ public class ConversionUtils {
     /**
      * Converts mule path to a Ballerina resource path.
      *
+     * @param data mule to bal converter data
      * @param path mule path
      * @return ballerina resource path
      */
-    static String getBallerinaResourcePath(String path, List<String> pathParams) {
+    static String getBallerinaResourcePath(MuleToBalConverter.Data data, String path, List<String> pathParams) {
         List<String> list = Arrays.stream(path.split("/")).filter(s -> !s.isEmpty())
                 .map(s -> {
                     if (s.startsWith("{") && s.endsWith("}")) {
@@ -59,7 +60,7 @@ public class ConversionUtils {
                     }
                     if (s.startsWith("#[") && s.endsWith("]")) {
                         // Handle MEL in url. e.g. /users/#[flowVars.userId]
-                        String balExpr = convertMELToBal(s, false);
+                        String balExpr = convertMELToBal(data, s, false);
                         return "[" + balExpr + "]";
                     }
                     return convertToBalIdentifier(s);
@@ -84,15 +85,16 @@ public class ConversionUtils {
     /**
      * Converts mule http request path to a Ballerina client resource path.
      *
+     * @param data mule to bal converter data
      * @param basePath mule http request path
      * @return ballerina client resource path
      */
-    static String getBallerinaClientResourcePath(String basePath) {
+    static String getBallerinaClientResourcePath(MuleToBalConverter.Data data, String basePath) {
         List<String> list = Arrays.stream(basePath.split("/")).filter(s -> !s.isEmpty())
                 .map(s -> {
                     if (s.startsWith("#[") && s.endsWith("]")) {
                         // Handle MEL in url. e.g. /users/#[flowVars.userId]
-                        String balExpr = convertMELToBal(s, false);
+                        String balExpr = convertMELToBal(data, s, false);
                         return "[" + balExpr + "]";
                     }
                     return ConversionUtils.convertToBalIdentifier(s);
@@ -182,11 +184,11 @@ public class ConversionUtils {
         return basePath.startsWith("/") ? basePath : "/" + basePath;
     }
 
-    static String genQueryParam(Map<String, String> queryParams) {
+    static String genQueryParam(MuleToBalConverter.Data data, Map<String, String> queryParams) {
         return queryParams.entrySet().stream().map(e -> {
                     String k = e.getKey();
                     String key = SyntaxInfo.isKeyword(k) ? "'" + k : k;
-                    String balExpr = convertMuleExprToBal(e.getValue());
+                    String balExpr = convertMuleExprToBal(data, e.getValue());
                     if (balExpr.startsWith("ctx.")) {
                         balExpr = "check " + balExpr + ".ensureType(http:QueryParamType)";
                     }
@@ -195,66 +197,146 @@ public class ConversionUtils {
                 .reduce((a, b) -> a + ", " + b).orElse("");
     }
 
-    public static String convertMuleExprToBal(String melExpression) {
-        return convertMuleExprToBal(melExpression, false);
+    public static String convertMuleExprToBal(MuleToBalConverter.Data data, String melExpression) {
+        return convertMuleExprToBal(data, melExpression, false);
     }
 
-    public static String convertMuleExprToBalStringLiteral(String melExpression) {
-        return convertMuleExprToBal(melExpression, true);
+    public static String convertMuleExprToBalStringLiteral(MuleToBalConverter.Data data, String melExpression) {
+        return convertMuleExprToBal(data, melExpression, true);
     }
 
-    private static String convertMuleExprToBal(String melExpression, boolean addToStringCalls) {
+    private static String convertMuleExprToBal(MuleToBalConverter.Data data, String melExpression,
+                                               boolean addToStringCalls) {
+        // Direct MEL expression (e.g., "#[payload]")
         if (melExpression.startsWith("#[") && melExpression.endsWith("]")) {
-            return convertMELToBal(melExpression, addToStringCalls);
+            return convertMELToBal(data, melExpression, addToStringCalls);
         }
 
+        // Handle mixed string with embedded MEL or property expressions
         StringBuilder result = new StringBuilder();
-        StringBuilder currentLiteral = new StringBuilder();
-        int i = 0;
-        boolean hasMELParts = false;
+        int currentPos = 0;
+        boolean hasExpressionParts = false;
 
-        while (i < melExpression.length()) {
-            // Look for start of MEL expression
-            if (i + 1 < melExpression.length() &&
-                    melExpression.charAt(i) == '#' && melExpression.charAt(i + 1) == '[') {
-                // Add the accumulated literal text
-                if (!currentLiteral.isEmpty()) {
-                    result.append(currentLiteral);
-                    currentLiteral.setLength(0);
-                }
+        while (currentPos < melExpression.length()) {
+            int exprStart = findNextExpressionStart(melExpression, currentPos);
 
-                hasMELParts = true;
-                int startPos = i;
-                i += 2; // Skip '#['
-                int bracketDepth = 1;
+            // No more expressions found, add remaining text
+            if (exprStart == -1) {
+                result.append(melExpression.substring(currentPos));
+                break;
+            }
 
-                // Find matching closing bracket
-                while (i < melExpression.length() && bracketDepth > 0) {
-                    char c = melExpression.charAt(i);
-                    if (c == '[') {
-                        bracketDepth++;
-                    } else if (c == ']') {
-                        bracketDepth--;
-                    }
-                    i++;
-                }
+            // Add text before expression
+            if (exprStart > currentPos) {
+                result.append(melExpression, currentPos, exprStart);
+            }
 
-                // Extract the complete MEL expression
-                String melExpr = melExpression.substring(startPos, i);
-                String convertedExpr = convertMELToBal(melExpr, addToStringCalls);
-                result.append("${").append(convertedExpr).append("}");
+            // Determine expression type and process accordingly
+            hasExpressionParts = true;
+            if (melExpression.startsWith("#[", exprStart)) {
+                currentPos = processMELExpression(data, melExpression, exprStart, result, addToStringCalls);
+            } else if (melExpression.startsWith("${", exprStart)) {
+                currentPos = processPropertyAccessExpr(data, melExpression, exprStart, result);
             } else {
-                currentLiteral.append(melExpression.charAt(i));
-                i++;
+                // Should never happen given the findNextExpressionStart logic
+                throw new IllegalStateException();
             }
         }
 
-        // Add any remaining literal text
-        if (!currentLiteral.isEmpty()) {
-            result.append(currentLiteral);
+        // Format the final result
+        return formatResult(result.toString(), hasExpressionParts, melExpression);
+    }
+    private static int findNextExpressionStart(String text, int startFrom) {
+        int melStart = text.indexOf("#[", startFrom);
+        int propStart = text.indexOf("${", startFrom);
+
+        if (melStart == -1 && propStart == -1) {
+            return -1;  // No more expressions
+        } else if (melStart == -1) {
+            return propStart;
+        } else if (propStart == -1) {
+            return melStart;
+        } else {
+            return Math.min(melStart, propStart);  // Return the earlier one
+        }
+    }
+
+    private static int processMELExpression(MuleToBalConverter.Data data, String text, int startPos,
+                                            StringBuilder result, boolean addToStringCalls) {
+        int bracketDepth = 1;
+        int i = startPos + 2;  // Skip "#["
+
+        while (i < text.length() && bracketDepth > 0) {
+            char c = text.charAt(i);
+            if (c == '[') {
+                bracketDepth++;
+            } else if (c == ']') {
+                bracketDepth--;
+            }
+            i++;
         }
 
-        return hasMELParts ? "string `%s`".formatted(result) : "\"" + melExpression.replace("\"", "\\\"") + "\"";
+        String melExpr = text.substring(startPos, i);
+        String convertedExpr = convertMELToBal(data, melExpr, addToStringCalls);
+        result.append("${").append(convertedExpr).append("}");
+
+        return i;
+    }
+
+    private static int processPropertyAccessExpr(MuleToBalConverter.Data data, String text, int startPos,
+                                                 StringBuilder result) {
+        int i = startPos + 2;  // Skip "${"
+
+        StringBuilder propertyName = new StringBuilder();
+        while (i < text.length() && isTokenChar(text.charAt(i))) {
+            propertyName.append(text.charAt(i));
+            i++;
+        }
+
+        if (i < text.length() && text.charAt(i) == '}') {
+            String configVarName = processPropertyName(data, propertyName.toString());
+            result.append("${").append(configVarName).append("}");
+            return i + 1;
+        } else {
+            // Possibly malformed expression
+            result.append("${").append(propertyName);
+            return i;
+        }
+    }
+
+    private static String processPropertyName(MuleToBalConverter.Data data, String propertyName) {
+        String configVarName = propertyName.replace('.', '_');
+        data.putConfigVarIfNotExists(configVarName);
+        return configVarName;
+    }
+
+    public static String getAttrVal(MuleToBalConverter.Data data, String propValue) {
+        return getAttrVal(data, propValue, false);
+    }
+
+    public static String getAttrValInt(MuleToBalConverter.Data data, String propValue) {
+        return getAttrVal(data, propValue, true);
+    }
+
+    private static String getAttrVal(MuleToBalConverter.Data data, String propValue, boolean isInt) {
+        if (propValue.startsWith("${") && propValue.endsWith("}")) {
+            String configVarRef = processPropertyName(data, propValue.substring(2, propValue.length() - 1));
+            return isInt ? "check int:fromString(%s)".formatted(configVarRef) : configVarRef;
+        } else {
+            return isInt ? propValue : "\"" + propValue.replace("\"", "\\\"") + "\"";
+        }
+    }
+
+    public static boolean isTokenChar(char currentChar) {
+        return Character.isLetterOrDigit(currentChar) || currentChar == '.' || currentChar == '_';
+    }
+
+    private static String formatResult(String content, boolean hasExpressionParts, String originalExpression) {
+        if (hasExpressionParts) {
+            return "string `%s`".formatted(content);
+        } else {
+            return "\"" + originalExpression.replace("\"", "\\\"") + "\"";
+        }
     }
 
     public static String inferTypeFromBalExpr(String balExpr) {

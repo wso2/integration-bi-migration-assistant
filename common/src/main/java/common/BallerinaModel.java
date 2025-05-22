@@ -23,7 +23,6 @@ import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -244,7 +243,6 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                             boolean isConfigurable) {
 
         public ModuleVar {
-            assert !isConfigurable || isConstant;
         }
 
         public ModuleVar(String name, String type, Expression expr) {
@@ -292,10 +290,9 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     }
 
-    public record Listener(ListenerType type, String name, String port, Map<String, String> config) {
+    public record Listener(ListenerType type, String name, String port, String host) {
         @Override
         public String toString() {
-            String host = config.get("host").trim();
             String argList;
             if (host.equals("0.0.0.0")) {
                 argList = "(%s)".formatted(port);

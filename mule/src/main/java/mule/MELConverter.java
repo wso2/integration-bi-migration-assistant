@@ -17,16 +17,20 @@
  */
 package mule;
 
+import static mule.ConversionUtils.getAttrVal;
+import static mule.ConversionUtils.isTokenChar;
+
 public class MELConverter {
 
     /**
      * Converts a MEL expression to a Ballerina expression.
      *
-     * @param mel MEL expression to convert (in form #[...])
+     * @param data             Mule to bal converter data
+     * @param mel              MEL expression to convert (in form #[...])
      * @param addToStringCalls flag to add toString() calls to converted tokens
      * @return equivalent Ballerina expression
      */
-    public static String convertMELToBal(String mel, boolean addToStringCalls) {
+    public static String convertMELToBal(MuleToBalConverter.Data data, String mel, boolean addToStringCalls) {
         if (!mel.startsWith("#[") || !mel.endsWith("]")) {
             throw new IllegalArgumentException("Invalid MEL expression format: " + mel);
         }
@@ -48,7 +52,7 @@ public class MELConverter {
             if (currentChar == '\'' || currentChar == '\"') {
                 // Handle string literals
                 processToken(token, result, addToStringCalls);
-                i = processStringLiteral(melExpr, i, result);
+                i = processStringLiteral(data, melExpr, i, result);
                 continue;
             }
 
@@ -108,7 +112,8 @@ public class MELConverter {
         return token.equals("flowVars") || token.equals("sessionVars");
     }
 
-    private static int processStringLiteral(String melExpr, int startPos, StringBuilder result) {
+    private static int processStringLiteral(MuleToBalConverter.Data data, String melExpr, int startPos,
+                                            StringBuilder result) {
         char startingChar = melExpr.charAt(startPos);
         int i = startPos + 1;
 
@@ -133,7 +138,7 @@ public class MELConverter {
             i++;
         }
 
-        result.append("\"").append(stringLiteral).append("\"");
+        result.append(getAttrVal(data, stringLiteral.toString()));
         return i;
     }
 
@@ -315,10 +320,6 @@ public class MELConverter {
             }
         }
         return resultantStr.toString();
-    }
-
-    private static boolean isTokenChar(char currentChar) {
-        return Character.isLetterOrDigit(currentChar) || currentChar == '.' || currentChar == '_';
     }
 
     private static void processToken(StringBuilder token, StringBuilder result, boolean addToStringCalls) {
