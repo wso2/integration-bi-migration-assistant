@@ -18,7 +18,7 @@ service /demo on config {
     resource function get testquery(http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new}};
         log:printInfo("xxx: logger invoked");
-        log:printInfo(string `Path params - version: ${ctx.inboundProperties.request.getQueryParamValue("country")}, id: ${ctx.inboundProperties.request.getQueryParamValue("city")}`);
+        log:printInfo(string `Path params - version: ${ctx.inboundProperties.request.getQueryParamValue("country").toString()}, id: ${ctx.inboundProperties.request.getQueryParamValue("city").toString()}`);
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
         return ctx.inboundProperties.response;

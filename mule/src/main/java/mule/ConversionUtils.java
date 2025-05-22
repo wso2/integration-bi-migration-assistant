@@ -274,19 +274,29 @@ public class ConversionUtils {
     }
 
     public static String inferTypeFromBalExpr(String balExpr) {
-        if (balExpr.equals("true") || balExpr.equals("false")) {
-            return "boolean";
-        } else if (balExpr.startsWith("\"") && balExpr.endsWith("\"")) {
+        switch (balExpr) {
+            case "ctx.inboundProperties.uriParams" -> {
+                return "map<string>";
+            }
+            case "ctx.inboundProperties.request.getQueryParams()" -> {
+                return "map<string[]>";
+            }
+            case "true", "false" -> {
+                return "boolean";
+            }
+        }
+
+        if (balExpr.startsWith("\"") && balExpr.endsWith("\"")) {
             return "string";
         } else if (balExpr.startsWith("[") && balExpr.endsWith("]")) {
-            return "anydata[]"; // TODO: infer based on the elements
+            return "anydata[]";
         } else if (balExpr.matches("-?\\d+")) {
             return "int";
         } else if (balExpr.matches("-?\\d+\\.\\d+")) {
             return "decimal";
-        } else if (balExpr.startsWith("ctx.inboundProperties.request.getQueryParamValue")) {
+        } else if (balExpr.startsWith("ctx.inboundProperties.request.getQueryParamValue(")) {
             return "string";
-        } else if (balExpr.startsWith("ctx.inboundProperties.uriParams")) {
+        } else if (balExpr.startsWith("ctx.inboundProperties.uriParams.get(")) {
             return "string";
         } else {
             return "anydata";
