@@ -1,8 +1,9 @@
 import ballerina/log;
 
 public type SessionVars record {|
-    string year?;
+    string day?;
     string month?;
+    string 'from?;
 |};
 
 public type Context record {|
@@ -12,7 +13,8 @@ public type Context record {|
 
 public function myFlow(Context ctx) {
     log:printInfo("xxx: flow starting logger invoked");
-    ctx.sessionVars.year = "2025";
+    ctx.sessionVars.day = "21";
     ctx.sessionVars.month = "July";
-    log:printInfo(string `Session variables are: year - ${ctx.sessionVars.year.toString()}, month - ${ctx.sessionVars.month.toString()}`);
+    ctx.sessionVars.'from = "2025";
+    log:printInfo(string `Session variables are: day - ${ctx.sessionVars.day.toString()}, month - ${ctx.sessionVars.month.toString()}, from - ${ctx.sessionVars.'from.toString()}`);
 }

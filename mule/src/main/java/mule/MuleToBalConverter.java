@@ -448,7 +448,7 @@ public class MuleToBalConverter {
         String path = vmInboundEndpoint.path();
         String funcName = data.sharedProjectData.vmPathToBalFuncMap.get(path);
         if (funcName == null) {
-            funcName = ConversionUtils.escapeSpecialCharacters(flow.name());
+            funcName = ConversionUtils.convertToBalIdentifier(flow.name());
             data.sharedProjectData.vmPathToBalFuncMap.put(path, funcName);
             genBalFunc(data, functions, funcName, flow.flowBlocks());
         } else {
@@ -544,7 +544,7 @@ public class MuleToBalConverter {
             throw new UnsupportedOperationException("exception strategy not supported");
         }
 
-        String methodName = ConversionUtils.escapeSpecialCharacters(name);
+        String methodName = ConversionUtils.convertToBalIdentifier(name);
         List<Parameter> parameters = new ArrayList<>();
         parameters.add(Constants.CONTEXT_FUNC_PARAM);
         parameters.add(new Parameter("e", BAL_ERROR_TYPE));
@@ -565,7 +565,7 @@ public class MuleToBalConverter {
 
         List<Statement> body = genFuncBodyStatements(data, flowBlocks);
 
-        String methodName = ConversionUtils.escapeSpecialCharacters(flowName);
+        String methodName = ConversionUtils.convertToBalIdentifier(flowName);
         Function function = Function.publicFunction(methodName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
         functions.add(function);
         data.sharedProjectData.flowToGenMethodMap.put(flowName, function);
@@ -874,7 +874,7 @@ public class MuleToBalConverter {
                 statementList.add(new IfElseStatement(exprFrom(ifCondition), ifBody, elseIfClauses, elseBody));
             }
             case SetVariable setVariable -> {
-                String varName = ConversionUtils.escapeSpecialCharacters(setVariable.variableName());
+                String varName = ConversionUtils.convertToBalIdentifier(setVariable.variableName());
                 String balExpr = convertMuleExprToBal(setVariable.value());
                 String type = inferTypeFromBalExpr(balExpr);
 
@@ -885,7 +885,7 @@ public class MuleToBalConverter {
                         varName, balExpr)));
             }
             case RemoveVariable removeVariable -> {
-                String varName = ConversionUtils.escapeSpecialCharacters(removeVariable.variableName());
+                String varName = ConversionUtils.convertToBalIdentifier(removeVariable.variableName());
                 if (removeVariable.kind() == Kind.REMOVE_VARIABLE && data.sharedProjectData.existingFlowVar(varName)) {
                     statementList.add(stmtFrom(String.format("%s.%s = %s;", Constants.FLOW_VARS_FIELD_ACCESS, varName,
                             "()")));
@@ -896,7 +896,7 @@ public class MuleToBalConverter {
                 }
             }
             case SetSessionVariable setSessionVariable -> {
-                String varName = ConversionUtils.escapeSpecialCharacters(setSessionVariable.variableName());
+                String varName = ConversionUtils.convertToBalIdentifier(setSessionVariable.variableName());
                 String balExpr = convertMuleExprToBal(setSessionVariable.value());
                 String type = inferTypeFromBalExpr(balExpr);
 
@@ -952,7 +952,7 @@ public class MuleToBalConverter {
             }
             case FlowReference flowReference -> {
                 String flowName = flowReference.flowName();
-                String funcRef = ConversionUtils.escapeSpecialCharacters(flowName);
+                String funcRef = ConversionUtils.convertToBalIdentifier(flowName);
 
                 if (data.sharedProjectData.currentFlowInfo.context == Context.HTTP_LISTENER) {
                     Function method = data.sharedProjectData.flowToGenMethodMap.get(flowName);
@@ -1032,7 +1032,7 @@ public class MuleToBalConverter {
             }
             case ReferenceExceptionStrategy referenceExceptionStrategy -> {
                 String refName = referenceExceptionStrategy.refName();
-                String funcRef = ConversionUtils.escapeSpecialCharacters(refName);
+                String funcRef = ConversionUtils.convertToBalIdentifier(refName);
                 BallerinaStatement funcCallStmt = stmtFrom(String.format("%s(%s, %s);", funcRef,
                         Constants.CONTEXT_REFERENCE, Constants.ON_FAIL_ERROR_VAR_REF));
                 List<Statement> onFailBody = Collections.singletonList(funcCallStmt);

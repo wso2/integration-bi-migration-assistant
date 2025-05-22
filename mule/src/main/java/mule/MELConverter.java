@@ -185,7 +185,8 @@ public class MELConverter {
             i++; // Skip the closing bracket
         }
 
-        result.append(Constants.CONTEXT_REFERENCE).append(".").append(baseToken).append(".").append(varNameToken);
+        String varName = ConversionUtils.convertToBalIdentifier(varNameToken.toString());
+        result.append(Constants.CONTEXT_REFERENCE).append(".").append(baseToken).append(".").append(varName);
         if (addToStringCalls) {
             result.append(".toString()");
         }
@@ -275,7 +276,8 @@ public class MELConverter {
             }
         }
 
-        String tokenResult = convertInboundPropertyAccess(propertyKeyToken.toString(), paramAccessToken.toString());
+        String paramName = ConversionUtils.convertToBalIdentifier(paramAccessToken.toString());
+        String tokenResult = convertInboundPropertyAccess(propertyKeyToken.toString(), paramName);
         result.append(tokenResult);
         if (addToStringCalls) {
             result.append(".toString()");

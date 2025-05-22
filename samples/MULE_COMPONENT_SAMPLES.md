@@ -1479,7 +1479,7 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule-3"/>
     <flow name="demoFlow">
-        <http:listener config-ref="config" path="/v-1/demo/1.0/main-contract/" allowedMethods="GET" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/v-1/demo/1.0/main-contract/new" allowedMethods="GET" doc:name="HTTP"/>
         <logger message="xxx: logger invoked" level="INFO" doc:name="Logger"/>
     </flow>
 </mule>
@@ -1504,7 +1504,7 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule\-3 on config {
-    resource function get v\-1/demo/'1\.0/main\-contract(http:Request request) returns http:Response|error {
+    resource function get v\-1/demo/'1\.0/main\-contract/'new(http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new}};
         log:printInfo("xxx: logger invoked");
 
@@ -2207,9 +2207,10 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
     <flow name="myFlow">
         <logger message="xxx: flow starting logger invoked" level="INFO" doc:name="Logger"/>
-        <set-session-variable variableName="year" value="2025" doc:name="Session Variable"/>
+        <set-session-variable variableName="day" value="21" doc:name="Session Variable"/>
         <set-session-variable variableName="month" value="July" doc:name="Session Variable"/>
-        <logger message="Session variables are: year - #[sessionVars.year], month - #[sessionVars.month]" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="from" value="2025" doc:name="Session Variable"/>
+        <logger message="Session variables are: day - #[sessionVars.day], month - #[sessionVars.month], from - #[sessionVars['from']]" level="INFO" doc:name="Logger"/>
     </flow>
 </mule>
 
@@ -2219,8 +2220,9 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 import ballerina/log;
 
 public type SessionVars record {|
-    string year?;
+    string day?;
     string month?;
+    string 'from?;
 |};
 
 public type Context record {|
@@ -2230,9 +2232,10 @@ public type Context record {|
 
 public function myFlow(Context ctx) {
     log:printInfo("xxx: flow starting logger invoked");
-    ctx.sessionVars.year = "2025";
+    ctx.sessionVars.day = "21";
     ctx.sessionVars.month = "July";
-    log:printInfo(string `Session variables are: year - ${ctx.sessionVars.year.toString()}, month - ${ctx.sessionVars.month.toString()}`);
+    ctx.sessionVars.'from = "2025";
+    log:printInfo(string `Session variables are: day - ${ctx.sessionVars.day.toString()}, month - ${ctx.sessionVars.month.toString()}, from - ${ctx.sessionVars.'from.toString()}`);
 }
 
 ```
@@ -2326,8 +2329,10 @@ service /mule3 on HTTP_Config {
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
     <flow name="weatherServiceFlow">
-        <set-session-variable variableName="bar" value="#['hello session']" doc:name="Session Variable"/>
-        <remove-session-variable variableName="bar" doc:name="Session Variable"/>
+        <set-session-variable variableName="greeting" value="#['hello session']" doc:name="Session Variable"/>
+        <set-session-variable variableName="from" value="#['USA']" doc:name="Session Variable"/>
+        <remove-session-variable variableName="greeting" doc:name="Session Variable"/>
+        <remove-session-variable variableName="from" doc:name="Session Variable"/>
     </flow>
 </mule>
 
@@ -2335,7 +2340,8 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 **Output (simple_remove_session_variable.bal):**
 ```ballerina
 public type SessionVars record {|
-    string bar?;
+    string greeting?;
+    string 'from?;
 |};
 
 public type Context record {|
@@ -2344,8 +2350,10 @@ public type Context record {|
 |};
 
 public function weatherServiceFlow(Context ctx) {
-    ctx.sessionVars.bar = "hello session";
-    ctx.sessionVars.bar = ();
+    ctx.sessionVars.greeting = "hello session";
+    ctx.sessionVars.'from = "USA";
+    ctx.sessionVars.greeting = ();
+    ctx.sessionVars.'from = ();
 }
 
 ```
@@ -2807,7 +2815,9 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
         <set-variable variableName="name" value="John" doc:name="Variable"/>
         <set-variable variableName="age" value="29" doc:name="Variable"/>
-        <logger message="Variables defined are: name - #[flowVars.name], age - #[flowVars['age']]" level="INFO" doc:name="Logger"/>
+        <set-variable variableName="from" value="USA" doc:name="Variable"/>
+        <logger
+                message="Variables defined are: name - #[flowVars.name], age - #[flowVars['age']], from - #[flowVars['from']]" level="INFO" doc:name="Logger"/>
     </flow>
 </mule>
 
@@ -2820,6 +2830,7 @@ import ballerina/log;
 public type FlowVars record {|
     string name?;
     string age?;
+    string 'from?;
 |};
 
 public type InboundProperties record {|
@@ -2841,7 +2852,8 @@ service /mule3 on config {
         Context ctx = {inboundProperties: {request, response: new}};
         ctx.flowVars.name = "John";
         ctx.flowVars.age = "29";
-        log:printInfo(string `Variables defined are: name - ${ctx.flowVars.name.toString()}, age - ${ctx.flowVars.age.toString()}`);
+        ctx.flowVars.'from = "USA";
+        log:printInfo(string `Variables defined are: name - ${ctx.flowVars.name.toString()}, age - ${ctx.flowVars.age.toString()}, from - ${ctx.flowVars.'from.toString()}`);
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
         return ctx.inboundProperties.response;
@@ -2861,8 +2873,10 @@ service /mule3 on config {
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
     <flow name="weatherServiceFlow">
-        <set-variable variableName="foo" value="#['hello']" doc:name="Variable"/>
-        <remove-variable variableName="foo" doc:name="Variable"/>
+        <set-variable variableName="greeting" value="#['hello']" doc:name="Variable"/>
+        <set-variable variableName="from" value="#['USA']" doc:name="Variable"/>
+        <remove-variable variableName="greeting" doc:name="Variable"/>
+        <remove-variable variableName="from" doc:name="Variable"/>
     </flow>
 </mule>
 
@@ -2870,7 +2884,8 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 **Output (simple_remove_variable.bal):**
 ```ballerina
 public type FlowVars record {|
-    string foo?;
+    string greeting?;
+    string 'from?;
 |};
 
 public type Context record {|
@@ -2879,8 +2894,10 @@ public type Context record {|
 |};
 
 public function weatherServiceFlow(Context ctx) {
-    ctx.flowVars.foo = "hello";
-    ctx.flowVars.foo = ();
+    ctx.flowVars.greeting = "hello";
+    ctx.flowVars.'from = "USA";
+    ctx.flowVars.greeting = ();
+    ctx.flowVars.'from = ();
 }
 
 ```

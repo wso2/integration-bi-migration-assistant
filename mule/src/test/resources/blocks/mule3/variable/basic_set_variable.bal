@@ -4,6 +4,7 @@ import ballerina/log;
 public type FlowVars record {|
     string name?;
     string age?;
+    string 'from?;
 |};
 
 public type InboundProperties record {|
@@ -25,7 +26,8 @@ service /mule3 on config {
         Context ctx = {inboundProperties: {request, response: new}};
         ctx.flowVars.name = "John";
         ctx.flowVars.age = "29";
-        log:printInfo(string `Variables defined are: name - ${ctx.flowVars.name.toString()}, age - ${ctx.flowVars.age.toString()}`);
+        ctx.flowVars.'from = "USA";
+        log:printInfo(string `Variables defined are: name - ${ctx.flowVars.name.toString()}, age - ${ctx.flowVars.age.toString()}, from - ${ctx.flowVars.'from.toString()}`);
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
         return ctx.inboundProperties.response;

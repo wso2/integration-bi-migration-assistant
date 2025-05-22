@@ -23,7 +23,6 @@ import org.w3c.dom.Element;
 
 import java.io.StringWriter;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -54,7 +53,7 @@ public class ConversionUtils {
                     if (s.startsWith("{") && s.endsWith("}")) {
                         // We come here for mule path params. e.g. foo/{bar}/baz
                         String pathParamName = s.substring(1, s.length() - 1);
-                        pathParamName = formatToBalIdentifier(pathParamName);
+                        pathParamName = convertToBalIdentifier(pathParamName);
                         pathParams.add(pathParamName);
                         return "[string " + pathParamName + "]";
                     }
@@ -63,7 +62,7 @@ public class ConversionUtils {
                         String balExpr = convertMELToBal(s, false);
                         return "[" + balExpr + "]";
                     }
-                    return formatToBalIdentifier(s);
+                    return convertToBalIdentifier(s);
                 }).toList();
 
         return list.isEmpty() ? "." : String.join("/", list);
@@ -77,7 +76,7 @@ public class ConversionUtils {
      */
     static String getBallerinaAbsolutePath(String basePath) {
         List<String> list = Arrays.stream(basePath.split("/")).filter(s -> !s.isEmpty())
-                .map(ConversionUtils::formatToBalIdentifier).toList();
+                .map(ConversionUtils::convertToBalIdentifier).toList();
 
         return list.isEmpty() ? "/" : "/" + String.join("/", list);
     }
@@ -96,7 +95,7 @@ public class ConversionUtils {
                         String balExpr = convertMELToBal(s, false);
                         return "[" + balExpr + "]";
                     }
-                    return ConversionUtils.formatToBalIdentifier(s);
+                    return ConversionUtils.convertToBalIdentifier(s);
                 }).toList();
         return list.isEmpty() ? "/" : "/" + String.join("/", list);
     }
@@ -132,13 +131,32 @@ public class ConversionUtils {
         }
     }
 
-    private static boolean isInt(String str) {
-        try {
-            Integer.parseInt(str);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
+    /**
+     * Converts a mule variable name to a Ballerina identifier syntax by:
+     * 1. Escaping special characters with a preceding `\`
+     * 2. Adding a single quote prefix if the identifier is a Ballerina keyword
+     * 3. Adding a single quote prefix if the identifier starts with a digit (0-9)
+     *
+     * @param varName mule variable name
+     * @return Ballerina identifier
+     */
+    public static String convertToBalIdentifier(String varName) {
+        String var = escapeSpecialCharacters(varName);
+        return insertQuoteIfApplicable(var);
+    }
+
+    /**
+     * Inserts a single quote prefix to the variable name if it is a Ballerina keyword or starts with a digit.
+     *
+     * @param varName the variable name
+     * @return quoted variable name if applicable, otherwise the original variable name
+     */
+    private static String insertQuoteIfApplicable(String varName) {
+        if (varName.isEmpty()) {
+            return varName;
         }
+
+        return Character.isDigit(varName.charAt(0)) || SyntaxInfo.isKeyword(varName) ? "'" + varName : varName;
     }
 
     /**
@@ -148,25 +166,8 @@ public class ConversionUtils {
      * @param identifier the original identifier string
      * @return identifier with special characters escaped
      */
-    public static String escapeSpecialCharacters(String identifier) {
+    private static String escapeSpecialCharacters(String identifier) {
         return UNESCAPED_SPECIAL_CHAR_SET.matcher(identifier).replaceAll("\\\\$1");
-    }
-
-    /**
-     * Processes an identifier to make it valid for Ballerina identifier syntax by:
-     * 1. Escaping special characters with a preceding `\`
-     * 2. Adding a single quote prefix if the identifier starts with a digit (0-9)
-     *
-     * @param identifier the original identifier string
-     * @return the processed identifier that's valid in Ballerina
-     */
-    public static String formatToBalIdentifier(String identifier) {
-        identifier = escapeSpecialCharacters(identifier);
-        // Add single quote prefix if identifier starts with a digit
-        if (!identifier.isEmpty() && Character.isDigit(identifier.charAt(0))) {
-            identifier = "'" + identifier;
-        }
-        return identifier;
     }
 
     static String[] getAllowedMethods(String allowedMethods) {
@@ -179,23 +180,6 @@ public class ConversionUtils {
 
     static String insertLeadingSlash(String basePath) {
         return basePath.startsWith("/") ? basePath : "/" + basePath;
-    }
-
-    static String removeLeadingSlash(String resourcePath) {
-        return resourcePath.startsWith("/") ? resourcePath.substring(1) : resourcePath;
-    }
-
-    static Map<String, String> processQueryParams(String queryParams) {
-        assert queryParams.endsWith("}]");
-        String regex = "#\\[output .*\\n---\\n\\{\\n|\\n}]";
-        String trimmed = queryParams.replaceAll(regex, "").trim();
-        String[] pairs = trimmed.split(",\\n\\t");
-        Map<String, String> keyValues = new LinkedHashMap<>(pairs.length);
-        for (String pair : pairs) {
-            String[] kv = pair.split(":");
-            keyValues.put(kv[0].trim().replace("\"", ""), kv[1].trim().replace("\"", ""));
-        }
-        return keyValues;
     }
 
     static String genQueryParam(Map<String, String> queryParams) {

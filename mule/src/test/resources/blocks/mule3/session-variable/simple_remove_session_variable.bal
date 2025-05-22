@@ -1,5 +1,6 @@
 public type SessionVars record {|
-    string bar?;
+    string greeting?;
+    string 'from?;
 |};
 
 public type Context record {|
@@ -8,6 +9,8 @@ public type Context record {|
 |};
 
 public function weatherServiceFlow(Context ctx) {
-    ctx.sessionVars.bar = "hello session";
-    ctx.sessionVars.bar = ();
+    ctx.sessionVars.greeting = "hello session";
+    ctx.sessionVars.'from = "USA";
+    ctx.sessionVars.greeting = ();
+    ctx.sessionVars.'from = ();
 }
