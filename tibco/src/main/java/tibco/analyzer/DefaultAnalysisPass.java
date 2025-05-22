@@ -22,14 +22,12 @@ import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup;
 import tibco.converter.ConversionUtils;
-import tibco.converter.ProjectConverter;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
