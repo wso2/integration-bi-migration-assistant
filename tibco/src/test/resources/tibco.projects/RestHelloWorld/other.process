@@ -163,6 +163,60 @@
             <pd:conditionType>always</pd:conditionType>
         </pd:transition>
     </pd:group>
+    <pd:activity name="Parse JSON">
+        <pd:type>com.tibco.plugin.json.activities.JSONParserActivity</pd:type>
+        <pd:resourceType>ae.activities.JSONParserActivity</pd:resourceType>
+        <pd:x>331</pd:x>
+        <pd:y>62</pd:y>
+        <config>
+            <SchemaType>xsdType</SchemaType>
+            <BadgerfishCheck>false</BadgerfishCheck>
+            <ActivityOutputEditor>
+                <xsd:element name="Foo">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="foo" type="xsd:string"/>
+                            <xsd:element name="bar" type="xsd:string" minOccurs="0"/>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+            </ActivityOutputEditor>
+        </config>
+        <pd:inputBindings>
+            <ns1:ActivityInputClass>
+                <jsonString>
+                    <xsl:value-of select="$Start/foo"/>
+                </jsonString>
+            </ns1:ActivityInputClass>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Render JSON">
+            <pd:type>com.tibco.plugin.json.activities.JSONRenderActivity</pd:type>
+            <pd:resourceType>ae.activities.JSONParserActivity</pd:resourceType>
+            <pd:x>331</pd:x>
+            <pd:y>62</pd:y>
+            <config>
+                <SchemaType>xsdType</SchemaType>
+                <BadgerfishCheck>false</BadgerfishCheck>
+                <ActivityOutputEditor>
+                    <xsd:element name="Foo">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="foo" type="xsd:string"/>
+                                <xsd:element name="bar" type="xsd:string" minOccurs="0"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </ActivityOutputEditor>
+            </config>
+            <pd:inputBindings>
+                <ns1:ActivityInputClass>
+                    <jsonString>
+                        <xsl:value-of select="$Parse-JSON/ns1:ActivityOutputClass/Foo"/>
+                    </jsonString>
+                </ns1:ActivityInputClass>
+            </pd:inputBindings>
+        </pd:activity>
     <pd:activity name="Rest call">
         <pd:type>com.tibco.plugin.json.activities.RestActivity</pd:type>
         <pd:resourceType>ae.activities.RestActivity</pd:resourceType>

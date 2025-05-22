@@ -37,6 +37,14 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
+import static common.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
+import static common.BallerinaModel.TypeDesc.BuiltinType.BuiltinType;
+import static common.BallerinaModel.TypeDesc.BuiltinType.DECIMAL;
+import static common.BallerinaModel.TypeDesc.BuiltinType.FLOAT;
+import static common.BallerinaModel.TypeDesc.BuiltinType.INT;
+import static common.BallerinaModel.TypeDesc.BuiltinType.RecordTypeDesc;
+import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static common.ConversionUtils.exprFrom;
 import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 
@@ -76,13 +84,13 @@ public final class ConversionUtils {
         return nameToCheck;
     }
 
-    public static BallerinaModel.TypeDesc.BuiltinType from(SQL.SQLType sqlType) {
+    public static BuiltinType from(SQL.SQLType sqlType) {
         return switch (sqlType) {
-            case INTEGER, BIGINT, SMALLINT -> BallerinaModel.TypeDesc.BuiltinType.INT;
-            case DECIMAL, NUMERIC, REAL, DOUBLE -> BallerinaModel.TypeDesc.BuiltinType.DECIMAL;
-            case VARCHAR, CHAR, TEXT, DATE, TIME, TIMESTAMP -> BallerinaModel.TypeDesc.BuiltinType.STRING;
-            case BOOLEAN -> BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
-            case BLOB, CLOB -> BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
+            case INTEGER, BIGINT, SMALLINT -> INT;
+            case DECIMAL, NUMERIC, REAL, DOUBLE -> DECIMAL;
+            case VARCHAR, CHAR, TEXT, DATE, TIME, TIMESTAMP -> STRING;
+            case BOOLEAN -> BOOLEAN;
+            case BLOB, CLOB -> ANYDATA;
         };
     }
 
@@ -194,5 +202,34 @@ public final class ConversionUtils {
 
         static final String CONTEXT_VAR_NAME = "context";
         static final String CONTEXT_INPUT_NAME = "$input";
+    }
+
+    public static BallerinaModel.TypeDesc toTypeDesc(TibcoModel.XSD xsd) {
+        return toTypeDesc(xsd.type().type());
+    }
+
+    private static BallerinaModel.TypeDesc toTypeDesc(TibcoModel.XSD.XSDType type) {
+        return switch (type) {
+            case TibcoModel.XSD.XSDType.BasicXSDType basicXSDType -> basicTypeToTD(basicXSDType);
+            case TibcoModel.XSD.XSDType.ComplexType complexType -> complexTypeToTD(complexType);
+        };
+    }
+
+    private static BallerinaModel.TypeDesc complexTypeToTD(TibcoModel.XSD.XSDType.ComplexType complexType) {
+        List<RecordTypeDesc.RecordField> fields = complexType.body().elements().stream()
+                .map(each ->
+                        new RecordTypeDesc.RecordField(each.name(), toTypeDesc(each.type()),
+                                each.minOccur().map(minOccurs -> minOccurs == 0).orElse(false))).toList();
+        return new RecordTypeDesc(fields);
+    }
+
+    private static BallerinaModel.TypeDesc basicTypeToTD(TibcoModel.XSD.XSDType.BasicXSDType basicXSDType) {
+        return switch (basicXSDType) {
+            case STRING -> STRING;
+            case INTEGER, INT, LONG, SHORT -> INT;
+            case DECIMAL -> DECIMAL;
+            case FLOAT, DOUBLE -> FLOAT;
+            case BOOLEAN -> BOOLEAN;
+        };
     }
 }

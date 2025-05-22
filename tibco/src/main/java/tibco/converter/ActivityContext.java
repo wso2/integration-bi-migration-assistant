@@ -140,4 +140,12 @@ public class ActivityContext {
     public String getToJsonFunction() {
         return processContext.getToJsonFunction();
     }
+
+    public ProjectContext projectContext() {
+        return processContext.projectContext;
+    }
+
+    public void addXSDSchemaToConversion(TibcoModel.Type.Schema schema) {
+        projectContext().addXSDSchemaToConversion(schema);
+    }
 }

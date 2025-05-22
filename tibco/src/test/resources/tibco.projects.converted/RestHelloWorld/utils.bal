@@ -1,3 +1,4 @@
+import ballerina/data.jsondata;
 import ballerina/data.xmldata;
 import ballerina/http;
 
@@ -11,6 +12,31 @@ function addToContext(map<xml> context, string varName, xml value) {
     xml children = value/*;
     xml transformed = xml `<root>${children}</root>`;
     context[varName] = transformed;
+}
+
+function renderJSONAsXML(json value, string? namespace, string typeName) returns xml|error {
+    anydata body;
+    if (value is map<json>) {
+        xml acum = xml ``;
+        foreach string key in value.keys() {
+            acum += check renderJSONAsXML(value.get(key), namespace, key);
+        }
+        body = acum;
+    } else {
+        body = value;
+    }
+
+    string rep = string `<${typeName}>${body.toString()}</${typeName}>`;
+    xml result = check xml:fromString(rep);
+    if (namespace == ()) {
+        return result;
+    }
+    if (result !is xml:Element) {
+        panic error("Expected XML element");
+    }
+    map<string> attributes = result.getAttributes();
+    attributes["xmlns"] = namespace;
+    return result;
 }
 
 function xmlToJson(xml value) returns json {
@@ -85,4 +111,11 @@ name = name.substring(index + 1);
 return {namespace: namespace, name: name};
 }
 return {namespace: (), name: name};
+}
+
+function renderJsonAsFooXML(xml value) returns xml|error {
+    string jsonString = (value/<jsonString>).data();
+    map<json> jsonValue = check jsondata:parseString(jsonString);
+    string? namespace = (Foo).@xmldata:Namespace["uri"];
+    return renderJSONAsXML(jsonValue, namespace, "Foo");
 }

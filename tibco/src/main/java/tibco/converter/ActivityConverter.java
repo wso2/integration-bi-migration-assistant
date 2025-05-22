@@ -46,6 +46,8 @@ import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.CallProce
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.FileRead;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.FileWrite;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HTTPResponse;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.JSONParser;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.JSONRender;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.REST;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.SOAPSendReceive;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.SOAPSendReply;
@@ -80,6 +82,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import javax.xml.parsers.ParserConfigurationException;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
@@ -190,6 +194,8 @@ final class ActivityConverter {
                 case REST rest -> convertREST(cx, result, rest);
                 case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.Catch ignored ->
                         emptyExtensionConversion(cx, result);
+                case JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
+                case JSONRender jsonRender -> convertJsonRender(cx, result, jsonRender);
             };
             body.addAll(conversion.body());
             body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
@@ -197,7 +203,57 @@ final class ActivityConverter {
             return body;
         }
 
-        private static ActivityExtensionConfigConversion convertSoapSendReply(
+    private static ActivityExtensionConfigConversion convertJsonRender(
+            ActivityContext cx, VariableReference input, JSONRender jsonRender) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment xmlInput = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                exprFrom("(%s/*)".formatted(input.varName())));
+        body.add(xmlInput);
+
+        body.add(new Comment("WARNING: assuming single element"));
+        BallerinaModel.TypeDesc targetType = ConversionUtils.toTypeDesc(jsonRender.targetType());
+        cx.addLibraryImport(Library.XML_DATA);
+        String parseAsTypeFn = XMLDataConstants.PARSE_AS_TYPE;
+        VarDeclStatment value = new VarDeclStatment(targetType, cx.getAnnonVarName(),
+                new Check(new FunctionCall(parseAsTypeFn, List.of(xmlInput.ref()))));
+        body.add(value);
+
+        VarDeclStatment jsonString = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                new MethodCall(value.ref(), "toJsonString", List.of()));
+        body.add(jsonString);
+
+        body.add(stmtFrom("xmlns \"http://www.tibco.com/namespaces/tnt/plugins/json\" as ns;"));
+        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(
+                "<ns:ActivityOutputClass><jsonString>${%s}</jsonString></ns:ActivityOutputClass>"
+                        .formatted(jsonString.ref())));
+        body.add(result);
+
+        return new ActivityExtensionConfigConversion(result.ref(), body);
+    }
+
+    private static ActivityExtensionConfigConversion convertJsonParser(
+            ActivityContext cx, VariableReference input, JSONParser jsonParser) {
+        List<Statement> body = new ArrayList<>();
+
+        String targetTypeName = jsonParser.targetType().type().name();
+        try {
+            cx.addXSDSchemaToConversion(jsonParser.targetType().toSchema());
+        } catch (ParserConfigurationException e) {
+            throw new RuntimeException(e);
+        }
+        String renderFn = cx.getRenderJsonAsXMLFunction(targetTypeName);
+        VarDeclStatment xmlValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(new FunctionCall(renderFn, List.of(input))));
+        body.add(xmlValue);
+        body.add(stmtFrom("xmlns \"http://www.tibco.com/namespaces/tnt/plugins/json\" as ns;"));
+        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("<ns:ActivityOutputClass>%s</ns:ActivityOutputClass>"
+                        .formatted(xmlValue.ref())));
+        body.add(result);
+        return new ActivityExtensionConfigConversion(result.ref(), body);
+    }
+
+    private static ActivityExtensionConfigConversion convertSoapSendReply(
                 ActivityContext cx, VariableReference result, SOAPSendReply soapSendReply) {
             VarDeclStatment envelop = new VarDeclStatment(XML, cx.getAnnonVarName(),
                     new XMLTemplate(ConversionUtils.createSoapEnvelope(result)));
@@ -1101,6 +1157,7 @@ final class ActivityConverter {
 
     static final class XMLDataConstants {
         static final String X_PATH_FUNCTION = "xmldata:transform";
+        static final String PARSE_AS_TYPE = "xmldata:parseAsType";
 
         private XMLDataConstants() {
 

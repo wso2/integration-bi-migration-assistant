@@ -35,6 +35,7 @@ import tibco.TibcoModel.Scope.Flow;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.AccumulateEnd;
 import tibco.TibcoModel.Type;
+import tibco.TibcoModel.XSD;
 import tibco.converter.ConversionUtils;
 import tibco.converter.ProjectConverter;
 
@@ -247,8 +248,55 @@ public final class XmlToTibcoModelConverter {
             case LOOP_GROUP -> parseLoopGroup(cx, element, name, inputBinding);
             case REST -> parseREST(element, name, inputBinding);
             case CATCH -> new InlineActivity.Catch(element, name, inputBinding);
+            case JSON_PARSER_ACTIVITY -> parseJSONParserActivity(element, name, inputBinding);
+            case JSON_RENDER_ACTIVITY -> parseJSONRenderActivity(element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
         };
+    }
+
+    private static InlineActivity.JSONRender parseJSONRenderActivity(Element element, String name, Flow.Activity.InputBinding inputBinding) {
+        return new InlineActivity.JSONRender(element, name, inputBinding, getJSONActivityTarget(element));
+    }
+
+
+    private static InlineActivity.JSONParser parseJSONParserActivity(Element element, String name, Flow.Activity.InputBinding inputBinding) {
+        return new InlineActivity.JSONParser(element, name, inputBinding, getJSONActivityTarget(element));
+    }
+
+    private static @NotNull XSD getJSONActivityTarget(Element element) {
+        Element config = getFirstChildWithTag(element, "config");
+        Element activityOutputEditor = getFirstChildWithTag(config, "ActivityOutputEditor");
+        Element xsdElement = getFirstChildWithTag(activityOutputEditor, "element");
+        return parseXSD(xsdElement);
+    }
+
+    private static XSD parseXSD(Element element) {
+        return new XSD(parseXSDXElement(element), element);
+    }
+
+    private static XSD.Element parseXSDXElement(Element element) {
+        String name = element.getAttribute("name");
+        String typeAttr = element.getAttribute("type");
+        XSD.XSDType type = typeAttr.isBlank() ? parseComplexType(getFirstChildWithTag(element, "complexType"))
+                : XSD.XSDType.BasicXSDType.parse(typeAttr);
+        String minOccursAttrib = element.getAttribute("minOccurs");
+        Optional<Integer> minOccurs = minOccursAttrib.isBlank() ? Optional.empty()
+                : Optional.of(Integer.parseInt(minOccursAttrib));
+
+        String maxOccursAttrib = element.getAttribute("maxOccurs");
+        Optional<Integer> maxOccurs = maxOccursAttrib.isBlank() ? Optional.empty()
+                : Optional.of(Integer.parseInt(maxOccursAttrib));
+
+        return new XSD.Element(name, type, minOccurs, maxOccurs);
+    }
+
+    private static XSD.XSDType.ComplexType parseComplexType(Element complexType) {
+        return new XSD.XSDType.ComplexType(parseXSDSequence(getFirstChildWithTag(complexType, "sequence")));
+    }
+
+    private static XSD.XSDType.ComplexType.ComplexTypeBody.Sequence parseXSDSequence(Element sequence) {
+        return new XSD.XSDType.ComplexType.ComplexTypeBody.Sequence(
+                ElementIterable.of(sequence).stream().map(XmlToTibcoModelConverter::parseXSDXElement).toList());
     }
 
     private static InlineActivity.SOAPSendReceive parseSoapSendReceive(Element element, String name,
