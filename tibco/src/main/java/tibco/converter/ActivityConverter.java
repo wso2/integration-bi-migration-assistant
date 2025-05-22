@@ -75,7 +75,6 @@ import tibco.xslt.ReplaceDotAccessWithXPath;
 import tibco.xslt.ReplaceVariableReference;
 import tibco.xslt.TransformPipeline;
 
-import javax.xml.parsers.ParserConfigurationException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -83,6 +82,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import javax.xml.parsers.ParserConfigurationException;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
@@ -1159,14 +1160,6 @@ final class ActivityConverter {
         static final String PARSE_AS_TYPE = "xmldata:parseAsType";
 
         private XMLDataConstants() {
-
-        }
-    }
-
-    static final class JSONDataConstants {
-        static final String parseString = "jsondata:parseString";
-
-        private JSONDataConstants() {
 
         }
     }

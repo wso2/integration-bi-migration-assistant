@@ -60,11 +60,6 @@ class TypeConverter {
     private TypeConverter() {
     }
 
-    static BallerinaModel.TypeDesc convertXSD(ProjectContext projectContext, TibcoModel.XSD xsd) {
-        // FIXME:
-        throw new RuntimeException("unimplemented");
-    }
-
     static SyntaxTree convertSchemas(ContextWithFile cx, Collection<TibcoModel.Type.Schema> schemas) {
         String[] content = schemas.stream().map(TibcoModel.Type.Schema::element).map(ConversionUtils::elementToString)
                 .toArray(String[]::new);

@@ -37,7 +37,14 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import static common.BallerinaModel.TypeDesc.BuiltinType.*;
+import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
+import static common.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
+import static common.BallerinaModel.TypeDesc.BuiltinType.BuiltinType;
+import static common.BallerinaModel.TypeDesc.BuiltinType.DECIMAL;
+import static common.BallerinaModel.TypeDesc.BuiltinType.FLOAT;
+import static common.BallerinaModel.TypeDesc.BuiltinType.INT;
+import static common.BallerinaModel.TypeDesc.BuiltinType.RecordTypeDesc;
+import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static common.ConversionUtils.exprFrom;
 import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 
