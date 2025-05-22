@@ -85,6 +85,7 @@ public class ProjectContext {
     private final Map<BallerinaModel.TypeDesc, String> typeConversionFunction = new HashMap<>();
     private final Map<String, String> renderJsonAsXMLFunction = new HashMap<>();
     private final Map<TibcoModel.Process, AnalysisResult> analysisResult;
+    private Collection<TibcoModel.Type.Schema> schemas = new ArrayList<>();
 
     ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
                    Map<TibcoModel.Process, AnalysisResult> analysisResult) {
@@ -399,6 +400,14 @@ public class ProjectContext {
     public AnalysisResult getAnalysisResult(TibcoModel.Process process) {
         return Objects.requireNonNull(analysisResult.get(process), 
                 "Analysis result not found for process: " + process.name());
+    }
+
+    public void addXSDSchemaToConversion(TibcoModel.Type.Schema schema) {
+        schemas.add(schema);
+    }
+
+    public Collection<TibcoModel.Type.Schema> getXSDSchemas() {
+        return schemas;
     }
 
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {

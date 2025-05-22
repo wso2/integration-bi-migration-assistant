@@ -18,7 +18,14 @@
 
 package tibco;
 
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.util.Arrays;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -228,6 +235,7 @@ public class TibcoModel {
                     LOOP_GROUP,
                     REST,
                     CATCH,
+                    JSON_PARSER_ACTIVITY,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
@@ -235,25 +243,43 @@ public class TibcoModel {
 
                         }
                         return Stream.of(
-                                new LookUpData("MapperActivity", MAPPER),
-                                new LookUpData("HTTPEventSource", HTTP_EVENT_SOURCE),
-                                new LookUpData("AssignActivity", ASSIGN),
-                                new LookUpData("NullActivity", NULL),
-                                new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
-                                new LookUpData("XMLRendererActivity", XML_RENDER_ACTIVITY),
-                                new LookUpData("XMLParseActivity", XML_PARSE_ACTIVITY),
-                                new LookUpData("LoopGroup", LOOP_GROUP),
-                                new LookUpData("WriteToLogActivity", WRITE_LOG),
-                                new LookUpData("CatchActivity", CATCH),
-                                new LookUpData("FileReadActivity", FILE_READ),
-                                new LookUpData("FileWriteActivity", FILE_WRITE),
-                                new LookUpData("RestActivity", REST),
-                                new LookUpData("CallProcessActivity", CALL_PROCESS),
-                                new LookUpData("SOAPSendReceiveActivity", SOAP_SEND_RECEIVE),
-                                new LookUpData("SOAPSendReplyActivity", SOAP_SEND_REPLY),
-                                new LookUpData("WriteToLogActivity", WRITE_LOG))
+                                        new LookUpData("MapperActivity", MAPPER),
+                                        new LookUpData("HTTPEventSource", HTTP_EVENT_SOURCE),
+                                        new LookUpData("AssignActivity", ASSIGN),
+                                        new LookUpData("NullActivity", NULL),
+                                        new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
+                                        new LookUpData("XMLRendererActivity", XML_RENDER_ACTIVITY),
+                                        new LookUpData("XMLParseActivity", XML_PARSE_ACTIVITY),
+                                        new LookUpData("LoopGroup", LOOP_GROUP),
+                                        new LookUpData("WriteToLogActivity", WRITE_LOG),
+                                        new LookUpData("CatchActivity", CATCH),
+                                        new LookUpData("FileReadActivity", FILE_READ),
+                                        new LookUpData("FileWriteActivity", FILE_WRITE),
+                                        new LookUpData("RestActivity", REST),
+                                        new LookUpData("CallProcessActivity", CALL_PROCESS),
+                                        new LookUpData("SOAPSendReceiveActivity", SOAP_SEND_RECEIVE),
+                                        new LookUpData("JSONParserActivity", JSON_PARSER_ACTIVITY),
+                                        new LookUpData("SOAPSendReplyActivity", SOAP_SEND_REPLY),
+                                        new LookUpData("WriteToLogActivity", WRITE_LOG))
                                 .filter(each -> type.endsWith(each.suffix)).findFirst()
                                 .map(LookUpData::activityType).orElse(UNHANDLED);
+                    }
+                }
+
+                record JSONParser(Element element, String name, InputBinding inputBinding,
+                                  XSD targetType) implements InlineActivity {
+                    public JSONParser {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.JSON_PARSER_ACTIVITY;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
                     }
                 }
 
@@ -1272,4 +1298,75 @@ public class TibcoModel {
         }
     }
 
+    public record XSD(Element type, org.w3c.dom.Element element) {
+        public Type.Schema toSchema() throws ParserConfigurationException {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.newDocument();
+            org.w3c.dom.Element wrapped = wrapElement(doc, element, "schema");
+            return new Type.Schema(wrapped);
+        }
+
+        public record Element(String name, XSDType type, Optional<Integer> minOccur, Optional<Integer> maxOccur) {
+
+        }
+
+        public sealed interface XSDType {
+
+            enum BasicXSDType implements XSDType {
+                STRING("string"),
+                INTEGER("integer"),
+                INT("int"),
+                LONG("long"),
+                SHORT("short"),
+                DECIMAL("decimal"),
+                FLOAT("float"),
+                DOUBLE("double"),
+                BOOLEAN("boolean");
+
+                private final String value;
+
+                BasicXSDType(String value) {
+                    this.value = value;
+                }
+
+                public String getValue() {
+                    return value;
+                }
+
+                public static BasicXSDType parse(String typeStr) {
+                    if (typeStr == null || typeStr.isEmpty()) {
+                        throw new IllegalArgumentException("XSD type string cannot be null or empty");
+                    }
+
+                    String type = typeStr;
+                    if (type.contains(":")) {
+                        type = type.substring(type.indexOf(":") + 1);
+                    }
+
+                    String finalType = type;
+                    return Arrays.stream(BasicXSDType.values())
+                            .filter(basicType -> basicType.getValue().equalsIgnoreCase(finalType))
+                            .findFirst()
+                            .orElseThrow(() -> new IllegalArgumentException("Unsupported XSD type: " + typeStr));
+                }
+            }
+
+            record ComplexType(ComplexTypeBody body) implements XSDType {
+                public sealed interface ComplexTypeBody {
+                    record Sequence(List<Element> elements) implements ComplexTypeBody {
+
+                    }
+                }
+
+            }
+        }
+    }
+
+    private static Element wrapElement(Document doc, Element originalElement, String wrapperTagName) {
+        Element wrapper = doc.createElement(wrapperTagName);
+        Node importedOriginal = doc.importNode(originalElement, true);
+        wrapper.appendChild(importedOriginal);
+        return wrapper;
+    }
 }

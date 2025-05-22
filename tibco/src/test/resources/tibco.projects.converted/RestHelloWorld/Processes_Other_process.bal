@@ -127,10 +127,34 @@ function Mapper_12(map<xml> context) returns xml|error {
     return var2;
 }
 
+function Parse_JSON(map<xml> context) returns xml|error {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Start"/>     <xsl:template name="Transform5" match="/">
+        <ns1:ActivityInputClass xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json">
+                    
+    <jsonString>
+                            
+        <xsl:value-of select="$Start/root/foo" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                        
+    </jsonString>
+                
+</ns1:ActivityInputClass>
+
+    </xsl:template>
+</xsl:stylesheet>`, context);
+    string var2 = (var1/<jsonString>/*).toString().trim();
+    xml var3 = check renderJsonAsFooXML(var2);
+    xmlns "http://www.tibco.com/namespaces/tnt/plugins/json" as ns;
+    xml var4 = xml `<ns:ActivityOutputClass>var3</ns:ActivityOutputClass>`;
+    addToContext(context, "Parse JSON", var4);
+    return var4;
+}
+
 function Rest_call(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Schedule-Poller"/>     <xsl:template name="Transform5" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Schedule-Poller"/>     <xsl:template name="Transform6" match="/">
         <ns1:ActivityInput xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json">
                     
     <ns1:Parameters>

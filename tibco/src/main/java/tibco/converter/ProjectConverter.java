@@ -72,14 +72,13 @@ public class ProjectConverter {
         for (TibcoModel.Process each : processes) {
             accumSchemas(each, schemas);
         }
-        SyntaxTree typeSyntaxTree = convertTypes(cx, schemas);
-        // We need to ensure all the type definitions have been processed before we
-        // start processing the functions
         List<BallerinaModel.TextDocument> textDocuments = results.stream()
                 .map(result -> {
                     TibcoModel.Process process = result.process();
                     return ProcessConverter.convertBody(cx.getProcessContext(process), process, result.result());
                 }).toList();
+        schemas.addAll(cx.getXSDSchemas());
+        SyntaxTree typeSyntaxTree = convertTypes(cx, schemas);
         return new ConversionResult(cx.serialize(textDocuments), typeSyntaxTree);
     }
 
