@@ -71,6 +71,13 @@ public class MELConverter {
                 }
             }
 
+            if (currentChar == '(' && tokenStr.equals("exception.causedBy")) {
+                // Handle choice-exception conditions like exception.causedBy(java.lang.NullPointerException)
+                i = processExceptionCausedBy(melExpr, i, tokenStr, result);
+                token.setLength(0);
+                continue;
+            }
+
             if (currentChar == '[' && !token.isEmpty()) {
                 // Handle general array access like payload[0].lat
                 processToken(token, result, false); // Don't add toString here
@@ -127,6 +134,29 @@ public class MELConverter {
         }
 
         result.append("\"").append(stringLiteral).append("\"");
+        return i;
+    }
+
+    private static int processExceptionCausedBy(String melExpr, int startPos, String baseToken, StringBuilder result) {
+        StringBuilder javaExceptionRef = new StringBuilder();
+        int i = startPos;
+
+        assert melExpr.charAt(i) == '(';
+        i++; // Skip the opening parenthesis
+
+        while (i < melExpr.length() && isTokenChar(melExpr.charAt(i))) {
+            javaExceptionRef.append(melExpr.charAt(i));
+            i++;
+        }
+
+        if (i < melExpr.length() && melExpr.charAt(i) == ')') {
+            i++; // Skip the closing parenthesis
+        }
+
+        result.append(Constants.ON_FAIL_ERROR_VAR_REF).append(".message() == ")
+                .append("\"").append(javaExceptionRef).append("\"");
+
+        i--; // Adjust for the next iteration
         return i;
     }
 
@@ -198,7 +228,6 @@ public class MELConverter {
             }
             propertyName = propName.toString();
         }
-        i--; // Adjust for loop increment
 
         // Generate Ballerina code for array access
         if (hasPropertyAccess) {
@@ -209,6 +238,7 @@ public class MELConverter {
             result.append(arrayAccessStr);
         }
 
+        i--; // Adjust for loop increment
         return i;
     }
 

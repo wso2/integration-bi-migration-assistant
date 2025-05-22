@@ -20,9 +20,10 @@ service /mule3 on config {
         do {
             log:printInfo("xxx: logger invoked via http end point");
         } on fail error e {
-            if "condition1" {
+            // TODO: if conditions may require some manual adjustments
+            if e.message() == "java.lang.NullPointerException" {
                 log:printInfo("xxx: first catch condition invoked");
-            } else if "condition2" {
+            } else if e.message() == "java.lang.IllegalArgumentException" || e.message() == "java.lang.IllegalStateException" {
                 log:printInfo("xxx: second catch condition invoked");
             } else {
                 log:printInfo("xxx: generic catch condition invoked");

@@ -1024,7 +1024,8 @@ public class MuleToBalConverter {
             }
             case ChoiceExceptionStrategy choiceExceptionStrategy -> {
                 List<Statement> onFailBody = getChoiceExceptionBody(data, choiceExceptionStrategy);
-                TypeBindingPattern typeBindingPattern = new TypeBindingPattern(BAL_ERROR_TYPE, "e");
+                TypeBindingPattern typeBindingPattern = new TypeBindingPattern(BAL_ERROR_TYPE,
+                        Constants.ON_FAIL_ERROR_VAR_REF);
                 OnFailClause onFailClause = new OnFailClause(onFailBody, typeBindingPattern);
                 DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
                 statementList.add(doStatement);
@@ -1033,9 +1034,10 @@ public class MuleToBalConverter {
                 String refName = referenceExceptionStrategy.refName();
                 String funcRef = ConversionUtils.escapeSpecialCharacters(refName);
                 BallerinaStatement funcCallStmt = stmtFrom(String.format("%s(%s, %s);", funcRef,
-                        Constants.CONTEXT_REFERENCE, "e"));
+                        Constants.CONTEXT_REFERENCE, Constants.ON_FAIL_ERROR_VAR_REF));
                 List<Statement> onFailBody = Collections.singletonList(funcCallStmt);
-                TypeBindingPattern typeBindingPattern = new TypeBindingPattern(BAL_ERROR_TYPE, "e");
+                TypeBindingPattern typeBindingPattern = new TypeBindingPattern(BAL_ERROR_TYPE,
+                        Constants.ON_FAIL_ERROR_VAR_REF);
                 OnFailClause onFailClause = new OnFailClause(onFailBody, typeBindingPattern);
                 DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
                 statementList.add(doStatement);
@@ -1124,7 +1126,12 @@ public class MuleToBalConverter {
         }
 
         IfElseStatement ifElseStmt = new IfElseStatement(ifCondition, ifBody, elseIfClauses, elseBody);
-        return Collections.singletonList(ifElseStmt);
+
+        List<Statement> statementList = new ArrayList<>();
+        statementList.add(stmtFrom("\n// TODO: if conditions may require some manual adjustments\n"));
+        statementList.add(ifElseStmt);
+
+        return statementList;
     }
 
     private static List<Statement> convertMuleRecToBalStatements(Data data, List<MuleRecord> muleRecords) {

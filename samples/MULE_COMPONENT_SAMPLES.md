@@ -370,10 +370,10 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
     <flow name="demoFlow">
         <logger message="xxx: main flow logger invoked" level="INFO" doc:name="Logger"/>
         <choice-exception-strategy doc:name="Choice Exception Strategy">
-            <catch-exception-strategy doc:name="Catch Exception Strategy" when="condition1">
+            <catch-exception-strategy doc:name="Catch Exception Strategy" when="#[exception.causedBy(java.lang.NullPointerException)]">
                 <logger message="xxx: first catch condition invoked" level="INFO" doc:name="Logger"/>
             </catch-exception-strategy>
-            <catch-exception-strategy doc:name="Catch Exception Strategy" when="condition2">
+            <catch-exception-strategy doc:name="Catch Exception Strategy" when="#[exception.causedBy(java.lang.IllegalArgumentException) || exception.causedBy(java.lang.IllegalStateException)]">
                 <logger message="xxx: second catch condition invoked" level="INFO" doc:name="Logger"/>
             </catch-exception-strategy>
             <catch-exception-strategy doc:name="Catch Exception Strategy">
@@ -396,9 +396,10 @@ public function demoFlow(Context ctx) {
     do {
         log:printInfo("xxx: main flow logger invoked");
     } on fail error e {
-        if "condition1" {
+        // TODO: if conditions may require some manual adjustments
+        if e.message() == "java.lang.NullPointerException" {
             log:printInfo("xxx: first catch condition invoked");
-        } else if "condition2" {
+        } else if e.message() == "java.lang.IllegalArgumentException" || e.message() == "java.lang.IllegalStateException" {
             log:printInfo("xxx: second catch condition invoked");
         } else {
             log:printInfo("xxx: generic catch condition invoked");
@@ -426,10 +427,10 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <http:listener config-ref="config" path="/"  doc:name="HTTP" allowedMethods="GET"/>
         <logger message="xxx: logger invoked via http end point" level="INFO" doc:name="Logger"/>
         <choice-exception-strategy doc:name="Choice Exception Strategy">
-            <catch-exception-strategy doc:name="Catch Exception Strategy" when="condition1">
+            <catch-exception-strategy doc:name="Catch Exception Strategy" when="#[exception.causedBy(java.lang.NullPointerException)]">
                 <logger message="xxx: first catch condition invoked" level="INFO" doc:name="Logger"/>
             </catch-exception-strategy>
-            <catch-exception-strategy doc:name="Catch Exception Strategy" when="condition2">
+            <catch-exception-strategy doc:name="Catch Exception Strategy" when="#[exception.causedBy(java.lang.IllegalArgumentException) || exception.causedBy(java.lang.IllegalStateException)]">
                 <logger message="xxx: second catch condition invoked" level="INFO" doc:name="Logger"/>
             </catch-exception-strategy>
             <catch-exception-strategy doc:name="Catch Exception Strategy">
@@ -464,9 +465,10 @@ service /mule3 on config {
         do {
             log:printInfo("xxx: logger invoked via http end point");
         } on fail error e {
-            if "condition1" {
+            // TODO: if conditions may require some manual adjustments
+            if e.message() == "java.lang.NullPointerException" {
                 log:printInfo("xxx: first catch condition invoked");
-            } else if "condition2" {
+            } else if e.message() == "java.lang.IllegalArgumentException" || e.message() == "java.lang.IllegalStateException" {
                 log:printInfo("xxx: second catch condition invoked");
             } else {
                 log:printInfo("xxx: generic catch condition invoked");
