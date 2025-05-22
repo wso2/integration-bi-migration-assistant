@@ -143,18 +143,46 @@ function Parse_JSON(map<xml> context) returns xml|error {
 
     </xsl:template>
 </xsl:stylesheet>`, context);
-    string var2 = (var1/<jsonString>/*).toString().trim();
-    xml var3 = check renderJsonAsFooXML(var2);
+    xml var2 = check renderJsonAsFooXML(var1);
     xmlns "http://www.tibco.com/namespaces/tnt/plugins/json" as ns;
-    xml var4 = xml `<ns:ActivityOutputClass>var3</ns:ActivityOutputClass>`;
-    addToContext(context, "Parse JSON", var4);
-    return var4;
+    xml var3 = xml `<ns:ActivityOutputClass>var2</ns:ActivityOutputClass>`;
+    addToContext(context, "Parse JSON", var3);
+    return var3;
+}
+
+function Render_JSON(map<xml> context) returns xml|error {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Parse-JSON"/>     <xsl:template name="Transform6" match="/">
+        <ns1:ActivityInputClass xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json">
+                        
+    <jsonString>
+                                
+        <xsl:value-of select="$Parse-JSON/root/ns1:ActivityOutputClass/Foo" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                            
+    </jsonString>
+                    
+</ns1:ActivityInputClass>
+
+    </xsl:template>
+</xsl:stylesheet>`, context);
+    xml var2 = (var1/*);
+    //WARNING: assuming single element
+    record {|
+        string foo;
+        string bar?;
+    |} var3 = check xmldata:parseAsType(var2);
+    string var4 = var3.toJsonString();
+    xmlns "http://www.tibco.com/namespaces/tnt/plugins/json" as ns;
+    xml var5 = xml `<ns:ActivityOutputClass><jsonString>${var4}</jsonString></ns:ActivityOutputClass>`;
+    addToContext(context, "Render JSON", var5);
+    return var5;
 }
 
 function Rest_call(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Schedule-Poller"/>     <xsl:template name="Transform6" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Schedule-Poller"/>     <xsl:template name="Transform7" match="/">
         <ns1:ActivityInput xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json">
                     
     <ns1:Parameters>

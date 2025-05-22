@@ -236,6 +236,7 @@ public class TibcoModel {
                     REST,
                     CATCH,
                     JSON_PARSER_ACTIVITY,
+                    JSON_RENDER_ACTIVITY,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
@@ -259,10 +260,28 @@ public class TibcoModel {
                                         new LookUpData("CallProcessActivity", CALL_PROCESS),
                                         new LookUpData("SOAPSendReceiveActivity", SOAP_SEND_RECEIVE),
                                         new LookUpData("JSONParserActivity", JSON_PARSER_ACTIVITY),
+                                        new LookUpData("JSONRenderActivity", JSON_RENDER_ACTIVITY),
                                         new LookUpData("SOAPSendReplyActivity", SOAP_SEND_REPLY),
                                         new LookUpData("WriteToLogActivity", WRITE_LOG))
                                 .filter(each -> type.endsWith(each.suffix)).findFirst()
                                 .map(LookUpData::activityType).orElse(UNHANDLED);
+                    }
+                }
+
+                record JSONRender(Element element, String name, InputBinding inputBinding,
+                                  XSD targetType) implements InlineActivity {
+                    public JSONRender {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.JSON_PARSER_ACTIVITY;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
                     }
                 }
 
@@ -1354,6 +1373,7 @@ public class TibcoModel {
 
             record ComplexType(ComplexTypeBody body) implements XSDType {
                 public sealed interface ComplexTypeBody {
+                    List<Element> elements();
                     record Sequence(List<Element> elements) implements ComplexTypeBody {
 
                     }
