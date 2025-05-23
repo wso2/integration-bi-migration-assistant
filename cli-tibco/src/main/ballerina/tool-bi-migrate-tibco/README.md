@@ -63,10 +63,15 @@ purging the directory.
 ### Preserve process structure during conversion
 
 ```bash
+$ bal migrate-tibco path/to/tibco-project --keep-structure
+```
+or
+
+```bash
 $ bal migrate-tibco path/to/tibco-project -k
 ```
 
-By default, the TIBCO project is converted using the standard Ballerina Integration (BI) file structure. However, if the --keep-structure flag is used, each TIBCO process will be converted into a separate .bal file named after the process, maintaining the original process structure instead of following the standard BI layout.
+By default, the TIBCO project is converted using the standard Ballerina Integration (BI) file structure. However, if the `--keep-structure` or `-k` flag is used, each TIBCO process will be converted into a separate `.bal` file named after the process, maintaining the original process structure instead of following the standard BI layout.
 
 ## Output
 
