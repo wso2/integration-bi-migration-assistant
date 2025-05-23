@@ -65,6 +65,7 @@ public class ProjectContext {
     private final List<BallerinaModel.Function> utilityFunctions = new ArrayList<>();
     private final Set<BallerinaModel.Import> utilityFunctionImports = new HashSet<>();
     private final Map<String, BallerinaModel.ModuleVar> utilityVars = new HashMap<>();
+    private final Map<String, BallerinaModel.Listener> utilityListeners = new HashMap<>();
     private final Set<Intrinsics> utilityIntrinsics = new HashSet<>();
     private final Set<ComptimeFunction> utilityCompTimeFunctions = new HashSet<>();
     private final Map<String, String> processClients = new HashMap<>();
@@ -223,8 +224,10 @@ public class ProjectContext {
                 .sorted(Comparator.comparing(ComptimeFunction::functionName))
                 .map(ComptimeFunction::intrinsify);
         List<String> combinedIntrinsics = Stream.concat(sortedIntrinsics, sortedComptimes).toList();
+        List<BallerinaModel.Listener> listeners = utilityListeners.values().stream()
+                .sorted(Comparator.comparing(BallerinaModel.Listener::name)).toList();
         return new BallerinaModel.TextDocument("utils.bal", imports, List.of(), sortedConstants,
-                List.of(), List.of(), sortedFunctions, List.of(), combinedIntrinsics, List.of());
+                listeners, List.of(), sortedFunctions, List.of(), combinedIntrinsics, List.of());
     }
 
     private BallerinaModel.TextDocument typesFile() {
@@ -392,6 +395,7 @@ public class ProjectContext {
     }
 
     public String getToJsonFunction() {
+        utilityIntrinsics.add(Intrinsics.XML_PARSER_RESULT);
         utilityIntrinsics.add(Intrinsics.XML_PARSER);
         utilityIntrinsics.add(Intrinsics.TO_JSON);
         return Intrinsics.TO_JSON.name;
@@ -443,6 +447,14 @@ public class ProjectContext {
         generatedResources.put(resourceName, resourceVar.name());
     }
 
+    void addListnerDeclartion(String resourceName, BallerinaModel.Listener listener,
+                              Collection<BallerinaModel.ModuleVar> configurables, Collection<Library> imports) {
+        imports.forEach(this::importLibraryIfNeededToUtility);
+        configurables.forEach(each -> utilityVars.put(each.name(), each));
+        utilityListeners.put(listener.name(), listener);
+        generatedResources.put(resourceName, listener.name());
+    }
+
     public String getUtilityVarName(String base) {
         return ConversionUtils.getSanitizedUniqueName(base, utilityVars.keySet());
     }
@@ -453,12 +465,14 @@ public class ProjectContext {
     }
 
     public String getNamespaceFixFn() {
+        utilityIntrinsics.add(Intrinsics.XML_PARSER_RESULT);
         utilityIntrinsics.add(Intrinsics.XML_PARSER);
         utilityIntrinsics.add(Intrinsics.PATCH_XML_NAMESPACES);
         return Intrinsics.PATCH_XML_NAMESPACES.name;
     }
 
     public String getRenderJsonFn() {
+        utilityIntrinsics.add(Intrinsics.XML_PARSER_RESULT);
         utilityIntrinsics.add(Intrinsics.XML_PARSER);
         utilityIntrinsics.add(Intrinsics.RENDER_JSON);
         utilityIntrinsics.add(Intrinsics.TO_JSON);
