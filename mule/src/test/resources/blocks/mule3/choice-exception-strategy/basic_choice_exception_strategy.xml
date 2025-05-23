@@ -10,10 +10,10 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
     <flow name="demoFlow">
         <logger message="xxx: main flow logger invoked" level="INFO" doc:name="Logger"/>
         <choice-exception-strategy doc:name="Choice Exception Strategy">
-            <catch-exception-strategy doc:name="Catch Exception Strategy" when="condition1">
+            <catch-exception-strategy doc:name="Catch Exception Strategy" when="#[exception.causedBy(java.lang.NullPointerException)]">
                 <logger message="xxx: first catch condition invoked" level="INFO" doc:name="Logger"/>
             </catch-exception-strategy>
-            <catch-exception-strategy doc:name="Catch Exception Strategy" when="condition2">
+            <catch-exception-strategy doc:name="Catch Exception Strategy" when="#[exception.causedBy(java.lang.IllegalArgumentException) || exception.causedBy(java.lang.IllegalStateException)]">
                 <logger message="xxx: second catch condition invoked" level="INFO" doc:name="Logger"/>
             </catch-exception-strategy>
             <catch-exception-strategy doc:name="Catch Exception Strategy">

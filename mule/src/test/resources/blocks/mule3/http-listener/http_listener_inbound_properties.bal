@@ -1,11 +1,11 @@
 import ballerina/http;
 
 public type FlowVars record {|
-    anydata queryParams?;
+    map<string[]> queryParams?;
     string city?;
-    anydata queryParams2?;
+    map<string[]> queryParams2?;
     string city2?;
-    string uriParams?;
+    map<string> uriParams?;
     string country?;
     anydata unsupportedProperty?;
     anydata unsupportedPropertyAccess?;

@@ -5,7 +5,9 @@
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
     <flow name="weatherServiceFlow">
-        <set-session-variable variableName="bar" value="#['hello session']" doc:name="Session Variable"/>
-        <remove-session-variable variableName="bar" doc:name="Session Variable"/>
+        <set-session-variable variableName="greeting" value="#['hello session']" doc:name="Session Variable"/>
+        <set-session-variable variableName="from" value="#['USA']" doc:name="Session Variable"/>
+        <remove-session-variable variableName="greeting" doc:name="Session Variable"/>
+        <remove-session-variable variableName="from" doc:name="Session Variable"/>
     </flow>
 </mule>

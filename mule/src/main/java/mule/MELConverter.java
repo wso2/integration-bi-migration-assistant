@@ -52,11 +52,28 @@ public class MELConverter {
                 continue;
             }
 
-            if ((currentChar == '[' || currentChar == '.') && isInboundPropertyToken(tokenStr)) {
-                // We reach here for two kinds of syntax.
-                // 1. message.inboundProperties.'http.query.params'.foo
-                // 2. message.inboundProperties['http.query.params'].foo
-                i = processInboundProperty(melExpr, i, tokenStr, result, addToStringCalls);
+            if ((currentChar == '[' || currentChar == '.')) {
+                if (isFlowOrSessionVarToken(tokenStr)) {
+                    // We reach here for two kinds of syntax.
+                    // 1. flowVars.foo
+                    // 2. flowVars['foo']
+                    i = processFlowOrSessionVars(melExpr, i, tokenStr, result, addToStringCalls);
+                    token.setLength(0);
+                    continue;
+                }
+                if (isInboundPropertyToken(tokenStr)) {
+                    // We reach here for two kinds of syntax.
+                    // 1. message.inboundProperties.'http.query.params'.foo
+                    // 2. message.inboundProperties['http.query.params'].foo
+                    i = processInboundProperty(melExpr, i, tokenStr, result, addToStringCalls);
+                    token.setLength(0);
+                    continue;
+                }
+            }
+
+            if (currentChar == '(' && tokenStr.equals("exception.causedBy")) {
+                // Handle choice-exception conditions like exception.causedBy(java.lang.NullPointerException)
+                i = processExceptionCausedBy(melExpr, i, tokenStr, result);
                 token.setLength(0);
                 continue;
             }
@@ -87,6 +104,10 @@ public class MELConverter {
         return token.equals("message.inboundProperties") || token.equals("inboundProperties");
     }
 
+    private static boolean isFlowOrSessionVarToken(String token) {
+        return token.equals("flowVars") || token.equals("sessionVars");
+    }
+
     private static int processStringLiteral(String melExpr, int startPos, StringBuilder result) {
         char startingChar = melExpr.charAt(startPos);
         int i = startPos + 1;
@@ -113,6 +134,64 @@ public class MELConverter {
         }
 
         result.append("\"").append(stringLiteral).append("\"");
+        return i;
+    }
+
+    private static int processExceptionCausedBy(String melExpr, int startPos, String baseToken, StringBuilder result) {
+        StringBuilder javaExceptionRef = new StringBuilder();
+        int i = startPos;
+
+        assert melExpr.charAt(i) == '(';
+        i++; // Skip the opening parenthesis
+
+        while (i < melExpr.length() && isTokenChar(melExpr.charAt(i))) {
+            javaExceptionRef.append(melExpr.charAt(i));
+            i++;
+        }
+
+        if (i < melExpr.length() && melExpr.charAt(i) == ')') {
+            i++; // Skip the closing parenthesis
+        }
+
+        result.append(Constants.ON_FAIL_ERROR_VAR_REF).append(".message() == ")
+                .append("\"").append(javaExceptionRef).append("\"");
+
+        i--; // Adjust for the next iteration
+        return i;
+    }
+
+    private static int processFlowOrSessionVars(String melExpr, int startPos, String baseToken, StringBuilder result,
+                                                boolean addToStringCalls) {
+        StringBuilder varNameToken = new StringBuilder();
+        int i = startPos;
+
+        char c = melExpr.charAt(i);
+        if (c == '[') {
+            i++; // Skip the opening bracket
+            i++; // Skip the opening quote
+        } else if (c == '.') {
+            i++; // Skip the dot
+        } else {
+            throw new IllegalStateException("Unexpected character: " + c);
+        }
+
+        while (i < melExpr.length() && isTokenChar(melExpr.charAt(i))) {
+            varNameToken.append(melExpr.charAt(i));
+            i++;
+        }
+
+        if (i < melExpr.length() && melExpr.charAt(i) == '\'') {
+            i++; // Skip the closing quote
+            i++; // Skip the closing bracket
+        }
+
+        String varName = ConversionUtils.convertToBalIdentifier(varNameToken.toString());
+        result.append(Constants.CONTEXT_REFERENCE).append(".").append(baseToken).append(".").append(varName);
+        if (addToStringCalls) {
+            result.append(".toString()");
+        }
+
+        i--; // Adjust for the next iteration
         return i;
     }
 
@@ -150,7 +229,6 @@ public class MELConverter {
             }
             propertyName = propName.toString();
         }
-        i--; // Adjust for loop increment
 
         // Generate Ballerina code for array access
         if (hasPropertyAccess) {
@@ -161,11 +239,12 @@ public class MELConverter {
             result.append(arrayAccessStr);
         }
 
+        i--; // Adjust for loop increment
         return i;
     }
 
-    private static int processInboundProperty(String melExpr, int startPos, String tokenStr,
-                                              StringBuilder result, boolean addToStringCalls) {
+    private static int processInboundProperty(String melExpr, int startPos, String baseToken, StringBuilder result,
+                                              boolean addToStringCalls) {
         StringBuilder propertyKeyToken = new StringBuilder();
         int i = startPos;
         i++; // skip the opening bracket or dot
@@ -197,8 +276,12 @@ public class MELConverter {
             }
         }
 
-        String tokenResult = convertInboundPropertyAccess(propertyKeyToken.toString(), paramAccessToken.toString());
+        String paramName = ConversionUtils.convertToBalIdentifier(paramAccessToken.toString());
+        String tokenResult = convertInboundPropertyAccess(propertyKeyToken.toString(), paramName);
         result.append(tokenResult);
+        if (addToStringCalls) {
+            result.append(".toString()");
+        }
 
         i--; // Adjust for the next iteration
         return i;
@@ -249,17 +332,9 @@ public class MELConverter {
 
     private static String convertMuleTokenToBallerina(String str, boolean addToStringCalls) {
         String balStr;
-        // Check for compound expressions first (e.g., flowVars.foo)
-        if (str.startsWith("flowVars.")) { // TODO: make optional field access
-            String[] split = str.split("\\.");
-            balStr = "ctx." + String.join(".", split);
-        } else if (str.startsWith("sessionVars.")) {
-            String[] split = str.split("\\.");
-            balStr = "ctx." + String.join(".", split);
-        } else if (str.startsWith("payload.")) {
+         if (str.startsWith("payload.")) {
             balStr = "ctx." + str;
         } else {
-            // Then handle simple token replacements
             balStr = switch (str) {
                 case "payload", "message.payload" -> "ctx.payload";
                 case "message" -> "ctx";

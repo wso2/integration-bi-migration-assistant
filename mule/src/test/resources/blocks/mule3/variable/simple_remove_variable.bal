@@ -1,5 +1,6 @@
 public type FlowVars record {|
-    string foo?;
+    string greeting?;
+    string 'from?;
 |};
 
 public type Context record {|
@@ -8,6 +9,8 @@ public type Context record {|
 |};
 
 public function weatherServiceFlow(Context ctx) {
-    ctx.flowVars.foo = "hello";
-    ctx.flowVars.foo = ();
+    ctx.flowVars.greeting = "hello";
+    ctx.flowVars.'from = "USA";
+    ctx.flowVars.greeting = ();
+    ctx.flowVars.'from = ();
 }

@@ -370,10 +370,10 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
     <flow name="demoFlow">
         <logger message="xxx: main flow logger invoked" level="INFO" doc:name="Logger"/>
         <choice-exception-strategy doc:name="Choice Exception Strategy">
-            <catch-exception-strategy doc:name="Catch Exception Strategy" when="condition1">
+            <catch-exception-strategy doc:name="Catch Exception Strategy" when="#[exception.causedBy(java.lang.NullPointerException)]">
                 <logger message="xxx: first catch condition invoked" level="INFO" doc:name="Logger"/>
             </catch-exception-strategy>
-            <catch-exception-strategy doc:name="Catch Exception Strategy" when="condition2">
+            <catch-exception-strategy doc:name="Catch Exception Strategy" when="#[exception.causedBy(java.lang.IllegalArgumentException) || exception.causedBy(java.lang.IllegalStateException)]">
                 <logger message="xxx: second catch condition invoked" level="INFO" doc:name="Logger"/>
             </catch-exception-strategy>
             <catch-exception-strategy doc:name="Catch Exception Strategy">
@@ -396,9 +396,10 @@ public function demoFlow(Context ctx) {
     do {
         log:printInfo("xxx: main flow logger invoked");
     } on fail error e {
-        if "condition1" {
+        // TODO: if conditions may require some manual adjustments
+        if e.message() == "java.lang.NullPointerException" {
             log:printInfo("xxx: first catch condition invoked");
-        } else if "condition2" {
+        } else if e.message() == "java.lang.IllegalArgumentException" || e.message() == "java.lang.IllegalStateException" {
             log:printInfo("xxx: second catch condition invoked");
         } else {
             log:printInfo("xxx: generic catch condition invoked");
@@ -426,10 +427,10 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <http:listener config-ref="config" path="/"  doc:name="HTTP" allowedMethods="GET"/>
         <logger message="xxx: logger invoked via http end point" level="INFO" doc:name="Logger"/>
         <choice-exception-strategy doc:name="Choice Exception Strategy">
-            <catch-exception-strategy doc:name="Catch Exception Strategy" when="condition1">
+            <catch-exception-strategy doc:name="Catch Exception Strategy" when="#[exception.causedBy(java.lang.NullPointerException)]">
                 <logger message="xxx: first catch condition invoked" level="INFO" doc:name="Logger"/>
             </catch-exception-strategy>
-            <catch-exception-strategy doc:name="Catch Exception Strategy" when="condition2">
+            <catch-exception-strategy doc:name="Catch Exception Strategy" when="#[exception.causedBy(java.lang.IllegalArgumentException) || exception.causedBy(java.lang.IllegalStateException)]">
                 <logger message="xxx: second catch condition invoked" level="INFO" doc:name="Logger"/>
             </catch-exception-strategy>
             <catch-exception-strategy doc:name="Catch Exception Strategy">
@@ -464,9 +465,10 @@ service /mule3 on config {
         do {
             log:printInfo("xxx: logger invoked via http end point");
         } on fail error e {
-            if "condition1" {
+            // TODO: if conditions may require some manual adjustments
+            if e.message() == "java.lang.NullPointerException" {
                 log:printInfo("xxx: first catch condition invoked");
-            } else if "condition2" {
+            } else if e.message() == "java.lang.IllegalArgumentException" || e.message() == "java.lang.IllegalStateException" {
                 log:printInfo("xxx: second catch condition invoked");
             } else {
                 log:printInfo("xxx: generic catch condition invoked");
@@ -1264,11 +1266,11 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 import ballerina/http;
 
 public type FlowVars record {|
-    anydata queryParams?;
+    map<string[]> queryParams?;
     string city?;
-    anydata queryParams2?;
+    map<string[]> queryParams2?;
     string city2?;
-    string uriParams?;
+    map<string> uriParams?;
     string country?;
     anydata unsupportedProperty?;
     anydata unsupportedPropertyAccess?;
@@ -1402,7 +1404,7 @@ service /demo on config {
     resource function get testquery(http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new}};
         log:printInfo("xxx: logger invoked");
-        log:printInfo(string `Path params - version: ${ctx.inboundProperties.request.getQueryParamValue("country")}, id: ${ctx.inboundProperties.request.getQueryParamValue("city")}`);
+        log:printInfo(string `Path params - version: ${ctx.inboundProperties.request.getQueryParamValue("country").toString()}, id: ${ctx.inboundProperties.request.getQueryParamValue("city").toString()}`);
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
         return ctx.inboundProperties.response;
@@ -1454,7 +1456,7 @@ service /mule3 on config {
     resource function get [string version]/demo/[string id](http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new, uriParams: {version, id}}};
         log:printInfo("xxx: logger invoked");
-        log:printInfo(string `Path params - version: ${ctx.inboundProperties.uriParams.get("version")}, id: ${ctx.inboundProperties.uriParams.get("id")}`);
+        log:printInfo(string `Path params - version: ${ctx.inboundProperties.uriParams.get("version").toString()}, id: ${ctx.inboundProperties.uriParams.get("id").toString()}`);
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
         return ctx.inboundProperties.response;
@@ -1477,7 +1479,7 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule-3"/>
     <flow name="demoFlow">
-        <http:listener config-ref="config" path="/v-1/demo/1.0/main-contract/" allowedMethods="GET" doc:name="HTTP"/>
+        <http:listener config-ref="config" path="/v-1/demo/1.0/main-contract/new" allowedMethods="GET" doc:name="HTTP"/>
         <logger message="xxx: logger invoked" level="INFO" doc:name="Logger"/>
     </flow>
 </mule>
@@ -1502,7 +1504,7 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule\-3 on config {
-    resource function get v\-1/demo/'1\.0/main\-contract(http:Request request) returns http:Response|error {
+    resource function get v\-1/demo/'1\.0/main\-contract/'new(http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new}};
         log:printInfo("xxx: logger invoked");
 
@@ -2205,9 +2207,10 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
     <flow name="myFlow">
         <logger message="xxx: flow starting logger invoked" level="INFO" doc:name="Logger"/>
-        <set-session-variable variableName="sessionVar1" value="this is first session variable" doc:name="Session Variable"/>
-        <set-session-variable variableName="sessionVar2" value="this is second session variable" doc:name="Session Variable"/>
-        <logger message="xxx: end of flow reached" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="day" value="21" doc:name="Session Variable"/>
+        <set-session-variable variableName="month" value="July" doc:name="Session Variable"/>
+        <set-session-variable variableName="from" value="2025" doc:name="Session Variable"/>
+        <logger message="Session variables are: day - #[sessionVars.day], month - #[sessionVars.month], from - #[sessionVars['from']]" level="INFO" doc:name="Logger"/>
     </flow>
 </mule>
 
@@ -2217,8 +2220,9 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 import ballerina/log;
 
 public type SessionVars record {|
-    string sessionVar1?;
-    string sessionVar2?;
+    string day?;
+    string month?;
+    string 'from?;
 |};
 
 public type Context record {|
@@ -2228,9 +2232,10 @@ public type Context record {|
 
 public function myFlow(Context ctx) {
     log:printInfo("xxx: flow starting logger invoked");
-    ctx.sessionVars.sessionVar1 = "this is first session variable";
-    ctx.sessionVars.sessionVar2 = "this is second session variable";
-    log:printInfo("xxx: end of flow reached");
+    ctx.sessionVars.day = "21";
+    ctx.sessionVars.month = "July";
+    ctx.sessionVars.'from = "2025";
+    log:printInfo(string `Session variables are: day - ${ctx.sessionVars.day.toString()}, month - ${ctx.sessionVars.month.toString()}, from - ${ctx.sessionVars.'from.toString()}`);
 }
 
 ```
@@ -2324,8 +2329,10 @@ service /mule3 on HTTP_Config {
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
     <flow name="weatherServiceFlow">
-        <set-session-variable variableName="bar" value="#['hello session']" doc:name="Session Variable"/>
-        <remove-session-variable variableName="bar" doc:name="Session Variable"/>
+        <set-session-variable variableName="greeting" value="#['hello session']" doc:name="Session Variable"/>
+        <set-session-variable variableName="from" value="#['USA']" doc:name="Session Variable"/>
+        <remove-session-variable variableName="greeting" doc:name="Session Variable"/>
+        <remove-session-variable variableName="from" doc:name="Session Variable"/>
     </flow>
 </mule>
 
@@ -2333,7 +2340,8 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 **Output (simple_remove_session_variable.bal):**
 ```ballerina
 public type SessionVars record {|
-    string bar?;
+    string greeting?;
+    string 'from?;
 |};
 
 public type Context record {|
@@ -2342,8 +2350,10 @@ public type Context record {|
 |};
 
 public function weatherServiceFlow(Context ctx) {
-    ctx.sessionVars.bar = "hello session";
-    ctx.sessionVars.bar = ();
+    ctx.sessionVars.greeting = "hello session";
+    ctx.sessionVars.'from = "USA";
+    ctx.sessionVars.greeting = ();
+    ctx.sessionVars.'from = ();
 }
 
 ```
@@ -2803,8 +2813,11 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
     <http:listener-config name="config" host="0.0.0.0" port="8081"  doc:name="HTTP Listener Configuration" basePath="mule3"/>
     <flow name="demoFlow">
         <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
-        <set-variable variableName="name" value="lochana" doc:name="Variable"/>
+        <set-variable variableName="name" value="John" doc:name="Variable"/>
         <set-variable variableName="age" value="29" doc:name="Variable"/>
+        <set-variable variableName="from" value="USA" doc:name="Variable"/>
+        <logger
+                message="Variables defined are: name - #[flowVars.name], age - #[flowVars['age']], from - #[flowVars['from']]" level="INFO" doc:name="Logger"/>
     </flow>
 </mule>
 
@@ -2812,10 +2825,12 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 **Output (basic_set_variable.bal):**
 ```ballerina
 import ballerina/http;
+import ballerina/log;
 
 public type FlowVars record {|
     string name?;
     string age?;
+    string 'from?;
 |};
 
 public type InboundProperties record {|
@@ -2835,8 +2850,10 @@ public listener http:Listener config = new (8081);
 service /mule3 on config {
     resource function get .(http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new}};
-        ctx.flowVars.name = "lochana";
+        ctx.flowVars.name = "John";
         ctx.flowVars.age = "29";
+        ctx.flowVars.'from = "USA";
+        log:printInfo(string `Variables defined are: name - ${ctx.flowVars.name.toString()}, age - ${ctx.flowVars.age.toString()}, from - ${ctx.flowVars.'from.toString()}`);
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
         return ctx.inboundProperties.response;
@@ -2856,8 +2873,10 @@ service /mule3 on config {
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
     <flow name="weatherServiceFlow">
-        <set-variable variableName="foo" value="#['hello']" doc:name="Variable"/>
-        <remove-variable variableName="foo" doc:name="Variable"/>
+        <set-variable variableName="greeting" value="#['hello']" doc:name="Variable"/>
+        <set-variable variableName="from" value="#['USA']" doc:name="Variable"/>
+        <remove-variable variableName="greeting" doc:name="Variable"/>
+        <remove-variable variableName="from" doc:name="Variable"/>
     </flow>
 </mule>
 
@@ -2865,7 +2884,8 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 **Output (simple_remove_variable.bal):**
 ```ballerina
 public type FlowVars record {|
-    string foo?;
+    string greeting?;
+    string 'from?;
 |};
 
 public type Context record {|
@@ -2874,8 +2894,10 @@ public type Context record {|
 |};
 
 public function weatherServiceFlow(Context ctx) {
-    ctx.flowVars.foo = "hello";
-    ctx.flowVars.foo = ();
+    ctx.flowVars.greeting = "hello";
+    ctx.flowVars.'from = "USA";
+    ctx.flowVars.greeting = ();
+    ctx.flowVars.'from = ();
 }
 
 ```

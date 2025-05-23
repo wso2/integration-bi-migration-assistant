@@ -10,8 +10,9 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
     <flow name="myFlow">
         <logger message="xxx: flow starting logger invoked" level="INFO" doc:name="Logger"/>
-        <set-session-variable variableName="sessionVar1" value="this is first session variable" doc:name="Session Variable"/>
-        <set-session-variable variableName="sessionVar2" value="this is second session variable" doc:name="Session Variable"/>
-        <logger message="xxx: end of flow reached" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="day" value="21" doc:name="Session Variable"/>
+        <set-session-variable variableName="month" value="July" doc:name="Session Variable"/>
+        <set-session-variable variableName="from" value="2025" doc:name="Session Variable"/>
+        <logger message="Session variables are: day - #[sessionVars.day], month - #[sessionVars.month], from - #[sessionVars['from']]" level="INFO" doc:name="Logger"/>
     </flow>
 </mule>
