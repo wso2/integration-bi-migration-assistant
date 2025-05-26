@@ -46,6 +46,7 @@ import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.CallProce
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.FileRead;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.FileWrite;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HTTPResponse;
+import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.JDBC;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.JSONParser;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.JSONRender;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.REST;
@@ -95,6 +96,7 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
 import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
+import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 
 final class ActivityConverter {
 
@@ -157,50 +159,78 @@ final class ActivityConverter {
         };
     }
 
-    private static @NotNull List<Statement> convertInlineActivity(
-            ActivityContext cx, TibcoModel.Process.ExplicitTransitionGroup.InlineActivity inlineActivity) {
-        List<Statement> body = new ArrayList<>();
-        VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
-        body.add(inputDecl);
-        VariableReference result;
-        if (inlineActivity.hasInputBinding()) {
-            List<VarDeclStatment> inputBindings = convertInputBindings(cx, inputDecl.ref(),
-                    List.of(inlineActivity.inputBinding()));
-            body.addAll(inputBindings);
-            result = new VariableReference(inputBindings.getLast().varName());
-        } else {
-            result = inputDecl.ref();
+        private static @NotNull List<Statement> convertInlineActivity(
+                ActivityContext cx, TibcoModel.Process.ExplicitTransitionGroup.InlineActivity inlineActivity) {
+            List<Statement> body = new ArrayList<>();
+            VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+            body.add(inputDecl);
+            VariableReference result;
+            if (inlineActivity.hasInputBinding()) {
+                List<VarDeclStatment> inputBindings = convertInputBindings(cx, inputDecl.ref(),
+                        List.of(inlineActivity.inputBinding()));
+                body.addAll(inputBindings);
+                result = new VariableReference(inputBindings.getLast().varName());
+            } else {
+                result = inputDecl.ref();
+            }
+            ActivityExtensionConfigConversion conversion = switch (inlineActivity) {
+                case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource ignored ->
+                        emptyExtensionConversion(cx, result);
+                case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.MapperActivity ignored ->
+                        emptyExtensionConversion(cx, result);
+                case UnhandledInlineActivity unhandledInlineActivity ->
+                        convertUnhandledActivity(cx, result, unhandledInlineActivity);
+                case AssignActivity assignActivity -> convertAssignActivity(cx, result, assignActivity);
+                case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.NullActivity ignored ->
+                        emptyExtensionConversion(cx, result);
+                case HTTPResponse httpResponse -> convertHttpResponse(cx, result, httpResponse);
+                case WriteLog writeLog -> convertWriteLogActivity(cx, result, writeLog);
+                case CallProcess callProcess -> convertCallProcess(cx, result, callProcess);
+                case FileWrite fileWrite -> convertFileWrite(cx, result, fileWrite);
+                case FileRead fileRead -> convertFileRead(cx, result, fileRead);
+                case XMLRenderActivity xmlRenderActivity -> convertXmlRenderActivity(cx, result, xmlRenderActivity);
+                case XMLParseActivity xmlParseActivity -> convertXmlParseActivity(cx, result, xmlParseActivity);
+                case SOAPSendReceive soapSendReceive -> convertSoapSendReceive(cx, result, soapSendReceive);
+                case SOAPSendReply soapSendReply -> convertSoapSendReply(cx, result, soapSendReply);
+                case LoopGroup loopGroup -> convertLoopGroup(cx, result, loopGroup);
+                case REST rest -> convertREST(cx, result, rest);
+                case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.Catch ignored ->
+                        emptyExtensionConversion(cx, result);
+                case JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
+                case JSONRender jsonRender -> convertJsonRender(cx, result, jsonRender);
+                case JDBC jdbc -> convertJDBC(cx, result, jdbc);
+            };
+            body.addAll(conversion.body());
+            body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
+            body.add(new Return<>(conversion.result()));
+            return body;
         }
-        ActivityExtensionConfigConversion conversion = switch (inlineActivity) {
-            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource ignored ->
-                    emptyExtensionConversion(cx, result);
-            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.MapperActivity ignored ->
-                    emptyExtensionConversion(cx, result);
-            case UnhandledInlineActivity unhandledInlineActivity ->
-                    convertUnhandledActivity(cx, result, unhandledInlineActivity);
-            case AssignActivity assignActivity -> convertAssignActivity(cx, result, assignActivity);
-            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.NullActivity ignored ->
-                    emptyExtensionConversion(cx, result);
-            case HTTPResponse httpResponse -> convertHttpResponse(cx, result, httpResponse);
-            case WriteLog writeLog -> convertWriteLogActivity(cx, result, writeLog);
-            case CallProcess callProcess -> convertCallProcess(cx, result, callProcess);
-            case FileWrite fileWrite -> convertFileWrite(cx, result, fileWrite);
-            case FileRead fileRead -> convertFileRead(cx, result, fileRead);
-            case XMLRenderActivity xmlRenderActivity -> convertXmlRenderActivity(cx, result, xmlRenderActivity);
-            case XMLParseActivity xmlParseActivity -> convertXmlParseActivity(cx, result, xmlParseActivity);
-            case SOAPSendReceive soapSendReceive -> convertSoapSendReceive(cx, result, soapSendReceive);
-            case SOAPSendReply soapSendReply -> convertSoapSendReply(cx, result, soapSendReply);
-            case LoopGroup loopGroup -> convertLoopGroup(cx, result, loopGroup);
-            case REST rest -> convertREST(cx, result, rest);
-            case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.Catch ignored ->
-                    emptyExtensionConversion(cx, result);
-            case JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
-            case JSONRender jsonRender -> convertJsonRender(cx, result, jsonRender);
-        };
-        body.addAll(conversion.body());
-        body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
-        body.add(new Return<>(conversion.result()));
-        return body;
+
+    private static ActivityExtensionConfigConversion convertJDBC(
+            ActivityContext cx, VariableReference input, JDBC jdbc) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment statement = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<statement>/*).toString()".formatted(input.varName())));
+        body.add(statement);
+        VarDeclStatment query = new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE), cx.getAnnonVarName(),
+                exprFrom("`${%s}`".formatted(statement.ref())));
+        body.add(query);
+        VariableReference client = cx.dbClient(jdbc.connection());
+        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName());
+        body.add(result);
+
+        List<Statement> ifSelectBody = new ArrayList<>();
+        var ifSelectResult = finishSelectQuery(cx, client, query.ref(), ifSelectBody);
+        ifSelectBody.add(new Statement.VarAssignStatement(result.ref(), ifSelectResult.result()));
+
+        List<Statement> queryBody = new ArrayList<>();
+        var queryResult = finishSelectQuery(cx, client, query.ref(), queryBody);
+        queryBody.add(new Statement.VarAssignStatement(result.ref(), queryResult.result()));
+
+        body.add(new Statement.IfElseStatement(
+                exprFrom("%s.startsWith(\"SELECT\")".formatted(statement.ref())), ifSelectBody, List.of(), queryBody));
+        body.add(new Comment("WARNING: validate jdbc query result mapping"));
+        return new ActivityExtensionConfigConversion(result.ref(), body);
     }
 
     private static ActivityExtensionConfigConversion convertJsonRender(
@@ -841,10 +871,14 @@ final class ActivityConverter {
         VarDeclStatment queryDecl = ConversionUtils.createQueryDecl(cx, vars, sql);
         body.add(queryDecl);
 
-        VariableReference dbClient = cx.client(sql.sharedResourcePropertyName());
-        if (sql.query().toUpperCase().startsWith("SELECT")) {
-            return finishSelectQuery(cx, sql, dbClient, queryDecl.ref(), body);
+            VariableReference dbClient = cx.client(sql.sharedResourcePropertyName());
+            if (sql.query().toUpperCase().startsWith("SELECT")) {
+                return finishSelectQuery(cx, dbClient, queryDecl.ref(), body);
+            }
+            return finishSQLQuery(cx, body, dbClient, queryDecl);
         }
+
+    private static @NotNull ActivityExtensionConfigConversion finishSQLQuery(ActivityContext cx, List<Statement> body, VariableReference dbClient, VarDeclStatment queryDecl) {
         body.add(new VarDeclStatment(
                 cx.processContext.getTypeByName(BallerinaSQLConstants.EXECUTION_RESULT_TYPE),
                 cx.getAnnonVarName(),
@@ -858,29 +892,28 @@ final class ActivityConverter {
     }
 
     private static Map<String, VariableReference> addParamDecl(List<Statement> body, VariableReference dataValue,
-                                                               ActivityExtension.Config.SQL sql) {
-        Map<String, VariableReference> vars = new HashMap<>();
-        for (ActivityExtension.Config.SQL.SQLParameter each : sql.parameters()) {
-            String name = each.name();
-            VarDeclStatment varDecl = new VarDeclStatment(STRING, name,
-                    exprFrom("(%s/<%s>/*).toString().trim()".formatted(dataValue.varName(), name)));
-            body.add(varDecl);
-            vars.put(name, varDecl.ref());
+                                                                   ActivityExtension.Config.SQL sql) {
+            Map<String, VariableReference> vars = new HashMap<>();
+            for (ActivityExtension.Config.SQL.SQLParameter each : sql.parameters()) {
+                String name = each.name();
+                VarDeclStatment varDecl = new VarDeclStatment(STRING, name,
+                        exprFrom("(%s/<%s>/*).toString().trim()".formatted(dataValue.varName(), name)));
+                body.add(varDecl);
+                vars.put(name, varDecl.ref());
+            }
+            return vars;
         }
-        return vars;
-    }
 
-    private static @NotNull ActivityExtensionConfigConversion finishSelectQuery(
-            ActivityContext cx, ActivityExtension.Config.SQL sql, VariableReference dbClient,
-            VariableReference query, List<Statement> body) {
-        StreamTypeDesc streamTypeDesc = new StreamTypeDesc(
-                new BallerinaModel.TypeDesc.MapTypeDesc(ANYDATA),
-                UnionTypeDesc.of(ERROR, NIL));
-        VarDeclStatment stream = new VarDeclStatment(
-                streamTypeDesc, cx.getAnnonVarName(),
-                new RemoteMethodCallAction(dbClient, BallerinaSQLConstants.QUERY_METHOD,
-                        List.of(query)));
-        body.add(stream);
+        private static @NotNull ActivityExtensionConfigConversion finishSelectQuery(
+                ActivityContext cx, VariableReference dbClient, VariableReference query, List<Statement> body) {
+            StreamTypeDesc streamTypeDesc = new StreamTypeDesc(
+                    new BallerinaModel.TypeDesc.MapTypeDesc(ANYDATA),
+                    UnionTypeDesc.of(ERROR, NIL));
+            VarDeclStatment stream = new VarDeclStatment(
+                    streamTypeDesc, cx.getAnnonVarName(),
+                    new RemoteMethodCallAction(dbClient, BallerinaSQLConstants.QUERY_METHOD,
+                            List.of(query)));
+            body.add(stream);
 
         VarDeclStatment accum = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(""));
         body.add(accum);

@@ -4,6 +4,7 @@ import ballerina/http;
 import ballerina/io;
 import ballerina/log;
 import ballerina/soap.soap11;
+import ballerina/sql;
 import ballerina/xslt;
 
 function Catch(map<xml> context) returns xml|error {
@@ -17,7 +18,7 @@ function ErrorLog(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
-     <xsl:template name="Transform8" match="/">
+     <xsl:template name="Transform9" match="/">
         <ActivityInput>
                     
     <message>
@@ -194,6 +195,54 @@ function SOAPRequestReply(map<xml> context) returns xml|error {
     return var4;
 }
 
+function SQL_Direct(map<xml> context) returns xml|error {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
+     <xsl:template name="Transform8" match="/">
+        <jdbcGeneralActivityInput>
+                        
+    <statement>
+                                
+        <xsl:value-of select="'SELECT * FROM foo'" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                            
+    </statement>
+                    
+</jdbcGeneralActivityInput>
+
+    </xsl:template>
+</xsl:stylesheet>`, context);
+    string var2 = (var1/**/<statement>/*).toString();
+    sql:ParameterizedQuery var3 = `${var2}`;
+    xml var4;
+    if var2.startsWith("SELECT") {
+        stream<map<anydata>, error|()> var5 = JDBCConnection->query(var3);
+        xml var6 = xml ``;
+        check from var each in var5
+            do {
+                xml var7 = check toXML(each);
+                var6 = var6 + var7;
+            };
+
+        xml var8 = xml `<root>${var6}</root>`;
+        var4 = var8;
+    } else {
+        stream<map<anydata>, error|()> var9 = JDBCConnection->query(var3);
+        xml var10 = xml ``;
+        check from var each in var9
+            do {
+                xml var11 = check toXML(each);
+                var10 = var10 + var11;
+            };
+
+        xml var12 = xml `<root>${var10}</root>`;
+        var4 = var12;
+    }
+    //WARNING: validate jdbc query result mapping
+    addToContext(context, "SQL-Direct", var4);
+    return var4;
+}
+
 function Write_File(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
@@ -256,7 +305,7 @@ function start_Processes_MainProcessStarter_process(xml inputXML, map<xml> param
     return scope0ScopeFn(params);
 }
 
-function HTTP_Receiver_11(map<xml> context) returns xml|error {
+function HTTP_Receiver_12(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
     addToContext(context, "HTTP-Receiver", var1);
@@ -307,7 +356,7 @@ function InnerLogIndex(map<xml> context) returns xml|error {
     return var2;
 }
 
-function Log_13(map<xml> context) returns xml|error {
+function Log_14(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform1" match="/">
@@ -347,7 +396,7 @@ function Loop(map<xml> context) returns xml|error {
     return var1;
 }
 
-function Mapper_12(map<xml> context) returns xml|error {
+function Mapper_13(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="runAllTests"/>     <xsl:template name="Transform0" match="/">
@@ -497,9 +546,9 @@ function SOAPSendReply(map<xml> context) returns xml|error {
 }
 
 function scope0_1ActivityRunner(map<xml> cx) returns xml|error {
-    xml result0 = check HTTP_Receiver_11(cx);
-    xml result1 = check Mapper_12(cx);
-    xml result2 = check Log_13(cx);
+    xml result0 = check HTTP_Receiver_12(cx);
+    xml result1 = check Mapper_13(cx);
+    xml result2 = check Log_14(cx);
     xml result3 = check SOAPSendReply(cx);
     return result3;
 }

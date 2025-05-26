@@ -80,6 +80,13 @@ public final class XmlToTibcoModelConverter {
     private XmlToTibcoModelConverter() {
     }
 
+    public static TibcoModel.Resource.JDBCSharedResource parseSharedJDBCResource(Element root) {
+        String name = getFirstChildWithTag(root, "name").getTextContent();
+        Element configuration = getFirstChildWithTag(root, "config");
+        String location = getFirstChildWithTag(configuration, "location").getTextContent();
+        return new TibcoModel.Resource.JDBCSharedResource(name, location);
+    }
+
     public static TibcoModel.Resource.JDBCResource parseJDBCResource(Element root) {
         String name = root.getAttribute("name");
         Element configuration = getFirstChildWithTag(root, "configuration");
@@ -250,8 +257,20 @@ public final class XmlToTibcoModelConverter {
             case CATCH -> new InlineActivity.Catch(element, name, inputBinding);
             case JSON_PARSER_ACTIVITY -> parseJSONParserActivity(element, name, inputBinding);
             case JSON_RENDER_ACTIVITY -> parseJSONRenderActivity(element, name, inputBinding);
+            case JDBC -> parseJDBCActivity(element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
         };
+    }
+
+    private static InlineActivity.JDBC parseJDBCActivity(Element element, String name, Flow.Activity.InputBinding inputBinding) {
+        String connection = tryGetInlineActivityConfigValue(element, "jdbcSharedConfig")
+                .orElseThrow(() -> new ParserException("Failed to find jdbcSharedConfig", element));
+        String[] parts = connection.split("/");
+        connection = parts[parts.length - 1];
+        String suffix = ".sharedjdbc";
+        connection = connection.endsWith(suffix) ? connection.substring(0, connection.length() - suffix.length())
+                : connection;
+        return new InlineActivity.JDBC(element, name, inputBinding, connection);
     }
 
     private static InlineActivity.JSONRender parseJSONRenderActivity(Element element, String name, Flow.Activity.InputBinding inputBinding) {

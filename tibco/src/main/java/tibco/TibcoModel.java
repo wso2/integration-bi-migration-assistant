@@ -68,6 +68,15 @@ public class TibcoModel {
 
         Collection<SubstitutionBinding> substitutionBindings();
 
+
+        record JDBCSharedResource(String name, String location) implements Resource {
+
+            @Override
+            public Collection<SubstitutionBinding> substitutionBindings() {
+                return List.of();
+            }
+        }
+
         record JDBCResource(String name, String userName, String password, String jdbcDriver, String dbUrl,
                 Collection<SubstitutionBinding> substitutionBindings) implements Resource {
 
@@ -237,6 +246,7 @@ public class TibcoModel {
                     CATCH,
                     JSON_PARSER_ACTIVITY,
                     JSON_RENDER_ACTIVITY,
+                    JDBC,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
@@ -256,6 +266,7 @@ public class TibcoModel {
                                         new LookUpData("CatchActivity", CATCH),
                                         new LookUpData("FileReadActivity", FILE_READ),
                                         new LookUpData("FileWriteActivity", FILE_WRITE),
+                                        new LookUpData("JDBCGeneralActivity", JDBC),
                                         new LookUpData("RestActivity", REST),
                                         new LookUpData("CallProcessActivity", CALL_PROCESS),
                                         new LookUpData("SOAPSendReceiveActivity", SOAP_SEND_RECEIVE),
@@ -265,6 +276,23 @@ public class TibcoModel {
                                         new LookUpData("WriteToLogActivity", WRITE_LOG))
                                 .filter(each -> type.endsWith(each.suffix)).findFirst()
                                 .map(LookUpData::activityType).orElse(UNHANDLED);
+                    }
+                }
+
+                record JDBC(Element element, String name, InputBinding inputBinding,
+                            String connection) implements InlineActivity {
+                    public JDBC {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.JDBC;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
                     }
                 }
 
