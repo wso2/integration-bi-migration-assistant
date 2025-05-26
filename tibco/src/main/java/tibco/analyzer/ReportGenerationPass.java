@@ -54,7 +54,8 @@ public class ReportGenerationPass extends AnalysisPass {
 
     private AnalysisReport.UnhandledActivityElement generateUnhandledActivityReport(
             UnhandledInlineActivity unhandledActivity) {
-        return new NamedUnhandledActivityElement(unhandledActivity.name(), unhandledActivity.element());
+        return new NamedUnhandledActivityElement(unhandledActivity.name(), unhandledActivity.activityType(),
+                unhandledActivity.element());
     }
 
     @Override
