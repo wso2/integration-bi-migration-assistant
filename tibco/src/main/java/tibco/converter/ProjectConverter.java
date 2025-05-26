@@ -81,7 +81,7 @@ public class ProjectConverter {
                 }).toList();
         schemas.addAll(cx.getXSDSchemas());
         SyntaxTree typeSyntaxTree = convertTypes(cx, schemas);
-        return new ConversionResult(cx.serialize(textDocuments), typeSyntaxTree);
+        return new ConversionResult(cx.serialize(textDocuments), typeSyntaxTree, report);
     }
 
     private static void accumSchemas(TibcoModel.Process process, Collection<TibcoModel.Type.Schema> accum) {

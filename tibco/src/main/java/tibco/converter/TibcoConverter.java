@@ -36,7 +36,8 @@ import java.util.logging.Logger;
 public class TibcoConverter {
     private static Logger logger;
 
-    public static void migrateTibco(String sourcePath, String outputPath, boolean preserverStructure, boolean verbose, boolean dryRun) {
+    public static void migrateTibco(String sourcePath, String outputPath, boolean preserverStructure, boolean verbose,
+                                    boolean dryRun) {
         logger = verbose ? createDefaultLogger("migrate-tibco") : createSilentLogger("migrate-tibco");
         Path inputPath = null;
         try {
@@ -60,7 +61,8 @@ public class TibcoConverter {
         }
     }
 
-    static void migrateTibcoProject(String projectPath, String targetPath, boolean preserverStructure, boolean verbose, boolean dryRun) {
+    static void migrateTibcoProject(String projectPath, String targetPath, boolean preserverStructure, boolean verbose,
+                                    boolean dryRun) {
         logger = verbose ? createDefaultLogger("migrate-tibco") : createSilentLogger("migrate-tibco");
         Path targetDir = Paths.get(targetPath);
         try {
