@@ -212,8 +212,8 @@ final class ActivityConverter {
         VarDeclStatment statement = new VarDeclStatment(STRING, cx.getAnnonVarName(),
                 exprFrom("(%s/**/<statement>/*).toString()".formatted(input.varName())));
         body.add(statement);
-        VarDeclStatment query = new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE), cx.getAnnonVarName(),
-                exprFrom("`${%s}`".formatted(statement.ref())));
+        VarDeclStatment query = new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
+                cx.getAnnonVarName(), exprFrom("`${%s}`".formatted(statement.ref())));
         body.add(query);
         VariableReference client = cx.dbClient(jdbc.connection());
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName());
@@ -878,7 +878,8 @@ final class ActivityConverter {
             return finishSQLQuery(cx, body, dbClient, queryDecl);
         }
 
-    private static @NotNull ActivityExtensionConfigConversion finishSQLQuery(ActivityContext cx, List<Statement> body, VariableReference dbClient, VarDeclStatment queryDecl) {
+    private static @NotNull ActivityExtensionConfigConversion finishSQLQuery(
+            ActivityContext cx, List<Statement> body, VariableReference dbClient, VarDeclStatment queryDecl) {
         body.add(new VarDeclStatment(
                 cx.processContext.getTypeByName(BallerinaSQLConstants.EXECUTION_RESULT_TYPE),
                 cx.getAnnonVarName(),

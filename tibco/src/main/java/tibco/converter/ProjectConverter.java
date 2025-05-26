@@ -95,7 +95,8 @@ public class ProjectConverter {
     private static void convertResources(ProjectContext cx, Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
                                          Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
                                          Set<TibcoModel.Resource.HTTPClientResource> httpClientResources,
-                                         Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources, Set<TibcoModel.Resource.JDBCSharedResource> jdbcSharedResource) {
+                                         Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources,
+                                         Set<TibcoModel.Resource.JDBCSharedResource> jdbcSharedResource) {
         for (TibcoModel.Resource.JDBCResource resource : jdbcResources) {
             ResourceConvertor.convertJDBCResource(cx, resource);
         }
