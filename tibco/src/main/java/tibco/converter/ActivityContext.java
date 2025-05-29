@@ -148,4 +148,8 @@ public class ActivityContext {
     public void addXSDSchemaToConversion(TibcoModel.Type.Schema schema) {
         projectContext().addXSDSchemaToConversion(schema);
     }
+
+    public BallerinaModel.Expression.VariableReference dbClient(String connection) {
+        return projectContext().dbClient(connection);
+    }
 }

@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
+import static common.ConversionUtils.exprFrom;
 
 final class ResourceConvertor {
 
@@ -86,6 +87,15 @@ final class ResourceConvertor {
         BallerinaModel.Listener listener = new BallerinaModel.Listener(BallerinaModel.ListenerType.HTTP, name,
                 Integer.toString(resource.port()), Map.of("host", resource.host()));
         cx.addListnerDeclartion(resource.name(), listener, List.of(), List.of(Library.HTTP));
+    }
+
+    public static void convertJDBCSharedResource(ProjectContext cx, TibcoModel.Resource.JDBCSharedResource resource) {
+
+        NewExpression constructorCall = new NewExpression(List.of(exprFrom("\"" + resource.location() + "\"")));
+        ModuleVar resourceVar =
+                new ModuleVar(cx.getUtilityVarName(resource.name()), "jdbc:Client",
+                        Optional.of(new CheckPanic(constructorCall)), false, false);
+        cx.addResourceDeclaration(resource.name(), resourceVar, List.of(), List.of(Library.JDBC));
     }
 
     private record SubstitutionResult(boolean hasInterpolations, String result) {

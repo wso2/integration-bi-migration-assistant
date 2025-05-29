@@ -37,7 +37,7 @@ public final class BICodeConverter {
             BallerinaModel.ModuleVar::isConfigurable;
 
     public static final Predicate<BallerinaModel.ModuleVar> DEFAULT_IS_CONNECTION_PREDICATE = new TypeNamePredicate(
-            Set.of("http:Client"));
+            Set.of("http:Client", "jdbc:Client"));
     public static final Predicate<BallerinaModel.TextDocument> DEFAULT_SKIP_CONVERSION_PREDICATE = ignored -> false;
 
     private final Predicate<BallerinaModel.ModuleVar> isConfigurable;
@@ -147,7 +147,7 @@ public final class BICodeConverter {
             case "xslt" -> Optional.of(new BallerinaModel.Import("ballerina", "xslt"));
             case "xmldata" -> Optional.of(new BallerinaModel.Import("ballerina", "data.xmldata"));
             case "jsondata" -> Optional.of(new BallerinaModel.Import("ballerina", "data.jsondata"));
-            case "java.jdbc" -> Optional.of(new BallerinaModel.Import("ballerinax", "java.jdbc"));
+            case "java.jdbc", "jdbc" -> Optional.of(new BallerinaModel.Import("ballerinax", "java.jdbc"));
             case "io" -> Optional.of(new BallerinaModel.Import("ballerina", "io"));
             case "log" -> Optional.of(new BallerinaModel.Import("ballerina", "log"));
             case "soap11" -> Optional.of(new BallerinaModel.Import("ballerina", "soap.soap11"));
