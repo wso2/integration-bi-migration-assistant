@@ -14,7 +14,7 @@ $ bal tool pull migrate-tibco
 ### Command Syntax
 
 ```bash
-$ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>] [-k|--keep-structure] [--verbose|-v] [--dry-run|-d]
+$ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run]
 ```
 
 ### Parameters
@@ -81,12 +81,24 @@ By default, the TIBCO project is converted using the standard Ballerina Integrat
 $ bal migrate-tibco path/to/tibco-project --verbose
 ```
 
+or
+
+```bash
+$ bal migrate-tibco path/to/tibco-project -v
+```
+
 This will convert the project with detailed logging during the conversion process.
 
 ### Convert a TIBCO BusinessWorks project in dry-run mode
 
 ```bash
 $ bal migrate-tibco path/to/tibco-project --dry-run
+```
+
+or
+
+```bash
+$ bal migrate-tibco path/to/tibco-project -d
 ```
 
 This will run the parsing and analysis phases and generate the `report.html` file without actually performing Ballerina package generation.

@@ -36,8 +36,7 @@ public class MigrateTibcoCommand implements BLauncherCmd {
     private static final String CMD_NAME = "migrate-tibco";
     private static final String USAGE =
             "bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>] " +
-                    "[-k|--keep-structure] " +
-                    "[--verbose|-v] [--dry-run|-d]";
+                    "[-k|--keep-structure] [-v|--verbose] [-d|--dry-run]";
 
     public MigrateTibcoCommand() {
         errStream = System.err;
@@ -71,7 +70,7 @@ public class MigrateTibcoCommand implements BLauncherCmd {
 
     private void onInvalidInput() {
         errStream.println("Usage: bal migrate-tibco <source-project-directory-or-file> " +
-                "[-o|--out <output-directory>] [-k|--keep-structure] [--verbose|-v] [--dry-run|-d]");
+                "[-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run]");
         System.exit(1);
     }
 
@@ -87,8 +86,9 @@ public class MigrateTibcoCommand implements BLauncherCmd {
         stringBuilder.append("as input and generates equivalent Ballerina code" +
                 " that can be opened in Ballerina Integrator.\n\n");
         stringBuilder.append("Optional flags:\n");
-        stringBuilder.append("  --verbose, -v     Enable verbose output during conversion\n");
-        stringBuilder.append("  --dry-run, -d     Simulate the conversion without generating output files\n");
+        stringBuilder.append("  --keep-structure, -k     Keep process structure\n");
+        stringBuilder.append("  --verbose, -v            Enable verbose output during conversion\n");
+        stringBuilder.append("  --dry-run, -d            Simulate the conversion without generating output files\n");
     }
 
     @Override
