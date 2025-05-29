@@ -35,7 +35,8 @@ public class MigrateTibcoCommand implements BLauncherCmd {
     private final PrintStream errStream;
     private static final String CMD_NAME = "migrate-tibco";
     private static final String USAGE =
-            "bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>]";
+            "bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>] " +
+                    "[-k|--keep-structure]";
 
     public MigrateTibcoCommand() {
         errStream = System.err;
@@ -48,18 +49,21 @@ public class MigrateTibcoCommand implements BLauncherCmd {
     @CommandLine.Option(names = { "--out", "-o" }, description = "Output directory path")
     private String outputPath;
 
+    @CommandLine.Option(names = { "--keep-structure", "-k" }, description = "Keep process structure")
+    private boolean keepStructure = false;
+
     @Override
     public void execute() {
         if (sourcePath == null) {
             errStream.println("Error: Source TIBCO BusinessWorks project directory or `.bwp` file path is required.");
             onInvalidInput();
         }
-        TibcoConverter.migrateTibco(sourcePath, outputPath);
+        TibcoConverter.migrateTibco(sourcePath, outputPath, keepStructure);
     }
 
     private void onInvalidInput() {
         errStream.println("Usage: bal migrate-tibco <source-project-directory-or-file> " +
-                "[-o|--out <output-directory>]");
+                "[-o|--out <output-directory>] [-k|--keep-structure]");
         System.exit(1);
     }
 
@@ -84,6 +88,9 @@ public class MigrateTibcoCommand implements BLauncherCmd {
         stringBuilder.append("  bal migrate-tibco /path/to/mule-project --out /path/to/output\n");
         stringBuilder.append("  bal migrate-tibco /path/to/tibco_process.bwp\n");
         stringBuilder.append("  bal migrate-tibco /path/to/tibco_process.bwp --out /path/to/output\n");
+        stringBuilder.append("  bal migrate-tibco /path/to/tibco_process.bwp -k\n");
+        stringBuilder.append(
+                "  bal migrate-tibco /path/to/tibco_process.bwp --out /path/to/output --keep-structure\n");
     }
 
     @Override

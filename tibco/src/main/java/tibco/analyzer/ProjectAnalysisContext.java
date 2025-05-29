@@ -16,24 +16,26 @@
  *  under the License.
  */
 
-package tibco.converter;
+package tibco.analyzer;
 
-enum Library {
-    HTTP("ballerina", "http"),
-    XSLT("ballerina", "xslt"),
-    XML_DATA("ballerina", "data.xmldata"),
-    JSON_DATA("ballerina", "data.jsondata"),
-    JDBC("ballerinax", "java.jdbc"),
-    IO("ballerina", "io"),
-    LOG("ballerina", "log"),
-    SOAP("ballerina", "soap.soap11"),
-    SQL("ballerina", "sql");
+import tibco.TibcoModel;
 
-    public final String moduleName;
-    public final String orgName;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
-    Library(String orgName, String moduleName) {
-        this.moduleName = moduleName;
-        this.orgName = orgName;
+public class ProjectAnalysisContext {
+
+    private final Set<String> controlFlowFunctionNames = new LinkedHashSet<>();
+    private final Map<TibcoModel.Scope.Flow.Activity, String> activityFunctionNames =
+            new ConcurrentHashMap<>();
+
+    public Set<String> controlFlowFunctionNames() {
+        return controlFlowFunctionNames;
+    }
+
+    public Map<TibcoModel.Scope.Flow.Activity, String> activityFunctionNames() {
+        return activityFunctionNames;
     }
 }

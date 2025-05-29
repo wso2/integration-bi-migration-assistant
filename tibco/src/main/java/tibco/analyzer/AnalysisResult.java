@@ -22,8 +22,11 @@ import common.BallerinaModel;
 import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup;
+import tibco.converter.ConversionUtils;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -185,9 +188,34 @@ public final class AnalysisResult {
         return sortedActivitiesInner(dependencyGraph);
     }
 
+    public Stream<TibcoModel.Scope.Flow.Activity> sortedErrorHandlerActivities(ExplicitTransitionGroup group) {
+        Graph<GraphNode> dependencyGraph = explicitTransitionGroupDependencies.get(group);
+        if (dependencyGraph == null) {
+            throw new IllegalArgumentException("No dependency graph found for group: " + group);
+        }
+
+        List<GraphNode> errorRoots = group.activities().stream()
+                .filter(each -> each instanceof ExplicitTransitionGroup.InlineActivity.ErrorHandlerInlineActivity)
+                .map(each ->
+                        new GraphNode(ConversionUtils.sanitizes(each.name()), GraphNode.Kind.INLINE_ACTIVITY, each))
+                .toList();
+        if (errorRoots.isEmpty()) {
+            return Stream.empty();
+        }
+        return sortedActivitiesInner(dependencyGraph, errorRoots);
+    }
+
     private static @NotNull Stream<TibcoModel.Scope.Flow.Activity> sortedActivitiesInner(
             Graph<GraphNode> dependencyGraph) {
         return dependencyGraph.topologicalSort().stream()
+                .filter(node -> node.kind == GraphNode.Kind.ACTIVITY ||
+                        node.kind == GraphNode.Kind.INLINE_ACTIVITY)
+                .map(node -> (TibcoModel.Scope.Flow.Activity) node.data);
+    }
+
+    private static @NotNull Stream<TibcoModel.Scope.Flow.Activity> sortedActivitiesInner(
+            Graph<GraphNode> dependencyGraph, Collection<GraphNode> roots) {
+        return dependencyGraph.topologicalSortWithRoots(roots).stream()
                 .filter(node -> node.kind == GraphNode.Kind.ACTIVITY ||
                         node.kind == GraphNode.Kind.INLINE_ACTIVITY)
                 .map(node -> (TibcoModel.Scope.Flow.Activity) node.data);
@@ -207,6 +235,33 @@ public final class AnalysisResult {
 
     public ControlFlowFunctions getControlFlowFunctions(ExplicitTransitionGroup group) {
         return explicitTransitionGroupControlFlowFunctions.get(group);
+    }
+
+    public AnalysisResult combine(AnalysisResult other) {
+        return new AnalysisResult(
+                combineMap(this.destinationMap, other.destinationMap),
+                combineMap(this.sourceMap, other.sourceMap),
+                combineMap(this.activityData, other.activityData),
+                combineMap(this.partnerLinkBindings, other.partnerLinkBindings),
+                combineMap(this.queryIndex, other.queryIndex),
+                combineMap(this.inputTypeNames, other.inputTypeNames),
+                combineMap(this.outputTypeName, other.outputTypeName),
+                combineMap(this.variableTypes, other.variableTypes),
+                combineMap(this.dependencyGraphs, other.dependencyGraphs),
+                combineMap(this.controlFlowFunctions, other.controlFlowFunctions),
+                combineMap(this.scopes, other.scopes),
+                combineMap(this.activityByName, other.activityByName),
+                combineMap(this.explicitTransitionGroupDependencies, other.explicitTransitionGroupDependencies),
+                combineMap(this.explicitTransitionGroupControlFlowFunctions,
+                        other.explicitTransitionGroupControlFlowFunctions)
+        );
+    }
+
+    private static <K, V> Map<K, V> combineMap(Map<K, V> map1, Map<K, V> map2) {
+        Map<K, V> map = new HashMap<>(map1.size() + map2.size());
+        map.putAll(map1);
+        map.putAll(map2);
+        return Collections.unmodifiableMap(map);
     }
 
     public record LinkData(Collection<TibcoModel.Scope.Flow.Activity> sourceActivities,
@@ -232,5 +287,20 @@ public final class AnalysisResult {
     }
 
     public record ControlFlowFunctions(String scopeFn, String activityRunner, String errorHandler) {
+    }
+
+    /**
+     * Creates and returns an immutable, empty instance of {@code AnalysisResult}.
+     * <p>
+     * This factory method is intended for cases where an empty result is required.
+     * All internal maps in the returned instance are empty and immutable.
+     *
+     * @return an immutable, empty {@code AnalysisResult} instance
+     */
+    public static AnalysisResult empty() {
+        return new AnalysisResult(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
     }
 }

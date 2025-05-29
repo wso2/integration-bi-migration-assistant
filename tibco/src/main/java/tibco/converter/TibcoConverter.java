@@ -18,6 +18,7 @@
 
 package tibco.converter;
 
+import common.BICodeConverter;
 import common.BallerinaModel;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
@@ -35,7 +36,7 @@ public class TibcoConverter {
 
     private static final Logger logger = ProjectConverter.LOGGER;
 
-    public static void migrateTibco(String sourcePath, String outputPath) {
+    public static void migrateTibco(String sourcePath, String outputPath, boolean preserverStructure) {
         Path inputPath = null;
         try {
             inputPath = Paths.get(sourcePath).toRealPath();
@@ -47,10 +48,10 @@ public class TibcoConverter {
         if (Files.isRegularFile(inputPath)) {
             String inputRootDirectory = inputPath.getParent().toString();
             String targetPath = outputPath != null ? outputPath : inputRootDirectory + "_converted";
-            migrateTibcoProject(inputRootDirectory, targetPath);
+            migrateTibcoProject(inputRootDirectory, targetPath, preserverStructure);
         } else if (Files.isDirectory(inputPath)) {
             String targetPath = outputPath != null ? outputPath : inputPath + "_converted";
-            migrateTibcoProject(inputPath.toString(), targetPath);
+            migrateTibcoProject(inputPath.toString(), targetPath, preserverStructure);
         } else {
             // I don't think this can ever happen but just in case
             logger.severe("Invalid path: " + inputPath);
@@ -58,7 +59,7 @@ public class TibcoConverter {
         }
     }
 
-    static void migrateTibcoProject(String projectPath, String targetPath) {
+    static void migrateTibcoProject(String projectPath, String targetPath, boolean preserverStructure) {
         Path targetDir = Paths.get(targetPath);
         try {
             createTargetDirectoryIfNeeded(targetDir);
@@ -76,8 +77,15 @@ public class TibcoConverter {
             System.exit(1);
             return;
         }
+        List<BallerinaModel.TextDocument> textDocuments;
+        if (preserverStructure) {
+            textDocuments = result.module().textDocuments();
+        } else {
+            BallerinaModel.Module biModule = new BICodeConverter().convert(result.module());
+            textDocuments = biModule.textDocuments();
+        }
         BallerinaModel.DefaultPackage balPackage = new BallerinaModel.DefaultPackage("tibco", "sample", "0.1");
-        for (BallerinaModel.TextDocument textDocument : result.module().textDocuments()) {
+        for (BallerinaModel.TextDocument textDocument : textDocuments) {
             try {
                 writeTextDocument(result.module(), balPackage, textDocument, targetDir);
             } catch (IOException e) {
@@ -90,7 +98,7 @@ public class TibcoConverter {
             logger.log(Level.SEVERE, "Error adding project artifacts", e);
         }
         try {
-            writeASTToFile(targetDir, "types.bal", result.types());
+            appendASTToFile(targetDir, "types.bal", result.types());
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Error creating types files", e);
         }
@@ -108,6 +116,21 @@ public class TibcoConverter {
     private static void writeASTToFile(Path targetDir, String fileName, SyntaxTree st) throws IOException {
         Path filePath = Path.of(targetDir + "/" + fileName);
         Files.writeString(filePath, st.toSourceCode());
+    }
+
+
+    private static void appendASTToFile(Path targetDir, String fileName, SyntaxTree st) throws IOException {
+        Path filePath = Path.of(targetDir + "/" + fileName);
+        String newContent = st.toSourceCode();
+
+        if (Files.exists(filePath)) {
+            // If file exists, read the existing content and append the new content to it
+            String existingContent = Files.readString(filePath);
+            Files.writeString(filePath, newContent + existingContent);
+        } else {
+            // If file doesn't exist, just write the new content
+            Files.writeString(filePath, newContent);
+        }
     }
 
     private static void createTargetDirectoryIfNeeded(Path targetDir) throws IOException {

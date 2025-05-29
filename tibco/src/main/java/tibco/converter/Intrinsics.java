@@ -64,14 +64,18 @@ public enum Intrinsics {
                     }
                     """
     ),
-    XML_PARSER(
-            "",
+    XML_PARSER_RESULT(
+            "XMLElementParseResult",
             """
                     type XMLElementParseResult record {|
                         string? namespace;
                         string name;
                     |};
-                    
+                    """
+    ),
+    XML_PARSER(
+            "",
+            """
                     function parseElement(xml:Element element) returns XMLElementParseResult {
                         string name = element.getName();
                         if (name.startsWith("{")) {
@@ -87,17 +91,11 @@ public enum Intrinsics {
                     }
                     """
     ),
-    RENDER_JSON(
-            "renderJson",
+    TO_JSON("xmlToJson",
             """
-                    function renderJson(xml value) returns xml {
-                        json jsonValue = xmlToJson(value);
-                        return xml `<root><jsonString>${jsonValue.toJsonString()}</jsonString></root>`;
-                    }
-                    
                     function xmlToJson(xml value) returns json {
                         json result = toJsonInner(value);
-                        if (result is map<json>) {
+                        if (result is map<json> && result.hasKey("InputElement")) {
                             return result.get("InputElement");
                         } else {
                             return result;
@@ -148,6 +146,14 @@ public enum Intrinsics {
                         }
                         result[name] = body;
                         return result;
+                    }
+                    """),
+    RENDER_JSON(
+            "renderJson",
+            """
+                    function renderJson(xml value) returns xml {
+                        json jsonValue = xmlToJson(value);
+                        return xml `<root><jsonString>${jsonValue.toJsonString()}</jsonString></root>`;
                     }
                     """
     ),

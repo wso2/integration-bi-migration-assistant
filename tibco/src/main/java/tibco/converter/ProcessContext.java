@@ -23,7 +23,6 @@ import common.BallerinaModel.Statement.VarDeclStatment;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import tibco.TibcoModel;
 import tibco.analyzer.AnalysisResult;
-import tibco.analyzer.ModelAnalyser;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -52,7 +51,6 @@ public class ProcessContext implements ContextWithFile {
     public final TibcoModel.Process process;
 
     public final ProjectContext projectContext;
-    public final AnalysisResult analysisResult;
     private final Map<TibcoModel.Scope.Flow.Activity.Source.Predicate, String> predicateToFunctionMap = new HashMap<>();
     private final Map<String, String> propertyVariableToResourceMap = new HashMap<>();
 
@@ -63,7 +61,6 @@ public class ProcessContext implements ContextWithFile {
     ProcessContext(ProjectContext projectContext, TibcoModel.Process process) {
         this.projectContext = projectContext;
         this.process = process;
-        this.analysisResult = ModelAnalyser.analyseProcess(process);
     }
 
     static BallerinaModel.TypeDesc contextType() {
@@ -245,7 +242,7 @@ public class ProcessContext implements ContextWithFile {
     }
 
     BallerinaModel.TypeDesc getProcessInputType() {
-        Collection<String> typeNames = analysisResult.inputTypeName(process);
+        Collection<String> typeNames = getAnalysisResult().inputTypeName(process);
         if (typeNames.isEmpty()) {
             return ANYDATA;
         }
@@ -256,7 +253,7 @@ public class ProcessContext implements ContextWithFile {
     }
 
     BallerinaModel.TypeDesc getProcessOutputType() {
-        String typeName = analysisResult.outputTypeName(process);
+        String typeName = getAnalysisResult().outputTypeName(process);
         if (Objects.equals(typeName, "UNKNOWN")) {
             return ANYDATA;
         }
@@ -329,7 +326,7 @@ public class ProcessContext implements ContextWithFile {
     }
 
     String variableType(String variable) {
-        return analysisResult.variableType(process, variable);
+        return getAnalysisResult().variableType(process, variable);
     }
 
     String getRenderJsonAsXMLFunction(String type) {
@@ -338,6 +335,14 @@ public class ProcessContext implements ContextWithFile {
 
     public String getRenderJsonFn() {
         return projectContext.getRenderJsonFn();
+    }
+
+    public String getToJsonFunction() {
+        return projectContext.getToJsonFunction();
+    }
+
+    public AnalysisResult getAnalysisResult() {
+        return projectContext.getAnalysisResult(process);
     }
 
     static final class DefaultClientDetails {

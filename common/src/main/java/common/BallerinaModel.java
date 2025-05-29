@@ -216,6 +216,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             ANYDATA("anydata"),
             BOOLEAN("boolean"),
             DECIMAL("decimal"),
+            FLOAT("float"),
             ERROR("error"),
             INT("int"),
             JSON("json"),

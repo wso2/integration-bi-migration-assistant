@@ -26,6 +26,7 @@ import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import tibco.TibcoModel;
 import tibco.TibcoToBalConverter;
 import tibco.XmlToTibcoModelConverter;
+import tibco.analyzer.AnalysisResult;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,6 +65,7 @@ public class ProjectContext {
     private final List<BallerinaModel.Function> utilityFunctions = new ArrayList<>();
     private final Set<BallerinaModel.Import> utilityFunctionImports = new HashSet<>();
     private final Map<String, BallerinaModel.ModuleVar> utilityVars = new HashMap<>();
+    private final Map<String, BallerinaModel.Listener> utilityListeners = new HashMap<>();
     private final Set<Intrinsics> utilityIntrinsics = new HashSet<>();
     private final Set<ComptimeFunction> utilityCompTimeFunctions = new HashSet<>();
     private final Map<String, String> processClients = new HashMap<>();
@@ -83,13 +85,13 @@ public class ProjectContext {
     private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
     private final Map<BallerinaModel.TypeDesc, String> typeConversionFunction = new HashMap<>();
     private final Map<String, String> renderJsonAsXMLFunction = new HashMap<>();
+    private final Map<TibcoModel.Process, AnalysisResult> analysisResult;
+    private Collection<TibcoModel.Type.Schema> schemas = new ArrayList<>();
 
-    ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext) {
+    ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
+                   Map<TibcoModel.Process, AnalysisResult> analysisResult) {
         this.conversionContext = Optional.of(conversionContext);
-    }
-
-    ProjectContext() {
-        this.conversionContext = Optional.empty();
+        this.analysisResult = analysisResult;
     }
 
     ProcessContext getProcessContext(TibcoModel.Process process) {
@@ -222,8 +224,10 @@ public class ProjectContext {
                 .sorted(Comparator.comparing(ComptimeFunction::functionName))
                 .map(ComptimeFunction::intrinsify);
         List<String> combinedIntrinsics = Stream.concat(sortedIntrinsics, sortedComptimes).toList();
+        List<BallerinaModel.Listener> listeners = utilityListeners.values().stream()
+                .sorted(Comparator.comparing(BallerinaModel.Listener::name)).toList();
         return new BallerinaModel.TextDocument("utils.bal", imports, List.of(), sortedConstants,
-                List.of(), List.of(), sortedFunctions, List.of(), combinedIntrinsics, List.of());
+                listeners, List.of(), sortedFunctions, List.of(), combinedIntrinsics, List.of());
     }
 
     private BallerinaModel.TextDocument typesFile() {
@@ -390,6 +394,26 @@ public class ProjectContext {
         return new VariableReference(Objects.requireNonNull(processClients.get(processName)));
     }
 
+    public String getToJsonFunction() {
+        utilityIntrinsics.add(Intrinsics.XML_PARSER_RESULT);
+        utilityIntrinsics.add(Intrinsics.XML_PARSER);
+        utilityIntrinsics.add(Intrinsics.TO_JSON);
+        return Intrinsics.TO_JSON.name;
+    }
+
+    public AnalysisResult getAnalysisResult(TibcoModel.Process process) {
+        return Objects.requireNonNull(analysisResult.get(process), 
+                "Analysis result not found for process: " + process.name());
+    }
+
+    public void addXSDSchemaToConversion(TibcoModel.Type.Schema schema) {
+        schemas.add(schema);
+    }
+
+    public Collection<TibcoModel.Type.Schema> getXSDSchemas() {
+        return schemas;
+    }
+
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
 
         FunctionData {
@@ -423,6 +447,14 @@ public class ProjectContext {
         generatedResources.put(resourceName, resourceVar.name());
     }
 
+    void addListnerDeclartion(String resourceName, BallerinaModel.Listener listener,
+                              Collection<BallerinaModel.ModuleVar> configurables, Collection<Library> imports) {
+        imports.forEach(this::importLibraryIfNeededToUtility);
+        configurables.forEach(each -> utilityVars.put(each.name(), each));
+        utilityListeners.put(listener.name(), listener);
+        generatedResources.put(resourceName, listener.name());
+    }
+
     public String getUtilityVarName(String base) {
         return ConversionUtils.getSanitizedUniqueName(base, utilityVars.keySet());
     }
@@ -433,14 +465,17 @@ public class ProjectContext {
     }
 
     public String getNamespaceFixFn() {
+        utilityIntrinsics.add(Intrinsics.XML_PARSER_RESULT);
         utilityIntrinsics.add(Intrinsics.XML_PARSER);
         utilityIntrinsics.add(Intrinsics.PATCH_XML_NAMESPACES);
         return Intrinsics.PATCH_XML_NAMESPACES.name;
     }
 
     public String getRenderJsonFn() {
+        utilityIntrinsics.add(Intrinsics.XML_PARSER_RESULT);
         utilityIntrinsics.add(Intrinsics.XML_PARSER);
         utilityIntrinsics.add(Intrinsics.RENDER_JSON);
+        utilityIntrinsics.add(Intrinsics.TO_JSON);
         return Intrinsics.RENDER_JSON.name;
     }
 

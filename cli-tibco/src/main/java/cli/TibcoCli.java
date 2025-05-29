@@ -43,7 +43,7 @@ public class TibcoCli {
                     System.exit(1);
                 }
                 String outputPath = args[2];
-                TibcoConverter.migrateTibco(sourcePath, outputPath);
+                TibcoConverter.migrateTibco(sourcePath, outputPath, false);
             }
         }
     }

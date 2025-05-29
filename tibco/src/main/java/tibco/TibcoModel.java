@@ -18,9 +18,12 @@
 
 package tibco;
 
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,6 +32,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 public class TibcoModel {
 
@@ -61,13 +68,22 @@ public class TibcoModel {
 
         Collection<SubstitutionBinding> substitutionBindings();
 
+
+        record JDBCSharedResource(String name, String location) implements Resource {
+
+            @Override
+            public Collection<SubstitutionBinding> substitutionBindings() {
+                return List.of();
+            }
+        }
+
         record JDBCResource(String name, String userName, String password, String jdbcDriver, String dbUrl,
-                            Collection<SubstitutionBinding> substitutionBindings) implements Resource {
+                Collection<SubstitutionBinding> substitutionBindings) implements Resource {
 
         }
 
         record HTTPConnectionResource(String name, String svcRegServiceName,
-                                      Collection<SubstitutionBinding> substitutionBindings) implements Resource {
+                Collection<SubstitutionBinding> substitutionBindings) implements Resource {
 
         }
 
@@ -80,7 +96,7 @@ public class TibcoModel {
         }
 
         record HTTPClientResource(String name, Optional<Integer> port,
-                                  Collection<SubstitutionBinding> substitutionBindings)
+                Collection<SubstitutionBinding> substitutionBindings)
                 implements Resource {
 
         }
@@ -103,15 +119,15 @@ public class TibcoModel {
     // TODO: either we have scope, flow stuff or transition groups. Need to model
     // this properly
     public record Process(String name, Collection<NameSpace> nameSpaces, Collection<Type> types,
-                          ProcessInfo processInfo, Optional<ProcessInterface> processInterface,
-                          Optional<ProcessTemplateConfigurations> processTemplateConfigurations,
-                          Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope,
-                          // TODO: this should be an optional
-                          ExplicitTransitionGroup transitionGroup) {
+            ProcessInfo processInfo, Optional<ProcessInterface> processInterface,
+            Optional<ProcessTemplateConfigurations> processTemplateConfigurations,
+            Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope,
+            // TODO: this should be an optional
+            ExplicitTransitionGroup transitionGroup) {
 
         public record ExplicitTransitionGroup(List<InlineActivity> activities, List<Transition> transitions,
-                                              InlineActivity startActivity,
-                                              Optional<Scope.Flow.Activity.Expression.XSLT> returnBindings) {
+                InlineActivity startActivity,
+                Optional<Scope.Flow.Activity.Expression.XSLT> returnBindings) {
 
             ExplicitTransitionGroup() {
                 this(null);
@@ -146,6 +162,39 @@ public class TibcoModel {
 
             ExplicitTransitionGroup setReturnBindings(Scope.Flow.Activity.Expression.XSLT expression) {
                 return new ExplicitTransitionGroup(activities, transitions, startActivity, Optional.of(expression));
+            }
+
+            public sealed interface InlineActivityWithBody extends InlineActivity {
+                ExplicitTransitionGroup body();
+            }
+
+            public sealed interface NestedGroup extends InlineActivityWithBody {
+                record LoopGroup(Element element, String name, InputBinding inputBinding, SourceExpression over,
+                        Optional<String> elementSlot, Optional<String> indexSlot,
+                        Optional<String> activityOutputName, boolean accumulateOutput,
+                        ExplicitTransitionGroup body) implements NestedGroup {
+                    public LoopGroup {
+                        assert !accumulateOutput || activityOutputName.isPresent();
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.LOOP_GROUP;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
+                    }
+
+                    public record SourceExpression(String variableName, Optional<String> xPath) {
+                        public SourceExpression {
+                            assert xPath != null;
+                            assert variableName != null && !variableName.isEmpty();
+                        }
+                    }
+
+                }
             }
 
             public ExplicitTransitionGroup resolve() {
@@ -190,6 +239,14 @@ public class TibcoModel {
                     FILE_READ,
                     XML_RENDER_ACTIVITY,
                     XML_PARSE_ACTIVITY,
+                    SOAP_SEND_RECEIVE,
+                    SOAP_SEND_REPLY,
+                    LOOP_GROUP,
+                    REST,
+                    CATCH,
+                    JSON_PARSER_ACTIVITY,
+                    JSON_RENDER_ACTIVITY,
+                    JDBC,
                     MAPPER;
 
                     public static InlineActivityType parse(String type) {
@@ -204,17 +261,121 @@ public class TibcoModel {
                                         new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
                                         new LookUpData("XMLRendererActivity", XML_RENDER_ACTIVITY),
                                         new LookUpData("XMLParseActivity", XML_PARSE_ACTIVITY),
+                                        new LookUpData("LoopGroup", LOOP_GROUP),
                                         new LookUpData("WriteToLogActivity", WRITE_LOG),
+                                        new LookUpData("CatchActivity", CATCH),
                                         new LookUpData("FileReadActivity", FILE_READ),
                                         new LookUpData("FileWriteActivity", FILE_WRITE),
-                                        new LookUpData("CallProcessActivity", CALL_PROCESS))
+                                        new LookUpData("JDBCGeneralActivity", JDBC),
+                                        new LookUpData("RestActivity", REST),
+                                        new LookUpData("CallProcessActivity", CALL_PROCESS),
+                                        new LookUpData("SOAPSendReceiveActivity", SOAP_SEND_RECEIVE),
+                                        new LookUpData("JSONParserActivity", JSON_PARSER_ACTIVITY),
+                                        new LookUpData("JSONRenderActivity", JSON_RENDER_ACTIVITY),
+                                        new LookUpData("SOAPSendReplyActivity", SOAP_SEND_REPLY),
+                                        new LookUpData("WriteToLogActivity", WRITE_LOG))
                                 .filter(each -> type.endsWith(each.suffix)).findFirst()
                                 .map(LookUpData::activityType).orElse(UNHANDLED);
                     }
                 }
 
+                record JDBC(Element element, String name, InputBinding inputBinding,
+                            String connection) implements InlineActivity {
+                    public JDBC {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.JDBC;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record JSONRender(Element element, String name, InputBinding inputBinding,
+                                  XSD targetType) implements InlineActivity {
+                    public JSONRender {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.JSON_PARSER_ACTIVITY;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record JSONParser(Element element, String name, InputBinding inputBinding,
+                                  XSD targetType) implements InlineActivity {
+                    public JSONParser {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.JSON_PARSER_ACTIVITY;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record REST(Element element, String name, InputBinding inputBinding,
+                        Method method, ResponseType responseType, String url) implements InlineActivity {
+
+                    public enum ResponseType {
+                        JSON,
+                        XML;
+
+                        public static ResponseType from(String string) {
+                            return switch (string.toLowerCase()) {
+                                case "json" -> JSON;
+                                case "xml" -> XML;
+                                default -> throw new IllegalArgumentException("Unknown response type: " + string);
+                            };
+                        }
+                    }
+
+                    public enum Method {
+                        PUT,
+                        GET,
+                        DELETE,
+                        POST;
+
+                        public static Method from(String string) {
+                            return switch (string.toLowerCase()) {
+                                case "put" -> PUT;
+                                case "get" -> GET;
+                                case "delete" -> DELETE;
+                                case "post" -> POST;
+                                default -> throw new IllegalArgumentException("Unknown method: " + string);
+                            };
+                        }
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.REST;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
+                    }
+                }
+
                 record CallProcess(Element element, String name, InputBinding inputBinding,
-                                   String processName) implements InlineActivity {
+                        String processName) implements InlineActivity {
                     public CallProcess {
                         assert inputBinding != null;
                     }
@@ -231,7 +392,7 @@ public class TibcoModel {
                 }
 
                 record FileRead(Element element, String name, InputBinding inputBinding,
-                                String encoding) implements InlineActivity {
+                        String encoding) implements InlineActivity {
                     public FileRead {
                         assert inputBinding != null;
                     }
@@ -248,7 +409,7 @@ public class TibcoModel {
                 }
 
                 record FileWrite(Element element, String name, InputBinding inputBinding, String encoding,
-                                 boolean append) implements InlineActivity {
+                        boolean append) implements InlineActivity {
                     public FileWrite {
                         assert inputBinding != null;
                     }
@@ -265,7 +426,7 @@ public class TibcoModel {
                 }
 
                 record XMLParseActivity(Element element, String name,
-                                        InputBinding inputBinding) implements InlineActivity {
+                        InputBinding inputBinding) implements InlineActivity {
                     public XMLParseActivity {
                         assert inputBinding != null;
                     }
@@ -295,6 +456,55 @@ public class TibcoModel {
                     @Override
                     public boolean hasInputBinding() {
                         return true;
+                    }
+                }
+
+                record SOAPSendReply(Element element, String name,
+                        InputBinding inputBinding) implements InlineActivity {
+                    public SOAPSendReply {
+                        assert inputBinding != null;
+                    }
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.SOAP_SEND_REPLY;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return true;
+                    }
+                }
+
+                record SOAPSendReceive(Element element, String name, InputBinding inputBinding,
+                        Optional<String> soapAction, String endpointURL) implements InlineActivity {
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.SOAP_SEND_RECEIVE;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
+                    }
+                }
+
+                sealed interface ErrorHandlerInlineActivity {
+
+                }
+
+                record Catch(Element element, String name,
+                             InputBinding inputBinding) implements InlineActivity, ErrorHandlerInlineActivity {
+
+                    @Override
+                    public InlineActivityType type() {
+                        return InlineActivityType.CATCH;
+                    }
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
                     }
                 }
 
@@ -344,7 +554,7 @@ public class TibcoModel {
                 }
 
                 record UnhandledInlineActivity(Element element, String name,
-                                               InputBinding inputBinding) implements InlineActivity {
+                        InputBinding inputBinding) implements InlineActivity {
 
                     @Override
                     public InlineActivityType type() {
@@ -358,7 +568,7 @@ public class TibcoModel {
                 }
 
                 record MapperActivity(Element element, String name,
-                                      Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
+                        Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
                     public MapperActivity {
                         assert inputBinding != null;
                     }
@@ -375,7 +585,7 @@ public class TibcoModel {
                 }
 
                 record AssignActivity(Element element, String name, String variableName,
-                                      InputBinding inputBinding) implements InlineActivity {
+                        InputBinding inputBinding) implements InlineActivity {
 
                     @Override
                     public InlineActivityType type() {
@@ -389,7 +599,7 @@ public class TibcoModel {
                 }
 
                 record HttpEventSource(Element element, String name, String sharedChannel,
-                                       Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
+                        Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
 
                     @Override
                     public InlineActivityType type() {
@@ -444,8 +654,8 @@ public class TibcoModel {
     public sealed interface Type {
 
         record WSDLDefinition(Map<String, String> namespaces, Collection<PartnerLinkType> partnerLinkTypes,
-                              Collection<NameSpace> imports, Collection<Message> messages,
-                              Collection<PortType> portType) implements Type {
+                Collection<NameSpace> imports, Collection<Message> messages,
+                Collection<PortType> portType) implements Type {
 
             public record PartnerLinkType(String name, Role role) {
 
@@ -522,7 +732,7 @@ public class TibcoModel {
     }
 
     public record ProcessInfo(boolean callable, Set<Modifier> modifiers, boolean scalable,
-                              boolean singleton, boolean stateless, Type type) {
+            boolean singleton, boolean stateless, Type type) {
 
         public enum Modifier {
             PUBLIC
@@ -615,9 +825,9 @@ public class TibcoModel {
             }
 
             public record Operation(Method method, Optional<RequestEntityProcessing> requestEntityProcessing,
-                                    Optional<MessageStyle> requestStyle, Optional<MessageStyle> responseStyle,
-                                    Optional<Format> clientFormat, Optional<Format> clientRequestFormat,
-                                    List<Parameter> parameters) {
+                    Optional<MessageStyle> requestStyle, Optional<MessageStyle> responseStyle,
+                    Optional<Format> clientFormat, Optional<Format> clientRequestFormat,
+                    List<Parameter> parameters) {
 
                 public Operation(Method method, RequestEntityProcessing requestEntityProcessing,
                         MessageStyle requestStyle, MessageStyle responseStyle, Format clientFormat,
@@ -663,7 +873,7 @@ public class TibcoModel {
     }
 
     public record Scope(String name, Collection<Flow> flows, Collection<Sequence> sequence,
-                        Collection<FaultHandler> faultHandlers) {
+            Collection<FaultHandler> faultHandlers) {
 
         public sealed interface FaultHandler extends Flow.Activity {
             Scope scope();
@@ -748,8 +958,8 @@ public class TibcoModel {
                 }
 
                 record NestedScope(String name, List<Source> sources, Collection<Target> targets,
-                                   Collection<Sequence> sequences, Collection<Flow> flows,
-                                   Collection<FaultHandler> faultHandlers, Element element) implements Activity,
+                        Collection<Sequence> sequences, Collection<Flow> flows,
+                        Collection<FaultHandler> faultHandlers, Element element) implements Activity,
                         ActivityWithSources, ActivityWithTargets, ActivityWithScope, ActivityWithName {
                     public Scope scope() {
                         return new Scope(name, flows, sequences, faultHandlers);
@@ -762,31 +972,31 @@ public class TibcoModel {
                 }
 
                 record CatchAll(Scope scope,
-                                Element element) implements FaultHandler, ActivityWithScope, StartActivity {
+                        Element element) implements FaultHandler, ActivityWithScope, StartActivity {
 
                 }
 
                 record UnhandledActivity(String reason, List<Source> sources,
-                                         Collection<Target> targets,
-                                         Element element) implements Activity, ActivityWithSources,
+                        Collection<Target> targets,
+                        Element element) implements Activity, ActivityWithSources,
                         ActivityWithTargets {
 
                 }
 
                 record Assign(List<Source> sources, Collection<Target> targets, Copy operation,
-                              Element element) implements Activity, ActivityWithSources, ActivityWithTargets {
+                        Element element) implements Activity, ActivityWithSources, ActivityWithTargets {
                     public record Copy(ValueSource from, ValueSource.VarRef to) {
 
                     }
                 }
 
                 record Foreach(String counterName, Scope scope, ValueSource startCounterValue,
-                               ValueSource finalCounterValue, Element element) implements Activity, ActivityWithScope {
+                        ValueSource finalCounterValue, Element element) implements Activity, ActivityWithScope {
 
                 }
 
                 record Reply(String name, Method operation, String partnerLink, String portType,
-                             List<InputBinding> inputBindings, Collection<Target> targets, Element element)
+                        List<InputBinding> inputBindings, Collection<Target> targets, Element element)
                         implements Activity, ActivityWithTargets, ActivityWithName {
 
                     @Override
@@ -809,7 +1019,7 @@ public class TibcoModel {
                 }
 
                 record Pick(boolean createInstance, OnMessage onMessage,
-                            Element element) implements Activity, ActivityWithScope, StartActivity {
+                        Element element) implements Activity, ActivityWithScope, StartActivity {
 
                     @Override
                     public Scope scope() {
@@ -817,15 +1027,15 @@ public class TibcoModel {
                     }
 
                     public record OnMessage(Method operation, String partnerLink, String portType, String variable,
-                                            Scope scope) {
+                            Scope scope) {
 
                     }
                 }
 
                 record ReceiveEvent(boolean createInstance, float eventTimeout, Optional<String> variable,
-                                    List<Source> sources, Element element) implements Activity, ActivityWithSources {
+                        List<Source> sources, Element element) implements Activity, ActivityWithSources {
                     public ReceiveEvent(boolean createInstance, float eventTimeout, String variable,
-                                        List<Source> sources, Element element) {
+                            List<Source> sources, Element element) {
                         this(createInstance, eventTimeout,
                                 variable.isEmpty() ? Optional.empty() : Optional.of(variable), sources, element);
                     }
@@ -833,8 +1043,8 @@ public class TibcoModel {
                 }
 
                 record ExtActivity(Optional<Expression> expression, String inputVariable, String outputVariable,
-                                   List<Source> sources, List<Target> targets, List<InputBinding> inputBindings,
-                                   CallProcess callProcess, Element element) implements Activity,
+                        List<Source> sources, List<Target> targets, List<InputBinding> inputBindings,
+                        CallProcess callProcess, Element element) implements Activity,
                         ActivityWithSources, ActivityWithTargets, ActivityWithOutput {
 
                     public ExtActivity {
@@ -857,9 +1067,9 @@ public class TibcoModel {
                 }
 
                 record ActivityExtension(Optional<String> name, Optional<String> inputVariable,
-                                         Optional<String> outputVariable, Collection<Target> targets,
-                                         List<Source> sources, List<InputBinding> inputBindings, Config config,
-                                         Element element) implements Activity, ActivityWithTargets, ActivityWithSources,
+                        Optional<String> outputVariable, Collection<Target> targets,
+                        List<Source> sources, List<InputBinding> inputBindings, Config config,
+                        Element element) implements Activity, ActivityWithTargets, ActivityWithSources,
                         ActivityWithName, ActivityWithOutput {
 
                     @Override
@@ -958,7 +1168,7 @@ public class TibcoModel {
                         }
 
                         record SQL(String sharedResourcePropertyName, String query,
-                                   List<Column> resultColumns, List<SQLParameter> parameters) implements Config {
+                                List<Column> resultColumns, List<SQLParameter> parameters) implements Config {
 
                             @Override
                             public ExtensionKind kind() {
@@ -1057,8 +1267,8 @@ public class TibcoModel {
                 }
 
                 record Invoke(String inputVariable, String outputVariable, Method operation, String partnerLink,
-                              List<InputBinding> inputBindings, Collection<Target> targets, List<Source> sources,
-                              Element element)
+                        List<InputBinding> inputBindings, Collection<Target> targets, List<Source> sources,
+                        Element element)
                         implements Activity, ActivityWithSources, ActivityWithTargets, ActivityWithOutput {
 
                     @Override
@@ -1135,4 +1345,76 @@ public class TibcoModel {
         }
     }
 
+    public record XSD(Element type, org.w3c.dom.Element element) {
+        public Type.Schema toSchema() throws ParserConfigurationException {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.newDocument();
+            org.w3c.dom.Element wrapped = wrapElement(doc, element, "schema");
+            return new Type.Schema(wrapped);
+        }
+
+        public record Element(String name, XSDType type, Optional<Integer> minOccur, Optional<Integer> maxOccur) {
+
+        }
+
+        public sealed interface XSDType {
+
+            enum BasicXSDType implements XSDType {
+                STRING("string"),
+                INTEGER("integer"),
+                INT("int"),
+                LONG("long"),
+                SHORT("short"),
+                DECIMAL("decimal"),
+                FLOAT("float"),
+                DOUBLE("double"),
+                BOOLEAN("boolean");
+
+                private final String value;
+
+                BasicXSDType(String value) {
+                    this.value = value;
+                }
+
+                public String getValue() {
+                    return value;
+                }
+
+                public static BasicXSDType parse(String typeStr) {
+                    if (typeStr == null || typeStr.isEmpty()) {
+                        throw new IllegalArgumentException("XSD type string cannot be null or empty");
+                    }
+
+                    String type = typeStr;
+                    if (type.contains(":")) {
+                        type = type.substring(type.indexOf(":") + 1);
+                    }
+
+                    String finalType = type;
+                    return Arrays.stream(BasicXSDType.values())
+                            .filter(basicType -> basicType.getValue().equalsIgnoreCase(finalType))
+                            .findFirst()
+                            .orElseThrow(() -> new IllegalArgumentException("Unsupported XSD type: " + typeStr));
+                }
+            }
+
+            record ComplexType(ComplexTypeBody body) implements XSDType {
+                public sealed interface ComplexTypeBody {
+                    List<Element> elements();
+                    record Sequence(List<Element> elements) implements ComplexTypeBody {
+
+                    }
+                }
+
+            }
+        }
+    }
+
+    private static Element wrapElement(Document doc, Element originalElement, String wrapperTagName) {
+        Element wrapper = doc.createElement(wrapperTagName);
+        Node importedOriginal = doc.importNode(originalElement, true);
+        wrapper.appendChild(importedOriginal);
+        return wrapper;
+    }
 }

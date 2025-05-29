@@ -51,7 +51,7 @@ public class ActivityContext {
     }
 
     String functionName() {
-        return processContext.analysisResult.from(activity).functionName();
+        return processContext.getAnalysisResult().from(activity).functionName();
     }
 
     List<BallerinaModel.Parameter> parameters() {
@@ -135,5 +135,21 @@ public class ActivityContext {
 
     BallerinaModel.Expression.VariableReference getProcessClient(String processName) {
         return processContext.getProcessClient(processName);
+    }
+
+    public String getToJsonFunction() {
+        return processContext.getToJsonFunction();
+    }
+
+    public ProjectContext projectContext() {
+        return processContext.projectContext;
+    }
+
+    public void addXSDSchemaToConversion(TibcoModel.Type.Schema schema) {
+        projectContext().addXSDSchemaToConversion(schema);
+    }
+
+    public BallerinaModel.Expression.VariableReference dbClient(String connection) {
+        return projectContext().dbClient(connection);
     }
 }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json">
     <pd:name>Processes/Other.process</pd:name>
     <pd:startName>HTTP Receiver</pd:startName>
     <pd:returnBindings/>
@@ -70,8 +70,6 @@
     <pd:activity name="Log">
         <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
         <pd:resourceType>ae.activities.log</pd:resourceType>
-        <pd:x>255</pd:x>
-        <pd:y>56</pd:y>
         <config>
             <role>User</role>
         </config>
@@ -81,6 +79,176 @@
                     <xsl:value-of select="$Mapper"/>
                 </message>
             </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="SOAPSendReply">
+        <pd:type>com.tibco.plugin.soap.SOAPSendReplyActivity</pd:type>
+        <pd:resourceType>ae.activities.SOAPSendReplyUI</pd:resourceType>
+        <config>
+            <eventSource>HTTP Receiver</eventSource>
+        </config>
+        <pd:inputBindings>
+            <Response>
+                <Body>
+                    "Foo bar"
+                </Body>
+            </Response>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:group name="Loop">
+        <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>189</pd:x>
+        <pd:y>2</pd:y>
+        <pd:width>345</pd:width>
+        <pd:height>236</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>inputLoop</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:over>$Mapper/foo/bar</pd:over>
+            <pd:iterationElementSlot>element</pd:iterationElementSlot>
+            <pd:indexSlot>index</pd:indexSlot>
+            <pd:activityOutputName/>
+            <pd:accumulateOutput>false</pd:accumulateOutput>
+        </config>
+        <pd:inputBindings/>
+        <pd:activity name="InnerLogElement">
+            <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+            <pd:resourceType>ae.activities.log</pd:resourceType>
+            <pd:x>255</pd:x>
+            <pd:y>56</pd:y>
+            <config>
+                <role>User</role>
+            </config>
+            <pd:inputBindings>
+                <ns:ActivityInput>
+                    <message>
+                        <xsl:value-of select="$element"/>
+                    </message>
+                </ns:ActivityInput>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="InnerLogIndex">
+            <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+            <pd:resourceType>ae.activities.log</pd:resourceType>
+            <pd:x>255</pd:x>
+            <pd:y>56</pd:y>
+            <config>
+                <role>User</role>
+            </config>
+            <pd:inputBindings>
+                <ns:ActivityInput>
+                    <message>
+                        <xsl:value-of select="$index"/>
+                    </message>
+                </ns:ActivityInput>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:transition>
+            <pd:from>Start</pd:from>
+            <pd:to>InnerLogIndex</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>InnerLogIndex</pd:from>
+            <pd:to>InnerLogElement</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+    </pd:group>
+    <pd:activity name="Parse JSON">
+        <pd:type>com.tibco.plugin.json.activities.JSONParserActivity</pd:type>
+        <pd:resourceType>ae.activities.JSONParserActivity</pd:resourceType>
+        <pd:x>331</pd:x>
+        <pd:y>62</pd:y>
+        <config>
+            <SchemaType>xsdType</SchemaType>
+            <BadgerfishCheck>false</BadgerfishCheck>
+            <ActivityOutputEditor>
+                <xsd:element name="Foo">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="foo" type="xsd:string"/>
+                            <xsd:element name="bar" type="xsd:string" minOccurs="0"/>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+            </ActivityOutputEditor>
+        </config>
+        <pd:inputBindings>
+            <ns1:ActivityInputClass>
+                <jsonString>
+                    <xsl:value-of select="$Start/foo"/>
+                </jsonString>
+            </ns1:ActivityInputClass>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Render JSON">
+            <pd:type>com.tibco.plugin.json.activities.JSONRenderActivity</pd:type>
+            <pd:resourceType>ae.activities.JSONParserActivity</pd:resourceType>
+            <pd:x>331</pd:x>
+            <pd:y>62</pd:y>
+            <config>
+                <SchemaType>xsdType</SchemaType>
+                <BadgerfishCheck>false</BadgerfishCheck>
+                <ActivityOutputEditor>
+                    <xsd:element name="Foo">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="foo" type="xsd:string"/>
+                                <xsd:element name="bar" type="xsd:string" minOccurs="0"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </ActivityOutputEditor>
+            </config>
+            <pd:inputBindings>
+                <ns1:ActivityInputClass>
+                    <jsonString>
+                        <xsl:value-of select="$Parse-JSON/ns1:ActivityOutputClass/Foo"/>
+                    </jsonString>
+                </ns1:ActivityInputClass>
+            </pd:inputBindings>
+        </pd:activity>
+    <pd:activity name="Rest call">
+        <pd:type>com.tibco.plugin.json.activities.RestActivity</pd:type>
+        <pd:resourceType>ae.activities.RestActivity</pd:resourceType>
+        <pd:x>357</pd:x>
+        <pd:y>225</pd:y>
+        <config>
+            <enableProtocolUI>None</enableProtocolUI>
+            <restMethodUI>POST</restMethodUI>
+            <restResponseType>JSON</restResponseType>
+            <authChoiceUI>No Authentication</authChoiceUI>
+            <restURI>https://eieio.azurewebsites.net/schedulepolling/uploadschedule</restURI>
+        </config>
+        <pd:inputBindings>
+            <ns1:ActivityInput>
+                <ns1:Parameters>
+                    <Body>
+                        <Multipart>
+                            <name>
+                                <xsl:value-of select="&quot;schedule&quot;"/>
+                            </name>
+                            <filename>
+                                <xsl:value-of select="$Schedule-Poller/ns:EventSourceOuputTextClass/fileInfo/fileName"/>
+                            </filename>
+                            <content>
+                                <fileName>
+                                    <xsl:value-of select="concat($Schedule-Poller/ns:EventSourceOuputTextClass/fileInfo/location, &quot;\&quot;, $Schedule-Poller/ns:EventSourceOuputTextClass/fileInfo/fileName)"/>
+                                </fileName>
+                            </content>
+                        </Multipart>
+                    </Body>
+                </ns1:Parameters>
+            </ns1:ActivityInput>
         </pd:inputBindings>
     </pd:activity>
     <pd:transition>
@@ -106,6 +274,13 @@
     </pd:transition>
     <pd:transition>
         <pd:from>Log</pd:from>
+        <pd:to>SOAPSendReply</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>SOAPSendReply</pd:from>
         <pd:to>End</pd:to>
         <pd:lineType>Default</pd:lineType>
         <pd:lineColor>-16777216</pd:lineColor>

@@ -22,10 +22,12 @@ import common.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import tibco.TibcoModel;
 import tibco.TibcoToBalConverter;
+import tibco.analyzer.AnalysisResult;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -34,13 +36,17 @@ public class ProjectConverter {
 
     public static final Logger LOGGER = Logger.getLogger(ProjectConverter.class.getName());
     public static ConversionResult convertProject(
-            TibcoToBalConverter.ProjectConversionContext conversionContext, Collection<TibcoModel.Process> processes,
-            Collection<TibcoModel.Type.Schema> types, Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
+            TibcoToBalConverter.ProjectConversionContext conversionContext,
+            Map<TibcoModel.Process, AnalysisResult> analysisResult,
+            Collection<TibcoModel.Process> processes, Collection<TibcoModel.Type.Schema> types,
+            Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
             Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
             Set<TibcoModel.Resource.HTTPClientResource> httpClientResources,
-            Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources) {
-        ProjectContext cx = new ProjectContext(conversionContext);
-        convertResources(cx, jdbcResources, httpConnectionResources, httpClientResources, httpSharedResources);
+            Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources,
+            Set<TibcoModel.Resource.JDBCSharedResource> jdbcSharedResource) {
+        ProjectContext cx = new ProjectContext(conversionContext, analysisResult);
+        convertResources(cx, jdbcResources, httpConnectionResources, httpClientResources, httpSharedResources,
+                jdbcSharedResource);
 
         record ProcessResult(TibcoModel.Process process, ProcessConverter.TypeConversionResult result) {
 
@@ -68,14 +74,13 @@ public class ProjectConverter {
         for (TibcoModel.Process each : processes) {
             accumSchemas(each, schemas);
         }
-        SyntaxTree typeSyntaxTree = convertTypes(cx, schemas);
-        // We need to ensure all the type definitions have been processed before we
-        // start processing the functions
         List<BallerinaModel.TextDocument> textDocuments = results.stream()
                 .map(result -> {
                     TibcoModel.Process process = result.process();
                     return ProcessConverter.convertBody(cx.getProcessContext(process), process, result.result());
                 }).toList();
+        schemas.addAll(cx.getXSDSchemas());
+        SyntaxTree typeSyntaxTree = convertTypes(cx, schemas);
         return new ConversionResult(cx.serialize(textDocuments), typeSyntaxTree);
     }
 
@@ -90,7 +95,8 @@ public class ProjectConverter {
     private static void convertResources(ProjectContext cx, Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
                                          Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
                                          Set<TibcoModel.Resource.HTTPClientResource> httpClientResources,
-                                         Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources) {
+                                         Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources,
+                                         Set<TibcoModel.Resource.JDBCSharedResource> jdbcSharedResource) {
         for (TibcoModel.Resource.JDBCResource resource : jdbcResources) {
             ResourceConvertor.convertJDBCResource(cx, resource);
         }
@@ -102,6 +108,9 @@ public class ProjectConverter {
         }
         for (TibcoModel.Resource.HTTPSharedResource resource : httpSharedResources) {
             ResourceConvertor.convertHttpSharedResource(cx, resource);
+        }
+        for (TibcoModel.Resource.JDBCSharedResource resource : jdbcSharedResource) {
+            ResourceConvertor.convertJDBCSharedResource(cx, resource);
         }
     }
 
