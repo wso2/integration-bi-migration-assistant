@@ -39,7 +39,7 @@ function ErrorLog(map<xml> context) returns xml|error {
 function HTTP_Receiver(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
-    addToContext(context, "HTTP Receiver", var1);
+    addToContext(context, "HTTP-Receiver", var1);
     return var1;
 }
 
@@ -59,9 +59,10 @@ function InvokeProcess(map<xml> context) returns xml|error {
 
     </xsl:template>
 </xsl:stylesheet>`, context);
-    xml var2 = check proj_annon_var1->post("", var1);
-    addToContext(context, "InvokeProcess", var2);
-    return var2;
+    xml var2 = var1/*;
+    xml var3 = check proj_annon_var1->post("", var2);
+    addToContext(context, "InvokeProcess", var3);
+    return var3;
 }
 
 function Log(map<xml> context) returns xml|error {
@@ -147,7 +148,7 @@ function Read_file(map<xml> context) returns xml|error {
         <textContent>${content}</textContent>
     </fileContent>
 </ns:ReadActivityOutputTextClass>`;
-    addToContext(context, "Read file", var2);
+    addToContext(context, "Read-file", var2);
     return var2;
 }
 
@@ -224,7 +225,7 @@ function Write_File(map<xml> context) returns xml|error {
     string fileName = (var1/**/<fileName>/*).toString();
     string content = (var1/**/<textContent>/*).toString();
     check io:fileWriteString(fileName, content, "APPEND");
-    addToContext(context, "Write File", var1);
+    addToContext(context, "Write-File", var1);
     return var1;
 }
 
@@ -258,7 +259,7 @@ function start_Processes_MainProcessStarter_process(xml inputXML, map<xml> param
 function HTTP_Receiver_11(map<xml> context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
-    addToContext(context, "HTTP Receiver", var1);
+    addToContext(context, "HTTP-Receiver", var1);
     return var1;
 }
 
@@ -382,7 +383,7 @@ function Parse_JSON(map<xml> context) returns xml|error {
     xml var2 = check renderJsonAsFooXML(var1);
     xmlns "http://www.tibco.com/namespaces/tnt/plugins/json" as ns;
     xml var3 = xml `<ns:ActivityOutputClass>var2</ns:ActivityOutputClass>`;
-    addToContext(context, "Parse JSON", var3);
+    addToContext(context, "Parse-JSON", var3);
     return var3;
 }
 
@@ -411,7 +412,7 @@ function Render_JSON(map<xml> context) returns xml|error {
     string var4 = var3.toJsonString();
     xmlns "http://www.tibco.com/namespaces/tnt/plugins/json" as ns;
     xml var5 = xml `<ns:ActivityOutputClass><jsonString>${var4}</jsonString></ns:ActivityOutputClass>`;
-    addToContext(context, "Render JSON", var5);
+    addToContext(context, "Render-JSON", var5);
     return var5;
 }
 
@@ -459,14 +460,13 @@ function Rest_call(map<xml> context) returns xml|error {
 
     </xsl:template>
 </xsl:stylesheet>`, context);
-    xmlns "http://www.tibco.com/namespaces/tnt/plugins/json" as ns;
-    xml var2 = var1/**/<ns:Body>;
-    json var3 = xmlToJson(var2);
+    xml var2 = var1/**/<Body>;
+    map<json> var3 = <map<json>>xmlToJson(var2);
     http:Client var4 = check new ("https://eieio.azurewebsites.net/schedulepolling/uploadschedule");
-    json var5 = check var4->post("/", var3);
+    json var5 = check var4->post("/", var3["Body"]);
     xml var6 = check toXML(<map<json>>var5);
     xml var7 = xml `<ns:RESTOutput><msg>${var6}</msg></ns:RESTOutput>`;
-    addToContext(context, "Rest call", var7);
+    addToContext(context, "Rest-call", var7);
     return var7;
 }
 
