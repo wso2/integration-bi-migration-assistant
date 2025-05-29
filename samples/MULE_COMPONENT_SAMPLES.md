@@ -1988,25 +1988,25 @@ public type Context record {|
 public type Record record {
 };
 
-configurable string http\.host = ?;
-configurable string http\.port = ?;
-configurable string user\.firstName = ?;
-configurable string user\.lastName = ?;
-configurable string user\.balance = ?;
-configurable string db\.host = ?;
-configurable string db\.user = ?;
-configurable string db\.password = ?;
-configurable string db\.database = ?;
-configurable string db\.port = ?;
-mysql:Client MySQL_Config = check new (db\.host, db\.user, db\.password, db\.database, check int:fromString(db\.port));
-public listener http:Listener HTTP_Config = new (check int:fromString(http\.port));
+configurable string http_host = ?;
+configurable string http_port = ?;
+configurable string user_firstName = ?;
+configurable string user_lastName = ?;
+configurable string user_balance = ?;
+configurable string db_host = ?;
+configurable string db_user = ?;
+configurable string db_password = ?;
+configurable string db_database = ?;
+configurable string db_port = ?;
+mysql:Client MySQL_Config = check new (db_host, db_user, db_password, db_database, check int:fromString(db_port));
+public listener http:Listener HTTP_Config = new (check int:fromString(http_port));
 public listener http:Listener Listener_Config = new (8081);
 
 service / on Listener_Config {
     resource function get test(http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new}};
-        ctx.flowVars.dbConnectionString = http\.host + ":" + http\.port;
-        log:printInfo(string `App running on port: ${http\.port}`);
+        ctx.flowVars.dbConnectionString = http_host + ":" + http_port;
+        log:printInfo(string `App running on port: ${http_port}`);
 
         // database operation
         sql:ParameterizedQuery dbQuery0 = ``;
@@ -2014,7 +2014,7 @@ service / on Listener_Config {
         Record[] dbSelect0 = check from Record _iterator_ in dbStream0
             select _iterator_;
         ctx.payload = dbSelect0;
-        log:printInfo(string ` Welcome, ${user\.firstName} ${user\.lastName}. Your account balance is ${user\.balance}`);
+        log:printInfo(string ` Welcome, ${user_firstName} ${user_lastName}. Your account balance is ${user_balance}`);
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
         return ctx.inboundProperties.response;
