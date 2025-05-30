@@ -1,0 +1,4 @@
+[package]
+org = "heshanp"
+name = "weatherservice"
+version = "0.1.0"
