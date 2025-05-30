@@ -25,9 +25,13 @@ import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.dataweave.converter.DWConversionStats;
 import picocli.CommandLine;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -175,7 +179,8 @@ public class MuleConverter {
         String targetFolderPath = balPackageDir.toString();
 
         List<File> xmlFiles = new ArrayList<>();
-        collectXmlFiles(sourceFolderPath.toFile(), xmlFiles);
+        List<File> propertyFiles = new ArrayList<>();
+        collectXmlAndPropertyFiles(sourceFolderPath.toFile(), xmlFiles, propertyFiles);
 
         if (xmlFiles.isEmpty()) {
             logger.severe("No XML files found in the directory: " + sourceFolderPath);
@@ -195,6 +200,7 @@ public class MuleConverter {
         }
 
         genAndWriteInternalTypesBalFile(sharedProjectData, targetFolderPath);
+        genConfigTOMLFile(propertyFiles, targetFolderPath);
 
         Path reportFilePath = Paths.get(targetFolderPath, MIGRATION_REPORT_NAME);
         int conversionPercentage = writeHtmlReport(logger, reportFilePath,
@@ -281,6 +287,48 @@ public class MuleConverter {
         }
     }
 
+    private static void genConfigTOMLFile(List<File> propertyFiles, String targetFolderPath) {
+        Path configPath = Paths.get(targetFolderPath, "Config.toml");
+        StringBuilder tomlContent = new StringBuilder();
+
+        try {
+            for (File propFile : propertyFiles) {
+                if (propFile.getName().equals("mule-deploy.properties")) {
+                    // Skip mule-deploy.properties file
+                    continue;
+                }
+
+                // Add file name as comment
+                tomlContent.append("# Properties from ").append(propFile.getName()).append("\n");
+
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(new FileInputStream(propFile), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        // Skip empty lines and comment lines
+                        if (line.trim().isEmpty() || line.trim().startsWith("#")) {
+                            continue;
+                        }
+
+                        // Split on first occurrence of =
+                        int equalsIndex = line.indexOf('=');
+                        if (equalsIndex > 0) {
+                            String key = line.substring(0, equalsIndex).trim();
+                            String convertedKey = key.replace('.', '_');
+                            String value = line.substring(equalsIndex + 1).trim();
+                            tomlContent.append(convertedKey).append(" = \"").append(value).append("\"\n");
+                        }
+                    }
+                    tomlContent.append("\n");
+                }
+            }
+
+            Files.writeString(configPath, tomlContent.toString(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            logger.severe("Error creating Config.toml: " + e.getMessage());
+        }
+    }
+
     private static void printDataWeaveConversionPercentage(MuleXMLNavigator muleXMLNavigator) {
         DWConversionStats stats = muleXMLNavigator.getDwConversionStats();
         OUT.println("________________________________________________________________");
@@ -294,14 +342,16 @@ public class MuleConverter {
         OUT.println("________________________________________________________________");
     }
 
-    private static void collectXmlFiles(File folder, List<File> xmlFiles) {
+    private static void collectXmlAndPropertyFiles(File folder, List<File> xmlFiles, List<File> propertiesFiles) {
         File[] files = folder.listFiles();
         if (files != null) {
             for (File file : files) {
                 if (file.isDirectory()) {
-                    collectXmlFiles(file, xmlFiles);
+                    collectXmlAndPropertyFiles(file, xmlFiles, propertiesFiles);
                 } else if (file.getName().toLowerCase().endsWith(".xml")) {
                     xmlFiles.add(file);
+                } else if (file.getName().toLowerCase().endsWith(".properties")) {
+                    propertiesFiles.add(file);
                 }
             }
         }

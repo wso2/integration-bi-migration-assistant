@@ -93,6 +93,7 @@ The migration tool currently supports the following Mule components:
 - [Http Request](samples/MULE_COMPONENT_SAMPLES.md#http-request)
 - [Logger](samples/MULE_COMPONENT_SAMPLES.md#logger)
 - [Message Enricher](samples/MULE_COMPONENT_SAMPLES.md#message-enricher)
+- [Misc](samples/MULE_COMPONENT_SAMPLES.md#misc)
 - [Object To Json](samples/MULE_COMPONENT_SAMPLES.md#object-to-json)
 - [Object To String](samples/MULE_COMPONENT_SAMPLES.md#object-to-string)
 - [Reference Exception Strategy](samples/MULE_COMPONENT_SAMPLES.md#reference-exception-strategy)

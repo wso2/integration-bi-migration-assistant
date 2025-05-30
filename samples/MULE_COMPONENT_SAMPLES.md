@@ -1929,6 +1929,100 @@ public function enricher0(Context ctx) returns string? {
 
 ```
 
+## Misc
+
+- ### External Property Access In Message
+
+**Input (external_property_access_in_message.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:json="http://www.mulesoft.org/schema/mule/json"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="HTTP_Config" host="0.0.0.0" port="${http.port}" basePath="prop-access" doc:name="HTTP Listener Configuration"/>
+    <db:mysql-config name="MySQL_Config" host="${db.host}" port="${db.port}" user="${db.user}" password="${db.password}" doc:name="MySQL Configuration" database="${db.database}"/>
+    <http:listener-config name="Listener_Config"  host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
+    <flow name="myFlow">
+        <http:listener config-ref="Listener_Config" path="/test" allowedMethods="GET" doc:name="HTTP"/>
+        <set-variable variableName="dbConnectionString" value="#['${http.host}' + ':' + '${http.port}']" doc:name="Set DB Connection String"/>
+        <logger message="App running on port: ${http.port}" level="INFO" doc:name="Log App Running Port"/>
+        <db:select config-ref="MySQL_Config" doc:name="Database">
+            <db:parameterized-query/>
+        </db:select>
+        <logger message=" Welcome, ${user.firstName} ${user.lastName}. Your account balance is ${user.balance}" level="INFO" doc:name="Logger Welcome Message"/>
+    </flow>
+</mule>
+
+```
+**Output (external_property_access_in_message.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+import ballerina/sql;
+import ballerinax/mysql;
+import ballerinax/mysql.driver as _;
+
+public type FlowVars record {|
+    anydata dbConnectionString?;
+|};
+
+public type InboundProperties record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    FlowVars flowVars = {};
+    InboundProperties inboundProperties;
+|};
+
+public type Record record {
+};
+
+configurable string http_host = ?;
+configurable string http_port = ?;
+configurable string user_firstName = ?;
+configurable string user_lastName = ?;
+configurable string user_balance = ?;
+configurable string db_host = ?;
+configurable string db_user = ?;
+configurable string db_password = ?;
+configurable string db_database = ?;
+configurable string db_port = ?;
+mysql:Client MySQL_Config = check new (db_host, db_user, db_password, db_database, check int:fromString(db_port));
+public listener http:Listener HTTP_Config = new (check int:fromString(http_port));
+public listener http:Listener Listener_Config = new (8081);
+
+service / on Listener_Config {
+    resource function get test(http:Request request) returns http:Response|error {
+        Context ctx = {inboundProperties: {request, response: new}};
+        ctx.flowVars.dbConnectionString = http_host + ":" + http_port;
+        log:printInfo(string `App running on port: ${http_port}`);
+
+        // database operation
+        sql:ParameterizedQuery dbQuery0 = ``;
+        stream<Record, sql:Error?> dbStream0 = MySQL_Config->query(dbQuery0);
+        Record[] dbSelect0 = check from Record _iterator_ in dbStream0
+            select _iterator_;
+        ctx.payload = dbSelect0;
+        log:printInfo(string ` Welcome, ${user_firstName} ${user_lastName}. Your account balance is ${user_balance}`);
+
+        ctx.inboundProperties.response.setPayload(ctx.payload);
+        return ctx.inboundProperties.response;
+    }
+}
+
+```
+
 ## Object To Json
 
 - ### Basic Object To Json

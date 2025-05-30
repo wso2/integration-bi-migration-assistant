@@ -85,7 +85,7 @@ final class ResourceConvertor {
     public static void convertHttpSharedResource(ProjectContext cx, TibcoModel.Resource.HTTPSharedResource resource) {
         String name = tibco.converter.ConversionUtils.sanitizes(resource.name());
         BallerinaModel.Listener listener = new BallerinaModel.Listener(BallerinaModel.ListenerType.HTTP, name,
-                Integer.toString(resource.port()), Map.of("host", resource.host()));
+                Integer.toString(resource.port()), resource.host());
         cx.addListnerDeclartion(resource.name(), listener, List.of(), List.of(Library.HTTP));
     }
 

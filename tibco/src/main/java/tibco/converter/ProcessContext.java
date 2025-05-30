@@ -151,8 +151,7 @@ public class ProcessContext implements ContextWithFile {
             addLibraryImport(Library.HTTP);
             String listenerRef = ConversionUtils.sanitizes(process.name()) + "_listener";
             defaultListener = new BallerinaModel.Listener(BallerinaModel.ListenerType.HTTP, listenerRef,
-                    Integer.toString(projectContext.allocatePort()),
-                    Map.of("host", "localhost"));
+                    Integer.toString(projectContext.allocatePort()), "localhost");
         }
         return defaultListener.name();
     }

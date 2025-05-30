@@ -74,6 +74,7 @@ import static mule.Constants.BAL_ANYDATA_TYPE;
 import static mule.Constants.BAL_ERROR_TYPE;
 import static mule.Constants.FUNC_NAME_ASYC_TEMPLATE;
 import static common.ConversionUtils.exprFrom;
+import static mule.ConversionUtils.getAttrVal;
 import static mule.ConversionUtils.getBallerinaClientResourcePath;
 import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
@@ -83,6 +84,7 @@ import static mule.ConversionUtils.genQueryParam;
 import static mule.ConversionUtils.getAllowedMethods;
 import static mule.ConversionUtils.getBallerinaAbsolutePath;
 import static mule.ConversionUtils.getBallerinaResourcePath;
+import static mule.ConversionUtils.getAttrValInt;
 import static mule.ConversionUtils.inferTypeFromBalExpr;
 import static mule.ConversionUtils.insertLeadingSlash;
 import static mule.MuleModel.Async;
@@ -135,12 +137,12 @@ public class MuleToBalConverter {
         HashMap<String, DbMSQLConfig> globalDbMySQLConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbOracleConfig> globalDbOracleConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbTemplateQuery> globalDbTemplateQueryMap = new LinkedHashMap<>();
+        private final HashMap<String, ModuleVar> globalConfigVarMap = new LinkedHashMap<>();
         List<UnsupportedBlock> globalUnsupportedBlocks = new ArrayList<>();
         List<MuleRecord> globalExceptionStrategies = new ArrayList<>();
 
         // Ballerina global elements
         public HashSet<Import> imports = new LinkedHashSet<>();
-        HashSet<String> queryParams = new LinkedHashSet<>();
         HashMap<String, ModuleTypeDef> typeDefMap = new LinkedHashMap<>();
         HashMap<String, ModuleVar> moduleVarMap = new LinkedHashMap<>();
         public List<Function> functions = new ArrayList<>();
@@ -148,6 +150,17 @@ public class MuleToBalConverter {
 
         public Data(SharedProjectData sharedProjectData) {
             this.sharedProjectData = sharedProjectData;
+        }
+
+        public void putConfigVarIfNotExists(String configVarName) {
+            if (sharedProjectData.sharedConfigVarMap.containsKey(configVarName)) {
+                return;
+            }
+
+            BallerinaModel.ModuleVar configVarDecl = new BallerinaModel.ModuleVar(configVarName, "string",
+                    Optional.of(exprFrom("?")), false, true);
+            sharedProjectData.sharedConfigVarMap.put(configVarName, configVarDecl);
+            globalConfigVarMap.put(configVarName, configVarDecl);
         }
     }
 
@@ -160,6 +173,7 @@ public class MuleToBalConverter {
         HashMap<String, DbMSQLConfig> sharedDbMySQLConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbOracleConfig> sharedDbOracleConfigsMap = new LinkedHashMap<>();
         HashMap<String, DbTemplateQuery> sharedDbTemplateQueryMap = new LinkedHashMap<>();
+        private final HashMap<String, ModuleVar> sharedConfigVarMap = new LinkedHashMap<>();
         HashMap<String, String> vmPathToBalFuncMap = new LinkedHashMap<>();
 
         // Internal variable/method count
@@ -395,23 +409,26 @@ public class MuleToBalConverter {
         // Add global listeners
         List<Listener> listeners = new ArrayList<>();
         for (HTTPListenerConfig httpListenerConfig : data.globalHttpListenerConfigsMap.values()) {
-            listeners.add(new Listener(ListenerType.HTTP, httpListenerConfig.name(), httpListenerConfig.port(),
-                    httpListenerConfig.config()));
+            listeners.add(new Listener(ListenerType.HTTP, httpListenerConfig.name(),
+                    getAttrValInt(data, httpListenerConfig.port()), httpListenerConfig.host()));
         }
 
         // Add module vars
         List<ModuleVar> moduleVars = new ArrayList<>();
+
         for (DbMSQLConfig dbMSQLConfig : data.globalDbMySQLConfigsMap.values()) {
-            var balExpr = exprFrom(String.format("check new (\"%s\", \"%s\", \"%s\", \"%s\", %s)",
-                    dbMSQLConfig.host(), dbMSQLConfig.user(), dbMSQLConfig.password(), dbMSQLConfig.database(),
-                    dbMSQLConfig.port()));
+            var balExpr = exprFrom("check new (%s, %s, %s, %s, %s)".formatted(
+                    getAttrVal(data, dbMSQLConfig.host()), getAttrVal(data, dbMSQLConfig.user()),
+                    getAttrVal(data, dbMSQLConfig.password()), getAttrVal(data, dbMSQLConfig.database()),
+                    getAttrValInt(data, dbMSQLConfig.port())));
             moduleVars.add(new ModuleVar(dbMSQLConfig.name(), typeFrom(Constants.MYSQL_CLIENT_TYPE), balExpr));
         }
 
         for (DbOracleConfig dbOracleConfig : data.globalDbOracleConfigsMap.values()) {
-            var balExpr = exprFrom(String.format("check new (\"%s\", \"%s\", \"%s\", \"%s\", %s)",
-                    dbOracleConfig.host(), dbOracleConfig.user(), dbOracleConfig.password(), dbOracleConfig.instance(),
-                    dbOracleConfig.port()));
+            var balExpr = exprFrom(String.format("check new (%s, %s, %s, %s, %s)",
+                    getAttrVal(data, dbOracleConfig.host()), getAttrVal(data, dbOracleConfig.user()),
+                    getAttrVal(data, dbOracleConfig.password()), getAttrVal(data, dbOracleConfig.instance()),
+                    getAttrValInt(data, dbOracleConfig.port())));
             moduleVars.add(new ModuleVar(dbOracleConfig.name(), typeFrom(Constants.ORACLEDB_CLIENT_TYPE), balExpr));
         }
 
@@ -439,8 +456,11 @@ public class MuleToBalConverter {
         } else {
             typeDefs = data.typeDefMap.values().stream().toList();
         }
+
+        ArrayList<ModuleVar> orderedModuleVars = new ArrayList<>(data.globalConfigVarMap.values());
+        orderedModuleVars.addAll(moduleVars);
         return createBallerinaModel(new ArrayList<>(data.imports), typeDefs,
-                moduleVars, listeners, services, functions.stream().toList(), comments);
+                orderedModuleVars, listeners, services, functions.stream().toList(), comments);
     }
 
     private static void genVMInboundEndpointSource(Data data, Flow flow, VMInboundEndpoint vmInboundEndpoint,
@@ -586,11 +606,11 @@ public class MuleToBalConverter {
     private static Service genBalService(Data data, HttpListener httpListener, List<MuleRecord> flowBlocks,
             Set<Function> functions) {
         List<String> pathParams = new ArrayList<>();
-        String resourcePath = getBallerinaResourcePath(httpListener.resourcePath(), pathParams);
+        String resourcePath = getBallerinaResourcePath(data, httpListener.resourcePath(), pathParams);
         String[] resourceMethodNames = httpListener.allowedMethods();
         List<String> listenerRefs = Collections.singletonList(httpListener.configRef());
-        String muleBasePath = data.sharedProjectData.sharedHttpListenerConfigsMap.get(httpListener.configRef())
-                .basePath();
+        String muleBasePath = insertLeadingSlash(
+                data.sharedProjectData.sharedHttpListenerConfigsMap.get(httpListener.configRef()).basePath());
         String basePath = getBallerinaAbsolutePath(muleBasePath);
 
         // Add services
@@ -805,7 +825,7 @@ public class MuleToBalConverter {
         List<Statement> statementList = new ArrayList<>();
         switch (muleRec) {
             case Logger lg -> statementList.add(stmtFrom(String.format("log:%s(%s);",
-                    getBallerinaLogFunction(lg.level()), convertMuleExprToBalStringLiteral(lg.message()))));
+                    getBallerinaLogFunction(lg.level()), convertMuleExprToBalStringLiteral(data, lg.message()))));
             case VMOutboundEndpoint vmOutboundEndpoint -> {
                 String path = vmOutboundEndpoint.path();
                 String funcName = data.sharedProjectData.vmPathToBalFuncMap.get(path);
@@ -826,13 +846,14 @@ public class MuleToBalConverter {
                 statementList.add(stmtFrom(String.format("%s.payload -> W;", Constants.CONTEXT_REFERENCE)));
             }
             case ExpressionComponent exprComponent -> {
-                String convertedExpr = convertMuleExprToBal(String.format("#[%s]", exprComponent.exprCompContent()));
+                String convertedExpr = convertMuleExprToBal(data, String.format("#[%s]",
+                        exprComponent.exprCompContent()));
                 ConversionUtils.processExprCompContent(data.sharedProjectData, convertedExpr);
                 statementList.add(stmtFrom(convertedExpr));
             }
             case Payload payload -> {
                 statementList.add(stmtFrom("\n\n// set payload\n"));
-                String pyld = convertMuleExprToBal(payload.expr());
+                String pyld = convertMuleExprToBal(data, payload.expr());
                 String type = inferTypeFromBalExpr(pyld);
                 String payloadVar = String.format(Constants.VAR_PAYLOAD_TEMPLATE,
                         data.sharedProjectData.payloadVarCount++);
@@ -846,7 +867,7 @@ public class MuleToBalConverter {
                 assert !whens.isEmpty(); // For valid mule config, there is at least one when
 
                 WhenInChoice firstWhen = whens.getFirst();
-                String ifCondition = convertMuleExprToBal(firstWhen.condition());
+                String ifCondition = convertMuleExprToBal(data, firstWhen.condition());
                 List<Statement> ifBody = new ArrayList<>();
                 for (MuleRecord r2 : firstWhen.process()) {
                     List<Statement> statements = convertToStatements(data, r2);
@@ -861,7 +882,7 @@ public class MuleToBalConverter {
                         List<Statement> statements = convertToStatements(data, r2);
                         elseIfBody.addAll(statements);
                     }
-                    ElseIfClause elseIfClause = new ElseIfClause(exprFrom(convertMuleExprToBal(when.condition())),
+                    ElseIfClause elseIfClause = new ElseIfClause(exprFrom(convertMuleExprToBal(data, when.condition())),
                             elseIfBody);
                     elseIfClauses.add(elseIfClause);
                 }
@@ -875,7 +896,7 @@ public class MuleToBalConverter {
             }
             case SetVariable setVariable -> {
                 String varName = ConversionUtils.convertToBalIdentifier(setVariable.variableName());
-                String balExpr = convertMuleExprToBal(setVariable.value());
+                String balExpr = convertMuleExprToBal(data, setVariable.value());
                 String type = inferTypeFromBalExpr(balExpr);
 
                 if (!data.sharedProjectData.existingFlowVar(varName)) {
@@ -897,7 +918,7 @@ public class MuleToBalConverter {
             }
             case SetSessionVariable setSessionVariable -> {
                 String varName = ConversionUtils.convertToBalIdentifier(setSessionVariable.variableName());
-                String balExpr = convertMuleExprToBal(setSessionVariable.value());
+                String balExpr = convertMuleExprToBal(data, setSessionVariable.value());
                 String type = inferTypeFromBalExpr(balExpr);
 
                 if (!data.sharedProjectData.existingSessionVar(varName)) {
@@ -933,7 +954,7 @@ public class MuleToBalConverter {
             }
             case HttpRequest httpRequest -> {
                 List<Statement> statements = new ArrayList<>();
-                String path = getBallerinaClientResourcePath(httpRequest.path());
+                String path = getBallerinaClientResourcePath(data, httpRequest.path());
                 String method = httpRequest.method();
                 String url = httpRequest.url();
                 Map<String, String> queryParams = httpRequest.queryParams();
@@ -945,7 +966,7 @@ public class MuleToBalConverter {
                         data.sharedProjectData.clientResultVarCount++);
                 statements.add(stmtFrom("%s %s = check %s->%s.%s(%s);".formatted(Constants.HTTP_RESPONSE_TYPE,
                         clientResultVar, httpRequest.configRef(), path, method.toLowerCase(),
-                        genQueryParam(queryParams))));
+                        genQueryParam(data, queryParams))));
                 statements.add(stmtFrom(String.format("%s.payload = check %s.getJsonPayload();",
                         Constants.CONTEXT_REFERENCE, clientResultVar)));
                 statementList.addAll(statements);
@@ -983,8 +1004,8 @@ public class MuleToBalConverter {
             }
             case Enricher enricher -> {
                 // TODO: support no source
-                String source = convertMuleExprToBal(enricher.source());
-                String target = convertMuleExprToBal(enricher.target());
+                String source = convertMuleExprToBal(data, enricher.source());
+                String target = convertMuleExprToBal(data, enricher.target());
 
                 if (target.startsWith(Constants.FLOW_VARS_FIELD_ACCESS + ".")) {
                     String var = target.replace(Constants.FLOW_VARS_FIELD_ACCESS + ".", "");
@@ -1105,14 +1126,14 @@ public class MuleToBalConverter {
         assert !catchExceptionStrategies.isEmpty();
 
         CatchExceptionStrategy firstCatch = catchExceptionStrategies.getFirst();
-        BallerinaExpression ifCondition = exprFrom(convertMuleExprToBal(firstCatch.when()));
+        BallerinaExpression ifCondition = exprFrom(convertMuleExprToBal(data, firstCatch.when()));
         List<Statement> ifBody = convertMuleRecToBalStatements(data, firstCatch.catchBlocks());
 
         List<ElseIfClause> elseIfClauses = new ArrayList<>();
         for (int i = 1; i < catchExceptionStrategies.size() - 1; i++) {
             CatchExceptionStrategy catchExpStrgy = catchExceptionStrategies.get(i);
             List<Statement> elseIfBody = convertMuleRecToBalStatements(data, catchExpStrgy.catchBlocks());
-            ElseIfClause elseIfClause = new ElseIfClause(exprFrom(convertMuleExprToBal(catchExpStrgy.when())),
+            ElseIfClause elseIfClause = new ElseIfClause(exprFrom(convertMuleExprToBal(data, catchExpStrgy.when())),
                     elseIfBody);
             elseIfClauses.add(elseIfClause);
         }
@@ -1504,9 +1525,8 @@ public class MuleToBalConverter {
         String listenerName = element.getAttribute("name");
         String host = element.getAttribute("host");
         String port = element.getAttribute("port");
-        String basePath = insertLeadingSlash(element.getAttribute("basePath"));
-        HashMap<String, String> config = new HashMap<>(Collections.singletonMap("host", host));
-        return new HTTPListenerConfig(listenerName, basePath, port, config);
+        String basePath = element.getAttribute("basePath");
+        return new HTTPListenerConfig(listenerName, basePath, port, host);
     }
 
     private static HTTPRequestConfig readHttpRequestConfig(Data data, MuleElement muleElement) {

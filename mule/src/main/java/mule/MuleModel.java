@@ -210,10 +210,9 @@ public record MuleModel() {
 
     // Global Elements
     public record HTTPListenerConfig(Kind kind, String name, String basePath, String port,
-                                     Map<String, String> config) implements MuleRecord {
-        public HTTPListenerConfig(String name, String basePath, String port, Map<String,
-                String> config) {
-            this(Kind.HTTP_LISTENER_CONFIG, name, basePath, port, config);
+                                     String host) implements MuleRecord {
+        public HTTPListenerConfig(String name, String basePath, String port, String host) {
+            this(Kind.HTTP_LISTENER_CONFIG, name, basePath, port, host);
         }
     }
 
