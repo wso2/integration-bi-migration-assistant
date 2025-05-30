@@ -21,7 +21,7 @@ package tibco;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
-import tibco.analyzer.AnalysisReport;
+import tibco.analyzer.TibcoAnalysisReport;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.DefaultAnalysisPass;
 import tibco.analyzer.LoggingAnalysisPass;
@@ -85,10 +85,10 @@ public class TibcoToBalConverter {
                 new ReportGenerationPass()));
         Map<TibcoModel.Process, AnalysisResult> analysisResult =
                 analyser.analyseProcesses(new ProjectAnalysisContext(), processes);
-        AnalysisReport report = analysisResult.values().stream()
+        TibcoAnalysisReport report = analysisResult.values().stream()
                 .map(AnalysisResult::getReport)
                 .flatMap(Optional::stream)
-                .reduce(AnalysisReport.empty(), AnalysisReport::combine);
+                .reduce(TibcoAnalysisReport.empty(), TibcoAnalysisReport::combine);
         if (cx.dryRun()) {
             return new ConversionResult(null, null, report);
         }

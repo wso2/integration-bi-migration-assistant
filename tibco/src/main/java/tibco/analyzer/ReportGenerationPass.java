@@ -22,21 +22,21 @@ import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.TibcoModel.Scope.Flow.Activity.UnhandledActivity;
-import tibco.analyzer.AnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
-import tibco.analyzer.AnalysisReport.UnhandledActivityElement.UnNamedUnhandledActivityElement;
+import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
+import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.UnNamedUnhandledActivityElement;
 
 import java.util.ArrayList;
 import java.util.Collection;
 
 
 public class ReportGenerationPass extends AnalysisPass {
-    Collection<AnalysisReport.UnhandledActivityElement> reportElements = new ArrayList<>();
+    Collection<TibcoAnalysisReport.UnhandledActivityElement> reportElements = new ArrayList<>();
     int totalActivities = 0;
 
     @Override
     protected void analyseActivity(ProcessAnalysisContext cx, TibcoModel.Scope.Flow.Activity activity) {
         totalActivities++;
-        AnalysisReport.UnhandledActivityElement unhandledActivityElement = switch (activity) {
+        TibcoAnalysisReport.UnhandledActivityElement unhandledActivityElement = switch (activity) {
             case UnhandledActivity unhandledActivity -> generateUnhandledActivityReport(unhandledActivity);
             case UnhandledInlineActivity unhandledInlineActivity ->
                     generateUnhandledActivityReport(unhandledInlineActivity);
@@ -47,12 +47,12 @@ public class ReportGenerationPass extends AnalysisPass {
         }
     }
 
-    private AnalysisReport.UnhandledActivityElement generateUnhandledActivityReport(
+    private TibcoAnalysisReport.UnhandledActivityElement generateUnhandledActivityReport(
             UnhandledActivity unhandledActivity) {
         return new UnNamedUnhandledActivityElement(unhandledActivity.element());
     }
 
-    private AnalysisReport.UnhandledActivityElement generateUnhandledActivityReport(
+    private TibcoAnalysisReport.UnhandledActivityElement generateUnhandledActivityReport(
             UnhandledInlineActivity unhandledActivity) {
         return new NamedUnhandledActivityElement(unhandledActivity.name(), unhandledActivity.activityType(),
                 unhandledActivity.element());
@@ -60,7 +60,7 @@ public class ReportGenerationPass extends AnalysisPass {
 
     @Override
     public @NotNull AnalysisResult getResult(ProcessAnalysisContext cx, TibcoModel.Process process) {
-        AnalysisReport report = new AnalysisReport(totalActivities, reportElements.size(), this.reportElements);
+        TibcoAnalysisReport report = new TibcoAnalysisReport(totalActivities, reportElements.size(), this.reportElements);
         AnalysisResult result = AnalysisResult.empty();
         result.report = report;
         return result;

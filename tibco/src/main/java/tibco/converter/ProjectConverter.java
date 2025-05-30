@@ -22,7 +22,7 @@ import common.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import tibco.TibcoModel;
 import tibco.TibcoToBalConverter;
-import tibco.analyzer.AnalysisReport;
+import tibco.analyzer.TibcoAnalysisReport;
 import tibco.analyzer.AnalysisResult;
 
 import java.util.ArrayList;
@@ -43,7 +43,7 @@ public class ProjectConverter {
             Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
             Set<TibcoModel.Resource.HTTPClientResource> httpClientResources,
             Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources,
-            Set<TibcoModel.Resource.JDBCSharedResource> jdbcSharedResource, AnalysisReport report) {
+            Set<TibcoModel.Resource.JDBCSharedResource> jdbcSharedResource, TibcoAnalysisReport report) {
         ProjectContext cx = new ProjectContext(conversionContext, analysisResult);
         convertResources(cx, jdbcResources, httpConnectionResources, httpClientResources, httpSharedResources,
                 jdbcSharedResource);

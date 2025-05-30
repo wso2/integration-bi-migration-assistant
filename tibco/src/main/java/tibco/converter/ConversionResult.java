@@ -20,8 +20,8 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import tibco.analyzer.AnalysisReport;
+import tibco.analyzer.TibcoAnalysisReport;
 
-public record ConversionResult(BallerinaModel.Module module, SyntaxTree types, AnalysisReport report) {
+public record ConversionResult(BallerinaModel.Module module, SyntaxTree types, TibcoAnalysisReport report) {
 
 }

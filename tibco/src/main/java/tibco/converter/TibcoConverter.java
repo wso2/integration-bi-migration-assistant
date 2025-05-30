@@ -23,7 +23,7 @@ import common.BallerinaModel;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import tibco.TibcoToBalConverter;
-import tibco.analyzer.AnalysisReport;
+import tibco.analyzer.TibcoAnalysisReport;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -117,7 +117,7 @@ public class TibcoConverter {
         }
     }
 
-    private static void writeAnalysisReport(Path targetDir, AnalysisReport report) throws IOException {
+    private static void writeAnalysisReport(Path targetDir, TibcoAnalysisReport report) throws IOException {
         Path reportFilePath = targetDir.resolve("report.html");
         String htmlContent = report.toHTML();
         Files.writeString(reportFilePath, htmlContent);
