@@ -27,7 +27,7 @@ import java.util.HashSet;
 
 public record AnalysisReport(int totalActivityCount, int unhandledActivityCount,
                              Collection<UnhandledActivityElement> unhandledActivityElements) {
-    private static final String HEADING = "TIBCO migration analysis report";
+    private static final String REPORT_TITLE = "Migration Assessment";
     private static final int BEST_CASE_ACTIVITY_TIME = 1;
     private static final int WORST_CASE_ACTIVITY_TIME = 3;
 
@@ -76,97 +76,203 @@ public record AnalysisReport(int totalActivityCount, int unhandledActivityCount,
 
     public String toHTML() {
         StringBuilder html = new StringBuilder();
-
-        // HTML header and style
-        html.append("""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>%s</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; }
-                        h1 { color: #333366; }
-                        .summary { background-color: #f5f5f5; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
-                        .activity { margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
-                        .activity-name { font-weight: bold; color: #333366; }
-                        .activity-type { color: #666699; margin-top: 5px; }
-                        pre { background-color: #f9f9f9; padding: 10px; border-radius: 3px; overflow: auto; }
-                    </style>
-                </head>
-                <body>
-                    <h1>%s</h1>
-                """.formatted(HEADING, HEADING));
-
-        // Summary section
-        html.append("""
-                    <div class="summary">
-                        <h2>Summary</h2>
-                """);
-        html.append("        <p>Total Activities: ").append(totalActivityCount).append("</p>\n");
-        appendUnhandledActivitySummary(html);
-        html.append("    </div>\n");
-
-        // Unhandled activities list
-        if (!unhandledActivityElements.isEmpty()) {
-            html.append("    <h2>Unhandled Activities</h2>\n");
-
-            for (UnhandledActivityElement element : unhandledActivityElements) {
-                html.append(formatUnhandledActivityElement(element));
-            }
-        }
-
-        html.append("""
-                </body>
-                </html>
-                """);
-
-        return html.toString();
-    }
-
-    private void appendUnhandledActivitySummary(StringBuilder html) {
-        html.append("""
-                <p>Unhandled Activities: %d (%.1f%%)</p>
-                """.formatted(unhandledActivityCount, calculatePercentage(unhandledActivityCount, totalActivityCount)));
-
+        
+        // Start HTML document
+        html.append("<!DOCTYPE html>\n")
+            .append("<html>\n")
+            .append("<head>\n")
+            .append("    <title>").append(REPORT_TITLE).append("</title>\n")
+            .append("    <style>\n")
+            .append("        body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; }\n")
+            .append("        table { width: 100%; border-collapse: collapse; margin: 20px 0; }\n")
+            .append("        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }\n")
+            .append("        th { background-color: #4682B4; color: white; }\n")
+            .append("        tr:nth-child(even) { background-color: #e0f0ff; }\n")
+            .append("        tr:hover { background-color: #b0d4f1; }\n")
+            .append("        h1 { text-align: center; }\n")
+            .append("        footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #666; }\n")
+            .append("        .drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }\n")
+            .append("        .drawer.open { max-height: 500px; }\n")
+            .append("        .summary-container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); margin: 20px 0; }\n")
+            .append("        .blue-table th { background-color: #4682B4; color: white; }\n")
+            .append("        .blue-table tr:nth-child(even) { background-color: #e0f0ff; }\n")
+            .append("        .blue-table tr:hover { background-color: #b0d4f1; }\n")
+            .append("        .estimation-notes { margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px; }\n")
+            .append("        .estimation-notes ul { margin: 10px 0 0 20px; }\n")
+            .append("        .estimation-notes li { margin-bottom: 5px; }\n")
+            .append("        .unsupported-blocks { padding: 10px; }\n")
+            .append("        .block-item {\n")
+            .append("            background-color: #f8f9fa;\n")
+            .append("            border: 1px solid #ddd;\n")
+            .append("            border-radius: 5px;\n")
+            .append("            margin-bottom: 15px;\n")
+            .append("            overflow: hidden;\n")
+            .append("        }\n")
+            .append("        .block-header {\n")
+            .append("            background-color: #4682B4;\n")
+            .append("            color: white;\n")
+            .append("            padding: 10px;\n")
+            .append("            display: flex;\n")
+            .append("            justify-content: space-between;\n")
+            .append("        }\n")
+            .append("        .block-code {\n")
+            .append("            margin: 0;\n")
+            .append("            padding: 15px;\n")
+            .append("            background-color: #fff;\n")
+            .append("            overflow-x: auto;\n")
+            .append("            font-family: monospace;\n")
+            .append("            white-space: pre-wrap;\n")
+            .append("        }\n")
+            .append("        .block-number { font-weight: bold; }\n")
+            .append("        .block-type { font-family: monospace; }\n")
+            .append("        code {\n")
+            .append("            background-color: #f0f0f0;\n")
+            .append("            padding: 2px 6px;\n")
+            .append("            border-radius: 4px;\n")
+            .append("            font-family: monospace;\n")
+            .append("            font-size: 0.9em;\n")
+            .append("        }\n")
+            .append("    </style>\n")
+            .append("</head>\n")
+            .append("<body>\n")
+            .append("    <h1>").append(REPORT_TITLE).append("</h1>\n");
+            
+        // Calculate automated migration coverage percentage
+        double coveragePercentage = 100 - calculatePercentage(unhandledActivityCount, totalActivityCount);
+        html.append("    <h3>Automated Migration Coverage: ").append(String.format("%.0f", coveragePercentage)).append("%</h3>\n");
+        
+        // Implementation time estimation
+        html.append("    <div class=\"summary-container\">\n")
+            .append("        <h3>Implementation Time Estimation</h3>\n")
+            .append("        <table class=\"blue-table\">\n")
+            .append("            <tr>\n")
+            .append("                <th>Scenario</th>\n")
+            .append("                <th>Days</th>\n")
+            .append("                <th>Weeks (approx.)</th>\n")
+            .append("            </tr>\n");
+            
+        // Calculate time estimates
         int uniqueUnhandledCount = countUniqueUnhandledActivities();
-        html.append("""
-                <p>Unique Unhandled Activities: %d (%.1f%%)</p>
-                """.formatted(uniqueUnhandledCount, calculatePercentage(uniqueUnhandledCount, totalActivityCount)));
-
+        int bestCaseEstimate = uniqueUnhandledCount * BEST_CASE_ACTIVITY_TIME;
+        int avgCaseEstimate = uniqueUnhandledCount * ((BEST_CASE_ACTIVITY_TIME + WORST_CASE_ACTIVITY_TIME) / 2);
+        int worstCaseEstimate = uniqueUnhandledCount * WORST_CASE_ACTIVITY_TIME;
+        
+        html.append("            <tr>\n")
+            .append("                <td>Best Case</td>\n")
+            .append("                <td>").append(bestCaseEstimate).append(" days</td>\n")
+            .append("                <td>").append(String.format("%.1f", bestCaseEstimate/5.0)).append(" weeks</td>\n")
+            .append("            </tr>\n")
+            .append("            <tr>\n")
+            .append("                <td>Average Case</td>\n")
+            .append("                <td>").append(avgCaseEstimate).append(" days</td>\n")
+            .append("                <td>").append(String.format("%.1f", avgCaseEstimate/5.0)).append(" weeks</td>\n")
+            .append("            </tr>\n")
+            .append("            <tr>\n")
+            .append("                <td>Worst Case</td>\n")
+            .append("                <td>").append(worstCaseEstimate).append(" days</td>\n")
+            .append("                <td>").append(String.format("%.1f", worstCaseEstimate/5.0)).append(" weeks</td>\n")
+            .append("            </tr>\n")
+            .append("        </table>\n");
+        
+        // Estimation notes
+        html.append("        <div class=\"estimation-notes\">\n")
+            .append("            <p><strong>Note:</strong></p>\n")
+            .append("            <ul>\n")
+            .append("                <li>Best Case: ").append(BEST_CASE_ACTIVITY_TIME).append(" day per unsupported activity</li>\n")
+            .append("                <li>Average Case: ").append((BEST_CASE_ACTIVITY_TIME + WORST_CASE_ACTIVITY_TIME)/2).append(" days per unsupported activity</li>\n")
+            .append("                <li>Worst Case: ").append(WORST_CASE_ACTIVITY_TIME).append(" days per unsupported activity</li>\n")
+            .append("                <li>Total unsupported activities: ").append(uniqueUnhandledCount).append("</li>\n")
+            .append("            </ul>\n")
+            .append("        </div>\n")
+            .append("    </div>\n");
+        
+        // Unsupported activities frequency table
         if (!unhandledActivityElements.isEmpty()) {
-            int bestCaseEstimate = uniqueUnhandledCount * BEST_CASE_ACTIVITY_TIME;
-            int worstCaseEstimate = uniqueUnhandledCount * WORST_CASE_ACTIVITY_TIME;
-            html.append("""
-                    <p>Time Estimate: %d-%d days (based on assumption of %d-%d days per unique activity)</p>
-                    """.formatted(bestCaseEstimate, worstCaseEstimate, BEST_CASE_ACTIVITY_TIME,
-                    WORST_CASE_ACTIVITY_TIME));
-            html.append(generateUniqueActivityTypeBreakdown());
+            html.append("    <div class=\"summary-container\">\n")
+                .append("        <h3>Unsupported Activities Frequency</h3>\n")
+                .append("        <table class=\"blue-table\">\n")
+                .append("            <tr>\n")
+                .append("                <th>Activity Name</th>\n")
+                .append("                <th>Frequency</th>\n")
+                .append("            </tr>\n");
+            
+            // Generate tag frequency map
+            java.util.Map<String, Integer> typeCountMap = new java.util.HashMap<>();
+            int unnamedCount = 0;
+            
+            for (UnhandledActivityElement element : unhandledActivityElements) {
+                if (element instanceof UnhandledActivityElement.NamedUnhandledActivityElement named) {
+                    // For named activities, count by type
+                    typeCountMap.put(named.type(), typeCountMap.getOrDefault(named.type(), 0) + 1);
+                } else {
+                    // Count unnamed activities
+                    unnamedCount++;
+                }
+            }
+            
+            // Add unnamed activities first if any exist
+            if (unnamedCount > 0) {
+                html.append("            <tr>\n")
+                    .append("                <td><code>unnamed-activity</code></td>\n")
+                    .append("                <td>").append(unnamedCount).append("</td>\n")
+                    .append("            </tr>\n");
+            }
+            
+            // Add named activities by type
+            typeCountMap.entrySet().stream()
+                    .sorted(java.util.Map.Entry.comparingByKey())  // Sort by type name
+                    .forEach(entry -> {
+                        html.append("            <tr>\n")
+                            .append("                <td><code>").append(entry.getKey()).append("</code></td>\n")
+                            .append("                <td>").append(entry.getValue()).append("</td>\n")
+                            .append("            </tr>\n");
+                    });
+            
+            html.append("        </table>\n")
+                .append("    </div>\n");
+            
+            // Unsupported activities section
+            html.append("    <div class=\"summary-container\">\n")
+                .append("        <h3>Unsupported TIBCO Activities</h3>\n")
+                .append("        <div class=\"unsupported-blocks\">\n");
+            
+            int blockCount = 1;
+            for (UnhandledActivityElement element : unhandledActivityElements) {
+                html.append("            <div class=\"block-item\">\n")
+                    .append("                <div class=\"block-header\">\n")
+                    .append("                    <span class=\"block-number\">Block #").append(blockCount++).append("</span>\n");
+                
+                if (element instanceof UnhandledActivityElement.NamedUnhandledActivityElement named) {
+                    html.append("                    <span class=\"block-type\">").append(named.type()).append("</span>\n");
+                } else {
+                    html.append("                    <span class=\"block-type\">unnamed-activity</span>\n");
+                }
+                
+                html.append("                </div>\n")
+                    .append("                <pre class=\"block-code\"><code>").append(escapeHtml(ConversionUtils.elementToString(element.element())))
+                    .append("</code></pre>\n")
+                    .append("            </div>\n");
+            }
+            
+            html.append("        </div>\n")
+                .append("    </div>\n");
         }
-    }
-
-    private String formatUnhandledActivityElement(UnhandledActivityElement element) {
-        StringBuilder html = new StringBuilder();
-        html.append("""
-                    <div class="activity">
-                """);
-
-        // Display name if available
-        if (element instanceof UnhandledActivityElement.NamedUnhandledActivityElement named) {
-            html.append("        <div class=\"activity-name\">Name: ").append(named.name()).append("</div>\n");
-        } else {
-            html.append("        <div class=\"activity-name\">Unnamed Activity</div>\n");
-        }
-
-        // Display XML
-        html.append("""
-                        <p>XML Element:</p>
-                """);
-        html.append("        <pre>").append(escapeHtml(ConversionUtils.elementToString(element.element())))
-                .append("</pre>\n");
-        html.append("    </div>\n");
+        
+        // Footer with date
+        html.append("    <footer>\n")
+            .append("        <p>Report generated on: <span id=\"datetime\"></span></p>\n")
+            .append("    </footer>\n")
+            .append("    <script>\n")
+            .append("        document.getElementById(\"datetime\").innerHTML = new Date().toLocaleString();\n")
+            .append("    </script>\n")
+            .append("</body>\n")
+            .append("</html>");
 
         return html.toString();
     }
+
+    // The appendUnhandledActivitySummary and formatUnhandledActivityElement methods were removed
+    // as they are no longer needed with the new HTML template format
 
     private String escapeHtml(String input) {
         if (input == null) {
@@ -197,42 +303,7 @@ public record AnalysisReport(int totalActivityCount, int unhandledActivityCount,
     public static AnalysisReport empty() {
         return new AnalysisReport(0, 0, Collections.emptyList());
     }
-
-    private String generateUniqueActivityTypeBreakdown() {
-        java.util.Map<String, Integer> typeCountMap = new java.util.HashMap<>();
-        int unnamedCount = 0;
-
-        for (UnhandledActivityElement element : unhandledActivityElements) {
-            if (element instanceof UnhandledActivityElement.NamedUnhandledActivityElement named) {
-                // For named activities, count by type
-                typeCountMap.put(named.type(), typeCountMap.getOrDefault(named.type(), 0) + 1);
-            } else {
-                // Count unnamed activities
-                unnamedCount++;
-            }
-        }
-
-        StringBuilder html = new StringBuilder();
-        html.append("<ul>\n");
-
-        // Add unnamed activities first if any exist
-        if (unnamedCount > 0) {
-            html.append("    <li>Unnamed Activities: ").append(unnamedCount).append("</li>\n");
-        }
-
-        // Add named activities by type
-        typeCountMap.entrySet().stream()
-                .sorted(java.util.Map.Entry.comparingByKey())  // Sort by type name
-                .forEach(entry ->
-                        html.append("    <li>")
-                                .append(entry.getKey())
-                                .append(": ")
-                                .append(entry.getValue())
-                                .append("</li>\n")
-                );
-
-        html.append("</ul>");
-
-        return html.toString();
-    }
+    
+    // The generateUniqueActivityTypeBreakdown method was removed
+    // as it is no longer needed with the new HTML template format
 }
