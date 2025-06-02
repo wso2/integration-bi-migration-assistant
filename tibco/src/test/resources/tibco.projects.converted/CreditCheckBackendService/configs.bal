@@ -1,1 +1,0 @@
-configurable string dbURL = ?;

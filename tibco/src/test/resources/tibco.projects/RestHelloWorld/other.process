@@ -98,12 +98,6 @@
     <pd:group name="Loop">
         <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
         <pd:resourceType>ae.process.group</pd:resourceType>
-        <pd:x>189</pd:x>
-        <pd:y>2</pd:y>
-        <pd:width>345</pd:width>
-        <pd:height>236</pd:height>
-        <pd:collapsedWidth>57</pd:collapsedWidth>
-        <pd:collapsedHeight>70</pd:collapsedHeight>
         <pd:groupVariables/>
         <pd:joinToggle>inherit</pd:joinToggle>
         <config>
@@ -119,8 +113,6 @@
         <pd:activity name="InnerLogElement">
             <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
             <pd:resourceType>ae.activities.log</pd:resourceType>
-            <pd:x>255</pd:x>
-            <pd:y>56</pd:y>
             <config>
                 <role>User</role>
             </config>
@@ -135,8 +127,6 @@
         <pd:activity name="InnerLogIndex">
             <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
             <pd:resourceType>ae.activities.log</pd:resourceType>
-            <pd:x>255</pd:x>
-            <pd:y>56</pd:y>
             <config>
                 <role>User</role>
             </config>
@@ -166,8 +156,6 @@
     <pd:activity name="Parse JSON">
         <pd:type>com.tibco.plugin.json.activities.JSONParserActivity</pd:type>
         <pd:resourceType>ae.activities.JSONParserActivity</pd:resourceType>
-        <pd:x>331</pd:x>
-        <pd:y>62</pd:y>
         <config>
             <SchemaType>xsdType</SchemaType>
             <BadgerfishCheck>false</BadgerfishCheck>
@@ -193,8 +181,6 @@
     <pd:activity name="Render JSON">
             <pd:type>com.tibco.plugin.json.activities.JSONRenderActivity</pd:type>
             <pd:resourceType>ae.activities.JSONParserActivity</pd:resourceType>
-            <pd:x>331</pd:x>
-            <pd:y>62</pd:y>
             <config>
                 <SchemaType>xsdType</SchemaType>
                 <BadgerfishCheck>false</BadgerfishCheck>
@@ -220,8 +206,6 @@
     <pd:activity name="Rest call">
         <pd:type>com.tibco.plugin.json.activities.RestActivity</pd:type>
         <pd:resourceType>ae.activities.RestActivity</pd:resourceType>
-        <pd:x>357</pd:x>
-        <pd:y>225</pd:y>
         <config>
             <enableProtocolUI>None</enableProtocolUI>
             <restMethodUI>POST</restMethodUI>
