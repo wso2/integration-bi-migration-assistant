@@ -84,8 +84,6 @@
     <pd:activity name="Write File">
         <pd:type>com.tibco.plugin.file.FileWriteActivity</pd:type>
         <pd:resourceType>ae.activities.FileWriteActivity</pd:resourceType>
-        <pd:x>688</pd:x>
-        <pd:y>68</pd:y>
         <config>
             <encoding>text</encoding>
             <compressFile>None</compressFile>
@@ -108,8 +106,6 @@
     <pd:activity name="Read file">
         <pd:type>com.tibco.plugin.file.FileReadActivity</pd:type>
         <pd:resourceType>ae.activities.FileReadActivity</pd:resourceType>
-        <pd:x>285</pd:x>
-        <pd:y>74</pd:y>
         <config>
             <encoding>text</encoding>
         </config>
@@ -124,8 +120,6 @@
     <pd:activity name="Log">
         <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
         <pd:resourceType>ae.activities.log</pd:resourceType>
-        <pd:x>255</pd:x>
-        <pd:y>56</pd:y>
         <config>
             <role>User</role>
         </config>
@@ -140,8 +134,6 @@
     <pd:activity name="Render">
         <pd:type>com.tibco.plugin.xml.XMLRendererActivity</pd:type>
         <pd:resourceType>ae.activities.XMLRendererActivity</pd:resourceType>
-        <pd:x>155</pd:x>
-        <pd:y>66</pd:y>
         <config>
             <renderAsText>text</renderAsText>
             <validateInput>false</validateInput>
@@ -157,8 +149,6 @@
     <pd:activity name="Parse">
         <pd:type>com.tibco.plugin.xml.XMLParseActivity</pd:type>
         <pd:resourceType>ae.activities.XMLParseActivity</pd:resourceType>
-        <pd:x>640</pd:x>
-        <pd:y>330</pd:y>
         <config>
             <inputStyle>text</inputStyle>
             <xsdVersion>default</xsdVersion>
@@ -176,8 +166,6 @@
     <pd:activity name="SOAPRequestReply">
         <pd:type>com.tibco.plugin.soap.SOAPSendReceiveActivity</pd:type>
         <pd:resourceType>ae.activities.SOAPSendReceiveUI</pd:resourceType>
-        <pd:x>311</pd:x>
-        <pd:y>63</pd:y>
         <config>
             <soapAction>SOAPAction</soapAction>
             <endpointURL>http://localhost:8800</endpointURL>
@@ -207,8 +195,6 @@
     <pd:activity name="Catch">
         <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
         <pd:resourceType>ae.activities.catch</pd:resourceType>
-        <pd:x>205</pd:x>
-        <pd:y>192</pd:y>
         <pd:handler>true</pd:handler>
         <config>
             <catchAll>true</catchAll>
@@ -218,8 +204,6 @@
     <pd:activity name="ErrorLog">
         <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
         <pd:resourceType>ae.activities.log</pd:resourceType>
-        <pd:x>350</pd:x>
-        <pd:y>193</pd:y>
         <config>
             <role>User</role>
         </config>

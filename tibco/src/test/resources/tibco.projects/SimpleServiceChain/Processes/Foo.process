@@ -58,8 +58,6 @@
     <pd:activity name="Call Bar">
         <pd:type>com.tibco.plugin.soap.SOAPSendReceiveActivity</pd:type>
         <pd:resourceType>ae.activities.SOAPSendReceiveUI</pd:resourceType>
-        <pd:x>311</pd:x>
-        <pd:y>63</pd:y>
         <config>
             <soapAction>SOAPAction</soapAction>
             <endpointURL>http://localhost:9092</endpointURL>
