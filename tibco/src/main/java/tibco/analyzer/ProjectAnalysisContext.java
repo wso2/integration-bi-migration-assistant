@@ -31,6 +31,9 @@ public class ProjectAnalysisContext {
     private final Map<TibcoModel.Scope.Flow.Activity, String> activityFunctionNames =
             new ConcurrentHashMap<>();
 
+    public ProjectAnalysisContext() {
+    }
+
     public Set<String> controlFlowFunctionNames() {
         return controlFlowFunctionNames;
     }

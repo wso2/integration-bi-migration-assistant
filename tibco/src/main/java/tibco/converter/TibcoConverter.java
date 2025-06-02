@@ -23,6 +23,7 @@ import common.BallerinaModel;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import tibco.TibcoToBalConverter;
+import tibco.analyzer.TibcoAnalysisReport;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -33,48 +34,60 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class TibcoConverter {
+    private static Logger logger;
 
-    private static final Logger logger = ProjectConverter.LOGGER;
-
-    public static void migrateTibco(String sourcePath, String outputPath, boolean preserverStructure) {
+    public static void migrateTibco(String sourcePath, String outputPath, boolean preserverStructure, boolean verbose,
+                                    boolean dryRun) {
+        logger = verbose ? createDefaultLogger("migrate-tibco") : createSilentLogger("migrate-tibco");
         Path inputPath = null;
         try {
             inputPath = Paths.get(sourcePath).toRealPath();
         } catch (IOException e) {
-            logger.severe("Invalid path: " + sourcePath);
+            logger().severe("Invalid path: " + sourcePath);
             System.exit(1);
         }
 
         if (Files.isRegularFile(inputPath)) {
             String inputRootDirectory = inputPath.getParent().toString();
             String targetPath = outputPath != null ? outputPath : inputRootDirectory + "_converted";
-            migrateTibcoProject(inputRootDirectory, targetPath, preserverStructure);
+            migrateTibcoProject(inputRootDirectory, targetPath, preserverStructure, verbose, dryRun);
         } else if (Files.isDirectory(inputPath)) {
             String targetPath = outputPath != null ? outputPath : inputPath + "_converted";
-            migrateTibcoProject(inputPath.toString(), targetPath, preserverStructure);
+            migrateTibcoProject(inputPath.toString(), targetPath, preserverStructure, verbose, dryRun);
         } else {
             // I don't think this can ever happen but just in case
-            logger.severe("Invalid path: " + inputPath);
+            logger().severe("Invalid path: " + inputPath);
             System.exit(1);
         }
     }
 
-    static void migrateTibcoProject(String projectPath, String targetPath, boolean preserverStructure) {
+    static void migrateTibcoProject(String projectPath, String targetPath, boolean preserverStructure, boolean verbose,
+                                    boolean dryRun) {
+        logger = verbose ? createDefaultLogger("migrate-tibco") : createSilentLogger("migrate-tibco");
         Path targetDir = Paths.get(targetPath);
         try {
             createTargetDirectoryIfNeeded(targetDir);
         } catch (IOException e) {
-            logger.log(Level.SEVERE, "Error creating target directory: " + targetDir, e);
+            logger().log(Level.SEVERE, "Error creating target directory: " + targetDir, e);
             System.exit(1);
             return;
         }
-        TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext();
+        TibcoToBalConverter.ProjectConversionContext cx =
+                new TibcoToBalConverter.ProjectConversionContext(verbose, dryRun);
         ConversionResult result;
         try {
             result = TibcoToBalConverter.convertProject(cx, projectPath);
         } catch (Exception e) {
-            logger.severe("Unrecoverable error while converting project");
+            logger().severe("Unrecoverable error while converting project");
             System.exit(1);
+            return;
+        }
+        try {
+            writeAnalysisReport(targetDir, result.report());
+        } catch (IOException e) {
+            logger().log(Level.SEVERE, "Error creating analysis report", e);
+        }
+        if (cx.dryRun()) {
             return;
         }
         List<BallerinaModel.TextDocument> textDocuments;
@@ -89,19 +102,26 @@ public class TibcoConverter {
             try {
                 writeTextDocument(result.module(), balPackage, textDocument, targetDir);
             } catch (IOException e) {
-                logger.log(Level.SEVERE, "Failed to create output file" + textDocument.documentName(), e);
+                logger().log(Level.SEVERE, "Failed to create output file" + textDocument.documentName(), e);
             }
         }
         try {
             addProjectArtifacts(cx, targetPath);
         } catch (IOException e) {
-            logger.log(Level.SEVERE, "Error adding project artifacts", e);
+            logger().log(Level.SEVERE, "Error adding project artifacts", e);
         }
         try {
             appendASTToFile(targetDir, "types.bal", result.types());
         } catch (IOException e) {
-            logger.log(Level.SEVERE, "Error creating types files", e);
+            logger().log(Level.SEVERE, "Error creating types files", e);
         }
+    }
+
+    private static void writeAnalysisReport(Path targetDir, TibcoAnalysisReport report) throws IOException {
+        Path reportFilePath = targetDir.resolve("report.html");
+        String htmlContent = report.toHTML();
+        Files.writeString(reportFilePath, htmlContent);
+        logger().info("Created analysis report at: " + reportFilePath);
     }
 
     private static void writeTextDocument(BallerinaModel.Module module, BallerinaModel.DefaultPackage balPackage,
@@ -138,7 +158,7 @@ public class TibcoConverter {
             return;
         }
         Files.createDirectories(targetDir);
-        logger.info("Created target directory: " + targetDir);
+        logger().info("Created target directory: " + targetDir);
     }
 
     private static void addProjectArtifacts(TibcoToBalConverter.ProjectConversionContext cx, String targetPath)
@@ -164,6 +184,21 @@ public class TibcoConverter {
         }
 
         Files.writeString(tomlPath, tomlContent.toString());
-        logger.info("Created Ballerina.toml file at: " + tomlPath);
+        logger().info("Created Ballerina.toml file at: " + tomlPath);
+    }
+
+    public static Logger logger() {
+        return logger;
+    }
+
+    public static Logger createSilentLogger(String name) {
+        Logger silentLogger = Logger.getLogger(name);
+        silentLogger.setFilter(record ->
+                record.getLevel().intValue() >= java.util.logging.Level.SEVERE.intValue());
+        return silentLogger;
+    }
+
+    public static Logger createDefaultLogger(String name) {
+        return Logger.getLogger(name);
     }
 }

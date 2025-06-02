@@ -23,10 +23,14 @@ import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.DefaultAnalysisPass;
+import tibco.analyzer.LoggingAnalysisPass;
 import tibco.analyzer.ModelAnalyser;
 import tibco.analyzer.ProjectAnalysisContext;
+import tibco.analyzer.ReportGenerationPass;
+import tibco.analyzer.TibcoAnalysisReport;
 import tibco.converter.ConversionResult;
 import tibco.converter.ProjectConverter;
+import tibco.converter.TibcoConverter;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -38,6 +42,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Logger;
@@ -49,7 +54,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 public class TibcoToBalConverter {
 
-    private static final Logger logger = Logger.getLogger(TibcoToBalConverter.class.getName());
+
     private TibcoToBalConverter() {
     }
 
@@ -71,15 +76,24 @@ public class TibcoToBalConverter {
             httpSharedResources = httpSharedResourceParser.parse(projectPath);
             jdbcSharedResource = SHARED_JDBC_RESOURCE_PARSING_UNIT.parse(projectPath);
         } catch (IOException | SAXException | ParserConfigurationException e) {
-            logger.severe("Unrecoverable error while parsing project file: " + projectPath);
+            logger().severe("Unrecoverable error while parsing project file: " + projectPath);
             throw new RuntimeException("Error while parsing the XML file: ", e);
         }
-        ModelAnalyser analyser = new ModelAnalyser(List.of(new DefaultAnalysisPass()));
+        ModelAnalyser analyser = new ModelAnalyser(List.of(
+                new DefaultAnalysisPass(),
+                new LoggingAnalysisPass(),
+                new ReportGenerationPass()));
         Map<TibcoModel.Process, AnalysisResult> analysisResult =
                 analyser.analyseProcesses(new ProjectAnalysisContext(), processes);
-
+        TibcoAnalysisReport report = analysisResult.values().stream()
+                .map(AnalysisResult::getReport)
+                .flatMap(Optional::stream)
+                .reduce(TibcoAnalysisReport.empty(), TibcoAnalysisReport::combine);
+        if (cx.dryRun()) {
+            return new ConversionResult(null, null, report);
+        }
         return ProjectConverter.convertProject(cx, analysisResult, processes, types, jdbcResources,
-                httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource);
+                httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource, report);
     }
 
     private static final ParsingUnit<TibcoModel.Process> PROCESS_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(
@@ -101,6 +115,11 @@ public class TibcoToBalConverter {
             new ParsingUnit.SimpleParsingUnit<>(
                     TibcoToBalConverter::getHTTPClientResourceFiles,
                     XmlToTibcoModelConverter::parseHTTPClientResource);
+
+    public static Logger logger() {
+        return TibcoConverter.logger();
+    }
+
 
     static final class HTTPSharedResourceParsingUnit implements ParsingUnit<TibcoModel.Resource.HTTPSharedResource> {
 
@@ -209,10 +228,11 @@ public class TibcoToBalConverter {
         }
     }
 
-    public record ProjectConversionContext(List<JavaDependencies> javaDependencies) {
+    public record ProjectConversionContext(boolean verbose, boolean dryRun, List<JavaDependencies> javaDependencies) {
 
-        public ProjectConversionContext() {
-            this(new ArrayList<>());
+
+        public ProjectConversionContext(boolean verbose, boolean dryRun) {
+            this(verbose, dryRun, new ArrayList<>());
         }
     }
 }

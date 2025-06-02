@@ -50,6 +50,7 @@ public final class AnalysisResult {
     private final Map<String, TibcoModel.Scope.Flow.Activity> activityByName;
     private final Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencies;
     private final Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions;
+    TibcoAnalysisReport report;
 
     AnalysisResult(Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap,
                    Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap,
@@ -238,7 +239,13 @@ public final class AnalysisResult {
     }
 
     public AnalysisResult combine(AnalysisResult other) {
-        return new AnalysisResult(
+        TibcoAnalysisReport report;
+        if (this.report != null && other.report != null) {
+            report = TibcoAnalysisReport.combine(this.report, other.report);
+        } else {
+            report = this.report == null ? other.report : this.report;
+        }
+        var result = new AnalysisResult(
                 combineMap(this.destinationMap, other.destinationMap),
                 combineMap(this.sourceMap, other.sourceMap),
                 combineMap(this.activityData, other.activityData),
@@ -255,6 +262,8 @@ public final class AnalysisResult {
                 combineMap(this.explicitTransitionGroupControlFlowFunctions,
                         other.explicitTransitionGroupControlFlowFunctions)
         );
+        result.report = report;
+        return result;
     }
 
     private static <K, V> Map<K, V> combineMap(Map<K, V> map1, Map<K, V> map2) {
@@ -262,6 +271,10 @@ public final class AnalysisResult {
         map.putAll(map1);
         map.putAll(map2);
         return Collections.unmodifiableMap(map);
+    }
+
+    public Optional<TibcoAnalysisReport> getReport() {
+        return Optional.ofNullable(report);
     }
 
     public record LinkData(Collection<TibcoModel.Scope.Flow.Activity> sourceActivities,

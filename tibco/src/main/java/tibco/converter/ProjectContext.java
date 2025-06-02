@@ -78,7 +78,7 @@ public class ProjectContext {
     private int annonVarCount = 0;
 
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
-    private static final Logger logger = ProjectConverter.LOGGER;
+    private static final Logger logger = ProjectConverter.logger();
     private final Optional<TibcoToBalConverter.ProjectConversionContext> conversionContext;
     private final Map<String, String> generatedResources = new HashMap<>();
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();

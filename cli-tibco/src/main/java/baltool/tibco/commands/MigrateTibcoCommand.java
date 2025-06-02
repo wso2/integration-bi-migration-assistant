@@ -36,7 +36,7 @@ public class MigrateTibcoCommand implements BLauncherCmd {
     private static final String CMD_NAME = "migrate-tibco";
     private static final String USAGE =
             "bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>] " +
-                    "[-k|--keep-structure]";
+                    "[-k|--keep-structure] [-v|--verbose] [-d|--dry-run]";
 
     public MigrateTibcoCommand() {
         errStream = System.err;
@@ -52,18 +52,25 @@ public class MigrateTibcoCommand implements BLauncherCmd {
     @CommandLine.Option(names = { "--keep-structure", "-k" }, description = "Keep process structure")
     private boolean keepStructure = false;
 
+    @CommandLine.Option(names = {"--verbose", "-v"}, description = "Enable verbose output", defaultValue = "false")
+    private boolean verbose;
+
+    @CommandLine.Option(names = {"--dry-run", "-d"},
+            description = "Simulate the conversion without generating output files", defaultValue = "false")
+    private boolean dryRun;
+
     @Override
     public void execute() {
         if (sourcePath == null) {
             errStream.println("Error: Source TIBCO BusinessWorks project directory or `.bwp` file path is required.");
             onInvalidInput();
         }
-        TibcoConverter.migrateTibco(sourcePath, outputPath, keepStructure);
+        TibcoConverter.migrateTibco(sourcePath, outputPath, keepStructure, verbose, dryRun);
     }
 
     private void onInvalidInput() {
         errStream.println("Usage: bal migrate-tibco <source-project-directory-or-file> " +
-                "[-o|--out <output-directory>] [-k|--keep-structure]");
+                "[-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run]");
         System.exit(1);
     }
 
@@ -78,6 +85,10 @@ public class MigrateTibcoCommand implements BLauncherCmd {
         stringBuilder.append("This command accepts a TIBCO BusinessWorks project directory or `.bwp` file path \n");
         stringBuilder.append("as input and generates equivalent Ballerina code" +
                 " that can be opened in Ballerina Integrator.\n\n");
+        stringBuilder.append("Optional flags:\n");
+        stringBuilder.append("  --keep-structure, -k     Keep process structure\n");
+        stringBuilder.append("  --verbose, -v            Enable verbose output during conversion\n");
+        stringBuilder.append("  --dry-run, -d            Simulate the conversion without generating output files\n");
     }
 
     @Override
@@ -91,6 +102,11 @@ public class MigrateTibcoCommand implements BLauncherCmd {
         stringBuilder.append("  bal migrate-tibco /path/to/tibco_process.bwp -k\n");
         stringBuilder.append(
                 "  bal migrate-tibco /path/to/tibco_process.bwp --out /path/to/output --keep-structure\n");
+        stringBuilder.append("  bal migrate-tibco /path/to/tibco_process.bwp --verbose\n");
+        stringBuilder.append("  bal migrate-tibco /path/to/tibco_process.bwp --dry-run\n");
+        stringBuilder.append("  bal migrate-tibco /path/to/tibco_process.bwp -d\n");
+        stringBuilder.append("  bal migrate-tibco /path/to/tibco_process.bwp --verbose --dry-run\n");
+        stringBuilder.append("  bal migrate-tibco /path/to/tibco_process.bwp -v -d\n");
     }
 
     @Override

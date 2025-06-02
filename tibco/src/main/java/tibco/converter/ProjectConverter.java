@@ -23,6 +23,7 @@ import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import tibco.TibcoModel;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
+import tibco.analyzer.TibcoAnalysisReport;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,7 +35,6 @@ import java.util.stream.Stream;
 
 public class ProjectConverter {
 
-    public static final Logger LOGGER = Logger.getLogger(ProjectConverter.class.getName());
     public static ConversionResult convertProject(
             TibcoToBalConverter.ProjectConversionContext conversionContext,
             Map<TibcoModel.Process, AnalysisResult> analysisResult,
@@ -43,7 +43,7 @@ public class ProjectConverter {
             Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
             Set<TibcoModel.Resource.HTTPClientResource> httpClientResources,
             Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources,
-            Set<TibcoModel.Resource.JDBCSharedResource> jdbcSharedResource) {
+            Set<TibcoModel.Resource.JDBCSharedResource> jdbcSharedResource, TibcoAnalysisReport report) {
         ProjectContext cx = new ProjectContext(conversionContext, analysisResult);
         convertResources(cx, jdbcResources, httpConnectionResources, httpClientResources, httpSharedResources,
                 jdbcSharedResource);
@@ -81,7 +81,7 @@ public class ProjectConverter {
                 }).toList();
         schemas.addAll(cx.getXSDSchemas());
         SyntaxTree typeSyntaxTree = convertTypes(cx, schemas);
-        return new ConversionResult(cx.serialize(textDocuments), typeSyntaxTree);
+        return new ConversionResult(cx.serialize(textDocuments), typeSyntaxTree, report);
     }
 
     private static void accumSchemas(TibcoModel.Process process, Collection<TibcoModel.Type.Schema> accum) {
@@ -117,5 +117,9 @@ public class ProjectConverter {
     static SyntaxTree convertTypes(ProjectContext cx, Collection<TibcoModel.Type.Schema> schemas) {
         ContextWithFile typeContext = cx.getTypeContext();
         return TypeConverter.convertSchemas(typeContext, schemas);
+    }
+
+    public static Logger logger() {
+        return TibcoToBalConverter.logger();
     }
 }

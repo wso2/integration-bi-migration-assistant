@@ -22,36 +22,32 @@ import org.jetbrains.annotations.NotNull;
 import tibco.TibcoModel;
 import tibco.TibcoModel.Process.ExplicitTransitionGroup;
 import tibco.converter.ConversionUtils;
-import tibco.converter.ProjectConverter;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+// TODO: we need to break this up
 public final class DefaultAnalysisPass extends AnalysisPass {
-    private static final Logger logger = ProjectConverter.LOGGER;
 
     public DefaultAnalysisPass() {
 
     }
 
     @Override
-    public AnalysisResult analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
+    public void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
         analyseProcessInner(cx, process);
-        return getAnalysisResult(cx, process);
     }
 
-    private @NotNull AnalysisResult getAnalysisResult(ProcessAnalysisContext cx, TibcoModel.Process process) {
+    @Override
+    public @NotNull AnalysisResult getResult(ProcessAnalysisContext cx, TibcoModel.Process process) {
         Map<TibcoModel.Scope.Flow.Activity, AnalysisResult.ActivityData> activityData = cx.activityData();
         Map<String, TibcoModel.PartnerLink.Binding> partnerLinkBindings = cx.getPartnerLinkBindings();
 
-        logger.info(String.format("Process Statistics - Name: %s, Total Activities: %d, Unhandled Activities: %d",
-                process.name(), cx.getTotalActivityCount(), cx.getUnhandledActivityCount()));
         Map<TibcoModel.Process, Collection<String>> inputTypeNames = Map.of(process, cx.getInputTypeName());
         Map<TibcoModel.Process, String> outputTypeName = Map.of(process, cx.getOutputTypeName());
         Map<TibcoModel.Process, Map<String, String>> variableTypes = Map.of(process, cx.getVariableTypes());

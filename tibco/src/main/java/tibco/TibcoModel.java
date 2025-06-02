@@ -553,7 +553,7 @@ public class TibcoModel {
                     }
                 }
 
-                record UnhandledInlineActivity(Element element, String name,
+                record UnhandledInlineActivity(Element element, String name, String activityType,
                         InputBinding inputBinding) implements InlineActivity {
 
                     @Override
