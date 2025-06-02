@@ -587,7 +587,7 @@ public final class XmlToTibcoModelConverter {
         }
     }
 
-    private static Flow.Activity parseActivity(Element element) {
+    public static Flow.Activity parseActivity(Element element) {
         String tag = getTagNameWithoutNameSpace(element);
         return switch (tag) {
             case "extensionActivity" -> parseExtensionActivity(element);

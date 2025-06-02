@@ -145,14 +145,6 @@ final class AnalysisResultImpl implements AnalysisResult {
     }
 
     @Override
-    public int queryIndex(TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql) {
-        if (!queryIndex.containsKey(sql)) {
-            throw new IllegalArgumentException("No query index found for: " + sql);
-        }
-        return queryIndex.get(sql);
-    }
-
-    @Override
     public Stream<TransitionData> transitionConditions(
             TibcoModel.Scope.Flow.Activity activity) {
         if (!(activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithTargets activityWithTargets)) {

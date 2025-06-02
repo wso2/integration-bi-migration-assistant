@@ -5,8 +5,6 @@ import tibco.TibcoModel;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -44,8 +42,6 @@ public interface AnalysisResult {
 
     Collection<TibcoModel.Scope.Flow.Link> sources(TibcoModel.Scope.Flow.Activity activity);
 
-    int queryIndex(TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql);
-
     Stream<TransitionData> transitionConditions(
             TibcoModel.Scope.Flow.Activity activity);
 
@@ -56,7 +52,8 @@ public interface AnalysisResult {
 
     Stream<TibcoModel.Scope.Flow.Activity> sortedActivities(TibcoModel.Process.ExplicitTransitionGroup group);
 
-    Stream<TibcoModel.Scope.Flow.Activity> sortedErrorHandlerActivities(TibcoModel.Process.ExplicitTransitionGroup group);
+    Stream<TibcoModel.Scope.Flow.Activity> sortedErrorHandlerActivities(
+            TibcoModel.Process.ExplicitTransitionGroup group);
 
     Collection<TibcoModel.Scope> scopes(TibcoModel.Process process);
 
@@ -68,32 +65,23 @@ public interface AnalysisResult {
 
     AnalysisResult combine(AnalysisResult other);
 
-    public Optional<TibcoAnalysisReport> getReport() {
-        return Optional.ofNullable(report);
-    }
-
-    public record LinkData(Collection<TibcoModel.Scope.Flow.Activity> sourceActivities,
-                           Collection<TibcoModel.Scope.Flow.Activity> destinationActivities) {
+    record ActivityData(String functionName, BallerinaModel.TypeDesc argumentType,
+                        BallerinaModel.TypeDesc returnType) {
 
     }
 
-    public record ActivityData(String functionName, BallerinaModel.TypeDesc argumentType,
-                               BallerinaModel.TypeDesc returnType) {
+    record TransitionData(TibcoModel.Scope.Flow.Activity activity,
+                          TibcoModel.Scope.Flow.Activity.Source.Predicate predicate) {
 
     }
 
-    public record TransitionData(TibcoModel.Scope.Flow.Activity activity,
-                                 TibcoModel.Scope.Flow.Activity.Source.Predicate predicate) {
-
-    }
-
-    public record GraphNode(String name, Kind kind, Object data) {
+    record GraphNode(String name, Kind kind, Object data) {
 
         public enum Kind {
             ACTIVITY, LINK, INLINE_ACTIVITY
         }
     }
 
-    public record ControlFlowFunctions(String scopeFn, String activityRunner, String errorHandler) {
+    record ControlFlowFunctions(String scopeFn, String activityRunner, String errorHandler) {
     }
 }
