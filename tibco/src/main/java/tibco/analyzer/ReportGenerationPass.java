@@ -60,7 +60,8 @@ public class ReportGenerationPass extends AnalysisPass {
 
     @Override
     public @NotNull AnalysisResult getResult(ProcessAnalysisContext cx, TibcoModel.Process process) {
-        TibcoAnalysisReport report = new TibcoAnalysisReport(totalActivities, reportElements.size(), this.reportElements);
+        TibcoAnalysisReport report = new TibcoAnalysisReport(totalActivities, reportElements.size(),
+                this.reportElements);
         AnalysisResult result = AnalysisResult.empty();
         result.report = report;
         return result;

@@ -22,8 +22,8 @@ import common.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import tibco.TibcoModel;
 import tibco.TibcoToBalConverter;
-import tibco.analyzer.TibcoAnalysisReport;
 import tibco.analyzer.AnalysisResult;
+import tibco.analyzer.TibcoAnalysisReport;
 
 import java.util.ArrayList;
 import java.util.Collection;

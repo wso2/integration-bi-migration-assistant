@@ -20,6 +20,7 @@ package tibco.analyzer;
 
 import common.AnalysisReport;
 import org.w3c.dom.Element;
+import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
 import tibco.converter.ConversionUtils;
 
 import java.util.Collection;
@@ -61,18 +62,18 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
         Map<String, String> elementsMap = new HashMap<>();
 
         // Map to store representative elements for each named type
-        Map<String, UnhandledActivityElement.NamedUnhandledActivityElement> namedTypeRepresentatives = new HashMap<>();
+        Map<String, NamedUnhandledActivityElement> namedTypeRepresentatives = new HashMap<>();
         int unnamedCounter = 0;
 
         // First pass: collect representatives for named types
         for (UnhandledActivityElement element : unhandledActivityElements) {
-            if (element instanceof UnhandledActivityElement.NamedUnhandledActivityElement named) {
+            if (element instanceof NamedUnhandledActivityElement named) {
                 namedTypeRepresentatives.putIfAbsent(named.type(), named);
             }
         }
 
         // Add the representative elements for named types as strings
-        for (Map.Entry<String, UnhandledActivityElement.NamedUnhandledActivityElement> entry : namedTypeRepresentatives.entrySet()) {
+        for (Map.Entry<String, NamedUnhandledActivityElement> entry : namedTypeRepresentatives.entrySet()) {
             elementsMap.put(entry.getKey(), ConversionUtils.elementToString(entry.getValue().element()));
         }
 

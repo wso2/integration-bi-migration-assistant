@@ -42,7 +42,8 @@ public class AnalysisReport {
      * @param totalElementCount     Total count of elements analyzed
      * @param unhandledElementCount Count of unhandled elements
      * @param elementType           The type of elements being analyzed (e.g., "Activity", "Component")
-     * @param unhandledElements     Map containing unhandled elements with their type as key and string representation as value
+     * @param unhandledElements     Map containing unhandled elements with their type as key and string representation
+     *                              as value
      */
     public AnalysisReport(String reportTitle, int totalElementCount, int unhandledElementCount, String elementType,
                           Map<String, String> unhandledElements) {
@@ -105,11 +106,13 @@ public class AnalysisReport {
                         footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #666; }
                         .drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
                         .drawer.open { max-height: 500px; }
-                        .summary-container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); margin: 20px 0; }
+                        .summary-container { background-color: #fff; padding: 20px; border-radius: 8px;
+                            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); margin: 20px 0; }
                         .blue-table th { background-color: #4682B4; color: white; }
                         .blue-table tr:nth-child(even) { background-color: #e0f0ff; }
                         .blue-table tr:hover { background-color: #b0d4f1; }
-                        .estimation-notes { margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px; }
+                        .estimation-notes { margin-top: 20px; padding: 15px; background-color: #f8f9fa;
+                            border-radius: 5px; }
                         .estimation-notes ul { margin: 10px 0 0 20px; }
                         .estimation-notes li { margin-bottom: 5px; }
                         .unsupported-blocks { padding: 10px; }
