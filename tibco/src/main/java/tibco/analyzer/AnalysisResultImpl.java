@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com). All Rights Reserved.
+ *  Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
  *
  *  WSO2 LLC. licenses this file to you under the Apache License,
  *  Version 2.0 (the "License"); you may not use this file except
@@ -49,6 +49,7 @@ final class AnalysisResultImpl implements AnalysisResult {
     private final Map<String, TibcoModel.Scope.Flow.Activity> activityByName;
     private final Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencies;
     private final Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions;
+    TibcoAnalysisReport report;
 
     AnalysisResultImpl(Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap,
                        Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap,
@@ -269,6 +270,16 @@ final class AnalysisResultImpl implements AnalysisResult {
                 combineMap(this.explicitTransitionGroupControlFlowFunctions,
                         other.explicitTransitionGroupControlFlowFunctions)
         );
+    }
+
+    @Override
+    public Optional<TibcoAnalysisReport> getReport() {
+        return Optional.ofNullable(report);
+    }
+
+    @Override
+    public void setReport(TibcoAnalysisReport report) {
+        this.report = report;
     }
 
     static <K, V> Map<K, V> combineMap(Map<K, V> map1, Map<K, V> map2) {
