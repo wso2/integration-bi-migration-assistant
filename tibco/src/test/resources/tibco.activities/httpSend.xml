@@ -1,0 +1,43 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension
+            inputVariable="InputVariable"
+            name="SendHTTPRequest"
+            outputVariable="OutputVariable"
+            xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="Target"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="Source"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns4=&quot;http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput&quot; xmlns:tns6=&quot;/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;Payload&quot;/>&lt;xsl:param name=&quot;Start&quot;/>&lt;xsl:template name=&quot;SendHTTPRequest-input&quot; match=&quot;/&quot;>&lt;tns4:RequestActivityInput>&lt;Method>&lt;xsl:value-of select=&quot;&amp;quot;POST&amp;quot;&quot;/>&lt;/Method>&lt;RequestURI>&lt;xsl:value-of select=&quot;&amp;quot;/service&amp;quot;&quot;/>&lt;/RequestURI>&lt;PostData>&lt;xsl:value-of select=&quot;$Payload/jsonString&quot;/>&lt;/PostData>&lt;Headers>&lt;Accept>&lt;xsl:value-of select=&quot;&amp;quot;application/json&amp;quot;&quot;/>&lt;/Accept>&lt;Content-Type>&lt;xsl:value-of select=&quot;&amp;quot;application/json&amp;quot;&quot;/>&lt;/Content-Type>&lt;/Headers>&lt;parameters>&lt;/parameters>&lt;/tns4:RequestActivityInput>&lt;/xsl:template>&lt;/xsl:stylesheet>"
+                    expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity
+                    activityTypeID="bw.http.sendHTTPRequest"
+                    version="6.0.0.20132205"
+                    xmlns:RequestActivityInput="http://tns.tibco.com/bw/activity/sendhttprequest/input+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityInput"
+                    xmlns:RequestActivityOutput="http://tns.tibco.com/bw/activity/sendhttprequest/output+255a70f6-2bf4-4f72-928d-3fe2a72ce7a0+RequestActivityOutput"
+                    xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                    xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                    xmlns:http="http://ns.tibco.com/bw/palette/http"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/http#//SendHTTPRequest"/>
+                        <value
+                                httpClientResource="httpClientResource"
+                                inputHeadersQName="RequestActivityInput:inputHeadersType"
+                                outputHeadersQName="RequestActivityOutput:outputHeadersType"
+                                postDataAs="String" xsi:type="http:SendHTTPRequest">
+                            <httpParameters parameterName="ssn"/>
+                        </value>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>
