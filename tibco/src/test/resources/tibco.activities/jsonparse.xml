@@ -1,5 +1,5 @@
 <bpws:extensionActivity>
-    <tibex:activityExtension inputVariable="InputVariable" name="ParseJSON" outputVariable="OutputVariable" tibex:xpdlId="a3fa07a6-0270-48b7-ba84-7de6924acb3d"
+    <tibex:activityExtension inputVariable="InputVariable" name="ParseJSON" outputVariable="OutputVariable"
         xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
         <bpws:targets>
             <bpws:target linkName="Target"/>

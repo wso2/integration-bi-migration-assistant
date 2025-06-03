@@ -1,5 +1,5 @@
 <bpws:extensionActivity>
-    <tibex:activityExtension inputVariable="InputVariable" name="RenderJSON" outputVariable="OutputVariable" tibex:xpdlId="b4f6a2ce-0fe1-42dd-b664-1220acad7966"
+    <tibex:activityExtension inputVariable="InputVariable" name="RenderJSON" outputVariable="OutputVariable"
         xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
         <bpws:targets>
             <bpws:target linkName="Target"/>
