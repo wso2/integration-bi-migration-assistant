@@ -599,6 +599,7 @@ public final class XmlToTibcoModelConverter {
             case "scope" -> parseNestedScope(element);
             case "assign" -> parseAssign(element);
             case "forEach" -> parseForeach(element);
+            case "catchAll" -> parseCatchAll(element);
             default -> throw new ParserException("Unsupported activity tag: " + tag, element);
         };
     }
