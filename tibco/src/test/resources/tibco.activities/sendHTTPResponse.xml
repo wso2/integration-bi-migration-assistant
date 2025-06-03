@@ -1,0 +1,34 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension
+            inputVariable="InputVariable"
+            name="SendHTTPResponse"
+            xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="Target"/>
+        </bpws:targets>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;RenderJSON&quot;/>&lt;xsl:template name=&quot;SendHTTPResponse-input&quot; match=&quot;/&quot;>&lt;tns1:ResponseActivityInput>&lt;asciiContent>&lt;xsl:value-of select=&quot;$RenderJSON/jsonString&quot;/>&lt;/asciiContent>&lt;Headers>&lt;Content-Type>&lt;xsl:value-of select=&quot;&amp;quot;application/json&amp;quot;&quot;/>&lt;/Content-Type>&lt;/Headers>&lt;/tns1:ResponseActivityInput>&lt;/xsl:template>&lt;/xsl:stylesheet>"
+                    expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity
+                    activityTypeID="bw.http.sendHTTPResponse"
+                    version="6.0.0.20132205"
+                    xmlns:ResponseActivityInput="http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput"
+                    xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                    xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                    xmlns:http="http://ns.tibco.com/bw/palette/http"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/http#//SendHTTPResponse"/>
+                        <value closeConnection="true"
+                               inputHeadersQName="ResponseActivityInput:headersType"
+                               replyFor="HTTPReceiver" xsi:type="http:SendHTTPResponse"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>
