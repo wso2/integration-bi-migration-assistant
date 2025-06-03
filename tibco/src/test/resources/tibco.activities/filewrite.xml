@@ -1,0 +1,33 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="InputVariable"
+                             name="FileWrite" outputVariable="OutputVariable"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="Target"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="Source"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns3=&quot;http://www.tibco.com/namespaces/tnt/plugins/file&quot; xmlns:tns1=&quot;http://www.example.org/LogSchema&quot; xmlns:bw=&quot;http://www.tibco.com/bw/xpath/bw-custom-functions&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;Start&quot;/>&lt;xsl:template name=&quot;WriteFile-input&quot; match=&quot;/&quot;>&lt;tns3:WriteActivityInputTextClass>&lt;fileName>&lt;xsl:value-of select=&quot;concat(concat(bw:getModuleProperty(&amp;quot;fileDir&amp;quot;), $Start/fileName), &amp;quot;.txt&amp;quot;)&quot;/>&lt;/fileName>&lt;textContent>&lt;xsl:value-of select=&quot;$Start/tns1:message&quot;/>&lt;/textContent>&lt;/tns3:WriteActivityInputTextClass>&lt;/xsl:template>&lt;/xsl:stylesheet>"
+                    expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.file.write"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:file="http://ns.tibco.com/bw/palette/file"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/file#//WriteFile"/>
+                        <value compressFile="None"
+                               createMissingDirectories="true"
+                               encoding="text" xsi:type="file:WriteFile"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>

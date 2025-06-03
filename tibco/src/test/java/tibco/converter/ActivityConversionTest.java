@@ -52,8 +52,7 @@ public class ActivityConversionTest {
     private static ProcessContext getProcessContext(TibcoModel.Scope.Flow.Activity activity) {
         TibcoToBalConverter.ProjectConversionContext conversionContext =
                 new TibcoToBalConverter.ProjectConversionContext(List.of());
-        ProjectContext pcx = new ProjectContext(conversionContext, Map.of());
-        return new TestProcessContext(pcx, activity);
+        return new TestProcessContext(new TestProjectContext(conversionContext, Map.of()), activity);
     }
 
     private static String toString(BallerinaModel.Function function) {
@@ -85,6 +84,19 @@ public class ActivityConversionTest {
                         expectedConvertedResultsDir.resolve(xmlPath.getFileName().toString().replace(".xml", ".bal"))
                 })
                 .toArray(Object[][]::new);
+    }
+
+    static class TestProjectContext extends ProjectContext {
+
+        TestProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
+                           Map<TibcoModel.Process, AnalysisResult> analysisResult) {
+            super(conversionContext, analysisResult);
+        }
+
+        @Override
+        public String getConfigVarName(String varName) {
+            return varName;
+        }
     }
 
     static class TestProcessContext extends ProcessContext {
