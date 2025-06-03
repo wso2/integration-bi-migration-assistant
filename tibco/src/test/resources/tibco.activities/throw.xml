@@ -1,0 +1,11 @@
+<bpws:throw faultName="ns8:DefaultFault"
+            faultVariable="Throw-input" name="Throw" tibex:xpdlId="f4da282c-448a-48bb-b3ef-7d2e196a9ba8">
+    <tibex:inputBindings>
+        <tibex:partBinding
+                expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns=&quot;http://schemas.tibco.com/bw/plugins/basic/6.0/Exceptions&quot; version=&quot;2.0&quot;>&lt;xsl:template name=&quot;Throw-input&quot; match=&quot;/&quot;>&lt;tns:DefaultFault/>&lt;/xsl:template> &lt;/xsl:stylesheet>"
+                expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+    </tibex:inputBindings>
+    <bpws:targets>
+        <bpws:target linkName="QueryRecordsToThrow"/>
+    </bpws:targets>
+</bpws:throw>
