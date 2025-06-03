@@ -1,0 +1,30 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="InputVariable" name="RenderJSON" outputVariable="OutputVariable" tibex:xpdlId="b4f6a2ce-0fe1-42dd-b664-1220acad7966"
+        xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="Target"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="Source"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns6=&quot;/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema&quot; xmlns:tns=&quot;http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367&quot; version=&quot;2.0&quot;>&#xa;    &lt;xsl:param name=&quot;Start&quot;/>&#xa;    &lt;xsl:template name=&quot;RenderJSON-input&quot; match=&quot;/&quot;>&#xa;        &lt;tns:InputElement>&#xa;            &lt;tns:dob>&#xa;                &lt;xsl:value-of select=&quot;$Start/tns6:DOB&quot;/>&#xa;            &lt;/tns:dob>&#xa;            &lt;tns:firstName>&#xa;                &lt;xsl:value-of select=&quot;$Start/tns6:FirstName&quot;/>&#xa;            &lt;/tns:firstName>&#xa;            &lt;tns:lastName>&#xa;                &lt;xsl:value-of select=&quot;$Start/tns6:LastName&quot;/>&#xa;            &lt;/tns:lastName>&#xa;            &lt;tns:ssn>&#xa;                &lt;xsl:value-of select=&quot;$Start/tns6:SSN&quot;/>&#xa;            &lt;/tns:ssn>&#xa;        &lt;/tns:InputElement>&#xa;    &lt;/xsl:template>&#xa;&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.restjson.JsonRender"
+                xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                xmlns:restjson="http://ns.tibco.com/bw/palette/restjson"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/restjson#//JsonRender"/>
+                        <value jsonOutputStyle="None" schemaType="Xsd" xsi:type="restjson:JsonRender">
+                            <inputEditorElement href="Schema.xsd#//InputElement;XSDElementDeclaration"/>
+                        </value>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>
