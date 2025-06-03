@@ -227,7 +227,8 @@ public class ActivityConversionTest {
                             new TibcoModel.PartnerLink.Binding.Path("/basePath", "/path"),
                             TibcoModel.PartnerLink.Binding.Connector.HTTP_CLIENT_RESOURCE_2,
                             new TibcoModel.PartnerLink.Binding.Operation(TibcoModel.Method.POST,
-                                    Optional.of(TibcoModel.PartnerLink.Binding.Operation.RequestEntityProcessing.CHUNKED),
+                                    Optional.of(
+                                            TibcoModel.PartnerLink.Binding.Operation.RequestEntityProcessing.CHUNKED),
                                     Optional.of(TibcoModel.PartnerLink.Binding.Operation.MessageStyle.ELEMENT),
                                     Optional.of(TibcoModel.PartnerLink.Binding.Operation.MessageStyle.ELEMENT),
                                     Optional.of(TibcoModel.PartnerLink.Binding.Operation.Format.JSON),
