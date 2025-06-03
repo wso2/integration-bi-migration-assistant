@@ -1,0 +1,12 @@
+<bpws:reply name="reply" operation="post" partnerLink="partnerLink" portType="ns0:portType" variable="inputVariable">
+    <tibex:inputBinding expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0">&lt;?xml version="1.0"
+        encoding="UTF-8"?&gt;
+        &lt;xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+        xmlns:tns1="http://xmlns.example.com/20180831151624PLT" xmlns:tns2="/T1535753828744Converted/JsonSchema"
+        version="2.0"&gt;&lt;xsl:param name="Parameter"/&gt;&lt;xsl:template name="reply-template" match="/"&gt;&lt;tns1:postResponse&gt;&lt;item&gt;&lt;tns2:Response&gt;&lt;xsl:if
+        test="$Value/field"&gt;&lt;tns2:Field&gt;&lt;xsl:value-of select="$Value/field"/&gt;&lt;/tns2:Field&gt;&lt;/tns2:Response&gt;&lt;/item&gt;&lt;/tns1:postResponse&gt;&lt;/xsl:template&gt;&lt;/xsl:stylesheet&gt;
+    </tibex:inputBinding>
+    <bpws:targets>
+        <bpws:target linkName="Target"/>
+    </bpws:targets>
+</bpws:reply>
