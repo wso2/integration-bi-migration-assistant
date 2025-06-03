@@ -97,6 +97,17 @@ public class ActivityConversionTest {
         public String getConfigVarName(String varName) {
             return varName;
         }
+
+
+        @Override
+        Optional<ProcessContext.DefaultClientDetails> getDefaultClientDetails(String processName) {
+            ProcessContext.DefaultClientDetails client = new ProcessContext.DefaultClientDetails(
+                    new BallerinaModel.ModuleVar(
+                            "processClient", "http:client", Optional.empty(), true, false),
+                    "post");
+            client.isUsed = true;
+            return Optional.of(client);
+        }
     }
 
     static class TestProcessContext extends ProcessContext {
@@ -105,6 +116,11 @@ public class ActivityConversionTest {
         TestProcessContext(ProjectContext projectContext, TibcoModel.Scope.Flow.Activity activity) {
             super(projectContext, null);
             this.analysisResult = initAnalysisResult(activity);
+        }
+
+        @Override
+        BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {
+            return new BallerinaModel.Expression.VariableReference(sharedResourcePropertyName);
         }
 
         private static AnalysisResult initAnalysisResult(TibcoModel.Scope.Flow.Activity activity) {
@@ -207,17 +223,26 @@ public class ActivityConversionTest {
 
                 @Override
                 public TibcoModel.PartnerLink.Binding getBinding(String partnerLinkName) {
-                    return null;
+                    return new TibcoModel.PartnerLink.Binding(
+                            new TibcoModel.PartnerLink.Binding.Path("/basePath", "/path"),
+                            TibcoModel.PartnerLink.Binding.Connector.HTTP_CLIENT_RESOURCE_2,
+                            new TibcoModel.PartnerLink.Binding.Operation(TibcoModel.Method.POST,
+                                    Optional.of(TibcoModel.PartnerLink.Binding.Operation.RequestEntityProcessing.CHUNKED),
+                                    Optional.of(TibcoModel.PartnerLink.Binding.Operation.MessageStyle.ELEMENT),
+                                    Optional.of(TibcoModel.PartnerLink.Binding.Operation.MessageStyle.ELEMENT),
+                                    Optional.of(TibcoModel.PartnerLink.Binding.Operation.Format.JSON),
+                                    Optional.of(TibcoModel.PartnerLink.Binding.Operation.Format.JSON),
+                                    List.of()));
                 }
 
                 @Override
                 public ControlFlowFunctions getControlFlowFunctions(TibcoModel.Scope scope) {
-                    return null;
+                    return new ControlFlowFunctions("scopeFn", "activityRunner", "errorHandler");
                 }
 
                 @Override
                 public ControlFlowFunctions getControlFlowFunctions(TibcoModel.Process.ExplicitTransitionGroup group) {
-                    return null;
+                    return new ControlFlowFunctions("scopeFn", "activityRunner", "errorHandler");
                 }
 
                 @Override
