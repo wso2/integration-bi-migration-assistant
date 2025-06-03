@@ -88,6 +88,7 @@ public class ActivityConversionTest {
         BallerinaModel.BlockFunctionBody body = (BallerinaModel.BlockFunctionBody) function.body();
         body.statements().forEach(s -> sb.append("    ").append(s).append("\n"));
         sb.append("}");
+        sb.append("\n");
         return sb.toString();
     }
 
