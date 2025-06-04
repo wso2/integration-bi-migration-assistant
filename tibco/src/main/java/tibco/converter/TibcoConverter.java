@@ -97,10 +97,10 @@ public class TibcoConverter {
             BallerinaModel.Module biModule = new BICodeConverter().convert(result.module());
             textDocuments = biModule.textDocuments();
         }
-        BallerinaModel.DefaultPackage balPackage = new BallerinaModel.DefaultPackage("tibco", "sample", "0.1");
+
         for (BallerinaModel.TextDocument textDocument : textDocuments) {
             try {
-                writeTextDocument(result.module(), balPackage, textDocument, targetDir);
+                writeTextDocument(textDocument, targetDir);
             } catch (IOException e) {
                 logger().log(Level.SEVERE, "Failed to create output file" + textDocument.documentName(), e);
             }
@@ -124,12 +124,9 @@ public class TibcoConverter {
         logger().info("Created analysis report at: " + reportFilePath);
     }
 
-    private static void writeTextDocument(BallerinaModel.Module module, BallerinaModel.DefaultPackage balPackage,
-                                          BallerinaModel.TextDocument textDocument, Path targetDir) throws IOException {
-        BallerinaModel.Module tmpModule = new BallerinaModel.Module(module.name(), List.of(textDocument));
-        BallerinaModel ballerinaModel = new BallerinaModel(balPackage, List.of(tmpModule));
+    private static void writeTextDocument(BallerinaModel.TextDocument textDocument, Path targetDir) throws IOException {
         String fileName = textDocument.documentName();
-        SyntaxTree st = new CodeGenerator(ballerinaModel).generateBalCode();
+        SyntaxTree st = new CodeGenerator(textDocument).generateSyntaxTree();
         writeASTToFile(targetDir, fileName, st);
     }
 

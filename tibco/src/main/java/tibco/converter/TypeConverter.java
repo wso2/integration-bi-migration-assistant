@@ -140,9 +140,7 @@ class TypeConverter {
         String apiPath = portType.apiPath();
         List<BallerinaModel.Resource> resources = List
                 .of(convertOperation(cx, apiPath, messageTypes, portType.operation(), wsdlNamespaces, messages));
-        List<String> listenerRefs = List.of(cx.getDefaultHttpListenerRef());
-        return new BallerinaModel.Service(basePath, listenerRefs, Optional.empty(), resources, List.of(), List.of(),
-                List.of(), List.of());
+        return new BallerinaModel.Service(basePath, cx.getDefaultHttpListenerRef(), resources);
     }
 
     private static BallerinaModel.Resource convertOperation(ProcessContext cx, String apiPath,
@@ -180,7 +178,7 @@ class TypeConverter {
                 new FunctionCall(cx.getProcessStartFunction().name(), startFunctionArgs))));
 
         return new BallerinaModel.Resource(resourceMethodName, path, resourceMethodParameter.stream().toList(),
-                Optional.of(returnType.toString()), body);
+                Optional.of(returnType), body);
     }
 
     private static ParamInitResult dataBindingForBody(ProcessContext cx,

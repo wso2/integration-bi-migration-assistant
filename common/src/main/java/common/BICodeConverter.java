@@ -120,10 +120,7 @@ public final class BICodeConverter {
     private BallerinaModel.TextDocument fixImports(BallerinaModel.TextDocument doc) {
         // TODO: we can do this better by visiting tree and figure out types and
         //  function calls. But should be good enough for now
-        BallerinaModel.Module tmpModule = new BallerinaModel.Module("temp", List.of(doc));
-        BallerinaModel ballerinaModel = new BallerinaModel(new BallerinaModel.DefaultPackage("tmp", "tmp", "0.0.1"),
-                List.of(tmpModule));
-        SyntaxTree st = new CodeGenerator(ballerinaModel).generateBalCode();
+        SyntaxTree st = new CodeGenerator(doc).generateSyntaxTree();
         String content = st.toSourceCode();
         Pattern searchPattern = Pattern.compile("([a-zA-Z0-9]+):[a-zA-Z0-9]+");
 

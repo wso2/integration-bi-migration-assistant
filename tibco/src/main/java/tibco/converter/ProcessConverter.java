@@ -80,9 +80,7 @@ public class ProcessConverter {
         assert startActivity instanceof HttpEventSource;
         String name = baseName(((HttpEventSource) startActivity).sharedChannel());
         VariableReference listenerRef = cx.getProjectContext().httpListener(name);
-        return new BallerinaModel.Service("", List.of(listenerRef.varName()), Optional.empty(), List.of(resource),
-                List.of(), List.of(), List.of(), List.of());
-
+        return new BallerinaModel.Service("", listenerRef.varName(), List.of(resource));
     }
 
     static void addProcessClient(ProcessContext cx, TibcoModel.Process.ExplicitTransitionGroup group,
@@ -129,7 +127,7 @@ public class ProcessConverter {
                 body.add(new VarAssignStatement(resultDecl.ref(), xsltTransform(cx, resultDecl.ref(), binding))));
         body.add(new Return<>(resultDecl.ref()));
         return new BallerinaModel.Resource("'default[string... path]", "",
-                List.of(parameter), Optional.of("xml"), body);
+                List.of(parameter), Optional.of(XML), body);
     }
 
     static BallerinaModel.TextDocument convertBody(ProcessContext cx, TibcoModel.Process process,
@@ -289,7 +287,7 @@ public class ProcessConverter {
         return new BallerinaModel.Function(errorHandlerFunction,
                 List.of(new Parameter("err", ERROR),
                         context),
-                XML.toString(), body);
+                XML, body);
     }
 
     private static BallerinaModel.Function generateStartFunction(ProcessContext cx) {
@@ -327,7 +325,7 @@ public class ProcessConverter {
         return new BallerinaModel.Function(startFuncData.name(),
                 List.of(new Parameter(inputVar.varName(), inputType),
                         new Parameter(new TypeDesc.MapTypeDesc(XML), params.varName(), exprFrom("{}"))),
-                returnType.toString(), body);
+                returnType, body);
     }
 
     private static BallerinaModel.Function generateProcessFunction(ProcessContext cx) {
@@ -450,7 +448,7 @@ public class ProcessConverter {
         return new BallerinaModel.Function(errorHandlerFunction,
                 List.of(new Parameter("err", ERROR),
                         context),
-                XML.toString(), body);
+                XML, body);
     }
 
     private static VariableReference generateActivityFlowFunctionInner(

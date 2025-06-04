@@ -42,7 +42,7 @@ import java.util.logging.Logger;
 
 import static mule.HtmlReportWriter.writeHtmlReport;
 import static mule.MuleToBalConverter.convertProjectXMLFileToBallerina;
-import static mule.MuleToBalConverter.createBallerinaModel;
+import static mule.MuleToBalConverter.createTextDocument;
 import static mule.MuleToBalConverter.createContextTypeDefns;
 
 public class MuleConverter {
@@ -275,11 +275,12 @@ public class MuleConverter {
         createContextTypeDefns(sharedProjectData);
 
         Path targetFilePath = Paths.get(targetFolderPath, "internal-types.bal");
-        BallerinaModel ballerinaModel = createBallerinaModel(sharedProjectData.contextTypeDefImports.stream().toList(),
+        BallerinaModel.TextDocument textDocument =
+                createTextDocument("internal-types", sharedProjectData.contextTypeDefImports.stream().toList(),
                 sharedProjectData.contextTypeDefMap.values().stream().toList(), Collections.emptyList(),
                 Collections.emptyList(),
                 Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
-        SyntaxTree syntaxTree = new CodeGenerator(ballerinaModel).generateBalCode();
+        SyntaxTree syntaxTree = new CodeGenerator(textDocument).generateSyntaxTree();
         try {
             Files.writeString(targetFilePath, syntaxTree.toSourceCode());
         } catch (IOException e) {

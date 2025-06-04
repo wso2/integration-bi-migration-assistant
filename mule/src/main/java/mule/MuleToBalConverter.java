@@ -56,13 +56,11 @@ import javax.xml.parsers.ParserConfigurationException;
 import static common.BallerinaModel.Expression.BallerinaExpression;
 import static common.BallerinaModel.Statement.BallerinaStatement;
 import static common.BallerinaModel.BlockFunctionBody;
-import static common.BallerinaModel.DefaultPackage;
 import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Statement.IfElseStatement;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.Listener;
 import static common.BallerinaModel.ListenerType;
-import static common.BallerinaModel.Module;
 import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
 import static common.BallerinaModel.Parameter;
@@ -70,6 +68,7 @@ import static common.BallerinaModel.Resource;
 import static common.BallerinaModel.Service;
 import static common.BallerinaModel.Statement;
 import static common.BallerinaModel.TextDocument;
+import static common.BallerinaModel.TypeDesc;
 import static mule.Constants.BAL_ANYDATA_TYPE;
 import static mule.Constants.BAL_ERROR_TYPE;
 import static mule.Constants.FUNC_NAME_ASYC_TEMPLATE;
@@ -287,11 +286,11 @@ public class MuleToBalConverter {
 
     private static SyntaxTree convertXMLFileToBallerina(MuleXMLNavigator muleXMLNavigator, String xmlFilePath,
             Data data) {
-        BallerinaModel ballerinaModel = getBallerinaModel(muleXMLNavigator, data, xmlFilePath);
-        return new CodeGenerator(ballerinaModel).generateBalCode();
+        TextDocument textDocument = getTextDocument(muleXMLNavigator, data, xmlFilePath);
+        return new CodeGenerator(textDocument).generateSyntaxTree();
     }
 
-    private static BallerinaModel getBallerinaModel(MuleXMLNavigator muleXMLNavigator, Data data, String xmlFilePath) {
+    private static TextDocument getTextDocument(MuleXMLNavigator muleXMLNavigator, Data data, String xmlFilePath) {
         Element root;
         try {
             root = parseMuleXMLConfigurationFile(xmlFilePath);
@@ -322,7 +321,7 @@ public class MuleToBalConverter {
             readGlobalConfigElement(data, child);
         }
 
-        return generateBallerinaModel(data, flows, subFlows);
+        return generateTextDocument(data, flows, subFlows);
     }
 
     private static Element parseMuleXMLConfigurationFile(String uri) throws ParserConfigurationException, SAXException,
@@ -373,7 +372,7 @@ public class MuleToBalConverter {
         }
     }
 
-    private static BallerinaModel generateBallerinaModel(Data data, List<Flow> flows, List<SubFlow> subFlows) {
+    private static TextDocument generateTextDocument(Data data, List<Flow> flows, List<SubFlow> subFlows) {
         List<Service> services = new ArrayList<>();
         Set<Function> functions = new HashSet<>();
         List<Flow> privateFlows = new ArrayList<>();
@@ -459,7 +458,7 @@ public class MuleToBalConverter {
 
         ArrayList<ModuleVar> orderedModuleVars = new ArrayList<>(data.globalConfigVarMap.values());
         orderedModuleVars.addAll(moduleVars);
-        return createBallerinaModel(new ArrayList<>(data.imports), typeDefs,
+        return createTextDocument("internal", new ArrayList<>(data.imports), typeDefs,
                 orderedModuleVars, listeners, services, functions.stream().toList(), comments);
     }
 
@@ -492,11 +491,6 @@ public class MuleToBalConverter {
 
         // Create a service from the flow
         Service service = genBalService(data, src, flow.flowBlocks(), functions);
-
-        // Modify service with init function
-        service = new Service(service.basePath(), service.listenerRefs(), Optional.empty(),
-                service.resources(), service.functions(), service.pathParams(), service.queryParams(),
-                service.fields());
         services.add(service);
     }
 
@@ -608,7 +602,7 @@ public class MuleToBalConverter {
         List<String> pathParams = new ArrayList<>();
         String resourcePath = getBallerinaResourcePath(data, httpListener.resourcePath(), pathParams);
         String[] resourceMethodNames = httpListener.allowedMethods();
-        List<String> listenerRefs = Collections.singletonList(httpListener.configRef());
+        String listenerRef = httpListener.configRef();
         String muleBasePath = insertLeadingSlash(
                 data.sharedProjectData.sharedHttpListenerConfigsMap.get(httpListener.configRef()).basePath());
         String basePath = getBallerinaAbsolutePath(muleBasePath);
@@ -633,7 +627,7 @@ public class MuleToBalConverter {
 
         // Add service resources
         List<Resource> resources = new ArrayList<>();
-        String returnType = Constants.HTTP_RESOURCE_RETURN_TYPE_DEFAULT;
+        TypeDesc returnType = typeFrom(Constants.HTTP_RESOURCE_RETURN_TYPE_DEFAULT);
         data.imports.add(Constants.HTTP_MODULE_IMPORT);
 
         if (resourceMethodNames.length > 1) {
@@ -663,8 +657,7 @@ public class MuleToBalConverter {
             throw new IllegalStateException();
         }
 
-        return new Service(basePath, listenerRefs, Optional.empty(), resources, Collections.emptyList(),
-                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        return new Service(basePath, listenerRef, resources);
     }
 
     private static String getInboundPropInitValue(Data data, List<String> pathParams) {
@@ -726,20 +719,13 @@ public class MuleToBalConverter {
         return workers;
     }
 
-    // TODO:
-    public static BallerinaModel createBallerinaModel(List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
-            List<ModuleVar> moduleVars, List<Listener> listeners,
-            List<Service> services, List<Function> functions,
-            List<String> comments) {
-        // TODO: figure out package, module names properly
-        String projectName = "muleDemoProject";
-        String moduleName = "muleDemoModule";
-        String textDocumentName = "muleDemoTextDocument";
-        TextDocument textDocument = new TextDocument(textDocumentName, imports, moduleTypeDefs, moduleVars, listeners,
+    public static TextDocument createTextDocument(String docName, List<Import> imports,
+                                                  List<ModuleTypeDef> moduleTypeDefs,
+                                                    List<ModuleVar> moduleVars, List<Listener> listeners,
+                                                    List<Service> services, List<Function> functions,
+                                                    List<String> comments) {
+        return new TextDocument(docName, imports, moduleTypeDefs, moduleVars, listeners,
                 services, functions, comments);
-        Module module = new Module(moduleName, Collections.singletonList(textDocument));
-        return new BallerinaModel(new DefaultPackage(projectName, projectName, "0.1.0"),
-                Collections.singletonList(module));
     }
 
     private static MuleRecord readBlock(Data data, MuleElement muleElement) {
@@ -1027,7 +1013,7 @@ public class MuleToBalConverter {
                     String methodName = String.format(Constants.FUNC_NAME_ENRICHER_TEMPLATE,
                             data.sharedProjectData.enricherFuncCount);
                     Function func = new Function(Optional.of("public"), methodName, Constants.FUNC_PARAMS_WITH_CONTEXT,
-                            Optional.of("string?"), new BlockFunctionBody(enricherStmts));
+                            Optional.of(typeFrom("string?")), new BlockFunctionBody(enricherStmts));
                     data.functions.add(func);
 
                     enricherStmts.add(stmtFrom(String.format("return %s;", source)));

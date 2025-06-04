@@ -117,7 +117,7 @@ public class ProjectContext {
         String functionName = "toXML";
         utilityFunctions.add(new BallerinaModel.Function(functionName,
                 List.of(new BallerinaModel.Parameter("data", new BallerinaModel.TypeDesc.MapTypeDesc(ANYDATA))),
-                new UnionTypeDesc(List.of(ERROR, XML)).toString(),
+                new UnionTypeDesc(List.of(ERROR, XML)),
                 List.of(new Return<>(
                         Optional.of(new FunctionCall("xmldata:toXml",
                                 new String[]{"data"}))))));

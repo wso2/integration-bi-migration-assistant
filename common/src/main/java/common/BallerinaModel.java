@@ -22,6 +22,7 @@ import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,10 +31,12 @@ import java.util.stream.Collectors;
 
 public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules) {
 
+    // Note: not using this at the moment, but keeping it for future use
     public record DefaultPackage(String org, String name, String version) {
 
     }
 
+    // Note: not using this at the moment, but keeping it for future use
     public record Module(String name, List<TextDocument> textDocuments) {
 
     }
@@ -91,6 +94,14 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     public sealed interface TypeDesc {
 
+        record BallerinaType(String value) implements TypeDesc {
+
+            @Override
+            public String toString() {
+                return value;
+            }
+        }
+
         record MapTypeDesc(TypeDesc typeDesc) implements TypeDesc {
 
             @Override
@@ -104,14 +115,6 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             @Override
             public String toString() {
                 return "stream<" + valueTy + ", " + completionType + ">";
-            }
-        }
-
-        record BallerinaType(String value) implements TypeDesc {
-
-            @Override
-            public String toString() {
-                return value;
             }
         }
 
@@ -283,8 +286,12 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record Service(String basePath, List<String> listenerRefs, Optional<Function> initFunc,
-                          List<Resource> resources, List<Function> functions, List<String> pathParams,
-                          List<String> queryParams, List<ObjectField> fields) {
+                          List<Resource> resources, List<Function> functions,
+                          List<ObjectField> fields) {
+        public Service(String basePath, String listenerRef, List<Resource> resources) {
+            this(basePath, Collections.singletonList(listenerRef), Optional.empty(), resources,
+                    Collections.emptyList(), Collections.emptyList());
+        }
     }
 
     public record ObjectField(TypeDesc type, String name) {
@@ -309,19 +316,14 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record Resource(String resourceMethodName, String path, List<Parameter> parameters,
-                           Optional<String> returnType, List<Statement> body) {
+                           Optional<TypeDesc> returnType, List<Statement> body) {
     }
 
     public record Function(Optional<String> visibilityQualifier, String functionName, List<Parameter> parameters,
-                           Optional<String> returnType, FunctionBody body) {
+                           Optional<TypeDesc> returnType, FunctionBody body) {
 
         public Function(String funcName, List<Parameter> parameters, TypeDesc returnType,
                         List<Statement> body) {
-            this(Optional.empty(), funcName, parameters, Optional.of(returnType.toString()),
-                    new BlockFunctionBody(body));
-        }
-
-        public Function(String funcName, List<Parameter> parameters, String returnType, List<Statement> body) {
             this(Optional.empty(), funcName, parameters, Optional.of(returnType), new BlockFunctionBody(body));
         }
 
@@ -358,6 +360,14 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public sealed interface Expression {
+
+        record BallerinaExpression(String expr) implements Expression {
+
+            @Override
+            public String toString() {
+                return expr;
+            }
+        }
 
         record Not(Expression expression) implements Expression {
 
@@ -546,17 +556,17 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                 return condition + " ? " + ifTrue + " : " + ifFalse;
             }
         }
-
-        record BallerinaExpression(String expr) implements Expression {
-
-            @Override
-            public String toString() {
-                return expr;
-            }
-        }
     }
 
     public sealed interface Statement {
+
+        record BallerinaStatement(String stmt) implements Statement {
+
+            @Override
+            public String toString() {
+                return stmt;
+            }
+        }
 
         record CallStatement(Expression callExpr) implements Statement {
 
@@ -647,14 +657,6 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             @Override
             public String toString() {
                 return ref + " = " + value + ";";
-            }
-        }
-
-        record BallerinaStatement(String stmt) implements Statement {
-
-            @Override
-            public String toString() {
-                return stmt;
             }
         }
 
