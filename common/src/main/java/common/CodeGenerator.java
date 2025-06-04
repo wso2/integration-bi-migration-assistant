@@ -157,7 +157,7 @@ public class CodeGenerator {
         if (textDocument.Comments().isEmpty()) {
             eofLeadingMinutiae = NodeFactory.createEmptyMinutiaeList();
         } else {
-            String comments = String.join("", textDocument.Comments());
+            String comments = String.join("\n", textDocument.Comments());
             eofLeadingMinutiae = parseLeadingMinutiae(comments);
         }
 
