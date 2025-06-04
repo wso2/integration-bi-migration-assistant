@@ -22,15 +22,26 @@ dependencies {
 }
 ```
 
-Make sure you have `mavenLocal()` in your repositories:
+Make sure you have `mavenLocal()` in your repositories, along with the required Ballerina repositories:
 
 ```gradle
 repositories {
     mavenLocal()
     mavenCentral()
-    // ... other repositories
+    maven {
+        url = 'https://maven.wso2.org/nexus/content/repositories/orgballerinalang-1614'
+    }
+    maven {
+        url = 'https://maven.pkg.github.com/ballerina-platform/*'
+        credentials {
+            username System.getenv("packageUser")
+            password System.getenv("packagePAT")
+        }
+    }
 }
 ```
+
+**Note**: The Ballerina Maven repositories are required because the common library depends on Ballerina components. You may need to set the `packageUser` and `packagePAT` environment variables for GitHub packages access.
 
 ### Maven Projects
 
