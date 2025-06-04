@@ -8,21 +8,6 @@ plugins {
 group 'com.wso2'
 version '0.1.0-SNAPSHOT'
 
-repositories {
-    mavenLocal()
-    mavenCentral()
-    maven {
-        url = 'https://maven.wso2.org/nexus/content/repositories/orgballerinalang-1614'
-    }
-    maven {
-        url = 'https://maven.pkg.github.com/ballerina-platform/*'
-        credentials {
-            username System.getenv("packageUser")
-            password System.getenv("packagePAT")
-        }
-    }
-}
-
 dependencies {
     // ballerina-lang
     implementation group: 'org.ballerinalang', name: 'ballerina-parser', version: "${ballerinaLangVersion}"
@@ -76,11 +61,4 @@ build {
     dependsOn ":common:build"
     dependsOn checkstyleMain
     dependsOn spotbugsMain
-}
-
-// Apply a specific Java toolchain to ease working on different environments.
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
 }
