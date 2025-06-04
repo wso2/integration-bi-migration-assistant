@@ -32,8 +32,7 @@ service /mule3 on config {
         ctx.payload = dbSelect0;
 
         // json transformation
-        json to_json0 = dbSelect0.toJson();
-        ctx.payload = to_json0;
+        ctx.payload = ctx.payload.toJson();
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
         return ctx.inboundProperties.response;

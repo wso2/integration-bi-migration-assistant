@@ -181,8 +181,6 @@ public class MuleToBalConverter {
         public int dbQueryVarCount = 0;
         public int dbStreamVarCount = 0;
         public int dbSelectVarCount = 0;
-        public int objectToJsonVarCount = 0;
-        public int objectToStringVarCount = 0;
         public int enricherFuncCount = 0;
         public int asyncFuncCount = 0;
         public int payloadVarCount = 0;
@@ -219,42 +217,9 @@ public class MuleToBalConverter {
             return false;
         }
 
-        // Data analyze attributes
-        Map<String, FlowInfo> flowInfoMap = new HashMap<>();
-        Map<String, Function> flowToGenMethodMap = new HashMap<>();
-        FlowInfo currentFlowInfo = null;
-
         public DWConversionStats getDwConversionStats() {
             return dwConversionStats;
         }
-
-        static class FlowInfo {
-
-            final String flowName;
-            private Context context;
-            private PayloadVarInfo currentPayload;
-
-            FlowInfo(String flowName) {
-                this.flowName = flowName;
-                this.context = Context.DEFAULT;
-                this.currentPayload = DEFAULT_PAYLOAD;
-            }
-
-            FlowInfo(String flowName, Context context) {
-                this.flowName = flowName;
-                this.context = context;
-                this.currentPayload = DEFAULT_PAYLOAD;
-            }
-        }
-    }
-
-    static void putFlowInfoIfAbsent(Data data, String flowName) {
-        data.sharedProjectData.flowInfoMap.putIfAbsent(flowName, new SharedProjectData.FlowInfo(flowName));
-    }
-
-    public enum Context {
-        DEFAULT,
-        HTTP_LISTENER
     }
 
     static final PayloadVarInfo DEFAULT_PAYLOAD = new PayloadVarInfo("()", "null");
@@ -477,10 +442,6 @@ public class MuleToBalConverter {
 
     private static void genHttpSource(Data data, Flow flow, HttpListener src, List<Service> services,
                                       Set<Function> functions) {
-        SharedProjectData.FlowInfo flowInfo = new SharedProjectData.FlowInfo(flow.name(), Context.HTTP_LISTENER);
-        data.sharedProjectData.flowInfoMap.put(flow.name(), flowInfo);
-        data.sharedProjectData.currentFlowInfo = flowInfo;
-
         data.sharedProjectData.inboundProperties.add(new SharedProjectData.TypeAndNamePair(
                 Constants.HTTP_REQUEST_TYPE, Constants.HTTP_REQUEST_REF));
         data.sharedProjectData.inboundProperties.add(new SharedProjectData.TypeAndNamePair(
@@ -574,15 +535,11 @@ public class MuleToBalConverter {
 
     private static void genBalFuncForPrivateOrSubFlow(Data data, Set<Function> functions, String flowName,
             List<MuleRecord> flowBlocks) {
-        putFlowInfoIfAbsent(data, flowName);
-        data.sharedProjectData.currentFlowInfo = data.sharedProjectData.flowInfoMap.get(flowName);
-
         List<Statement> body = genFuncBodyStatements(data, flowBlocks);
 
         String methodName = ConversionUtils.convertToBalIdentifier(flowName);
         Function function = Function.publicFunction(methodName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
         functions.add(function);
-        data.sharedProjectData.flowToGenMethodMap.put(flowName, function);
     }
 
     private static void genBalFunc(Data data, Set<Function> functions, String funcName, List<MuleRecord> flowBlocks) {
@@ -846,7 +803,6 @@ public class MuleToBalConverter {
                 statementList.add(stmtFrom(String.format("%s %s = %s;", type, payloadVar, pyld)));
                 statementList.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE,
                         payloadVar)));
-                data.sharedProjectData.currentFlowInfo.currentPayload = new PayloadVarInfo("string", payloadVar);
             }
             case Choice choice -> {
                 List<WhenInChoice> whens = choice.whens();
@@ -915,28 +871,15 @@ public class MuleToBalConverter {
             }
             case ObjectToJson objectToJson -> {
                 statementList.add(stmtFrom("\n\n// json transformation\n"));
-                String objToJsonVarName = String.format(Constants.VAR_OBJ_TO_JSON_TEMPLATE,
-                        data.sharedProjectData.objectToJsonVarCount++);
-                statementList.add(stmtFrom(String.format("json %s = %s.toJson();", objToJsonVarName,
-                        data.sharedProjectData.currentFlowInfo.currentPayload.nameReference())));
-
                 // object to json transformer implicitly sets the payload
-                statementList.add(stmtFrom("%s.payload = %s;".formatted(Constants.CONTEXT_REFERENCE,
-                        objToJsonVarName)));
-                data.sharedProjectData.currentFlowInfo.currentPayload = new PayloadVarInfo("json", objToJsonVarName);
+                statementList.add(stmtFrom("%s = %s.toJson();".formatted(Constants.PAYLOAD_FIELD_ACCESS,
+                        Constants.PAYLOAD_FIELD_ACCESS)));
             }
             case ObjectToString objectToString -> {
                 statementList.add(stmtFrom("\n\n// string transformation\n"));
-                String objToStringVarName = String.format(Constants.VAR_OBJ_TO_STRING_TEMPLATE,
-                        data.sharedProjectData.objectToStringVarCount++);
-                statementList.add(stmtFrom(String.format("string %s = %s.toString();", objToStringVarName,
-                        data.sharedProjectData.currentFlowInfo.currentPayload.nameReference())));
-
                 // object to string transformer implicitly sets the payload
-                statementList.add(stmtFrom("%s.payload = %s;".formatted(Constants.CONTEXT_REFERENCE,
-                        objToStringVarName)));
-                data.sharedProjectData.currentFlowInfo.currentPayload = new PayloadVarInfo("string",
-                        objToStringVarName);
+                statementList.add(stmtFrom("%s = %s.toString();".formatted(Constants.PAYLOAD_FIELD_ACCESS,
+                        Constants.PAYLOAD_FIELD_ACCESS)));
             }
             case HttpRequest httpRequest -> {
                 List<Statement> statements = new ArrayList<>();
@@ -960,22 +903,6 @@ public class MuleToBalConverter {
             case FlowReference flowReference -> {
                 String flowName = flowReference.flowName();
                 String funcRef = ConversionUtils.convertToBalIdentifier(flowName);
-
-                if (data.sharedProjectData.currentFlowInfo.context == Context.HTTP_LISTENER) {
-                    Function method = data.sharedProjectData.flowToGenMethodMap.get(flowName);
-                    // TODO: revisit
-                    if (method == null) {
-                        // Set the flow context to Http listener
-                        SharedProjectData.FlowInfo flowInfo = new SharedProjectData.FlowInfo(flowName,
-                                Context.HTTP_LISTENER);
-                        data.sharedProjectData.flowInfoMap.put(flowName, flowInfo);
-                    } else {
-                        // Means we have analyzed the flow already
-                        SharedProjectData.FlowInfo flowInfo = data.sharedProjectData.flowInfoMap.get(flowName);
-                        flowInfo.context = Context.HTTP_LISTENER;
-                    }
-                }
-
                 statementList.add(stmtFrom(String.format("%s(%s);", funcRef, Constants.CONTEXT_REFERENCE)));
             }
             case Async async -> {
@@ -1078,10 +1005,6 @@ public class MuleToBalConverter {
                     // db:select implicitly sets the payload
                     statementList.add(stmtFrom("%s.payload = %s;".formatted(Constants.CONTEXT_REFERENCE,
                             dbSelectVarName)));
-
-                    data.sharedProjectData.currentFlowInfo.currentPayload = new PayloadVarInfo(String.format("%s[]",
-                            streamConstraintType),
-                            dbSelectVarName);
                 }
             }
             case TransformMessage transformMessage -> {

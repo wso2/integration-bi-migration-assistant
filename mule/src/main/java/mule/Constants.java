@@ -60,6 +60,7 @@ public class Constants {
     public static final String FLOW_VARS_FIELD_ACCESS = CONTEXT_REFERENCE + "." + FLOW_VARS_REF;
     public static final String SESSION_VARS_FIELD_ACCESS = CONTEXT_REFERENCE + "." + SESSION_VARS_REF;
     public static final String INBOUND_PROPERTIES_FIELD_ACCESS = CONTEXT_REFERENCE + "." + INBOUND_PROPERTIES_REF;
+    public static final String PAYLOAD_FIELD_ACCESS = CONTEXT_REFERENCE + "." + PAYLOAD_REF;
 
     // Variable/Func Names
     public static final String VAR_ITERATOR = "_iterator_";
@@ -67,8 +68,6 @@ public class Constants {
     public static final String VAR_DB_STREAM_TEMPLATE = "dbStream%s";
     public static final String VAR_DB_QUERY_TEMPLATE = "dbQuery%s";
     public static final String VAR_DB_SELECT_TEMPLATE = "dbSelect%s";
-    public static final String VAR_OBJ_TO_JSON_TEMPLATE = "to_json%s";
-    public static final String VAR_OBJ_TO_STRING_TEMPLATE = "to_string%s";
     public static final String FUNC_NAME_ENRICHER_TEMPLATE = "enricher%s";
     public static final String FUNC_NAME_ASYC_TEMPLATE = "async%s";
     public static final String VAR_PAYLOAD_TEMPLATE = "payload%s";

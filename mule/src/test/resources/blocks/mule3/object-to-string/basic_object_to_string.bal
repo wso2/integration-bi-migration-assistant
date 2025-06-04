@@ -32,8 +32,7 @@ service /mule3 on config {
         ctx.payload = dbSelect0;
 
         // string transformation
-        string to_string0 = dbSelect0.toString();
-        ctx.payload = to_string0;
+        ctx.payload = ctx.payload.toString();
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
         return ctx.inboundProperties.response;
