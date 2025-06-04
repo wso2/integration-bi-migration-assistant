@@ -45,7 +45,6 @@ import java.util.Optional;
 import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.Listener;
-import static common.BallerinaModel.Module;
 import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
 import static common.BallerinaModel.ObjectField;
@@ -54,123 +53,117 @@ import static common.BallerinaModel.Resource;
 import static common.BallerinaModel.Service;
 import static common.BallerinaModel.Statement;
 import static common.BallerinaModel.TextDocument;
+import static common.BallerinaModel.TypeDesc;
 
 public class CodeGenerator {
-    private final BallerinaModel ballerinaModel;
+    private final TextDocument textDocument;
 
-    public CodeGenerator(BallerinaModel ballerinaModel) {
-        this.ballerinaModel = ballerinaModel;
+    public CodeGenerator(TextDocument textDocument) {
+        this.textDocument = textDocument;
     }
 
-    public SyntaxTree generateBalCode() {
-        List<SyntaxTree> syntaxTrees = new ArrayList<>();
-        List<Module> modules = ballerinaModel.modules();
-        // TODO: assumed single module for now
-        Module module = modules.getFirst();
-
-        for (TextDocument textDocument : module.textDocuments()) {
-            List<ImportDeclarationNode> imports = new ArrayList<>();
-            for (Import importDeclaration : textDocument.imports()) {
-                ImportDeclarationNode importDeclarationNode =
-                        NodeParser.parseImportDeclaration(importDeclaration.toString());
-                imports.add(importDeclarationNode);
-            }
-
-            List<ModuleMemberDeclarationNode> moduleMembers = new ArrayList<>(textDocument.astNodes());
-
-            for (ModuleTypeDef moduleTypeDef : textDocument.moduleTypeDefs()) {
-                // TODO: handle visibility qualifier properly
-                TypeDefinitionNode typeDefinitionNode = (TypeDefinitionNode) NodeParser.parseModuleMemberDeclaration(
-                        moduleTypeDef.toString());
-                moduleMembers.add(typeDefinitionNode);
-            }
-
-            for (ModuleVar moduleVar : textDocument.moduleVars()) {
-                ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(moduleVar.toString());
-                moduleMembers.add(member);
-            }
-
-            for (Listener listener : textDocument.listeners()) {
-                // TODO: handle visibility qualifier properly
-                ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(listener.toString());
-                moduleMembers.add(member);
-            }
-
-            for (Service service : textDocument.services()) {
-                String listenerRefs = constructCommaSeparatedString(service.listenerRefs());
-                ServiceDeclarationNode serviceDecl = (ServiceDeclarationNode) NodeParser.parseModuleMemberDeclaration(
-                        String.format("service %s on %s { }", service.basePath(), listenerRefs));
-
-                List<Node> members = new ArrayList<>();
-                for (ObjectField field : service.fields()) {
-                    ObjectFieldNode objectFieldNode = (ObjectFieldNode) NodeParser.parseObjectMember(
-                            String.format("%s %s;", field.type(), field.name()));
-                    members.add(objectFieldNode);
-                }
-
-                if (service.initFunc().isPresent()) {
-                    members.add(genFunctionDefinitionNode(service.initFunc().get()));
-                }
-
-                for (Resource resource : service.resources()) {
-                    String funcParamStr = constructFunctionParameterString(resource.parameters(), false);
-                    FunctionDefinitionNode resourceMethod = (FunctionDefinitionNode) NodeParser.parseObjectMember(
-                            String.format("resource function %s %s(%s) %s {}",
-                                    resource.resourceMethodName(), resource.path(), funcParamStr,
-                                    getReturnTypeDescriptor(resource.returnType())));
-
-                    FunctionBodyBlockNode funcBodyBlock = constructFunctionBodyBlock(resource.body());
-                    resourceMethod = resourceMethod.modify().withFunctionBody(funcBodyBlock).apply();
-                    members.add(resourceMethod);
-                }
-
-                for (Function function : service.functions()) {
-                    FunctionDefinitionNode funcDefn = genFunctionDefinitionNode(function);
-                    members.add(funcDefn);
-                }
-
-                NodeList<Node> nodeList = NodeFactory.createNodeList(members);
-                serviceDecl = serviceDecl.modify().withMembers(nodeList).apply();
-                moduleMembers.add(serviceDecl);
-            }
-
-            for (Function f : textDocument.functions()) {
-                String funcParamString = constructFunctionParameterString(f.parameters(), false);
-                String methodName = f.functionName();
-                FunctionDefinitionNode functionDefinitionNode;
-                if (f.body() instanceof BallerinaModel.BlockFunctionBody) {
-                    FunctionDefinitionNode fd = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
-                            String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(f.visibilityQualifier()),
-                                    methodName, funcParamString, getReturnTypeDescriptor(f.returnType())));
-                    functionDefinitionNode = generateBallerinaFunction(fd, f.body());
-                } else {
-                    functionDefinitionNode = generateBallerinaExternalFunction(f, funcParamString, methodName);
-                }
-                moduleMembers.add(functionDefinitionNode);
-            }
-
-            for (String f : textDocument.intrinsics()) {
-                moduleMembers.add(NodeParser.parseModuleMemberDeclaration(f));
-            }
-
-            NodeList<ImportDeclarationNode> importDecls = NodeFactory.createNodeList(imports);
-            NodeList<ModuleMemberDeclarationNode> moduleMemberDecls = NodeFactory.createNodeList(moduleMembers);
-
-            MinutiaeList eofLeadingMinutiae;
-            if (textDocument.Comments().isEmpty()) {
-                eofLeadingMinutiae = NodeFactory.createEmptyMinutiaeList();
-            } else {
-                String comments = String.join("", textDocument.Comments());
-                eofLeadingMinutiae = parseLeadingMinutiae(comments);
-            }
-
-            SyntaxTree syntaxTree = createSyntaxTree(importDecls, moduleMemberDecls, eofLeadingMinutiae);
-            syntaxTree = formatSyntaxTree(syntaxTree);
-            syntaxTrees.add(syntaxTree);
+    /**
+     * Generates a syntax tree from IR TextDocument.
+     *
+     * @return SyntaxTree
+     */
+    public SyntaxTree generateSyntaxTree() {
+        List<ImportDeclarationNode> imports = new ArrayList<>();
+        for (Import importDeclaration : textDocument.imports()) {
+            ImportDeclarationNode importDeclarationNode =
+                    NodeParser.parseImportDeclaration(importDeclaration.toString());
+            imports.add(importDeclarationNode);
         }
 
-        // only a single bal file is considered for now
-        return syntaxTrees.getFirst();
+        List<ModuleMemberDeclarationNode> moduleMembers = new ArrayList<>(textDocument.astNodes());
+
+        for (ModuleTypeDef moduleTypeDef : textDocument.moduleTypeDefs()) {
+            TypeDefinitionNode typeDefinitionNode = (TypeDefinitionNode) NodeParser.parseModuleMemberDeclaration(
+                    moduleTypeDef.toString());
+            moduleMembers.add(typeDefinitionNode);
+        }
+
+        for (ModuleVar moduleVar : textDocument.moduleVars()) {
+            ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(moduleVar.toString());
+            moduleMembers.add(member);
+        }
+
+        for (Listener listener : textDocument.listeners()) {
+            ModuleMemberDeclarationNode member = NodeParser.parseModuleMemberDeclaration(listener.toString());
+            moduleMembers.add(member);
+        }
+
+        for (Service service : textDocument.services()) {
+            String listenerRefs = constructCommaSeparatedString(service.listenerRefs());
+            ServiceDeclarationNode serviceDecl = (ServiceDeclarationNode) NodeParser.parseModuleMemberDeclaration(
+                    String.format("service %s on %s { }", service.basePath(), listenerRefs));
+
+            List<Node> members = new ArrayList<>();
+            for (ObjectField field : service.fields()) {
+                ObjectFieldNode objectFieldNode = (ObjectFieldNode) NodeParser.parseObjectMember(
+                        String.format("%s %s;", field.type(), field.name()));
+                members.add(objectFieldNode);
+            }
+
+            if (service.initFunc().isPresent()) {
+                members.add(genFunctionDefinitionNode(service.initFunc().get()));
+            }
+
+            for (Resource resource : service.resources()) {
+                String funcParamStr = constructFunctionParameterString(resource.parameters(), false);
+                FunctionDefinitionNode resourceMethod = (FunctionDefinitionNode) NodeParser.parseObjectMember(
+                        String.format("resource function %s %s(%s) %s {}",
+                                resource.resourceMethodName(), resource.path(), funcParamStr,
+                                getReturnTypeDescriptor(resource.returnType())));
+
+                FunctionBodyBlockNode funcBodyBlock = constructFunctionBodyBlock(resource.body());
+                resourceMethod = resourceMethod.modify().withFunctionBody(funcBodyBlock).apply();
+                members.add(resourceMethod);
+            }
+
+            for (Function function : service.functions()) {
+                FunctionDefinitionNode funcDefn = genFunctionDefinitionNode(function);
+                members.add(funcDefn);
+            }
+
+            NodeList<Node> nodeList = NodeFactory.createNodeList(members);
+            serviceDecl = serviceDecl.modify().withMembers(nodeList).apply();
+            moduleMembers.add(serviceDecl);
+        }
+
+        for (Function f : textDocument.functions()) {
+            String funcParamString = constructFunctionParameterString(f.parameters(), false);
+            String methodName = f.functionName();
+            FunctionDefinitionNode functionDefinitionNode;
+            if (f.body() instanceof BallerinaModel.BlockFunctionBody) {
+                FunctionDefinitionNode fd = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
+                        String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(f.visibilityQualifier()),
+                                methodName, funcParamString, getReturnTypeDescriptor(f.returnType())));
+                functionDefinitionNode = generateBallerinaFunction(fd, f.body());
+            } else {
+                functionDefinitionNode = generateBallerinaExternalFunction(f, funcParamString, methodName);
+            }
+            moduleMembers.add(functionDefinitionNode);
+        }
+
+        for (String f : textDocument.intrinsics()) {
+            moduleMembers.add(NodeParser.parseModuleMemberDeclaration(f));
+        }
+
+        NodeList<ImportDeclarationNode> importDecls = NodeFactory.createNodeList(imports);
+        NodeList<ModuleMemberDeclarationNode> moduleMemberDecls = NodeFactory.createNodeList(moduleMembers);
+
+        MinutiaeList eofLeadingMinutiae;
+        if (textDocument.Comments().isEmpty()) {
+            eofLeadingMinutiae = NodeFactory.createEmptyMinutiaeList();
+        } else {
+            String comments = String.join("", textDocument.Comments());
+            eofLeadingMinutiae = parseLeadingMinutiae(comments);
+        }
+
+        SyntaxTree syntaxTree = createSyntaxTree(importDecls, moduleMemberDecls, eofLeadingMinutiae);
+        syntaxTree = formatSyntaxTree(syntaxTree);
+        return syntaxTree;
     }
 
     private FunctionDefinitionNode genFunctionDefinitionNode(Function function) {
@@ -252,7 +245,7 @@ public class CodeGenerator {
         return syntaxTree;
     }
 
-    private String getReturnTypeDescriptor(Optional<String> returnType) {
+    private String getReturnTypeDescriptor(Optional<TypeDesc> returnType) {
         return returnType.map(r ->  String.format("returns %s", r)).orElse("");
     }
 
