@@ -69,6 +69,7 @@ import tibco.TibcoModel.Scope.Flow.Activity.ReceiveEvent;
 import tibco.TibcoModel.Scope.Flow.Activity.Reply;
 import tibco.TibcoModel.Scope.Flow.Activity.Throw;
 import tibco.TibcoModel.Scope.Flow.Activity.UnhandledActivity;
+import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.xslt.AddMissingParameters;
 import tibco.xslt.IgnoreRootWrapper;
@@ -239,26 +240,46 @@ final class ActivityConverter {
         VarDeclStatment xmlInput = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 exprFrom("(%s/*)".formatted(input.varName())));
         body.add(xmlInput);
-
-        body.add(new Comment("WARNING: assuming single element"));
+        body.add(stmtFrom("xmlns \"http://www.tibco.com/namespaces/tnt/plugins/json\" as ns;"));
+        TibcoToBalConverter.logger().warning("JSONRender: assuming single element");
         BallerinaModel.TypeDesc targetType = ConversionUtils.toTypeDesc(jsonRender.targetType());
+        return finishConvertJsonRender(cx, body, targetType, "ns:ActivityOutputClass", xmlInput.ref());
+    }
+
+    private static @NotNull ActivityConversionResult finishConvertJsonRender(ActivityContext cx,
+                                                                             List<Statement> body,
+                                                                             BallerinaModel.TypeDesc targetType,
+                                                                             String outerTag,
+                                                                             VariableReference input) {
+        var intermediateResult = finishConvertJsonRender(cx, body, targetType, input);
+
+        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(
+                "<%s>${%s}</%s>"
+                        .formatted(outerTag, intermediateResult.result, outerTag)));
+        body.add(result);
+        return new ActivityConversionResult(result.ref(), body);
+    }
+
+    private static @NotNull ActivityConversionResult finishConvertJsonRender(ActivityContext cx,
+                                                                             List<Statement> body,
+                                                                             BallerinaModel.TypeDesc targetType,
+                                                                             VariableReference input) {
+        body.add(new Comment("WARNING: assuming single element"));
         cx.addLibraryImport(Library.XML_DATA);
         String parseAsTypeFn = XMLDataConstants.PARSE_AS_TYPE;
         VarDeclStatment value = new VarDeclStatment(targetType, cx.getAnnonVarName(),
-                new Check(new FunctionCall(parseAsTypeFn, List.of(xmlInput.ref()))));
+                new Check(new FunctionCall(parseAsTypeFn, List.of(input))));
         body.add(value);
 
-        VarDeclStatment jsonString = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+        VarDeclStatment jsonStringContent = new VarDeclStatment(STRING, cx.getAnnonVarName(),
                 new MethodCall(value.ref(), "toJsonString", List.of()));
+        body.add(jsonStringContent);
+
+        VarDeclStatment jsonString = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("<jsonString>${%s}</jsonString>".formatted(jsonStringContent.ref())));
         body.add(jsonString);
 
-        body.add(stmtFrom("xmlns \"http://www.tibco.com/namespaces/tnt/plugins/json\" as ns;"));
-        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(
-                "<ns:ActivityOutputClass><jsonString>${%s}</jsonString></ns:ActivityOutputClass>"
-                        .formatted(jsonString.ref())));
-        body.add(result);
-
-        return new ActivityConversionResult(result.ref(), body);
+        return new ActivityConversionResult(jsonString.ref(), body);
     }
 
     private static ActivityConversionResult convertJsonParser(
@@ -785,7 +806,7 @@ final class ActivityConverter {
             ActivityContext cx, VariableReference result,
             ActivityExtension.Config.JsonOperation jsonOperation) {
         return switch (jsonOperation.kind()) {
-            case JSON_RENDER -> createJsonRenderOperation(cx, result);
+            case JSON_RENDER -> createJsonRenderOperation(cx, result, jsonOperation);
             case JSON_PARSER -> createJsonParserOperation(cx, result, jsonOperation);
             default -> throw new IllegalStateException(
                     "Unexpected json operation kind: " + jsonOperation.kind());
@@ -800,11 +821,10 @@ final class ActivityConverter {
     }
 
     private static ActivityConversionResult createJsonRenderOperation(ActivityContext cx,
-                                                                      VariableReference result) {
-        String jsonRenderFn = cx.getRenderJsonFn();
-        VarDeclStatment jsonResult = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new FunctionCall(jsonRenderFn, List.of(result)));
-        return new ActivityConversionResult(jsonResult.ref(), List.of(jsonResult));
+                                                                      VariableReference input,
+                                                                      ActivityExtension.Config.JsonOperation jsonOperation) {
+        return finishConvertJsonRender(cx, new ArrayList<>(),
+                common.ConversionUtils.typeFrom(jsonOperation.type().name()), input);
     }
 
     private static @NotNull ActivityConverter.ActivityConversionResult emptyExtensionConversion(ActivityContext cx,
