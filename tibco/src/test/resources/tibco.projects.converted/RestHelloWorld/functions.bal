@@ -162,7 +162,7 @@ function Render(map<xml> context) returns xml|error {
     </xsl:template>
 </xsl:stylesheet>`, context);
     string var2 = var1.toBalString();
-    xml var3 = xml `<root>/<xmlString>${var2}</xmlString></root>`;
+    xml var3 = xml `<root><xmlString>${var2}</xmlString></root>`;
     addToContext(context, "Render", var3);
     return var3;
 }
@@ -227,16 +227,9 @@ function SQL_Direct(map<xml> context) returns xml|error {
         xml var8 = xml `<root>${var6}</root>`;
         var4 = var8;
     } else {
-        stream<map<anydata>, error|()> var9 = JDBCConnection->query(var3);
-        xml var10 = xml ``;
-        check from var each in var9
-            do {
-                xml var11 = check toXML(each);
-                var10 = var10 + var11;
-            };
-
-        xml var12 = xml `<root>${var10}</root>`;
-        var4 = var12;
+        sql:ExecutionResult var9 = check JDBCConnection->execute(var3);
+        xml var10 = xml `<root></root>`;
+        var4 = var10;
     }
     //WARNING: validate jdbc query result mapping
     addToContext(context, "SQL-Direct", var4);
@@ -429,9 +422,9 @@ function Parse_JSON(map<xml> context) returns xml|error {
 
     </xsl:template>
 </xsl:stylesheet>`, context);
-    xml var2 = check renderJsonAsFooXML(var1);
     xmlns "http://www.tibco.com/namespaces/tnt/plugins/json" as ns;
-    xml var3 = xml `<ns:ActivityOutputClass>var2</ns:ActivityOutputClass>`;
+    xml var2 = check renderJsonAsFooXML(var1);
+    xml var3 = xml `<ActivityOutputClass>var2</ActivityOutputClass>`;
     addToContext(context, "Parse-JSON", var3);
     return var3;
 }
@@ -453,16 +446,17 @@ function Render_JSON(map<xml> context) returns xml|error {
     </xsl:template>
 </xsl:stylesheet>`, context);
     xml var2 = (var1/*);
+    xmlns "http://www.tibco.com/namespaces/tnt/plugins/json" as ns;
     //WARNING: assuming single element
     record {|
         string foo;
         string bar?;
     |} var3 = check xmldata:parseAsType(var2);
     string var4 = var3.toJsonString();
-    xmlns "http://www.tibco.com/namespaces/tnt/plugins/json" as ns;
-    xml var5 = xml `<ns:ActivityOutputClass><jsonString>${var4}</jsonString></ns:ActivityOutputClass>`;
-    addToContext(context, "Render-JSON", var5);
-    return var5;
+    xml var5 = xml `<jsonString>${var4}</jsonString>`;
+    xml var6 = xml `<ns:ActivityOutputClass>${var5}</ns:ActivityOutputClass>`;
+    addToContext(context, "Render-JSON", var6);
+    return var6;
 }
 
 function Rest_call(map<xml> context) returns xml|error {

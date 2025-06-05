@@ -92,16 +92,9 @@ function SQL_Direct(map<xml> context) returns xml|error {
         xml var8 = xml `<root>${var6}</root>`;
         var4 = var8;
     } else {
-        stream<map<anydata>, error|()> var9 = JDBCConnection->query(var3);
-        xml var10 = xml ``;
-        check from var each in var9
-            do {
-                xml var11 = check toXML(each);
-                var10 = var10 + var11;
-            };
-
-        xml var12 = xml `<root>${var10}</root>`;
-        var4 = var12;
+        sql:ExecutionResult var9 = check JDBCConnection->execute(var3);
+        xml var10 = xml `<root></root>`;
+        var4 = var10;
     }
     //WARNING: validate jdbc query result mapping
     addToContext(context, "SQL-Direct", var4);

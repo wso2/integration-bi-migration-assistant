@@ -223,7 +223,7 @@ final class ActivityConverter {
         ifSelectBody.add(new Statement.VarAssignStatement(result.ref(), ifSelectResult.result()));
 
         List<Statement> queryBody = new ArrayList<>();
-        var queryResult = finishSelectQuery(cx, client, query.ref(), queryBody);
+        var queryResult = finishSQLQuery(cx, client, query.ref(), queryBody);
         queryBody.add(new Statement.VarAssignStatement(result.ref(), queryResult.result()));
 
         body.add(new Statement.IfElseStatement(
@@ -878,22 +878,19 @@ final class ActivityConverter {
         VarDeclStatment queryDecl = ConversionUtils.createQueryDecl(cx, vars, sql);
         body.add(queryDecl);
 
-            VariableReference dbClient = cx.client(sql.sharedResourcePropertyName());
-            if (sql.query().toUpperCase().startsWith("SELECT")) {
-                return finishSelectQuery(cx, dbClient, queryDecl.ref(), body);
-            }
-            return finishSQLQuery(cx, body, dbClient, queryDecl);
+        VariableReference dbClient = cx.client(sql.sharedResourcePropertyName());
+        if (sql.query().toUpperCase().startsWith("SELECT")) {
+            return finishSelectQuery(cx, dbClient, queryDecl.ref(), body);
         }
+        return finishSQLQuery(cx, dbClient, queryDecl.ref(), body);
+    }
 
-    private static @NotNull ActivityConverter.ActivityConversionResult finishSQLQuery(
-            ActivityContext cx, List<Statement> body, VariableReference dbClient, VarDeclStatment queryDecl) {
+    private static @NotNull ActivityConversionResult finishSQLQuery(
+            ActivityContext cx, VariableReference dbClient, VariableReference query, List<Statement> body) {
         body.add(new VarDeclStatment(
                 cx.processContext.getTypeByName(BallerinaSQLConstants.EXECUTION_RESULT_TYPE),
                 cx.getAnnonVarName(),
-                new Check(
-                        new RemoteMethodCallAction(dbClient,
-                                BallerinaSQLConstants.EXECUTE_METHOD,
-                                List.of(queryDecl.ref())))));
+                new Check(new RemoteMethodCallAction(dbClient, BallerinaSQLConstants.EXECUTE_METHOD, List.of(query)))));
         VarDeclStatment dummyXmlResult = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
         body.add(dummyXmlResult);
         return new ActivityConversionResult(dummyXmlResult.ref(), body);
