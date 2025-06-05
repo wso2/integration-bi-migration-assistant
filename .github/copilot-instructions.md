@@ -1,0 +1,5 @@
+- Don't add doc comments to private methods.
+- When declaring new helper methods, they should be private and adjacent to the method that calls them.
+- Maximum line length is 120 characters.
+- Keep commit messages short.
+- Wrap single line if statements in parentheses.
