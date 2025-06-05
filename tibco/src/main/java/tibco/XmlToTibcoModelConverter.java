@@ -971,10 +971,8 @@ public final class XmlToTibcoModelConverter {
             case END -> new Config.End();
             case FILE_WRITE -> new Config.FileWrite();
             case HTTP_SEND -> parseHTTPSend(activity);
-            case JSON_RENDER -> new Config.JsonOperation(
-                    Config.ExtensionKind.JSON_RENDER,
-                    Type.Schema.TibcoType.of("nil"));
-            case JSON_PARSER -> parseJsonParseConfig(config);
+            case JSON_RENDER -> parseJSONOperation(config, Config.ExtensionKind.JSON_RENDER);
+            case JSON_PARSER -> parseJSONOperation(config, Config.ExtensionKind.JSON_PARSER);
             case LOG -> new Config.Log();
             case RENDER_XML -> new Config.RenderXML();
             case SEND_HTTP_RESPONSE -> new Config.SendHTTPResponse();
@@ -984,21 +982,25 @@ public final class XmlToTibcoModelConverter {
         };
     }
 
-    private static Config parseJsonParseConfig(Element config) {
+    private static Config parseJSONOperation(Element config, Config.ExtensionKind kind) {
         Element activity = getFirstChildWithTag(config, "BWActivity");
         Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
         Element properties = getFirstChildWithTag(activityConfig, "properties");
         Element value = getFirstChildWithTag(properties, "value");
-        Element outputEditorElement = getFirstChildWithTag(value, "outputEditorElement");
-        String href = outputEditorElement.getAttribute("href");
+        String editorElementTag = switch (kind) {
+            case JSON_PARSER -> "outputEditorElement";
+            case JSON_RENDER -> "inputEditorElement";
+            default -> throw new IllegalStateException("Unexpected value: " + kind);
+        };
+
+        Element editorElement = getFirstChildWithTag(value, editorElementTag);
+        String href = editorElement.getAttribute("href");
         if (href.isBlank()) {
-            throw new ParserException("Missing href attribute in outputEditorElement", outputEditorElement);
+            throw new ParserException("Missing href attribute in outputEditorElement", editorElement);
         }
 
         String typeName = extractTypeNameFromHref(href);
-        return new Config.JsonOperation(
-                Config.ExtensionKind.JSON_PARSER,
-                Type.Schema.TibcoType.of(typeName));
+        return new Config.JsonOperation(kind, Type.Schema.TibcoType.of(typeName));
     }
 
     private static String extractTypeNameFromHref(String href) {
