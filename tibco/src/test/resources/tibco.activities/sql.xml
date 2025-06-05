@@ -1,0 +1,48 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension
+            inputVariable="QueryRecords-input"
+            name="QueryRecords" outputVariable="QueryRecords"
+            xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="Target"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="Source"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns=&quot;http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input&quot; xmlns:tns1=&quot;http://www.example.com/namespaces/tns/1535845694732&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;Start&quot;/>&lt;xsl:template name=&quot;Template&quot; match=&quot;/&quot;>&lt;tns:jdbcQueryActivityInput>&lt;col1>&lt;xsl:value-of select=&quot;$Start/col1&quot;/>&lt;/col1>&lt;/tns:jdbcQueryActivityInput>&lt;/xsl:template>&lt;/xsl:stylesheet>"
+                    expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity
+                    activityTypeID="bw.jdbc.JDBCQuery"
+                    xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                    xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                    xmlns:jdbcPalette="http://ns.tibco.com/bw/palette/jdbc"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/jdbc#//JDBCQueryActivity"/>
+                        <value maxRows="100"
+                               sharedResourceProperty="jdbcProperty"
+                               sqlStatement="select * from t where col1 like ?"
+                               timeout="10" xsi:type="jdbcPalette:JDBCQueryActivity">
+                            <PreparedParameters
+                                    DataType="12"
+                                    DataTypeDisplayValue="VARCHAR" ParameterName="col1"/>
+                            <columnMetadata
+                                    columnName="firstname"
+                                    dataType="12"
+                                    status="OptionalElement" typeName="text"/>
+                            <columnMetadata
+                                    columnName="lastname"
+                                    dataType="12"
+                                    status="OptionalElement" typeName="text"/>
+                        </value>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>

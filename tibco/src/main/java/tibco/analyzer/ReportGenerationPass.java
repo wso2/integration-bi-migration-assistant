@@ -63,7 +63,7 @@ public class ReportGenerationPass extends AnalysisPass {
         TibcoAnalysisReport report = new TibcoAnalysisReport(totalActivities, reportElements.size(),
                 this.reportElements);
         AnalysisResult result = AnalysisResult.empty();
-        result.report = report;
+        result.setReport(report);
         return result;
     }
 }

@@ -1,0 +1,18 @@
+<bpws:invoke inputVariable="InputVariable" name="post"
+             operation="post" outputVariable="OutputVariable"
+             partnerLink="partnerLink" portType="portType">
+    <tibex:inputBinding expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0">&lt;?xml version="1.0"
+        encoding="UTF-8"?&gt;
+        &lt;xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+        xmlns:tns="http://xmlns.example.com/20180827154353PLT" xmlns:tns1="http://tns.tibco.com/bw/REST"
+        xmlns:tns3="mySchema" version="2.0"&gt;&lt;xsl:param
+        name="Start"/&gt;&lt;xsl:template name="post-input" match="/"&gt;&lt;tns:postRequest1&gt;&lt;item&gt;&lt;tns3:Request&gt;&lt;xsl:if
+        test="$Start/field"&gt;&lt;tns3:F&gt;&lt;xsl:value-of select="$Start/field"/&gt;&lt;/tns3:F&gt;&lt;/tns3:Request&gt;&lt;/item&gt;&lt;httpHeaders&gt;&lt;tns1:httpHeaders/&gt;&lt;/httpHeaders&gt;&lt;/tns:postRequest1&gt;&lt;/xsl:template&gt;&lt;/xsl:stylesheet&gt;
+    </tibex:inputBinding>
+    <bpws:targets>
+        <bpws:target linkName="Target"/>
+    </bpws:targets>
+    <bpws:sources>
+        <bpws:source linkName="Source"/>
+    </bpws:sources>
+</bpws:invoke>

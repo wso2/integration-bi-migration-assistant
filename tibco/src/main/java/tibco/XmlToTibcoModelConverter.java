@@ -587,7 +587,7 @@ public final class XmlToTibcoModelConverter {
         }
     }
 
-    private static Flow.Activity parseActivity(Element element) {
+    public static Flow.Activity parseActivity(Element element) {
         String tag = getTagNameWithoutNameSpace(element);
         return switch (tag) {
             case "extensionActivity" -> parseExtensionActivity(element);
@@ -599,6 +599,7 @@ public final class XmlToTibcoModelConverter {
             case "scope" -> parseNestedScope(element);
             case "assign" -> parseAssign(element);
             case "forEach" -> parseForeach(element);
+            case "catchAll" -> parseCatchAll(element);
             default -> throw new ParserException("Unsupported activity tag: " + tag, element);
         };
     }

@@ -1,0 +1,35 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="InputVariable"
+                             name="Mapper" outputVariable="OutputVariable"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="Target"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="Source"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns=&quot;http://fundtech.com/SCL/CommonTypes&quot; xmlns:tns1=&quot;http://www.vietcombank.com.vn/framework/utilities/pattern/pattern/1.0&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;Start&quot;/>&lt;xsl:template name=&quot;Template&quot; match=&quot;/&quot;>&lt;xsl:copy-of select=&quot;$Start/msg&quot;/>&lt;/xsl:template>&lt;/xsl:stylesheet>"
+                    expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity
+                    activityTypeID="bw.generalactivities.mapper"
+                    version="6.0.0.001"
+                    xmlns:CommonTypes="http://fundtech.com/SCL/CommonTypes"
+                    xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                    xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                    xmlns:generalactivities="http://ns.tibco.com/bw/palette/generalactivities"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/generalactivities#//Mapper"/>
+                        <value
+                                inputQName="CommonTypes:FndtMsg" xsi:type="generalactivities:Mapper"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>

@@ -1,0 +1,12 @@
+<bpws:extensionActivity>
+    <tibex:receiveEvent createInstance="yes"
+                        eventTimeout="0" name="Start"
+                        variable="Start" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:sources>
+            <bpws:source linkName="Source"/>
+        </bpws:sources>
+        <tibex:eventSource>
+            <tibex:StartEvent xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"/>
+        </tibex:eventSource>
+    </tibex:receiveEvent>
+</bpws:extensionActivity>

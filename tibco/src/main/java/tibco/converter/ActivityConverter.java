@@ -814,6 +814,7 @@ final class ActivityConverter {
         return new ActivityExtensionConfigConversion(wrapped.ref(), List.of(wrapped));
     }
 
+    // TODO: 114 refact
     private static ActivityExtensionConfigConversion createLogOperation(ActivityContext cx,
                                                                         VariableReference result,
                                                                         ActivityExtension.Config.Log log) {
