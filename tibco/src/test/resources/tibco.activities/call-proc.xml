@@ -1,0 +1,16 @@
+<bpws:extensionActivity>
+    <tibex:extActivity
+            expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;post&quot;/>&lt;xsl:template name=&quot;Template&quot; match=&quot;/&quot;>&lt;Request>&lt;xsl:if test=&quot;$post/body&quot;>&lt;tns:Body>&lt;xsl:value-of select=&quot;$post/body&quot;/>&lt;/tns:Body>&lt;/Request>&lt;/xsl:template>&lt;/xsl:stylesheet>"
+            expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"
+            inputVariable="InputVariable"
+            name="CallProc"
+            outputVariable="OutputVariable"
+            type="bw.generalactivities.callprocess" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:sources>
+            <bpws:source linkName="Source"/>
+        </bpws:sources>
+        <tibex:inputBindings/>
+        <tibex:CallProcess
+                subProcessName="TargetProcess" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"/>
+    </tibex:extActivity>
+</bpws:extensionActivity>

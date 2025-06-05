@@ -106,6 +106,7 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
         return new ParseResult(paths, parameters);
     }
 
+    // TODO: properly handle comments
     static ParseResult parseTag(String tagDefn, int offset) {
         assert tagDefn.startsWith("<") && tagDefn.endsWith(">");
         int index = 1;

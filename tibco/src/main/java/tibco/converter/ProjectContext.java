@@ -358,14 +358,6 @@ public class ProjectContext {
         return ref;
     }
 
-    public BallerinaModel.Expression.VariableReference getConfigurableVariable(String name) {
-        BallerinaModel.ModuleVar var = utilityVars.get(name);
-        if (var == null) {
-            throw new RuntimeException("Failed to find configurable variable for " + name);
-        }
-        return new BallerinaModel.Expression.VariableReference(var.name());
-    }
-
     public String getConfigVarName(String varName) {
         var varDecl = utilityVars.get(varName);
         if (varDecl == null) {

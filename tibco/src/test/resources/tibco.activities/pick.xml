@@ -1,0 +1,14 @@
+<bpws:pick createInstance="yes" name="pick">
+    <bpws:onMessage operation="post"
+                    partnerLink="partnerLink"
+                    portType="ns0:portType"
+                    variable="post">
+        <bpws:scope name="scope">
+            <bpws:flow name="flow">
+                <bpws:links/>
+                <bpws:empty name="OnMessageStart"
+                            tibex:constructor="onMessageStart" tibex:xpdlId="c266c167-7a80-40cc-9db2-60739386deeb"/>
+            </bpws:flow>
+        </bpws:scope>
+    </bpws:onMessage>
+</bpws:pick>

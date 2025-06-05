@@ -1,0 +1,29 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="InputVariable" name="RenderXml" outputVariable="OutputVariable"
+        xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="Target"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="Source"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://www.example.org/LogSchema&quot; xmlns:tns=&quot;http://www.tibco.com/xml/render/example&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;Start&quot;/>&lt;xsl:template name=&quot;RenderXml-input&quot; match=&quot;/&quot;>&lt;tns:InputElement>&lt;level>&lt;xsl:value-of select=&quot;$Start/tns1:level&quot;/>&lt;/level>&lt;message>&lt;xsl:value-of select=&quot;$Start/tns1:message&quot;/>&lt;/message>&lt;logger>&lt;xsl:value-of select=&quot;$Start/tns1:loggerName&quot;/>&lt;/logger>&lt;timestamp>&lt;xsl:value-of select=&quot;current-dateTime()&quot;/>&lt;/timestamp>&lt;/tns:InputElement>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.xml.renderxml" version="6.0.0.20121128"
+                xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                xmlns:example="http://www.tibco.com/xml/render/example"
+                xmlns:palettexml="http://ns.tibco.com/bw/palette/xmlpalette"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/xmlpalette#//RenderXml"/>
+                        <value inputElementQName="example:InputElement" outputStyle="text" xsi:type="palettexml:RenderXml"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>

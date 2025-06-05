@@ -61,7 +61,7 @@ public final class DefaultAnalysisPass extends AnalysisPass {
                 .filter(each -> each.getName().isPresent())
                 .map(each -> new ActivityNames(each.getName().get(), each))
                 .collect(Collectors.toMap(ActivityNames::name, ActivityNames::activity));
-        return new AnalysisResult(cx.getDestinationMap(), cx.getSourceMap(),
+        return new AnalysisResultImpl(cx.getDestinationMap(), cx.getSourceMap(),
                 activityData, partnerLinkBindings, cx.getQueryIndex(), inputTypeNames, outputTypeName, variableTypes,
                 cx.getDependencyGraphs(), cx.getControlFlowFunctions(), scopes, activityByName,
                 cx.getExplicitTransitionGroupDependencyGraph(), cx.getTransitionGroupControlFlowFunctions());
