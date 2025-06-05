@@ -19,8 +19,9 @@
 package tibco.analyzer;
 
 import org.jetbrains.annotations.NotNull;
+import tibco.Process;
 import tibco.TibcoModel;
-import tibco.TibcoModel.Process.ExplicitTransitionGroup;
+import tibco.TibcoModel.Process5.ExplicitTransitionGroup;
 import tibco.converter.ConversionUtils;
 
 import java.util.Collection;
@@ -40,12 +41,12 @@ final class AnalysisResultImpl implements AnalysisResult {
     private final Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData;
     private final Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings;
     private final Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex;
-    private final Map<TibcoModel.Process, Collection<String>> inputTypeNames;
-    private final Map<TibcoModel.Process, String> outputTypeName;
-    private final Map<TibcoModel.Process, Map<String, String>> variableTypes;
+    private final Map<Process, Collection<String>> inputTypeNames;
+    private final Map<Process, String> outputTypeName;
+    private final Map<Process, Map<String, String>> variableTypes;
     private final Map<TibcoModel.Scope, Graph<GraphNode>> dependencyGraphs;
     private final Map<TibcoModel.Scope, ControlFlowFunctions> controlFlowFunctions;
-    private final Map<TibcoModel.Process, Collection<TibcoModel.Scope>> scopes;
+    private final Map<Process, Collection<TibcoModel.Scope>> scopes;
     private final Map<String, TibcoModel.Scope.Flow.Activity> activityByName;
     private final Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencies;
     private final Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions;
@@ -56,12 +57,12 @@ final class AnalysisResultImpl implements AnalysisResult {
                        Map<TibcoModel.Scope.Flow.Activity, ActivityData> activityData,
                        Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings,
                        Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex,
-                       Map<TibcoModel.Process, Collection<String>> inputTypeNames,
-                       Map<TibcoModel.Process, String> outputTypeName,
-                       Map<TibcoModel.Process, Map<String, String>> variableTypes,
+                       Map<Process, Collection<String>> inputTypeNames,
+                       Map<Process, String> outputTypeName,
+                       Map<Process, Map<String, String>> variableTypes,
                        Map<TibcoModel.Scope, Graph<GraphNode>> dependencyGraphs,
                        Map<TibcoModel.Scope, ControlFlowFunctions> controlFlowFunctions,
-                       Map<TibcoModel.Process, Collection<TibcoModel.Scope>> scopes,
+                       Map<Process, Collection<TibcoModel.Scope>> scopes,
                        Map<String, TibcoModel.Scope.Flow.Activity> activityByName,
                        Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencies,
                        Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions) {
@@ -82,12 +83,12 @@ final class AnalysisResultImpl implements AnalysisResult {
     }
 
     @Override
-    public Collection<String> inputTypeName(TibcoModel.Process process) {
+    public Collection<String> inputTypeName(Process process) {
         return inputTypeNames.get(process);
     }
 
     @Override
-    public String outputTypeName(TibcoModel.Process process) {
+    public String outputTypeName(Process process) {
         return outputTypeName.get(process);
     }
 
@@ -107,7 +108,7 @@ final class AnalysisResultImpl implements AnalysisResult {
     }
 
     @Override
-    public String variableType(TibcoModel.Process process, String variableName) {
+    public String variableType(Process process, String variableName) {
         var variableType = variableTypes.get(process);
         if (variableType == null) {
             throw new IllegalArgumentException("No variable type found for process: " + process);
@@ -229,7 +230,7 @@ final class AnalysisResultImpl implements AnalysisResult {
     }
 
     @Override
-    public Collection<TibcoModel.Scope> scopes(TibcoModel.Process process) {
+    public Collection<TibcoModel.Scope> scopes(Process process) {
         return Objects.requireNonNull(scopes.get(process));
     }
 

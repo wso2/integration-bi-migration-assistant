@@ -18,7 +18,7 @@
 
 package tibco.analyzer;
 
-import tibco.TibcoModel;
+import tibco.Process;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -34,10 +34,10 @@ public class ModelAnalyser {
         this.passes = passes;
     }
 
-    public Map<TibcoModel.Process, AnalysisResult> analyseProcesses(ProjectAnalysisContext cx,
-                                                                    Collection<TibcoModel.Process> processes) {
-        Map<TibcoModel.Process, AnalysisResult> analysisResults = new HashMap<>();
-        for (TibcoModel.Process process : processes) {
+    public Map<Process, AnalysisResult> analyseProcesses(ProjectAnalysisContext cx,
+                                                         Collection<Process> processes) {
+        Map<Process, AnalysisResult> analysisResults = new HashMap<>();
+        for (Process process : processes) {
             AnalysisResult combined = AnalysisResult.empty();
             for (AnalysisPass pass : passes) {
                 ProcessAnalysisContext analysisContext = new ProcessAnalysisContext(cx);

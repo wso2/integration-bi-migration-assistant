@@ -59,7 +59,7 @@ public class TibcoToBalConverter {
     }
 
     public static ConversionResult convertProject(ProjectConversionContext cx, String projectPath) {
-        Set<TibcoModel.Process> processes;
+        Set<Process> processes;
         Set<TibcoModel.Type.Schema> types;
         Set<TibcoModel.Resource.JDBCResource> jdbcResources;
         Set<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources;
@@ -83,7 +83,7 @@ public class TibcoToBalConverter {
                 new DefaultAnalysisPass(),
                 new LoggingAnalysisPass(),
                 new ReportGenerationPass()));
-        Map<TibcoModel.Process, AnalysisResult> analysisResult =
+        Map<Process, AnalysisResult> analysisResult =
                 analyser.analyseProcesses(new ProjectAnalysisContext(), processes);
         TibcoAnalysisReport report = analysisResult.values().stream()
                 .map(AnalysisResult::getReport)
@@ -96,7 +96,7 @@ public class TibcoToBalConverter {
                 httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource, report);
     }
 
-    private static final ParsingUnit<TibcoModel.Process> PROCESS_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(
+    private static final ParsingUnit<Process> PROCESS_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(
             TibcoToBalConverter::getBwpFiles, XmlToTibcoModelConverter::parseProcess);
     private static final ParsingUnit<TibcoModel.Type.Schema> XSD_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(
             TibcoToBalConverter::getXSDFiles, XmlToTibcoModelConverter::parseSchema);

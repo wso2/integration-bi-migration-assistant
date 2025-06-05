@@ -19,8 +19,9 @@
 package tibco.analyzer;
 
 import org.jetbrains.annotations.NotNull;
+import tibco.Process;
 import tibco.TibcoModel;
-import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
+import tibco.TibcoModel.Process5.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.TibcoModel.Scope.Flow.Activity.UnhandledActivity;
 import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
 import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.UnNamedUnhandledActivityElement;
@@ -59,7 +60,7 @@ public class ReportGenerationPass extends AnalysisPass {
     }
 
     @Override
-    public @NotNull AnalysisResult getResult(ProcessAnalysisContext cx, TibcoModel.Process process) {
+    public @NotNull AnalysisResult getResult(ProcessAnalysisContext cx, Process process) {
         TibcoAnalysisReport report = new TibcoAnalysisReport(totalActivities, reportElements.size(),
                 this.reportElements);
         AnalysisResult result = AnalysisResult.empty();

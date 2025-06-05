@@ -24,6 +24,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
+import tibco.Process;
 import tibco.TibcoModel;
 import tibco.TibcoToBalConverter;
 import tibco.XmlToTibcoModelConverter;
@@ -109,7 +110,7 @@ public class ActivityConversionTest {
     static class TestProjectContext extends ProjectContext {
 
         TestProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
-                           Map<TibcoModel.Process, AnalysisResult> analysisResult) {
+                           Map<Process, AnalysisResult> analysisResult) {
             super(conversionContext, analysisResult);
         }
 
@@ -158,18 +159,18 @@ public class ActivityConversionTest {
                 case TibcoModel.Scope.Flow.Activity.Assign ignored -> "assign";
                 case TibcoModel.Scope.Flow.Activity.Foreach ignored -> "forEach";
                 case TibcoModel.Scope.Flow.Activity.UnhandledActivity ignored -> "unhandled";
-                case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity
+                case TibcoModel.Process5.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity
                              unhandledInlineActivity -> unhandledInlineActivity.name();
-                case TibcoModel.Process.ExplicitTransitionGroup.InlineActivity inlineActivity -> inlineActivity.name();
+                case TibcoModel.Process5.ExplicitTransitionGroup.InlineActivity inlineActivity -> inlineActivity.name();
             };
             return new AnalysisResult() {
                 @Override
-                public Collection<String> inputTypeName(TibcoModel.Process process) {
+                public Collection<String> inputTypeName(Process process) {
                     return List.of();
                 }
 
                 @Override
-                public String outputTypeName(TibcoModel.Process process) {
+                public String outputTypeName(Process process) {
                     return "";
                 }
 
@@ -184,7 +185,7 @@ public class ActivityConversionTest {
                 }
 
                 @Override
-                public String variableType(TibcoModel.Process process, String variableName) {
+                public String variableType(Process process, String variableName) {
                     return "";
                 }
 
@@ -226,18 +227,18 @@ public class ActivityConversionTest {
 
                 @Override
                 public Stream<TibcoModel.Scope.Flow.Activity> sortedActivities(
-                        TibcoModel.Process.ExplicitTransitionGroup group) {
+                        TibcoModel.Process5.ExplicitTransitionGroup group) {
                     return Stream.empty();
                 }
 
                 @Override
                 public Stream<TibcoModel.Scope.Flow.Activity> sortedErrorHandlerActivities(
-                        TibcoModel.Process.ExplicitTransitionGroup group) {
+                        TibcoModel.Process5.ExplicitTransitionGroup group) {
                     return Stream.empty();
                 }
 
                 @Override
-                public Collection<TibcoModel.Scope> scopes(TibcoModel.Process process) {
+                public Collection<TibcoModel.Scope> scopes(Process process) {
                     return List.of();
                 }
 
@@ -262,7 +263,7 @@ public class ActivityConversionTest {
                 }
 
                 @Override
-                public ControlFlowFunctions getControlFlowFunctions(TibcoModel.Process.ExplicitTransitionGroup group) {
+                public ControlFlowFunctions getControlFlowFunctions(TibcoModel.Process5.ExplicitTransitionGroup group) {
                     return new ControlFlowFunctions("scopeFn", "activityRunner", "errorHandler");
                 }
 

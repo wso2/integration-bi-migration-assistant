@@ -19,8 +19,9 @@
 package tibco.analyzer;
 
 import org.jetbrains.annotations.NotNull;
+import tibco.Process;
 import tibco.TibcoModel;
-import tibco.TibcoModel.Process.ExplicitTransitionGroup;
+import tibco.TibcoModel.Process5.ExplicitTransitionGroup;
 import tibco.converter.ConversionUtils;
 
 import java.util.Collection;
@@ -39,19 +40,22 @@ public final class DefaultAnalysisPass extends AnalysisPass {
     }
 
     @Override
-    public void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
-        analyseProcessInner(cx, process);
+    public void analyseProcess(ProcessAnalysisContext cx, Process process) {
+        switch (process) {
+            case TibcoModel.Process5 process5 -> analyseProcessInner(cx, process5);
+            case TibcoModel.Process6 process6 -> analyseProcessInner(cx, process6);
+        }
     }
 
     @Override
-    public @NotNull AnalysisResult getResult(ProcessAnalysisContext cx, TibcoModel.Process process) {
+    public @NotNull AnalysisResult getResult(ProcessAnalysisContext cx, Process process) {
         Map<TibcoModel.Scope.Flow.Activity, AnalysisResult.ActivityData> activityData = cx.activityData();
         Map<String, TibcoModel.PartnerLink.Binding> partnerLinkBindings = cx.getPartnerLinkBindings();
 
-        Map<TibcoModel.Process, Collection<String>> inputTypeNames = Map.of(process, cx.getInputTypeName());
-        Map<TibcoModel.Process, String> outputTypeName = Map.of(process, cx.getOutputTypeName());
-        Map<TibcoModel.Process, Map<String, String>> variableTypes = Map.of(process, cx.getVariableTypes());
-        Map<TibcoModel.Process, Collection<TibcoModel.Scope>> scopes = Map.of(process,
+        Map<Process, Collection<String>> inputTypeNames = Map.of(process, cx.getInputTypeName());
+        Map<Process, String> outputTypeName = Map.of(process, cx.getOutputTypeName());
+        Map<Process, Map<String, String>> variableTypes = Map.of(process, cx.getVariableTypes());
+        Map<Process, Collection<TibcoModel.Scope>> scopes = Map.of(process,
                 cx.getDependencyGraphs().keySet());
         record ActivityNames(String name, TibcoModel.Scope.Flow.Activity activity) {
         }
@@ -67,17 +71,16 @@ public final class DefaultAnalysisPass extends AnalysisPass {
                 cx.getExplicitTransitionGroupDependencyGraph(), cx.getTransitionGroupControlFlowFunctions());
     }
 
-    private void analyseProcessInner(ProcessAnalysisContext cx, TibcoModel.Process process) {
+    private void analyseProcessInner(ProcessAnalysisContext cx, TibcoModel.Process5 process) {
+        analyseExplicitTransitionGroup(cx, process.transitionGroup());
+    }
+
+    private void analyseProcessInner(ProcessAnalysisContext cx, TibcoModel.Process6 process) {
         analyzeVariables(cx, process.variables());
         analysePartnerLinks(cx, process.partnerLinks());
         analyseTypes(cx, process.types());
-        if (process.scope() != null) {
-            analyseScope(cx, process.scope());
-        }
+        analyseScope(cx, process.scope());
         process.processInterface().ifPresent(i -> analyzeProcessInterface(cx, i));
-        if (process.transitionGroup() != null) {
-            analyseExplicitTransitionGroup(cx, process.transitionGroup());
-        }
     }
 
     @Override

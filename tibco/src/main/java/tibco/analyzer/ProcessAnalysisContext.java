@@ -19,7 +19,7 @@
 package tibco.analyzer;
 
 import tibco.TibcoModel;
-import tibco.TibcoModel.Process.ExplicitTransitionGroup;
+import tibco.TibcoModel.Process5.ExplicitTransitionGroup;
 import tibco.converter.ConversionUtils;
 
 import java.util.ArrayList;

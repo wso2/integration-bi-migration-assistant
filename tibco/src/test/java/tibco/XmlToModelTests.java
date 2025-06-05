@@ -21,7 +21,8 @@ package tibco;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
-import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity;
+
+import tibco.TibcoModel.Process5.ExplicitTransitionGroup.InlineActivity;
 import tibco.util.TestUtils;
 
 import static org.testng.Assert.assertEquals;
@@ -74,9 +75,10 @@ public class XmlToModelTests {
                     </pd:transition>
                 </pd:ProcessDefinition>
                 """;
-        TibcoModel.Process process = XmlToTibcoModelConverter.parseProcess(TestUtils.stringToElement(processXml));
+        TibcoModel.Process5 process =
+                (TibcoModel.Process5) XmlToTibcoModelConverter.parseProcess(TestUtils.stringToElement(processXml));
         assertEquals(process.name(), "Processes/MainProcessStarter.process");
-        TibcoModel.Process.ExplicitTransitionGroup transitionGroup = process.transitionGroup();
+        TibcoModel.Process5.ExplicitTransitionGroup transitionGroup = process.transitionGroup();
         Assert.assertEquals(transitionGroup.startActivity().name(), "HTTP Receiver");
     }
 
@@ -102,9 +104,12 @@ public class XmlToModelTests {
                 """;
 
         Element element = TestUtils.stringToElement(activityXml);
-        InlineActivity actual = XmlToTibcoModelConverter.parseInlineActivity(new XmlToTibcoModelConverter.ParseContext(),
+        InlineActivity actual =
+                XmlToTibcoModelConverter.parseInlineActivity(new XmlToTibcoModelConverter.ParseContext(),
                 element);
-        InlineActivity.MapperActivity expected = new InlineActivity.MapperActivity(element, "Failed tests count",
+        InlineActivity.MapperActivity expected =
+                new InlineActivity.MapperActivity(element,
+                        "Failed tests count",
                 new TibcoModel.Scope.Flow.Activity.InputBinding.CompleteBinding(
                         new TibcoModel.Scope.Flow.Activity.Expression.XSLT("""
                                 <?xml version="1.0" encoding="UTF-8"?>

@@ -21,6 +21,7 @@ package tibco.converter;
 import common.BallerinaModel;
 import common.BallerinaModel.Statement.VarDeclStatment;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import tibco.Process;
 import tibco.TibcoModel;
 import tibco.analyzer.AnalysisResult;
 
@@ -48,7 +49,7 @@ public class ProcessContext implements ContextWithFile {
     private BallerinaModel.Listener defaultListener = null;
     private final Map<String, BallerinaModel.ModuleVar> constants = new HashMap<>();
     private final Map<String, BallerinaModel.ModuleVar> configurables = new HashMap<>();
-    public final TibcoModel.Process process;
+    public final Process process;
 
     public final ProjectContext projectContext;
     private final Map<TibcoModel.Scope.Flow.Activity.Source.Predicate, String> predicateToFunctionMap = new HashMap<>();
@@ -58,7 +59,7 @@ public class ProcessContext implements ContextWithFile {
     final Set<TibcoModel.Scope> handledScopes = new HashSet<>();
     final Set<String> intrinsics = new HashSet<>();
 
-    ProcessContext(ProjectContext projectContext, TibcoModel.Process process) {
+    ProcessContext(ProjectContext projectContext, Process process) {
         this.projectContext = projectContext;
         this.process = process;
     }

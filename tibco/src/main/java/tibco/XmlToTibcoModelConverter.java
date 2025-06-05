@@ -24,12 +24,12 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import tibco.TibcoModel.PartnerLink;
-import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity;
-import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
-import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.XMLRenderActivity;
-import tibco.TibcoModel.Process.ExplicitTransitionGroup.NestedGroup.LoopGroup;
-import tibco.TibcoModel.Process.ExplicitTransitionGroup.NestedGroup.LoopGroup.SourceExpression;
-import tibco.TibcoModel.Process.ExplicitTransitionGroup.Transition;
+import tibco.TibcoModel.Process5.ExplicitTransitionGroup.InlineActivity;
+import tibco.TibcoModel.Process5.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
+import tibco.TibcoModel.Process5.ExplicitTransitionGroup.InlineActivity.XMLRenderActivity;
+import tibco.TibcoModel.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup;
+import tibco.TibcoModel.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup.SourceExpression;
+import tibco.TibcoModel.Process5.ExplicitTransitionGroup.Transition;
 import tibco.TibcoModel.Scope;
 import tibco.TibcoModel.Scope.Flow;
 import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config;
@@ -137,12 +137,11 @@ public final class XmlToTibcoModelConverter {
         return new TibcoModel.Resource.SubstitutionBinding(template, propName);
     }
 
-    public static TibcoModel.Process parseProcess(Element root) {
+    public static Process parseProcess(Element root) {
         return parseProcessInner(new ParseContext(), root);
     }
 
-    // TODO: parse context to all methods
-    private static TibcoModel.@NotNull Process parseProcessInner(ParseContext cx, Element root) {
+    private static @NotNull Process parseProcessInner(ParseContext cx, Element root) {
         String name = root.getAttribute("name");
         if (name.isBlank()) {
             name = tryGetFirstChildWithTag(root, "name").map(Node::getTextContent)
@@ -155,7 +154,7 @@ public final class XmlToTibcoModelConverter {
         Scope scope = null;
         Optional<TibcoModel.ProcessInterface> processInterface = Optional.empty();
         Optional<TibcoModel.ProcessTemplateConfigurations> processTemplateConfigurations = Optional.empty();
-        TibcoModel.Process.ExplicitTransitionGroup transitionGroup = new TibcoModel.Process.ExplicitTransitionGroup();
+        TibcoModel.Process5.ExplicitTransitionGroup transitionGroup = new TibcoModel.Process5.ExplicitTransitionGroup();
         for (Element element : new ElementIterable(root)) {
             String tag = getTagNameWithoutNameSpace(element);
             switch (tag) {
@@ -223,9 +222,11 @@ public final class XmlToTibcoModelConverter {
         Collection<TibcoModel.NameSpace> nameSpaces = getNamespaces(root).entrySet().stream()
                 .map(each -> new TibcoModel.NameSpace(each.getKey(), each.getValue()))
                 .toList();
-        return new TibcoModel.Process(name, nameSpaces, types, processInfo, processInterface,
-                processTemplateConfigurations,
-                partnerLinks, variables, scope, transitionGroup);
+        if (transitionGroup.isEmpty()) {
+            return new TibcoModel.Process6(name, nameSpaces, types, processInfo, processInterface,
+                    processTemplateConfigurations, partnerLinks, variables, scope);
+        }
+        return new TibcoModel.Process5(name, nameSpaces, transitionGroup);
     }
 
     private static Flow.Activity.Expression.XSLT parseReturnBindings(ParseContext cx, Element element) {
@@ -326,7 +327,7 @@ public final class XmlToTibcoModelConverter {
         return new InlineActivity.SOAPSendReceive(element, name, inputBinding, soapAction, endpointURL);
     }
 
-    private static LoopGroup parseLoopGroup(ParseContext cx, Element element, String name,
+    private static @NotNull LoopGroup parseLoopGroup(ParseContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
         SourceExpression overExpr = parseSourceExpression(getInlineActivityConfigValue(element, "over"));
         Optional<String> iterationElementSlot = tryGetInlineActivityConfigValue(element, "iterationElementSlot");
@@ -334,7 +335,7 @@ public final class XmlToTibcoModelConverter {
         Optional<String> activityOutputName = tryGetInlineActivityConfigValue(element, "activityOutputName");
         boolean accumulateOutput = tryGetInlineActivityConfigValue(element, "accumulateOutput")
                 .map(val -> val.equals("true")).orElse(false);
-        TibcoModel.Process.ExplicitTransitionGroup transitionGroup = new TibcoModel.Process.ExplicitTransitionGroup();
+        TibcoModel.Process5.ExplicitTransitionGroup transitionGroup = new TibcoModel.Process5.ExplicitTransitionGroup();
         for (Element child : new ElementIterable(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {

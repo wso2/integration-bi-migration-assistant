@@ -23,6 +23,7 @@ import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Statement.Return;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import tibco.Process;
 import tibco.TibcoModel;
 import tibco.TibcoToBalConverter;
 import tibco.XmlToTibcoModelConverter;
@@ -58,7 +59,7 @@ import static tibco.converter.Library.XML_DATA;
 
 public class ProjectContext {
 
-    private final Map<TibcoModel.Process, ProcessContext> processContextMap = new HashMap<>();
+    private final Map<Process, ProcessContext> processContextMap = new HashMap<>();
 
     private final List<BallerinaModel.Function> utilityFunctions = new ArrayList<>();
     private final Set<BallerinaModel.Import> utilityFunctionImports = new HashSet<>();
@@ -82,16 +83,16 @@ public class ProjectContext {
     private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
     private final Map<BallerinaModel.TypeDesc, String> typeConversionFunction = new HashMap<>();
     private final Map<String, String> renderJsonAsXMLFunction = new HashMap<>();
-    private final Map<TibcoModel.Process, AnalysisResult> analysisResult;
+    private final Map<Process, AnalysisResult> analysisResult;
     private Collection<TibcoModel.Type.Schema> schemas = new ArrayList<>();
 
     ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
-                   Map<TibcoModel.Process, AnalysisResult> analysisResult) {
+                   Map<Process, AnalysisResult> analysisResult) {
         this.conversionContext = Optional.of(conversionContext);
         this.analysisResult = analysisResult;
     }
 
-    ProcessContext getProcessContext(TibcoModel.Process process) {
+    ProcessContext getProcessContext(Process process) {
         return processContextMap.computeIfAbsent(process, p -> new ProcessContext(this, p));
     }
 
@@ -213,7 +214,7 @@ public class ProjectContext {
     }
 
     FunctionData getProcessStartFunction(String processName) {
-        TibcoModel.Process process = getProcess(processName);
+        Process process = getProcess(processName);
         return getProcessContext(process).getProcessStartFunction();
     }
 
@@ -340,15 +341,14 @@ public class ProjectContext {
     }
 
     Optional<ProcessContext.DefaultClientDetails> getDefaultClientDetails(String processName) {
-        TibcoModel.Process process = getProcess(processName);
+        Process process = getProcess(processName);
         return getProcessContext(process).getDefaultClient();
     }
 
-    private TibcoModel.Process getProcess(String processName) {
-        TibcoModel.Process process = processContextMap.keySet().stream().filter(proc -> proc.name().equals(processName))
+    private Process getProcess(String processName) {
+        return processContextMap.keySet().stream().filter(proc -> proc.name().equals(processName))
                 .findAny()
                 .orElseThrow(() -> new IndexOutOfBoundsException("failed to find process" + processName));
-        return process;
     }
 
     public String getAnonName() {
@@ -366,7 +366,7 @@ public class ProjectContext {
         return Intrinsics.TO_JSON.name;
     }
 
-    public AnalysisResult getAnalysisResult(TibcoModel.Process process) {
+    public AnalysisResult getAnalysisResult(Process process) {
         return Objects.requireNonNull(analysisResult.get(process), 
                 "Analysis result not found for process: " + process.name());
     }

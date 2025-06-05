@@ -19,7 +19,9 @@
 package tibco.analyzer;
 
 import common.BallerinaModel;
+import tibco.Process;
 import tibco.TibcoModel;
+import tibco.TibcoModel.Process5.ExplicitTransitionGroup;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -42,15 +44,15 @@ public interface AnalysisResult {
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
     }
 
-    Collection<String> inputTypeName(TibcoModel.Process process);
+    Collection<String> inputTypeName(Process process);
 
-    String outputTypeName(TibcoModel.Process process);
+    String outputTypeName(Process process);
 
     Collection<TibcoModel.Scope.Flow.Activity> sources(TibcoModel.Scope.Flow.Link link);
 
     Optional<TibcoModel.Scope.Flow.Activity> findActivity(String name);
 
-    String variableType(TibcoModel.Process process, String variableName);
+    String variableType(Process process, String variableName);
 
     ActivityData from(TibcoModel.Scope.Flow.Activity activity);
 
@@ -68,18 +70,17 @@ public interface AnalysisResult {
 
     Stream<TibcoModel.Scope.Flow.Activity> sortedActivities(TibcoModel.Scope scope);
 
-    Stream<TibcoModel.Scope.Flow.Activity> sortedActivities(TibcoModel.Process.ExplicitTransitionGroup group);
+    Stream<TibcoModel.Scope.Flow.Activity> sortedActivities(ExplicitTransitionGroup group);
 
-    Stream<TibcoModel.Scope.Flow.Activity> sortedErrorHandlerActivities(
-            TibcoModel.Process.ExplicitTransitionGroup group);
+    Stream<TibcoModel.Scope.Flow.Activity> sortedErrorHandlerActivities(ExplicitTransitionGroup group);
 
-    Collection<TibcoModel.Scope> scopes(TibcoModel.Process process);
+    Collection<TibcoModel.Scope> scopes(Process process);
 
     TibcoModel.PartnerLink.Binding getBinding(String partnerLinkName);
 
     ControlFlowFunctions getControlFlowFunctions(TibcoModel.Scope scope);
 
-    ControlFlowFunctions getControlFlowFunctions(TibcoModel.Process.ExplicitTransitionGroup group);
+    ControlFlowFunctions getControlFlowFunctions(ExplicitTransitionGroup group);
 
     AnalysisResult combine(AnalysisResult other);
 

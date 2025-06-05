@@ -116,21 +116,24 @@ public class TibcoModel {
         }
     }
 
-    // TODO: either we have scope, flow stuff or transition groups. Need to model
-    // this properly
-    public record Process(String name, Collection<NameSpace> nameSpaces, Collection<Type> types,
-            ProcessInfo processInfo, Optional<ProcessInterface> processInterface,
-            Optional<ProcessTemplateConfigurations> processTemplateConfigurations,
-            Collection<PartnerLink> partnerLinks, Collection<Variable> variables, Scope scope,
-            // TODO: this should be an optional
-            ExplicitTransitionGroup transitionGroup) {
+    public record Process5(String name, Collection<NameSpace> nameSpaces,
+                           ExplicitTransitionGroup transitionGroup) implements Process {
+
+        @Override
+        public int hashCode() {
+            return name.hashCode();
+        }
 
         public record ExplicitTransitionGroup(List<InlineActivity> activities, List<Transition> transitions,
-                InlineActivity startActivity,
-                Optional<Scope.Flow.Activity.Expression.XSLT> returnBindings) {
+                                              InlineActivity startActivity,
+                                              Optional<Scope.Flow.Activity.Expression.XSLT> returnBindings) {
 
             ExplicitTransitionGroup() {
                 this(null);
+            }
+
+            public boolean isEmpty() {
+                return activities.isEmpty() && transitions.isEmpty() && startActivity == null;
             }
 
             ExplicitTransitionGroup(InlineActivity startActivity) {
@@ -170,9 +173,9 @@ public class TibcoModel {
 
             public sealed interface NestedGroup extends InlineActivityWithBody {
                 record LoopGroup(Element element, String name, InputBinding inputBinding, SourceExpression over,
-                        Optional<String> elementSlot, Optional<String> indexSlot,
-                        Optional<String> activityOutputName, boolean accumulateOutput,
-                        ExplicitTransitionGroup body) implements NestedGroup {
+                                 Optional<String> elementSlot, Optional<String> indexSlot,
+                                 Optional<String> activityOutputName, boolean accumulateOutput,
+                                 ExplicitTransitionGroup body) implements NestedGroup {
                     public LoopGroup {
                         assert !accumulateOutput || activityOutputName.isPresent();
                     }
@@ -331,7 +334,7 @@ public class TibcoModel {
                 }
 
                 record REST(Element element, String name, InputBinding inputBinding,
-                        Method method, ResponseType responseType, String url) implements InlineActivity {
+                            Method method, ResponseType responseType, String url) implements InlineActivity {
 
                     public enum ResponseType {
                         JSON,
@@ -375,7 +378,7 @@ public class TibcoModel {
                 }
 
                 record CallProcess(Element element, String name, InputBinding inputBinding,
-                        String processName) implements InlineActivity {
+                                   String processName) implements InlineActivity {
                     public CallProcess {
                         assert inputBinding != null;
                     }
@@ -392,7 +395,7 @@ public class TibcoModel {
                 }
 
                 record FileRead(Element element, String name, InputBinding inputBinding,
-                        String encoding) implements InlineActivity {
+                                String encoding) implements InlineActivity {
                     public FileRead {
                         assert inputBinding != null;
                     }
@@ -409,7 +412,7 @@ public class TibcoModel {
                 }
 
                 record FileWrite(Element element, String name, InputBinding inputBinding, String encoding,
-                        boolean append) implements InlineActivity {
+                                 boolean append) implements InlineActivity {
                     public FileWrite {
                         assert inputBinding != null;
                     }
@@ -426,7 +429,7 @@ public class TibcoModel {
                 }
 
                 record XMLParseActivity(Element element, String name,
-                        InputBinding inputBinding) implements InlineActivity {
+                                        InputBinding inputBinding) implements InlineActivity {
                     public XMLParseActivity {
                         assert inputBinding != null;
                     }
@@ -443,7 +446,7 @@ public class TibcoModel {
                 }
 
                 record XMLRenderActivity(Element element, String name,
-                        InputBinding inputBinding) implements InlineActivity {
+                                         InputBinding inputBinding) implements InlineActivity {
                     public XMLRenderActivity {
                         assert inputBinding != null;
                     }
@@ -460,7 +463,7 @@ public class TibcoModel {
                 }
 
                 record SOAPSendReply(Element element, String name,
-                        InputBinding inputBinding) implements InlineActivity {
+                                     InputBinding inputBinding) implements InlineActivity {
                     public SOAPSendReply {
                         assert inputBinding != null;
                     }
@@ -477,7 +480,7 @@ public class TibcoModel {
                 }
 
                 record SOAPSendReceive(Element element, String name, InputBinding inputBinding,
-                        Optional<String> soapAction, String endpointURL) implements InlineActivity {
+                                       Optional<String> soapAction, String endpointURL) implements InlineActivity {
 
                     @Override
                     public InlineActivityType type() {
@@ -554,7 +557,7 @@ public class TibcoModel {
                 }
 
                 record UnhandledInlineActivity(Element element, String name, String activityType,
-                        InputBinding inputBinding) implements InlineActivity {
+                                               InputBinding inputBinding) implements InlineActivity {
 
                     @Override
                     public InlineActivityType type() {
@@ -568,7 +571,7 @@ public class TibcoModel {
                 }
 
                 record MapperActivity(Element element, String name,
-                        Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
+                                      Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
                     public MapperActivity {
                         assert inputBinding != null;
                     }
@@ -585,7 +588,7 @@ public class TibcoModel {
                 }
 
                 record AssignActivity(Element element, String name, String variableName,
-                        InputBinding inputBinding) implements InlineActivity {
+                                      InputBinding inputBinding) implements InlineActivity {
 
                     @Override
                     public InlineActivityType type() {
@@ -599,7 +602,7 @@ public class TibcoModel {
                 }
 
                 record HttpEventSource(Element element, String name, String sharedChannel,
-                        Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
+                                       Scope.Flow.Activity.InputBinding inputBinding) implements InlineActivity {
 
                     @Override
                     public InlineActivityType type() {
@@ -614,6 +617,18 @@ public class TibcoModel {
 
             }
         }
+    }
+
+    public record Process6(String name, Collection<NameSpace> nameSpaces,
+                           // BW 6 parts
+                           Collection<Type> types,
+                           ProcessInfo processInfo,
+                           Optional<ProcessInterface> processInterface,
+                           Optional<ProcessTemplateConfigurations> processTemplateConfigurations,
+                           Collection<PartnerLink> partnerLinks,
+                           Collection<Variable> variables,
+                           Scope scope) implements Process {
+
 
         @Override
         public boolean equals(Object obj) {
@@ -628,7 +643,7 @@ public class TibcoModel {
             return name.hashCode();
         }
 
-        public Process {
+        public Process6 {
             if (name == null) {
                 throw new IllegalArgumentException("Name cannot be null");
             }

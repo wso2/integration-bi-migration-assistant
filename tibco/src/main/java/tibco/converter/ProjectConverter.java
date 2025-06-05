@@ -20,6 +20,7 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import tibco.Process;
 import tibco.TibcoModel;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
@@ -37,8 +38,8 @@ public class ProjectConverter {
 
     public static ConversionResult convertProject(
             TibcoToBalConverter.ProjectConversionContext conversionContext,
-            Map<TibcoModel.Process, AnalysisResult> analysisResult,
-            Collection<TibcoModel.Process> processes, Collection<TibcoModel.Type.Schema> types,
+            Map<Process, AnalysisResult> analysisResult,
+            Collection<Process> processes, Collection<TibcoModel.Type.Schema> types,
             Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
             Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
             Set<TibcoModel.Resource.HTTPClientResource> httpClientResources,
@@ -48,43 +49,53 @@ public class ProjectConverter {
         convertResources(cx, jdbcResources, httpConnectionResources, httpClientResources, httpSharedResources,
                 jdbcSharedResource);
 
-        record ProcessResult(TibcoModel.Process process, ProcessConverter.TypeConversionResult result) {
+        record ProcessResult(Process process, ProcessConverter.TypeConversionResult result) {
 
         }
-        List<ProcessResult> results =
+        List<ProcessResult> results5 =
                 processes.stream()
-                        .map(process -> new ProcessResult(process,
-                                ProcessConverter.convertTypes(cx.getProcessContext(process), process)))
-                        .map(processResult -> {
-                            TibcoModel.Process process = processResult.process;
-                            if (process.transitionGroup() == null) {
-                                return processResult;
-                            }
+                        .filter(each -> each instanceof TibcoModel.Process5)
+                        .map(each -> (TibcoModel.Process5) each)
+                        .map(process -> {
                             BallerinaModel.Service startService =
                                     ProcessConverter.convertStartActivityService(cx.getProcessContext(process),
                                             process.transitionGroup());
                             ProcessConverter.addProcessClient(cx.getProcessContext(process), process.transitionGroup(),
                                     httpSharedResources);
                             return new ProcessResult(process, new ProcessConverter.TypeConversionResult(
-                                    Stream.concat(processResult.result.service().stream(), Stream.of(startService))
-                                            .toList()));
+                                    Stream.of(startService).toList()));
                         })
                         .toList();
+        List<ProcessResult> results6 =
+                processes.stream()
+                        .filter(each -> each instanceof TibcoModel.Process6)
+                        .map(each -> (TibcoModel.Process6) each)
+                        .map(process -> new ProcessResult(process,
+                                ProcessConverter.convertTypes(cx.getProcessContext(process), process)))
+                        .toList();
+        List<ProcessResult> results = Stream.concat(results5.stream(), results6.stream()).toList();
         List<TibcoModel.Type.Schema> schemas = new ArrayList<>(types);
-        for (TibcoModel.Process each : processes) {
-            accumSchemas(each, schemas);
+        for (Process each : processes) {
+            if (each instanceof TibcoModel.Process6 process6) {
+                accumSchemas(process6, schemas);
+            }
         }
         List<BallerinaModel.TextDocument> textDocuments = results.stream()
                 .map(result -> {
-                    TibcoModel.Process process = result.process();
-                    return ProcessConverter.convertBody(cx.getProcessContext(process), process, result.result());
+                    Process process = result.process();
+                    return switch (process) {
+                        case TibcoModel.Process5 process5 ->
+                                ProcessConverter.convertBody(cx.getProcessContext(process), process5, result.result());
+                        case TibcoModel.Process6 process6 ->
+                                ProcessConverter.convertBody(cx.getProcessContext(process), process6, result.result());
+                    };
                 }).toList();
         schemas.addAll(cx.getXSDSchemas());
         SyntaxTree typeSyntaxTree = convertTypes(cx, schemas);
         return new ConversionResult(cx.serialize(textDocuments), typeSyntaxTree, report);
     }
 
-    private static void accumSchemas(TibcoModel.Process process, Collection<TibcoModel.Type.Schema> accum) {
+    private static void accumSchemas(TibcoModel.Process6 process, Collection<TibcoModel.Type.Schema> accum) {
         for (TibcoModel.Type each : process.types()) {
             if (each instanceof TibcoModel.Type.Schema schema) {
                 accum.add(schema);

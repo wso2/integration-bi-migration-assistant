@@ -19,42 +19,50 @@
 package tibco.analyzer;
 
 import org.jetbrains.annotations.NotNull;
+import tibco.Process;
 import tibco.TibcoModel;
 
 import java.util.Collection;
 import java.util.stream.Stream;
 
 public class AnalysisPass {
-    public void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process process) {
-        analyseTypes(cx, process.types());
-        analysePartnerLinks(cx, process.partnerLinks());
-        analyzeVariables(cx, process.variables());
-        if (process.scope() != null) {
-            analyseScope(cx, process.scope());
-        }
-        if (process.transitionGroup() != null) {
-            analyseExplicitTransitionGroup(cx, process.transitionGroup());
+
+    public void analyseProcess(ProcessAnalysisContext cx, Process process) {
+        switch (process) {
+            case TibcoModel.Process5 process5 -> analyseProcess(cx, process5);
+            case TibcoModel.Process6 process6 -> analyseProcess(cx, process6);
         }
     }
 
-    public @NotNull AnalysisResult getResult(ProcessAnalysisContext cx, TibcoModel.Process process) {
+    public void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process6 process) {
+        analyseTypes(cx, process.types());
+        analysePartnerLinks(cx, process.partnerLinks());
+        analyzeVariables(cx, process.variables());
+        analyseScope(cx, process.scope());
+    }
+
+    public void analyseProcess(ProcessAnalysisContext cx, TibcoModel.Process5 process) {
+        analyseExplicitTransitionGroup(cx, process.transitionGroup());
+    }
+
+    public @NotNull AnalysisResult getResult(ProcessAnalysisContext cx, Process process) {
         return AnalysisResult.empty();
     }
 
     protected void analyseExplicitTransitionGroup(
-            ProcessAnalysisContext cx, TibcoModel.Process.ExplicitTransitionGroup explicitTransitionGroup) {
+            ProcessAnalysisContext cx, TibcoModel.Process5.ExplicitTransitionGroup explicitTransitionGroup) {
         explicitTransitionGroup.transitions().forEach(each -> analyseTransition(cx, explicitTransitionGroup, each));
         explicitTransitionGroup.activities().forEach(each -> analyseActivity(cx, each));
         explicitTransitionGroup.activities().stream()
                 .flatMap(each ->
-                        each instanceof TibcoModel.Process.ExplicitTransitionGroup.NestedGroup nestedGroup ?
+                        each instanceof TibcoModel.Process5.ExplicitTransitionGroup.NestedGroup nestedGroup ?
                                 Stream.of(nestedGroup.body()) : Stream.empty())
                 .forEach(each -> analyseExplicitTransitionGroup(cx, each));
     }
 
     protected void analyseTransition(
-            ProcessAnalysisContext cx, TibcoModel.Process.ExplicitTransitionGroup explicitTransitionGroup,
-            TibcoModel.Process.ExplicitTransitionGroup.Transition transition) {
+            ProcessAnalysisContext cx, TibcoModel.Process5.ExplicitTransitionGroup explicitTransitionGroup,
+            TibcoModel.Process5.ExplicitTransitionGroup.Transition transition) {
     }
 
     protected void analyzeVariables(ProcessAnalysisContext cx, Collection<TibcoModel.Variable> variables) {
