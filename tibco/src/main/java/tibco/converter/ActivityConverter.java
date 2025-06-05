@@ -543,14 +543,30 @@ final class ActivityConverter {
     }
 
     private static ActivityConversionResult convertXmlRenderActivity(
-            ActivityContext cx, VariableReference result, XMLRenderActivity xmlRenderActivity) {
+            ActivityContext cx, VariableReference input, XMLRenderActivity xmlRenderActivity) {
+        return finishXmlRenderActivity(cx, input, "xmlString");
+    }
+
+    private static @NotNull ActivityConversionResult finishXmlRenderActivity(ActivityContext cx,
+                                                                             VariableReference input, String outerTag) {
         List<Statement> body = new ArrayList<>();
         VarDeclStatment stringValue = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                new MethodCall(result, "toBalString", List.of()));
+                new MethodCall(input, "toBalString", List.of()));
         body.add(stringValue);
         VarDeclStatment res = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new XMLTemplate("<root>/<xmlString>${%s}</xmlString></root>"
-                        .formatted(stringValue.ref())));
+                new XMLTemplate("<root><%s>${%s}</%s></root>".formatted(outerTag, stringValue.ref(), outerTag)));
+        body.add(res);
+        return new ActivityConversionResult(res.ref(), body);
+    }
+
+    private static @NotNull ActivityConversionResult finishXmlRenderActivity(ActivityContext cx,
+                                                                             VariableReference input) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment stringValue = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                new MethodCall(input, "toBalString", List.of()));
+        body.add(stringValue);
+        VarDeclStatment res = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("<root>${%s}</root>".formatted(stringValue.ref())));
         body.add(res);
         return new ActivityConversionResult(res.ref(), body);
     }
@@ -755,7 +771,7 @@ final class ActivityConverter {
             case ActivityExtension.Config.SendHTTPResponse ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.FileWrite fileWrite -> createFileWriteOperation(cx, result, fileWrite);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
-            case ActivityExtension.Config.RenderXML ignored -> emptyExtensionConversion(cx, result);
+            case ActivityExtension.Config.RenderXML ignored -> finishXmlRenderActivity(cx, result);
             case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.AccumulateEnd accumulateEnd -> createAccumulateEnd(cx,
                     accumulateEnd,
