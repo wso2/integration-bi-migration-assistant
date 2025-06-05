@@ -271,14 +271,24 @@ final class ActivityConverter {
         } catch (ParserConfigurationException e) {
             throw new RuntimeException(e);
         }
-        String renderFn = cx.getRenderJsonAsXMLFunction(targetTypeName);
-        VarDeclStatment xmlValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new Check(new FunctionCall(renderFn, List.of(input))));
-        body.add(xmlValue);
         body.add(stmtFrom("xmlns \"http://www.tibco.com/namespaces/tnt/plugins/json\" as ns;"));
+        return finishConvertJsonParser(cx, input, targetTypeName, "ActivityOutputClass", body);
+    }
+
+    private static @NotNull ActivityConversionResult finishConvertJsonParser(
+            ActivityContext cx, VariableReference input, String targetTypeName, String outerTag, List<Statement> body) {
+        var intermediateResult = finishConvertJsonParser(cx, input, targetTypeName, body);
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new XMLTemplate("<ns:ActivityOutputClass>%s</ns:ActivityOutputClass>"
-                        .formatted(xmlValue.ref())));
+                new XMLTemplate("<%s>%s</%s>".formatted(outerTag, intermediateResult.result, outerTag)));
+        body.add(result);
+        return new ActivityConversionResult(result.ref(), body);
+    }
+
+    private static @NotNull ActivityConversionResult finishConvertJsonParser(
+            ActivityContext cx, VariableReference input, String targetTypeName, List<Statement> body) {
+        String renderFn = cx.getRenderJsonAsXMLFunction(targetTypeName);
+        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(new FunctionCall(renderFn, List.of(input))));
         body.add(result);
         return new ActivityConversionResult(result.ref(), body);
     }
@@ -719,11 +729,7 @@ final class ActivityConverter {
         ActivityConversionResult conversion = switch (config) {
             case ActivityExtension.Config.End ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.HTTPSend httpSend -> createHttpSend(cx, result, httpSend);
-            case ActivityExtension.Config.JsonOperation jsonOperation -> createJsonOperation(cx, result,
-                    jsonOperation,
-                    activityExtension.outputVariable().orElseThrow(
-                            () -> new IllegalStateException(
-                                    "json operation should have output variable")));
+            case ActivityExtension.Config.JsonOperation jsonOperation -> createJsonOperation(cx, result, jsonOperation);
             case ActivityExtension.Config.SQL sql -> createSQLOperation(cx, result, sql);
             case ActivityExtension.Config.SendHTTPResponse ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.FileWrite fileWrite -> createFileWriteOperation(cx, result, fileWrite);
@@ -777,26 +783,20 @@ final class ActivityConverter {
 
     private static ActivityConversionResult createJsonOperation(
             ActivityContext cx, VariableReference result,
-            ActivityExtension.Config.JsonOperation jsonOperation, String outputVariable) {
+            ActivityExtension.Config.JsonOperation jsonOperation) {
         return switch (jsonOperation.kind()) {
             case JSON_RENDER -> createJsonRenderOperation(cx, result);
-            case JSON_PARSER -> createJsonParserOperation(cx, result, jsonOperation, outputVariable);
+            case JSON_PARSER -> createJsonParserOperation(cx, result, jsonOperation);
             default -> throw new IllegalStateException(
                     "Unexpected json operation kind: " + jsonOperation.kind());
         };
     }
 
     private static ActivityConversionResult createJsonParserOperation(
-            ActivityContext cx, VariableReference result,
-            ActivityExtension.Config.JsonOperation jsonOperation,
-            String outputVariable) {
-        VarDeclStatment rendered = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new Check(
-                        new FunctionCall(
-                                cx.getRenderJsonAsXMLFunction(
-                                        cx.variableType(outputVariable)),
-                                List.of(result))));
-        return new ActivityConversionResult(rendered.ref(), List.of(rendered));
+            ActivityContext cx, VariableReference input,
+            ActivityExtension.Config.JsonOperation jsonOperation) {
+        ArrayList<Statement> body = new ArrayList<>();
+        return finishConvertJsonParser(cx, input, jsonOperation.type().name(), body);
     }
 
     private static ActivityConversionResult createJsonRenderOperation(ActivityContext cx,
