@@ -974,9 +974,7 @@ public final class XmlToTibcoModelConverter {
             case JSON_RENDER -> new Config.JsonOperation(
                     Config.ExtensionKind.JSON_RENDER,
                     Type.Schema.TibcoType.of("nil"));
-            case JSON_PARSER -> new Config.JsonOperation(
-                    Config.ExtensionKind.JSON_PARSER,
-                    Type.Schema.TibcoType.of("nil"));
+            case JSON_PARSER -> parseJsonParseConfig(config);
             case LOG -> new Config.Log();
             case RENDER_XML -> new Config.RenderXML();
             case SEND_HTTP_RESPONSE -> new Config.SendHTTPResponse();
@@ -984,6 +982,51 @@ public final class XmlToTibcoModelConverter {
             case SQL -> parasSqlActivityExtension(config);
             case ACCUMULATE_END -> parseAccumulateEnd(activity);
         };
+    }
+
+    private static Config parseJsonParseConfig(Element config) {
+        Element activity = getFirstChildWithTag(config, "BWActivity");
+        Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
+        Element properties = getFirstChildWithTag(activityConfig, "properties");
+        Element value = getFirstChildWithTag(properties, "value");
+        Element outputEditorElement = getFirstChildWithTag(value, "outputEditorElement");
+        String href = outputEditorElement.getAttribute("href");
+        if (href.isBlank()) {
+            throw new ParserException("Missing href attribute in outputEditorElement", outputEditorElement);
+        }
+
+        String typeName = extractTypeNameFromHref(href);
+        return new Config.JsonOperation(
+                Config.ExtensionKind.JSON_PARSER,
+                Type.Schema.TibcoType.of(typeName));
+    }
+
+    private static String extractTypeNameFromHref(String href) {
+        if (href == null || href.isBlank()) {
+            throw new ParserException("Href attribute is null or blank", null);
+        }
+
+        // Find the "#//" part
+        int hashIndex = href.indexOf("#//");
+        if (hashIndex == -1) {
+            throw new ParserException("Invalid href format: missing '#//' delimiter in href: " + href, null);
+        }
+
+        // Extract everything after "#//"
+        String afterHash = href.substring(hashIndex + 3);
+
+        // Remove anything after ";" if present
+        int semicolonIndex = afterHash.indexOf(";");
+        if (semicolonIndex != -1) {
+            afterHash = afterHash.substring(0, semicolonIndex);
+        }
+
+        String typeName = afterHash.trim();
+        if (typeName.isEmpty()) {
+            throw new ParserException("Empty type name extracted from href: " + href, null);
+        }
+
+        return typeName;
     }
 
     private static AccumulateEnd parseAccumulateEnd(Element activity) {
