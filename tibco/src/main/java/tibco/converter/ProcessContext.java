@@ -220,14 +220,6 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getAddToContextFn();
     }
 
-    BallerinaModel.TypeDesc getFileWriteConfigType() {
-        return projectContext.getFileWriteConfigType();
-    }
-
-    String getFileWriteFunction() {
-        return projectContext.getFileWriteFunction(this);
-    }
-
     BallerinaModel.TypeDesc getLogInputType() {
         return projectContext.getLogInputType();
     }
@@ -331,10 +323,6 @@ public class ProcessContext implements ContextWithFile {
 
     String getRenderJsonAsXMLFunction(String type) {
         return projectContext.getRenderJsonAsXMLFunction(type);
-    }
-
-    public String getRenderJsonFn() {
-        return projectContext.getRenderJsonFn();
     }
 
     public String getToJsonFunction() {

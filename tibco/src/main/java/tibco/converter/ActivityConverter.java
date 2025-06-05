@@ -507,21 +507,27 @@ final class ActivityConverter {
     }
 
     private static ActivityConversionResult convertFileWrite(
-            ActivityContext cx, VariableReference result, FileWrite fileWrite) {
+            ActivityContext cx, VariableReference input, FileWrite fileWrite) {
         assert fileWrite.encoding().equals("text");
+        boolean append = fileWrite.append();
+        return finishFileWrite(cx, input, append);
+    }
+
+    private static @NotNull ActivityConversionResult finishFileWrite(ActivityContext cx,
+                                                                     VariableReference input,
+                                                                     boolean append) {
         List<Statement> body = new ArrayList<>();
         VarDeclStatment fileName = new VarDeclStatment(STRING, "fileName",
-                exprFrom("(%s/**/<fileName>/*).toString()".formatted(result.varName())));
+                exprFrom("(%s/**/<fileName>/*).toString()".formatted(input.varName())));
         body.add(fileName);
         VarDeclStatment textContent = new VarDeclStatment(STRING, "content",
-                exprFrom("(%s/**/<textContent>/*).toString()".formatted(result.varName())));
+                exprFrom("(%s/**/<textContent>/*).toString()".formatted(input.varName())));
         body.add(textContent);
-        StringConstant mode = fileWrite.append() ? new StringConstant("APPEND")
-                : new StringConstant("OVERWRITE");
+        StringConstant mode = append ? new StringConstant("APPEND") : new StringConstant("OVERWRITE");
         cx.addLibraryImport(Library.IO);
         body.add(new CallStatement(new Check(new FunctionCall(IOConstants.FILE_WRITE_FUNCTION,
                 List.of(fileName.ref(), textContent.ref(), mode)))));
-        return new ActivityConversionResult(result, body);
+        return new ActivityConversionResult(input, body);
     }
 
     private static ActivityConversionResult convertXmlParseActivity(
@@ -872,32 +878,7 @@ final class ActivityConverter {
 
     private static ActivityConversionResult createFileWriteOperation(
             ActivityContext cx, VariableReference result, ActivityExtension.Config.FileWrite fileWrite) {
-        List<Statement> body = new ArrayList<>();
-        BallerinaModel.TypeDesc dataType = cx.getFileWriteConfigType();
-        VarDeclStatment dataDecl = new VarDeclStatment(dataType, cx.getAnnonVarName(),
-                new FunctionCall(cx.getConvertToTypeFunction(dataType), List.of(result)));
-        body.add(dataDecl);
-
-        VarDeclStatment fileNameDecl = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                new TypeCast(STRING, new FieldAccess(
-                        new VariableReference(dataDecl.varName()),
-                        TibcoFileConfigConstants.FILE_NAME_FIELD_NAME)));
-        body.add(fileNameDecl);
-
-        VarDeclStatment textContentDecl = new VarDeclStatment(STRING, cx.getAnnonVarName(), new FieldAccess(
-                new VariableReference(dataDecl.varName()),
-                TibcoFileConfigConstants.TEXT_CONTENT_FIELD_NAME));
-        body.add(textContentDecl);
-
-        CallStatement callStatement = new CallStatement(
-                new CheckPanic(
-                        new FunctionCall(
-                                cx.getFileWriteFunction(),
-                                List.of(new VariableReference(fileNameDecl.varName()),
-                                        new VariableReference(textContentDecl
-                                                .varName())))));
-        body.add(callStatement);
-        return new ActivityConversionResult(result, body);
+        return finishFileWrite(cx, result, false);
     }
 
     private static ActivityConversionResult createSQLOperation(

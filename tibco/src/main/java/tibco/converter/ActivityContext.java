@@ -88,14 +88,6 @@ public class ActivityContext {
         processContext.addLibraryImport(library);
     }
 
-    BallerinaModel.TypeDesc getFileWriteConfigType() {
-        return processContext.getFileWriteConfigType();
-    }
-
-    String getFileWriteFunction() {
-        return processContext.getFileWriteFunction();
-    }
-
     BallerinaModel.TypeDesc getLogInputType() {
         return processContext.getLogInputType();
     }
@@ -119,10 +111,6 @@ public class ActivityContext {
 
     String getToXmlFunction() {
         return this.processContext.getToXmlFunction();
-    }
-
-    public String getRenderJsonFn() {
-        return processContext.getRenderJsonFn();
     }
 
     String variableType(String variable) {

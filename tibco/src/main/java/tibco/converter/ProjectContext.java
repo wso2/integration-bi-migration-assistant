@@ -52,7 +52,6 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
 import static tibco.converter.Library.HTTP;
-import static tibco.converter.Library.IO;
 import static tibco.converter.Library.JDBC;
 import static tibco.converter.Library.JSON_DATA;
 import static tibco.converter.Library.LOG;
@@ -137,10 +136,6 @@ public class ProjectContext {
                         List.of(new Return<>(new FunctionCall("xmldata:fromJson", new String[]{"data"})))));
         jsonToXMLFunction = functionName;
         return jsonToXMLFunction;
-    }
-
-    BallerinaModel.TypeDesc getFileWriteConfigType() {
-        return getTypeByName("WriteActivityInputTextClass", typeCx);
     }
 
     BallerinaModel.TypeDesc getLogInputType() {
@@ -319,11 +314,6 @@ public class ProjectContext {
 
     void incrementTypeCount() {
         typeCount++;
-    }
-
-    String getFileWriteFunction(ContextWithFile contextWithFile) {
-        contextWithFile.addLibraryImport(IO);
-        return "io:fileWriteString";
     }
 
     public String getPredicateTestFunction() {
