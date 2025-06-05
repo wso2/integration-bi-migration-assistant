@@ -68,7 +68,7 @@ public class MuleXMLNavigator {
         }
     }
 
-    class MuleElement {
+    public class MuleElement {
         private final Element rootElement;
         private Element currentChild;
 
