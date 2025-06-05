@@ -18,7 +18,7 @@
 
 package tibco.analyzer;
 
-import tibco.Process;
+import tibco.model.Process;
 
 import java.util.Collection;
 import java.util.Collections;

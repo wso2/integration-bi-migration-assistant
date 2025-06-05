@@ -16,29 +16,26 @@
  *  under the License.
  */
 
-package tibco.analyzer;
+package tibco.model;
 
-import tibco.model.Scope;
+public interface Variable {
 
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+    String name();
 
-public class ProjectAnalysisContext {
+    String type();
 
-    private final Set<String> controlFlowFunctionNames = new LinkedHashSet<>();
-    private final Map<Scope.Flow.Activity, String> activityFunctionNames =
-            new ConcurrentHashMap<>();
+    record DefaultVariable(String name, String type) implements Variable {
 
-    public ProjectAnalysisContext() {
     }
 
-    public Set<String> controlFlowFunctionNames() {
-        return controlFlowFunctionNames;
-    }
+    sealed interface PropertyVariable extends Variable {
 
-    public Map<Scope.Flow.Activity, String> activityFunctionNames() {
-        return activityFunctionNames;
+        record PropertyReference(String name, String literal, String type) implements PropertyVariable {
+
+        }
+
+        record SimpleProperty(String name, String source, String type) implements PropertyVariable {
+
+        }
     }
 }

@@ -19,7 +19,8 @@
 package tibco.converter;
 
 import common.BallerinaModel;
-import tibco.TibcoModel;
+import tibco.model.Scope;
+import tibco.model.Type;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,10 +31,10 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 public class ActivityContext {
 
     public final ProcessContext processContext;
-    private final TibcoModel.Scope.Flow.Activity activity;
+    private final Scope.Flow.Activity activity;
     private int varCounter = 0;
 
-    ActivityContext(ProcessContext processContext, TibcoModel.Scope.Flow.Activity activity) {
+    ActivityContext(ProcessContext processContext, Scope.Flow.Activity activity) {
         this.activity = activity;
         this.processContext = processContext;
     }
@@ -125,7 +126,7 @@ public class ActivityContext {
         return processContext.projectContext;
     }
 
-    public void addXSDSchemaToConversion(TibcoModel.Type.Schema schema) {
+    public void addXSDSchemaToConversion(Type.Schema schema) {
         projectContext().addXSDSchemaToConversion(schema);
     }
 

@@ -31,6 +31,9 @@ import tibco.analyzer.TibcoAnalysisReport;
 import tibco.converter.ConversionResult;
 import tibco.converter.ProjectConverter;
 import tibco.converter.TibcoConverter;
+import tibco.model.Process;
+import tibco.model.Resource;
+import tibco.model.Type;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -59,13 +62,13 @@ public class TibcoToBalConverter {
     }
 
     public static ConversionResult convertProject(ProjectConversionContext cx, String projectPath) {
-        Set<Process> processes;
-        Set<TibcoModel.Type.Schema> types;
-        Set<TibcoModel.Resource.JDBCResource> jdbcResources;
-        Set<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources;
-        Set<TibcoModel.Resource.HTTPClientResource> httpClientResources;
-        Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources;
-        Set<TibcoModel.Resource.JDBCSharedResource> jdbcSharedResource;
+        Set<tibco.model.Process> processes;
+        Set<Type.Schema> types;
+        Set<Resource.JDBCResource> jdbcResources;
+        Set<Resource.HTTPConnectionResource> httpConnectionResources;
+        Set<Resource.HTTPClientResource> httpClientResources;
+        Set<Resource.HTTPSharedResource> httpSharedResources;
+        Set<Resource.JDBCSharedResource> jdbcSharedResource;
         try {
             processes = PROCESS_PARSING_UNIT.parse(projectPath);
             types = XSD_PARSING_UNIT.parse(projectPath);
@@ -83,7 +86,7 @@ public class TibcoToBalConverter {
                 new DefaultAnalysisPass(),
                 new LoggingAnalysisPass(),
                 new ReportGenerationPass()));
-        Map<Process, AnalysisResult> analysisResult =
+        Map<tibco.model.Process, AnalysisResult> analysisResult =
                 analyser.analyseProcesses(new ProjectAnalysisContext(), processes);
         TibcoAnalysisReport report = analysisResult.values().stream()
                 .map(AnalysisResult::getReport)
@@ -98,20 +101,20 @@ public class TibcoToBalConverter {
 
     private static final ParsingUnit<Process> PROCESS_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(
             TibcoToBalConverter::getBwpFiles, XmlToTibcoModelConverter::parseProcess);
-    private static final ParsingUnit<TibcoModel.Type.Schema> XSD_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(
+    private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(
             TibcoToBalConverter::getXSDFiles, XmlToTibcoModelConverter::parseSchema);
-    private static final ParsingUnit<TibcoModel.Resource.JDBCResource> JDBC_RESOURCE_PARSING_UNIT =
+    private static final ParsingUnit<Resource.JDBCResource> JDBC_RESOURCE_PARSING_UNIT =
             new ParsingUnit.SimpleParsingUnit<>(
             TibcoToBalConverter::getJDBCResourceFiles, XmlToTibcoModelConverter::parseJDBCResource);
-    private static final ParsingUnit<TibcoModel.Resource.JDBCSharedResource> SHARED_JDBC_RESOURCE_PARSING_UNIT =
+    private static final ParsingUnit<Resource.JDBCSharedResource> SHARED_JDBC_RESOURCE_PARSING_UNIT =
             new ParsingUnit.SimpleParsingUnit<>(
                     (String projectPath) -> getFilesWithExtension(projectPath, "sharedjdbc"),
                     XmlToTibcoModelConverter::parseSharedJDBCResource);
-    private static final ParsingUnit<TibcoModel.Resource.HTTPConnectionResource> HTTP_CONN_RESOURCE_PARSING_UNIT =
+    private static final ParsingUnit<Resource.HTTPConnectionResource> HTTP_CONN_RESOURCE_PARSING_UNIT =
             new ParsingUnit.SimpleParsingUnit<>(
                     TibcoToBalConverter::getHTTPConnectionResourceFiles,
                     XmlToTibcoModelConverter::parseHTTPConnectionResource);
-    private static final ParsingUnit<TibcoModel.Resource.HTTPClientResource> HTTP_CLIENT_RESOURCE_PARSING_UNIT =
+    private static final ParsingUnit<Resource.HTTPClientResource> HTTP_CLIENT_RESOURCE_PARSING_UNIT =
             new ParsingUnit.SimpleParsingUnit<>(
                     TibcoToBalConverter::getHTTPClientResourceFiles,
                     XmlToTibcoModelConverter::parseHTTPClientResource);
@@ -120,13 +123,12 @@ public class TibcoToBalConverter {
         return TibcoConverter.logger();
     }
 
-
-    static final class HTTPSharedResourceParsingUnit implements ParsingUnit<TibcoModel.Resource.HTTPSharedResource> {
+    static final class HTTPSharedResourceParsingUnit implements ParsingUnit<Resource.HTTPSharedResource> {
 
         @Override
-        public Set<TibcoModel.Resource.HTTPSharedResource> parse(String projectPath) throws
+        public Set<Resource.HTTPSharedResource> parse(String projectPath) throws
                 IOException, ParserConfigurationException, SAXException {
-            Set<TibcoModel.Resource.HTTPSharedResource> result = new LinkedHashSet<>();
+            Set<Resource.HTTPSharedResource> result = new LinkedHashSet<>();
             for (String file : getHTTPSharedResourceFiles(projectPath)) {
                 Element element = parseXmlFile(file);
                 Path filePath = Path.of(file);

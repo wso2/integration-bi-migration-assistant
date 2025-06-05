@@ -19,12 +19,12 @@
 package tibco.analyzer;
 
 import org.jetbrains.annotations.NotNull;
-import tibco.Process;
-import tibco.TibcoModel;
-import tibco.TibcoModel.Process5.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
-import tibco.TibcoModel.Scope.Flow.Activity.UnhandledActivity;
 import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
 import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.UnNamedUnhandledActivityElement;
+import tibco.model.Process;
+import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
+import tibco.model.Scope;
+import tibco.model.Scope.Flow.Activity.UnhandledActivity;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,7 +35,7 @@ public class ReportGenerationPass extends AnalysisPass {
     int totalActivities = 0;
 
     @Override
-    protected void analyseActivity(ProcessAnalysisContext cx, TibcoModel.Scope.Flow.Activity activity) {
+    protected void analyseActivity(ProcessAnalysisContext cx, Scope.Flow.Activity activity) {
         totalActivities++;
         TibcoAnalysisReport.UnhandledActivityElement unhandledActivityElement = switch (activity) {
             case UnhandledActivity unhandledActivity -> generateUnhandledActivityReport(unhandledActivity);

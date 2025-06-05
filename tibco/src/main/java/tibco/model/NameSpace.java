@@ -16,29 +16,17 @@
  *  under the License.
  */
 
-package tibco.analyzer;
+package tibco.model;
 
-import tibco.model.Scope;
+import java.util.Optional;
 
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+public record NameSpace(Optional<String> prefix, String uri) {
 
-public class ProjectAnalysisContext {
-
-    private final Set<String> controlFlowFunctionNames = new LinkedHashSet<>();
-    private final Map<Scope.Flow.Activity, String> activityFunctionNames =
-            new ConcurrentHashMap<>();
-
-    public ProjectAnalysisContext() {
+    public NameSpace(String nameSpace) {
+        this(Optional.empty(), nameSpace);
     }
 
-    public Set<String> controlFlowFunctionNames() {
-        return controlFlowFunctionNames;
-    }
-
-    public Map<Scope.Flow.Activity, String> activityFunctionNames() {
-        return activityFunctionNames;
+    public NameSpace(String prefix, String nameSpace) {
+        this(Optional.of(prefix), nameSpace);
     }
 }

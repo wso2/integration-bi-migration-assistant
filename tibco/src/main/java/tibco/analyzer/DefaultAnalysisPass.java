@@ -19,10 +19,16 @@
 package tibco.analyzer;
 
 import org.jetbrains.annotations.NotNull;
-import tibco.Process;
-import tibco.TibcoModel;
-import tibco.TibcoModel.Process5.ExplicitTransitionGroup;
 import tibco.converter.ConversionUtils;
+import tibco.model.PartnerLink;
+import tibco.model.Process;
+import tibco.model.Process5;
+import tibco.model.Process5.ExplicitTransitionGroup;
+import tibco.model.Process6;
+import tibco.model.ProcessInterface;
+import tibco.model.Scope;
+import tibco.model.Type;
+import tibco.model.Variable;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -42,26 +48,26 @@ public final class DefaultAnalysisPass extends AnalysisPass {
     @Override
     public void analyseProcess(ProcessAnalysisContext cx, Process process) {
         switch (process) {
-            case TibcoModel.Process5 process5 -> analyseProcessInner(cx, process5);
-            case TibcoModel.Process6 process6 -> analyseProcessInner(cx, process6);
+            case Process5 process5 -> analyseProcessInner(cx, process5);
+            case Process6 process6 -> analyseProcessInner(cx, process6);
         }
     }
 
     @Override
     public @NotNull AnalysisResult getResult(ProcessAnalysisContext cx, Process process) {
-        Map<TibcoModel.Scope.Flow.Activity, AnalysisResult.ActivityData> activityData = cx.activityData();
-        Map<String, TibcoModel.PartnerLink.Binding> partnerLinkBindings = cx.getPartnerLinkBindings();
+        Map<Scope.Flow.Activity, AnalysisResult.ActivityData> activityData = cx.activityData();
+        Map<String, PartnerLink.Binding> partnerLinkBindings = cx.getPartnerLinkBindings();
 
         Map<Process, Collection<String>> inputTypeNames = Map.of(process, cx.getInputTypeName());
         Map<Process, String> outputTypeName = Map.of(process, cx.getOutputTypeName());
         Map<Process, Map<String, String>> variableTypes = Map.of(process, cx.getVariableTypes());
-        Map<Process, Collection<TibcoModel.Scope>> scopes = Map.of(process,
+        Map<Process, Collection<Scope>> scopes = Map.of(process,
                 cx.getDependencyGraphs().keySet());
-        record ActivityNames(String name, TibcoModel.Scope.Flow.Activity activity) {
+        record ActivityNames(String name, Scope.Flow.Activity activity) {
         }
-        Map<String, TibcoModel.Scope.Flow.Activity> activityByName = cx.getActivities().stream()
-                .filter(each -> each instanceof TibcoModel.Scope.Flow.Activity.ActivityWithName)
-                .map(each -> (TibcoModel.Scope.Flow.Activity.ActivityWithName) each)
+        Map<String, Scope.Flow.Activity> activityByName = cx.getActivities().stream()
+                .filter(each -> each instanceof Scope.Flow.Activity.ActivityWithName)
+                .map(each -> (Scope.Flow.Activity.ActivityWithName) each)
                 .filter(each -> each.getName().isPresent())
                 .map(each -> new ActivityNames(each.getName().get(), each))
                 .collect(Collectors.toMap(ActivityNames::name, ActivityNames::activity));
@@ -71,11 +77,11 @@ public final class DefaultAnalysisPass extends AnalysisPass {
                 cx.getExplicitTransitionGroupDependencyGraph(), cx.getTransitionGroupControlFlowFunctions());
     }
 
-    private void analyseProcessInner(ProcessAnalysisContext cx, TibcoModel.Process5 process) {
+    private void analyseProcessInner(ProcessAnalysisContext cx, Process5 process) {
         analyseExplicitTransitionGroup(cx, process.transitionGroup());
     }
 
-    private void analyseProcessInner(ProcessAnalysisContext cx, TibcoModel.Process6 process) {
+    private void analyseProcessInner(ProcessAnalysisContext cx, Process6 process) {
         analyzeVariables(cx, process.variables());
         analysePartnerLinks(cx, process.partnerLinks());
         analyseTypes(cx, process.types());
@@ -127,7 +133,7 @@ public final class DefaultAnalysisPass extends AnalysisPass {
     }
 
     @Override
-    protected void analyzeVariables(ProcessAnalysisContext cx, Collection<TibcoModel.Variable> variables) {
+    protected void analyzeVariables(ProcessAnalysisContext cx, Collection<Variable> variables) {
         variables.forEach(variable -> {
             String typeName = ConversionUtils.stripNamespace(variable.type());
             cx.setVariableType(variable.name(), typeName);
@@ -136,7 +142,7 @@ public final class DefaultAnalysisPass extends AnalysisPass {
 
     @Override
     protected void analyzeProcessInterface(ProcessAnalysisContext cx,
-                                           TibcoModel.ProcessInterface processInterface) {
+                                           ProcessInterface processInterface) {
         String inputType = sanitizeTypeName(processInterface.input());
         if (!inputType.isEmpty()) {
             cx.appendInputTypeName(inputType);
@@ -158,9 +164,9 @@ public final class DefaultAnalysisPass extends AnalysisPass {
     }
 
     @Override
-    protected void analyseTypes(ProcessAnalysisContext cx, Collection<TibcoModel.Type> types) {
+    protected void analyseTypes(ProcessAnalysisContext cx, Collection<Type> types) {
         types.forEach(type -> {
-            if (type instanceof TibcoModel.Type.WSDLDefinition wsdlDefinition) {
+            if (type instanceof Type.WSDLDefinition wsdlDefinition) {
                 analyseWSDLDefinition(cx, wsdlDefinition);
             }
         });
@@ -168,7 +174,7 @@ public final class DefaultAnalysisPass extends AnalysisPass {
 
     @Override
     protected void analyseWSDLDefinition(ProcessAnalysisContext cx,
-                                         TibcoModel.Type.WSDLDefinition wsdlDefinition) {
+                                         Type.WSDLDefinition wsdlDefinition) {
         var messageTypes = getMessageTypeDefinitions(wsdlDefinition);
         wsdlDefinition.portType().forEach(portType -> {
             var operation = portType.operation();
@@ -181,9 +187,9 @@ public final class DefaultAnalysisPass extends AnalysisPass {
         });
     }
 
-    private Map<String, String> getMessageTypeDefinitions(TibcoModel.Type.WSDLDefinition wsdlDefinition) {
+    private Map<String, String> getMessageTypeDefinitions(Type.WSDLDefinition wsdlDefinition) {
         Map<String, String> result = new HashMap<>();
-        for (TibcoModel.Type.WSDLDefinition.Message message : wsdlDefinition.messages()) {
+        for (Type.WSDLDefinition.Message message : wsdlDefinition.messages()) {
             Optional<String> referredTypeName = getMessageTypeName(message);
             if (referredTypeName.isEmpty()) {
                 continue;
@@ -193,8 +199,8 @@ public final class DefaultAnalysisPass extends AnalysisPass {
         return result;
     }
 
-    private Optional<String> getMessageTypeName(TibcoModel.Type.WSDLDefinition.Message message) {
-        Optional<TibcoModel.Type.WSDLDefinition.Message.Part> part;
+    private Optional<String> getMessageTypeName(Type.WSDLDefinition.Message message) {
+        Optional<Type.WSDLDefinition.Message.Part> part;
         // if (message.parts().size() == 1) {
         // part = Optional.ofNullable(message.parts().getFirst());
         // } else {
@@ -204,16 +210,16 @@ public final class DefaultAnalysisPass extends AnalysisPass {
             return Optional.empty();
         }
         String typeName = switch (part.get()) {
-            case TibcoModel.Type.WSDLDefinition.Message.Part.InlineError inlineError -> inlineError.name();
-            case TibcoModel.Type.WSDLDefinition.Message.Part.Reference ref -> ref.element().value();
+            case Type.WSDLDefinition.Message.Part.InlineError inlineError -> inlineError.name();
+            case Type.WSDLDefinition.Message.Part.Reference ref -> ref.element().value();
         };
         return Optional.of(typeName);
     }
 
     @Override
-    protected void analysePartnerLinks(ProcessAnalysisContext cx, Collection<TibcoModel.PartnerLink> links) {
+    protected void analysePartnerLinks(ProcessAnalysisContext cx, Collection<PartnerLink> links) {
         links.stream()
-                .flatMap(link -> link instanceof TibcoModel.PartnerLink.NonEmptyPartnerLink nonEmptyPartnerLink
+                .flatMap(link -> link instanceof PartnerLink.NonEmptyPartnerLink nonEmptyPartnerLink
                         ? Stream.of(nonEmptyPartnerLink)
                         : Stream.empty())
                 .forEach(link -> cx.setPartnerLinkBinding(link, link.binding()));
@@ -221,7 +227,7 @@ public final class DefaultAnalysisPass extends AnalysisPass {
 
 
     @Override
-    protected void analyseScope(ProcessAnalysisContext cx, TibcoModel.Scope scope) {
+    protected void analyseScope(ProcessAnalysisContext cx, Scope scope) {
         cx.allocateControlFlowFunctionsIfNeeded(scope);
         cx.pushScope(scope);
         scope.flows().forEach(flow -> analyseFlow(cx, flow));
@@ -232,11 +238,11 @@ public final class DefaultAnalysisPass extends AnalysisPass {
 
 
     @Override
-    protected void analyseSequence(ProcessAnalysisContext cx, TibcoModel.Scope.Sequence sequence) {
+    protected void analyseSequence(ProcessAnalysisContext cx, Scope.Sequence sequence) {
         cx.getInSequence().push(true);
-        List<TibcoModel.Scope.Flow.Activity> activities = sequence.activities();
+        List<Scope.Flow.Activity> activities = sequence.activities();
         for (int i = 0; i < activities.size(); i++) {
-            TibcoModel.Scope.Flow.Activity activity = activities.get(i);
+            Scope.Flow.Activity activity = activities.get(i);
             if (i == 0) {
                 cx.addStartActivity(activity);
             } else {
@@ -251,7 +257,7 @@ public final class DefaultAnalysisPass extends AnalysisPass {
     }
 
     @Override
-    protected void analyseFlow(ProcessAnalysisContext cx, TibcoModel.Scope.Flow flow) {
+    protected void analyseFlow(ProcessAnalysisContext cx, Scope.Flow flow) {
         cx.getInSequence().push(false);
         flow.links().forEach(link -> analyseLink(cx, link));
         flow.activities().forEach(activity -> analyseActivity(cx, activity));
@@ -260,54 +266,54 @@ public final class DefaultAnalysisPass extends AnalysisPass {
 
 
     @Override
-    protected void analyseLink(ProcessAnalysisContext cx, TibcoModel.Scope.Flow.Link link) {
+    protected void analyseLink(ProcessAnalysisContext cx, Scope.Flow.Link link) {
         cx.allocateLinkIfNeeded(link);
     }
 
     @Override
-    protected void analyseActivity(ProcessAnalysisContext cx, TibcoModel.Scope.Flow.Activity activity) {
-        if (activity instanceof TibcoModel.Scope.Flow.Activity.Empty) {
+    protected void analyseActivity(ProcessAnalysisContext cx, Scope.Flow.Activity activity) {
+        if (activity instanceof Scope.Flow.Activity.Empty) {
             return;
         }
         boolean isInSequence = cx.getInSequence().peek();
         cx.allocateActivityNameIfNeeded(activity);
-        if (activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithSources activityWithSources) {
-            Collection<TibcoModel.Scope.Flow.Activity.Source> sources = activityWithSources.sources();
+        if (activity instanceof Scope.Flow.Activity.ActivityWithSources activityWithSources) {
+            Collection<Scope.Flow.Activity.Source> sources = activityWithSources.sources();
             if (!isInSequence && sources.isEmpty()) {
                 cx.addEndActivity(activity);
             }
-            sources.stream().map(TibcoModel.Scope.Flow.Activity.Source::linkName).map(
-                    TibcoModel.Scope.Flow.Link::new).forEach(link -> cx.addSource(activity, link));
+            sources.stream().map(Scope.Flow.Activity.Source::linkName).map(
+                    Scope.Flow.Link::new).forEach(link -> cx.addSource(activity, link));
         }
-        if (activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithTargets activityWithTargets) {
-            Collection<TibcoModel.Scope.Flow.Activity.Target> targets = activityWithTargets.targets();
+        if (activity instanceof Scope.Flow.Activity.ActivityWithTargets activityWithTargets) {
+            Collection<Scope.Flow.Activity.Target> targets = activityWithTargets.targets();
             if (!isInSequence && targets.isEmpty()) {
                 cx.addStartActivity(activity);
             }
-            targets.stream().map(TibcoModel.Scope.Flow.Activity.Target::linkName).map(
-                    TibcoModel.Scope.Flow.Link::new).forEach(link -> cx.addDestination(link, activity));
+            targets.stream().map(Scope.Flow.Activity.Target::linkName).map(
+                    Scope.Flow.Link::new).forEach(link -> cx.addDestination(link, activity));
         }
-        if (activity instanceof TibcoModel.Scope.Flow.Activity.StartActivity) {
+        if (activity instanceof Scope.Flow.Activity.StartActivity) {
             cx.addStartActivity(activity);
         }
         analyseActivityInner(cx, activity);
     }
 
-    private void analyseActivityInner(ProcessAnalysisContext cx, TibcoModel.Scope.Flow.Activity activity) {
-        if (activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithScope activityWithScope) {
+    private void analyseActivityInner(ProcessAnalysisContext cx, Scope.Flow.Activity activity) {
+        if (activity instanceof Scope.Flow.Activity.ActivityWithScope activityWithScope) {
             analyseScope(cx, activityWithScope.scope());
             return;
         }
 
         boolean isInSequence = cx.getInSequence().peek();
-        if (!isInSequence && !(activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithSources)) {
+        if (!isInSequence && !(activity instanceof Scope.Flow.Activity.ActivityWithSources)) {
             cx.addEndActivity(activity);
         }
 
-        if (!isInSequence && !(activity instanceof TibcoModel.Scope.Flow.Activity.ActivityWithTargets)) {
+        if (!isInSequence && !(activity instanceof Scope.Flow.Activity.ActivityWithTargets)) {
             cx.addStartActivity(activity);
         }
-        if (activity instanceof TibcoModel.Scope.Flow.Activity.ActivityExtension activityExtension) {
+        if (activity instanceof Scope.Flow.Activity.ActivityExtension activityExtension) {
             analyseActivityExtensionConfig(cx, activityExtension.config());
         }
     }

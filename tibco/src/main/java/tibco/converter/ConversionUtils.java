@@ -22,8 +22,9 @@ import common.BallerinaModel;
 import common.BallerinaModel.Expression;
 import common.BallerinaModel.Statement.VarDeclStatment;
 import org.w3c.dom.Element;
-import tibco.TibcoModel;
-import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL;
+import tibco.model.Scope;
+import tibco.model.Scope.Flow.Activity.ActivityExtension.Config.SQL;
+import tibco.model.XSD;
 
 import java.io.StringWriter;
 import java.util.Collection;
@@ -117,7 +118,7 @@ public final class ConversionUtils {
     }
 
     private static Expression templateExpression(
-            TibcoModel.Scope.Flow.Activity.Expression.XPath xPath, Expression.VariableReference context) {
+            Scope.Flow.Activity.Expression.XPath xPath, Expression.VariableReference context) {
         String xPathStr = xPath.expression();
         StringBuilder sb = new StringBuilder();
         char[] chars = xPathStr.toCharArray();
@@ -174,7 +175,7 @@ public final class ConversionUtils {
     }
 
     static Expression xPath(ProcessContext cx, Expression value, Expression.VariableReference context,
-                            TibcoModel.Scope.Flow.Activity.Expression.XPath predicate) {
+                            Scope.Flow.Activity.Expression.XPath predicate) {
         String predicateTestFn = cx.getXPathFunction();
         Expression xPathExpr = templateExpression(predicate, context);
         return new Expression.FunctionCall(predicateTestFn, List.of(value, xPathExpr));
@@ -204,18 +205,18 @@ public final class ConversionUtils {
         static final String CONTEXT_INPUT_NAME = "$input";
     }
 
-    public static BallerinaModel.TypeDesc toTypeDesc(TibcoModel.XSD xsd) {
+    public static BallerinaModel.TypeDesc toTypeDesc(XSD xsd) {
         return toTypeDesc(xsd.type().type());
     }
 
-    private static BallerinaModel.TypeDesc toTypeDesc(TibcoModel.XSD.XSDType type) {
+    private static BallerinaModel.TypeDesc toTypeDesc(XSD.XSDType type) {
         return switch (type) {
-            case TibcoModel.XSD.XSDType.BasicXSDType basicXSDType -> basicTypeToTD(basicXSDType);
-            case TibcoModel.XSD.XSDType.ComplexType complexType -> complexTypeToTD(complexType);
+            case XSD.XSDType.BasicXSDType basicXSDType -> basicTypeToTD(basicXSDType);
+            case XSD.XSDType.ComplexType complexType -> complexTypeToTD(complexType);
         };
     }
 
-    private static BallerinaModel.TypeDesc complexTypeToTD(TibcoModel.XSD.XSDType.ComplexType complexType) {
+    private static BallerinaModel.TypeDesc complexTypeToTD(XSD.XSDType.ComplexType complexType) {
         List<RecordTypeDesc.RecordField> fields = complexType.body().elements().stream()
                 .map(each ->
                         new RecordTypeDesc.RecordField(each.name(), toTypeDesc(each.type()),
@@ -223,7 +224,7 @@ public final class ConversionUtils {
         return new RecordTypeDesc(fields);
     }
 
-    private static BallerinaModel.TypeDesc basicTypeToTD(TibcoModel.XSD.XSDType.BasicXSDType basicXSDType) {
+    private static BallerinaModel.TypeDesc basicTypeToTD(XSD.XSDType.BasicXSDType basicXSDType) {
         return switch (basicXSDType) {
             case STRING -> STRING;
             case INTEGER, INT, LONG, SHORT -> INT;

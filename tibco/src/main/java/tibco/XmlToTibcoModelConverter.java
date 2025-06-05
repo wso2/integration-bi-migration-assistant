@@ -23,21 +23,34 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import tibco.TibcoModel.PartnerLink;
-import tibco.TibcoModel.Process5.ExplicitTransitionGroup.InlineActivity;
-import tibco.TibcoModel.Process5.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
-import tibco.TibcoModel.Process5.ExplicitTransitionGroup.InlineActivity.XMLRenderActivity;
-import tibco.TibcoModel.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup;
-import tibco.TibcoModel.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup.SourceExpression;
-import tibco.TibcoModel.Process5.ExplicitTransitionGroup.Transition;
-import tibco.TibcoModel.Scope;
-import tibco.TibcoModel.Scope.Flow;
-import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config;
-import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.AccumulateEnd;
-import tibco.TibcoModel.Type;
-import tibco.TibcoModel.XSD;
+
+import tibco.model.NameSpace;
+import tibco.model.NameSpaceValue;
+import tibco.model.PartnerLink;
+import tibco.model.Method;
+import tibco.model.Process5;
+import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
+import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
+import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.XMLRenderActivity;
+import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup;
+import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup.SourceExpression;
+import tibco.model.Process5.ExplicitTransitionGroup.Transition;
+import tibco.model.Scope;
+import tibco.model.Scope.Flow;
+import tibco.model.Scope.Flow.Activity.ActivityExtension.Config;
+import tibco.model.Scope.Flow.Activity.ActivityExtension.Config.AccumulateEnd;
+import tibco.model.ProcessInfo;
+import tibco.model.ProcessInterface;
+import tibco.model.ProcessTemplateConfigurations;
+import tibco.model.Resource;
+import tibco.model.Type;
+import tibco.model.XSD;
 import tibco.converter.ConversionUtils;
 import tibco.converter.ProjectConverter;
+import tibco.model.Process;
+import tibco.model.Process6;
+import tibco.model.ValueSource;
+import tibco.model.Variable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -80,14 +93,14 @@ public final class XmlToTibcoModelConverter {
     private XmlToTibcoModelConverter() {
     }
 
-    public static TibcoModel.Resource.JDBCSharedResource parseSharedJDBCResource(Element root) {
+    public static Resource.JDBCSharedResource parseSharedJDBCResource(Element root) {
         String name = getFirstChildWithTag(root, "name").getTextContent();
         Element configuration = getFirstChildWithTag(root, "config");
         String location = getFirstChildWithTag(configuration, "location").getTextContent();
-        return new TibcoModel.Resource.JDBCSharedResource(name, location);
+        return new Resource.JDBCSharedResource(name, location);
     }
 
-    public static TibcoModel.Resource.JDBCResource parseJDBCResource(Element root) {
+    public static Resource.JDBCResource parseJDBCResource(Element root) {
         String name = root.getAttribute("name");
         Element configuration = getFirstChildWithTag(root, "configuration");
         String username = configuration.getAttribute("username");
@@ -95,49 +108,49 @@ public final class XmlToTibcoModelConverter {
         Element connectionConfig = getFirstChildWithTag(configuration, "connectionConfig");
         String jdbcDriver = connectionConfig.getAttribute("jdbcDriver");
         String dbUrl = connectionConfig.getAttribute("dbURL");
-        Collection<TibcoModel.Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(connectionConfig,
+        Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(connectionConfig,
                 "substitutionBindings")
                 .map(XmlToTibcoModelConverter::parseSubstitutionBinding).toList();
-        return new TibcoModel.Resource.JDBCResource(name, username, password, jdbcDriver, dbUrl,
+        return new Resource.JDBCResource(name, username, password, jdbcDriver, dbUrl,
                 substitutionBindings);
     }
 
-    public static TibcoModel.Resource.HTTPConnectionResource parseHTTPConnectionResource(Element root) {
+    public static Resource.HTTPConnectionResource parseHTTPConnectionResource(Element root) {
         String name = root.getAttribute("name");
         Element configuration = getFirstChildWithTag(root, "configuration");
         String svcRegServiceName = configuration.getAttribute("svcRegServiceName");
-        Collection<TibcoModel.Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(configuration,
+        Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(configuration,
                 "substitutionBindings")
                 .map(XmlToTibcoModelConverter::parseSubstitutionBinding).toList();
-        return new TibcoModel.Resource.HTTPConnectionResource(name, svcRegServiceName, substitutionBindings);
+        return new Resource.HTTPConnectionResource(name, svcRegServiceName, substitutionBindings);
     }
 
-    public static TibcoModel.Resource.HTTPSharedResource parseHTTPSharedResource(String name, Element root) {
+    public static Resource.HTTPSharedResource parseHTTPSharedResource(String name, Element root) {
         Element config = getFirstChildWithTag(root, "config");
         String host = getFirstChildWithTag(config, "Host").getTextContent();
         int port = Integer.parseInt(getFirstChildWithTag(config, "Port").getTextContent());
-        return new TibcoModel.Resource.HTTPSharedResource(name, host, port);
+        return new Resource.HTTPSharedResource(name, host, port);
     }
 
-    public static TibcoModel.Resource.HTTPClientResource parseHTTPClientResource(Element root) {
+    public static Resource.HTTPClientResource parseHTTPClientResource(Element root) {
         String name = root.getAttribute("name");
         Element configuration = getFirstChildWithTag(root, "configuration");
         Element tcpDetails = getFirstChildWithTag(configuration, "tcpDetails");
         Optional<Integer> port = tcpDetails.hasAttribute("port") ? Optional.of(expectIntAttribute(tcpDetails, "port"))
                 : Optional.empty();
-        Collection<TibcoModel.Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(tcpDetails,
+        Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(tcpDetails,
                 "substitutionBindings")
                 .map(XmlToTibcoModelConverter::parseSubstitutionBinding).toList();
-        return new TibcoModel.Resource.HTTPClientResource(name, port, substitutionBindings);
+        return new Resource.HTTPClientResource(name, port, substitutionBindings);
     }
 
-    private static TibcoModel.Resource.SubstitutionBinding parseSubstitutionBinding(Element element) {
+    private static Resource.SubstitutionBinding parseSubstitutionBinding(Element element) {
         String template = element.getAttribute("template");
         String propName = element.getAttribute("propName");
-        return new TibcoModel.Resource.SubstitutionBinding(template, propName);
+        return new Resource.SubstitutionBinding(template, propName);
     }
 
-    public static Process parseProcess(Element root) {
+    public static tibco.model.Process parseProcess(Element root) {
         return parseProcessInner(new ParseContext(), root);
     }
 
@@ -148,13 +161,13 @@ public final class XmlToTibcoModelConverter {
                     .orElseGet(cx::getNextAnonymousProcessName);
         }
         Collection<Type> types = null;
-        TibcoModel.ProcessInfo processInfo = null;
+        ProcessInfo processInfo = null;
         Collection<PartnerLink> partnerLinks = null;
-        Collection<TibcoModel.Variable> variables = null;
+        Collection<Variable> variables = null;
         Scope scope = null;
-        Optional<TibcoModel.ProcessInterface> processInterface = Optional.empty();
-        Optional<TibcoModel.ProcessTemplateConfigurations> processTemplateConfigurations = Optional.empty();
-        TibcoModel.Process5.ExplicitTransitionGroup transitionGroup = new TibcoModel.Process5.ExplicitTransitionGroup();
+        Optional<ProcessInterface> processInterface = Optional.empty();
+        Optional<ProcessTemplateConfigurations> processTemplateConfigurations = Optional.empty();
+        Process5.ExplicitTransitionGroup transitionGroup = new Process5.ExplicitTransitionGroup();
         for (Element element : new ElementIterable(root)) {
             String tag = getTagNameWithoutNameSpace(element);
             switch (tag) {
@@ -219,14 +232,14 @@ public final class XmlToTibcoModelConverter {
             }
         }
         transitionGroup = transitionGroup.resolve();
-        Collection<TibcoModel.NameSpace> nameSpaces = getNamespaces(root).entrySet().stream()
-                .map(each -> new TibcoModel.NameSpace(each.getKey(), each.getValue()))
+        Collection<NameSpace> nameSpaces = getNamespaces(root).entrySet().stream()
+                .map(each -> new NameSpace(each.getKey(), each.getValue()))
                 .toList();
         if (transitionGroup.isEmpty()) {
-            return new TibcoModel.Process6(name, nameSpaces, types, processInfo, processInterface,
+            return new Process6(name, nameSpaces, types, processInfo, processInterface,
                     processTemplateConfigurations, partnerLinks, variables, scope);
         }
-        return new TibcoModel.Process5(name, nameSpaces, transitionGroup);
+        return new Process5(name, nameSpaces, transitionGroup);
     }
 
     private static Flow.Activity.Expression.XSLT parseReturnBindings(ParseContext cx, Element element) {
@@ -335,7 +348,7 @@ public final class XmlToTibcoModelConverter {
         Optional<String> activityOutputName = tryGetInlineActivityConfigValue(element, "activityOutputName");
         boolean accumulateOutput = tryGetInlineActivityConfigValue(element, "accumulateOutput")
                 .map(val -> val.equals("true")).orElse(false);
-        TibcoModel.Process5.ExplicitTransitionGroup transitionGroup = new TibcoModel.Process5.ExplicitTransitionGroup();
+        Process5.ExplicitTransitionGroup transitionGroup = new Process5.ExplicitTransitionGroup();
         for (Element child : new ElementIterable(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
@@ -510,15 +523,15 @@ public final class XmlToTibcoModelConverter {
     }
 
     // TODO: fill this
-    private static TibcoModel.ProcessTemplateConfigurations parseProcessTemplateConfigurations(Element element) {
-        return new TibcoModel.ProcessTemplateConfigurations();
+    private static ProcessTemplateConfigurations parseProcessTemplateConfigurations(Element element) {
+        return new ProcessTemplateConfigurations();
     }
 
-    private static TibcoModel.ProcessInterface parseProcessInterface(Element element) {
+    private static ProcessInterface parseProcessInterface(Element element) {
         String context = element.getAttribute("context");
         String input = element.getAttribute("input");
         String output = element.getAttribute("output");
-        return new TibcoModel.ProcessInterface(context, input, output);
+        return new ProcessInterface(context, input, output);
     }
 
     private static Scope parseScope(Element element) {
@@ -607,9 +620,9 @@ public final class XmlToTibcoModelConverter {
 
     private static Flow.Activity.Foreach parseForeach(Element element) {
         String counterName = element.getAttribute("counterName");
-        TibcoModel.ValueSource startCounterValue = parseValueSource(
+        ValueSource startCounterValue = parseValueSource(
                 getFirstChildWithTag(element, "startCounterValue"));
-        TibcoModel.ValueSource finalCounterValue = parseValueSource(
+        ValueSource finalCounterValue = parseValueSource(
                 getFirstChildWithTag(element, "finalCounterValue"));
         Scope scope = parseScope(getFirstChildWithTag(element, "scope"));
         return new Flow.Activity.Foreach(counterName, scope, startCounterValue, finalCounterValue,
@@ -628,12 +641,12 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static Flow.Activity.Assign.Copy parseCopy(Element element) {
-        TibcoModel.ValueSource from = parseValueSource(getFirstChildWithTag(element, "from"));
-        TibcoModel.ValueSource.VarRef to = parseVarRef(getFirstChildWithTag(element, "to"));
+        ValueSource from = parseValueSource(getFirstChildWithTag(element, "from"));
+        ValueSource.VarRef to = parseVarRef(getFirstChildWithTag(element, "to"));
         return new Flow.Activity.Assign.Copy(from, to);
     }
 
-    private static TibcoModel.ValueSource parseValueSource(Element element) {
+    private static ValueSource parseValueSource(Element element) {
         String variable = element.getAttribute("variable");
         if (variable.isEmpty()) {
             String expressionLanguage = element.getAttribute("expressionLanguage");
@@ -643,15 +656,15 @@ public final class XmlToTibcoModelConverter {
             } else if (expressionLanguage.contains("xpath")) {
                 return new Flow.Activity.Expression.XPath(expression);
             } else {
-                return new TibcoModel.ValueSource.Constant(expression);
+                return new ValueSource.Constant(expression);
             }
         }
         return parseVarRef(element);
     }
 
-    private static TibcoModel.ValueSource.VarRef parseVarRef(Element element) {
+    private static ValueSource.VarRef parseVarRef(Element element) {
         String variable = element.getAttribute("variable");
-        return new TibcoModel.ValueSource.VarRef(variable);
+        return new ValueSource.VarRef(variable);
     }
 
     private static Flow.Activity.NestedScope parseNestedScope(Element element) {
@@ -728,7 +741,7 @@ public final class XmlToTibcoModelConverter {
 
     private static Flow.Activity.Reply parseReply(Element element) {
         String name = element.getAttribute("name");
-        var operation = TibcoModel.Method.from(
+        var operation = Method.from(
                 element.getAttribute("operation"));
         String partnerLink = element.getAttribute("partnerLink");
         String portType = element.getAttribute("portType");
@@ -750,7 +763,7 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static Flow.Activity.Pick.OnMessage parseOnMessage(Element element) {
-        var operation = TibcoModel.Method.from(
+        var operation = Method.from(
                 element.getAttribute("operation"));
         String partnerLink = element.getAttribute("partnerLink");
         String portType = element.getAttribute("portType");
@@ -762,12 +775,12 @@ public final class XmlToTibcoModelConverter {
     private static Flow.Activity.Invoke parseInvoke(Element element) {
         String inputVariable = element.getAttribute("inputVariable");
         String outputVariable = element.getAttribute("outputVariable");
-        TibcoModel.Method operation;
+        Method operation;
         try {
-            operation = TibcoModel.Method.from(element.getAttribute("operation"));
+            operation = Method.from(element.getAttribute("operation"));
         } catch (IllegalArgumentException ignored) {
             // TODO: need to handle this properly, this happens for SOAP operations
-            operation = TibcoModel.Method.POST;
+            operation = Method.POST;
         }
         String partnerLink = element.getAttribute("partnerLink");
         List<Flow.Activity.InputBinding> inputBindings = new ArrayList<>();
@@ -1126,11 +1139,11 @@ public final class XmlToTibcoModelConverter {
                 .map(link -> new Flow.Link(link.getAttribute("name"))).toList();
     }
 
-    private static Collection<TibcoModel.Variable> parseVariables(Element element) {
+    private static Collection<Variable> parseVariables(Element element) {
         return ElementIterable.of(element).stream().map(XmlToTibcoModelConverter::parseVariable).toList();
     }
 
-    private static TibcoModel.Variable parseVariable(Element element) {
+    private static Variable parseVariable(Element element) {
         String name = element.getAttribute("name");
         String type = element.getAttribute("element");
         boolean isProperty = tryGetAttributeIgnoringNamespace(element, "property").map(val -> val.equals("yes"))
@@ -1138,21 +1151,21 @@ public final class XmlToTibcoModelConverter {
         if (isProperty) {
             return parsePropertyVariable(element, name, type);
         }
-        return new TibcoModel.Variable.DefaultVariable(name, type);
+        return new Variable.DefaultVariable(name, type);
     }
 
-    private static TibcoModel.Variable.@NotNull PropertyVariable parsePropertyVariable(Element element, String name,
-            String type) {
+    private static Variable.@NotNull PropertyVariable parsePropertyVariable(Element element, String name,
+                                                                            String type) {
         Optional<Element> from = tryGetFirstChildWithTag(element, "from");
         if (from.isPresent()) {
             Optional<Element> literal = tryGetFirstChildWithTag(from.get(), "literal");
             if (literal.isPresent()) {
-                return new TibcoModel.Variable.PropertyVariable.PropertyReference(name, literal.get().getTextContent(),
+                return new Variable.PropertyVariable.PropertyReference(name, literal.get().getTextContent(),
                         type);
             }
         } else {
             String propertySource = getAttributeIgnoringNamespace(element, "propertySource");
-            return new TibcoModel.Variable.PropertyVariable.SimpleProperty(name, propertySource, type);
+            return new Variable.PropertyVariable.SimpleProperty(name, propertySource, type);
         }
         throw new ParserException("Failed to parse property variable", element);
     }
@@ -1236,7 +1249,7 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static PartnerLink.RestPartnerLink.Binding.Operation parseBindingOperation(Element operation) {
-        TibcoModel.Method method = TibcoModel.Method.from(
+        Method method = Method.from(
                 operation.getAttribute("httpMethod"));
 
         Optional<PartnerLink.Binding.Operation.RequestEntityProcessing> requestEntityProcessing = parseIfPresent(
@@ -1309,22 +1322,22 @@ public final class XmlToTibcoModelConverter {
         return ElementIterable.of(element).stream().filter(child -> getTagNameWithoutNameSpace(child).equals(tag));
     }
 
-    private static TibcoModel.ProcessInfo parseProcessInfo(Element element) {
+    private static ProcessInfo parseProcessInfo(Element element) {
         boolean callable = expectBooleanAttribute(element, "callable");
         // TODO: how multiple modifiers represented?
-        Set<TibcoModel.ProcessInfo.Modifier> modifiers = EnumSet.noneOf(TibcoModel.ProcessInfo.Modifier.class);
+        Set<ProcessInfo.Modifier> modifiers = EnumSet.noneOf(ProcessInfo.Modifier.class);
         String modifiersStr = element.getAttribute("modifiers");
         if (modifiersStr.contains("public")) {
-            modifiers.add(TibcoModel.ProcessInfo.Modifier.PUBLIC);
+            modifiers.add(ProcessInfo.Modifier.PUBLIC);
         }
         boolean scalable = expectBooleanAttribute(element, "scalable");
         boolean singleton = expectBooleanAttribute(element, "singleton");
         boolean stateless = expectBooleanAttribute(element, "stateless");
-        TibcoModel.ProcessInfo.Type type = switch (element.getAttribute("type")) {
-            case "IT" -> TibcoModel.ProcessInfo.Type.IT;
+        ProcessInfo.Type type = switch (element.getAttribute("type")) {
+            case "IT" -> ProcessInfo.Type.IT;
             default -> throw new ParserException("Unsupported process type: " + element.getAttribute("type"), element);
         };
-        return new TibcoModel.ProcessInfo(callable, modifiers, scalable, singleton, stateless, type);
+        return new ProcessInfo(callable, modifiers, scalable, singleton, stateless, type);
     }
 
     private static Collection<Type> parseTypes(Element element) {
@@ -1344,8 +1357,8 @@ public final class XmlToTibcoModelConverter {
         return new Type.Schema(element);
     }
 
-    private static TibcoModel.NameSpace parseImport(Element each) {
-        return new TibcoModel.NameSpace(each.getAttribute("namespace"));
+    private static NameSpace parseImport(Element each) {
+        return new NameSpace(each.getAttribute("namespace"));
     }
 
     private static Optional<Type.WSDLDefinition> tryParseWSDLDefinition(Element element) {
@@ -1365,7 +1378,7 @@ public final class XmlToTibcoModelConverter {
         }
         Map<String, String> namespaces = getNamespaces(element);
         Collection<Type.WSDLDefinition.PartnerLinkType> partnerLinkTypes = new ArrayList<>();
-        List<TibcoModel.NameSpace> imports = new ArrayList<>();
+        List<NameSpace> imports = new ArrayList<>();
         List<Type.WSDLDefinition.Message> messages = new ArrayList<>();
         List<Type.WSDLDefinition.PortType> portTypes = new ArrayList<>();
         for (Element child : ElementIterable.of(element)) {
@@ -1415,10 +1428,10 @@ public final class XmlToTibcoModelConverter {
 
     private static Type.WSDLDefinition.PortType.Operation parsePortOperation(Element operation) {
 
-        record MessageNamePair(TibcoModel.NameSpaceValue message, String name) {
+        record MessageNamePair(NameSpaceValue message, String name) {
 
             static MessageNamePair from(Element element) {
-                return new MessageNamePair(TibcoModel.NameSpaceValue.from(element.getAttribute("message")),
+                return new MessageNamePair(NameSpaceValue.from(element.getAttribute("message")),
                         element.getAttribute("name"));
             }
         }
@@ -1475,7 +1488,7 @@ public final class XmlToTibcoModelConverter {
 
     private static Type.WSDLDefinition.Message.Part.Reference parseReferencePart(Element node) {
         String name = node.getAttribute("name");
-        TibcoModel.NameSpaceValue element = TibcoModel.NameSpaceValue.from(node.getAttribute("element"));
+        NameSpaceValue element = NameSpaceValue.from(node.getAttribute("element"));
         // TODO: is this correct?
         boolean multipleNamespaces = node.hasAttribute("multipleNamespaces");
         return new Type.WSDLDefinition.Message.Part.Reference(name, element, multipleNamespaces);
@@ -1488,7 +1501,7 @@ public final class XmlToTibcoModelConverter {
         String portTypeName = role.getAttribute("portType");
         return new Type.WSDLDefinition.PartnerLinkType(name,
                 new Type.WSDLDefinition.PartnerLinkType.Role(roleName,
-                        TibcoModel.NameSpaceValue.from(portTypeName)));
+                        NameSpaceValue.from(portTypeName)));
     }
 
     private static String getTagNameWithoutNameSpace(Element element) {

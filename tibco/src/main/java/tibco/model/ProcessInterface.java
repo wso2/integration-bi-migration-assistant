@@ -16,29 +16,8 @@
  *  under the License.
  */
 
-package tibco.analyzer;
+package tibco.model;
 
-import tibco.model.Scope;
+public record ProcessInterface(String context, String input, String output) {
 
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
-public class ProjectAnalysisContext {
-
-    private final Set<String> controlFlowFunctionNames = new LinkedHashSet<>();
-    private final Map<Scope.Flow.Activity, String> activityFunctionNames =
-            new ConcurrentHashMap<>();
-
-    public ProjectAnalysisContext() {
-    }
-
-    public Set<String> controlFlowFunctionNames() {
-        return controlFlowFunctionNames;
-    }
-
-    public Map<Scope.Flow.Activity, String> activityFunctionNames() {
-        return activityFunctionNames;
-    }
 }

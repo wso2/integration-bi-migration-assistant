@@ -38,23 +38,25 @@ import common.BallerinaModel.TypeDesc.StreamTypeDesc;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
-import tibco.TibcoModel;
-import tibco.TibcoModel.Process5.ExplicitTransitionGroup.InlineActivity;
-import tibco.TibcoModel.Scope.Flow.Activity;
-import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension;
-import tibco.TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.JsonOperation;
-import tibco.TibcoModel.Scope.Flow.Activity.CatchAll;
-import tibco.TibcoModel.Scope.Flow.Activity.Empty;
-import tibco.TibcoModel.Scope.Flow.Activity.ExtActivity;
-import tibco.TibcoModel.Scope.Flow.Activity.InputBinding;
-import tibco.TibcoModel.Scope.Flow.Activity.Invoke;
-import tibco.TibcoModel.Scope.Flow.Activity.Pick;
-import tibco.TibcoModel.Scope.Flow.Activity.ReceiveEvent;
-import tibco.TibcoModel.Scope.Flow.Activity.Reply;
-import tibco.TibcoModel.Scope.Flow.Activity.Throw;
-import tibco.TibcoModel.Scope.Flow.Activity.UnhandledActivity;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
+import tibco.model.PartnerLink;
+import tibco.model.Process5;
+import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
+import tibco.model.Scope.Flow.Activity;
+import tibco.model.Scope.Flow.Activity.ActivityExtension;
+import tibco.model.Scope.Flow.Activity.ActivityExtension.Config.JsonOperation;
+import tibco.model.Scope.Flow.Activity.CatchAll;
+import tibco.model.Scope.Flow.Activity.Empty;
+import tibco.model.Scope.Flow.Activity.ExtActivity;
+import tibco.model.Scope.Flow.Activity.InputBinding;
+import tibco.model.Scope.Flow.Activity.Invoke;
+import tibco.model.Scope.Flow.Activity.Pick;
+import tibco.model.Scope.Flow.Activity.ReceiveEvent;
+import tibco.model.Scope.Flow.Activity.Reply;
+import tibco.model.Scope.Flow.Activity.Throw;
+import tibco.model.Scope.Flow.Activity.UnhandledActivity;
+import tibco.model.ValueSource;
 import tibco.xslt.AddMissingParameters;
 import tibco.xslt.IgnoreRootWrapper;
 import tibco.xslt.ReplaceDotAccessWithXPath;
@@ -179,10 +181,10 @@ final class ActivityConverter {
                 case InlineActivity.SOAPSendReceive soapSendReceive ->
                         convertSoapSendReceive(cx, result, soapSendReceive);
                 case InlineActivity.SOAPSendReply soapSendReply -> convertSoapSendReply(cx, result, soapSendReply);
-                case TibcoModel.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup loopGroup ->
+                case Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup loopGroup ->
                         convertLoopGroup(cx, result, loopGroup);
                 case InlineActivity.REST rest -> convertREST(cx, result, rest);
-                case TibcoModel.Process5.ExplicitTransitionGroup.InlineActivity.Catch ignored ->
+                case Process5.ExplicitTransitionGroup.InlineActivity.Catch ignored ->
                         emptyExtensionConversion(cx, result);
                 case InlineActivity.JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
                 case InlineActivity.JSONRender jsonRender -> convertJsonRender(cx, result, jsonRender);
@@ -337,7 +339,7 @@ final class ActivityConverter {
 
     private static ActivityConversionResult convertLoopGroup(
             ActivityContext cx, VariableReference result,
-            TibcoModel.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup loopGroup) {
+            Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup loopGroup) {
         // TODO: deal with result once we have examples for loops with input bindings
         List<Statement> body = new ArrayList<>();
         VarDeclStatment resultValue = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
@@ -365,7 +367,7 @@ final class ActivityConverter {
     }
 
     private static Statement loopBody(ActivityContext cx,
-                                      TibcoModel.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup loop,
+                                      Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup loop,
                                       VariableReference loopSequence,
                                       VariableReference result, String indexVar) {
         StringBuilder sb = new StringBuilder();
@@ -640,7 +642,7 @@ final class ActivityConverter {
 
     private static @NotNull List<Statement> convertAssign(ActivityContext cx, Activity.Assign assign) {
         List<Statement> body = new ArrayList<>();
-        TibcoModel.ValueSource from = assign.operation().from();
+        ValueSource from = assign.operation().from();
         BallerinaModel.Expression sourceExp = convertValueSource(cx, from, body, XML);
         VarDeclStatment source = new VarDeclStatment(XML, cx.getAnnonVarName(), sourceExp);
         body.add(source);
@@ -649,7 +651,7 @@ final class ActivityConverter {
     }
 
     private static BallerinaModel.@NotNull Expression convertValueSource(
-            ActivityContext cx, TibcoModel.ValueSource from, List<Statement> body,
+            ActivityContext cx, ValueSource from, List<Statement> body,
             BallerinaModel.TypeDesc expectedType) {
         return switch (from) {
             case Activity.Expression.XSLT xslt -> {
@@ -658,7 +660,7 @@ final class ActivityConverter {
                 body.add(init);
                 yield xsltTransform(cx, init.ref(), xslt);
             }
-            case TibcoModel.ValueSource.VarRef varRef -> getFromContext(cx, varRef.name());
+            case ValueSource.VarRef varRef -> getFromContext(cx, varRef.name());
             case Activity.Expression.XPath xPath -> {
                 VarDeclStatment result = new VarDeclStatment(expectedType, cx.getAnnonVarName(),
                         ConversionUtils.xPath(cx.processContext, defaultEmptyXml(),
@@ -666,7 +668,7 @@ final class ActivityConverter {
                 body.add(result);
                 yield result.ref();
             }
-            case TibcoModel.ValueSource.Constant constant -> {
+            case ValueSource.Constant constant -> {
                 VarDeclStatment result = new VarDeclStatment(expectedType, cx.getAnnonVarName(),
                         exprFrom(constant.value()));
                 body.add(result);
@@ -996,7 +998,7 @@ final class ActivityConverter {
         VariableReference input = inputBindings.isEmpty() ? inputDecl.ref() : inputBindings.getLast().ref();
 
         AnalysisResult ar = cx.processContext.getAnalysisResult();
-        TibcoModel.PartnerLink.Binding binding = ar.getBinding(invoke.partnerLink());
+        PartnerLink.Binding binding = ar.getBinding(invoke.partnerLink());
         String path = binding.path().basePath();
         VariableReference client = cx.getHttpClient(path);
 

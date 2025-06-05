@@ -16,29 +16,27 @@
  *  under the License.
  */
 
-package tibco.analyzer;
+package tibco.model;
 
-import tibco.model.Scope;
+public enum Method {
+    POST("post"),
+    DELETE("delete"),
+    PUT("put"),
+    GET("get");
 
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+    public final String method;
 
-public class ProjectAnalysisContext {
-
-    private final Set<String> controlFlowFunctionNames = new LinkedHashSet<>();
-    private final Map<Scope.Flow.Activity, String> activityFunctionNames =
-            new ConcurrentHashMap<>();
-
-    public ProjectAnalysisContext() {
+    Method(String method) {
+        this.method = method;
     }
 
-    public Set<String> controlFlowFunctionNames() {
-        return controlFlowFunctionNames;
-    }
-
-    public Map<Scope.Flow.Activity, String> activityFunctionNames() {
-        return activityFunctionNames;
+    public static Method from(String value) {
+        return switch (value.toLowerCase()) {
+            case "post" -> POST;
+            case "delete" -> DELETE;
+            case "put" -> PUT;
+            case "get" -> GET;
+            default -> throw new IllegalArgumentException("Unknown method: " + value);
+        };
     }
 }

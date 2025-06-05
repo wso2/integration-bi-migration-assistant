@@ -23,11 +23,11 @@ import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Statement.Return;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
-import tibco.Process;
-import tibco.TibcoModel;
 import tibco.TibcoToBalConverter;
 import tibco.XmlToTibcoModelConverter;
 import tibco.analyzer.AnalysisResult;
+import tibco.model.Process;
+import tibco.model.Type;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -84,7 +84,7 @@ public class ProjectContext {
     private final Map<BallerinaModel.TypeDesc, String> typeConversionFunction = new HashMap<>();
     private final Map<String, String> renderJsonAsXMLFunction = new HashMap<>();
     private final Map<Process, AnalysisResult> analysisResult;
-    private Collection<TibcoModel.Type.Schema> schemas = new ArrayList<>();
+    private Collection<Type.Schema> schemas = new ArrayList<>();
 
     ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
                    Map<Process, AnalysisResult> analysisResult) {
@@ -371,11 +371,11 @@ public class ProjectContext {
                 "Analysis result not found for process: " + process.name());
     }
 
-    public void addXSDSchemaToConversion(TibcoModel.Type.Schema schema) {
+    public void addXSDSchemaToConversion(Type.Schema schema) {
         schemas.add(schema);
     }
 
-    public Collection<TibcoModel.Type.Schema> getXSDSchemas() {
+    public Collection<Type.Schema> getXSDSchemas() {
         return schemas;
     }
 
