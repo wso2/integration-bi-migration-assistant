@@ -220,14 +220,6 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getAddToContextFn();
     }
 
-    BallerinaModel.TypeDesc getLogInputType() {
-        return projectContext.getLogInputType();
-    }
-
-    String getLogFunction() {
-        return projectContext.getLogFunction();
-    }
-
     String getXPathFunction() {
         addLibraryImport(Library.XML_DATA);
         return "xmldata:transform";

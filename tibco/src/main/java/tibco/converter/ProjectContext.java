@@ -54,7 +54,6 @@ import static common.ConversionUtils.exprFrom;
 import static tibco.converter.Library.HTTP;
 import static tibco.converter.Library.JDBC;
 import static tibco.converter.Library.JSON_DATA;
-import static tibco.converter.Library.LOG;
 import static tibco.converter.Library.XML_DATA;
 
 public class ProjectContext {
@@ -71,7 +70,6 @@ public class ProjectContext {
 
     private String toXMLFunction = null;
     private String jsonToXMLFunction = null;
-    private String logFunction = null;
     private int nextPort = 8080;
     private int typeCount = 0;
     private int annonVarCount = 0;
@@ -136,21 +134,6 @@ public class ProjectContext {
                         List.of(new Return<>(new FunctionCall("xmldata:fromJson", new String[]{"data"})))));
         jsonToXMLFunction = functionName;
         return jsonToXMLFunction;
-    }
-
-    BallerinaModel.TypeDesc getLogInputType() {
-        return getTypeByName("LogParametersType", typeCx);
-    }
-
-    String getLogFunction() {
-        if (logFunction != null) {
-            return logFunction;
-        }
-        importLibraryIfNeededToUtility(LOG);
-        Intrinsics intrinsic = Intrinsics.LOG_WRAPPER;
-        utilityIntrinsics.add(intrinsic);
-        logFunction = intrinsic.name;
-        return logFunction;
     }
 
     private void importLibraryIfNeededToUtility(Library library) {

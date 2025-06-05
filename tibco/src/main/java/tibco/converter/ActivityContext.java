@@ -88,14 +88,6 @@ public class ActivityContext {
         processContext.addLibraryImport(library);
     }
 
-    BallerinaModel.TypeDesc getLogInputType() {
-        return processContext.getLogInputType();
-    }
-
-    String getLogFunction() {
-        return processContext.getLogFunction();
-    }
-
     public String getConfigVarName(String name) {
         return processContext.getConfigVarName(name);
     }

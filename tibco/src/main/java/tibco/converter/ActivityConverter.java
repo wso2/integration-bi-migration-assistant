@@ -21,8 +21,6 @@ package tibco.converter;
 import common.BallerinaModel;
 import common.BallerinaModel.Action.RemoteMethodCallAction;
 import common.BallerinaModel.Expression.Check;
-import common.BallerinaModel.Expression.CheckPanic;
-import common.BallerinaModel.Expression.FieldAccess;
 import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Expression.MethodCall;
 import common.BallerinaModel.Expression.StringConstant;
@@ -578,10 +576,15 @@ final class ActivityConverter {
     }
 
     private static ActivityConversionResult convertWriteLogActivity(
-            ActivityContext cx, VariableReference result, WriteLog writeLog) {
+            ActivityContext cx, VariableReference input, WriteLog writeLog) {
+        return finishWriteLogActivity(cx, input);
+    }
+
+    private static @NotNull ActivityConversionResult finishWriteLogActivity(ActivityContext cx,
+                                                                            VariableReference input) {
         List<Statement> body = new ArrayList<>();
         VarDeclStatment message = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                exprFrom("%s/**/<message>/*".formatted(result.varName())));
+                exprFrom("%s/**/<message>/*".formatted(input.varName())));
         body.add(message);
         cx.addLibraryImport(Library.LOG);
         body.add(new CallStatement(new FunctionCall(LogConstants.LOG_INFO_FUNCTION,
@@ -856,24 +859,10 @@ final class ActivityConverter {
         return new ActivityConversionResult(wrapped.ref(), List.of(wrapped));
     }
 
-    // TODO: 114 refact
     private static ActivityConversionResult createLogOperation(ActivityContext cx,
-                                                               VariableReference result,
+                                                               VariableReference input,
                                                                ActivityExtension.Config.Log log) {
-        List<Statement> body = new ArrayList<>();
-
-        BallerinaModel.TypeDesc dataType = cx.getLogInputType();
-        VarDeclStatment dataDecl = new VarDeclStatment(dataType, cx.getAnnonVarName(),
-                new FunctionCall(cx.getConvertToTypeFunction(dataType), List.of(result)));
-        body.add(dataDecl);
-
-        CallStatement callStatement = new CallStatement(
-                new FunctionCall(
-                        cx.getLogFunction(),
-                        List.of(new VariableReference(dataDecl.varName()))));
-        body.add(callStatement);
-
-        return new ActivityConversionResult(result, body);
+        return finishWriteLogActivity(cx, input);
     }
 
     private static ActivityConversionResult createFileWriteOperation(
