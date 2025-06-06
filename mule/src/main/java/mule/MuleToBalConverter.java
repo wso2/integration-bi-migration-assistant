@@ -85,9 +85,9 @@ import static mule.model.MuleModel.UnsupportedBlock;
 public class MuleToBalConverter {
 
     public static SyntaxTree convertStandaloneXMLFileToBallerina(String xmlFilePath) {
-        MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator();
         Context ctx = new Context();
         ctx.startStandaloneFile(xmlFilePath);
+        MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator(ctx.migrationMetrics);
         return convertXMLFileToBallerina(muleXMLNavigator, xmlFilePath, ctx);
     }
 

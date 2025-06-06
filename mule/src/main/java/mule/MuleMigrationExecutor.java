@@ -112,14 +112,14 @@ public class MuleMigrationExecutor {
     }
 
     private static void convertMuleXmlFile(Path balPackageDir, String inputFileName, String inputXmlFilePath) {
-        MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator();
-        Context ctx = new Context(); // Project Context
+        Context ctx = new Context();
         ctx.startNewFile(inputXmlFilePath);
+        MuleXMLNavigator xmlNavigator = new MuleXMLNavigator(ctx.migrationMetrics);
 
         String targetBalFile = inputFileName.concat(".bal");
         SyntaxTree syntaxTree;
         try {
-            syntaxTree = convertProjectXMLFileToBallerina(muleXMLNavigator, ctx, inputXmlFilePath);
+            syntaxTree = convertProjectXMLFileToBallerina(xmlNavigator, ctx, inputXmlFilePath);
         } catch (Exception e) {
             logger.severe("Error converting the file: %s%n%s".formatted(inputFileName.concat(".xml"), e.getMessage()));
             return;
@@ -138,10 +138,8 @@ public class MuleMigrationExecutor {
 
         genAndWriteInternalTypesBalFile(ctx, balPackageDir.toString());
         Path reportFilePath = Paths.get(balPackageDir.toString(), MIGRATION_REPORT_NAME);
-        int conversionPercentage = writeHtmlReport(logger, reportFilePath,
-                muleXMLNavigator.getXmlCompatibleTagCountMap(), muleXMLNavigator.getXmlIncompatibleTagCountMap(),
-                ctx.projectCtx.dwConversionStats);
-        printDataWeaveConversionPercentage(ctx);
+        int conversionPercentage = writeHtmlReport(logger, reportFilePath, ctx.migrationMetrics);
+        printDataWeaveConversionPercentage(ctx.migrationMetrics);
         printOverallProjectConversionPercentage(conversionPercentage);
     }
 
@@ -173,9 +171,10 @@ public class MuleMigrationExecutor {
             System.exit(1);
         }
 
-        MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator();
+
 
         Context ctx = new Context(); // Project Context
+        MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator(ctx.migrationMetrics);
         for (File xmlFile : xmlFiles) {
             ctx.startNewFile(xmlFile.getPath());
             Path relativePath = sourceFolderPath.relativize(xmlFile.toPath());
@@ -190,10 +189,8 @@ public class MuleMigrationExecutor {
         genConfigTOMLFile(propertyFiles, targetFolderPath);
 
         Path reportFilePath = Paths.get(targetFolderPath, MIGRATION_REPORT_NAME);
-        int conversionPercentage = writeHtmlReport(logger, reportFilePath,
-                muleXMLNavigator.getXmlCompatibleTagCountMap(), muleXMLNavigator.getXmlIncompatibleTagCountMap(),
-                ctx.projectCtx.dwConversionStats);
-        printDataWeaveConversionPercentage(ctx);
+        int conversionPercentage = writeHtmlReport(logger, reportFilePath, ctx.migrationMetrics);
+        printDataWeaveConversionPercentage(ctx.migrationMetrics);
         printOverallProjectConversionPercentage(conversionPercentage);
     }
 
@@ -318,8 +315,8 @@ public class MuleMigrationExecutor {
         }
     }
 
-    private static void printDataWeaveConversionPercentage(Context ctx) {
-        DWConversionStats stats = ctx.projectCtx.dwConversionStats;
+    private static void printDataWeaveConversionPercentage(Context.MigrationMetrics migrationMetrics) {
+        DWConversionStats stats = migrationMetrics.dwConversionStats;
         OUT.println("________________________________________________________________");
         OUT.println("Dataweave conversion percentage: " + String.format("%.2f", stats.getConversionPercentage()) + "%");
         OUT.println("________________________________________________________________");

@@ -18,6 +18,7 @@
 
 package mule.report;
 
+import mule.Context;
 import mule.dataweave.converter.DWConstruct;
 import mule.dataweave.converter.DWConversionStats;
 import mule.model.MuleXMLTag;
@@ -35,36 +36,37 @@ public class HtmlReportWriter {
     private static final String INCOMPATIBLE_TAG_TYPE = "Incompatible";
     private static final String DATAWEAVE = "Dataweave Constructs";
 
-    public static int writeHtmlReport(Logger logger, Path reportFilePath,
-                                      LinkedHashMap<String, Integer> xmlCompatibleTagCountMap,
-                                      LinkedHashMap<String, Integer> xmlIncompatibleTagCountMap,
-                                      DWConversionStats dwStats) {
+    public static int writeHtmlReport(Logger logger, Path reportFilePath, Context.MigrationMetrics migrationMetrics) {
+        LinkedHashMap<String, Integer> passedXMLTags = migrationMetrics.passedXMLTags;
+        LinkedHashMap<String, Integer> failedXMLTags = migrationMetrics.failedXMLTags;
+        DWConversionStats dwStats = migrationMetrics.dwConversionStats;
+
         String htmlHeader = generateHtmlHeader();
 
         /// Percentage calculation
-        int totalCompatibleTagWeight = calculateTotalWeight(xmlCompatibleTagCountMap);
-        int totalIncompatibleTagWeight = calculateTotalWeight(xmlIncompatibleTagCountMap);
-        int xmlTotalWeight = totalCompatibleTagWeight + totalIncompatibleTagWeight;
+        int totalPassedTagWeight = calculateTotalWeight(passedXMLTags);
+        int totalFailedTagWeight = calculateTotalWeight(failedXMLTags);
+        int xmlTotalWeight = totalPassedTagWeight + totalFailedTagWeight;
 
         int dwTotalWeight = dwStats.getTotalWeight();
         int dwConvertedWeight = dwStats.getConvertedWeight();
 
         // Overall weight and conversion %
         int combinedTotalWeight = xmlTotalWeight + dwTotalWeight;
-        int combinedConvertedWeight = totalCompatibleTagWeight + dwConvertedWeight;
+        int combinedConvertedWeight = totalPassedTagWeight + dwConvertedWeight;
         int percentage = combinedTotalWeight == 0 ? 0 : combinedConvertedWeight * 100 / combinedTotalWeight;
 
         String conversionPercentageSection = generateConversionPercentageSection(percentage);
 
-        int compatibleTagCount = xmlCompatibleTagCountMap.size();
-        int incompatibleTagCount = xmlIncompatibleTagCountMap.size();
+        int passedTagCount = passedXMLTags.size();
+        int failedTagCount = failedXMLTags.size();
         String compatibleSummarySection = generateSummarySection(COMPATIBLE_TAG_TYPE + " XML Element Tag",
-                compatibleTagCount, totalCompatibleTagWeight);
-        String compatibleTagTable = generateTagsSection(COMPATIBLE_TAG_TYPE, xmlCompatibleTagCountMap,
+                passedTagCount, totalPassedTagWeight);
+        String compatibleTagTable = generateTagsSection(COMPATIBLE_TAG_TYPE, passedXMLTags,
                 "compatibleTagsDrawer", "compatibleArrow", true);
         String incompatibleSummarySection = generateSummarySection(INCOMPATIBLE_TAG_TYPE + " XML Element Tag",
-                incompatibleTagCount, totalIncompatibleTagWeight);
-        String incompatibleTagTable = generateTagsSection(INCOMPATIBLE_TAG_TYPE, xmlIncompatibleTagCountMap,
+                failedTagCount, totalFailedTagWeight);
+        String incompatibleTagTable = generateTagsSection(INCOMPATIBLE_TAG_TYPE, failedXMLTags,
                 "incompatibleTagsDrawer", "incompatibleArrow", false);
 
         String dwSummarySection = generateSummarySection(DATAWEAVE, dwStats.getEncountered().size(),

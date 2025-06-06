@@ -45,6 +45,7 @@ public class Context {
     public final ProjectContext projectCtx = new ProjectContext();
     public FileContext currentFileCtx;
     private boolean isStandaloneBalFile = false;
+    public final MigrationMetrics migrationMetrics = new MigrationMetrics();
 
     public void startNewFile(String filePath) {
         currentFileCtx = new FileContext(filePath, projectCtx);
@@ -72,10 +73,8 @@ public class Context {
     }
 
     public static class ProjectContext {
-        // Conversion stats
-        public final DWConversionStats dwConversionStats = new DWConversionStats();
-
         public final Counters counters = new Counters();
+
         public final LinkedHashMap<String, String> flowVars = new LinkedHashMap<>();
         public final LinkedHashMap<String, String> sessionVars = new LinkedHashMap<>();
         public final LinkedHashMap<String, String> inboundProperties = new LinkedHashMap<>();
@@ -162,5 +161,12 @@ public class Context {
         public int payloadVarCount = 0;
         public int clientResultVarCount = 0;
         public int vmReceiveFuncCount = 0;
+    }
+
+    public static class MigrationMetrics {
+        public final DWConversionStats dwConversionStats = new DWConversionStats();
+        public final LinkedHashMap<String, Integer> passedXMLTags = new LinkedHashMap<>();
+        public final LinkedHashMap<String, Integer> failedXMLTags = new LinkedHashMap<>();
+        public final List<String> failedBlocks = new ArrayList<>();
     }
 }

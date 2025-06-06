@@ -513,6 +513,7 @@ public class MuleConfigConverter {
     }
 
     private static List<Statement> convertUnsupportedBlock(Context ctx, UnsupportedBlock unsupportedBlock) {
+        ctx.migrationMetrics.failedBlocks.add(unsupportedBlock.xmlBlock());
         String comment = ConversionUtils.wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());
         // TODO: comment is not a statement. Find a better way to handle this
         // This works for now because we concatenate and create a body block `{ stmts }`

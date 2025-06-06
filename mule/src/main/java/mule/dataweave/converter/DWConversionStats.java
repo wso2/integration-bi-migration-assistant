@@ -18,10 +18,13 @@
 
 package mule.dataweave.converter;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class DWConversionStats {
+    final List<String> failedDWExpressions = new ArrayList<>();
     private final Map<DWConstruct, Integer> encountered = new LinkedHashMap<>();
     private final Map<DWConstruct, Integer> converted = new LinkedHashMap<>();
 
