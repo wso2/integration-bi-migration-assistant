@@ -36,7 +36,7 @@ import javax.xml.transform.stream.StreamResult;
 
 import static common.BallerinaModel.ModuleVar;
 import static common.ConversionUtils.exprFrom;
-import static mule.MELConverter.convertMELToBal;
+import static mule.converter.MELConverter.convertMELToBal;
 
 /**
  * Utility class for converting mule configs.
@@ -53,7 +53,7 @@ public class ConversionUtils {
      * @param path mule path
      * @return ballerina resource path
      */
-    static String getBallerinaResourcePath(Context ctx, String path, List<String> pathParams) {
+    public static String getBallerinaResourcePath(Context ctx, String path, List<String> pathParams) {
         List<String> list = Arrays.stream(path.split("/")).filter(s -> !s.isEmpty())
                 .map(s -> {
                     if (s.startsWith("{") && s.endsWith("}")) {
@@ -80,7 +80,7 @@ public class ConversionUtils {
      * @param basePath mule base path
      * @return ballerina absolute path
      */
-    static String getBallerinaAbsolutePath(String basePath) {
+    public static String getBallerinaAbsolutePath(String basePath) {
         List<String> list = Arrays.stream(basePath.split("/")).filter(s -> !s.isEmpty())
                 .map(ConversionUtils::convertToBalIdentifier).toList();
 
@@ -94,7 +94,7 @@ public class ConversionUtils {
      * @param basePath mule http request path
      * @return ballerina client resource path
      */
-    static String getBallerinaClientResourcePath(Context ctx, String basePath) {
+    public static String getBallerinaClientResourcePath(Context ctx, String basePath) {
         List<String> list = Arrays.stream(basePath.split("/")).filter(s -> !s.isEmpty())
                 .map(s -> {
                     if (s.startsWith("#[") && s.endsWith("]")) {
@@ -107,7 +107,7 @@ public class ConversionUtils {
         return list.isEmpty() ? "/" : "/" + String.join("/", list);
     }
 
-    static void processExprCompContent(Context ctx, String convertedBalStmts) {
+    public static void processExprCompContent(Context ctx, String convertedBalStmts) {
         List<String> list =
                 Arrays.stream(convertedBalStmts.split(";")).filter(s -> !s.isEmpty()).map(String::trim).toList();
         for (String stmt : list) {
@@ -186,7 +186,7 @@ public class ConversionUtils {
         return basePath.startsWith("/") ? basePath : "/" + basePath;
     }
 
-    static String genQueryParam(Context ctx, Map<String, String> queryParams) {
+    public static String genQueryParam(Context ctx, Map<String, String> queryParams) {
         return queryParams.entrySet().stream().map(e -> {
                     String k = e.getKey();
                     String key = SyntaxInfo.isKeyword(k) ? "'" + k : k;

@@ -27,7 +27,7 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
-import static mule.MuleConverter.convertMuleProject;
+import static mule.MuleMigrationExecutor.convertMuleProject;
 import static mule.MuleToBalConverter.convertStandaloneXMLFileToBallerina;
 
 public class TestConverter {

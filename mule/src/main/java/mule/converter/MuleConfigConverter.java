@@ -15,8 +15,11 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule;
+package mule.converter;
 
+import mule.Constants;
+import mule.Context;
+import mule.ConversionUtils;
 import mule.dataweave.converter.DWReader;
 import mule.dataweave.converter.DWUtils;
 
@@ -49,36 +52,35 @@ import static mule.ConversionUtils.convertMuleExprToBalStringLiteral;
 import static mule.ConversionUtils.genQueryParam;
 import static mule.ConversionUtils.getBallerinaClientResourcePath;
 import static mule.ConversionUtils.inferTypeFromBalExpr;
-import static mule.MuleModel.Async;
-import static mule.MuleModel.CatchExceptionStrategy;
-import static mule.MuleModel.Choice;
-import static mule.MuleModel.ChoiceExceptionStrategy;
-import static mule.MuleModel.Database;
-import static mule.MuleModel.Enricher;
-import static mule.MuleModel.ExpressionComponent;
-import static mule.MuleModel.FlowReference;
-import static mule.MuleModel.HttpRequest;
-import static mule.MuleModel.Kind;
-import static mule.MuleModel.LogLevel;
-import static mule.MuleModel.Logger;
-import static mule.MuleModel.MuleRecord;
-import static mule.MuleModel.ObjectToJson;
-import static mule.MuleModel.ObjectToString;
-import static mule.MuleModel.Payload;
-import static mule.MuleModel.QueryType;
-import static mule.MuleModel.ReferenceExceptionStrategy;
-import static mule.MuleModel.RemoveVariable;
-import static mule.MuleModel.SetSessionVariable;
-import static mule.MuleModel.SetVariable;
-import static mule.MuleModel.TransformMessage;
-import static mule.MuleModel.UnsupportedBlock;
-import static mule.MuleModel.VMOutboundEndpoint;
-import static mule.MuleModel.WhenInChoice;
+import static mule.model.MuleModel.Async;
+import static mule.model.MuleModel.CatchExceptionStrategy;
+import static mule.model.MuleModel.Choice;
+import static mule.model.MuleModel.ChoiceExceptionStrategy;
+import static mule.model.MuleModel.Database;
+import static mule.model.MuleModel.Enricher;
+import static mule.model.MuleModel.ExpressionComponent;
+import static mule.model.MuleModel.FlowReference;
+import static mule.model.MuleModel.HttpRequest;
+import static mule.model.MuleModel.Kind;
+import static mule.model.MuleModel.LogLevel;
+import static mule.model.MuleModel.Logger;
+import static mule.model.MuleModel.MuleRecord;
+import static mule.model.MuleModel.ObjectToJson;
+import static mule.model.MuleModel.ObjectToString;
+import static mule.model.MuleModel.Payload;
+import static mule.model.MuleModel.QueryType;
+import static mule.model.MuleModel.ReferenceExceptionStrategy;
+import static mule.model.MuleModel.RemoveVariable;
+import static mule.model.MuleModel.SetSessionVariable;
+import static mule.model.MuleModel.SetVariable;
+import static mule.model.MuleModel.TransformMessage;
+import static mule.model.MuleModel.UnsupportedBlock;
+import static mule.model.MuleModel.VMOutboundEndpoint;
+import static mule.model.MuleModel.WhenInChoice;
 
 public class MuleConfigConverter {
 
-    public static List<Statement> convertTopLevelMuleBlocks(Context ctx,
-                                                            List<MuleRecord> flowBlocks) {
+    public static List<Statement> convertTopLevelMuleBlocks(Context ctx, List<MuleRecord> flowBlocks) {
         // Add function body statements
         List<Statement> body = new ArrayList<>();
         List<Statement> workers = new ArrayList<>();
@@ -315,7 +317,7 @@ public class MuleConfigConverter {
         return List.of(doStatement);
     }
 
-    static List<Statement> getCatchExceptionBody(Context ctx, CatchExceptionStrategy catchExceptionStrategy) {
+    public static List<Statement> getCatchExceptionBody(Context ctx, CatchExceptionStrategy catchExceptionStrategy) {
         return convertMuleBlocks(ctx, catchExceptionStrategy.catchBlocks());
     }
 
@@ -328,7 +330,7 @@ public class MuleConfigConverter {
         return List.of(doStatement);
     }
 
-    static List<Statement> getChoiceExceptionBody(Context ctx, ChoiceExceptionStrategy choiceExceptionStrategy) {
+    public static List<Statement> getChoiceExceptionBody(Context ctx, ChoiceExceptionStrategy choiceExceptionStrategy) {
         List<CatchExceptionStrategy> catchExceptionStrategies = choiceExceptionStrategy.catchExceptionStrategyList();
         assert !catchExceptionStrategies.isEmpty();
 

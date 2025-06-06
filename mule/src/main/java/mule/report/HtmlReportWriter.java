@@ -16,10 +16,11 @@
  *  under the License.
  */
 
-package mule;
+package mule.report;
 
 import mule.dataweave.converter.DWConstruct;
 import mule.dataweave.converter.DWConversionStats;
+import mule.model.MuleXMLTag;
 
 import java.io.IOException;
 import java.nio.file.Files;

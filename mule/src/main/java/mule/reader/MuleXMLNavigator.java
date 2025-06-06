@@ -15,8 +15,9 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule;
+package mule.reader;
 
+import mule.model.MuleXMLTag;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
@@ -26,7 +27,7 @@ public class MuleXMLNavigator {
     private final LinkedHashMap<String, Integer> xmlCompatibleTagCountMap;
     private final LinkedHashMap<String, Integer> xmlIncompatibleTagCountMap;
 
-    MuleXMLNavigator() {
+    public MuleXMLNavigator() {
         this.xmlCompatibleTagCountMap = new LinkedHashMap<>();
         this.xmlIncompatibleTagCountMap = new LinkedHashMap<>();
     }

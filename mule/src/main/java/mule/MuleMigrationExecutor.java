@@ -23,6 +23,7 @@ import common.CodeGenerator;
 import io.ballerina.cli.cmd.NewCommand;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.dataweave.converter.DWConversionStats;
+import mule.reader.MuleXMLNavigator;
 import picocli.CommandLine;
 
 import java.io.BufferedReader;
@@ -40,32 +41,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 
-import static mule.HtmlReportWriter.writeHtmlReport;
+import static mule.report.HtmlReportWriter.writeHtmlReport;
 import static mule.MuleToBalConverter.convertProjectXMLFileToBallerina;
 import static mule.MuleToBalConverter.createTextDocument;
 import static mule.MuleToBalConverter.createContextTypeDefns;
 
-public class MuleConverter {
+public class MuleMigrationExecutor {
     public static final String MULE_DEFAULT_APP_DIR_NAME = "app";
     public static final String BAL_PROJECT_SUFFIX = "-ballerina";
     public static final String MIGRATION_REPORT_NAME = "migration_summary.html";
     private static final PrintStream OUT = System.out;
-    private static final Logger logger = Logger.getLogger(MuleConverter.class.getName());
-
-    public static void migrateMuleSource(String[] args) {
-        if (args.length != 1 && args.length != 3) {
-            logger.severe("Usage: java -jar mule-migration-assistant.jar <source-project-directory-or-file> " +
-                    "[-o|--out <output-directory>]");
-            System.exit(1);
-        }
-        String inputPathArg = args[0];
-        String outputPathArg = null;
-        if (args.length == 3 && (args[1].equals("-o") || args[1].equals("--out"))) {
-            outputPathArg = args[2];
-        }
-
-        migrateMuleSource(inputPathArg, outputPathArg);
-    }
+    private static final Logger logger = Logger.getLogger(MuleMigrationExecutor.class.getName());
 
     public static void migrateMuleSource(String inputPathArg, String outputPathArg) {
         Path sourcePath = Paths.get(inputPathArg);

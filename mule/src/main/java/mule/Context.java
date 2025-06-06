@@ -30,13 +30,13 @@ import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
-import static mule.MuleModel.DbMSQLConfig;
-import static mule.MuleModel.DbOracleConfig;
-import static mule.MuleModel.DbTemplateQuery;
-import static mule.MuleModel.HTTPListenerConfig;
-import static mule.MuleModel.HTTPRequestConfig;
-import static mule.MuleModel.MuleRecord;
-import static mule.MuleModel.UnsupportedBlock;
+import static mule.model.MuleModel.DbMSQLConfig;
+import static mule.model.MuleModel.DbOracleConfig;
+import static mule.model.MuleModel.DbTemplateQuery;
+import static mule.model.MuleModel.HTTPListenerConfig;
+import static mule.model.MuleModel.HTTPRequestConfig;
+import static mule.model.MuleModel.MuleRecord;
+import static mule.model.MuleModel.UnsupportedBlock;
 
 /**
  * Context class to hold the state of the conversion process.
@@ -76,10 +76,10 @@ public class Context {
         public final DWConversionStats dwConversionStats = new DWConversionStats();
 
         public final Counters counters = new Counters();
-        final LinkedHashMap<String, String> flowVars = new LinkedHashMap<>();
-        final LinkedHashMap<String, String> sessionVars = new LinkedHashMap<>();
-        final LinkedHashMap<String, String> inboundProperties = new LinkedHashMap<>();
-        final HashMap<String, String> vmPathToBalFuncMap = new LinkedHashMap<>();
+        public final LinkedHashMap<String, String> flowVars = new LinkedHashMap<>();
+        public final LinkedHashMap<String, String> sessionVars = new LinkedHashMap<>();
+        public final LinkedHashMap<String, String> inboundProperties = new LinkedHashMap<>();
+        public final HashMap<String, String> vmPathToBalFuncMap = new LinkedHashMap<>();
 
         // Shared configs
         List<HashMap<String, HTTPListenerConfig>> httpListenerConfigMaps = new ArrayList<>();
