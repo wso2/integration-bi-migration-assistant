@@ -16,29 +16,18 @@
  *  under the License.
  */
 
-package tibco.analyzer;
+package tibco.model;
 
-import tibco.model.Scope;
-
-import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
-public class ProjectAnalysisContext {
+public record ProcessInfo(boolean callable, Set<Modifier> modifiers, boolean scalable,
+                          boolean singleton, boolean stateless, Type type) {
 
-    private final Set<String> controlFlowFunctionNames = new LinkedHashSet<>();
-    private final Map<Scope.Flow.Activity, String> activityFunctionNames =
-            new ConcurrentHashMap<>();
-
-    public ProjectAnalysisContext() {
+    public enum Modifier {
+        PUBLIC
     }
 
-    public Set<String> controlFlowFunctionNames() {
-        return controlFlowFunctionNames;
-    }
-
-    public Map<Scope.Flow.Activity, String> activityFunctionNames() {
-        return activityFunctionNames;
+    public enum Type {
+        IT
     }
 }

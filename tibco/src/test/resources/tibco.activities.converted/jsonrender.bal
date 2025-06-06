@@ -20,7 +20,12 @@ function activityExtension(map<xml> context) returns xml | error {
         </tns:InputElement>
     </xsl:template>
 </xsl:stylesheet>`, context);
-    xml var2 = renderJson(var1);
-    addToContext(context, "OutputVariable", var2);
-    return var2;
+    
+//WARNING: assuming single element
+
+    InputElement var2 = check xmldata:parseAsType(var1);
+    string var3 = var2.toJsonString();
+    xml var4 = xml`<jsonString>${var3}</jsonString>`;
+    addToContext(context, "OutputVariable", var4);
+    return var4;
 }

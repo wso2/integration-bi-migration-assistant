@@ -38,12 +38,18 @@ import common.BallerinaModel.Statement.VarAssignStatement;
 import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc;
 import org.jetbrains.annotations.NotNull;
-import tibco.TibcoModel;
-import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivity.HttpEventSource;
-import tibco.TibcoModel.Process.ExplicitTransitionGroup.InlineActivityWithBody;
-import tibco.TibcoModel.Scope.Flow.Activity;
-import tibco.TibcoModel.Scope.Flow.Activity.Expression.XPath;
 import tibco.analyzer.AnalysisResult;
+import tibco.model.Process;
+import tibco.model.Process5;
+import tibco.model.Process5.ExplicitTransitionGroup;
+import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.HttpEventSource;
+import tibco.model.Process6;
+import tibco.model.Resource;
+import tibco.model.Scope;
+import tibco.model.Scope.Flow.Activity;
+import tibco.model.Scope.Flow.Activity.Expression.XPath;
+import tibco.model.Type;
+import tibco.model.Variable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -73,38 +79,36 @@ public class ProcessConverter {
     }
 
     static BallerinaModel.Service convertStartActivityService(
-            ProcessContext cx,
-            TibcoModel.Process.ExplicitTransitionGroup group) {
+            ProcessContext cx, ExplicitTransitionGroup group) {
         BallerinaModel.Resource resource = generateResourceFunctionForStartActivity(cx, group);
-        TibcoModel.Process.ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity();
+        ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity();
         assert startActivity instanceof HttpEventSource;
         String name = baseName(((HttpEventSource) startActivity).sharedChannel());
         VariableReference listenerRef = cx.getProjectContext().httpListener(name);
         return new BallerinaModel.Service("", listenerRef.varName(), List.of(resource));
     }
 
-    static void addProcessClient(ProcessContext cx, TibcoModel.Process.ExplicitTransitionGroup group,
-                                 Collection<TibcoModel.Resource.HTTPSharedResource> httpSharedResources) {
-        TibcoModel.Process.ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity();
+    static void addProcessClient(ProcessContext cx, ExplicitTransitionGroup group,
+                                 Collection<Resource.HTTPSharedResource> httpSharedResources) {
+        ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity();
         if (!(startActivity instanceof HttpEventSource httpEventSource)) {
             return;
         }
         String name = baseName(httpEventSource.sharedChannel());
-        TibcoModel.Resource.HTTPSharedResource http = httpSharedResources.stream()
+        Resource.HTTPSharedResource http = httpSharedResources.stream()
                 .filter(each -> each.name().equals(name))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Failed to find http source for " + name));
         String path = http.host() + ":" + http.port();
         cx.addLibraryImport(Library.HTTP);
         BallerinaModel.ModuleVar moduleVar = new BallerinaModel.ModuleVar(cx.getAnonName(), "http:Client",
-                Optional.of(new CheckPanic(exprFrom("new (\"%s\")".formatted(path)))),
-                false, false);
+                Optional.of(new CheckPanic(exprFrom("new (\"%s\")".formatted(path)))), false, false);
         cx.addOnDemandModuleVar(moduleVar.name(), moduleVar);
         cx.registerProcessClient(moduleVar.name());
     }
 
     private static BallerinaModel.@NotNull Resource generateResourceFunctionForStartActivity(
-            ProcessContext cx, TibcoModel.Process.ExplicitTransitionGroup group) {
+            ProcessContext cx, ExplicitTransitionGroup group) {
         List<Statement> body = new ArrayList<>();
         Parameter parameter = new Parameter("input", XML);
         XMLTemplate inputXml = new XMLTemplate("""
@@ -130,24 +134,35 @@ public class ProcessConverter {
                 List.of(parameter), Optional.of(XML), body);
     }
 
-    static BallerinaModel.TextDocument convertBody(ProcessContext cx, TibcoModel.Process process,
-            TypeConversionResult result) {
-        process.variables().stream()
-                .filter(each -> each instanceof TibcoModel.Variable.PropertyVariable)
-                .forEach(var -> cx.addResourceVariable((TibcoModel.Variable.PropertyVariable) var));
+    static BallerinaModel.TextDocument convertBody(ProcessContext cx, Process5 process,
+                                                   TypeConversionResult result) {
         List<BallerinaModel.Function> functions = cx.getAnalysisResult().activities().stream()
                 .map(activity -> ActivityConverter.convertActivity(cx, activity))
                 .collect(Collectors.toCollection(ArrayList::new));
-        if (process.transitionGroup() != null) {
-            functions.addAll(convertExplicitTransitionGroup(cx, process.transitionGroup()));
-        } else {
-            addTransitionPredicates(cx, functions);
-            functions.add(generateStartFunction(cx));
-            functions.add(generateActivityFlowFunction(cx));
-            functions.add(generateErrorFlowFunction(cx));
-            functions.add(generateProcessFunction(cx));
-            cx.handledScopes.add(process.scope());
-        }
+        functions.addAll(convertExplicitTransitionGroup(cx, process.transitionGroup()));
+        AnalysisResult analysisResult = cx.getAnalysisResult();
+        analysisResult.scopes(process).stream().map(scope -> generateControlFlowFunctionsForScope(cx, scope))
+                .flatMap(Collection::stream).forEach(functions::add);
+
+        functions.sort(Comparator.comparing(BallerinaModel.Function::functionName));
+        process.nameSpaces().forEach(cx::addNameSpace);
+        return cx.serialize(result.service(), functions);
+    }
+
+    static BallerinaModel.TextDocument convertBody(ProcessContext cx, Process6 process,
+                                                   TypeConversionResult result) {
+        process.variables().stream()
+                .filter(each -> each instanceof Variable.PropertyVariable)
+                .forEach(var -> cx.addResourceVariable((Variable.PropertyVariable) var));
+        List<BallerinaModel.Function> functions = cx.getAnalysisResult().activities().stream()
+                .map(activity -> ActivityConverter.convertActivity(cx, activity))
+                .collect(Collectors.toCollection(ArrayList::new));
+        addTransitionPredicates(cx, functions);
+        functions.add(generateStartFunction(cx));
+        functions.add(generateActivityFlowFunction(cx, process));
+        functions.add(generateErrorFlowFunction(cx, process));
+        functions.add(generateProcessFunction(cx));
+        cx.handledScopes.add(process.scope());
         AnalysisResult analysisResult = cx.getAnalysisResult();
         analysisResult.scopes(process).stream().map(scope -> generateControlFlowFunctionsForScope(cx, scope))
                 .flatMap(Collection::stream).forEach(functions::add);
@@ -158,23 +173,23 @@ public class ProcessConverter {
     }
 
     private static Collection<BallerinaModel.Function> convertExplicitTransitionGroup(
-            ProcessContext cx, TibcoModel.Process.ExplicitTransitionGroup group) {
+            ProcessContext cx, ExplicitTransitionGroup group) {
         return Stream.concat(convertExplicitTransitionGroupInner(cx, group),
                         Stream.of(generateExplicitTransitionBlockStartFunction(cx, group)))
                 .collect(Collectors.toList());
     }
 
     private static Stream<BallerinaModel.Function> convertExplicitTransitionGroupInner(
-            ProcessContext cx, TibcoModel.Process.ExplicitTransitionGroup group) {
+            ProcessContext cx, ExplicitTransitionGroup group) {
         Stream<BallerinaModel.Function> childFunctions = group.activities().stream()
                 .flatMap(each -> {
-                    if (each instanceof InlineActivityWithBody inlineActivityWithBody) {
+                    if (each instanceof ExplicitTransitionGroup.InlineActivityWithBody inlineActivityWithBody) {
                         return Stream.of(inlineActivityWithBody);
                     } else {
                         return Stream.empty();
                     }
                 })
-                .map(InlineActivityWithBody::body)
+                .map(ExplicitTransitionGroup.InlineActivityWithBody::body)
                 .flatMap(each -> convertExplicitTransitionGroupInner(cx, each));
         Stream<BallerinaModel.Function> functions = Stream.of(
                 generateExplicitTransitionBlockErrorFunction(cx, group),
@@ -222,10 +237,10 @@ public class ProcessConverter {
                 BOOLEAN, List.of(new Return<>(expr)));
     }
 
-    static TypeConversionResult convertTypes(ProcessContext cx, TibcoModel.Process process) {
+    static TypeConversionResult convertTypes(ProcessContext cx, Process6 process) {
         List<BallerinaModel.Service> services = process.types().stream()
-                .filter(type -> type instanceof TibcoModel.Type.WSDLDefinition)
-                .map(type -> (TibcoModel.Type.WSDLDefinition) type)
+                .filter(type -> type instanceof Type.WSDLDefinition)
+                .map(type -> (Type.WSDLDefinition) type)
                 .flatMap(wsdlDefinition -> TypeConverter.convertWsdlDefinition(cx, wsdlDefinition)
                         .stream())
                 .collect(Collectors.toList());
@@ -238,7 +253,7 @@ public class ProcessConverter {
     }
 
     private static BallerinaModel.Function generateExplicitTransitionBlockStartFunction(
-            ProcessContext cx, TibcoModel.Process.ExplicitTransitionGroup group) {
+            ProcessContext cx, ExplicitTransitionGroup group) {
         List<Parameter> parameters = List.of(new Parameter("inputXML", XML),
                 new Parameter("params", new TypeDesc.MapTypeDesc(XML)));
         AnalysisResult.ControlFlowFunctions controlFn = cx.getAnalysisResult().getControlFlowFunctions(group);
@@ -250,7 +265,7 @@ public class ProcessConverter {
 
 
     private static BallerinaModel.Function generateExplicitTransitionBlockActivityFunction(
-            ProcessContext cx, TibcoModel.Process.ExplicitTransitionGroup group) {
+            ProcessContext cx, ExplicitTransitionGroup group) {
         AnalysisResult analysisResult = cx.getAnalysisResult();
         List<Activity> activities = analysisResult.sortedActivities(group).toList();
         String activityRunnerFunction = analysisResult.getControlFlowFunctions(group).activityRunner();
@@ -260,16 +275,15 @@ public class ProcessConverter {
 
 
     private static BallerinaModel.Function generateExplicitTransitionBlockScopeFunction(
-            ProcessContext cx, TibcoModel.Process.ExplicitTransitionGroup group) {
+            ProcessContext cx, ExplicitTransitionGroup group) {
         AnalysisResult analysisResult = cx.getAnalysisResult();
         AnalysisResult.ControlFlowFunctions controlFlowFunctions = analysisResult.getControlFlowFunctions(group);
         return generateScopeFunctionInner(controlFlowFunctions);
     }
 
-
     // TODO: refactor common code with generateErrorFlowFunction
     private static BallerinaModel.Function generateExplicitTransitionBlockErrorFunction(
-            ProcessContext cx, TibcoModel.Process.ExplicitTransitionGroup group) {
+            ProcessContext cx, ExplicitTransitionGroup group) {
         AnalysisResult analysisResult = cx.getAnalysisResult();
         String errorHandlerFunction = analysisResult.getControlFlowFunctions(group).errorHandler();
         List<Activity> activities = analysisResult.sortedErrorHandlerActivities(group).toList();
@@ -302,8 +316,17 @@ public class ProcessConverter {
         body.add(inputXMLVar);
 
         VariableReference params = ProcessContext.processLevelFnParamVariable();
+        Process process = cx.process;
+
+        AnalysisResult.ControlFlowFunctions controlFlowFunctions =
+                switch (process) {
+                    case Process5 process5 -> cx.getAnalysisResult().getControlFlowFunctions(
+                            process5.transitionGroup());
+                    case Process6 process6 -> cx.getAnalysisResult().getControlFlowFunctions(
+                            process6.scope());
+                };
         VarDeclStatment xmlResult = new VarDeclStatment(XML, "xmlResult",
-                new FunctionCall(cx.getAnalysisResult().getControlFlowFunctions(cx.process.scope()).scopeFn(),
+                new FunctionCall(controlFlowFunctions.scopeFn(),
                         List.of(inputXMLVar.ref(), params)));
         body.add(xmlResult);
 
@@ -329,9 +352,15 @@ public class ProcessConverter {
     }
 
     private static BallerinaModel.Function generateProcessFunction(ProcessContext cx) {
-        AnalysisResult analysisResult = cx.getAnalysisResult();
-        AnalysisResult.ControlFlowFunctions controlFlowFunctions = analysisResult.getControlFlowFunctions(
-                cx.process.scope());
+        Process process = cx.process;
+
+        AnalysisResult.ControlFlowFunctions controlFlowFunctions =
+                switch (process) {
+                    case Process5 process5 -> cx.getAnalysisResult().getControlFlowFunctions(
+                            process5.transitionGroup());
+                    case Process6 process6 -> cx.getAnalysisResult().getControlFlowFunctions(
+                            process6.scope());
+                };
         String name = controlFlowFunctions.scopeFn();
         List<Statement> body = new ArrayList<>();
         String inputVarName = "input";
@@ -351,7 +380,7 @@ public class ProcessConverter {
     }
 
     private static Collection<BallerinaModel.Function> generateControlFlowFunctionsForScope(
-            ProcessContext cx, TibcoModel.Scope scope) {
+            ProcessContext cx, Scope scope) {
         if (cx.handledScopes.contains(scope)) {
             return List.of();
         }
@@ -362,7 +391,7 @@ public class ProcessConverter {
         return List.of(activityFlowFn, errorFlowFn, scopeFn);
     }
 
-    private static BallerinaModel.Function generateInnerScopeFunction(ProcessContext cx, TibcoModel.Scope scope) {
+    private static BallerinaModel.Function generateInnerScopeFunction(ProcessContext cx, Scope scope) {
         AnalysisResult analysisResult = cx.getAnalysisResult();
         AnalysisResult.ControlFlowFunctions controlFlowFunctions = analysisResult.getControlFlowFunctions(scope);
         return generateScopeFunctionInner(controlFlowFunctions);
@@ -396,11 +425,12 @@ public class ProcessConverter {
         body.add(ifElse);
     }
 
-    private static BallerinaModel.Function generateActivityFlowFunction(ProcessContext cx) {
-        return generateActivityFlowFunction(cx, cx.process.scope());
+    private static BallerinaModel.Function generateActivityFlowFunction(ProcessContext cx,
+                                                                        Process6 process) {
+        return generateActivityFlowFunction(cx, process.scope());
     }
 
-    private static BallerinaModel.Function generateActivityFlowFunction(ProcessContext cx, TibcoModel.Scope scope) {
+    private static BallerinaModel.Function generateActivityFlowFunction(ProcessContext cx, Scope scope) {
         AnalysisResult analysisResult = cx.getAnalysisResult();
         List<Activity> activities = analysisResult.sortedActivities(scope).toList();
         String activityRunnerFunction = analysisResult.getControlFlowFunctions(scope).activityRunner();
@@ -419,22 +449,22 @@ public class ProcessConverter {
                 parameters, returnType, body);
     }
 
-    private static BallerinaModel.Function generateErrorFlowFunction(ProcessContext cx) {
-        return generateErrorFlowFunction(cx, cx.process.scope());
+    private static BallerinaModel.Function generateErrorFlowFunction(ProcessContext cx, Process6 process) {
+        return generateErrorFlowFunction(cx, process.scope());
     }
 
     private static BallerinaModel.@NotNull Function generateErrorFlowFunction(ProcessContext cx,
-            TibcoModel.Scope scope) {
+                                                                              Scope scope) {
         Parameter context = new Parameter("cx", new TypeDesc.MapTypeDesc(XML));
         AnalysisResult analysisResult = cx.getAnalysisResult();
-        Collection<TibcoModel.Scope.FaultHandler> faultHandlers = scope.faultHandlers();
+        Collection<Scope.FaultHandler> faultHandlers = scope.faultHandlers();
         List<Statement> body = new ArrayList<>();
         int resultCount = 0;
         if (faultHandlers.isEmpty()) {
             body.add(stmtFrom(new Panic(new VariableReference("err")) + ";\n"));
         } else {
             VariableReference finalResult = null;
-            for (TibcoModel.Scope.FaultHandler each : faultHandlers) {
+            for (Scope.FaultHandler each : faultHandlers) {
                 AnalysisResult.ActivityData data = analysisResult.from(each);
                 VarDeclStatment result = new VarDeclStatment(XML, "result" + (resultCount++),
                         new CheckPanic(

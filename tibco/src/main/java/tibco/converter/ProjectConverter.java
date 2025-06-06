@@ -20,10 +20,14 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import tibco.TibcoModel;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.TibcoAnalysisReport;
+import tibco.model.Process;
+import tibco.model.Process5;
+import tibco.model.Process6;
+import tibco.model.Resource;
+import tibco.model.Type;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,86 +39,106 @@ import java.util.stream.Stream;
 
 public class ProjectConverter {
 
+    public record ProjectResources(
+            Collection<Resource.JDBCResource> jdbcResources,
+            Collection<Resource.HTTPConnectionResource> httpConnectionResources,
+            Set<Resource.HTTPClientResource> httpClientResources,
+            Set<Resource.HTTPSharedResource> httpSharedResources,
+            Set<Resource.JDBCSharedResource> jdbcSharedResource
+    ) {
+
+    }
+
     public static ConversionResult convertProject(
             TibcoToBalConverter.ProjectConversionContext conversionContext,
-            Map<TibcoModel.Process, AnalysisResult> analysisResult,
-            Collection<TibcoModel.Process> processes, Collection<TibcoModel.Type.Schema> types,
-            Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
-            Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
-            Set<TibcoModel.Resource.HTTPClientResource> httpClientResources,
-            Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources,
-            Set<TibcoModel.Resource.JDBCSharedResource> jdbcSharedResource, TibcoAnalysisReport report) {
+            Map<Process, AnalysisResult> analysisResult, Collection<Process> processes, Collection<Type.Schema> types,
+            ProjectResources projectResources, TibcoAnalysisReport report) {
         ProjectContext cx = new ProjectContext(conversionContext, analysisResult);
-        convertResources(cx, jdbcResources, httpConnectionResources, httpClientResources, httpSharedResources,
-                jdbcSharedResource);
+        convertResources(cx, projectResources);
 
-        record ProcessResult(TibcoModel.Process process, ProcessConverter.TypeConversionResult result) {
-
-        }
         List<ProcessResult> results =
                 processes.stream()
-                        .map(process -> new ProcessResult(process,
-                                ProcessConverter.convertTypes(cx.getProcessContext(process), process)))
-                        .map(processResult -> {
-                            TibcoModel.Process process = processResult.process;
-                            if (process.transitionGroup() == null) {
-                                return processResult;
-                            }
-                            BallerinaModel.Service startService =
-                                    ProcessConverter.convertStartActivityService(cx.getProcessContext(process),
-                                            process.transitionGroup());
-                            ProcessConverter.addProcessClient(cx.getProcessContext(process), process.transitionGroup(),
-                                    httpSharedResources);
-                            return new ProcessResult(process, new ProcessConverter.TypeConversionResult(
-                                    Stream.concat(processResult.result.service().stream(), Stream.of(startService))
-                                            .toList()));
-                        })
+                        .map(process -> convertServices(cx, process, projectResources))
                         .toList();
-        List<TibcoModel.Type.Schema> schemas = new ArrayList<>(types);
-        for (TibcoModel.Process each : processes) {
-            accumSchemas(each, schemas);
+        List<Type.Schema> schemas = new ArrayList<>(types);
+        for (Process each : processes) {
+            if (each instanceof Process6 process6) {
+                accumSchemas(process6, schemas);
+            }
         }
         List<BallerinaModel.TextDocument> textDocuments = results.stream()
-                .map(result -> {
-                    TibcoModel.Process process = result.process();
-                    return ProcessConverter.convertBody(cx.getProcessContext(process), process, result.result());
-                }).toList();
+                .map(result -> convertBody(result, result.process(), cx)).toList();
         schemas.addAll(cx.getXSDSchemas());
         SyntaxTree typeSyntaxTree = convertTypes(cx, schemas);
         return new ConversionResult(cx.serialize(textDocuments), typeSyntaxTree, report);
     }
 
-    private static void accumSchemas(TibcoModel.Process process, Collection<TibcoModel.Type.Schema> accum) {
-        for (TibcoModel.Type each : process.types()) {
-            if (each instanceof TibcoModel.Type.Schema schema) {
+    private static BallerinaModel.TextDocument convertBody(ProcessResult result, Process process,
+                                                           ProjectContext cx) {
+        return switch (process) {
+            case Process5 process5 ->
+                    ProcessConverter.convertBody(cx.getProcessContext(process), process5, result.result());
+            case Process6 process6 ->
+                    ProcessConverter.convertBody(cx.getProcessContext(process), process6, result.result());
+        };
+    }
+
+    record ProcessResult(Process process, ProcessConverter.TypeConversionResult result) {
+
+    }
+
+    private static ProcessResult convertServices(ProjectContext cx, Process process,
+                                                 ProjectResources projectResources) {
+
+        return switch (process) {
+            case Process5 process5 -> convertServices(cx, process5, projectResources);
+            case Process6 process6 -> convertServices(cx, process6);
+        };
+    }
+
+    private static ProcessResult convertServices(ProjectContext cx, Process5 process,
+                                                 ProjectResources projectResources) {
+        BallerinaModel.Service startService =
+                ProcessConverter.convertStartActivityService(cx.getProcessContext(process),
+                        process.transitionGroup());
+        ProcessConverter.addProcessClient(cx.getProcessContext(process), process.transitionGroup(),
+                projectResources.httpSharedResources);
+        return new ProcessResult(process, new ProcessConverter.TypeConversionResult(
+                Stream.of(startService).toList()));
+    }
+
+    private static ProcessResult convertServices(ProjectContext cx, Process6 process) {
+        return new ProcessResult(process,
+                ProcessConverter.convertTypes(cx.getProcessContext(process), process));
+    }
+
+    private static void accumSchemas(Process6 process, Collection<Type.Schema> accum) {
+        for (Type each : process.types()) {
+            if (each instanceof Type.Schema schema) {
                 accum.add(schema);
             }
         }
     }
 
-    private static void convertResources(ProjectContext cx, Collection<TibcoModel.Resource.JDBCResource> jdbcResources,
-                                         Collection<TibcoModel.Resource.HTTPConnectionResource> httpConnectionResources,
-                                         Set<TibcoModel.Resource.HTTPClientResource> httpClientResources,
-                                         Set<TibcoModel.Resource.HTTPSharedResource> httpSharedResources,
-                                         Set<TibcoModel.Resource.JDBCSharedResource> jdbcSharedResource) {
-        for (TibcoModel.Resource.JDBCResource resource : jdbcResources) {
+    private static void convertResources(ProjectContext cx, ProjectResources projectResources) {
+        for (Resource.JDBCResource resource : projectResources.jdbcResources) {
             ResourceConvertor.convertJDBCResource(cx, resource);
         }
-        for (TibcoModel.Resource.HTTPConnectionResource resource : httpConnectionResources) {
+        for (Resource.HTTPConnectionResource resource : projectResources.httpConnectionResources) {
             ResourceConvertor.convertHttpConnectionResource(cx, resource);
         }
-        for (TibcoModel.Resource.HTTPClientResource resource : httpClientResources) {
+        for (Resource.HTTPClientResource resource : projectResources.httpClientResources) {
             ResourceConvertor.convertHttpClientResource(cx, resource);
         }
-        for (TibcoModel.Resource.HTTPSharedResource resource : httpSharedResources) {
+        for (Resource.HTTPSharedResource resource : projectResources.httpSharedResources) {
             ResourceConvertor.convertHttpSharedResource(cx, resource);
         }
-        for (TibcoModel.Resource.JDBCSharedResource resource : jdbcSharedResource) {
+        for (Resource.JDBCSharedResource resource : projectResources.jdbcSharedResource) {
             ResourceConvertor.convertJDBCSharedResource(cx, resource);
         }
     }
 
-    static SyntaxTree convertTypes(ProjectContext cx, Collection<TibcoModel.Type.Schema> schemas) {
+    static SyntaxTree convertTypes(ProjectContext cx, Collection<Type.Schema> schemas) {
         ContextWithFile typeContext = cx.getTypeContext();
         return TypeConverter.convertSchemas(typeContext, schemas);
     }

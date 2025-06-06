@@ -16,29 +16,17 @@
  *  under the License.
  */
 
-package tibco.analyzer;
+package tibco.model;
 
-import tibco.model.Scope;
+public sealed interface ValueSource
+        permits Scope.Flow.Activity.Expression.XPath, Scope.Flow.Activity.Expression.XSLT, ValueSource.Constant,
+        ValueSource.VarRef {
 
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+    record VarRef(String name) implements ValueSource {
 
-public class ProjectAnalysisContext {
-
-    private final Set<String> controlFlowFunctionNames = new LinkedHashSet<>();
-    private final Map<Scope.Flow.Activity, String> activityFunctionNames =
-            new ConcurrentHashMap<>();
-
-    public ProjectAnalysisContext() {
     }
 
-    public Set<String> controlFlowFunctionNames() {
-        return controlFlowFunctionNames;
-    }
+    record Constant(String value) implements ValueSource {
 
-    public Map<Scope.Flow.Activity, String> activityFunctionNames() {
-        return activityFunctionNames;
     }
 }

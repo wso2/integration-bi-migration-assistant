@@ -19,7 +19,10 @@
 package tibco.analyzer;
 
 import common.BallerinaModel;
-import tibco.TibcoModel;
+import tibco.model.PartnerLink;
+import tibco.model.Process;
+import tibco.model.Process5.ExplicitTransitionGroup;
+import tibco.model.Scope;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -42,44 +45,43 @@ public interface AnalysisResult {
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
     }
 
-    Collection<String> inputTypeName(TibcoModel.Process process);
+    Collection<String> inputTypeName(Process process);
 
-    String outputTypeName(TibcoModel.Process process);
+    String outputTypeName(Process process);
 
-    Collection<TibcoModel.Scope.Flow.Activity> sources(TibcoModel.Scope.Flow.Link link);
+    Collection<Scope.Flow.Activity> sources(Scope.Flow.Link link);
 
-    Optional<TibcoModel.Scope.Flow.Activity> findActivity(String name);
+    Optional<Scope.Flow.Activity> findActivity(String name);
 
-    String variableType(TibcoModel.Process process, String variableName);
+    String variableType(Process process, String variableName);
 
-    ActivityData from(TibcoModel.Scope.Flow.Activity activity);
+    ActivityData from(Scope.Flow.Activity activity);
 
-    Collection<TibcoModel.Scope.Flow.Activity> activities();
+    Collection<Scope.Flow.Activity> activities();
 
-    Collection<TibcoModel.Scope.Flow.Link> links();
+    Collection<Scope.Flow.Link> links();
 
-    Collection<TibcoModel.Scope.Flow.Link> sources(TibcoModel.Scope.Flow.Activity activity);
+    Collection<Scope.Flow.Link> sources(Scope.Flow.Activity activity);
 
     Stream<TransitionData> transitionConditions(
-            TibcoModel.Scope.Flow.Activity activity);
+            Scope.Flow.Activity activity);
 
-    Stream<TibcoModel.Scope.Flow.Activity.Source.Predicate> transitionCondition(
-            TibcoModel.Scope.Flow.Activity activity, TibcoModel.Scope.Flow.Link link);
+    Stream<Scope.Flow.Activity.Source.Predicate> transitionCondition(
+            Scope.Flow.Activity activity, Scope.Flow.Link link);
 
-    Stream<TibcoModel.Scope.Flow.Activity> sortedActivities(TibcoModel.Scope scope);
+    Stream<Scope.Flow.Activity> sortedActivities(Scope scope);
 
-    Stream<TibcoModel.Scope.Flow.Activity> sortedActivities(TibcoModel.Process.ExplicitTransitionGroup group);
+    Stream<Scope.Flow.Activity> sortedActivities(ExplicitTransitionGroup group);
 
-    Stream<TibcoModel.Scope.Flow.Activity> sortedErrorHandlerActivities(
-            TibcoModel.Process.ExplicitTransitionGroup group);
+    Stream<Scope.Flow.Activity> sortedErrorHandlerActivities(ExplicitTransitionGroup group);
 
-    Collection<TibcoModel.Scope> scopes(TibcoModel.Process process);
+    Collection<Scope> scopes(Process process);
 
-    TibcoModel.PartnerLink.Binding getBinding(String partnerLinkName);
+    PartnerLink.Binding getBinding(String partnerLinkName);
 
-    ControlFlowFunctions getControlFlowFunctions(TibcoModel.Scope scope);
+    ControlFlowFunctions getControlFlowFunctions(Scope scope);
 
-    ControlFlowFunctions getControlFlowFunctions(TibcoModel.Process.ExplicitTransitionGroup group);
+    ControlFlowFunctions getControlFlowFunctions(ExplicitTransitionGroup group);
 
     AnalysisResult combine(AnalysisResult other);
 
@@ -92,8 +94,8 @@ public interface AnalysisResult {
 
     }
 
-    record TransitionData(TibcoModel.Scope.Flow.Activity activity,
-                          TibcoModel.Scope.Flow.Activity.Source.Predicate predicate) {
+    record TransitionData(Scope.Flow.Activity activity,
+                          Scope.Flow.Activity.Source.Predicate predicate) {
 
     }
 

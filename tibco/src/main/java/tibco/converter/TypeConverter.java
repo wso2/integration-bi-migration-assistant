@@ -33,9 +33,9 @@ import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.text.TextDocuments;
 import io.ballerina.xsd.core.response.NodeResponse;
 import org.jetbrains.annotations.NotNull;
-import tibco.TibcoModel;
-import tibco.TibcoModel.Type.WSDLDefinition;
-import tibco.TibcoModel.Type.WSDLDefinition.PortType.Operation;
+import tibco.model.Type;
+import tibco.model.Type.WSDLDefinition;
+import tibco.model.Type.WSDLDefinition.PortType.Operation;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -60,8 +60,8 @@ class TypeConverter {
     private TypeConverter() {
     }
 
-    static SyntaxTree convertSchemas(ContextWithFile cx, Collection<TibcoModel.Type.Schema> schemas) {
-        String[] content = schemas.stream().map(TibcoModel.Type.Schema::element).map(ConversionUtils::elementToString)
+    static SyntaxTree convertSchemas(ContextWithFile cx, Collection<Type.Schema> schemas) {
+        String[] content = schemas.stream().map(Type.Schema::element).map(ConversionUtils::elementToString)
                 .toArray(String[]::new);
 
         for (int i = 0; i < content.length; i++) {

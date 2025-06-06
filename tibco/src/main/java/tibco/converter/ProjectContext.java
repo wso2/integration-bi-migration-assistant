@@ -23,10 +23,11 @@ import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Statement.Return;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
-import tibco.TibcoModel;
 import tibco.TibcoToBalConverter;
 import tibco.XmlToTibcoModelConverter;
 import tibco.analyzer.AnalysisResult;
+import tibco.model.Process;
+import tibco.model.Type;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -52,15 +53,13 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
 import static tibco.converter.Library.HTTP;
-import static tibco.converter.Library.IO;
 import static tibco.converter.Library.JDBC;
 import static tibco.converter.Library.JSON_DATA;
-import static tibco.converter.Library.LOG;
 import static tibco.converter.Library.XML_DATA;
 
 public class ProjectContext {
 
-    private final Map<TibcoModel.Process, ProcessContext> processContextMap = new HashMap<>();
+    private final Map<Process, ProcessContext> processContextMap = new HashMap<>();
 
     private final List<BallerinaModel.Function> utilityFunctions = new ArrayList<>();
     private final Set<BallerinaModel.Import> utilityFunctionImports = new HashSet<>();
@@ -72,7 +71,6 @@ public class ProjectContext {
 
     private String toXMLFunction = null;
     private String jsonToXMLFunction = null;
-    private String logFunction = null;
     private int nextPort = 8080;
     private int typeCount = 0;
     private int annonVarCount = 0;
@@ -85,16 +83,16 @@ public class ProjectContext {
     private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
     private final Map<BallerinaModel.TypeDesc, String> typeConversionFunction = new HashMap<>();
     private final Map<String, String> renderJsonAsXMLFunction = new HashMap<>();
-    private final Map<TibcoModel.Process, AnalysisResult> analysisResult;
-    private Collection<TibcoModel.Type.Schema> schemas = new ArrayList<>();
+    private final Map<Process, AnalysisResult> analysisResult;
+    private Collection<Type.Schema> schemas = new ArrayList<>();
 
     ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
-                   Map<TibcoModel.Process, AnalysisResult> analysisResult) {
+                   Map<Process, AnalysisResult> analysisResult) {
         this.conversionContext = Optional.of(conversionContext);
         this.analysisResult = analysisResult;
     }
 
-    ProcessContext getProcessContext(TibcoModel.Process process) {
+    ProcessContext getProcessContext(Process process) {
         return processContextMap.computeIfAbsent(process, p -> new ProcessContext(this, p));
     }
 
@@ -137,25 +135,6 @@ public class ProjectContext {
                         List.of(new Return<>(new FunctionCall("xmldata:fromJson", new String[]{"data"})))));
         jsonToXMLFunction = functionName;
         return jsonToXMLFunction;
-    }
-
-    BallerinaModel.TypeDesc getFileWriteConfigType() {
-        return getTypeByName("WriteActivityInputTextClass", typeCx);
-    }
-
-    BallerinaModel.TypeDesc getLogInputType() {
-        return getTypeByName("LogParametersType", typeCx);
-    }
-
-    String getLogFunction() {
-        if (logFunction != null) {
-            return logFunction;
-        }
-        importLibraryIfNeededToUtility(LOG);
-        Intrinsics intrinsic = Intrinsics.LOG_WRAPPER;
-        utilityIntrinsics.add(intrinsic);
-        logFunction = intrinsic.name;
-        return logFunction;
     }
 
     private void importLibraryIfNeededToUtility(Library library) {
@@ -235,7 +214,7 @@ public class ProjectContext {
     }
 
     FunctionData getProcessStartFunction(String processName) {
-        TibcoModel.Process process = getProcess(processName);
+        Process process = getProcess(processName);
         return getProcessContext(process).getProcessStartFunction();
     }
 
@@ -321,11 +300,6 @@ public class ProjectContext {
         typeCount++;
     }
 
-    String getFileWriteFunction(ContextWithFile contextWithFile) {
-        contextWithFile.addLibraryImport(IO);
-        return "io:fileWriteString";
-    }
-
     public String getPredicateTestFunction() {
         utilityIntrinsics.add(Intrinsics.XPATH_PREDICATE);
         return Intrinsics.XPATH_PREDICATE.name;
@@ -367,15 +341,14 @@ public class ProjectContext {
     }
 
     Optional<ProcessContext.DefaultClientDetails> getDefaultClientDetails(String processName) {
-        TibcoModel.Process process = getProcess(processName);
+        Process process = getProcess(processName);
         return getProcessContext(process).getDefaultClient();
     }
 
-    private TibcoModel.Process getProcess(String processName) {
-        TibcoModel.Process process = processContextMap.keySet().stream().filter(proc -> proc.name().equals(processName))
+    private Process getProcess(String processName) {
+        return processContextMap.keySet().stream().filter(proc -> proc.name().equals(processName))
                 .findAny()
                 .orElseThrow(() -> new IndexOutOfBoundsException("failed to find process" + processName));
-        return process;
     }
 
     public String getAnonName() {
@@ -393,16 +366,16 @@ public class ProjectContext {
         return Intrinsics.TO_JSON.name;
     }
 
-    public AnalysisResult getAnalysisResult(TibcoModel.Process process) {
+    public AnalysisResult getAnalysisResult(Process process) {
         return Objects.requireNonNull(analysisResult.get(process), 
                 "Analysis result not found for process: " + process.name());
     }
 
-    public void addXSDSchemaToConversion(TibcoModel.Type.Schema schema) {
+    public void addXSDSchemaToConversion(Type.Schema schema) {
         schemas.add(schema);
     }
 
-    public Collection<TibcoModel.Type.Schema> getXSDSchemas() {
+    public Collection<Type.Schema> getXSDSchemas() {
         return schemas;
     }
 

@@ -21,8 +21,11 @@ package tibco.converter;
 import common.BallerinaModel;
 import common.BallerinaModel.Statement.VarDeclStatment;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
-import tibco.TibcoModel;
 import tibco.analyzer.AnalysisResult;
+import tibco.model.NameSpace;
+import tibco.model.Process;
+import tibco.model.Scope;
+import tibco.model.Variable;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -48,17 +51,17 @@ public class ProcessContext implements ContextWithFile {
     private BallerinaModel.Listener defaultListener = null;
     private final Map<String, BallerinaModel.ModuleVar> constants = new HashMap<>();
     private final Map<String, BallerinaModel.ModuleVar> configurables = new HashMap<>();
-    public final TibcoModel.Process process;
+    public final Process process;
 
     public final ProjectContext projectContext;
-    private final Map<TibcoModel.Scope.Flow.Activity.Source.Predicate, String> predicateToFunctionMap = new HashMap<>();
+    private final Map<Scope.Flow.Activity.Source.Predicate, String> predicateToFunctionMap = new HashMap<>();
     private final Map<String, String> propertyVariableToResourceMap = new HashMap<>();
 
     private DefaultClientDetails processClient;
-    final Set<TibcoModel.Scope> handledScopes = new HashSet<>();
+    final Set<Scope> handledScopes = new HashSet<>();
     final Set<String> intrinsics = new HashSet<>();
 
-    ProcessContext(ProjectContext projectContext, TibcoModel.Process process) {
+    ProcessContext(ProjectContext projectContext, Process process) {
         this.projectContext = projectContext;
         this.process = process;
     }
@@ -71,11 +74,11 @@ public class ProcessContext implements ContextWithFile {
         return new VarDeclStatment(contextType(), "context", exprFrom("{...%s}".formatted(paramsVarName)));
     }
 
-    void addResourceVariable(TibcoModel.Variable.PropertyVariable propertyVariable) {
+    void addResourceVariable(Variable.PropertyVariable propertyVariable) {
         switch (propertyVariable) {
-            case TibcoModel.Variable.PropertyVariable.PropertyReference ref ->
+            case Variable.PropertyVariable.PropertyReference ref ->
                 propertyVariableToResourceMap.put(ref.name(), ref.literal());
-            case TibcoModel.Variable.PropertyVariable.SimpleProperty simpleProperty ->
+            case Variable.PropertyVariable.SimpleProperty simpleProperty ->
                 projectContext.addConfigurableVariable(simpleProperty.name(), simpleProperty.source());
         }
     }
@@ -167,7 +170,7 @@ public class ProcessContext implements ContextWithFile {
                 intrinsics.stream().toList(), List.of());
     }
 
-    void addNameSpace(TibcoModel.NameSpace nameSpace) {
+    void addNameSpace(NameSpace nameSpace) {
         if (nameSpace.prefix().isEmpty()) {
             return;
         }
@@ -220,22 +223,6 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getAddToContextFn();
     }
 
-    BallerinaModel.TypeDesc getFileWriteConfigType() {
-        return projectContext.getFileWriteConfigType();
-    }
-
-    String getFileWriteFunction() {
-        return projectContext.getFileWriteFunction(this);
-    }
-
-    BallerinaModel.TypeDesc getLogInputType() {
-        return projectContext.getLogInputType();
-    }
-
-    String getLogFunction() {
-        return projectContext.getLogFunction();
-    }
-
     String getXPathFunction() {
         addLibraryImport(Library.XML_DATA);
         return "xmldata:transform";
@@ -260,7 +247,7 @@ public class ProcessContext implements ContextWithFile {
         return getTypeByName(typeName);
     }
 
-    String predicateFunction(TibcoModel.Scope.Flow.Activity.Source.Predicate predicate) {
+    String predicateFunction(Scope.Flow.Activity.Source.Predicate predicate) {
         return predicateToFunctionMap.computeIfAbsent(predicate, p -> "predicate_" + predicateToFunctionMap.size());
     }
 
@@ -331,10 +318,6 @@ public class ProcessContext implements ContextWithFile {
 
     String getRenderJsonAsXMLFunction(String type) {
         return projectContext.getRenderJsonAsXMLFunction(type);
-    }
-
-    public String getRenderJsonFn() {
-        return projectContext.getRenderJsonFn();
     }
 
     public String getToJsonFunction() {

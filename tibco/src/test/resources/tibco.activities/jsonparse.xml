@@ -1,6 +1,13 @@
-<bpws:extensionActivity>
-    <tibex:activityExtension inputVariable="InputVariable" name="ParseJSON" outputVariable="OutputVariable"
-        xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+<bpws:extensionActivity 
+    xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"
+    xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+    xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+    xmlns:restjson="http://ns.tibco.com/bw/palette/restjson"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+    xmlns:tns5="activity.jsonParser.input+a3fa07a6-0270-48b7-ba84-7de6924acb3d+ActivityInputType">
+    <tibex:activityExtension inputVariable="InputVariable" name="ParseJSON" outputVariable="OutputVariable">
         <bpws:targets>
             <bpws:target linkName="Target"/>
         </bpws:targets>
@@ -11,11 +18,7 @@
             <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns5=&quot;activity.jsonParser.input+a3fa07a6-0270-48b7-ba84-7de6924acb3d+ActivityInputType&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;SendHTTPRequest&quot;/>&lt;xsl:template name=&quot;ParseJSON-input&quot; match=&quot;/&quot;>&lt;tns5:ActivityInputClass>&lt;jsonString>&lt;xsl:value-of select=&quot;$SendHTTPRequest/asciiContent&quot;/>&lt;/jsonString>&lt;/tns5:ActivityInputClass>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
         </tibex:inputBindings>
         <tibex:config>
-            <bwext:BWActivity activityTypeID="bw.restjson.JsonParser"
-                xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
-                xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
-                xmlns:restjson="http://ns.tibco.com/bw/palette/restjson"
-                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <bwext:BWActivity activityTypeID="bw.restjson.JsonParser">
                 <activityConfig>
                     <properties name="config" xsi:type="activityconfig:EMFProperty">
                         <type href="http://ns.tibco.com/bw/palette/restjson#//JsonParser"/>

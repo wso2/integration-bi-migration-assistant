@@ -18,9 +18,10 @@
 
 package tibco.analyzer;
 
-import tibco.TibcoModel;
-import tibco.TibcoModel.Process.ExplicitTransitionGroup;
 import tibco.converter.ConversionUtils;
+import tibco.model.PartnerLink;
+import tibco.model.Process5.ExplicitTransitionGroup;
+import tibco.model.Scope;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,7 +42,7 @@ public class ProcessAnalysisContext {
 
     private int unhandledActivityCount = 0;
     private int totalActivityCount = 0;
-    private TibcoModel.Scope currentScope = null;
+    private Scope currentScope = null;
     private Map<String, AnalysisResult.GraphNode> activityNodes;
 
     public ProcessAnalysisContext(ProjectAnalysisContext projectAnalysisContext) {
@@ -56,45 +57,45 @@ public class ProcessAnalysisContext {
         return totalActivityCount;
     }
 
-    public TibcoModel.Scope getCurrentScope() {
+    public Scope getCurrentScope() {
         return currentScope;
     }
 
     // We are using order preserving sets purely for tests
-    private final Collection<TibcoModel.Scope.Flow.Activity> endActivities = new LinkedHashSet<>();
+    private final Collection<Scope.Flow.Activity> endActivities = new LinkedHashSet<>();
     // places where data added to the link ends up
-    private final Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> destinationMap =
+    private final Map<Scope.Flow.Link, Collection<Scope.Flow.Activity>> destinationMap =
             new HashMap<>();
 
     // activities that add data to the link
-    private final Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> sourceMap =
+    private final Map<Scope.Flow.Link, Collection<Scope.Flow.Activity>> sourceMap =
             new HashMap<>();
 
-    private final Set<TibcoModel.Scope.Flow.Activity> activities = new HashSet<>();
-    private final Set<TibcoModel.Scope.Flow.Link> links = new HashSet<>();
+    private final Set<Scope.Flow.Activity> activities = new HashSet<>();
+    private final Set<Scope.Flow.Link> links = new HashSet<>();
 
-    public Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> getDestinationMap() {
+    public Map<Scope.Flow.Link, Collection<Scope.Flow.Activity>> getDestinationMap() {
         return Collections.unmodifiableMap(destinationMap);
     }
 
-    public Map<TibcoModel.Scope.Flow.Link, Collection<TibcoModel.Scope.Flow.Activity>> getSourceMap() {
+    public Map<Scope.Flow.Link, Collection<Scope.Flow.Activity>> getSourceMap() {
         return Collections.unmodifiableMap(sourceMap);
     }
 
-    public Set<TibcoModel.Scope.Flow.Activity> getActivities() {
+    public Set<Scope.Flow.Activity> getActivities() {
         return Collections.unmodifiableSet(activities);
     }
 
-    private final Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> partnerLinkBindings =
+    private final Map<String, PartnerLink.RestPartnerLink.Binding> partnerLinkBindings =
             new HashMap<>();
 
-    private final Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex =
+    private final Map<Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> queryIndex =
             new IdentityHashMap<>();
     private final Set<String> inputTypeNames = new HashSet<>();
     private String outputTypeName;
     private final Map<String, String> variableTypes = new HashMap<>();
 
-    public Map<TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> getQueryIndex() {
+    public Map<Scope.Flow.Activity.ActivityExtension.Config.SQL, Integer> getQueryIndex() {
         return Collections.unmodifiableMap(queryIndex);
     }
 
@@ -102,16 +103,16 @@ public class ProcessAnalysisContext {
         return Collections.unmodifiableMap(variableTypes);
     }
 
-    private final Map<TibcoModel.Scope, AnalysisResult.ControlFlowFunctions> controlFlowFunctions = new HashMap<>();
-    private final Map<TibcoModel.Scope, Graph<AnalysisResult.GraphNode>> dependencyGraphs = new HashMap<>();
-    private final Stack<TibcoModel.Scope> scopeStack = new Stack<>();
+    private final Map<Scope, AnalysisResult.ControlFlowFunctions> controlFlowFunctions = new HashMap<>();
+    private final Map<Scope, Graph<AnalysisResult.GraphNode>> dependencyGraphs = new HashMap<>();
+    private final Stack<Scope> scopeStack = new Stack<>();
     private final Stack<Boolean> inSequence = new Stack<>();
 
-    public Map<TibcoModel.Scope, AnalysisResult.ControlFlowFunctions> getControlFlowFunctions() {
+    public Map<Scope, AnalysisResult.ControlFlowFunctions> getControlFlowFunctions() {
         return Collections.unmodifiableMap(controlFlowFunctions);
     }
 
-    Map<TibcoModel.Scope, Graph<AnalysisResult.GraphNode>> getDependencyGraphs() {
+    Map<Scope, Graph<AnalysisResult.GraphNode>> getDependencyGraphs() {
         return Collections.unmodifiableMap(dependencyGraphs);
     }
 
@@ -134,11 +135,11 @@ public class ProcessAnalysisContext {
         return Collections.unmodifiableMap(transitionGroupControlFlowFunctions);
     }
 
-    public void addEndActivity(TibcoModel.Scope.Flow.Activity activity) {
+    public void addEndActivity(Scope.Flow.Activity activity) {
         endActivities.add(activity);
     }
 
-    public void addStartActivity(TibcoModel.Scope.Flow.Activity activity) {
+    public void addStartActivity(Scope.Flow.Activity activity) {
         dependencyGraphs.get(currentScope).addRoot(activityNode(activity));
     }
 
@@ -146,31 +147,31 @@ public class ProcessAnalysisContext {
         variableTypes.put(name, type);
     }
 
-    public void allocateLinkIfNeeded(TibcoModel.Scope.Flow.Link link) {
+    public void allocateLinkIfNeeded(Scope.Flow.Link link) {
         links.add(link);
     }
 
-    public void allocateActivityNameIfNeeded(TibcoModel.Scope.Flow.Activity activity) {
-        Map<TibcoModel.Scope.Flow.Activity, String> activityFunctionNames =
+    public void allocateActivityNameIfNeeded(Scope.Flow.Activity activity) {
+        Map<Scope.Flow.Activity, String> activityFunctionNames =
                 projectAnalysisContext.activityFunctionNames();
         if (activityFunctionNames.containsKey(activity)) {
             return;
         }
         totalActivityCount++;
         String prefix = switch (activity) {
-            case TibcoModel.Scope.Flow.Activity.ActivityExtension ignored -> "activityExtension";
-            case TibcoModel.Scope.Flow.Activity.Empty ignored -> "empty";
-            case TibcoModel.Scope.Flow.Activity.ExtActivity ignored -> "extActivity";
-            case TibcoModel.Scope.Flow.Activity.Invoke ignored -> "invoke";
-            case TibcoModel.Scope.Flow.Activity.Pick ignored -> "pick";
-            case TibcoModel.Scope.Flow.Activity.ReceiveEvent ignored -> "receiveEvent";
-            case TibcoModel.Scope.Flow.Activity.Reply ignored -> "reply";
-            case TibcoModel.Scope.Flow.Activity.CatchAll ignored -> "catchAll";
-            case TibcoModel.Scope.Flow.Activity.Throw ignored -> "throw";
-            case TibcoModel.Scope.Flow.Activity.NestedScope ignored -> "nestedScope";
-            case TibcoModel.Scope.Flow.Activity.Assign ignored -> "assign";
-            case TibcoModel.Scope.Flow.Activity.Foreach ignored -> "forEach";
-            case TibcoModel.Scope.Flow.Activity.UnhandledActivity ignored -> {
+            case Scope.Flow.Activity.ActivityExtension ignored -> "activityExtension";
+            case Scope.Flow.Activity.Empty ignored -> "empty";
+            case Scope.Flow.Activity.ExtActivity ignored -> "extActivity";
+            case Scope.Flow.Activity.Invoke ignored -> "invoke";
+            case Scope.Flow.Activity.Pick ignored -> "pick";
+            case Scope.Flow.Activity.ReceiveEvent ignored -> "receiveEvent";
+            case Scope.Flow.Activity.Reply ignored -> "reply";
+            case Scope.Flow.Activity.CatchAll ignored -> "catchAll";
+            case Scope.Flow.Activity.Throw ignored -> "throw";
+            case Scope.Flow.Activity.NestedScope ignored -> "nestedScope";
+            case Scope.Flow.Activity.Assign ignored -> "assign";
+            case Scope.Flow.Activity.Foreach ignored -> "forEach";
+            case Scope.Flow.Activity.UnhandledActivity ignored -> {
                 unhandledActivityCount++;
                 yield "unhandled";
             }
@@ -186,28 +187,27 @@ public class ProcessAnalysisContext {
         activities.add(activity);
     }
 
-
-    public void addDestination(TibcoModel.Scope.Flow.Activity source, TibcoModel.Scope.Flow.Activity destination) {
+    public void addDestination(Scope.Flow.Activity source, Scope.Flow.Activity destination) {
         dependencyGraphs.get(currentScope).addEdge(activityNode(source), activityNode(destination));
     }
 
-    public void addDestination(TibcoModel.Scope.Flow.Link source, TibcoModel.Scope.Flow.Activity destination) {
+    public void addDestination(Scope.Flow.Link source, Scope.Flow.Activity destination) {
         dependencyGraphs.get(currentScope).addEdge(linkNode(source), activityNode(destination));
         destinationMap.computeIfAbsent(source, (ignored) -> new ArrayList<>()).add(destination);
     }
 
-    public void addSource(TibcoModel.Scope.Flow.Activity source, TibcoModel.Scope.Flow.Link destination) {
+    public void addSource(Scope.Flow.Activity source, Scope.Flow.Link destination) {
         dependencyGraphs.get(currentScope).addEdge(activityNode(source), linkNode(destination));
         sourceMap.computeIfAbsent(destination, (ignored) -> new ArrayList<>()).add(source);
     }
 
-    private String activityNodeName(TibcoModel.Scope.Flow.Activity activity) {
+    private String activityNodeName(Scope.Flow.Activity activity) {
         allocateActivityNameIfNeeded(activity);
         return projectAnalysisContext.activityFunctionNames().get(activity);
     }
 
-    public Map<TibcoModel.Scope.Flow.Activity, AnalysisResult.ActivityData> activityData() {
-        Map<TibcoModel.Scope.Flow.Activity, AnalysisResult.ActivityData> data = new HashMap<>();
+    public Map<Scope.Flow.Activity, AnalysisResult.ActivityData> activityData() {
+        Map<Scope.Flow.Activity, AnalysisResult.ActivityData> data = new HashMap<>();
         for (var activity : activities) {
             String functionName = projectAnalysisContext.activityFunctionNames().get(activity);
             data.put(activity, new AnalysisResult.ActivityData(functionName, XML, XML));
@@ -215,7 +215,7 @@ public class ProcessAnalysisContext {
         return Collections.unmodifiableMap(data);
     }
 
-    public void allocateIndexForQuery(TibcoModel.Scope.Flow.Activity.ActivityExtension.Config.SQL sql) {
+    public void allocateIndexForQuery(Scope.Flow.Activity.ActivityExtension.Config.SQL sql) {
         queryIndex.put(sql, queryIndex.size());
     }
 
@@ -231,7 +231,7 @@ public class ProcessAnalysisContext {
         this.outputTypeName = outputTypeName;
     }
 
-    public void pushScope(TibcoModel.Scope scope) {
+    public void pushScope(Scope scope) {
         if (!dependencyGraphs.containsKey(scope)) {
             dependencyGraphs.put(scope, new Graph<>());
         }
@@ -248,7 +248,7 @@ public class ProcessAnalysisContext {
         }
     }
 
-    public void allocateControlFlowFunctionsIfNeeded(TibcoModel.Scope scope) {
+    public void allocateControlFlowFunctionsIfNeeded(Scope scope) {
         if (controlFlowFunctions.containsKey(scope)) {
             return;
         }
@@ -286,12 +286,12 @@ public class ProcessAnalysisContext {
         return outputTypeName;
     }
 
-    public void setPartnerLinkBinding(TibcoModel.PartnerLink.NonEmptyPartnerLink link,
-                                      TibcoModel.PartnerLink.RestPartnerLink.Binding binding) {
+    public void setPartnerLinkBinding(PartnerLink.NonEmptyPartnerLink link,
+                                      PartnerLink.RestPartnerLink.Binding binding) {
         partnerLinkBindings.put(link.name(), binding);
     }
 
-    public Map<String, TibcoModel.PartnerLink.RestPartnerLink.Binding> getPartnerLinkBindings() {
+    public Map<String, PartnerLink.RestPartnerLink.Binding> getPartnerLinkBindings() {
         return Collections.unmodifiableMap(partnerLinkBindings);
     }
 
@@ -300,12 +300,12 @@ public class ProcessAnalysisContext {
         return new AnalysisResult.GraphNode(name, AnalysisResult.GraphNode.Kind.INLINE_ACTIVITY, inlineActivity);
     }
 
-    public AnalysisResult.GraphNode activityNode(TibcoModel.Scope.Flow.Activity activity) {
+    public AnalysisResult.GraphNode activityNode(Scope.Flow.Activity activity) {
         String name = activityNodeName(activity);
         return new AnalysisResult.GraphNode(name, AnalysisResult.GraphNode.Kind.ACTIVITY, activity);
     }
 
-    public AnalysisResult.GraphNode linkNode(TibcoModel.Scope.Flow.Link link) {
+    public AnalysisResult.GraphNode linkNode(Scope.Flow.Link link) {
         return new AnalysisResult.GraphNode(link.name(), AnalysisResult.GraphNode.Kind.LINK, link);
     }
 
