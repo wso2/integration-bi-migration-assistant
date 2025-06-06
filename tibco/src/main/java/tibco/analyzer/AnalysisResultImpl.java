@@ -71,7 +71,7 @@ final class AnalysisResultImpl implements AnalysisResult {
                        Map<String, Scope.Flow.Activity> activityByName,
                        Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencies,
                        Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions,
-                       Map<String, XSD.XSDType> xsdTypes) {
+                       Map<String, XSD.XSDType> xsdTypes, TibcoAnalysisReport report) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.activityData = activityData;
@@ -86,6 +86,7 @@ final class AnalysisResultImpl implements AnalysisResult {
         this.activityByName = activityByName;
         this.explicitTransitionGroupDependencies = explicitTransitionGroupDependencies;
         this.explicitTransitionGroupControlFlowFunctions = explicitTransitionGroupControlFlowFunctions;
+        this.report = report;
         this.xsdTypes = xsdTypes;
     }
 
@@ -164,8 +165,7 @@ final class AnalysisResultImpl implements AnalysisResult {
             Scope.Flow.Link link = new Scope.Flow.Link(target.linkName());
             Collection<Scope.Flow.Activity> sources = sourceMap.get(link);
             for (Scope.Flow.Activity source : sources) {
-                predicateStreams.add(transitionCondition(source, link).map(prec ->
-                        new TransitionData(source, prec)));
+                predicateStreams.add(transitionCondition(source, link).map(prec -> new TransitionData(source, prec)));
             }
         }
         return predicateStreams.build().flatMap(Function.identity());
@@ -192,7 +192,6 @@ final class AnalysisResultImpl implements AnalysisResult {
         return sortedActivitiesInner(dependencyGraph);
     }
 
-
     @Override
     public Stream<Scope.Flow.Activity> sortedActivities(ExplicitTransitionGroup group) {
         Graph<GraphNode> dependencyGraph = explicitTransitionGroupDependencies.get(group);
@@ -211,8 +210,8 @@ final class AnalysisResultImpl implements AnalysisResult {
 
         List<GraphNode> errorRoots = group.activities().stream()
                 .filter(each -> each instanceof ExplicitTransitionGroup.InlineActivity.ErrorHandlerInlineActivity)
-                .map(each ->
-                        new GraphNode(ConversionUtils.sanitizes(each.name()), GraphNode.Kind.INLINE_ACTIVITY, each))
+                .map(each -> new GraphNode(ConversionUtils.sanitizes(each.name()), GraphNode.Kind.INLINE_ACTIVITY,
+                        each))
                 .toList();
         if (errorRoots.isEmpty()) {
             return Stream.empty();
@@ -277,8 +276,15 @@ final class AnalysisResultImpl implements AnalysisResult {
                 combineMap(this.explicitTransitionGroupDependencies, other.explicitTransitionGroupDependencies),
                 combineMap(this.explicitTransitionGroupControlFlowFunctions,
                         other.explicitTransitionGroupControlFlowFunctions),
-                combineMap(this.xsdTypes, other.xsdTypes)
+                combineMap(this.xsdTypes, other.xsdTypes), combineReports(other)
         );
+    }
+
+    private TibcoAnalysisReport combineReports(AnalysisResultImpl other) {
+        return Stream.of(getReport(), other.getReport())
+                .flatMap(Optional::stream)
+                .reduce(TibcoAnalysisReport::combine)
+                .orElseGet(TibcoAnalysisReport::empty);
     }
 
     @Override
