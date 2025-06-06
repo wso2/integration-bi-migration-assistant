@@ -37,7 +37,7 @@ public class TibcoConverter {
     private static Logger logger;
 
     public static void migrateTibco(String sourcePath, String outputPath, boolean preserverStructure, boolean verbose,
-                                    boolean dryRun) {
+            boolean dryRun, boolean multiRoot) {
         logger = verbose ? createDefaultLogger("migrate-tibco") : createSilentLogger("migrate-tibco");
         Path inputPath = null;
         try {
@@ -45,6 +45,22 @@ public class TibcoConverter {
         } catch (IOException e) {
             logger().severe("Invalid path: " + sourcePath);
             System.exit(1);
+        }
+
+        if (multiRoot) {
+            if (!Files.isDirectory(inputPath)) {
+                logger().severe("Error: Multi-root conversion requires a directory path, but a file was provided: "
+                        + sourcePath);
+                System.exit(1);
+            }
+            if (!dryRun) {
+                logger().severe("Error: Multi-root conversion is only supported with dry run mode. "
+                        + "Please use the --dry-run flag.");
+                System.exit(1);
+            }
+            // TODO: Implement multi-root conversion logic
+            logger().info("Multi-root conversion not yet implemented");
+            return;
         }
 
         if (Files.isRegularFile(inputPath)) {

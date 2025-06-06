@@ -14,7 +14,7 @@ $ bal tool pull migrate-tibco
 ### Command Syntax
 
 ```bash
-$ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run]
+$ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root]
 ```
 
 ### Parameters
@@ -26,6 +26,7 @@ $ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directo
 - **-k or --keep-structure** - *Optional*. If specified, preserves the original process structure during migration. By default, this option is disabled.
 - **-v or --verbose** - *Optional*. Enable verbose output during conversion.
 - **-d or --dry-run** - *Optional*. Run the parsing and analysis phases and generate the `report.html` file without generating the Ballerina package.
+- **-m or --multi-root** - *Optional*. Treat each child directory as a separate project and convert all of them. This flag is currently only supported with `--dry-run` mode and the source must be a directory containing multiple TIBCO projects.
 
 ## Examples
 
@@ -102,6 +103,20 @@ $ bal migrate-tibco path/to/tibco-project -d
 ```
 
 This will run the parsing and analysis phases and generate the `report.html` file without actually performing Ballerina package generation.
+
+### Convert multiple TIBCO BusinessWorks projects with multi-root mode
+
+```bash
+$ bal migrate-tibco path/to/projects-directory --multi-root --dry-run
+```
+
+or
+
+```bash
+$ bal migrate-tibco path/to/projects-directory -m -d
+```
+
+This will treat each child directory within `path/to/projects-directory` as a separate TIBCO project and analyze all of them. This mode is currently only supported with the `--dry-run` flag and generates analysis reports for each project found.
 
 ## Output
 

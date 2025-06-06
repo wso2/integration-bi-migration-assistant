@@ -36,7 +36,7 @@ public class MigrateTibcoCommand implements BLauncherCmd {
     private static final String CMD_NAME = "migrate-tibco";
     private static final String USAGE =
             "bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>] " +
-                    "[-k|--keep-structure] [-v|--verbose] [-d|--dry-run]";
+                    "[-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root]";
 
     public MigrateTibcoCommand() {
         errStream = System.err;
@@ -59,18 +59,23 @@ public class MigrateTibcoCommand implements BLauncherCmd {
             description = "Simulate the conversion without generating output files", defaultValue = "false")
     private boolean dryRun;
 
+    @CommandLine.Option(names = {"--multi-root", "-m"},
+            description = "Treat each child directory as a separate project and convert all of them",
+            defaultValue = "false")
+    private boolean multiRoot;
+
     @Override
     public void execute() {
         if (sourcePath == null) {
             errStream.println("Error: Source TIBCO BusinessWorks project directory or `.bwp` file path is required.");
             onInvalidInput();
         }
-        TibcoConverter.migrateTibco(sourcePath, outputPath, keepStructure, verbose, dryRun);
+        TibcoConverter.migrateTibco(sourcePath, outputPath, keepStructure, verbose, dryRun, multiRoot);
     }
 
     private void onInvalidInput() {
         errStream.println("Usage: bal migrate-tibco <source-project-directory-or-file> " +
-                "[-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run]");
+                "[-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root]");
         System.exit(1);
     }
 
@@ -89,6 +94,9 @@ public class MigrateTibcoCommand implements BLauncherCmd {
         stringBuilder.append("  --keep-structure, -k     Keep process structure\n");
         stringBuilder.append("  --verbose, -v            Enable verbose output during conversion\n");
         stringBuilder.append("  --dry-run, -d            Simulate the conversion without generating output files\n");
+        stringBuilder.append(
+                "  --multi-root, -m         " +
+                        "Treat each child directory as a separate project and convert all of them\n");
     }
 
     @Override
@@ -107,6 +115,8 @@ public class MigrateTibcoCommand implements BLauncherCmd {
         stringBuilder.append("  bal migrate-tibco /path/to/tibco_process.bwp -d\n");
         stringBuilder.append("  bal migrate-tibco /path/to/tibco_process.bwp --verbose --dry-run\n");
         stringBuilder.append("  bal migrate-tibco /path/to/tibco_process.bwp -v -d\n");
+        stringBuilder.append("  bal migrate-tibco /path/to/projects-directory --multi-root --dry-run\n");
+        stringBuilder.append("  bal migrate-tibco /path/to/projects-directory -m -d\n");
     }
 
     @Override
