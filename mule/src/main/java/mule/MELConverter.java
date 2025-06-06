@@ -25,12 +25,12 @@ public class MELConverter {
     /**
      * Converts a MEL expression to a Ballerina expression.
      *
-     * @param data             Mule to bal converter data
+     * @param ctx             Mule to bal converter data
      * @param mel              MEL expression to convert (in form #[...])
      * @param addToStringCalls flag to add toString() calls to converted tokens
      * @return equivalent Ballerina expression
      */
-    public static String convertMELToBal(MuleToBalConverter.Data data, String mel, boolean addToStringCalls) {
+    public static String convertMELToBal(Context ctx, String mel, boolean addToStringCalls) {
         if (!mel.startsWith("#[") || !mel.endsWith("]")) {
             throw new IllegalArgumentException("Invalid MEL expression format: " + mel);
         }
@@ -52,7 +52,7 @@ public class MELConverter {
             if (currentChar == '\'' || currentChar == '\"') {
                 // Handle string literals
                 processToken(token, result, addToStringCalls);
-                i = processStringLiteral(data, melExpr, i, result);
+                i = processStringLiteral(ctx, melExpr, i, result);
                 continue;
             }
 
@@ -112,7 +112,7 @@ public class MELConverter {
         return token.equals("flowVars") || token.equals("sessionVars");
     }
 
-    private static int processStringLiteral(MuleToBalConverter.Data data, String melExpr, int startPos,
+    private static int processStringLiteral(Context ctx, String melExpr, int startPos,
                                             StringBuilder result) {
         char startingChar = melExpr.charAt(startPos);
         int i = startPos + 1;
@@ -138,7 +138,7 @@ public class MELConverter {
             i++;
         }
 
-        result.append(getAttrVal(data, stringLiteral.toString()));
+        result.append(getAttrVal(ctx, stringLiteral.toString()));
         return i;
     }
 

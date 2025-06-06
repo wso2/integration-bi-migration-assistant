@@ -15,7 +15,6 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
 package mule;
 
 import io.ballerina.compiler.syntax.tree.SyntaxInfo;
@@ -25,6 +24,7 @@ import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,8 +34,13 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import static common.BallerinaModel.ModuleVar;
+import static common.ConversionUtils.exprFrom;
 import static mule.MELConverter.convertMELToBal;
 
+/**
+ * Utility class for converting mule configs.
+ */
 public class ConversionUtils {
 
     private static final Pattern UNESCAPED_SPECIAL_CHAR_SET =
@@ -44,11 +49,11 @@ public class ConversionUtils {
     /**
      * Converts mule path to a Ballerina resource path.
      *
-     * @param data mule to bal converter data
+     * @param ctx mule to bal converter data
      * @param path mule path
      * @return ballerina resource path
      */
-    static String getBallerinaResourcePath(MuleToBalConverter.Data data, String path, List<String> pathParams) {
+    static String getBallerinaResourcePath(Context ctx, String path, List<String> pathParams) {
         List<String> list = Arrays.stream(path.split("/")).filter(s -> !s.isEmpty())
                 .map(s -> {
                     if (s.startsWith("{") && s.endsWith("}")) {
@@ -60,7 +65,7 @@ public class ConversionUtils {
                     }
                     if (s.startsWith("#[") && s.endsWith("]")) {
                         // Handle MEL in url. e.g. /users/#[flowVars.userId]
-                        String balExpr = convertMELToBal(data, s, false);
+                        String balExpr = convertMELToBal(ctx, s, false);
                         return "[" + balExpr + "]";
                     }
                     return convertToBalIdentifier(s);
@@ -85,16 +90,16 @@ public class ConversionUtils {
     /**
      * Converts mule http request path to a Ballerina client resource path.
      *
-     * @param data mule to bal converter data
+     * @param ctx mule to bal converter data
      * @param basePath mule http request path
      * @return ballerina client resource path
      */
-    static String getBallerinaClientResourcePath(MuleToBalConverter.Data data, String basePath) {
+    static String getBallerinaClientResourcePath(Context ctx, String basePath) {
         List<String> list = Arrays.stream(basePath.split("/")).filter(s -> !s.isEmpty())
                 .map(s -> {
                     if (s.startsWith("#[") && s.endsWith("]")) {
                         // Handle MEL in url. e.g. /users/#[flowVars.userId]
-                        String balExpr = convertMELToBal(data, s, false);
+                        String balExpr = convertMELToBal(ctx, s, false);
                         return "[" + balExpr + "]";
                     }
                     return ConversionUtils.convertToBalIdentifier(s);
@@ -102,16 +107,15 @@ public class ConversionUtils {
         return list.isEmpty() ? "/" : "/" + String.join("/", list);
     }
 
-    static void processExprCompContent(MuleToBalConverter.SharedProjectData sharedProjectData,
-                                       String convertedBalStmts) {
+    static void processExprCompContent(Context ctx, String convertedBalStmts) {
         List<String> list =
                 Arrays.stream(convertedBalStmts.split(";")).filter(s -> !s.isEmpty()).map(String::trim).toList();
         for (String stmt : list) {
-            processStatement(sharedProjectData, stmt);
+            processStatement(ctx, stmt);
         }
     }
 
-    private static void processStatement(MuleToBalConverter.SharedProjectData sharedProjectData, String statement) {
+    private static void processStatement(Context ctx, String statement) {
         String regex = "ctx\\.(sessionVars|flowVars)\\.(\\w+)\\s*=\\s*(.*)";
         Pattern pattern = Pattern.compile(regex);
 
@@ -121,14 +125,12 @@ public class ConversionUtils {
             String varName = matcher.group(2);
             String varValue = matcher.group(3);
 
-            if ("sessionVars".equals(varCategory) && !sharedProjectData.existingSessionVar(varName)) {
+            if ("sessionVars".equals(varCategory) && !ctx.projectCtx.sessionVars.containsKey(varName)) {
                 String inferredType = inferTypeFromBalExpr(varValue);
-                sharedProjectData.sessionVars.add(
-                        new MuleToBalConverter.SharedProjectData.TypeAndNamePair(inferredType, varName));
-            } else if ("flowVars".equals(varCategory) && !sharedProjectData.existingFlowVar(varName)) {
+                ctx.projectCtx.sessionVars.put(varName, inferredType);
+            } else if ("flowVars".equals(varCategory) && !ctx.projectCtx.flowVars.containsKey(varName)) {
                 String inferredType = inferTypeFromBalExpr(varValue);
-                sharedProjectData.flowVars.add(
-                        new MuleToBalConverter.SharedProjectData.TypeAndNamePair(inferredType, varName));
+                ctx.projectCtx.flowVars.put(varName, inferredType);
             }
         }
     }
@@ -172,7 +174,7 @@ public class ConversionUtils {
         return UNESCAPED_SPECIAL_CHAR_SET.matcher(identifier).replaceAll("\\\\$1");
     }
 
-    static String[] getAllowedMethods(String allowedMethods) {
+    public static String[] getAllowedMethods(String allowedMethods) {
         if (allowedMethods.isEmpty()) {
             // Leaving empty will allow all methods
             return new String[]{"DEFAULT"};
@@ -184,11 +186,11 @@ public class ConversionUtils {
         return basePath.startsWith("/") ? basePath : "/" + basePath;
     }
 
-    static String genQueryParam(MuleToBalConverter.Data data, Map<String, String> queryParams) {
+    static String genQueryParam(Context ctx, Map<String, String> queryParams) {
         return queryParams.entrySet().stream().map(e -> {
                     String k = e.getKey();
                     String key = SyntaxInfo.isKeyword(k) ? "'" + k : k;
-                    String balExpr = convertMuleExprToBal(data, e.getValue());
+                    String balExpr = convertMuleExprToBal(ctx, e.getValue());
                     if (balExpr.startsWith("ctx.")) {
                         balExpr = "check " + balExpr + ".ensureType(http:QueryParamType)";
                     }
@@ -197,19 +199,19 @@ public class ConversionUtils {
                 .reduce((a, b) -> a + ", " + b).orElse("");
     }
 
-    public static String convertMuleExprToBal(MuleToBalConverter.Data data, String melExpression) {
-        return convertMuleExprToBal(data, melExpression, false);
+    public static String convertMuleExprToBal(Context ctx, String melExpression) {
+        return convertMuleExprToBal(ctx, melExpression, false);
     }
 
-    public static String convertMuleExprToBalStringLiteral(MuleToBalConverter.Data data, String melExpression) {
-        return convertMuleExprToBal(data, melExpression, true);
+    public static String convertMuleExprToBalStringLiteral(Context ctx, String melExpression) {
+        return convertMuleExprToBal(ctx, melExpression, true);
     }
 
-    private static String convertMuleExprToBal(MuleToBalConverter.Data data, String melExpression,
+    private static String convertMuleExprToBal(Context ctx, String melExpression,
                                                boolean addToStringCalls) {
         // Direct MEL expression (e.g., "#[payload]")
         if (melExpression.startsWith("#[") && melExpression.endsWith("]")) {
-            return convertMELToBal(data, melExpression, addToStringCalls);
+            return convertMELToBal(ctx, melExpression, addToStringCalls);
         }
 
         // Handle mixed string with embedded MEL or property expressions
@@ -234,9 +236,9 @@ public class ConversionUtils {
             // Determine expression type and process accordingly
             hasExpressionParts = true;
             if (melExpression.startsWith("#[", exprStart)) {
-                currentPos = processMELExpression(data, melExpression, exprStart, result, addToStringCalls);
+                currentPos = processMELExpression(ctx, melExpression, exprStart, result, addToStringCalls);
             } else if (melExpression.startsWith("${", exprStart)) {
-                currentPos = processPropertyAccessExpr(data, melExpression, exprStart, result);
+                currentPos = processPropertyAccessExpr(ctx, melExpression, exprStart, result);
             } else {
                 // Should never happen given the findNextExpressionStart logic
                 throw new IllegalStateException();
@@ -261,7 +263,7 @@ public class ConversionUtils {
         }
     }
 
-    private static int processMELExpression(MuleToBalConverter.Data data, String text, int startPos,
+    private static int processMELExpression(Context ctx, String text, int startPos,
                                             StringBuilder result, boolean addToStringCalls) {
         int bracketDepth = 1;
         int i = startPos + 2;  // Skip "#["
@@ -277,13 +279,13 @@ public class ConversionUtils {
         }
 
         String melExpr = text.substring(startPos, i);
-        String convertedExpr = convertMELToBal(data, melExpr, addToStringCalls);
+        String convertedExpr = convertMELToBal(ctx, melExpr, addToStringCalls);
         result.append("${").append(convertedExpr).append("}");
 
         return i;
     }
 
-    private static int processPropertyAccessExpr(MuleToBalConverter.Data data, String text, int startPos,
+    private static int processPropertyAccessExpr(Context ctx, String text, int startPos,
                                                  StringBuilder result) {
         int i = startPos + 2;  // Skip "${"
 
@@ -294,7 +296,7 @@ public class ConversionUtils {
         }
 
         if (i < text.length() && text.charAt(i) == '}') {
-            String configVarName = processPropertyName(data, propertyName.toString());
+            String configVarName = processPropertyName(ctx, propertyName.toString());
             result.append("${").append(configVarName).append("}");
             return i + 1;
         } else {
@@ -304,23 +306,27 @@ public class ConversionUtils {
         }
     }
 
-    private static String processPropertyName(MuleToBalConverter.Data data, String propertyName) {
+    private static String processPropertyName(Context ctx, String propertyName) {
         String configVarName = propertyName.replace('.', '_');
-        data.putConfigVarIfNotExists(configVarName);
+        if (!ctx.projectCtx.configurableVarExists(configVarName)) {
+            var configVarDecl = new ModuleVar(configVarName, "string", Optional.of(exprFrom("?")), false, true);
+            ctx.currentFileCtx.configs.configurableVars.put(configVarName, configVarDecl);
+        }
+
         return configVarName;
     }
 
-    public static String getAttrVal(MuleToBalConverter.Data data, String propValue) {
-        return getAttrVal(data, propValue, false);
+    public static String getAttrVal(Context ctx, String propValue) {
+        return getAttrVal(ctx, propValue, false);
     }
 
-    public static String getAttrValInt(MuleToBalConverter.Data data, String propValue) {
-        return getAttrVal(data, propValue, true);
+    public static String getAttrValInt(Context ctx, String propValue) {
+        return getAttrVal(ctx, propValue, true);
     }
 
-    private static String getAttrVal(MuleToBalConverter.Data data, String propValue, boolean isInt) {
+    private static String getAttrVal(Context ctx, String propValue, boolean isInt) {
         if (propValue.startsWith("${") && propValue.endsWith("}")) {
-            String configVarRef = processPropertyName(data, propValue.substring(2, propValue.length() - 1));
+            String configVarRef = processPropertyName(ctx, propValue.substring(2, propValue.length() - 1));
             return isInt ? "check int:fromString(%s)".formatted(configVarRef) : configVarRef;
         } else {
             return isInt ? propValue : "\"" + propValue.replace("\"", "\\\"") + "\"";

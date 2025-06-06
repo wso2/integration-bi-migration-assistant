@@ -17,13 +17,11 @@
  */
 package mule;
 
-import common.BallerinaModel;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.MuleXMLNavigator.MuleElement;
-import mule.dataweave.converter.DWConversionStats;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
@@ -31,10 +29,8 @@ import org.xml.sax.SAXException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -80,7 +76,6 @@ import static mule.MuleModel.Flow;
 import static mule.MuleModel.HTTPListenerConfig;
 import static mule.MuleModel.HttpListener;
 import static mule.MuleModel.Kind;
-import static mule.MuleModel.HTTPRequestConfig;
 import static mule.MuleModel.MuleRecord;
 import static mule.MuleModel.SubFlow;
 import static mule.MuleModel.VMInboundEndpoint;
@@ -88,131 +83,25 @@ import static mule.MuleModel.UnsupportedBlock;
 
 public class MuleToBalConverter {
 
-    public static class Data {
-        public final SharedProjectData sharedProjectData;
-
-        // Following are per bal file properties
-
-        // Mule global elements
-        HashMap<String, HTTPListenerConfig> globalHttpListenerConfigsMap = new LinkedHashMap<>();
-        HashMap<String, HTTPRequestConfig> globalHttpRequestConfigsMap = new LinkedHashMap<>();
-        HashMap<String, DbMSQLConfig> globalDbMySQLConfigsMap = new LinkedHashMap<>();
-        HashMap<String, DbOracleConfig> globalDbOracleConfigsMap = new LinkedHashMap<>();
-        HashMap<String, DbTemplateQuery> globalDbTemplateQueryMap = new LinkedHashMap<>();
-        private final HashMap<String, ModuleVar> globalConfigVarMap = new LinkedHashMap<>();
-        List<UnsupportedBlock> globalUnsupportedBlocks = new ArrayList<>();
-        List<MuleRecord> globalExceptionStrategies = new ArrayList<>();
-
-        // Ballerina global elements
-        public HashSet<Import> imports = new LinkedHashSet<>();
-        HashMap<String, ModuleTypeDef> typeDefMap = new LinkedHashMap<>();
-        HashMap<String, ModuleVar> moduleVarMap = new LinkedHashMap<>();
-        public List<Function> functions = new ArrayList<>();
-        public List<String> utilFunctions = new ArrayList<>();
-
-        public Data(SharedProjectData sharedProjectData) {
-            this.sharedProjectData = sharedProjectData;
-        }
-
-        public void putConfigVarIfNotExists(String configVarName) {
-            if (sharedProjectData.sharedConfigVarMap.containsKey(configVarName)) {
-                return;
-            }
-
-            BallerinaModel.ModuleVar configVarDecl = new BallerinaModel.ModuleVar(configVarName, "string",
-                    Optional.of(exprFrom("?")), false, true);
-            sharedProjectData.sharedConfigVarMap.put(configVarName, configVarDecl);
-            globalConfigVarMap.put(configVarName, configVarDecl);
-        }
-    }
-
-    public static class SharedProjectData {
-        boolean isStandaloneBalFile = false;
-        HashMap<String, ModuleTypeDef> contextTypeDefMap = new LinkedHashMap<>();
-        HashSet<Import> contextTypeDefImports = new LinkedHashSet<>();
-        HashMap<String, HTTPListenerConfig> sharedHttpListenerConfigsMap = new LinkedHashMap<>();
-        HashMap<String, HTTPRequestConfig> sharedHttpRequestConfigsMap = new LinkedHashMap<>();
-        HashMap<String, DbMSQLConfig> sharedDbMySQLConfigsMap = new LinkedHashMap<>();
-        HashMap<String, DbOracleConfig> sharedDbOracleConfigsMap = new LinkedHashMap<>();
-        HashMap<String, DbTemplateQuery> sharedDbTemplateQueryMap = new LinkedHashMap<>();
-        private final HashMap<String, ModuleVar> sharedConfigVarMap = new LinkedHashMap<>();
-        HashMap<String, String> vmPathToBalFuncMap = new LinkedHashMap<>();
-
-        // Internal variable/method count
-        public int invokeEndPointMethodCount = 0;
-        public int dwMethodCount = 0;
-        public int dbQueryVarCount = 0;
-        public int dbStreamVarCount = 0;
-        public int dbSelectVarCount = 0;
-        public int enricherFuncCount = 0;
-        public int asyncFuncCount = 0;
-        public int payloadVarCount = 0;
-        public int clientResultVarCount = 0;
-        public int vmReceiveFuncCount = 0;
-
-        private final DWConversionStats dwConversionStats;
-
-        public SharedProjectData(MuleXMLNavigator muleXMLNavigator) {
-            this.dwConversionStats = muleXMLNavigator.getDwConversionStats();
-        }
-
-        LinkedHashSet<TypeAndNamePair> flowVars = new LinkedHashSet<>();
-        LinkedHashSet<TypeAndNamePair> sessionVars = new LinkedHashSet<>();
-        LinkedHashSet<TypeAndNamePair> inboundProperties = new LinkedHashSet<>();
-
-        record TypeAndNamePair(String type, String name) {
-        }
-
-        boolean existingFlowVar(String name) {
-            return existingVar(flowVars, name);
-        }
-
-        boolean existingSessionVar(String name) {
-            return existingVar(sessionVars, name);
-        }
-
-        private boolean existingVar(LinkedHashSet<TypeAndNamePair> vars, String name) {
-            for (TypeAndNamePair var : vars) {
-                if (var.name.equals(name)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        public DWConversionStats getDwConversionStats() {
-            return dwConversionStats;
-        }
-    }
-
     public static SyntaxTree convertStandaloneXMLFileToBallerina(String xmlFilePath) {
         MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator();
-        SharedProjectData sharedProjectData = new SharedProjectData(muleXMLNavigator);
-        sharedProjectData.isStandaloneBalFile = true;
-        Data data = new Data(sharedProjectData);
-        return convertXMLFileToBallerina(muleXMLNavigator, xmlFilePath, data);
+        Context ctx = new Context();
+        ctx.startStandaloneFile(xmlFilePath);
+        return convertXMLFileToBallerina(muleXMLNavigator, xmlFilePath, ctx);
     }
 
-    public static SyntaxTree convertProjectXMLFileToBallerina(MuleXMLNavigator muleXMLNavigator,
-            SharedProjectData sharedProjectData,
-            String xmlFilePath) {
-        MuleToBalConverter.Data data = new MuleToBalConverter.Data(sharedProjectData);
-        SyntaxTree syntaxTree = convertXMLFileToBallerina(muleXMLNavigator, xmlFilePath, data);
-        sharedProjectData.sharedHttpListenerConfigsMap.putAll(data.globalHttpListenerConfigsMap);
-        sharedProjectData.sharedHttpRequestConfigsMap.putAll(data.globalHttpRequestConfigsMap);
-        sharedProjectData.sharedDbMySQLConfigsMap.putAll(data.globalDbMySQLConfigsMap);
-        sharedProjectData.sharedDbOracleConfigsMap.putAll(data.globalDbOracleConfigsMap);
-        sharedProjectData.sharedDbTemplateQueryMap.putAll(data.globalDbTemplateQueryMap);
-        return syntaxTree;
+    public static SyntaxTree convertProjectXMLFileToBallerina(MuleXMLNavigator muleXMLNavigator, Context ctx,
+                                                              String xmlFilePath) {
+        return convertXMLFileToBallerina(muleXMLNavigator, xmlFilePath, ctx);
     }
 
     private static SyntaxTree convertXMLFileToBallerina(MuleXMLNavigator muleXMLNavigator, String xmlFilePath,
-            Data data) {
-        TextDocument textDocument = getTextDocument(muleXMLNavigator, data, xmlFilePath);
+                                                        Context ctx) {
+        TextDocument textDocument = getTextDocument(muleXMLNavigator, ctx, xmlFilePath);
         return new CodeGenerator(textDocument).generateSyntaxTree();
     }
 
-    private static TextDocument getTextDocument(MuleXMLNavigator muleXMLNavigator, Data data, String xmlFilePath) {
+    private static TextDocument getTextDocument(MuleXMLNavigator muleXMLNavigator, Context ctx, String xmlFilePath) {
         Element root;
         try {
             root = parseMuleXMLConfigurationFile(xmlFilePath);
@@ -223,9 +112,9 @@ public class MuleToBalConverter {
         MuleElement muleRootElement = muleXMLNavigator.createRootMuleElement(root);
         List<Flow> flows = new ArrayList<>();
         List<SubFlow> subFlows = new ArrayList<>();
-        readMuleConfigFromRoot(data, muleRootElement, flows, subFlows);
+        readMuleConfigFromRoot(ctx, muleRootElement, flows, subFlows);
 
-        return generateTextDocument(data, flows, subFlows);
+        return generateTextDocument(ctx, flows, subFlows);
     }
 
     private static Element parseMuleXMLConfigurationFile(String uri) throws ParserConfigurationException, SAXException,
@@ -242,7 +131,7 @@ public class MuleToBalConverter {
         return document.getDocumentElement();
     }
 
-    private static TextDocument generateTextDocument(Data data, List<Flow> flows, List<SubFlow> subFlows) {
+    private static TextDocument generateTextDocument(Context ctx, List<Flow> flows, List<SubFlow> subFlows) {
         List<Service> services = new ArrayList<>();
         Set<Function> functions = new HashSet<>();
         List<Flow> privateFlows = new ArrayList<>();
@@ -256,170 +145,168 @@ public class MuleToBalConverter {
 
             MuleRecord src = source.get();
             if (src.kind() == Kind.VM_INBOUND_ENDPOINT) {
-                genVMInboundEndpointSource(data, flow, (VMInboundEndpoint) src, functions);
+                genVMInboundEndpointSource(ctx, flow, (VMInboundEndpoint) src, functions);
             } else {
                 assert src.kind() == Kind.HTTP_LISTENER;
-                genHttpSource(data, flow, (HttpListener) src, services, functions);
+                genHttpSource(ctx, flow, (HttpListener) src, services, functions);
             }
         }
 
         // Create functions for private flows
-        genBalFuncsFromPrivateFlows(data, privateFlows, functions);
+        genBalFuncsFromPrivateFlows(ctx, privateFlows, functions);
 
         // Create functions for sub-flows
-        genBalFuncsFromSubFlows(data, subFlows, functions);
-        functions.addAll(data.functions);
+        genBalFuncsFromSubFlows(ctx, subFlows, functions);
+        functions.addAll(ctx.currentFileCtx.balConstructs.functions);
 
         // Create functions for global exception strategies
-        for (MuleRecord exceptionStrategy : data.globalExceptionStrategies) {
-            genBalFuncForGlobalExceptionStrategy(data, exceptionStrategy, functions);
+        for (MuleRecord exceptionStrategy : ctx.currentFileCtx.configs.globalExceptionStrategies) {
+            genBalFuncForGlobalExceptionStrategy(ctx, exceptionStrategy, functions);
         }
 
         // Add global listeners
         List<Listener> listeners = new ArrayList<>();
-        for (HTTPListenerConfig httpListenerConfig : data.globalHttpListenerConfigsMap.values()) {
+        for (HTTPListenerConfig httpListenerConfig : ctx.currentFileCtx.configs.httpListenerConfigs.values()) {
             listeners.add(new Listener(ListenerType.HTTP, httpListenerConfig.name(),
-                    getAttrValInt(data, httpListenerConfig.port()), httpListenerConfig.host()));
+                    getAttrValInt(ctx, httpListenerConfig.port()), httpListenerConfig.host()));
         }
 
         // Add module vars
         List<ModuleVar> moduleVars = new ArrayList<>();
 
-        for (DbMSQLConfig dbMSQLConfig : data.globalDbMySQLConfigsMap.values()) {
+        for (DbMSQLConfig dbMSQLConfig : ctx.currentFileCtx.configs.dbMySQLConfigs.values()) {
             var balExpr = exprFrom("check new (%s, %s, %s, %s, %s)".formatted(
-                    getAttrVal(data, dbMSQLConfig.host()), getAttrVal(data, dbMSQLConfig.user()),
-                    getAttrVal(data, dbMSQLConfig.password()), getAttrVal(data, dbMSQLConfig.database()),
-                    getAttrValInt(data, dbMSQLConfig.port())));
+                    getAttrVal(ctx, dbMSQLConfig.host()), getAttrVal(ctx, dbMSQLConfig.user()),
+                    getAttrVal(ctx, dbMSQLConfig.password()), getAttrVal(ctx, dbMSQLConfig.database()),
+                    getAttrValInt(ctx, dbMSQLConfig.port())));
             moduleVars.add(new ModuleVar(dbMSQLConfig.name(), typeFrom(Constants.MYSQL_CLIENT_TYPE), balExpr));
         }
 
-        for (DbOracleConfig dbOracleConfig : data.globalDbOracleConfigsMap.values()) {
+        for (DbOracleConfig dbOracleConfig : ctx.currentFileCtx.configs.dbOracleConfigs.values()) {
             var balExpr = exprFrom(String.format("check new (%s, %s, %s, %s, %s)",
-                    getAttrVal(data, dbOracleConfig.host()), getAttrVal(data, dbOracleConfig.user()),
-                    getAttrVal(data, dbOracleConfig.password()), getAttrVal(data, dbOracleConfig.instance()),
-                    getAttrValInt(data, dbOracleConfig.port())));
+                    getAttrVal(ctx, dbOracleConfig.host()), getAttrVal(ctx, dbOracleConfig.user()),
+                    getAttrVal(ctx, dbOracleConfig.password()), getAttrVal(ctx, dbOracleConfig.instance()),
+                    getAttrValInt(ctx, dbOracleConfig.port())));
             moduleVars.add(new ModuleVar(dbOracleConfig.name(), typeFrom(Constants.ORACLEDB_CLIENT_TYPE), balExpr));
         }
 
-        for (DbTemplateQuery dbTemplateQuery : data.globalDbTemplateQueryMap.values()) {
+        for (DbTemplateQuery dbTemplateQuery : ctx.currentFileCtx.configs.dbTemplateQueries.values()) {
             var balExpr = exprFrom(String.format("`%s`", dbTemplateQuery.parameterizedQuery()));
             moduleVars.add(new ModuleVar(dbTemplateQuery.name(), typeFrom(Constants.SQL_PARAMETERIZED_QUERY_TYPE),
                     balExpr));
         }
 
-        moduleVars.addAll(data.moduleVarMap.values());
+        moduleVars.addAll(ctx.currentFileCtx.balConstructs.moduleVars.values());
 
         // Global comments at the end of file
         List<String> comments = new ArrayList<>();
-        for (UnsupportedBlock unsupportedBlock : data.globalUnsupportedBlocks) {
+        for (UnsupportedBlock unsupportedBlock : ctx.currentFileCtx.configs.unsupportedBlocks) {
             String comment = ConversionUtils.wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());
             comments.add(comment);
         }
 
         List<ModuleTypeDef> typeDefs;
-        if (data.sharedProjectData.isStandaloneBalFile) {
-            createContextTypeDefns(data.sharedProjectData);
-            data.sharedProjectData.contextTypeDefMap.putAll(data.typeDefMap);
-            typeDefs = data.sharedProjectData.contextTypeDefMap.values().stream().toList();
-            data.imports.addAll(data.sharedProjectData.contextTypeDefImports);
+        if (ctx.isStandaloneBalFile()) {
+            List<ModuleTypeDef> contextTypeDefns = createContextTypeDefns(ctx);
+            contextTypeDefns.addAll(ctx.currentFileCtx.balConstructs.typeDefs.values());
+            typeDefs = contextTypeDefns;
         } else {
-            typeDefs = data.typeDefMap.values().stream().toList();
+            typeDefs = ctx.currentFileCtx.balConstructs.typeDefs.values().stream().toList();
         }
 
-        ArrayList<ModuleVar> orderedModuleVars = new ArrayList<>(data.globalConfigVarMap.values());
+        ArrayList<ModuleVar> orderedModuleVars = new ArrayList<>(ctx.currentFileCtx.configs.configurableVars.values());
         orderedModuleVars.addAll(moduleVars);
-        return createTextDocument("internal", new ArrayList<>(data.imports), typeDefs,
+        return createTextDocument("internal", new ArrayList<>(ctx.currentFileCtx.balConstructs.imports), typeDefs,
                 orderedModuleVars, listeners, services, functions.stream().toList(), comments);
     }
 
-    private static void genVMInboundEndpointSource(Data data, Flow flow, VMInboundEndpoint vmInboundEndpoint,
-            Set<Function> functions) {
+    private static void genVMInboundEndpointSource(Context ctx, Flow flow, VMInboundEndpoint vmInboundEndpoint,
+                                                   Set<Function> functions) {
         String path = vmInboundEndpoint.path();
-        String funcName = data.sharedProjectData.vmPathToBalFuncMap.get(path);
+        String funcName = ctx.projectCtx.vmPathToBalFuncMap.get(path);
         if (funcName == null) {
             funcName = ConversionUtils.convertToBalIdentifier(flow.name());
-            data.sharedProjectData.vmPathToBalFuncMap.put(path, funcName);
-            genBalFunc(data, functions, funcName, flow.flowBlocks());
+            ctx.projectCtx.vmPathToBalFuncMap.put(path, funcName);
+            genBalFunc(ctx, functions, funcName, flow.flowBlocks());
         } else {
-            genBalFunc(data, functions, funcName, flow.flowBlocks());
+            genBalFunc(ctx, functions, funcName, flow.flowBlocks());
         }
     }
 
-    private static void genHttpSource(Data data, Flow flow, HttpListener src, List<Service> services,
+    private static void genHttpSource(Context ctx, Flow flow, HttpListener src, List<Service> services,
                                       Set<Function> functions) {
-        data.sharedProjectData.inboundProperties.add(new SharedProjectData.TypeAndNamePair(
-                Constants.HTTP_REQUEST_TYPE, Constants.HTTP_REQUEST_REF));
-        data.sharedProjectData.inboundProperties.add(new SharedProjectData.TypeAndNamePair(
-                Constants.HTTP_RESPONSE_TYPE, Constants.HTTP_RESPONSE_REF));
-        data.sharedProjectData.inboundProperties.add(new SharedProjectData.TypeAndNamePair(
-                "map<string>", Constants.URI_PARAMS_REF));
-        data.sharedProjectData.contextTypeDefImports.add(Constants.HTTP_MODULE_IMPORT);
+        ctx.projectCtx.inboundProperties.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_TYPE);
+        ctx.projectCtx.inboundProperties.put(Constants.HTTP_RESPONSE_REF, Constants.HTTP_RESPONSE_TYPE);
+        ctx.projectCtx.inboundProperties.put(Constants.URI_PARAMS_REF, "map<string>");
 
         // Create a service from the flow
-        Service service = genBalService(data, src, flow.flowBlocks(), functions);
+        Service service = genBalService(ctx, src, flow.flowBlocks(), functions);
         services.add(service);
     }
 
-    public static void createContextTypeDefns(SharedProjectData sharedProjectData) {
+    public static List<ModuleTypeDef> createContextTypeDefns(Context ctx) {
+        List<ModuleTypeDef> contextTypeDefns = new ArrayList<>();
+
         List<RecordField> contextRecFields = new ArrayList<>();
         contextRecFields.add(new RecordField(Constants.PAYLOAD_REF, BAL_ANYDATA_TYPE, exprFrom("()")));
 
-        if (!sharedProjectData.flowVars.isEmpty()) {
+        if (!ctx.projectCtx.flowVars.isEmpty()) {
             contextRecFields.add(new RecordField(Constants.FLOW_VARS_REF, typeFrom(Constants.FLOW_VARS_TYPE),
                     exprFrom("{}")));
             List<RecordField> flowVarRecFields = new ArrayList<>();
-            for (SharedProjectData.TypeAndNamePair tnp : sharedProjectData.flowVars) {
-                flowVarRecFields.add(new RecordField(tnp.name, typeFrom(tnp.type), true));
+            for (Map.Entry<String, String> entry : ctx.projectCtx.flowVars.entrySet()) {
+                flowVarRecFields.add(new RecordField(entry.getKey(), typeFrom(entry.getValue()), true));
             }
+
             RecordTypeDesc flowVarsRecord = RecordTypeDesc.closedRecord(flowVarRecFields);
-            sharedProjectData.contextTypeDefMap.put(Constants.FLOW_VARS_TYPE,
-                    new ModuleTypeDef(Constants.FLOW_VARS_TYPE, flowVarsRecord));
+            contextTypeDefns.add(new ModuleTypeDef(Constants.FLOW_VARS_TYPE, flowVarsRecord));
         }
 
-        if (!sharedProjectData.sessionVars.isEmpty()) {
+        if (!ctx.projectCtx.sessionVars.isEmpty()) {
             contextRecFields.add(new RecordField(Constants.SESSION_VARS_REF, typeFrom(Constants.SESSION_VARS_TYPE),
                     exprFrom("{}")));
             List<RecordField> sessionVarRecFields = new ArrayList<>();
-            for (SharedProjectData.TypeAndNamePair tnp : sharedProjectData.sessionVars) {
-                sessionVarRecFields.add(new RecordField(tnp.name, typeFrom(tnp.type), true));
+            for (Map.Entry<String, String> entry : ctx.projectCtx.sessionVars.entrySet()) {
+                sessionVarRecFields.add(new RecordField(entry.getKey(), typeFrom(entry.getValue()), true));
             }
             RecordTypeDesc sessionVarsRecord = RecordTypeDesc.closedRecord(sessionVarRecFields);
-            sharedProjectData.contextTypeDefMap.put("SessionVars", new ModuleTypeDef("SessionVars", sessionVarsRecord));
+            contextTypeDefns.add(new ModuleTypeDef(Constants.SESSION_VARS_TYPE, sessionVarsRecord));
         }
 
-        if (!sharedProjectData.inboundProperties.isEmpty()) {
+        if (!ctx.projectCtx.inboundProperties.isEmpty()) {
             contextRecFields.add(new RecordField("inboundProperties", typeFrom(Constants.INBOUND_PROPERTIES_TYPE),
                     false));
             List<RecordField> inboundPropRecordFields = new ArrayList<>();
-            for (SharedProjectData.TypeAndNamePair tnp : sharedProjectData.inboundProperties) {
+            for (Map.Entry<String, String> entry : ctx.projectCtx.inboundProperties.entrySet()) {
+                String name = entry.getKey();
+                String type = entry.getValue();
                 RecordField inboundPropField;
-                if (tnp.type.startsWith("map<") && tnp.type.endsWith(">")) {
-                    inboundPropField = new RecordField(tnp.name, typeFrom(tnp.type), exprFrom("{}"));
+                if (type.startsWith("map<") && type.endsWith(">")) {
+                    inboundPropField = new RecordField(name, typeFrom(type), exprFrom("{}"));
                 } else {
-                    inboundPropField = new RecordField(tnp.name, typeFrom(tnp.type), false);
+                    inboundPropField = new RecordField(name, typeFrom(type), false);
                 }
                 inboundPropRecordFields.add(inboundPropField);
             }
             RecordTypeDesc inboundPropertiesRecord = RecordTypeDesc.closedRecord(inboundPropRecordFields);
-            sharedProjectData.contextTypeDefMap.put(Constants.INBOUND_PROPERTIES_TYPE,
-                    new ModuleTypeDef(Constants.INBOUND_PROPERTIES_TYPE, inboundPropertiesRecord));
+            contextTypeDefns.add(new ModuleTypeDef(Constants.INBOUND_PROPERTIES_TYPE, inboundPropertiesRecord));
         }
 
         RecordTypeDesc contextRecord = RecordTypeDesc.closedRecord(contextRecFields);
-        sharedProjectData.contextTypeDefMap.put(Constants.CONTEXT_RECORD_TYPE, new ModuleTypeDef(
-                Constants.CONTEXT_RECORD_TYPE, contextRecord));
+        contextTypeDefns.add(new ModuleTypeDef(Constants.CONTEXT_RECORD_TYPE, contextRecord));
+        return contextTypeDefns;
     }
 
-    private static void genBalFuncForGlobalExceptionStrategy(Data data, MuleRecord muleRecord,
-            Set<Function> functions) {
+    private static void genBalFuncForGlobalExceptionStrategy(Context ctx, MuleRecord muleRecord,
+                                                             Set<Function> functions) {
         List<Statement> body;
         String name;
         if (muleRecord instanceof CatchExceptionStrategy catchExceptionStrategy) {
             name = catchExceptionStrategy.name();
-            body = getCatchExceptionBody(data, catchExceptionStrategy);
+            body = getCatchExceptionBody(ctx, catchExceptionStrategy);
         } else if (muleRecord instanceof ChoiceExceptionStrategy choiceExceptionStrategy) {
             name = choiceExceptionStrategy.name();
-            body = getChoiceExceptionBody(data, choiceExceptionStrategy);
+            body = getChoiceExceptionBody(ctx, choiceExceptionStrategy);
         } else {
             throw new UnsupportedOperationException("exception strategy not supported");
         }
@@ -432,41 +319,41 @@ public class MuleToBalConverter {
         functions.add(function);
     }
 
-    private static void genBalFuncsFromSubFlows(Data data, List<SubFlow> subFlows, Set<Function> functions) {
+    private static void genBalFuncsFromSubFlows(Context ctx, List<SubFlow> subFlows, Set<Function> functions) {
         for (SubFlow subFlow : subFlows) {
-            genBalFuncForPrivateOrSubFlow(data, functions, subFlow.name(), subFlow.flowBlocks());
+            genBalFuncForPrivateOrSubFlow(ctx, functions, subFlow.name(), subFlow.flowBlocks());
         }
     }
 
-    private static void genBalFuncForPrivateOrSubFlow(Data data, Set<Function> functions, String flowName,
-            List<MuleRecord> flowBlocks) {
-        List<Statement> body = convertTopLevelMuleBlocks(data, flowBlocks);
+    private static void genBalFuncForPrivateOrSubFlow(Context ctx, Set<Function> functions, String flowName,
+                                                      List<MuleRecord> flowBlocks) {
+        List<Statement> body = convertTopLevelMuleBlocks(ctx, flowBlocks);
 
         String methodName = ConversionUtils.convertToBalIdentifier(flowName);
         Function function = Function.publicFunction(methodName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
         functions.add(function);
     }
 
-    private static void genBalFunc(Data data, Set<Function> functions, String funcName, List<MuleRecord> flowBlocks) {
-        List<Statement> body = convertTopLevelMuleBlocks(data, flowBlocks);
+    private static void genBalFunc(Context ctx, Set<Function> functions, String funcName, List<MuleRecord> flowBlocks) {
+        List<Statement> body = convertTopLevelMuleBlocks(ctx, flowBlocks);
         Function function = Function.publicFunction(funcName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
         functions.add(function);
     }
 
-    private static void genBalFuncsFromPrivateFlows(Data data, List<Flow> privateFlows, Set<Function> functions) {
+    private static void genBalFuncsFromPrivateFlows(Context ctx, List<Flow> privateFlows, Set<Function> functions) {
         for (Flow privateFlow : privateFlows) {
-            genBalFuncForPrivateOrSubFlow(data, functions, privateFlow.name(), privateFlow.flowBlocks());
+            genBalFuncForPrivateOrSubFlow(ctx, functions, privateFlow.name(), privateFlow.flowBlocks());
         }
     }
 
-    private static Service genBalService(Data data, HttpListener httpListener, List<MuleRecord> flowBlocks,
-            Set<Function> functions) {
+    private static Service genBalService(Context ctx, HttpListener httpListener, List<MuleRecord> flowBlocks,
+                                         Set<Function> functions) {
         List<String> pathParams = new ArrayList<>();
-        String resourcePath = getBallerinaResourcePath(data, httpListener.resourcePath(), pathParams);
+        String resourcePath = getBallerinaResourcePath(ctx, httpListener.resourcePath(), pathParams);
         String[] resourceMethodNames = httpListener.allowedMethods();
         String listenerRef = httpListener.configRef();
         String muleBasePath = insertLeadingSlash(
-                data.sharedProjectData.sharedHttpListenerConfigsMap.get(httpListener.configRef()).basePath());
+                ctx.projectCtx.getHttpListenerConfig(httpListener.configRef()).basePath());
         String basePath = getBallerinaAbsolutePath(muleBasePath);
 
         // Add services
@@ -474,11 +361,11 @@ public class MuleToBalConverter {
         queryPrams.add(new Parameter(Constants.HTTP_REQUEST_REF, typeFrom(Constants.HTTP_REQUEST_TYPE)));
 
         List<Statement> bodyStmts = new ArrayList<>();
-        String inboundPropInitValue = getInboundPropInitValue(data, pathParams);
+        String inboundPropInitValue = getInboundPropInitValue(ctx, pathParams);
         bodyStmts.add(stmtFrom("Context %s = {%s: %s};".formatted(Constants.CONTEXT_REFERENCE,
                 Constants.INBOUND_PROPERTIES_REF, inboundPropInitValue)));
 
-        List<Statement> bodyCoreStmts = convertTopLevelMuleBlocks(data, flowBlocks);
+        List<Statement> bodyCoreStmts = convertTopLevelMuleBlocks(ctx, flowBlocks);
         bodyStmts.addAll(bodyCoreStmts);
 
         // Add return statement
@@ -490,12 +377,12 @@ public class MuleToBalConverter {
         // Add service resources
         List<Resource> resources = new ArrayList<>();
         TypeDesc returnType = typeFrom(Constants.HTTP_RESOURCE_RETURN_TYPE_DEFAULT);
-        data.imports.add(Constants.HTTP_MODULE_IMPORT);
+        ctx.currentFileCtx.balConstructs.imports.add(Constants.HTTP_MODULE_IMPORT);
 
         if (resourceMethodNames.length > 1) {
             // same logic is shared, thus extracting it to a function
             String invokeEndPointMethodName = String.format(Constants.FUNC_NAME_HTTP_ENDPOINT_TEMPLATE,
-                    data.sharedProjectData.invokeEndPointMethodCount++);
+                    ctx.projectCtx.counters.invokeEndPointMethodCount++);
             List<Statement> body = Collections.singletonList(stmtFrom("return %s(%s);"
                     .formatted(invokeEndPointMethodName, Constants.HTTP_REQUEST_REF)));
 
@@ -522,16 +409,13 @@ public class MuleToBalConverter {
         return new Service(basePath, listenerRef, resources);
     }
 
-    private static String getInboundPropInitValue(Data data, List<String> pathParams) {
+    private static String getInboundPropInitValue(Context ctx, List<String> pathParams) {
         Map<String, String> inboundPropMap = new LinkedHashMap<>();
-        for (SharedProjectData.TypeAndNamePair tnp : data.sharedProjectData.inboundProperties) {
-            switch (tnp.name) {
-                case Constants.HTTP_REQUEST_REF -> {
-                    inboundPropMap.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_REF);
-                }
-                case Constants.HTTP_RESPONSE_REF -> {
-                    inboundPropMap.put(Constants.HTTP_RESPONSE_REF, "new");
-                }
+        for (Map.Entry<String, String> entry : ctx.projectCtx.inboundProperties.entrySet()) {
+            switch (entry.getKey()) {
+                case Constants.HTTP_REQUEST_REF ->
+                        inboundPropMap.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_REF);
+                case Constants.HTTP_RESPONSE_REF -> inboundPropMap.put(Constants.HTTP_RESPONSE_REF, "new");
                 case Constants.URI_PARAMS_REF -> {
                     if (!pathParams.isEmpty()) {
                         String pathParamValue = String.join(",", pathParams);

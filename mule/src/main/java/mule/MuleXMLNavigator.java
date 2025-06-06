@@ -15,10 +15,8 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
 package mule;
 
-import mule.dataweave.converter.DWConversionStats;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
@@ -27,27 +25,21 @@ import java.util.LinkedHashMap;
 public class MuleXMLNavigator {
     private final LinkedHashMap<String, Integer> xmlCompatibleTagCountMap;
     private final LinkedHashMap<String, Integer> xmlIncompatibleTagCountMap;
-    private final DWConversionStats dwConversionStats;
 
     MuleXMLNavigator() {
         this.xmlCompatibleTagCountMap = new LinkedHashMap<>();
         this.xmlIncompatibleTagCountMap = new LinkedHashMap<>();
-        this.dwConversionStats = new DWConversionStats();
     }
 
-    DWConversionStats getDwConversionStats() {
-        return dwConversionStats;
-    }
-
-    LinkedHashMap<String, Integer> getXmlCompatibleTagCountMap() {
+    public LinkedHashMap<String, Integer> getXmlCompatibleTagCountMap() {
         return xmlCompatibleTagCountMap;
     }
 
-    LinkedHashMap<String, Integer> getXmlIncompatibleTagCountMap() {
+    public LinkedHashMap<String, Integer> getXmlIncompatibleTagCountMap() {
         return xmlIncompatibleTagCountMap;
     }
 
-    MuleElement createRootMuleElement(Element rootElement) {
+    public MuleElement createRootMuleElement(Element rootElement) {
         return new MuleElement(rootElement);
     }
 
