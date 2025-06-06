@@ -74,7 +74,8 @@ public final class DefaultAnalysisPass extends AnalysisPass {
         return new AnalysisResultImpl(cx.getDestinationMap(), cx.getSourceMap(),
                 activityData, partnerLinkBindings, cx.getQueryIndex(), inputTypeNames, outputTypeName, variableTypes,
                 cx.getDependencyGraphs(), cx.getControlFlowFunctions(), scopes, activityByName,
-                cx.getExplicitTransitionGroupDependencyGraph(), cx.getTransitionGroupControlFlowFunctions());
+                cx.getExplicitTransitionGroupDependencyGraph(), cx.getTransitionGroupControlFlowFunctions(),
+                TibcoAnalysisReport.empty());
     }
 
     private void analyseProcessInner(ProcessAnalysisContext cx, Process5 process) {

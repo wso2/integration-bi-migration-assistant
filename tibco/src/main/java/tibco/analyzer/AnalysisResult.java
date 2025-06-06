@@ -42,7 +42,7 @@ public interface AnalysisResult {
         return new AnalysisResultImpl(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
-                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), TibcoAnalysisReport.empty());
     }
 
     Collection<String> inputTypeName(Process process);

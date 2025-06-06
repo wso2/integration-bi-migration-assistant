@@ -18,8 +18,10 @@
 
 package common;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * A generic analysis report that can be used for different types of integrations.
@@ -29,7 +31,7 @@ public class AnalysisReport {
     private final int totalElementCount;
     private final int unhandledElementCount;
     private final String elementType;
-    private final Map<String, String> unhandledElements;
+    private final Map<String, Collection<UnhandledElement>> unhandledElements;
 
     private static final int BEST_CASE_ACTIVITY_TIME = 1;
     private static final int WORST_CASE_ACTIVITY_TIME = 3;
@@ -42,11 +44,11 @@ public class AnalysisReport {
      * @param totalElementCount     Total count of elements analyzed
      * @param unhandledElementCount Count of unhandled elements
      * @param elementType           The type of elements being analyzed (e.g., "Activity", "Component")
-     * @param unhandledElements     Map containing unhandled elements with their type as key and string representation
-     *                              as value
+     * @param unhandledElements     Map containing unhandled elements with their type as key and collection of string
+     *                              representations as value
      */
     public AnalysisReport(String reportTitle, int totalElementCount, int unhandledElementCount, String elementType,
-                          Map<String, String> unhandledElements) {
+                          Map<String, Collection<UnhandledElement>> unhandledElements) {
         assert totalElementCount >= unhandledElementCount;
         this.reportTitle = reportTitle;
         this.totalElementCount = totalElementCount;
@@ -57,22 +59,17 @@ public class AnalysisReport {
 
     /**
      * Calculate frequencies of different element types from the unhandled elements map.
-     * Groups unnamed activities (keys matching "unnamed-activity-#" pattern) under a single type.
+     * Each key represents a unique kind of element, and the size of the collection for each key
+     * represents the number of instances of that kind.
      *
      * @return A map with activity types as keys and their frequencies as values
      */
     private Map<String, Integer> calculateTypeFrequencies() {
         Map<String, Integer> typeFrequencyMap = new HashMap<>();
 
-        // Count named types
-        for (String key : unhandledElements.keySet()) {
-            if (key.startsWith("unnamed-activity-")) {
-                // For unnamed activities, group them under a single "unnamed-activity" key
-                typeFrequencyMap.put("unnamed-activity", typeFrequencyMap.getOrDefault("unnamed-activity", 0) + 1);
-            } else {
-                // For named types, increment their count
-                typeFrequencyMap.put(key, typeFrequencyMap.getOrDefault(key, 0) + 1);
-            }
+        // Count instances for each element type
+        for (Map.Entry<String, Collection<UnhandledElement>> entry : unhandledElements.entrySet()) {
+            typeFrequencyMap.put(entry.getKey(), entry.getValue().size());
         }
 
         return typeFrequencyMap;
@@ -174,27 +171,32 @@ public class AnalysisReport {
         int avgCaseEstimate = uniqueTypeCount * ((BEST_CASE_ACTIVITY_TIME + WORST_CASE_ACTIVITY_TIME) / 2);
         int worstCaseEstimate = uniqueTypeCount * WORST_CASE_ACTIVITY_TIME;
 
+        // Extract week estimates to separate variables and round up to nearest whole number
+        int bestCaseWeeks = (int) Math.ceil(bestCaseEstimate / N_WORKING_DAYS);
+        int avgCaseWeeks = (int) Math.ceil(avgCaseEstimate / N_WORKING_DAYS);
+        int worstCaseWeeks = (int) Math.ceil(worstCaseEstimate / N_WORKING_DAYS);
+
         html.append("""
                             <tr>
                                 <td>Best Case</td>
-                                <td>%d days</td>
-                                <td>%.1f weeks</td>
+                                <td>%s</td>
+                                <td>%s</td>
                             </tr>
                             <tr>
                                 <td>Average Case</td>
-                                <td>%d days</td>
-                                <td>%.1f weeks</td>
+                                <td>%s</td>
+                                <td>%s</td>
                             </tr>
                             <tr>
                                 <td>Worst Case</td>
-                                <td>%d days</td>
-                                <td>%.1f weeks</td>
+                                <td>%s</td>
+                                <td>%s</td>
                             </tr>
                         </table>
                 """.formatted(
-                bestCaseEstimate, bestCaseEstimate / N_WORKING_DAYS,
-                avgCaseEstimate, avgCaseEstimate / N_WORKING_DAYS,
-                worstCaseEstimate, worstCaseEstimate / N_WORKING_DAYS
+                toDays(bestCaseEstimate), toWeeks(bestCaseWeeks),
+                toDays(avgCaseEstimate), toWeeks(avgCaseWeeks),
+                toDays(worstCaseEstimate), toWeeks(worstCaseWeeks)
         ));
 
         // Estimation notes
@@ -202,25 +204,25 @@ public class AnalysisReport {
                         <div class="estimation-notes">
                             <p><strong>Note:</strong></p>
                             <ul>
-                                <li>Best Case: %d day per unsupported %s</li>
-                                <li>Average Case: %d days per unsupported %s</li>
-                                <li>Worst Case: %d days per unsupported %s</li>
-                                <li>Total unsupported %s(s): %d</li>
+                                <li>Best Case: %s per unsupported %s for analysis, implementation and testing</li>
+                                <li>Average Case: %s per unsupported %s for analysis, implementation and testing</li>
+                                <li>Worst Case: %s per unsupported %s for analysis, implementation and testing</li>
+                                <li>Total distinct unsupported %s(s): %d</li>
                             </ul>
                         </div>
                     </div>
                 """.formatted(
-                BEST_CASE_ACTIVITY_TIME, elementType,
-                (BEST_CASE_ACTIVITY_TIME + WORST_CASE_ACTIVITY_TIME) / 2, elementType,
-                WORST_CASE_ACTIVITY_TIME, elementType,
-                elementType, uniqueTypeCount
+                toDays(BEST_CASE_ACTIVITY_TIME), elementType.toLowerCase(),
+                toDays((BEST_CASE_ACTIVITY_TIME + WORST_CASE_ACTIVITY_TIME) / 2), elementType.toLowerCase(),
+                toDays(WORST_CASE_ACTIVITY_TIME), elementType.toLowerCase(),
+                elementType.toLowerCase(), uniqueTypeCount
         ));
 
         // Unsupported elements frequency table
         if (!typeFrequencyMap.isEmpty()) {
             html.append("""
                     <div class="summary-container">
-                        <h3>Unsupported %s(s) Frequency</h3>
+                        <h3>%s(s) Awaiting tool support</h3>
                         <table class="blue-table">
                             <tr>
                                 <th>%s Type</th>
@@ -240,8 +242,12 @@ public class AnalysisReport {
 
             html.append("""
                             </table>
+                            <div class="estimation-notes">
+                                <p><strong>Note:</strong> These %s(s) will be supported in future versions of the
+                                migration tool.</p>
+                            </div>
                         </div>
-                    """);
+                    """.formatted(elementType.toLowerCase()));
 
             // Unsupported elements section
             html.append("""
@@ -250,17 +256,10 @@ public class AnalysisReport {
                         <div class="unsupported-blocks">
                     """.formatted(elementType));
 
-            int blockCount = 1;
-            for (Map.Entry<String, String> entry : unhandledElements.entrySet()) {
-                html.append("""
-                                <div class="block-item">
-                                    <div class="block-header">
-                                        <span class="block-number">Block #%d</span>
-                                        <span class="block-type">%s</span>
-                                    </div>
-                                    <pre class="block-code"><code>%s</code></pre>
-                                </div>
-                        """.formatted(blockCount++, entry.getKey(), escapeHtml(entry.getValue())));
+            for (Map.Entry<String, Collection<UnhandledElement>> entry : unhandledElements.entrySet()) {
+                for (var each : entry.getValue()) {
+                    appendElement(html, entry.getKey(), each.name().orElse("UnhandledElement"), each.code());
+                }
             }
 
             html.append("""
@@ -284,6 +283,18 @@ public class AnalysisReport {
         return html.toString();
     }
 
+    private void appendElement(StringBuilder sb, String kind, String name, String code) {
+        sb.append("""
+                        <div class="block-item">
+                            <div class="block-header">
+                                <span class="block-number">%s</span>
+                                <span class="block-type">%s</span>
+                            </div>
+                            <pre class="block-code"><code>%s</code></pre>
+                        </div>
+                """.formatted(name, kind, escapeHtml(code)));
+    }
+
     /**
      * Calculate percentage of a part relative to a total.
      *
@@ -296,6 +307,26 @@ public class AnalysisReport {
             return 0;
         }
         return Math.round(((double) part / total) * 1000) / 10.0; // Round to 1 decimal place
+    }
+
+    /**
+     * Format a number as a day string with correct singular/plural form.
+     *
+     * @param number The number of days
+     * @return A string with the number and "day" or "days"
+     */
+    private String toDays(int number) {
+        return number + " " + (number == 1 ? "day" : "days");
+    }
+
+    /**
+     * Format a number as a week string with correct singular/plural form.
+     *
+     * @param number The number of weeks
+     * @return A string with the number and "week" or "weeks"
+     */
+    private String toWeeks(int number) {
+        return number + " " + (number == 1 ? "week" : "weeks");
     }
 
     /**
@@ -312,5 +343,9 @@ public class AnalysisReport {
         return input.replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;");
+    }
+
+    public record UnhandledElement(String code, Optional<String> name) {
+
     }
 }
