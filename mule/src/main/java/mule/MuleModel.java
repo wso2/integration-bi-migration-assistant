@@ -223,6 +223,7 @@ public record MuleModel() {
         }
     }
 
+    // TODO: typo - MySQL
     public record DbMSQLConfig(Kind kind, String name, String host, String port, String user, String password,
                                String database) implements MuleRecord {
         public DbMSQLConfig(String name, String host, String port, String user, String password, String database) {

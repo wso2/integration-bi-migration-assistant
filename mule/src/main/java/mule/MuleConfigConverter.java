@@ -74,12 +74,10 @@ import static mule.MuleModel.TransformMessage;
 import static mule.MuleModel.UnsupportedBlock;
 import static mule.MuleModel.VMOutboundEndpoint;
 import static mule.MuleModel.WhenInChoice;
-import static mule.MuleToBalConverter.Data;
-import static mule.MuleToBalConverter.SharedProjectData;
 
 public class MuleConfigConverter {
 
-    public static List<Statement> convertTopLevelMuleBlocks(Data data,
+    public static List<Statement> convertTopLevelMuleBlocks(Context ctx,
                                                             List<MuleRecord> flowBlocks) {
         // Add function body statements
         List<Statement> body = new ArrayList<>();
@@ -87,7 +85,7 @@ public class MuleConfigConverter {
 
         // Read flow blocks
         for (MuleRecord record : flowBlocks) {
-            List<Statement> stmts = convertMuleBlock(data, record);
+            List<Statement> stmts = convertMuleBlock(ctx, record);
             // TODO: handle these properly
             if (stmts.size() > 1 && stmts.getFirst() instanceof NamedWorkerDecl namedWorkerDecl) {
                 workers.add(namedWorkerDecl);
@@ -105,87 +103,86 @@ public class MuleConfigConverter {
         return workers;
     }
 
-    public static List<Statement> convertMuleBlocks(Data data,
-                                                    List<MuleRecord> muleRecords) {
+    public static List<Statement> convertMuleBlocks(Context ctx, List<MuleRecord> muleRecords) {
         List<Statement> statements = new ArrayList<>();
         for (MuleRecord mr : muleRecords) {
-            List<Statement> stmts = convertMuleBlock(data, mr);
+            List<Statement> stmts = convertMuleBlock(ctx, mr);
             statements.addAll(stmts);
         }
         return statements;
     }
 
-    public static List<Statement> convertMuleBlock(Data data,
+    public static List<Statement> convertMuleBlock(Context ctx,
                                                    MuleRecord muleRec) {
         switch (muleRec) {
             case Logger lg -> {
-                return convertLogger(data, lg);
+                return convertLogger(ctx, lg);
             }
             case SetVariable setVariable -> {
-                return convertSetVariable(data, setVariable);
+                return convertSetVariable(ctx, setVariable);
             }
             case SetSessionVariable setSessionVariable -> {
-                return convertSetSessionVariable(data, setSessionVariable);
+                return convertSetSessionVariable(ctx, setSessionVariable);
             }
             case RemoveVariable removeVariable -> {
-                return convertRemoveVariable(data, removeVariable);
+                return convertRemoveVariable(ctx, removeVariable);
             }
             case Payload payload -> {
-                return convertSetPayload(data, payload);
+                return convertSetPayload(ctx, payload);
             }
             case Choice choice -> {
-                return convertChoice(data, choice);
+                return convertChoice(ctx, choice);
             }
             case FlowReference flowReference -> {
-                return convertFlowReference(data, flowReference);
+                return convertFlowReference(ctx, flowReference);
             }
             case ObjectToJson objectToJson -> {
-                return convertObjectToJson(data, objectToJson);
+                return convertObjectToJson(ctx, objectToJson);
             }
             case ObjectToString objectToString -> {
-                return convertObjectToString(data, objectToString);
+                return convertObjectToString(ctx, objectToString);
             }
             case CatchExceptionStrategy catchExpStr -> {
-                return convertCatchExceptionStrategy(data, catchExpStr);
+                return convertCatchExceptionStrategy(ctx, catchExpStr);
             }
             case ChoiceExceptionStrategy choiceExpStr -> {
-                return convertChoiceExceptionStrategy(data, choiceExpStr);
+                return convertChoiceExceptionStrategy(ctx, choiceExpStr);
             }
             case ReferenceExceptionStrategy refExpStr -> {
-                return convertReferenceExceptionStrategy(data, refExpStr);
+                return convertReferenceExceptionStrategy(ctx, refExpStr);
             }
             case ExpressionComponent ec -> {
-                return convertExprComponent(data, ec);
+                return convertExprComponent(ctx, ec);
             }
             case Enricher enricher -> {
-                return convertEnricher(data, enricher);
+                return convertEnricher(ctx, enricher);
             }
             case HttpRequest httpRequest -> {
-                return convertHttpRequest(data, httpRequest);
+                return convertHttpRequest(ctx, httpRequest);
             }
             case Database database -> {
-                return convertDatabase(data, database);
+                return convertDatabase(ctx, database);
             }
             case Async async -> {
-                return convertAsync(data, async);
+                return convertAsync(ctx, async);
             }
             case VMOutboundEndpoint vmEndPoint -> {
-                return convertVMOutboundEndpoint(data, vmEndPoint);
+                return convertVMOutboundEndpoint(ctx, vmEndPoint);
             }
             case TransformMessage transformMessage -> {
-                return convertTransformMessage(data, transformMessage);
+                return convertTransformMessage(ctx, transformMessage);
             }
             case UnsupportedBlock unsupportedBlock -> {
-                return convertUnsupportedBlock(data, unsupportedBlock);
+                return convertUnsupportedBlock(ctx, unsupportedBlock);
             }
             case null -> throw new IllegalStateException();
             default -> throw new UnsupportedOperationException();
         }
     }
 
-    private static List<Statement> convertLogger(Data data, Logger lg) {
+    private static List<Statement> convertLogger(Context ctx, Logger lg) {
         String logFuncName = getBallerinaLogFunction(lg.level());
-        String stringLiteral = convertMuleExprToBalStringLiteral(data, lg.message());
+        String stringLiteral = convertMuleExprToBalStringLiteral(ctx, lg.message());
         BallerinaStatement stmt = stmtFrom("log:%s(%s);".formatted(logFuncName, stringLiteral));
         return List.of(stmt);
     }
@@ -199,39 +196,39 @@ public class MuleConfigConverter {
         };
     }
 
-    private static List<Statement> convertSetVariable(Data data, SetVariable setVariable) {
+    private static List<Statement> convertSetVariable(Context ctx, SetVariable setVariable) {
         String varName = ConversionUtils.convertToBalIdentifier(setVariable.variableName());
-        String balExpr = convertMuleExprToBal(data, setVariable.value());
+        String balExpr = convertMuleExprToBal(ctx, setVariable.value());
         String type = inferTypeFromBalExpr(balExpr);
 
-        if (!data.sharedProjectData.existingFlowVar(varName)) {
-            data.sharedProjectData.flowVars.add(new SharedProjectData.TypeAndNamePair(type, varName));
+        if (!ctx.projectCtx.flowVars.containsKey(varName)) {
+            ctx.projectCtx.flowVars.put(varName, type);
         }
 
         var stmt = stmtFrom(String.format("%s.%s = %s;", Constants.FLOW_VARS_FIELD_ACCESS, varName, balExpr));
         return List.of(stmt);
     }
 
-    private static List<Statement> convertSetSessionVariable(Data data, SetSessionVariable setSessionVariable) {
+    private static List<Statement> convertSetSessionVariable(Context ctx, SetSessionVariable setSessionVariable) {
         String varName = ConversionUtils.convertToBalIdentifier(setSessionVariable.variableName());
-        String balExpr = convertMuleExprToBal(data, setSessionVariable.value());
+        String balExpr = convertMuleExprToBal(ctx, setSessionVariable.value());
         String type = inferTypeFromBalExpr(balExpr);
 
-        if (!data.sharedProjectData.existingSessionVar(varName)) {
-            data.sharedProjectData.sessionVars.add(new SharedProjectData.TypeAndNamePair(type, varName));
+        if (!ctx.projectCtx.sessionVars.containsKey(varName)) {
+            ctx.projectCtx.sessionVars.put(varName, type);
         }
 
         var stmt = stmtFrom(String.format("%s.%s = %s;", Constants.SESSION_VARS_FIELD_ACCESS, varName, balExpr));
         return List.of(stmt);
     }
 
-    private static List<Statement> convertRemoveVariable(Data data, RemoveVariable removeVariable) {
+    private static List<Statement> convertRemoveVariable(Context ctx, RemoveVariable removeVariable) {
         String varName = ConversionUtils.convertToBalIdentifier(removeVariable.variableName());
         Statement stmt;
-        if (removeVariable.kind() == Kind.REMOVE_VARIABLE && data.sharedProjectData.existingFlowVar(varName)) {
+        if (removeVariable.kind() == Kind.REMOVE_VARIABLE && ctx.projectCtx.flowVars.containsKey(varName)) {
             stmt = stmtFrom(String.format("%s.%s = %s;", Constants.FLOW_VARS_FIELD_ACCESS, varName, "()"));
         } else if (removeVariable.kind() == Kind.REMOVE_SESSION_VARIABLE &&
-                data.sharedProjectData.existingSessionVar(varName)) {
+                ctx.projectCtx.sessionVars.containsKey(varName)) {
             stmt = stmtFrom(String.format("%s.%s = %s;", Constants.SESSION_VARS_FIELD_ACCESS, varName, "()"));
         } else {
             throw new IllegalStateException();
@@ -239,11 +236,11 @@ public class MuleConfigConverter {
         return List.of(stmt);
     }
 
-    private static List<Statement> convertSetPayload(Data data, Payload payload) {
+    private static List<Statement> convertSetPayload(Context ctx, Payload payload) {
         List<Statement> stmts = new ArrayList<>();
-        String pyld = convertMuleExprToBal(data, payload.expr());
+        String pyld = convertMuleExprToBal(ctx, payload.expr());
         String type = inferTypeFromBalExpr(pyld);
-        String payloadVar = String.format(Constants.VAR_PAYLOAD_TEMPLATE, data.sharedProjectData.payloadVarCount++);
+        String payloadVar = String.format(Constants.VAR_PAYLOAD_TEMPLATE, ctx.projectCtx.counters.payloadVarCount++);
         stmts.add(stmtFrom("\n\n// set payload\n"));
         stmts.add(stmtFrom(String.format("%s %s = %s;", type, payloadVar, pyld)));
         stmts.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE,
@@ -251,15 +248,15 @@ public class MuleConfigConverter {
         return stmts;
     }
 
-    private static List<Statement> convertChoice(Data data, Choice choice) {
+    private static List<Statement> convertChoice(Context ctx, Choice choice) {
         List<WhenInChoice> whens = choice.whens();
         assert !whens.isEmpty(); // For valid mule config, there is at least one when
 
         WhenInChoice firstWhen = whens.getFirst();
-        String ifCondition = convertMuleExprToBal(data, firstWhen.condition());
+        String ifCondition = convertMuleExprToBal(ctx, firstWhen.condition());
         List<Statement> ifBody = new ArrayList<>();
         for (MuleRecord mr : firstWhen.process()) {
-            List<Statement> statements = convertMuleBlock(data, mr);
+            List<Statement> statements = convertMuleBlock(ctx, mr);
             ifBody.addAll(statements);
         }
 
@@ -268,17 +265,17 @@ public class MuleConfigConverter {
             WhenInChoice when = whens.get(i);
             List<Statement> elseIfBody = new ArrayList<>();
             for (MuleRecord mr : when.process()) {
-                List<Statement> statements = convertMuleBlock(data, mr);
+                List<Statement> statements = convertMuleBlock(ctx, mr);
                 elseIfBody.addAll(statements);
             }
-            ElseIfClause elseIfClause = new ElseIfClause(exprFrom(convertMuleExprToBal(data, when.condition())),
+            ElseIfClause elseIfClause = new ElseIfClause(exprFrom(convertMuleExprToBal(ctx, when.condition())),
                     elseIfBody);
             elseIfClauses.add(elseIfClause);
         }
 
         List<Statement> elseBody = new ArrayList<>(choice.otherwiseProcess().size());
         for (MuleRecord mr : choice.otherwiseProcess()) {
-            List<Statement> statements = convertMuleBlock(data, mr);
+            List<Statement> statements = convertMuleBlock(ctx, mr);
             elseBody.addAll(statements);
         }
 
@@ -286,14 +283,14 @@ public class MuleConfigConverter {
         return List.of(ifElseStmt);
     }
 
-    private static List<Statement> convertFlowReference(Data data, FlowReference flowReference) {
+    private static List<Statement> convertFlowReference(Context ctx, FlowReference flowReference) {
         String flowName = flowReference.flowName();
         String funcRef = ConversionUtils.convertToBalIdentifier(flowName);
         var stmt = stmtFrom(String.format("%s(%s);", funcRef, Constants.CONTEXT_REFERENCE));
         return List.of(stmt);
     }
 
-    private static List<Statement> convertObjectToJson(Data data, ObjectToJson objectToJson) {
+    private static List<Statement> convertObjectToJson(Context ctx, ObjectToJson objectToJson) {
         List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n\n// json transformation\n"));
         // object to json transformer implicitly sets the payload
@@ -302,7 +299,7 @@ public class MuleConfigConverter {
         return stmts;
     }
 
-    private static List<Statement> convertObjectToString(Data data, ObjectToString objectToString) {
+    private static List<Statement> convertObjectToString(Context ctx, ObjectToString objectToString) {
         List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n\n// string transformation\n"));
         // object to string transformer implicitly sets the payload
@@ -311,19 +308,19 @@ public class MuleConfigConverter {
         return stmts;
     }
 
-    private static List<Statement> convertCatchExceptionStrategy(Data data, CatchExceptionStrategy catchExpStr) {
-        List<Statement> onFailBody = getCatchExceptionBody(data, catchExpStr);
+    private static List<Statement> convertCatchExceptionStrategy(Context ctx, CatchExceptionStrategy catchExpStr) {
+        List<Statement> onFailBody = getCatchExceptionBody(ctx, catchExpStr);
         OnFailClause onFailClause = new OnFailClause(onFailBody);
         DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
         return List.of(doStatement);
     }
 
-    static List<Statement> getCatchExceptionBody(Data data, CatchExceptionStrategy catchExceptionStrategy) {
-        return convertMuleBlocks(data, catchExceptionStrategy.catchBlocks());
+    static List<Statement> getCatchExceptionBody(Context ctx, CatchExceptionStrategy catchExceptionStrategy) {
+        return convertMuleBlocks(ctx, catchExceptionStrategy.catchBlocks());
     }
 
-    private static List<Statement> convertChoiceExceptionStrategy(Data data, ChoiceExceptionStrategy choiceExpStr) {
-        List<Statement> onFailBody = getChoiceExceptionBody(data, choiceExpStr);
+    private static List<Statement> convertChoiceExceptionStrategy(Context ctx, ChoiceExceptionStrategy choiceExpStr) {
+        List<Statement> onFailBody = getChoiceExceptionBody(ctx, choiceExpStr);
         TypeBindingPattern typeBindingPattern = new TypeBindingPattern(BAL_ERROR_TYPE,
                 Constants.ON_FAIL_ERROR_VAR_REF);
         OnFailClause onFailClause = new OnFailClause(onFailBody, typeBindingPattern);
@@ -331,19 +328,19 @@ public class MuleConfigConverter {
         return List.of(doStatement);
     }
 
-    static List<Statement> getChoiceExceptionBody(Data data, ChoiceExceptionStrategy choiceExceptionStrategy) {
+    static List<Statement> getChoiceExceptionBody(Context ctx, ChoiceExceptionStrategy choiceExceptionStrategy) {
         List<CatchExceptionStrategy> catchExceptionStrategies = choiceExceptionStrategy.catchExceptionStrategyList();
         assert !catchExceptionStrategies.isEmpty();
 
         CatchExceptionStrategy firstCatch = catchExceptionStrategies.getFirst();
-        Expression.BallerinaExpression ifCondition = exprFrom(convertMuleExprToBal(data, firstCatch.when()));
-        List<Statement> ifBody = convertMuleBlocks(data, firstCatch.catchBlocks());
+        Expression.BallerinaExpression ifCondition = exprFrom(convertMuleExprToBal(ctx, firstCatch.when()));
+        List<Statement> ifBody = convertMuleBlocks(ctx, firstCatch.catchBlocks());
 
         List<ElseIfClause> elseIfClauses = new ArrayList<>();
         for (int i = 1; i < catchExceptionStrategies.size() - 1; i++) {
             CatchExceptionStrategy catchExpStrgy = catchExceptionStrategies.get(i);
-            List<Statement> elseIfBody = convertMuleBlocks(data, catchExpStrgy.catchBlocks());
-            ElseIfClause elseIfClause = new ElseIfClause(exprFrom(convertMuleExprToBal(data, catchExpStrgy.when())),
+            List<Statement> elseIfBody = convertMuleBlocks(ctx, catchExpStrgy.catchBlocks());
+            ElseIfClause elseIfClause = new ElseIfClause(exprFrom(convertMuleExprToBal(ctx, catchExpStrgy.when())),
                     elseIfBody);
             elseIfClauses.add(elseIfClause);
         }
@@ -351,7 +348,7 @@ public class MuleConfigConverter {
         List<Statement> elseBody;
         if (catchExceptionStrategies.size() > 1) {
             CatchExceptionStrategy lastCatch = catchExceptionStrategies.getLast();
-            elseBody = convertMuleBlocks(data, lastCatch.catchBlocks());
+            elseBody = convertMuleBlocks(ctx, lastCatch.catchBlocks());
         } else {
             elseBody = Collections.emptyList();
         }
@@ -365,7 +362,8 @@ public class MuleConfigConverter {
         return statementList;
     }
 
-    private static List<Statement> convertReferenceExceptionStrategy(Data data, ReferenceExceptionStrategy refExpStr) {
+    private static List<Statement> convertReferenceExceptionStrategy(Context ctx,
+                                                                     ReferenceExceptionStrategy refExpStr) {
         String refName = refExpStr.refName();
         String funcRef = ConversionUtils.convertToBalIdentifier(refName);
         BallerinaStatement funcCallStmt = stmtFrom(String.format("%s(%s, %s);", funcRef, Constants.CONTEXT_REFERENCE,
@@ -377,26 +375,26 @@ public class MuleConfigConverter {
         return List.of(doStatement);
     }
 
-    private static List<Statement> convertExprComponent(Data data, ExpressionComponent ec) {
-        String convertedExpr = convertMuleExprToBal(data, String.format("#[%s]", ec.exprCompContent()));
-        ConversionUtils.processExprCompContent(data.sharedProjectData, convertedExpr);
+    private static List<Statement> convertExprComponent(Context ctx, ExpressionComponent ec) {
+        String convertedExpr = convertMuleExprToBal(ctx, String.format("#[%s]", ec.exprCompContent()));
+        ConversionUtils.processExprCompContent(ctx, convertedExpr);
         return List.of(stmtFrom(convertedExpr));
     }
 
-    private static List<Statement> convertEnricher(Data data, Enricher enricher) {
+    private static List<Statement> convertEnricher(Context ctx, Enricher enricher) {
         // TODO: support no source
-        String source = convertMuleExprToBal(data, enricher.source());
-        String target = convertMuleExprToBal(data, enricher.target());
+        String source = convertMuleExprToBal(ctx, enricher.source());
+        String target = convertMuleExprToBal(ctx, enricher.target());
 
         if (target.startsWith(Constants.FLOW_VARS_FIELD_ACCESS + ".")) {
             String var = target.replace(Constants.FLOW_VARS_FIELD_ACCESS + ".", "");
-            if (!data.sharedProjectData.existingFlowVar(var)) {
-                data.sharedProjectData.flowVars.add(new SharedProjectData.TypeAndNamePair("string", var));
+            if (!ctx.projectCtx.flowVars.containsKey(var)) {
+                ctx.projectCtx.flowVars.put(var, "string");
             }
         } else if (target.startsWith(Constants.SESSION_VARS_FIELD_ACCESS + ".")) {
             String var = target.replace(Constants.SESSION_VARS_FIELD_ACCESS + ".", "");
-            if (!data.sharedProjectData.existingSessionVar(var)) {
-                data.sharedProjectData.sessionVars.add(new SharedProjectData.TypeAndNamePair("string", var));
+            if (!ctx.projectCtx.sessionVars.containsKey(var)) {
+                ctx.projectCtx.sessionVars.put(var, "string");
             }
         }
 
@@ -404,26 +402,25 @@ public class MuleConfigConverter {
         if (enricher.innerBlock().isEmpty()) {
             stmts.add(stmtFrom(String.format("%s = %s;", target, source)));
         } else {
-            List<Statement> enricherStmts = new ArrayList<>(convertMuleBlock(data, enricher.innerBlock().get()));
+            List<Statement> enricherStmts = new ArrayList<>(convertMuleBlock(ctx, enricher.innerBlock().get()));
 
-            String methodName = String.format(Constants.FUNC_NAME_ENRICHER_TEMPLATE,
-                    data.sharedProjectData.enricherFuncCount);
+            String methodName = Constants.FUNC_NAME_ENRICHER_TEMPLATE
+                    .formatted(ctx.projectCtx.counters.enricherFuncCount);
             Function func = new Function(Optional.of("public"), methodName, Constants.FUNC_PARAMS_WITH_CONTEXT,
                     Optional.of(typeFrom("string?")), new BlockFunctionBody(enricherStmts));
-            data.functions.add(func);
+            ctx.currentFileCtx.balConstructs.functions.add(func);
 
-            enricherStmts.add(stmtFrom(String.format("return %s;", source)));
-            stmts.add(stmtFrom(String.format("%s = %s(%s.clone());", target,
-                    String.format(Constants.FUNC_NAME_ENRICHER_TEMPLATE,
-                            data.sharedProjectData.enricherFuncCount++),
+            enricherStmts.add(stmtFrom("return %s;".formatted(source)));
+            stmts.add(stmtFrom("%s = %s(%s.clone());".formatted(target,
+                    Constants.FUNC_NAME_ENRICHER_TEMPLATE.formatted(ctx.projectCtx.counters.enricherFuncCount++),
                     Constants.CONTEXT_REFERENCE)));
         }
         return stmts;
     }
 
-    private static List<Statement> convertHttpRequest(Data data, HttpRequest httpRequest) {
+    private static List<Statement> convertHttpRequest(Context ctx, HttpRequest httpRequest) {
         List<Statement> stmts = new ArrayList<>();
-        String path = getBallerinaClientResourcePath(data, httpRequest.path());
+        String path = getBallerinaClientResourcePath(ctx, httpRequest.path());
         String method = httpRequest.method();
         String url = httpRequest.url();
         Map<String, String> queryParams = httpRequest.queryParams();
@@ -431,37 +428,36 @@ public class MuleConfigConverter {
         stmts.add(stmtFrom("\n\n// http client request\n"));
         stmts.add(stmtFrom(String.format("http:Client %s = check new(\"%s\");", httpRequest.configRef(), url)));
         String clientResultVar = String.format(Constants.VAR_CLIENT_RESULT_TEMPLATE,
-                data.sharedProjectData.clientResultVarCount++);
+                ctx.projectCtx.counters.clientResultVarCount++);
         stmts.add(stmtFrom("%s %s = check %s->%s.%s(%s);".formatted(Constants.HTTP_RESPONSE_TYPE,
                 clientResultVar, httpRequest.configRef(), path, method.toLowerCase(),
-                genQueryParam(data, queryParams))));
+                genQueryParam(ctx, queryParams))));
         stmts.add(stmtFrom(String.format("%s.payload = check %s.getJsonPayload();",
                 Constants.CONTEXT_REFERENCE, clientResultVar)));
         return stmts;
     }
 
-    private static List<Statement> convertDatabase(Data data, Database database) {
-        data.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_SQL, Optional.empty()));
+    private static List<Statement> convertDatabase(Context ctx, Database database) {
+        ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_SQL, Optional.empty()));
         String streamConstraintType = Constants.GENERIC_RECORD_TYPE_REF;
-        data.typeDefMap.put(streamConstraintType,
+        ctx.currentFileCtx.balConstructs.typeDefs.put(streamConstraintType,
                 new ModuleTypeDef(streamConstraintType, typeFrom(Constants.GENERIC_RECORD_TYPE)));
 
         List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n\n// database operation\n"));
-        String dbQueryVarName = Constants.VAR_DB_QUERY_TEMPLATE
-                .formatted(data.sharedProjectData.dbQueryVarCount++);
+        String dbQueryVarName = Constants.VAR_DB_QUERY_TEMPLATE.formatted(ctx.projectCtx.counters.dbQueryVarCount++);
         stmts.add(stmtFrom("%s %s = %s;".formatted(Constants.SQL_PARAMETERIZED_QUERY_TYPE,
                 dbQueryVarName, database.queryType() == QueryType.TEMPLATE_QUERY_REF ? database.query()
                         : String.format("`%s`", database.query()))));
 
-        String dbStreamVarName = Constants.VAR_DB_STREAM_TEMPLATE.formatted(data.sharedProjectData.dbStreamVarCount++);
+        String dbStreamVarName = Constants.VAR_DB_STREAM_TEMPLATE.formatted(ctx.projectCtx.counters.dbStreamVarCount++);
         stmts.add(stmtFrom("%s %s= %s->query(%s);"
                 .formatted(Constants.DB_QUERY_DEFAULT_TEMPLATE.formatted(streamConstraintType),
                         dbStreamVarName, database.configRef(), dbQueryVarName)));
 
         if (database.kind() == Kind.DB_SELECT) {
             String dbSelectVarName = Constants.VAR_DB_SELECT_TEMPLATE
-                    .formatted(data.sharedProjectData.dbSelectVarCount++);
+                    .formatted(ctx.projectCtx.counters.dbSelectVarCount++);
             stmts.add(stmtFrom(String.format("%s[] %s = check from %s %s in %s select %s;", streamConstraintType,
                     dbSelectVarName, streamConstraintType, Constants.VAR_ITERATOR, dbStreamVarName,
                     Constants.VAR_ITERATOR)));
@@ -471,12 +467,12 @@ public class MuleConfigConverter {
         return stmts;
     }
 
-    private static List<Statement> convertAsync(Data data, Async async) {
-        List<Statement> body = convertTopLevelMuleBlocks(data, async.flowBlocks());
-        int asyncFuncId = data.sharedProjectData.asyncFuncCount++;
+    private static List<Statement> convertAsync(Context ctx, Async async) {
+        List<Statement> body = convertTopLevelMuleBlocks(ctx, async.flowBlocks());
+        int asyncFuncId = ctx.projectCtx.counters.asyncFuncCount++;
         String funcName = String.format(FUNC_NAME_ASYC_TEMPLATE, asyncFuncId);
         Function function = Function.publicFunction(funcName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
-        data.functions.add(function);
+        ctx.currentFileCtx.balConstructs.functions.add(function);
 
         List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n\n// async operation\n"));
@@ -484,13 +480,13 @@ public class MuleConfigConverter {
         return stmts;
     }
 
-    private static List<Statement> convertVMOutboundEndpoint(Data data, VMOutboundEndpoint vmEndPoint) {
+    private static List<Statement> convertVMOutboundEndpoint(Context ctx, VMOutboundEndpoint vmEndPoint) {
         String path = vmEndPoint.path();
-        String funcName = data.sharedProjectData.vmPathToBalFuncMap.get(path);
+        String funcName = ctx.projectCtx.vmPathToBalFuncMap.get(path);
         if (funcName == null) {
             funcName = String.format(Constants.FUNC_NAME_VM_RECEIVE_TEMPLATE,
-                    data.sharedProjectData.vmReceiveFuncCount++);
-            data.sharedProjectData.vmPathToBalFuncMap.put(path, funcName);
+                    ctx.projectCtx.counters.vmReceiveFuncCount++);
+            ctx.projectCtx.vmPathToBalFuncMap.put(path, funcName);
         }
 
         List<Statement> namedWorkerBody = new ArrayList<>(4);
@@ -506,15 +502,15 @@ public class MuleConfigConverter {
         return stmts;
     }
 
-    private static List<Statement> convertTransformMessage(Data data, TransformMessage transformMsg) {
+    private static List<Statement> convertTransformMessage(Context ctx, TransformMessage transformMsg) {
         List<Statement> stmts = new ArrayList<>();
-        DWReader.processDWElements(transformMsg.children(), data, stmts);
+        DWReader.processDWElements(transformMsg.children(), ctx, stmts);
         stmts.add(stmtFrom("%s.payload = %s;".formatted(Constants.CONTEXT_REFERENCE,
                 DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME)));
         return stmts;
     }
 
-    private static List<Statement> convertUnsupportedBlock(Data data, UnsupportedBlock unsupportedBlock) {
+    private static List<Statement> convertUnsupportedBlock(Context ctx, UnsupportedBlock unsupportedBlock) {
         String comment = ConversionUtils.wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());
         // TODO: comment is not a statement. Find a better way to handle this
         // This works for now because we concatenate and create a body block `{ stmts }`

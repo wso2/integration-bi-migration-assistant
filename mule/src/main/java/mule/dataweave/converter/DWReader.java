@@ -21,9 +21,9 @@ package mule.dataweave.converter;
 import common.BallerinaModel;
 import common.BallerinaModel.Statement.BallerinaStatement;
 import mule.Constants;
+import mule.Context;
 import mule.ConversionUtils;
 import mule.MuleModel;
-import mule.MuleToBalConverter;
 import mule.dataweave.parser.DataWeaveLexer;
 import mule.dataweave.parser.DataWeaveParser;
 import org.antlr.v4.runtime.CharStreams;
@@ -93,7 +93,7 @@ public class DWReader {
         return tree;
     }
 
-    public static void processDWElements(List<MuleModel.TransformMessageElement> children, MuleToBalConverter.Data data,
+    public static void processDWElements(List<MuleModel.TransformMessageElement> children, Context ctx,
                                          List<BallerinaModel.Statement> statementList) {
         DWContext context = new DWContext(statementList);
         for (MuleModel.TransformMessageElement child : children) {
@@ -101,18 +101,18 @@ public class DWReader {
                 case DW_SET_PAYLOAD:
                     MuleModel.SetPayloadElement setPayloadElement = (MuleModel.SetPayloadElement) child;
                     addStatementToList(setPayloadElement.script(), setPayloadElement.resource(),
-                            context, data, DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME, statementList);
+                            context, ctx, DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME, statementList);
                     break;
                 case DW_SET_VARIABLE:
                     MuleModel.SetVariableElement setVariableElement = (MuleModel.SetVariableElement) child;
                     addStatementToList(setVariableElement.script(), setVariableElement.resource(),
-                            context, data, setVariableElement.variableName(), statementList);
+                            context, ctx, setVariableElement.variableName(), statementList);
                     break;
                 case DW_SET_SESSION_VARIABLE:
                     MuleModel.SetSessionVariableElement sessionVariableElement =
                             (MuleModel.SetSessionVariableElement) child;
                     addStatementToList(sessionVariableElement.script(), sessionVariableElement.resource(),
-                            context, data, sessionVariableElement.variableName(), statementList);
+                            context, ctx, sessionVariableElement.variableName(), statementList);
                     break;
                 case DW_INPUT_PAYLOAD:
                     context.setMimeType(((MuleModel.InputPayloadElement) child).mimeType());
@@ -127,20 +127,19 @@ public class DWReader {
 
     private static void addStatementToList(String script, String resourcePath,
                                            DWContext context,
-                                           MuleToBalConverter.Data data,
+                                           Context ctx,
                                            String varName,
                                            List<BallerinaModel.Statement> statementList) {
-        String funcStatement = getFunctionStatement(script, resourcePath, context, data, varName);
+        String funcStatement = getFunctionStatement(script, resourcePath, context, ctx, varName);
         statementList.add(new BallerinaStatement(funcStatement));
         context.clearScript();
     }
 
     private static String getFunctionStatement(String script, String resourcePath, DWContext context,
-                                               MuleToBalConverter.Data data, String varName) {
+                                               Context ctx, String varName) {
         if (script != null) {
             ParseTree tree = parseScript(script, context);
-            BallerinaVisitor visitor = new BallerinaVisitor(context, data,
-                    data.sharedProjectData.getDwConversionStats());
+            BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.projectCtx.dwConversionStats);
             visitor.visit(tree);
             context.currentScriptContext.funcName = context.functionNames.getLast();
             return buildStatement(context, varName);
@@ -151,7 +150,7 @@ public class DWReader {
         }
         ParseTree tree = readDWScriptFromFile(resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR),
                 context);
-        BallerinaVisitor visitor = new BallerinaVisitor(context, data, data.sharedProjectData.getDwConversionStats());
+        BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.projectCtx.dwConversionStats);
         visitor.visit(tree);
         context.currentScriptContext.funcName = context.functionNames.getLast();
         context.scriptCache.put(resourcePath, context.currentScriptContext);

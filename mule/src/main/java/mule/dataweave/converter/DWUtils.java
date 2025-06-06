@@ -20,10 +20,9 @@ package mule.dataweave.converter;
 
 import common.BallerinaModel;
 import mule.Constants;
-import mule.MuleToBalConverter;
+import mule.Context;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -145,7 +144,7 @@ public class DWUtils {
         throw new BallerinaDWException("Unsupported type: " + expression);
     }
 
-    public static String getBallerinaType(String dwType, MuleToBalConverter.Data data) {
+    public static String getBallerinaType(String dwType, Context ctx) {
         return switch (dwType) {
             case DWUtils.ARRAY -> "anydata[]";
             case DWUtils.BOOLEAN -> "boolean";
@@ -155,23 +154,19 @@ public class DWUtils {
             case DWUtils.OBJECT -> "map<anydata>";
             case DWUtils.STRING -> "string";
             case DWUtils.DATE -> {
-                data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME,
-                        Optional.empty()));
+                ctx.addImport(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME));
                 yield "time:Date";
             }
             case DWUtils.DATETIME, DWUtils.LOCAL_DATE_TIME, DWUtils.PERIOD -> {
-                data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME,
-                        Optional.empty()));
+                ctx.addImport(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME));
                 yield "time:Civil";
             }
             case DWUtils.TIME -> {
-                data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME,
-                        Optional.empty()));
+                ctx.addImport(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME));
                 yield "time:TimeOfDayFields";
             }
             case DWUtils.TIME_ZONE -> {
-                data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME,
-                        Optional.empty()));
+                ctx.addImport(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME));
                 yield "time:ZoneOffset";
             }
             default -> "any";

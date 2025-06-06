@@ -127,13 +127,13 @@ public class MuleConverter {
 
     private static void convertMuleXmlFile(Path balPackageDir, String inputFileName, String inputXmlFilePath) {
         MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator();
-        MuleToBalConverter.SharedProjectData sharedProjectData = new MuleToBalConverter.SharedProjectData(
-                muleXMLNavigator);
+        Context ctx = new Context(); // Project Context
+        ctx.startNewFile(inputXmlFilePath);
 
         String targetBalFile = inputFileName.concat(".bal");
         SyntaxTree syntaxTree;
         try {
-            syntaxTree = convertProjectXMLFileToBallerina(muleXMLNavigator, sharedProjectData, inputXmlFilePath);
+            syntaxTree = convertProjectXMLFileToBallerina(muleXMLNavigator, ctx, inputXmlFilePath);
         } catch (Exception e) {
             logger.severe("Error converting the file: %s%n%s".formatted(inputFileName.concat(".xml"), e.getMessage()));
             return;
@@ -150,12 +150,12 @@ public class MuleConverter {
             System.exit(1);
         }
 
-        genAndWriteInternalTypesBalFile(sharedProjectData, balPackageDir.toString());
+        genAndWriteInternalTypesBalFile(ctx, balPackageDir.toString());
         Path reportFilePath = Paths.get(balPackageDir.toString(), MIGRATION_REPORT_NAME);
         int conversionPercentage = writeHtmlReport(logger, reportFilePath,
                 muleXMLNavigator.getXmlCompatibleTagCountMap(), muleXMLNavigator.getXmlIncompatibleTagCountMap(),
-                muleXMLNavigator.getDwConversionStats());
-        printDataWeaveConversionPercentage(muleXMLNavigator);
+                ctx.projectCtx.dwConversionStats);
+        printDataWeaveConversionPercentage(ctx);
         printOverallProjectConversionPercentage(conversionPercentage);
     }
 
@@ -188,25 +188,26 @@ public class MuleConverter {
         }
 
         MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator();
-        MuleToBalConverter.SharedProjectData sharedProjectData = new MuleToBalConverter.SharedProjectData(
-                muleXMLNavigator);
+
+        Context ctx = new Context(); // Project Context
         for (File xmlFile : xmlFiles) {
+            ctx.startNewFile(xmlFile.getPath());
             Path relativePath = sourceFolderPath.relativize(xmlFile.toPath());
             String balFileName = relativePath.toString().replace(File.separator, ".").replace(".xml", ".bal");
             Path targetFilePath = Paths.get(targetFolderPath, balFileName);
             createDirectories(targetFilePath.getParent());
 
-            genAndWriteBalFileFromXMLFile(xmlFile, muleXMLNavigator, sharedProjectData, targetFilePath);
+            genAndWriteBalFileFromXMLFile(xmlFile, muleXMLNavigator, ctx, targetFilePath);
         }
 
-        genAndWriteInternalTypesBalFile(sharedProjectData, targetFolderPath);
+        genAndWriteInternalTypesBalFile(ctx, targetFolderPath);
         genConfigTOMLFile(propertyFiles, targetFolderPath);
 
         Path reportFilePath = Paths.get(targetFolderPath, MIGRATION_REPORT_NAME);
         int conversionPercentage = writeHtmlReport(logger, reportFilePath,
                 muleXMLNavigator.getXmlCompatibleTagCountMap(), muleXMLNavigator.getXmlIncompatibleTagCountMap(),
-                muleXMLNavigator.getDwConversionStats());
-        printDataWeaveConversionPercentage(muleXMLNavigator);
+                ctx.projectCtx.dwConversionStats);
+        printDataWeaveConversionPercentage(ctx);
         printOverallProjectConversionPercentage(conversionPercentage);
     }
 
@@ -237,18 +238,17 @@ public class MuleConverter {
     /**
      * Generate and write the Ballerina file from the XML file.
      *
-     * @param xmlFile           xml file to be converted
-     * @param muleXMLNavigator  MuleXMLNavigator instance to navigate the XML file
-     * @param sharedProjectData shared project data
-     * @param targetFilePath    path to the target file where the Ballerina code
-     *                          will be written
+     * @param xmlFile          xml file to be converted
+     * @param muleXMLNavigator MuleXMLNavigator instance to navigate the XML file
+     * @param ctx              Context instance
+     * @param targetFilePath   path to the target file where the Ballerina code
+     *                         will be written
      */
-    private static void genAndWriteBalFileFromXMLFile(
-            File xmlFile, MuleXMLNavigator muleXMLNavigator, MuleToBalConverter.SharedProjectData sharedProjectData,
-            Path targetFilePath) {
+    private static void genAndWriteBalFileFromXMLFile(File xmlFile, MuleXMLNavigator muleXMLNavigator, Context ctx,
+                                                      Path targetFilePath) {
         SyntaxTree syntaxTree;
         try {
-            syntaxTree = convertProjectXMLFileToBallerina(muleXMLNavigator, sharedProjectData, xmlFile.getPath());
+            syntaxTree = convertProjectXMLFileToBallerina(muleXMLNavigator, ctx, xmlFile.getPath());
         } catch (Exception e) {
             logger.severe(String.format("Error converting the file: %s%n%s", xmlFile.getName(), e.getMessage()));
             return;
@@ -264,22 +264,24 @@ public class MuleConverter {
     /**
      * Generate and write the internal-types.bal file.
      *
-     * @param sharedProjectData shared project data containing context type
-     *                          definitions and imports
-     * @param targetFolderPath  path to the target folder where the
-     *                          internal-types.bal file will be created
+     * @param ctx              Context instance
+     * @param targetFolderPath path to the target folder where the
+     *                         internal-types.bal file will be created
      */
-    private static void genAndWriteInternalTypesBalFile(MuleToBalConverter.SharedProjectData sharedProjectData,
-            String targetFolderPath) {
+    private static void genAndWriteInternalTypesBalFile(Context ctx, String targetFolderPath) {
         // TODO: consider multi-flow-multi-context scenario
-        createContextTypeDefns(sharedProjectData);
+        List<BallerinaModel.ModuleTypeDef> contextTypeDefns = createContextTypeDefns(ctx);
+        List<BallerinaModel.Import> contextImports = new ArrayList<>(1);
+        if (!ctx.projectCtx.inboundProperties.isEmpty()) {
+            // TODO: at the moment only http provides inbound properties
+            contextImports.add(Constants.HTTP_MODULE_IMPORT);
+        }
 
         Path targetFilePath = Paths.get(targetFolderPath, "internal-types.bal");
         BallerinaModel.TextDocument textDocument =
-                createTextDocument("internal-types", sharedProjectData.contextTypeDefImports.stream().toList(),
-                sharedProjectData.contextTypeDefMap.values().stream().toList(), Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+                createTextDocument("internal-types", contextImports, contextTypeDefns, Collections.emptyList(),
+                        Collections.emptyList(),
+                        Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
         SyntaxTree syntaxTree = new CodeGenerator(textDocument).generateSyntaxTree();
         try {
             Files.writeString(targetFilePath, syntaxTree.toSourceCode());
@@ -330,8 +332,8 @@ public class MuleConverter {
         }
     }
 
-    private static void printDataWeaveConversionPercentage(MuleXMLNavigator muleXMLNavigator) {
-        DWConversionStats stats = muleXMLNavigator.getDwConversionStats();
+    private static void printDataWeaveConversionPercentage(Context ctx) {
+        DWConversionStats stats = ctx.projectCtx.dwConversionStats;
         OUT.println("________________________________________________________________");
         OUT.println("Dataweave conversion percentage: " + String.format("%.2f", stats.getConversionPercentage()) + "%");
         OUT.println("________________________________________________________________");

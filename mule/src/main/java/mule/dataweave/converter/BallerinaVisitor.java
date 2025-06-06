@@ -18,11 +18,10 @@
 
 package mule.dataweave.converter;
 
-import common.BallerinaModel;
 import common.BallerinaModel.Statement.BallerinaStatement;
 import io.ballerina.compiler.internal.parser.LexerTerminals;
 import mule.Constants;
-import mule.MuleToBalConverter;
+import mule.Context;
 import mule.dataweave.converter.builder.IfStatementBuilder;
 import mule.dataweave.parser.DataWeaveBaseVisitor;
 import mule.dataweave.parser.DataWeaveParser;
@@ -34,6 +33,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import static common.BallerinaModel.BlockFunctionBody;
+import static common.BallerinaModel.Expression;
+import static common.BallerinaModel.ExternFunctionBody;
+import static common.BallerinaModel.Function;
+import static common.BallerinaModel.Import;
+import static common.BallerinaModel.Parameter;
+import static common.BallerinaModel.Statement;
 import static mule.Constants.BAL_HANDLE_TYPE;
 import static mule.Constants.BAL_INT_TYPE;
 import static mule.Constants.BAL_STRING_TYPE;
@@ -42,14 +48,14 @@ import static common.ConversionUtils.typeFrom;
 public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     private final DWContext dwContext;
-    private final MuleToBalConverter.Data data;
+    private final Context ctx;
     private int varCount = 0;
 
     private final DWConversionStats stats;
 
-    public BallerinaVisitor(DWContext context, MuleToBalConverter.Data data, DWConversionStats dwConversionStats) {
+    public BallerinaVisitor(DWContext context, Context ctx, DWConversionStats dwConversionStats) {
         this.dwContext = context;
-        this.data = data;
+        this.ctx = ctx;
         this.stats = dwConversionStats;
     }
 
@@ -79,7 +85,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     @Override
     public Void visitInputDirective(DataWeaveParser.InputDirectiveContext ctx) {
         this.dwContext.currentScriptContext.inputType = DWUtils.findBallerinaType(ctx.MEDIA_TYPE().getText());
-        this.dwContext.currentScriptContext.params.add(new BallerinaModel.Parameter(ctx.IDENTIFIER().getText(),
+        this.dwContext.currentScriptContext.params.add(new Parameter(ctx.IDENTIFIER().getText(),
                 typeFrom(this.dwContext.currentScriptContext.inputType), Optional.empty()));
         stats.record(DWConstruct.INPUT_DIRECTIVE, true);
         return null;
@@ -96,7 +102,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     public Void visitVariableDeclaration(DataWeaveParser.VariableDeclarationContext ctx) {
         String expression = ctx.expression().getText();
         String dwType = DWUtils.getVarTypeFromExpression(expression);
-        String ballerinaType = DWUtils.getBallerinaType(dwType, data);
+        String ballerinaType = DWUtils.getBallerinaType(dwType, this.ctx);
         visit(ctx.expression());
         String valueExpr = this.dwContext.getExpression();
         ballerinaType = dwType.equals(DWUtils.NUMBER) ? refineNumberType(valueExpr, ballerinaType) : ballerinaType;
@@ -123,7 +129,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitBody(DataWeaveParser.BodyContext ctx) {
-        String methodName = String.format(DWUtils.DW_FUNCTION_NAME, data.sharedProjectData.dwMethodCount++);
+        String methodName = String.format(DWUtils.DW_FUNCTION_NAME, this.ctx.projectCtx.counters.dwMethodCount++);
         visitChildren(ctx);
         dwContext.finalizeFunction();
         String outputType = dwContext.currentScriptContext.outputType;
@@ -131,9 +137,9 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             outputType = dwContext.currentScriptContext.outputType + "| error";
         }
         this.dwContext.functionNames.add(methodName);
-        this.data.functions.add(new BallerinaModel.Function(Optional.empty(), methodName,
-                dwContext.currentScriptContext.params, Optional.of(typeFrom(outputType)),
-                new BallerinaModel.BlockFunctionBody(dwContext.currentScriptContext.statements)));
+        this.ctx.currentFileCtx.balConstructs.functions.add(new Function(methodName,
+                dwContext.currentScriptContext.params, typeFrom(outputType),
+                dwContext.currentScriptContext.statements));
         return null;
     }
 
@@ -215,8 +221,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             this.dwContext.append(ctx.BOOLEAN().getText());
         } else if (ctx.DATE() != null) {
             this.dwContext.currentScriptContext.currentType = DWUtils.DATE;
-            this.data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME,
-                    Optional.empty()));
+            this.ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME));
             this.dwContext.currentScriptContext.containsCheck = true;
             this.dwContext.append("check time:civilFromString(");
             String dateString = ctx.DATE().getText();
@@ -549,7 +554,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         }
         visit(ctx.unaryExpression());
         String type = ctx.typeExpression().IDENTIFIER().getText();
-        String balType = DWUtils.getBallerinaType(type, data);
+        String balType = DWUtils.getBallerinaType(type, this.ctx);
         boolean supported = balType.equals("map<anydata>") || type.equals("any");
         String expression = this.dwContext.getExpression();
         stats.record(DWConstruct.TYPE_COERCION, supported);
@@ -557,11 +562,10 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             case "string":
                 if (this.dwContext.currentScriptContext.currentType.equals(DWUtils.NUMBER)) {
                     if (ctx.formatOption() != null) {
-                        if (!data.utilFunctions.contains(DWUtils.INT_TO_STRING)) {
-                            this.data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA,
-                                    Constants.MODULE_JAVA, Optional.empty()));
-                            this.data.utilFunctions.add(DWUtils.INT_TO_STRING);
-                            this.data.functions.add(getIntToStringFunction());
+                        if (!this.ctx.currentFileCtx.balConstructs.utilFunctions.contains(DWUtils.INT_TO_STRING)) {
+                            this.ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_JAVA));
+                            this.ctx.currentFileCtx.balConstructs.utilFunctions.add(DWUtils.INT_TO_STRING);
+                            this.ctx.currentFileCtx.balConstructs.functions.add(getIntToStringFunction());
                         }
                         this.dwContext.currentScriptContext.exprBuilder.append(DWUtils.INT_TO_STRING)
                                 .append("(").append(expression).append(", ")
@@ -572,8 +576,10 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 } else if (this.dwContext.currentScriptContext.currentType.equals(DWUtils.IDENTIFIER)) {
                     if (ctx.formatOption() != null) {
                         if (expression.startsWith(DWUtils.GET_CURRENT_TIME_STRING)) {
-                            if (!data.utilFunctions.contains(DWUtils.FORMAT_DATE_TIME_STRING)) {
-                                this.data.functions.add(generateFormatDateTimeToStringFunctions());
+                            if (!this.ctx.currentFileCtx.balConstructs.utilFunctions
+                                    .contains(DWUtils.FORMAT_DATE_TIME_STRING)) {
+                                this.ctx.currentFileCtx.balConstructs.functions
+                                        .add(generateFormatDateTimeToStringFunctions());
                             }
                             this.dwContext.append(DWUtils.GET_FORMATTED_STRING_FROM_DATE).append("(")
                                     .append(expression).append(", ").append(ctx.formatOption().STRING().getText())
@@ -619,7 +625,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                     DataWeaveParser.FormatOptionContext formatOption = ctx.formatOption();
                     if (this.dwContext.currentScriptContext.currentType.equals(DWUtils.STRING) &&
                             formatOption != null) {
-                        if (!data.utilFunctions.contains(DWUtils.GET_DATE_FROM_FORMATTED_STRING)) {
+                        if (!this.ctx.currentFileCtx.balConstructs.utilFunctions
+                                .contains(DWUtils.GET_DATE_FROM_FORMATTED_STRING)) {
                             generateFormatDateTimeToDateFunctions();
                         }
                         String dateFormat = formatOption.STRING().getText();
@@ -636,162 +643,162 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     }
 
     private void generateFormatDateTimeToDateFunctions() {
-        this.data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA,
-                Constants.MODULE_JAVA, Optional.empty()));
+        this.ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_JAVA));
 
-        if (!data.utilFunctions.contains(DWUtils.GET_DATE_TIME_FORMATTER)) {
+        if (!ctx.currentFileCtx.balConstructs.utilFunctions.contains(DWUtils.GET_DATE_TIME_FORMATTER)) {
             generateGetDateTimeFormatter();
         }
 
         // create parseDateTime() function
-        data.utilFunctions.add(DWUtils.PARSE_DATE_TIME);
-        BallerinaModel.ExternFunctionBody body = new BallerinaModel.ExternFunctionBody("java.time.LocalDateTime",
+        ctx.currentFileCtx.balConstructs.utilFunctions.add(DWUtils.PARSE_DATE_TIME);
+        ExternFunctionBody body = new ExternFunctionBody("java.time.LocalDateTime",
                 Optional.of("parse"), "@java:Method", Optional.of(List.of("java.lang.CharSequence",
                         "java.time.format.DateTimeFormatter")));
-        data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.PARSE_DATE_TIME,
-                List.of(new BallerinaModel.Parameter("date", BAL_HANDLE_TYPE),
-                        new BallerinaModel.Parameter("formatter", BAL_HANDLE_TYPE)),
+        ctx.currentFileCtx.balConstructs.functions.add(new Function(Optional.of("public"), DWUtils.PARSE_DATE_TIME,
+                List.of(new Parameter("date", BAL_HANDLE_TYPE),
+                        new Parameter("formatter", BAL_HANDLE_TYPE)),
                 Optional.of(typeFrom(LexerTerminals.HANDLE)), body));
 
         // create toInstant() function
-        data.utilFunctions.add(DWUtils.TO_INSTANT);
-        body = new BallerinaModel.ExternFunctionBody("java.time.LocalDateTime",
+        ctx.currentFileCtx.balConstructs.utilFunctions.add(DWUtils.TO_INSTANT);
+        body = new ExternFunctionBody("java.time.LocalDateTime",
                 Optional.empty(), "@java:Method",
                 Optional.of(List.of("java.time.ZoneOffset")));
-        data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.TO_INSTANT,
-                List.of(new BallerinaModel.Parameter("localDateTime", BAL_HANDLE_TYPE),
-                        new BallerinaModel.Parameter("zoneOffset", BAL_HANDLE_TYPE)),
+        ctx.currentFileCtx.balConstructs.functions.add(new Function(Optional.of("public"), DWUtils.TO_INSTANT,
+                List.of(new Parameter("localDateTime", BAL_HANDLE_TYPE),
+                        new Parameter("zoneOffset", BAL_HANDLE_TYPE)),
                 Optional.of(typeFrom(LexerTerminals.HANDLE)), body));
 
         // create utcZoneOffset() function
-        data.utilFunctions.add(DWUtils.UTC_ZONE_OFFSET);
-        body = new BallerinaModel.ExternFunctionBody("java.time.ZoneOffset",
+        ctx.currentFileCtx.balConstructs.utilFunctions.add(DWUtils.UTC_ZONE_OFFSET);
+        body = new ExternFunctionBody("java.time.ZoneOffset",
                 Optional.of("UTC"), "@java:FieldGet", Optional.empty());
-        data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.UTC_ZONE_OFFSET,
+        ctx.currentFileCtx.balConstructs.functions.add(new Function(Optional.of("public"), DWUtils.UTC_ZONE_OFFSET,
                 List.of(), Optional.of(typeFrom(LexerTerminals.HANDLE)), body));
 
         // create dateFromFormattedString() function
-        data.utilFunctions.add(DWUtils.GET_DATE_FROM_FORMATTED_STRING);
-        BallerinaModel.Function dateFromFormattedString = getGetDateFromFormattedString();
-        data.functions.add(dateFromFormattedString);
+        ctx.currentFileCtx.balConstructs.utilFunctions.add(DWUtils.GET_DATE_FROM_FORMATTED_STRING);
+        Function dateFromFormattedString = getGetDateFromFormattedString();
+        ctx.currentFileCtx.balConstructs.functions.add(dateFromFormattedString);
     }
 
-    private static BallerinaModel.Function getGetDateFromFormattedString() {
-        List<BallerinaModel.Parameter> params = new ArrayList<>();
-        params.add(new BallerinaModel.Parameter("dateString", BAL_STRING_TYPE, Optional.empty()));
-        params.add(new BallerinaModel.Parameter("format", BAL_STRING_TYPE, Optional.empty()));
-        List<BallerinaModel.Statement> statements = new ArrayList<>();
+    private static Function getGetDateFromFormattedString() {
+        List<Parameter> params = new ArrayList<>();
+        params.add(new Parameter("dateString", BAL_STRING_TYPE, Optional.empty()));
+        params.add(new Parameter("format", BAL_STRING_TYPE, Optional.empty()));
+        List<Statement> statements = new ArrayList<>();
         statements.add(new BallerinaStatement("handle localDateTime = " +
                 "parseDateTime(java:fromString(dateString), getDateTimeFormatter(java:fromString(format)));"));
         statements.add(new BallerinaStatement("return check time:utcFromString(" +
                 "toInstant(localDateTime, UTC()).toString());"));
-        return new BallerinaModel.Function(Optional.of("public"),
+        return new Function(Optional.of("public"),
                 DWUtils.GET_DATE_FROM_FORMATTED_STRING, params, Optional.of(typeFrom("time:Utc|error")),
-                new BallerinaModel.BlockFunctionBody(statements));
+                new BlockFunctionBody(statements));
     }
 
-    private BallerinaModel.Function generateFormatDateTimeToStringFunctions() {
-        this.data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA,
-                Constants.MODULE_JAVA, Optional.empty()));
+    private Function generateFormatDateTimeToStringFunctions() {
+        this.ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_JAVA, Optional.empty()));
 
         // create formatDateTime() function
-        data.utilFunctions.add(DWUtils.FORMAT_DATE_TIME);
-        BallerinaModel.ExternFunctionBody body = new BallerinaModel.ExternFunctionBody("java.time.LocalDateTime",
+        ctx.currentFileCtx.balConstructs.utilFunctions.add(DWUtils.FORMAT_DATE_TIME);
+        ExternFunctionBody body = new ExternFunctionBody("java.time.LocalDateTime",
                 Optional.empty(), "@java:Method", Optional.empty());
-        data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.FORMAT_DATE_TIME,
-                List.of(new BallerinaModel.Parameter("dateTime", BAL_HANDLE_TYPE),
-                        new BallerinaModel.Parameter("formatter", BAL_HANDLE_TYPE)),
+        ctx.currentFileCtx.balConstructs.functions.add(new Function(Optional.of("public"), DWUtils.FORMAT_DATE_TIME,
+                List.of(new Parameter("dateTime", BAL_HANDLE_TYPE),
+                        new Parameter("formatter", BAL_HANDLE_TYPE)),
                 Optional.of(typeFrom(LexerTerminals.HANDLE)), body));
 
         // create formatDateTimeString() function
-        if (!data.utilFunctions.contains(DWUtils.GET_DATE_TIME_FORMATTER)) {
+        if (!ctx.currentFileCtx.balConstructs.utilFunctions.contains(DWUtils.GET_DATE_TIME_FORMATTER)) {
             generateGetDateTimeFormatter();
         }
 
         // create getZoneId() function
-        data.utilFunctions.add(DWUtils.GET_ZONE_ID);
-        body = new BallerinaModel.ExternFunctionBody("java.time.ZoneId",
+        ctx.currentFileCtx.balConstructs.utilFunctions.add(DWUtils.GET_ZONE_ID);
+        body = new ExternFunctionBody("java.time.ZoneId",
                 Optional.of("of"), "@java:Method", Optional.of(List.of("java.lang.String")));
-        data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.GET_ZONE_ID,
-                List.of(new BallerinaModel.Parameter("zoneId", BAL_HANDLE_TYPE)),
+        ctx.currentFileCtx.balConstructs.functions.add(new Function(Optional.of("public"), DWUtils.GET_ZONE_ID,
+                List.of(new Parameter("zoneId", BAL_HANDLE_TYPE)),
                 Optional.of(typeFrom(LexerTerminals.HANDLE)),
                 body));
 
         // create getDateTime() function
-        data.utilFunctions.add(DWUtils.GET_DATE_TIME);
-        body = new BallerinaModel.ExternFunctionBody("java.time.LocalDateTime",
+        ctx.currentFileCtx.balConstructs.utilFunctions.add(DWUtils.GET_DATE_TIME);
+        body = new ExternFunctionBody("java.time.LocalDateTime",
                 Optional.of("ofInstant"), "@java:Method", Optional.of(List.of("java.time.Instant",
                         "java.time.ZoneId")));
-        data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.GET_DATE_TIME,
-                List.of(new BallerinaModel.Parameter("instant", BAL_HANDLE_TYPE),
-                        new BallerinaModel.Parameter("zoneId", BAL_HANDLE_TYPE)),
+        ctx.currentFileCtx.balConstructs.functions.add(new Function(Optional.of("public"), DWUtils.GET_DATE_TIME,
+                List.of(new Parameter("instant", BAL_HANDLE_TYPE),
+                        new Parameter("zoneId", BAL_HANDLE_TYPE)),
                 Optional.of(typeFrom(LexerTerminals.HANDLE)), body));
 
         // create parseInstant() function
-        data.utilFunctions.add(DWUtils.PARSE_INSTANT);
-        body = new BallerinaModel.ExternFunctionBody("java.time.Instant",
+        ctx.currentFileCtx.balConstructs.utilFunctions.add(DWUtils.PARSE_INSTANT);
+        body = new ExternFunctionBody("java.time.Instant",
                 Optional.of("parse"), "@java:Method", Optional.empty());
-        data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.PARSE_INSTANT,
-                List.of(new BallerinaModel.Parameter("instant", BAL_HANDLE_TYPE)),
+        ctx.currentFileCtx.balConstructs.functions.add(new Function(Optional.of("public"), DWUtils.PARSE_INSTANT,
+                List.of(new Parameter("instant", BAL_HANDLE_TYPE)),
                 Optional.of(typeFrom(LexerTerminals.HANDLE)), body));
 
         // create getFormattedStringFromDate() function
-        data.utilFunctions.add(DWUtils.GET_FORMATTED_STRING_FROM_DATE);
-        List<BallerinaModel.Parameter> params = new ArrayList<>();
-        params.add(new BallerinaModel.Parameter("dateString", BAL_STRING_TYPE));
-        params.add(new BallerinaModel.Parameter("format", BAL_STRING_TYPE));
-        List<BallerinaModel.Statement> statements = new ArrayList<>();
+        ctx.currentFileCtx.balConstructs.utilFunctions.add(DWUtils.GET_FORMATTED_STRING_FROM_DATE);
+        List<Parameter> params = new ArrayList<>();
+        params.add(new Parameter("dateString", BAL_STRING_TYPE));
+        params.add(new Parameter("format", BAL_STRING_TYPE));
+        List<Statement> statements = new ArrayList<>();
         statements.add(new BallerinaStatement("handle localDateTime = " +
                 "getDateTime(parseInstant(java:fromString(dateString)), \n" +
                 "    getZoneId(java:fromString(\"UTC\")));"));
         statements.add(new BallerinaStatement("return formatDateTime(localDateTime, " +
                 "getDateTimeFormatter(java:fromString(format))).toString();"));
-        return new BallerinaModel.Function(Optional.of("public"), DWUtils.GET_FORMATTED_STRING_FROM_DATE,
-                params, Optional.of(typeFrom(LexerTerminals.STRING)), new BallerinaModel.BlockFunctionBody(statements));
+        return new Function(Optional.of("public"), DWUtils.GET_FORMATTED_STRING_FROM_DATE,
+                params, Optional.of(typeFrom(LexerTerminals.STRING)), new BlockFunctionBody(statements));
     }
 
     private void generateGetDateTimeFormatter() {
-        data.utilFunctions.add(DWUtils.GET_DATE_TIME_FORMATTER);
-        BallerinaModel.ExternFunctionBody body = new BallerinaModel.ExternFunctionBody(
+        ctx.currentFileCtx.balConstructs.utilFunctions.add(DWUtils.GET_DATE_TIME_FORMATTER);
+        ExternFunctionBody body = new ExternFunctionBody(
                 "java.time.format.DateTimeFormatter",
                 Optional.of("ofPattern"), "@java:Method", Optional.of(List.of("java.lang.String")));
-        data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.GET_DATE_TIME_FORMATTER,
-                List.of(new BallerinaModel.Parameter("format", BAL_HANDLE_TYPE)),
+        ctx.currentFileCtx.balConstructs.functions.add(new Function(Optional.of("public"),
+                DWUtils.GET_DATE_TIME_FORMATTER,
+                List.of(new Parameter("format", BAL_HANDLE_TYPE)),
                 Optional.of(typeFrom(LexerTerminals.HANDLE)), body));
     }
 
-    private BallerinaModel.Function getIntToStringFunction() {
-        if (!data.utilFunctions.contains(DWUtils.NEW_DECIMAL_FORMAT)) {
-            data.utilFunctions.add(DWUtils.NEW_DECIMAL_FORMAT);
-            BallerinaModel.ExternFunctionBody body = new BallerinaModel.ExternFunctionBody("java.text.DecimalFormat",
+    private Function getIntToStringFunction() {
+        if (!ctx.currentFileCtx.balConstructs.utilFunctions.contains(DWUtils.NEW_DECIMAL_FORMAT)) {
+            ctx.currentFileCtx.balConstructs.utilFunctions.add(DWUtils.NEW_DECIMAL_FORMAT);
+            ExternFunctionBody body = new ExternFunctionBody("java.text.DecimalFormat",
                     Optional.empty(), "@java:Constructor", Optional.empty());
-            data.functions.add(new BallerinaModel.Function(Optional.of("public"), DWUtils.NEW_DECIMAL_FORMAT,
-                    List.of(new BallerinaModel.Parameter("format", BAL_HANDLE_TYPE)),
+            ctx.currentFileCtx.balConstructs.functions.add(new Function(Optional.of("public"),
+                    DWUtils.NEW_DECIMAL_FORMAT,
+                    List.of(new Parameter("format", BAL_HANDLE_TYPE)),
                     Optional.of(typeFrom(LexerTerminals.HANDLE)), body));
         }
-        if (!data.utilFunctions.contains(DWUtils.GET_FORMATTED_STRING_FROM_NUMBER)) {
-            data.utilFunctions.add(DWUtils.GET_FORMATTED_STRING_FROM_NUMBER);
-            BallerinaModel.ExternFunctionBody body = new BallerinaModel.ExternFunctionBody("java.text.NumberFormat",
+        if (!ctx.currentFileCtx.balConstructs.utilFunctions.contains(DWUtils.GET_FORMATTED_STRING_FROM_NUMBER)) {
+            ctx.currentFileCtx.balConstructs.utilFunctions.add(DWUtils.GET_FORMATTED_STRING_FROM_NUMBER);
+            ExternFunctionBody body = new ExternFunctionBody("java.text.NumberFormat",
                     Optional.of("format"), "@java:Method", Optional.of(List.of("long")));
-            data.functions.add(new BallerinaModel.Function(Optional.of("public"),
+            ctx.currentFileCtx.balConstructs.functions.add(new Function(Optional.of("public"),
                     DWUtils.GET_FORMATTED_STRING_FROM_NUMBER,
-                    List.of(new BallerinaModel.Parameter("formatObject", BAL_HANDLE_TYPE),
-                            new BallerinaModel.Parameter("value", BAL_INT_TYPE,
+                    List.of(new Parameter("formatObject", BAL_HANDLE_TYPE),
+                            new Parameter("value", BAL_INT_TYPE,
                                     Optional.empty())),
                     Optional.of(typeFrom(LexerTerminals.HANDLE)), body));
         }
-        List<BallerinaModel.Parameter> params = new ArrayList<>();
-        params.add(new BallerinaModel.Parameter("intValue", BAL_INT_TYPE));
-        params.add(new BallerinaModel.Parameter("format", BAL_STRING_TYPE));
-        List<BallerinaModel.Statement> statements = new ArrayList<>();
+        List<Parameter> params = new ArrayList<>();
+        params.add(new Parameter("intValue", BAL_INT_TYPE));
+        params.add(new Parameter("format", BAL_STRING_TYPE));
+        List<Statement> statements = new ArrayList<>();
         statements.add(
                 new BallerinaStatement("handle formatObj = " + DWUtils.NEW_DECIMAL_FORMAT +
                         "(java:fromString(format));"));
         statements.add(new BallerinaStatement("handle stringResult = " +
                 DWUtils.GET_FORMATTED_STRING_FROM_NUMBER + "(formatObj, intValue);"));
         statements.add(new BallerinaStatement("return stringResult.toString();"));
-        return new BallerinaModel.Function(Optional.of("public"), DWUtils.INT_TO_STRING, params,
-                Optional.of(typeFrom(LexerTerminals.STRING)), new BallerinaModel.BlockFunctionBody(statements));
+        return new Function(Optional.of("public"), DWUtils.INT_TO_STRING, params,
+                Optional.of(typeFrom(LexerTerminals.STRING)), new BlockFunctionBody(statements));
     }
 
     @Override
@@ -847,11 +854,11 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         stats.record(DWConstruct.IDENTIFIER, true);
         String identifier = ctx.IDENTIFIER().getText();
         if (identifier.equals(DWUtils.DW_NOW_IDENTIFIER)) {
-            if (!this.data.utilFunctions.contains(DWUtils.GET_CURRENT_TIME_STRING)) {
-                this.data.imports.add(new BallerinaModel.Import(Constants.ORG_BALLERINA,
+            if (!this.ctx.currentFileCtx.balConstructs.utilFunctions.contains(DWUtils.GET_CURRENT_TIME_STRING)) {
+                this.ctx.currentFileCtx.balConstructs.imports.add(new Import(Constants.ORG_BALLERINA,
                         Constants.MODULE_TIME, Optional.empty()));
-                this.data.utilFunctions.add(DWUtils.GET_CURRENT_TIME_STRING);
-                data.functions.add(getCurrentTimeStringFunction());
+                this.ctx.currentFileCtx.balConstructs.utilFunctions.add(DWUtils.GET_CURRENT_TIME_STRING);
+                this.ctx.currentFileCtx.balConstructs.functions.add(getCurrentTimeStringFunction());
             }
             this.dwContext.append(DWUtils.GET_CURRENT_TIME_STRING).append("()");
             return null;
@@ -864,9 +871,9 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         return null;
     }
 
-    private BallerinaModel.Function getCurrentTimeStringFunction() {
-        return new BallerinaModel.Function(Optional.of("public"), DWUtils.GET_CURRENT_TIME_STRING, new ArrayList<>(),
-                Optional.of(typeFrom(LexerTerminals.STRING)), new BallerinaModel.BlockFunctionBody(List.of(
+    private Function getCurrentTimeStringFunction() {
+        return new Function(Optional.of("public"), DWUtils.GET_CURRENT_TIME_STRING, new ArrayList<>(),
+                Optional.of(typeFrom(LexerTerminals.STRING)), new BlockFunctionBody(List.of(
                         new BallerinaStatement("return time:utcToString(time:utcNow());"))));
     }
 
@@ -912,7 +919,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         return null;
     }
 
-    private BallerinaModel.Statement.IfElseStatement buildWhenCondition(
+    private Statement.IfElseStatement buildWhenCondition(
             List<DataWeaveParser.DefaultExpressionContext> contexts) {
         int size = contexts.size();
         if (size < 3) {
@@ -920,7 +927,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         }
         IfStatementBuilder builder = new IfStatementBuilder();
         visit(contexts.get(1));
-        builder.setIfCondition(new BallerinaModel.Expression.BallerinaExpression(dwContext.getExpression()));
+        builder.setIfCondition(new Expression.BallerinaExpression(dwContext.getExpression()));
         visit(contexts.get(0));
         String varName = DWUtils.VAR_PREFIX + varCount++;
         builder.resultVar = varName;
@@ -938,11 +945,11 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         for (int i = 2; i < size - 1; i += 2) {
             visit(contexts.get(i + 1));
             String condition = dwContext.getExpression();
-            List<BallerinaModel.Statement> statements = new ArrayList<>();
+            List<Statement> statements = new ArrayList<>();
             visit(contexts.get(i));
             statements.add(
                     new BallerinaStatement(varName + " = " + dwContext.getExpression() + ";"));
-            builder.addElseIfClause(new BallerinaModel.Expression.BallerinaExpression(condition), statements);
+            builder.addElseIfClause(new Expression.BallerinaExpression(condition), statements);
         }
         visit(contexts.get(size - 1));
         builder.addElseBody(
