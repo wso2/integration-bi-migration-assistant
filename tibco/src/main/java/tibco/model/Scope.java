@@ -188,7 +188,8 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
             }
 
-            record Empty(String name, Element element, String fileName) implements Flow.Activity, Flow.Activity.ActivityWithName {
+            record Empty(String name, Element element, String fileName)
+                    implements Flow.Activity, Flow.Activity.ActivityWithName {
 
                 @Override
                 public Optional<String> getName() {
@@ -212,8 +213,8 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
             }
 
             record ReceiveEvent(boolean createInstance, float eventTimeout, Optional<String> variable,
-                                List<Flow.Activity.Source> sources, Element element, String fileName) implements Flow.Activity,
-                    Flow.Activity.ActivityWithSources {
+                                List<Flow.Activity.Source> sources, Element element, String fileName)
+                    implements Flow.Activity, Flow.Activity.ActivityWithSources {
 
                 public ReceiveEvent(boolean createInstance, float eventTimeout, String variable,
                                     List<Source> sources, Element element, String fileName) {
@@ -224,12 +225,10 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
             }
 
             record ExtActivity(Optional<Flow.Activity.Expression> expression, String inputVariable,
-                               String outputVariable,
-                               List<Flow.Activity.Source> sources, List<Flow.Activity.Target> targets,
-                               List<Flow.Activity.InputBinding> inputBindings,
-                               Flow.Activity.ExtActivity.CallProcess callProcess, Element element, String fileName) implements
-                    Flow.Activity,
-                    Flow.Activity.ActivityWithSources, Flow.Activity.ActivityWithTargets,
+                               String outputVariable, List<Flow.Activity.Source> sources,
+                               List<Flow.Activity.Target> targets, List<Flow.Activity.InputBinding> inputBindings,
+                               Flow.Activity.ExtActivity.CallProcess callProcess, Element element, String fileName)
+                    implements Flow.Activity, Flow.Activity.ActivityWithSources, Flow.Activity.ActivityWithTargets,
                     Flow.Activity.ActivityWithOutput {
 
                 public ExtActivity {
@@ -254,9 +253,8 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
             record ActivityExtension(Optional<String> name, Optional<String> inputVariable,
                                      Optional<String> outputVariable, Collection<Flow.Activity.Target> targets,
                                      List<Flow.Activity.Source> sources, List<Flow.Activity.InputBinding> inputBindings,
-                                     Flow.Activity.ActivityExtension.Config config,
-                                     Element element, String fileName) implements Flow.Activity, Flow.Activity.ActivityWithTargets,
-                    Flow.Activity.ActivityWithSources,
+                                     Flow.Activity.ActivityExtension.Config config, Element element, String fileName)
+                    implements Flow.Activity, Flow.Activity.ActivityWithTargets, Flow.Activity.ActivityWithSources,
                     Flow.Activity.ActivityWithName, Flow.Activity.ActivityWithOutput {
 
                 @Override

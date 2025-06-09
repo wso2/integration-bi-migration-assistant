@@ -130,8 +130,7 @@ public class TibcoConverter {
     }
 
     static Optional<MigrationResult> migrateTibcoProject(String projectPath, String targetPath,
-            boolean preserverStructure,
-            boolean verbose, boolean dryRun) {
+                                                         boolean preserverStructure, boolean verbose, boolean dryRun) {
         logger = verbose ? createDefaultLogger("migrate-tibco") : createSilentLogger("migrate-tibco");
         Path targetDir = Paths.get(targetPath);
         try {

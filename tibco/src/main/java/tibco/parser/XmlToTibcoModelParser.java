@@ -23,11 +23,13 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-
+import tibco.converter.ConversionUtils;
+import tibco.converter.ProjectConverter;
+import tibco.model.Method;
 import tibco.model.NameSpace;
 import tibco.model.NameSpaceValue;
 import tibco.model.PartnerLink;
-import tibco.model.Method;
+import tibco.model.Process;
 import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
@@ -35,22 +37,19 @@ import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.XMLRenderActi
 import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup;
 import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup.SourceExpression;
 import tibco.model.Process5.ExplicitTransitionGroup.Transition;
-import tibco.model.Scope;
-import tibco.model.Scope.Flow;
-import tibco.model.Scope.Flow.Activity.ActivityExtension.Config;
-import tibco.model.Scope.Flow.Activity.ActivityExtension.Config.AccumulateEnd;
+import tibco.model.Process6;
 import tibco.model.ProcessInfo;
 import tibco.model.ProcessInterface;
 import tibco.model.ProcessTemplateConfigurations;
 import tibco.model.Resource;
+import tibco.model.Scope;
+import tibco.model.Scope.Flow;
+import tibco.model.Scope.Flow.Activity.ActivityExtension.Config;
+import tibco.model.Scope.Flow.Activity.ActivityExtension.Config.AccumulateEnd;
 import tibco.model.Type;
-import tibco.model.XSD;
-import tibco.converter.ConversionUtils;
-import tibco.converter.ProjectConverter;
-import tibco.model.Process;
-import tibco.model.Process6;
 import tibco.model.ValueSource;
 import tibco.model.Variable;
+import tibco.model.XSD;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -108,7 +107,6 @@ public final class XmlToTibcoModelParser {
         return new Resource.HTTPConnectionResource(name, svcRegServiceName, substitutionBindings);
     }
 
-    // FIXME: remove name
     public static Resource.HTTPSharedResource parseHTTPSharedResource(ResourceContext cx, Element root) {
         Element config = getFirstChildWithTag(root, "config");
         String host = getFirstChildWithTag(config, "Host").getTextContent();
@@ -262,7 +260,8 @@ public final class XmlToTibcoModelParser {
         };
     }
 
-    private static InlineActivity.JDBC parseJDBCActivity(ProcessContext cx, Element element, String name, Flow.Activity.InputBinding inputBinding) {
+    private static InlineActivity.JDBC parseJDBCActivity(ProcessContext cx, Element element, String name,
+                                                         Flow.Activity.InputBinding inputBinding) {
         String connection = tryGetInlineActivityConfigValue(element, "jdbcSharedConfig")
                 .orElseThrow(() -> new ParserException("Failed to find jdbcSharedConfig", element));
         String[] parts = connection.split("/");
@@ -273,13 +272,16 @@ public final class XmlToTibcoModelParser {
         return new InlineActivity.JDBC(element, name, inputBinding, connection, cx.fileName());
     }
 
-    private static InlineActivity.JSONRender parseJSONRenderActivity(ProcessContext cx, Element element, String name, Flow.Activity.InputBinding inputBinding) {
-        return new InlineActivity.JSONRender(element, name, inputBinding, getJSONActivityTarget(element), cx.fileName());
+    private static InlineActivity.JSONRender parseJSONRenderActivity(ProcessContext cx, Element element, String name,
+                                                                     Flow.Activity.InputBinding inputBinding) {
+        return new InlineActivity.JSONRender(element, name, inputBinding, getJSONActivityTarget(element),
+                cx.fileName());
     }
 
-
-    private static InlineActivity.JSONParser parseJSONParserActivity(ProcessContext cx, Element element, String name, Flow.Activity.InputBinding inputBinding) {
-        return new InlineActivity.JSONParser(element, name, inputBinding, getJSONActivityTarget(element), cx.fileName());
+    private static InlineActivity.JSONParser parseJSONParserActivity(ProcessContext cx, Element element, String name,
+                                                                     Flow.Activity.InputBinding inputBinding) {
+        return new InlineActivity.JSONParser(element, name, inputBinding, getJSONActivityTarget(element),
+                cx.fileName());
     }
 
     private static @NotNull XSD getJSONActivityTarget(Element element) {
@@ -491,13 +493,13 @@ public final class XmlToTibcoModelParser {
                 .collect(Collectors.joining());
         String xslt = """
                 <?xml version="1.0" encoding="UTF-8"?>
-                <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
+                <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+                               xmlns:tns="http://xmlns.example.com" version="2.0">
                      <xsl:template name="%s" match="/">
                         %s
                     </xsl:template>
                 </xsl:stylesheet>
-                """
-                .formatted(cx.getAnonymousXSLTName(), content);
+                """.formatted(cx.getAnonymousXSLTName(), content);
         return new Flow.Activity.Expression.XSLT(xslt);
     }
 

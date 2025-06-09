@@ -25,7 +25,6 @@ import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 import tibco.TibcoToBalConverter;
-import tibco.parser.XmlToTibcoModelParser;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.TibcoAnalysisReport;
 import tibco.model.Method;
@@ -33,6 +32,7 @@ import tibco.model.PartnerLink;
 import tibco.model.Process;
 import tibco.model.Process5;
 import tibco.model.Scope;
+import tibco.parser.XmlToTibcoModelParser;
 
 import java.io.IOException;
 import java.nio.file.Files;

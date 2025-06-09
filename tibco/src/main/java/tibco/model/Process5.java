@@ -90,7 +90,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                              ExplicitTransitionGroup.NestedGroup.LoopGroup.SourceExpression over,
                              Optional<String> elementSlot, Optional<String> indexSlot,
                              Optional<String> activityOutputName, boolean accumulateOutput,
-                             ExplicitTransitionGroup body, String fileName) implements ExplicitTransitionGroup.NestedGroup {
+                             ExplicitTransitionGroup body, String fileName)
+                    implements ExplicitTransitionGroup.NestedGroup {
 
                 public LoopGroup {
                     assert !accumulateOutput || activityOutputName.isPresent();
@@ -356,8 +357,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 }
             }
 
-            record XMLParseActivity(Element element, String name,
-                                    InputBinding inputBinding, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+            record XMLParseActivity(Element element, String name, InputBinding inputBinding, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
 
                 public XMLParseActivity {
                     assert inputBinding != null;
@@ -374,8 +375,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 }
             }
 
-            record XMLRenderActivity(Element element, String name,
-                                     InputBinding inputBinding, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+            record XMLRenderActivity(Element element, String name, InputBinding inputBinding, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
 
                 public XMLRenderActivity {
                     assert inputBinding != null;
@@ -392,8 +393,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 }
             }
 
-            record SOAPSendReply(Element element, String name,
-                                 InputBinding inputBinding, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+            record SOAPSendReply(Element element, String name, InputBinding inputBinding, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
 
                 public SOAPSendReply {
                     assert inputBinding != null;
@@ -509,8 +510,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 }
             }
 
-            record MapperActivity(Element element, String name,
-                                  InputBinding inputBinding, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+            record MapperActivity(Element element, String name, InputBinding inputBinding, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
 
                 public MapperActivity {
                     assert inputBinding != null;
@@ -527,8 +528,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 }
             }
 
-            record AssignActivity(Element element, String name, String variableName,
-                                  InputBinding inputBinding, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+            record AssignActivity(Element element, String name, String variableName, InputBinding inputBinding,
+                                  String fileName) implements ExplicitTransitionGroup.InlineActivity {
 
                 @Override
                 public InlineActivityType type() {
@@ -541,8 +542,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 }
             }
 
-            record HttpEventSource(Element element, String name, String sharedChannel,
-                                   InputBinding inputBinding, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+            record HttpEventSource(Element element, String name, String sharedChannel, InputBinding inputBinding,
+                                   String fileName) implements ExplicitTransitionGroup.InlineActivity {
 
                 @Override
                 public InlineActivityType type() {
