@@ -57,4 +57,8 @@ public class DWConversionStats {
     public Map<DWConstruct, Integer> getConverted() {
         return converted;
     }
+
+    public List<String> getFailedDWExpressions() {
+        return failedDWExpressions;
+    }
 }

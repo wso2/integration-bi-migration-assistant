@@ -19,7 +19,6 @@
 package mule.report;
 
 import mule.Context;
-import mule.dataweave.converter.DWConstruct;
 import mule.dataweave.converter.DWConversionStats;
 import mule.model.MuleXMLTag;
 
@@ -27,194 +26,60 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
-import java.util.Locale;
+import java.util.List;
 import java.util.logging.Logger;
 
 public class HtmlReportWriter {
 
-    private static final String COMPATIBLE_TAG_TYPE = "Compatible";
-    private static final String INCOMPATIBLE_TAG_TYPE = "Incompatible";
-    private static final String DATAWEAVE = "Dataweave Constructs";
-
     public static int writeHtmlReport(Logger logger, Path reportFilePath, Context.MigrationMetrics migrationMetrics) {
-        LinkedHashMap<String, Integer> passedXMLTags = migrationMetrics.passedXMLTags;
-        LinkedHashMap<String, Integer> failedXMLTags = migrationMetrics.failedXMLTags;
-        DWConversionStats dwStats = migrationMetrics.dwConversionStats;
-
-        String htmlHeader = generateHtmlHeader();
-
-        /// Percentage calculation
-        int totalPassedTagWeight = calculateTotalWeight(passedXMLTags);
-        int totalFailedTagWeight = calculateTotalWeight(failedXMLTags);
-        int xmlTotalWeight = totalPassedTagWeight + totalFailedTagWeight;
-
-        int dwTotalWeight = dwStats.getTotalWeight();
-        int dwConvertedWeight = dwStats.getConvertedWeight();
-
-        // Overall weight and conversion %
-        int combinedTotalWeight = xmlTotalWeight + dwTotalWeight;
-        int combinedConvertedWeight = totalPassedTagWeight + dwConvertedWeight;
-        int percentage = combinedTotalWeight == 0 ? 0 : combinedConvertedWeight * 100 / combinedTotalWeight;
-
-        String conversionPercentageSection = generateConversionPercentageSection(percentage);
-
-        int passedTagCount = passedXMLTags.size();
-        int failedTagCount = failedXMLTags.size();
-        String compatibleSummarySection = generateSummarySection(COMPATIBLE_TAG_TYPE + " XML Element Tag",
-                passedTagCount, totalPassedTagWeight);
-        String compatibleTagTable = generateTagsSection(COMPATIBLE_TAG_TYPE, passedXMLTags,
-                "compatibleTagsDrawer", "compatibleArrow", true);
-        String incompatibleSummarySection = generateSummarySection(INCOMPATIBLE_TAG_TYPE + " XML Element Tag",
-                failedTagCount, totalFailedTagWeight);
-        String incompatibleTagTable = generateTagsSection(INCOMPATIBLE_TAG_TYPE, failedXMLTags,
-                "incompatibleTagsDrawer", "incompatibleArrow", false);
-
-        String dwSummarySection = generateSummarySection(DATAWEAVE, dwStats.getEncountered().size(),
-                dwTotalWeight);
-        String dwTagsTable = generateDataWeaveTagsSection(dwStats);
-
-        String tagWeightsSection = generateTagWeightReferenceTableSection() +
-                generateDWConstructWeightReferenceTableSection();
-        String htmlFooter = generateHtmlFooter();
-
-        String reportContent = htmlHeader + conversionPercentageSection +
-                compatibleSummarySection + compatibleTagTable +
-                incompatibleSummarySection + incompatibleTagTable +
-                dwSummarySection + dwTagsTable +
-                tagWeightsSection + htmlFooter;
-
         try {
+            String reportContent = generateReport(migrationMetrics);
             Files.writeString(reportFilePath, reportContent);
-            logger.info("Incompatible elements report written to " + reportFilePath);
+            logger.info("Migration assessment report written to " + reportFilePath);
+            return calculateMigrationCoverage(migrationMetrics);
         } catch (IOException e) {
             logger.severe("Error writing report to file: " + e.getMessage());
+            return 0;
         }
-        return percentage;
     }
 
-    private static String generateHtmlHeader() {
-        return """
-                <!DOCTYPE html>
-                <html>
-                <head>
-                <title>Migration Summary</title>
-                <style>
-                body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; }
-                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-                th { background-color: #FF6347; color: white; }
-                tr:nth-child(even) { background-color: #f2f2f2; }
-                tr:hover { background-color: #ddd; }
-                h1 { text-align: center; }
-                footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #666; }
-                .drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
-                .drawer.open { max-height: 500px; }
-                .drawer-toggle { cursor: pointer; display: flex; align-items: center; }
-                .drawer-toggle span { margin-right: 5px; }
-                .arrow { transition: transform 0.3s ease-out; display: inline-block; width: 10px;
-                 height: 10px; border-right: 2px solid #333; border-bottom: 2px solid #333; transform: rotate(45deg); }
-                .arrow.open { transform: rotate(135deg); }
-                .summary-container { background-color: #fff; padding: 20px; border-radius: 8px;
-                 box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); margin: 20px 0; }
-                .summary-item { display: flex; align-items: center; margin-bottom: 10px; }
-                .summary-item:last-child { margin-bottom: 0; }
-                .summary-bullet { margin-right: 10px; font-size: 1.5em; color: #FF6347; }
-                .green-table th { background-color: #66CDAA; color: white; }
-                .green-table tr:nth-child(even) { background-color: #e6f7f1; }
-                .green-table tr:hover { background-color: #cceee3; }
-                .blue-table th { background-color: #4682B4; color: white; }
-                .blue-table tr:nth-child(even) { background-color: #e0f0ff; }
-                .blue-table tr:hover { background-color: #b0d4f1; }
-                .scrollable-table { max-height: 300px; overflow-y: auto; display: block; }
-                </style>
-                </head>
-                <body>
-                <h1>Migration Summary</h1>
-                """;
+    private static String generateReport(Context.MigrationMetrics metrics) {
+        int totalElements = countDistinctUnsupportedElements(metrics.failedXMLTags);
+        int totalDWExpressions = countUnsupportedDWExpressions(metrics.dwConversionStats);
+
+        // Calculate implementation times
+        double bestCaseDays = calculateBestCaseEstimate(totalElements, totalDWExpressions);
+        double avgCaseDays = calculateAverageCaseEstimate(totalElements, totalDWExpressions);
+        double worstCaseDays = calculateWorstCaseEstimate(totalElements, totalDWExpressions);
+
+        String unsupportedElementsTable = generateUnsupportedElementsTable(metrics.failedXMLTags);
+        String unsupportedBlocksHtml = generateUnsupportedBlocksHtml(metrics.failedBlocks);
+        String dataweaveExpressionsHtml = generateDataweaveExpressionsHtml(metrics.dwConversionStats);
+
+        return String.format(
+                MigrationReportTemplate.getHtmlTemplate(),
+                calculateMigrationCoverage(metrics),
+                bestCaseDays, (int) Math.ceil(bestCaseDays / 5.0),
+                avgCaseDays, (int) Math.ceil(avgCaseDays / 5.0),
+                worstCaseDays, (int) Math.ceil(worstCaseDays / 5.0),
+                totalElements,
+                totalDWExpressions,
+                unsupportedElementsTable,
+                unsupportedBlocksHtml,
+                dataweaveExpressionsHtml
+        );
     }
 
-    private static String generateConversionPercentageSection(int percentage) {
-        return String.format("<h3>Conversion Percentage: %d%%</h3>\n", percentage);
-    }
+    private static int calculateMigrationCoverage(Context.MigrationMetrics metrics) {
+        int totalPassedWeight = calculateTotalWeight(metrics.passedXMLTags);
+        int totalFailedWeight = calculateTotalWeight(metrics.failedXMLTags);
+        int dwTotalWeight = metrics.dwConversionStats.getTotalWeight();
+        int dwConvertedWeight = metrics.dwConversionStats.getConvertedWeight();
 
-    private static String generateSummarySection(String tagType, int tagCount, int totalTagWeight) {
-        return "<div class=\"summary-container\">\n" +
-                "<div class=\"summary-item\">\n" +
-                "<span class=\"summary-bullet\">&#8226;</span>\n" +
-                String.format("<p>%s Count: %d</p>\n", tagType, tagCount) +
-                "</div>\n" +
-                "<div class=\"summary-item\">\n" +
-                "<span class=\"summary-bullet\">&#8226;</span>\n" +
-                String.format("<p>%s Weight: %d</p>\n", tagType, totalTagWeight) +
-                "</div>\n" +
-                "</div>\n";
-    }
+        int combinedTotalWeight = totalPassedWeight + totalFailedWeight + dwTotalWeight;
+        int combinedConvertedWeight = totalPassedWeight + dwConvertedWeight;
 
-    private static String generateTagsSection(String tagType, LinkedHashMap<String, Integer> tagMap, String drawerId,
-                                              String arrowId, boolean compatibleTable) {
-        StringBuilder sb = new StringBuilder();
-        boolean isOpen = !compatibleTable; // Assuming incompatible tables are open by default
-        String arrowDirection = compatibleTable ? " open" : "";
-
-        sb.append(String.format("<h4 class=\"drawer-toggle\" onclick=\"toggleDrawer('%s', '%s')\">\n", drawerId,
-                        arrowId))
-                .append(String.format("<span id=\"%s\" class=\"arrow%s\"></span>\n", arrowId, arrowDirection))
-                .append(String.format("<span>%s XML Element Tags</span>\n", tagType))
-                .append("</h4>\n")
-                .append(String.format("<div class=\"drawer%s\" id=\"%s\">\n", isOpen ? " open" : "", drawerId))
-                .append(String.format("<table%s>\n", compatibleTable ? " class=\"green-table\"" : ""))
-                .append("<tr><th>Element Tag</th><th>Weight</th><th>Occurrences</th><th>Total Weight</th></tr>\n");
-
-        tagMap.forEach((elementTag, occurrence) -> {
-            int weight = MuleXMLTag.getWeightFromTag(elementTag);
-            int totalWeight = weight * occurrence;
-            sb.append(String.format("<tr><td>%s</td><td>%d</td><td>%d</td><td>%d</td></tr>\n",
-                    elementTag, weight, occurrence, totalWeight));
-        });
-
-        if (tagMap.isEmpty()) {
-            sb.append(String.format("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", "-", "-", "-", "-"));
-        }
-
-        sb.append("</table>\n").append("</div>\n");
-        return sb.toString();
-    }
-
-    private static String generateTagWeightReferenceTableSection() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("<h4 class=\"drawer-toggle\" onclick=\"toggleDrawer('tagWeightsDrawer', 'tagWeightsArrow')\">\n")
-                .append("<span id=\"tagWeightsArrow\" class=\"arrow open\"></span>\n")
-                .append("<span>Tag Weight Map</span>\n")
-                .append("</h4>\n")
-                .append("<div class=\"drawer\" id=\"tagWeightsDrawer\">\n")
-                .append("<div class=\"scrollable-table\">\n")
-                .append("<table class=\"blue-table\">\n")
-                .append("<tr><th>Tag</th><th>Weight</th></tr>\n");
-
-        MuleXMLTag.TAG_WEIGHTS_MAP.forEach((tag, weight) ->
-                sb.append(String.format("<tr><td>%s</td><td>%d</td></tr>\n", tag, weight)));
-
-        sb.append("</table>\n").append("</div>\n").append("</div>\n");
-        return sb.toString();
-    }
-
-    private static String generateHtmlFooter() {
-        return """
-                <footer>
-                <p>Report generated on: <span id="datetime"></span></p>
-                </footer>
-                <script>
-                document.getElementById("datetime").innerHTML = new Date().toLocaleString();
-                function toggleDrawer(drawerId, arrowId) {
-                var drawer = document.getElementById(drawerId);
-                var arrow = document.getElementById(arrowId);
-                drawer.classList.toggle("open");
-                arrow.classList.toggle("open");
-                }
-                </script>
-                </body>
-                </html>
-                """;
+        return combinedTotalWeight == 0 ? 0 : (combinedConvertedWeight * 100) / combinedTotalWeight;
     }
 
     private static int calculateTotalWeight(LinkedHashMap<String, Integer> tagMap) {
@@ -223,58 +88,74 @@ public class HtmlReportWriter {
                 .sum();
     }
 
-    private static String generateDataWeaveTagsSection(DWConversionStats stats) {
+    private static String generateUnsupportedElementsTable(LinkedHashMap<String, Integer> failedTags) {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("<h4 class=\"drawer-toggle\" onclick=\"toggleDrawer('%s', '%s')\">\n", "dwTagsDrawer",
-                        "dwArrow"))
-                .append(String.format("<span id=\"%s\" class=\"arrow open\"></span>\n", "dwArrow"))
-                .append("<span>DataWeave Constructs</span>\n")
-                .append("</h4>\n")
-                .append(String.format("<div class=\"drawer open\" id=\"%s\">\n", "dwTagsDrawer"))
-                .append("<table class=\"green-table\">\n")
-                .append("<tr><th>Construct</th><th>Encountered</th><th>Converted</th><th>Total " +
-                        "Weight</th><th>Converted Weight</th><th>Success %</th></tr>\n");
-
-        for (DWConstruct construct : stats.getEncountered().keySet()) {
-            int encountered = stats.getEncountered().getOrDefault(construct, 0);
-            int converted = stats.getConverted().getOrDefault(construct, 0);
-            int weight = construct.weight();
-            int totalWeight = encountered * weight;
-            int convertedWeight = converted * weight;
-            double success = encountered == 0 ? 0 : (converted * 100.0 / encountered);
-            sb.append(String.format("<tr><td>%s</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td>" +
-                            "<td>%.2f%%</td></tr>\n",
-                    construct.component(), encountered, converted, totalWeight, convertedWeight, success));
-        }
-
-        if (stats.getEncountered().isEmpty()) {
-            sb.append("<tr><td colspan='7'>No DataWeave constructs found</td></tr>\n");
-        }
-
-        sb.append("</table>\n</div>\n");
+        failedTags.forEach((tag, frequency) ->
+            sb.append(String.format("<tr><td><code>%s</code></td><td>%d</td></tr>\n", tag, frequency))
+        );
         return sb.toString();
     }
 
-    private static String generateDWConstructWeightReferenceTableSection() {
+    private static String generateUnsupportedBlocksHtml(List<String> failedBlocks) {
         StringBuilder sb = new StringBuilder();
-        sb.append("<h4 class=\"drawer-toggle\" onclick=\"toggleDrawer('dwConstructWeightsDrawer', " +
-                        "'dwConstructWeightsArrow')\">\n")
-                .append("<span id=\"dwConstructWeightsArrow\" class=\"arrow open\"></span>\n")
-                .append("<span>DataWeave Construct Weight Map</span>\n")
-                .append("</h4>\n")
-                .append("<div class=\"drawer\" id=\"dwConstructWeightsDrawer\">\n")
-                .append("<div class=\"scrollable-table\">\n")
-                .append("<table class=\"blue-table\">\n")
-                .append("<tr><th>Construct</th><th>Weight</th></tr>\n");
-
-        for (DWConstruct construct : DWConstruct.values()) {
-            sb.append(String.format("<tr><td>%s</td><td>%d</td></tr>\n",
-                    construct.component().toUpperCase(Locale.ROOT), construct.weight()));
+        for (int i = 0; i < failedBlocks.size(); i++) {
+            sb.append(String.format("""
+                <div class="block-item">
+                    <div class="block-header">
+                        <span class="block-number">Block #%d</span>
+                        <span class="block-type">%s</span>
+                    </div>
+                    <pre class="block-code"><code>%s</code></pre>
+                </div>
+                """,
+                i + 1,
+                getBlockType(failedBlocks.get(i)),
+                failedBlocks.get(i)));
         }
-
-        sb.append("</table>\n</div>\n</div>\n");
         return sb.toString();
     }
 
+    private static String generateDataweaveExpressionsHtml(DWConversionStats dwStats) {
+        StringBuilder sb = new StringBuilder();
+        int expressionCount = 1;
+        for (String dwExpr : dwStats.getFailedDWExpressions()) {
+            sb.append("<div class=\"block-item\"><div class=\"block-header\">");
+            sb.append("<span class=\"block-number\">Expression #").append(expressionCount++).append("</span>");
+            sb.append("<span class=\"block-type\">").append("Dataweave Expression").append("</span>");
+            sb.append("</div><pre class=\"block-code\">").append(dwExpr).append("</pre></div>");
+        }
+        return sb.toString();
+    }
 
+    private static String getBlockType(String block) {
+        if (block.contains("<")) {
+            int start = block.indexOf("<") + 1;
+            int end = block.indexOf(" ", start);
+            if (end == -1) {
+                end = block.indexOf(">", start);
+            }
+            return end != -1 ? block.substring(start, end) : "Unknown";
+        }
+        return "Unknown";
+    }
+
+    private static double calculateBestCaseEstimate(int elements, int dwExpressions) {
+        return elements * 1.0 + dwExpressions * 0.25;
+    }
+
+    private static double calculateAverageCaseEstimate(int elements, int dwExpressions) {
+        return elements * 3.0 + dwExpressions * 0.5;
+    }
+
+    private static double calculateWorstCaseEstimate(int elements, int dwExpressions) {
+        return elements * 6.0 + dwExpressions * 1.5;
+    }
+
+    private static int countDistinctUnsupportedElements(LinkedHashMap<String, Integer> failedTags) {
+        return failedTags.size();
+    }
+
+    private static int countUnsupportedDWExpressions(DWConversionStats dwStats) {
+        return dwStats.getFailedDWExpressions().size();
+    }
 }
