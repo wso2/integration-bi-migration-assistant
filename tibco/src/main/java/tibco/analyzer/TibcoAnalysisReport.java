@@ -42,13 +42,15 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
 
     sealed interface UnhandledActivityElement {
         Element element();
+        
+        String fileName();
 
         record NamedUnhandledActivityElement(String name, String type,
-                                             Element element) implements UnhandledActivityElement {
+                                             Element element, String fileName) implements UnhandledActivityElement {
 
         }
 
-        record UnNamedUnhandledActivityElement(Element element) implements UnhandledActivityElement {
+        record UnNamedUnhandledActivityElement(Element element, String fileName) implements UnhandledActivityElement {
 
         }
     }
@@ -64,18 +66,19 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
         Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = new HashMap<>();
         for (UnhandledActivityElement unhandledActivityElement : unhandledActivityElements) {
             String code = ConversionUtils.elementToString(unhandledActivityElement.element());
+            String fileName = unhandledActivityElement.fileName();
             switch (unhandledActivityElement) {
                 case NamedUnhandledActivityElement namedElement -> {
                     String type = namedElement.type();
                     String name = namedElement.name();
                     unhandledElementsMap
                             .computeIfAbsent(type, k -> new HashSet<>())
-                            .add(new AnalysisReport.UnhandledElement(code, Optional.of(name)));
+                            .add(new AnalysisReport.UnhandledElement(code, Optional.of(name), fileName));
                 }
                 case UnhandledActivityElement.UnNamedUnhandledActivityElement ignored -> {
                     String uniqueKey = "unnamed-activity-" + unhandledElementsMap.size();
                     unhandledElementsMap.put(uniqueKey, List.of(
-                            new AnalysisReport.UnhandledElement(code, Optional.empty())));
+                            new AnalysisReport.UnhandledElement(code, Optional.empty(), fileName)));
                 }
             }
         }

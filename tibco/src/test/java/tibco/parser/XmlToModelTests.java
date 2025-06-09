@@ -16,9 +16,8 @@
  *  under the License.
  */
 
-package tibco;
+package tibco.parser;
 
-import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 
@@ -33,6 +32,13 @@ import static org.testng.Assert.assertEquals;
 
 public class XmlToModelTests {
 
+    private static final ProjectContext projectContext = new ProjectContext();
+    private static final String ANON_PROCESS = "ANON.proc";
+
+    private static ProcessContext getProcessContext() {
+        return new ProcessContext(projectContext, ANON_PROCESS);
+    }
+
     @Test
     public void testParseHttpSharedResource() throws Exception {
         String xmlText = """
@@ -45,7 +51,8 @@ public class XmlToModelTests {
                 </ns0:httpSharedResource>
                 """;
         Resource.HTTPSharedResource resource =
-                XmlToTibcoModelConverter.parseHTTPSharedResource("test", TestUtils.stringToElement(xmlText));
+                XmlToTibcoModelParser.parseHTTPSharedResource(new ResourceContext(projectContext, "test"),
+                        TestUtils.stringToElement(xmlText));
         assertEquals(resource.name(), "test");
         assertEquals(resource.host(), "localhost");
         assertEquals(resource.port(), 9090);
@@ -80,10 +87,11 @@ public class XmlToModelTests {
                 </pd:ProcessDefinition>
                 """;
         Process5 process =
-                (Process5) XmlToTibcoModelConverter.parseProcess(TestUtils.stringToElement(processXml));
+                (Process5) XmlToTibcoModelParser.parseProcess(getProcessContext(),
+                        TestUtils.stringToElement(processXml));
         assertEquals(process.name(), "Processes/MainProcessStarter.process");
         Process5.ExplicitTransitionGroup transitionGroup = process.transitionGroup();
-        Assert.assertEquals(transitionGroup.startActivity().name(), "HTTP Receiver");
+        assertEquals(transitionGroup.startActivity().name(), "HTTP Receiver");
     }
 
     @Test
@@ -109,8 +117,7 @@ public class XmlToModelTests {
 
         Element element = TestUtils.stringToElement(activityXml);
         InlineActivity actual =
-                XmlToTibcoModelConverter.parseInlineActivity(new XmlToTibcoModelConverter.ParseContext(),
-                element);
+                XmlToTibcoModelParser.parseInlineActivity(getProcessContext(), element);
         InlineActivity.MapperActivity expected =
                 new InlineActivity.MapperActivity(element,
                         "Failed tests count",
@@ -124,7 +131,7 @@ public class XmlToModelTests {
                                     </failedTestsCount>
                                     </xsl:template>
                                 </xsl:stylesheet>
-                                """)));
+                                        """)), ANON_PROCESS);
         assertEquals(actual, expected);
     }
 
@@ -151,8 +158,7 @@ public class XmlToModelTests {
                 """;
 
         Element element = TestUtils.stringToElement(activityXml);
-        InlineActivity actual = XmlToTibcoModelConverter.parseInlineActivity(new XmlToTibcoModelConverter.ParseContext(),
-                element);
+        InlineActivity actual = XmlToTibcoModelParser.parseInlineActivity(getProcessContext(), element);
         InlineActivity.WriteLog expected = new InlineActivity.WriteLog(element, "Log",
                 new Scope.Flow.Activity.InputBinding.CompleteBinding(
                         new Scope.Flow.Activity.Expression.XSLT("""
@@ -166,7 +172,7 @@ public class XmlToModelTests {
                                         </ns:ActivityInput>
                                     </xsl:template>
                                 </xsl:stylesheet>
-                                """)));
+                                """)), ANON_PROCESS);
         assertEquals(actual, expected);
     }
 
@@ -192,8 +198,7 @@ public class XmlToModelTests {
                 """;
 
         Element element = TestUtils.stringToElement(activityXml);
-        InlineActivity actual = XmlToTibcoModelConverter.parseInlineActivity(new XmlToTibcoModelConverter.ParseContext(),
-                element);
+        InlineActivity actual = XmlToTibcoModelParser.parseInlineActivity(getProcessContext(), element);
         InlineActivity.AssignActivity expected = new InlineActivity.AssignActivity(element, "Assign", "Error",
                 new Scope.Flow.Activity.InputBinding.CompleteBinding(
                         new Scope.Flow.Activity.Expression.XSLT("""
@@ -207,7 +212,7 @@ public class XmlToModelTests {
                                         </Error>
                                     </xsl:template>
                                 </xsl:stylesheet>
-                                """)));
+                                """)), ANON_PROCESS);
         assertEquals(actual, expected);
     }
 }
