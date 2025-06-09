@@ -34,6 +34,12 @@ import tibco.converter.TibcoConverter;
 import tibco.model.Process;
 import tibco.model.Resource;
 import tibco.model.Type;
+import tibco.parser.Context;
+import tibco.parser.ProcessContext;
+import tibco.parser.ProjectContext;
+import tibco.parser.ResourceContext;
+import tibco.parser.TypeContext;
+import tibco.parser.XmlToTibcoModelParser;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -47,7 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -71,18 +77,19 @@ public class TibcoToBalConverter {
         Set<Resource.JDBCSharedResource> jdbcSharedResource;
         Set<Resource.JMSSharedResource> jmsSharedResource;
         Set<Resource.SharedVariable> sharedVariables;
+        ProjectContext pcx = new ProjectContext(projectPath);
         try {
-            processes = PROCESS_PARSING_UNIT.parse(projectPath);
-            types = XSD_PARSING_UNIT.parse(projectPath);
-            jdbcResources = JDBC_RESOURCE_PARSING_UNIT.parse(projectPath);
-            httpConnectionResources = HTTP_CONN_RESOURCE_PARSING_UNIT.parse(projectPath);
-            httpClientResources = HTTP_CLIENT_RESOURCE_PARSING_UNIT.parse(projectPath);
+            processes = PROCESS_PARSING_UNIT.parse(pcx);
+            types = XSD_PARSING_UNIT.parse(pcx);
+            jdbcResources = JDBC_RESOURCE_PARSING_UNIT.parse(pcx);
+            httpConnectionResources = HTTP_CONN_RESOURCE_PARSING_UNIT.parse(pcx);
+            httpClientResources = HTTP_CLIENT_RESOURCE_PARSING_UNIT.parse(pcx);
             var httpSharedResourceParser = new HTTPSharedResourceParsingUnit();
-            httpSharedResources = httpSharedResourceParser.parse(projectPath);
-            jdbcSharedResource = SHARED_JDBC_RESOURCE_PARSING_UNIT.parse(projectPath);
+            httpSharedResources = httpSharedResourceParser.parse(pcx);
+            jdbcSharedResource = SHARED_JDBC_RESOURCE_PARSING_UNIT.parse(pcx);
             var jmsSharedResourceParser = new JMSSharedResourceParsingUnit();
-            jmsSharedResource = jmsSharedResourceParser.parse(projectPath);
-            sharedVariables = SHARED_VARIABLE_PARSING_UNIT.parse(projectPath);
+            jmsSharedResource = jmsSharedResourceParser.parse(pcx);
+            sharedVariables = SHARED_VARIABLE_PARSING_UNIT.parse(pcx);
         } catch (IOException | SAXException | ParserConfigurationException e) {
             logger().severe("Unrecoverable error while parsing project file: " + projectPath);
             throw new RuntimeException("Error while parsing the XML file: ", e);
@@ -109,44 +116,49 @@ public class TibcoToBalConverter {
 
     private static final ParsingUnit<Process> PROCESS_PARSING_UNIT = new ParsingUnit<>() {
         @Override
-        public Set<Process> parse(String projectPath) throws IOException, ParserConfigurationException, SAXException {
+        public Set<Process> parse(ProjectContext pcx) throws IOException, ParserConfigurationException, SAXException {
             Set<Process> elements = new HashSet<>();
-            ParseContext cx = new ParseContext(projectPath);
-            for (String s : getBwpFiles(projectPath)) {
+            for (String s : getBwpFiles(pcx.projectPath())) {
                 Element element = parseXmlFile(s);
-                Process parsedElement = XmlToTibcoModelConverter.parseProcess(cx, element);
+                Process parsedElement = XmlToTibcoModelParser.parseProcess(new ProcessContext(pcx, s), element);
                 elements.add(parsedElement);
             }
             return elements;
         }
     };
-    private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(
-            TibcoToBalConverter::getXSDFiles, XmlToTibcoModelConverter::parseSchema);
+private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
+        new ParsingUnit.SimpleParsingUnit<>(
+                TibcoToBalConverter::getXSDFiles, XmlToTibcoModelParser::parseSchema,
+                (ProjectContext pcx, String filePath) -> new TypeContext(pcx));
     private static final ParsingUnit<Resource.JDBCResource> JDBC_RESOURCE_PARSING_UNIT =
             new ParsingUnit.SimpleParsingUnit<>(
-            TibcoToBalConverter::getJDBCResourceFiles, XmlToTibcoModelConverter::parseJDBCResource);
+                    TibcoToBalConverter::getJDBCResourceFiles, XmlToTibcoModelParser::parseJDBCResource,
+                    TibcoToBalConverter::getResourceContext);
     private static final ParsingUnit<Resource.JDBCSharedResource> SHARED_JDBC_RESOURCE_PARSING_UNIT =
             new ParsingUnit.SimpleParsingUnit<>(
                     (String projectPath) -> getFilesWithExtension(projectPath, "sharedjdbc"),
-                    XmlToTibcoModelConverter::parseSharedJDBCResource);
+                    XmlToTibcoModelParser::parseSharedJDBCResource,
+                    TibcoToBalConverter::getResourceContext);
     private static final ParsingUnit<Resource.HTTPConnectionResource> HTTP_CONN_RESOURCE_PARSING_UNIT =
             new ParsingUnit.SimpleParsingUnit<>(
                     TibcoToBalConverter::getHTTPConnectionResourceFiles,
-                    XmlToTibcoModelConverter::parseHTTPConnectionResource);
+                    XmlToTibcoModelParser::parseHTTPConnectionResource,
+                    TibcoToBalConverter::getResourceContext);
     private static final ParsingUnit<Resource.HTTPClientResource> HTTP_CLIENT_RESOURCE_PARSING_UNIT =
             new ParsingUnit.SimpleParsingUnit<>(
                     TibcoToBalConverter::getHTTPClientResourceFiles,
-                    XmlToTibcoModelConverter::parseHTTPClientResource);
+                    XmlToTibcoModelParser::parseHTTPClientResource,
+                    TibcoToBalConverter::getResourceContext);
     private static final ParsingUnit<Resource.SharedVariable> SHARED_VARIABLE_PARSING_UNIT = new ParsingUnit<>() {
         @Override
-        public Set<Resource.SharedVariable> parse(String projectPath)
+        public Set<Resource.SharedVariable> parse(ProjectContext pcx)
                 throws IOException, ParserConfigurationException, SAXException {
             Set<Resource.SharedVariable> variables = new HashSet<>();
-            ParseContext cx = new ParseContext(projectPath);
 
-            for (String s : getFilesWithExtension(projectPath, "sharedvariable")) {
-                String relativePath = "/" + Paths.get(projectPath).relativize(Paths.get(s)).toString();
-                Optional<Resource.SharedVariable> var = XmlToTibcoModelConverter.parseSharedVariable(cx,
+            for (String s : getFilesWithExtension(pcx.projectPath(), "sharedvariable")) {
+                        String relativePath = "/" + Paths.get(pcx.projectPath()).relativize(Paths.get(s)).toString();
+                Optional<Resource.SharedVariable> var = XmlToTibcoModelParser.parseSharedVariable(
+                        new ResourceContext(pcx, s),
                         parseXmlFile(s), relativePath);
                 if (var.isPresent()) {
                     variables.add(var.get());
@@ -155,9 +167,10 @@ public class TibcoToBalConverter {
                 }
             }
 
-            for (String s : getFilesWithExtension(projectPath, "jobsharedvariable")) {
-                String relativePath = "/" + Paths.get(projectPath).relativize(Paths.get(s)).toString();
-                Optional<Resource.SharedVariable> var = XmlToTibcoModelConverter.parseJobSharedVariable(cx,
+            for (String s : getFilesWithExtension(pcx.projectPath(), "jobsharedvariable")) {
+                String relativePath = "/" + Paths.get(pcx.projectPath()).relativize(Paths.get(s)).toString();
+                Optional<Resource.SharedVariable> var = XmlToTibcoModelParser.parseJobSharedVariable(
+                        new ResourceContext(pcx, s),
                         parseXmlFile(s), relativePath);
                 if (var.isPresent()) {
                     variables.add(var.get());
@@ -174,18 +187,25 @@ public class TibcoToBalConverter {
         return TibcoConverter.logger();
     }
 
-    static final class HTTPSharedResourceParsingUnit implements ParsingUnit<Resource.HTTPSharedResource> {
+    private static ResourceContext getResourceContext(ProjectContext pcx, String filePath) {
+        return new ResourceContext(pcx, filePath);
+    }
+
+    static final class HTTPSharedResourceParsingUnit
+            implements ParsingUnit<Resource.HTTPSharedResource> {
 
         @Override
-        public Set<Resource.HTTPSharedResource> parse(String projectPath) throws
+        public Set<Resource.HTTPSharedResource> parse(ProjectContext pcx) throws
                 IOException, ParserConfigurationException, SAXException {
             Set<Resource.HTTPSharedResource> result = new LinkedHashSet<>();
-            for (String file : getHTTPSharedResourceFiles(projectPath)) {
+            for (String file : getHTTPSharedResourceFiles(pcx.projectPath())) {
                 Element element = parseXmlFile(file);
                 Path filePath = Path.of(file);
                 String fileName = filePath.getFileName().toString();
-                Optional<Resource.HTTPSharedResource> resource = XmlToTibcoModelConverter
-                        .parseHTTPSharedResource(fileName, element);
+                Optional<Resource.HTTPSharedResource> resource = XmlToTibcoModelParser.parseHTTPSharedResource(
+                        new ResourceContext(pcx, file),
+                        fileName,
+                        element);
                 if (resource.isPresent()) {
                     result.add(resource.get());
                 } else {
@@ -199,15 +219,17 @@ public class TibcoToBalConverter {
     static final class JMSSharedResourceParsingUnit implements ParsingUnit<Resource.JMSSharedResource> {
 
         @Override
-        public Set<Resource.JMSSharedResource> parse(String projectPath) throws
+        public Set<Resource.JMSSharedResource> parse(ProjectContext pcx) throws
                 IOException, ParserConfigurationException, SAXException {
             Set<Resource.JMSSharedResource> result = new LinkedHashSet<>();
-            for (String file : getFilesWithExtension(projectPath, "sharedjmscon")) {
+            for (String file : getFilesWithExtension(pcx.projectPath(), "sharedjmscon")) {
                 Element element = parseXmlFile(file);
                 Path filePath = Path.of(file);
                 String fileName = filePath.getFileName().toString();
-                Optional<Resource.JMSSharedResource> resource = XmlToTibcoModelConverter
-                        .parseJMSSharedResource(fileName, element);
+                Optional<Resource.JMSSharedResource> resource = XmlToTibcoModelParser.parseJMSSharedResource(
+                        new ResourceContext(pcx, file),
+                        fileName,
+                        element);
                 if (resource.isPresent()) {
                     result.add(resource.get());
                 } else {
@@ -219,16 +241,22 @@ public class TibcoToBalConverter {
     }
 
     interface ParsingUnit<E> {
-        Set<E> parse(String projectPath) throws IOException, ParserConfigurationException, SAXException;
 
-        record SimpleParsingUnit<E>(FileFinder fileFinder,
-                Function<Element, Optional<E>> parsingFn) implements ParsingUnit<E> {
+        Set<E> parse(ProjectContext pcx)
+                throws IOException, ParserConfigurationException, SAXException;
+
+        record SimpleParsingUnit<E, C extends Context>(FileFinder fileFinder,
+                                                       BiFunction<C, Element, Optional<E>> parsingFn,
+                                                       BiFunction<ProjectContext, String, C> contextSupplier)
+                implements ParsingUnit<E> {
+
             @Override
-            public Set<E> parse(String projectPath) throws IOException, ParserConfigurationException, SAXException {
+            public Set<E> parse(ProjectContext pcx)
+                    throws IOException, ParserConfigurationException, SAXException {
                 Set<E> elements = new HashSet<>();
-                for (String s : fileFinder.findFiles(projectPath)) {
+                for (String s : fileFinder.findFiles(pcx.projectPath())) {
                     Element element = parseXmlFile(s);
-                    Optional<E> parsedElement = parsingFn.apply(element);
+                    Optional<E> parsedElement = parsingFn.apply(contextSupplier.apply(pcx, s), element);
                     if (parsedElement.isPresent()) {
                         elements.add(parsedElement.get());
                     } else {

@@ -50,13 +50,13 @@ public class ReportGenerationPass extends AnalysisPass {
 
     private TibcoAnalysisReport.UnhandledActivityElement generateUnhandledActivityReport(
             UnhandledActivity unhandledActivity) {
-        return new UnNamedUnhandledActivityElement(unhandledActivity.element());
+        return new UnNamedUnhandledActivityElement(unhandledActivity.element(), unhandledActivity.fileName());
     }
 
     private TibcoAnalysisReport.UnhandledActivityElement generateUnhandledActivityReport(
             UnhandledInlineActivity unhandledActivity) {
         return new NamedUnhandledActivityElement(unhandledActivity.name(), unhandledActivity.activityType(),
-                unhandledActivity.element());
+                unhandledActivity.element(), unhandledActivity.fileName());
     }
 
     @Override

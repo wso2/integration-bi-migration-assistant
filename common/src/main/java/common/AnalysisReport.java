@@ -136,7 +136,8 @@ public class AnalysisReport {
                             white-space: pre-wrap;
                         }
                         .block-number { font-weight: bold; }
-                        .block-type { font-family: monospace; }
+                        .block-type { font-size: 0.8em; color: #ddd; font-style: italic; font-weight: normal; }
+                        .file-name { font-family: monospace; }
                         code {
                             background-color: #f0f0f0;
                             padding: 2px 6px;
@@ -258,7 +259,8 @@ public class AnalysisReport {
 
             for (Map.Entry<String, Collection<UnhandledElement>> entry : unhandledElements.entrySet()) {
                 for (var each : entry.getValue()) {
-                    appendElement(html, entry.getKey(), each.name().orElse("UnhandledElement"), each.code());
+                    appendElement(html, entry.getKey(), each.name().orElse("UnhandledElement"), each.code(),
+                            each.fileName());
                 }
             }
 
@@ -283,16 +285,17 @@ public class AnalysisReport {
         return html.toString();
     }
 
-    private void appendElement(StringBuilder sb, String kind, String name, String code) {
+    private void appendElement(StringBuilder sb, String kind, String name, String code, String fileName) {
         sb.append("""
                         <div class="block-item">
                             <div class="block-header">
                                 <span class="block-number">%s</span>
+                                <span class="file-name">%s</span>
                                 <span class="block-type">%s</span>
                             </div>
                             <pre class="block-code"><code>%s</code></pre>
                         </div>
-                """.formatted(name, kind, escapeHtml(code)));
+                """.formatted(name, fileName, kind, escapeHtml(code)));
     }
 
     /**
@@ -345,7 +348,7 @@ public class AnalysisReport {
                 .replace(">", "&gt;");
     }
 
-    public record UnhandledElement(String code, Optional<String> name) {
+    public record UnhandledElement(String code, Optional<String> name, String fileName) {
 
     }
 }

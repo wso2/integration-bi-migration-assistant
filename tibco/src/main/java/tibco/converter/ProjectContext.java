@@ -25,7 +25,7 @@ import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import org.jetbrains.annotations.NotNull;
 import tibco.TibcoToBalConverter;
-import tibco.XmlToTibcoModelConverter;
+import tibco.parser.XmlToTibcoModelParser;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.Process;
 import tibco.model.Process5;
@@ -273,7 +273,7 @@ public class ProjectContext {
 
     BallerinaModel.TypeDesc getTypeByName(String name, ContextWithFile cx) {
         // TODO: how to handle names spaces
-        name = ConversionUtils.sanitizes(XmlToTibcoModelConverter.getTagNameWithoutNameSpace(name));
+        name = ConversionUtils.sanitizes(XmlToTibcoModelParser.getTagNameWithoutNameSpace(name));
         if (typeCx.moduleTypeDefs.containsKey(name)) {
             return new BallerinaModel.TypeDesc.TypeReference(name);
         }
