@@ -86,7 +86,7 @@ function SQL_Direct(map<xml> context) returns xml|error {
         check from var each in var5
             do {
                 xml var7 = check toXML(each);
-                var6 = var6 + var7;
+                var6 = var6 + xml `<Record>${var7}</Record>`;
             };
 
         xml var8 = xml `<root>${var6}</root>`;
