@@ -55,10 +55,10 @@ public class TestConverter {
         }
 
         OUT.println("Generating Ballerina package...");
-        convertMuleProject("src/test/resources/projects/muleprojectdemo", null);
+        convertMuleProject("src/test/resources/projects/muleprojectdemo", null, false);
         OUT.println("________________________________________________________________");
         OUT.println("Conversion completed. Output written to " +
-                "src/test/resources/muleprojectdemo/muleprojectdemo-ballerina");
+                "src/test/resources/muleprojectdemo/muleprojectdemo_ballerina");
         OUT.println("________________________________________________________________");
     }
 

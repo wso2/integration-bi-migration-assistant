@@ -15,7 +15,6 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
 package mule.report;
 
 import mule.Context;
@@ -31,9 +30,14 @@ import java.util.logging.Logger;
 
 public class HtmlReportWriter {
 
-    public static int writeHtmlReport(Logger logger, Path reportFilePath, Context.MigrationMetrics migrationMetrics) {
+    public static final String MIGRATION_SUMMARY_TITLE = "Migration Summary";
+    public static final String MIGRATION_ASSESSMENT_TITLE = "Migration Assessment";
+
+    public static int writeHtmlReport(Context.MigrationMetrics migrationMetrics, Logger logger, Path reportFileDir,
+                                      String reportName, boolean dryRun) {
+        Path reportFilePath = reportFileDir.resolve(reportName + ".html");
         try {
-            String reportContent = generateReport(migrationMetrics);
+            String reportContent = generateReport(migrationMetrics, dryRun);
             Files.writeString(reportFilePath, reportContent);
             logger.info("Migration assessment report written to " + reportFilePath);
             return calculateMigrationCoverage(migrationMetrics);
@@ -43,7 +47,7 @@ public class HtmlReportWriter {
         }
     }
 
-    private static String generateReport(Context.MigrationMetrics metrics) {
+    private static String generateReport(Context.MigrationMetrics metrics, boolean dryRun) {
         int totalElements = countDistinctUnsupportedElements(metrics.failedXMLTags);
         int totalDWExpressions = countUnsupportedDWExpressions(metrics.dwConversionStats);
 
@@ -58,6 +62,7 @@ public class HtmlReportWriter {
 
         return String.format(
                 MigrationReportTemplate.getHtmlTemplate(),
+                dryRun ? MIGRATION_ASSESSMENT_TITLE : MIGRATION_SUMMARY_TITLE,
                 calculateMigrationCoverage(metrics),
                 bestCaseDays, (int) Math.ceil(bestCaseDays / 5.0),
                 avgCaseDays, (int) Math.ceil(avgCaseDays / 5.0),

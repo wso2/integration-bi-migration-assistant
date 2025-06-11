@@ -88,16 +88,11 @@ public class MuleToBalConverter {
         Context ctx = new Context();
         ctx.startStandaloneFile(xmlFilePath);
         MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator(ctx.migrationMetrics);
-        return convertXMLFileToBallerina(muleXMLNavigator, xmlFilePath, ctx);
+        return convertXMLFileToBallerina(ctx, muleXMLNavigator, xmlFilePath);
     }
 
-    public static SyntaxTree convertProjectXMLFileToBallerina(MuleXMLNavigator muleXMLNavigator, Context ctx,
-                                                              String xmlFilePath) {
-        return convertXMLFileToBallerina(muleXMLNavigator, xmlFilePath, ctx);
-    }
-
-    private static SyntaxTree convertXMLFileToBallerina(MuleXMLNavigator muleXMLNavigator, String xmlFilePath,
-                                                        Context ctx) {
+    public static SyntaxTree convertXMLFileToBallerina(Context ctx, MuleXMLNavigator muleXMLNavigator,
+                                                        String xmlFilePath) {
         TextDocument textDocument = getTextDocument(muleXMLNavigator, ctx, xmlFilePath);
         return new CodeGenerator(textDocument).generateSyntaxTree();
     }
