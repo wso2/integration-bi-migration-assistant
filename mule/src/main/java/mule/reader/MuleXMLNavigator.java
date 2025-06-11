@@ -15,28 +15,20 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule;
+package mule.reader;
 
+import mule.Context;
+import mule.model.MuleXMLTag;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import java.util.LinkedHashMap;
 
 public class MuleXMLNavigator {
-    private final LinkedHashMap<String, Integer> xmlCompatibleTagCountMap;
-    private final LinkedHashMap<String, Integer> xmlIncompatibleTagCountMap;
+    private final Context.MigrationMetrics migrationMetrics;
 
-    MuleXMLNavigator() {
-        this.xmlCompatibleTagCountMap = new LinkedHashMap<>();
-        this.xmlIncompatibleTagCountMap = new LinkedHashMap<>();
-    }
-
-    public LinkedHashMap<String, Integer> getXmlCompatibleTagCountMap() {
-        return xmlCompatibleTagCountMap;
-    }
-
-    public LinkedHashMap<String, Integer> getXmlIncompatibleTagCountMap() {
-        return xmlIncompatibleTagCountMap;
+    public MuleXMLNavigator(Context.MigrationMetrics migrationMetrics) {
+        this.migrationMetrics = migrationMetrics;
     }
 
     public MuleElement createRootMuleElement(Element rootElement) {
@@ -45,9 +37,9 @@ public class MuleXMLNavigator {
 
     private void updateXMLTagCountMaps(String tagName) {
         if (MuleXMLTag.isCompatible(tagName)) {
-            updateXMLTagCountMap(xmlCompatibleTagCountMap, tagName);
+            updateXMLTagCountMap(migrationMetrics.passedXMLTags, tagName);
         } else {
-            updateXMLTagCountMap(xmlIncompatibleTagCountMap, tagName);
+            updateXMLTagCountMap(migrationMetrics.failedXMLTags, tagName);
         }
     }
 

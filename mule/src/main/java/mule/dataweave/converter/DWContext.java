@@ -20,6 +20,7 @@ package mule.dataweave.converter;
 
 import common.BallerinaModel;
 import common.BallerinaModel.Statement.BallerinaStatement;
+import mule.Context;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,16 +31,18 @@ public class DWContext {
     public String mimeType;
     public final List<BallerinaModel.Statement> parentStatements;
     public DWScriptContext currentScriptContext;
+    public final Context toolContext;
 
     public List<String> functionNames;
     public Map<String, String> commonArgs = new HashMap<>();
     final Map<String, DWScriptContext> scriptCache = new HashMap<>();
     public boolean isOutputVarSet = false;
 
-    public DWContext(List<BallerinaModel.Statement> statementList) {
+    public DWContext(Context toolContext, List<BallerinaModel.Statement> statementList) {
         this.parentStatements = statementList;
         this.functionNames = new ArrayList<>();
         this.currentScriptContext = new DWScriptContext();
+        this.toolContext = toolContext;
     }
 
     public void clearScript() {
@@ -85,13 +88,21 @@ public class DWContext {
     }
 
     public void addUnsupportedComment(String context) {
+        markAsFailedDWExpr(context);
         this.currentScriptContext.statements.add(new BallerinaStatement(
                 String.format(DWUtils.UNSUPPORTED_DW_NODE, context)));
+
+
     }
 
     public void addUnsupportedCommentWithType(String context, String type) {
+        markAsFailedDWExpr(context);
         this.currentScriptContext.statements.add(new BallerinaStatement(
                 String.format(DWUtils.UNSUPPORTED_DW_NODE_WITH_TYPE, context, type)));
+    }
+
+    private void markAsFailedDWExpr(String dwExpr) {
+        this.toolContext.migrationMetrics.dwConversionStats.failedDWExpressions.add(dwExpr);
     }
 
     public static class DWScriptContext {
@@ -109,5 +120,4 @@ public class DWContext {
         public List<String> errors = new ArrayList<>();
         public boolean visited = false;
     }
-
 }

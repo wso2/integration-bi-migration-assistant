@@ -15,7 +15,11 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule;
+package mule.converter;
+
+import mule.Constants;
+import mule.Context;
+import mule.ConversionUtils;
 
 import static mule.ConversionUtils.getAttrVal;
 import static mule.ConversionUtils.isTokenChar;

@@ -1,242 +1,171 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Migration Summary</title>
-<style>
-body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; }
-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-th { background-color: #FF6347; color: white; }
-tr:nth-child(even) { background-color: #f2f2f2; }
-tr:hover { background-color: #ddd; }
-h1 { text-align: center; }
-footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #666; }
-.drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
-.drawer.open { max-height: 500px; }
-.drawer-toggle { cursor: pointer; display: flex; align-items: center; }
-.drawer-toggle span { margin-right: 5px; }
-.arrow { transition: transform 0.3s ease-out; display: inline-block; width: 10px;
- height: 10px; border-right: 2px solid #333; border-bottom: 2px solid #333; transform: rotate(45deg); }
-.arrow.open { transform: rotate(135deg); }
-.summary-container { background-color: #fff; padding: 20px; border-radius: 8px;
- box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); margin: 20px 0; }
-.summary-item { display: flex; align-items: center; margin-bottom: 10px; }
-.summary-item:last-child { margin-bottom: 0; }
-.summary-bullet { margin-right: 10px; font-size: 1.5em; color: #FF6347; }
-.green-table th { background-color: #66CDAA; color: white; }
-.green-table tr:nth-child(even) { background-color: #e6f7f1; }
-.green-table tr:hover { background-color: #cceee3; }
-.blue-table th { background-color: #4682B4; color: white; }
-.blue-table tr:nth-child(even) { background-color: #e0f0ff; }
-.blue-table tr:hover { background-color: #b0d4f1; }
-.scrollable-table { max-height: 300px; overflow-y: auto; display: block; }
-</style>
+  <title>Migration Assessment</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background-color: #FF6347; color: white; }
+    tr:nth-child(even) { background-color: #f2f2f2; }
+    tr:hover { background-color: #ddd; }
+    h1 { text-align: center; }
+    footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #666; }
+    .drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
+    .drawer.open { max-height: 500px; }
+    .summary-container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); margin: 20px 0; }
+    .blue-table th { background-color: #4682B4; color: white; }
+    .blue-table tr:nth-child(even) { background-color: #e0f0ff; }
+    .blue-table tr:hover { background-color: #b0d4f1; }
+    .blue-table code {
+        background-color: #f0f0f0;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 0.9em;
+    }
+    .estimation-notes { margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px; }
+    .estimation-notes ul { margin: 10px 0 0 20px; }
+    .estimation-notes li { margin-bottom: 5px; }
+    .unsupported-blocks { padding: 10px; }
+    .block-item {
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        overflow: hidden;
+    }
+    .block-header {
+        background-color: #4682B4;
+        color: white;
+        padding: 10px;
+        display: flex;
+        justify-content: space-between;
+    }
+    .block-code {
+        margin: 0;
+        padding: 15px;
+        background-color: #fff;
+        overflow-x: auto;
+        font-family: monospace;
+        white-space: pre-wrap;
+    }
+    .block-number { font-weight: bold; }
+    .block-type { font-family: monospace; }
+  </style>
 </head>
 <body>
-<h1>Migration Summary</h1>
-<h3>Conversion Percentage: 97%</h3>
+<h1>Migration Assessment</h1>
+
+<h3>Automated Migration Coverage: 97%</h3>
+
 <div class="summary-container">
-<div class="summary-item">
-<span class="summary-bullet">&#8226;</span>
-<p>Compatible XML Element Tag Count: 10</p>
-</div>
-<div class="summary-item">
-<span class="summary-bullet">&#8226;</span>
-<p>Compatible XML Element Tag Weight: 46</p>
-</div>
-</div>
-<h4 class="drawer-toggle" onclick="toggleDrawer('compatibleTagsDrawer', 'compatibleArrow')">
-<span id="compatibleArrow" class="arrow open"></span>
-<span>Compatible XML Element Tags</span>
-</h4>
-<div class="drawer" id="compatibleTagsDrawer">
-<table class="green-table">
-<tr><th>Element Tag</th><th>Weight</th><th>Occurrences</th><th>Total Weight</th></tr>
-<tr><td>http:listener-config</td><td>5</td><td>1</td><td>5</td></tr>
-<tr><td>flow</td><td>3</td><td>2</td><td>6</td></tr>
-<tr><td>http:listener</td><td>5</td><td>1</td><td>5</td></tr>
-<tr><td>flow-ref</td><td>3</td><td>3</td><td>9</td></tr>
-<tr><td>dw:transform-message</td><td>3</td><td>1</td><td>3</td></tr>
-<tr><td>dw:input-payload</td><td>2</td><td>1</td><td>2</td></tr>
-<tr><td>dw:set-variable</td><td>2</td><td>2</td><td>4</td></tr>
-<tr><td>dw:set-payload</td><td>2</td><td>1</td><td>2</td></tr>
-<tr><td>logger</td><td>1</td><td>4</td><td>4</td></tr>
-<tr><td>sub-flow</td><td>3</td><td>2</td><td>6</td></tr>
-</table>
+  <h3>Implementation Time Estimation</h3>
+  <table class="blue-table">
+    <tr>
+      <th>Scenario</th>
+      <th>Days</th>
+      <th>Weeks (approx.)</th>
+    </tr>
+    <tr>
+      <td>Best Case</td>
+      <td>0.3 days</td>
+      <td>1 weeks</td>
+    </tr>
+    <tr>
+      <td>Average Case</td>
+      <td>0.5 days</td>
+      <td>1 weeks</td>
+    </tr>
+    <tr>
+      <td>Worst Case</td>
+      <td>1.5 days</td>
+      <td>1 weeks</td>
+    </tr>
+  </table>
+  <div class="estimation-notes">
+    <p><strong>Note:</strong></p>
+    <ul>
+      <li>Best case scenario:
+        <ul>
+          <li>1 day per unsupported element for analysis, implementation, and testing</li>
+          <li>0.25 day per unsupported dataweave expression for translation and validation</li>
+          <li>Assumes minimal complexity and straightforward implementations</li>
+        </ul>
+      </li>
+      <li>Average case scenario:
+        <ul>
+          <li>3 days per unsupported element for analysis, implementation, and testing</li>
+          <li>0.5 day per unsupported dataweave expression including edge cases</li>
+          <li>Includes time for code review and integration testing</li>
+        </ul>
+      </li>
+      <li>Worst case scenario:
+        <ul>
+          <li>6 days per unsupported element due to complex dependencies and edge cases</li>
+          <li>1.5 days per unsupported dataweave expression with complex transformations</li>
+          <li>Accounts for additional requirements, debugging, and performance optimization</li>
+        </ul>
+      </li>
+      <li>Project scope:
+        <ul>
+          <li>Total distinct unsupported elements: 0</li>
+          <li>Total DataWeave expressions requiring manual conversion: 1</li>
+        </ul>
+      </li>
+    </ul>
+  </div>
 </div>
 <div class="summary-container">
-<div class="summary-item">
-<span class="summary-bullet">&#8226;</span>
-<p>Incompatible XML Element Tag Count: 0</p>
-</div>
-<div class="summary-item">
-<span class="summary-bullet">&#8226;</span>
-<p>Incompatible XML Element Tag Weight: 0</p>
-</div>
-</div>
-<h4 class="drawer-toggle" onclick="toggleDrawer('incompatibleTagsDrawer', 'incompatibleArrow')">
-<span id="incompatibleArrow" class="arrow"></span>
-<span>Incompatible XML Element Tags</span>
-</h4>
-<div class="drawer open" id="incompatibleTagsDrawer">
-<table>
-<tr><th>Element Tag</th><th>Weight</th><th>Occurrences</th><th>Total Weight</th></tr>
-<tr><td>-</td><td>-</td><td>-</td><td>-</td></tr>
-</table>
+  <h3>Elements Awaiting Tool Support</h3>
+  <div id="toolSupportSection">
+    <table class="blue-table">
+      <tr><th>Tag Name</th><th>Frequency</th></tr>
+    </table>
+    <p class="empty-message" id="toolSupportEmpty" style="display: none; text-align: center; padding: 20px; color: #666;">
+      No elements awaiting tool support
+    </p>
+  </div>
 </div>
 <div class="summary-container">
-<div class="summary-item">
-<span class="summary-bullet">&#8226;</span>
-<p>Dataweave Constructs Count: 11</p>
+  <h3>Element Blocks that Require Manual Conversion</h3>
+  <div class="unsupported-blocks">
+    <p class="empty-message" id="manualBlocksEmpty" style="display: none; text-align: center; padding: 20px; color: #666;">
+      No element blocks require manual conversion
+    </p>
+  </div>
 </div>
-<div class="summary-item">
-<span class="summary-bullet">&#8226;</span>
-<p>Dataweave Constructs Weight: 64</p>
+<div class="summary-container">
+  <h3>DataWeave Expressions that Require Manual Conversion</h3>
+  <div class="unsupported-blocks">
+    <div id="dataweaveContent"><div class="block-item"><div class="block-header"><span class="block-number">Expression #1</span><span class="block-type">Dataweave Expression</span></div><pre class="block-code">map$+1</pre></div></div>
+    <p class="empty-message" id="dataweaveEmpty" style="display: none; text-align: center; padding: 20px; color: #666;">
+      No DataWeave expressions require manual conversion
+    </p>
+  </div>
 </div>
-</div>
-<h4 class="drawer-toggle" onclick="toggleDrawer('dwTagsDrawer', 'dwArrow')">
-<span id="dwArrow" class="arrow open"></span>
-<span>DataWeave Constructs</span>
-</h4>
-<div class="drawer open" id="dwTagsDrawer">
-<table class="green-table">
-<tr><th>Construct</th><th>Encountered</th><th>Converted</th><th>Total Weight</th><th>Converted Weight</th><th>Success %</th></tr>
-<tr><td>output-directive</td><td>3</td><td>3</td><td>9</td><td>9</td><td>100.00%</td></tr>
-<tr><td>input-directive</td><td>3</td><td>3</td><td>9</td><td>9</td><td>100.00%</td></tr>
-<tr><td>identifier</td><td>2</td><td>2</td><td>2</td><td>2</td><td>100.00%</td></tr>
-<tr><td>single-value-selector</td><td>2</td><td>2</td><td>4</td><td>4</td><td>100.00%</td></tr>
-<tr><td>literal</td><td>13</td><td>13</td><td>13</td><td>13</td><td>100.00%</td></tr>
-<tr><td>equality-operator</td><td>2</td><td>2</td><td>6</td><td>6</td><td>100.00%</td></tr>
-<tr><td>object</td><td>5</td><td>5</td><td>10</td><td>10</td><td>100.00%</td></tr>
-<tr><td>when</td><td>1</td><td>1</td><td>2</td><td>2</td><td>100.00%</td></tr>
-<tr><td>variable-declaration</td><td>1</td><td>1</td><td>4</td><td>4</td><td>100.00%</td></tr>
-<tr><td>array</td><td>1</td><td>1</td><td>2</td><td>2</td><td>100.00%</td></tr>
-<tr><td>map</td><td>1</td><td>0</td><td>3</td><td>0</td><td>0.00%</td></tr>
-</table>
-</div>
-<h4 class="drawer-toggle" onclick="toggleDrawer('tagWeightsDrawer', 'tagWeightsArrow')">
-<span id="tagWeightsArrow" class="arrow open"></span>
-<span>Tag Weight Map</span>
-</h4>
-<div class="drawer" id="tagWeightsDrawer">
-<div class="scrollable-table">
-<table class="blue-table">
-<tr><th>Tag</th><th>Weight</th></tr>
-<tr><td>choice-exception-strategy</td><td>4</td></tr>
-<tr><td>unsupported-tag</td><td>1000</td></tr>
-<tr><td>dw:transform-message</td><td>3</td></tr>
-<tr><td>db:dynamic-query</td><td>3</td></tr>
-<tr><td>logger</td><td>1</td></tr>
-<tr><td>spring:beans</td><td>7</td></tr>
-<tr><td>exception-strategy</td><td>3</td></tr>
-<tr><td>when</td><td>2</td></tr>
-<tr><td>dw:set-payload</td><td>2</td></tr>
-<tr><td>flow-ref</td><td>3</td></tr>
-<tr><td>catch-exception-strategy</td><td>2</td></tr>
-<tr><td>http:listener-config</td><td>5</td></tr>
-<tr><td>db:parameterized-query</td><td>3</td></tr>
-<tr><td>flow</td><td>3</td></tr>
-<tr><td>otherwise</td><td>2</td></tr>
-<tr><td>vm:inbound-endpoint</td><td>5</td></tr>
-<tr><td>smtp:outbound-endpoint</td><td>4</td></tr>
-<tr><td>file:connector</td><td>5</td></tr>
-<tr><td>http:query-param</td><td>2</td></tr>
-<tr><td>dw:set-session-variable</td><td>2</td></tr>
-<tr><td>enricher</td><td>5</td></tr>
-<tr><td>remove-session-variable</td><td>1</td></tr>
-<tr><td>db:mysql-config</td><td>4</td></tr>
-<tr><td>db:insert</td><td>2</td></tr>
-<tr><td>smtp:connector</td><td>4</td></tr>
-<tr><td>secure-property-placeholder:config</td><td>3</td></tr>
-<tr><td>set-property</td><td>1</td></tr>
-<tr><td>configuration</td><td>1</td></tr>
-<tr><td>set-session-variable</td><td>1</td></tr>
-<tr><td>ws:consumer-config</td><td>4</td></tr>
-<tr><td>http:request</td><td>4</td></tr>
-<tr><td>set-payload</td><td>3</td></tr>
-<tr><td>http:request-builder</td><td>3</td></tr>
-<tr><td>remove-variable</td><td>1</td></tr>
-<tr><td>db:oracle-config</td><td>4</td></tr>
-<tr><td>vm:outbound-endpoint</td><td>5</td></tr>
-<tr><td>dw:set-variable</td><td>2</td></tr>
-<tr><td>db:delete</td><td>2</td></tr>
-<tr><td>http:request-config</td><td>5</td></tr>
-<tr><td>set-variable</td><td>1</td></tr>
-<tr><td>object-to-string-transformer</td><td>2</td></tr>
-<tr><td>db:update</td><td>2</td></tr>
-<tr><td>sub-flow</td><td>3</td></tr>
-<tr><td>http:listener</td><td>5</td></tr>
-<tr><td>expression-component</td><td>3</td></tr>
-<tr><td>db:template-query-ref</td><td>3</td></tr>
-<tr><td>api-platform-gw:api</td><td>8</td></tr>
-<tr><td>db:select</td><td>2</td></tr>
-<tr><td>async</td><td>4</td></tr>
-<tr><td>json:object-to-json-transformer</td><td>2</td></tr>
-<tr><td>dw:input-payload</td><td>2</td></tr>
-<tr><td>db:template-query</td><td>3</td></tr>
-<tr><td>choice</td><td>3</td></tr>
-</table>
-</div>
-</div>
-<h4 class="drawer-toggle" onclick="toggleDrawer('dwConstructWeightsDrawer', 'dwConstructWeightsArrow')">
-<span id="dwConstructWeightsArrow" class="arrow open"></span>
-<span>DataWeave Construct Weight Map</span>
-</h4>
-<div class="drawer" id="dwConstructWeightsDrawer">
-<div class="scrollable-table">
-<table class="blue-table">
-<tr><th>Construct</th><th>Weight</th></tr>
-<tr><td>LITERAL</td><td>1</td></tr>
-<tr><td>IDENTIFIER</td><td>1</td></tr>
-<tr><td>VARIABLE-DECLARATION</td><td>4</td></tr>
-<tr><td>INPUT-DIRECTIVE</td><td>3</td></tr>
-<tr><td>OUTPUT-DIRECTIVE</td><td>3</td></tr>
-<tr><td>NAMESPACE-DIRECTIVE</td><td>3</td></tr>
-<tr><td>FUNCTION-DECLARATION</td><td>4</td></tr>
-<tr><td>OBJECT</td><td>2</td></tr>
-<tr><td>ARRAY</td><td>2</td></tr>
-<tr><td>WHEN</td><td>2</td></tr>
-<tr><td>UNLESS</td><td>2</td></tr>
-<tr><td>FUNCTION-CALL</td><td>3</td></tr>
-<tr><td>CONCAT</td><td>2</td></tr>
-<tr><td>REPLACE</td><td>2</td></tr>
-<tr><td>SIZE-OF</td><td>2</td></tr>
-<tr><td>MAP</td><td>3</td></tr>
-<tr><td>FILTER</td><td>3</td></tr>
-<tr><td>TYPE-COERCION</td><td>4</td></tr>
-<tr><td>LOWER</td><td>3</td></tr>
-<tr><td>UPPER</td><td>3</td></tr>
-<tr><td>TYPE-EXPRESSION</td><td>3</td></tr>
-<tr><td>GROUP-BY</td><td>3</td></tr>
-<tr><td>MULTIPLICATIVE-OPERATOR</td><td>3</td></tr>
-<tr><td>ADDITIVE-OPERATOR</td><td>3</td></tr>
-<tr><td>RELATIONAL-OPERATOR</td><td>3</td></tr>
-<tr><td>EQUALITY-OPERATOR</td><td>3</td></tr>
-<tr><td>AND-OPERATOR</td><td>3</td></tr>
-<tr><td>OR-OPERATOR</td><td>3</td></tr>
-<tr><td>GROUPED</td><td>1</td></tr>
-<tr><td>LAMBDA-EXPRESSION</td><td>4</td></tr>
-<tr><td>SINGLE-VALUE-SELECTOR</td><td>2</td></tr>
-<tr><td>MULTI-VALUE-SELECTOR</td><td>2</td></tr>
-<tr><td>DESCENDANT-SELECTOR</td><td>2</td></tr>
-<tr><td>INDEXED-SELECTOR</td><td>2</td></tr>
-<tr><td>ATTRIBUTE-SELECTOR</td><td>2</td></tr>
-<tr><td>EXISTENCE-QUERY-SELECTOR</td><td>2</td></tr>
-<tr><td>UNSUPPORTED</td><td>1000</td></tr>
-</table>
-</div>
-</div>
-<footer>
-<p>Report generated on: <span id="datetime"></span></p>
-</footer>
+<footer><p>Report generated on: <span id="datetime"></span></p></footer>
 <script>
-document.getElementById("datetime").innerHTML = new Date().toLocaleString();
-function toggleDrawer(drawerId, arrowId) {
-var drawer = document.getElementById(drawerId);
-var arrow = document.getElementById(arrowId);
-drawer.classList.toggle("open");
-arrow.classList.toggle("open");
-}
+  document.addEventListener('DOMContentLoaded', function() {
+      // Check Elements Awaiting Tool Support
+      const toolSupportTable = document.querySelector('#toolSupportSection table');
+      if (toolSupportTable.rows.length <= 1) {
+          toolSupportTable.style.display = 'none';
+          document.getElementById('toolSupportEmpty').style.display = 'block';
+      }
+
+      // Check Element Blocks
+      const manualBlocksSection = document.querySelector('.summary-container:nth-of-type(3) .unsupported-blocks .block-item');
+      if (!manualBlocksSection) {
+          document.getElementById('manualBlocksEmpty').style.display = 'block';
+      }
+
+      // Check DataWeave Expressions
+      const dataweaveBlocks = document.querySelector('#dataweaveContent .block-item');
+      if (!dataweaveBlocks) {
+          document.getElementById('dataweaveEmpty').style.display = 'block';
+      }
+  });
 </script>
-</body>
-</html>
+<script>document.getElementById("datetime").innerHTML = new Date().toLocaleString();</script>
+</body></html>

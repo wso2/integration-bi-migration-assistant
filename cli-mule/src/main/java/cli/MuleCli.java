@@ -17,11 +17,25 @@
  */
 package cli;
 
-import mule.MuleConverter;
+import mule.MuleMigrationExecutor;
+
+import java.util.logging.Logger;
 
 public class MuleCli {
 
+    private static final Logger logger = Logger.getLogger(MuleCli.class.getName());
+
     public static void main(String[] args) {
-        MuleConverter.migrateMuleSource(args);
+        if (args.length != 1 && args.length != 3) {
+            logger.severe("Usage: java -jar mule-migration-assistant.jar <source-project-directory-or-file> " +
+                    "[-o|--out <output-directory>]");
+            System.exit(1);
+        }
+        String inputPathArg = args[0];
+        String outputPathArg = null;
+        if (args.length == 3 && (args[1].equals("-o") || args[1].equals("--out"))) {
+            outputPathArg = args[2];
+        }
+        MuleMigrationExecutor.migrateMuleSource(inputPathArg, outputPathArg);
     }
 }

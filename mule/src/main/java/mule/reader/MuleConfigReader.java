@@ -15,8 +15,12 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule;
+package mule.reader;
 
+import mule.Constants;
+import mule.Context;
+import mule.ConversionUtils;
+import mule.model.MuleXMLTag;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Element;
 
@@ -29,47 +33,47 @@ import java.util.Optional;
 
 import static common.BallerinaModel.Import;
 import static mule.ConversionUtils.getAllowedMethods;
-import static mule.MuleModel.Async;
-import static mule.MuleModel.CatchExceptionStrategy;
-import static mule.MuleModel.Choice;
-import static mule.MuleModel.ChoiceExceptionStrategy;
-import static mule.MuleModel.Database;
-import static mule.MuleModel.DbInParam;
-import static mule.MuleModel.DbMSQLConfig;
-import static mule.MuleModel.DbOracleConfig;
-import static mule.MuleModel.DbTemplateQuery;
-import static mule.MuleModel.Enricher;
-import static mule.MuleModel.ExpressionComponent;
-import static mule.MuleModel.Flow;
-import static mule.MuleModel.FlowReference;
-import static mule.MuleModel.HTTPListenerConfig;
-import static mule.MuleModel.HTTPRequestConfig;
-import static mule.MuleModel.HttpListener;
-import static mule.MuleModel.HttpRequest;
-import static mule.MuleModel.InputPayloadElement;
-import static mule.MuleModel.Kind;
-import static mule.MuleModel.LogLevel;
-import static mule.MuleModel.Logger;
-import static mule.MuleModel.MuleRecord;
-import static mule.MuleModel.ObjectToJson;
-import static mule.MuleModel.ObjectToString;
-import static mule.MuleModel.Payload;
-import static mule.MuleModel.QueryType;
-import static mule.MuleModel.ReferenceExceptionStrategy;
-import static mule.MuleModel.RemoveVariable;
-import static mule.MuleModel.SetPayloadElement;
-import static mule.MuleModel.SetSessionVariable;
-import static mule.MuleModel.SetSessionVariableElement;
-import static mule.MuleModel.SetVariable;
-import static mule.MuleModel.SetVariableElement;
-import static mule.MuleModel.SubFlow;
-import static mule.MuleModel.TransformMessage;
-import static mule.MuleModel.TransformMessageElement;
-import static mule.MuleModel.Type;
-import static mule.MuleModel.UnsupportedBlock;
-import static mule.MuleModel.VMInboundEndpoint;
-import static mule.MuleModel.VMOutboundEndpoint;
-import static mule.MuleModel.WhenInChoice;
+import static mule.model.MuleModel.Async;
+import static mule.model.MuleModel.CatchExceptionStrategy;
+import static mule.model.MuleModel.Choice;
+import static mule.model.MuleModel.ChoiceExceptionStrategy;
+import static mule.model.MuleModel.Database;
+import static mule.model.MuleModel.DbInParam;
+import static mule.model.MuleModel.DbMSQLConfig;
+import static mule.model.MuleModel.DbOracleConfig;
+import static mule.model.MuleModel.DbTemplateQuery;
+import static mule.model.MuleModel.Enricher;
+import static mule.model.MuleModel.ExpressionComponent;
+import static mule.model.MuleModel.Flow;
+import static mule.model.MuleModel.FlowReference;
+import static mule.model.MuleModel.HTTPListenerConfig;
+import static mule.model.MuleModel.HTTPRequestConfig;
+import static mule.model.MuleModel.HttpListener;
+import static mule.model.MuleModel.HttpRequest;
+import static mule.model.MuleModel.InputPayloadElement;
+import static mule.model.MuleModel.Kind;
+import static mule.model.MuleModel.LogLevel;
+import static mule.model.MuleModel.Logger;
+import static mule.model.MuleModel.MuleRecord;
+import static mule.model.MuleModel.ObjectToJson;
+import static mule.model.MuleModel.ObjectToString;
+import static mule.model.MuleModel.Payload;
+import static mule.model.MuleModel.QueryType;
+import static mule.model.MuleModel.ReferenceExceptionStrategy;
+import static mule.model.MuleModel.RemoveVariable;
+import static mule.model.MuleModel.SetPayloadElement;
+import static mule.model.MuleModel.SetSessionVariable;
+import static mule.model.MuleModel.SetSessionVariableElement;
+import static mule.model.MuleModel.SetVariable;
+import static mule.model.MuleModel.SetVariableElement;
+import static mule.model.MuleModel.SubFlow;
+import static mule.model.MuleModel.TransformMessage;
+import static mule.model.MuleModel.TransformMessageElement;
+import static mule.model.MuleModel.Type;
+import static mule.model.MuleModel.UnsupportedBlock;
+import static mule.model.MuleModel.VMInboundEndpoint;
+import static mule.model.MuleModel.VMOutboundEndpoint;
+import static mule.model.MuleModel.WhenInChoice;
 
 public class MuleConfigReader {
 

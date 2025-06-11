@@ -15,7 +15,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule;
+package mule.model;
 
 import java.util.Arrays;
 import java.util.HashSet;
