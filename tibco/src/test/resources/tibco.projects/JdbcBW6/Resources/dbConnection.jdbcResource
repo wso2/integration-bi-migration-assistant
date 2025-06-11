@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jndi:namedResource xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jdbc="http://xsd.tns.tibco.com/amf/models/sharedresource/jdbc" xmlns:jndi="http://xsd.tns.tibco.com/amf/models/sharedresource/jndi" xmlns:subject="http://xsd.tns.tibco.com/trinity/models/identity/subject" name="dbConnection" type="jdbc:JdbcDataSource">
+  <jndi:reference key="subjectJndiName" type="subject:SubjectConfiguration" value=""/>
+  <jndi:configuration xsi:type="jdbc:JdbcDataSource" username="username" password="password">
+    <connectionConfig xsi:type="jdbc:NonXaConnection" jdbcDriver="org.postgresql.Driver" dbURL="dbURL">
+      <substitutionBindings template="dbURL" propName="BWCE.DB.URL"/>
+    </connectionConfig>
+  </jndi:configuration>
+</jndi:namedResource>
