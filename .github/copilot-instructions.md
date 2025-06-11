@@ -3,3 +3,5 @@
 - Maximum line length is 120 characters.
 - Keep commit messages short.
 - Wrap single line if statements in parentheses.
+- If the method don't return null add annotation `@NotNull` to the method signature.
+    - Prefer Optionals over null values.
