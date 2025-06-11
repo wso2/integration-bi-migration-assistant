@@ -1,3 +1,7 @@
+# General coding guidelines
+- Don't leave trailing whitespace.
+
+# Java coding guidelines
 - Don't add doc comments to private methods.
 - When declaring new helper methods, they should be private and adjacent to the method that calls them.
 - Maximum line length is 120 characters.
