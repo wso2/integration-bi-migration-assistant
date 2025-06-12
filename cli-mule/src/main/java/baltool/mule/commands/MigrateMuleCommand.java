@@ -35,8 +35,8 @@ public class MigrateMuleCommand implements BLauncherCmd {
 
     private final PrintStream errStream;
     private static final String CMD_NAME = "migrate-mule";
-    private static final String USAGE =
-            "bal migrate-mule <source-project-directory-or-file> [-o|--out <output-directory>] [-d|--dry-run]";
+    private static final String USAGE = "bal migrate-mule <source-project-directory-or-file> " +
+            "[-o|--out <output-directory>] [-k|--keep-structure] [-d|--dry-run]";
 
     public MigrateMuleCommand() {
         errStream = System.err;
@@ -53,13 +53,16 @@ public class MigrateMuleCommand implements BLauncherCmd {
             description = "Simulate the conversion without generating output files", defaultValue = "false")
     private boolean dryRun;
 
+    @CommandLine.Option(names = { "--keep-structure", "-k" }, description = "Keep mule project structure")
+    private boolean keepStructure;
+
     @Override
     public void execute() {
         if (sourcePath == null) {
             errStream.println("Error: mule project directory or mule xml file path is required.");
             onInvalidInput();
         }
-        MuleMigrationExecutor.migrateMuleSource(sourcePath, outputPath, dryRun);
+        MuleMigrationExecutor.migrateMuleSource(sourcePath, outputPath, dryRun, keepStructure);
     }
 
     private void onInvalidInput() {

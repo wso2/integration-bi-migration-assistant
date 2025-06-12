@@ -88,16 +88,17 @@ public class MuleToBalConverter {
         Context ctx = new Context();
         ctx.startStandaloneFile(xmlFilePath);
         MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator(ctx.migrationMetrics);
-        return convertXMLFileToBallerina(ctx, muleXMLNavigator, xmlFilePath);
+        TextDocument txtDoc = convertXMLFileToBir(ctx, muleXMLNavigator, xmlFilePath, "internal");
+        return new CodeGenerator(txtDoc).generateSyntaxTree();
     }
 
-    public static SyntaxTree convertXMLFileToBallerina(Context ctx, MuleXMLNavigator muleXMLNavigator,
-                                                        String xmlFilePath) {
-        TextDocument textDocument = getTextDocument(muleXMLNavigator, ctx, xmlFilePath);
-        return new CodeGenerator(textDocument).generateSyntaxTree();
+    public static TextDocument convertXMLFileToBir(Context ctx, MuleXMLNavigator muleXMLNavigator, String xmlFilePath,
+                                                   String balFileName) {
+        return getTextDocument(muleXMLNavigator, ctx, xmlFilePath, balFileName);
     }
 
-    private static TextDocument getTextDocument(MuleXMLNavigator muleXMLNavigator, Context ctx, String xmlFilePath) {
+    private static TextDocument getTextDocument(MuleXMLNavigator muleXMLNavigator, Context ctx, String xmlFilePath,
+                                                String balFileName) {
         Element root;
         try {
             root = parseMuleXMLConfigurationFile(xmlFilePath);
@@ -110,7 +111,7 @@ public class MuleToBalConverter {
         List<SubFlow> subFlows = new ArrayList<>();
         readMuleConfigFromRoot(ctx, muleRootElement, flows, subFlows);
 
-        return generateTextDocument(ctx, flows, subFlows);
+        return generateTextDocument(ctx, balFileName, flows, subFlows);
     }
 
     private static Element parseMuleXMLConfigurationFile(String uri) throws ParserConfigurationException, SAXException,
@@ -127,7 +128,8 @@ public class MuleToBalConverter {
         return document.getDocumentElement();
     }
 
-    private static TextDocument generateTextDocument(Context ctx, List<Flow> flows, List<SubFlow> subFlows) {
+    private static TextDocument generateTextDocument(Context ctx, String balFileName,
+                                                     List<Flow> flows, List<SubFlow> subFlows) {
         List<Service> services = new ArrayList<>();
         Set<Function> functions = new HashSet<>();
         List<Flow> privateFlows = new ArrayList<>();
@@ -212,8 +214,8 @@ public class MuleToBalConverter {
 
         ArrayList<ModuleVar> orderedModuleVars = new ArrayList<>(ctx.currentFileCtx.configs.configurableVars.values());
         orderedModuleVars.addAll(moduleVars);
-        return createTextDocument("internal", new ArrayList<>(ctx.currentFileCtx.balConstructs.imports), typeDefs,
-                orderedModuleVars, listeners, services, functions.stream().toList(), comments);
+        return createTextDocument(balFileName + ".bal", new ArrayList<>(ctx.currentFileCtx.balConstructs.imports),
+                typeDefs, orderedModuleVars, listeners, services, functions.stream().toList(), comments);
     }
 
     private static void genVMInboundEndpointSource(Context ctx, Flow flow, VMInboundEndpoint vmInboundEndpoint,

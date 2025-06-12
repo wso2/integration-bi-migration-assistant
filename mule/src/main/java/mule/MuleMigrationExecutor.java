@@ -17,6 +17,8 @@
  */
 package mule;
 
+import common.BICodeConverter;
+import common.BallerinaModel;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.dataweave.converter.DWConversionStats;
@@ -40,7 +42,7 @@ import java.util.logging.Logger;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.TextDocument;
-import static mule.MuleToBalConverter.convertXMLFileToBallerina;
+import static mule.MuleToBalConverter.convertXMLFileToBir;
 import static mule.report.HtmlReportWriter.writeHtmlReport;
 import static mule.MuleToBalConverter.createTextDocument;
 import static mule.MuleToBalConverter.createContextTypeDefns;
@@ -48,15 +50,16 @@ import static mule.MuleToBalConverter.createContextTypeDefns;
 public class MuleMigrationExecutor {
     public static final String MULE_DEFAULT_APP_DIR_NAME = "app";
     public static final String BAL_PROJECT_SUFFIX = "_ballerina";
-    public static final String INTERNAL_TYPES_FILE_NAME = "internal_types";
+    public static final String INTERNAL_TYPES_FILE_NAME = "internal_types.bal";
 
-    public static final String MIGRATION_SUMMARY_REPORT_NAME = "migration_summary";
-    public static final String MIGRATION_ASSESSMENT_REPORT_NAME = "migration_assessment";
+    public static final String MIGRATION_SUMMARY_REPORT_NAME = "migration_summary.html";
+    public static final String MIGRATION_ASSESSMENT_REPORT_NAME = "migration_assessment.html";
 
     private static final PrintStream OUT = System.out;
     private static final Logger logger = Logger.getLogger(MuleMigrationExecutor.class.getName());
 
-    public static void migrateMuleSource(String inputPathArg, String outputPathArg, boolean dryRun) {
+    public static void migrateMuleSource(String inputPathArg, String outputPathArg, boolean dryRun,
+                                         boolean keepStructure) {
         Path sourcePath = Paths.get(inputPathArg);
         if (!Files.exists(sourcePath)) {
             logger.severe("Source path does not exist: '" + sourcePath + "'");
@@ -65,10 +68,10 @@ public class MuleMigrationExecutor {
 
         if (Files.isDirectory(sourcePath)) {
             validateOutputPathArg(outputPathArg);
-            convertMuleProject(inputPathArg, outputPathArg, dryRun);
+            convertMuleProject(inputPathArg, outputPathArg, dryRun, keepStructure);
         } else if (Files.isRegularFile(sourcePath) && inputPathArg.endsWith(".xml")) {
             validateOutputPathArg(outputPathArg);
-            convertMuleXmlFile(inputPathArg, outputPathArg, dryRun);
+            convertMuleXmlFile(inputPathArg, outputPathArg, dryRun, keepStructure);
         } else {
             logger.severe("Invalid source path: '" + sourcePath + "'. Must be a directory or .xml file.");
             System.exit(1);
@@ -93,7 +96,8 @@ public class MuleMigrationExecutor {
         }
     }
 
-    public static void convertMuleXmlFile(String inputPathArg, String outputPathArg, boolean dryRun) {
+    public static void convertMuleXmlFile(String inputPathArg, String outputPathArg, boolean dryRun,
+                                          boolean keepStructure) {
         Path inputXmlFilePath = Path.of(inputPathArg);
         String inputFileName = inputXmlFilePath.getFileName().toString().split(".xml")[0];
         Path sourceDir = inputXmlFilePath.getParent() != null ? inputXmlFilePath.getParent() : Path.of(".");
@@ -108,10 +112,11 @@ public class MuleMigrationExecutor {
 
         File xmlConfigFile = inputXmlFilePath.toFile();
         convertToBalProject(Collections.singletonList(xmlConfigFile), Collections.emptyList(), sourceDir, targetDir,
-                balPackageName, dryRun);
+                balPackageName, dryRun, keepStructure);
     }
 
-    public static void convertMuleProject(String inputPathArg, String outputPathArg, boolean dryRun) {
+    public static void convertMuleProject(String inputPathArg, String outputPathArg, boolean dryRun,
+                                          boolean keepStructure) {
         // Collect xml configs and property files
         List<File> xmlFiles = new ArrayList<>();
         List<File> propertyFiles = new ArrayList<>();
@@ -126,26 +131,27 @@ public class MuleMigrationExecutor {
 
         String balPackageName = sourcePath.getFileName() + BAL_PROJECT_SUFFIX;
         Path targetDir = outputPathArg != null ? Paths.get(outputPathArg) : sourcePath;
-        convertToBalProject(xmlFiles, propertyFiles, muleAppDir, targetDir, balPackageName, dryRun);
+        convertToBalProject(xmlFiles, propertyFiles, muleAppDir, targetDir, balPackageName, dryRun, keepStructure);
     }
 
     private static void convertToBalProject(List<File> xmlFiles, List<File> propertyFiles, Path muleAppDir,
-                                            Path targetDir, String balPackageName, boolean dryRun) {
-        // 1. Convert xml configs to bal
+                                            Path targetDir, String balPackageName, boolean dryRun,
+                                            boolean keepStructure) {
+        // 1. Convert xml configs to ballerina-ir
         Path balPackageDir = targetDir.resolve(balPackageName);
         Context ctx = new Context();
         MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator(ctx.migrationMetrics);
-        List<BalFile> balFiles = new ArrayList<>(xmlFiles.size() + 1);
+        List<TextDocument> birTxtDocs = new ArrayList<>(xmlFiles.size() + 1);
         for (File xmlFile : xmlFiles) {
             ctx.startNewFile(xmlFile.getPath());
             Path relativePath = muleAppDir.relativize(xmlFile.toPath());
             String balFileName = relativePath.toString().replace(File.separator, ".").replace(".xml", "");
-            BalFile balFile = genBalFileFromXMLFile(ctx, muleXMLNavigator, xmlFile, balFileName, balPackageDir);
-            balFiles.add(balFile);
+            TextDocument birTextDoc = genBirFromXMLFile(ctx, muleXMLNavigator, xmlFile, balFileName);
+            birTxtDocs.add(birTextDoc);
         }
 
-        BalFile internalTypesBalFile = genBalFileForInternalTypes(ctx, balPackageDir);
-        balFiles.add(internalTypesBalFile);
+        TextDocument birTxtDoc = genBirForInternalTypes(ctx);
+        birTxtDocs.add(birTxtDoc);
 
         // 2. Generate and write migration report
         createDirectories(balPackageDir);
@@ -157,9 +163,14 @@ public class MuleMigrationExecutor {
             return;
         }
 
+        // 3. Rearrange BIR for BI Structure
+        if (!keepStructure) {
+            birTxtDocs = new BICodeConverter().convert(new BallerinaModel.Module("mock", birTxtDocs)).textDocuments();
+        }
+
         // 3. Write project
         writeProjectArtifacts(balPackageName, balPackageDir);
-        writeBalFiles(balFiles);
+        writeBirAsBalFiles(birTxtDocs, balPackageDir);
         genAndWriteConfigTOMLFile(propertyFiles, balPackageDir);
 
         // 4. Print conversion percentages
@@ -181,7 +192,8 @@ public class MuleMigrationExecutor {
                 distribution = "%s"
                 
                 [build-options]
-                observabilityIncluded = true""".formatted(org, balPackageName, version, distribution);
+                observabilityIncluded = true
+                """.formatted(org, balPackageName, version, distribution);
 
         try {
             Files.writeString(tomlPath, tomlContent);
@@ -191,32 +203,21 @@ public class MuleMigrationExecutor {
         }
     }
 
-    public static class BalFile {
-        final String fileName;
-        final Path fileDirectory;
-        final SyntaxTree syntaxTree;
+    private static void writeBirAsBalFiles(List<TextDocument> birTxtDocs, Path balPackageDir) {
+        for (TextDocument bir : birTxtDocs) {
+            SyntaxTree syntaxTree;
+            try {
+                syntaxTree = new CodeGenerator(bir).generateSyntaxTree();
+            } catch (Exception e) {
+                logger.severe("Error generating syntax tree from bir file: " + bir.documentName());
+                continue;
+            }
+            Path filePath = balPackageDir.resolve(bir.documentName());
 
-        public BalFile(String fileName, Path fileDirectory, SyntaxTree syntaxTree) {
-            this.fileName = fileName;
-            this.fileDirectory = fileDirectory;
-            this.syntaxTree = syntaxTree;
-        }
-
-        public boolean isValid() {
-            // null means error in conversion
-            return syntaxTree != null;
-        }
-    }
-
-    private static void writeBalFiles(List<BalFile> balFiles) {
-        for (BalFile balFile : balFiles) {
-            if (balFile.isValid()) {
-                Path filePath = balFile.fileDirectory.resolve(balFile.fileName + ".bal");
-                try {
-                    Files.writeString(filePath, balFile.syntaxTree.toSourceCode());
-                } catch (IOException e) {
-                    logger.severe("Error writing to file: " + e.getMessage());
-                }
+            try {
+                Files.writeString(filePath, syntaxTree.toSourceCode());
+            } catch (IOException e) {
+                logger.severe("Error writing to file: " + bir.documentName());
             }
         }
     }
@@ -228,28 +229,26 @@ public class MuleMigrationExecutor {
      * @param muleXMLNavigator MuleXMLNavigator instance to navigate the XML file
      * @param xmlFile          xml file to be converted
      * @param balFileName      name of the target Ballerina file (without .bal extension)
-     * @param balFileDir       path to the target directory where the .bal file will be created
      * @return BalFile instance containing the .bal file information
      */
-    private static BalFile genBalFileFromXMLFile(Context ctx, MuleXMLNavigator muleXMLNavigator, File xmlFile,
-                                                 String balFileName, Path balFileDir) {
-        SyntaxTree syntaxTree = null;
+    private static TextDocument genBirFromXMLFile(Context ctx, MuleXMLNavigator muleXMLNavigator, File xmlFile,
+                                                  String balFileName) {
+        TextDocument birTextDocument = null;
         try {
-            syntaxTree = convertXMLFileToBallerina(ctx, muleXMLNavigator, xmlFile.getPath());
+            birTextDocument = convertXMLFileToBir(ctx, muleXMLNavigator, xmlFile.getPath(), balFileName);
         } catch (Exception e) {
-            logger.severe(String.format("Error converting the file: %s%n%s", xmlFile.getName(), e.getMessage()));
+            logger.severe(String.format("Error converting the file to ballerina intermediate representation: %s%n%s",
+                    xmlFile.getName(), e.getMessage()));
         }
-
-        return new BalFile(balFileName, balFileDir, syntaxTree);
+        return birTextDocument;
     }
 
     /**
      * Generates a BalFile for internal types.
      *
-     * @param ctx       Context instance
-     * @param targetDir path to the target directory where the internal-types.bal file will be created
+     * @param ctx Context instance
      */
-    private static BalFile genBalFileForInternalTypes(Context ctx, Path targetDir) {
+    private static TextDocument genBirForInternalTypes(Context ctx) {
         // TODO: consider multi-flow-multi-context scenario
         List<ModuleTypeDef> contextTypeDefns = createContextTypeDefns(ctx);
         List<Import> contextImports = new ArrayList<>(1);
@@ -258,11 +257,9 @@ public class MuleMigrationExecutor {
             contextImports.add(Constants.HTTP_MODULE_IMPORT);
         }
 
-        TextDocument textDocument = createTextDocument(INTERNAL_TYPES_FILE_NAME, contextImports, contextTypeDefns,
+        return createTextDocument(INTERNAL_TYPES_FILE_NAME, contextImports, contextTypeDefns,
                 Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
                 Collections.emptyList());
-        SyntaxTree syntaxTree = new CodeGenerator(textDocument).generateSyntaxTree();
-        return new BalFile(INTERNAL_TYPES_FILE_NAME, targetDir, syntaxTree);
     }
 
     private static void genAndWriteConfigTOMLFile(List<File> propertyFiles, Path targetFolderPath) {

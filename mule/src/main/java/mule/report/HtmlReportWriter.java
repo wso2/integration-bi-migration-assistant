@@ -35,7 +35,7 @@ public class HtmlReportWriter {
 
     public static int writeHtmlReport(Context.MigrationMetrics migrationMetrics, Logger logger, Path reportFileDir,
                                       String reportName, boolean dryRun) {
-        Path reportFilePath = reportFileDir.resolve(reportName + ".html");
+        Path reportFilePath = reportFileDir.resolve(reportName);
         try {
             String reportContent = generateReport(migrationMetrics, dryRun);
             Files.writeString(reportFilePath, reportContent);
