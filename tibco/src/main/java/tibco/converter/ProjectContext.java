@@ -28,6 +28,7 @@ import tibco.XmlToTibcoModelConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.Process;
 import tibco.model.Type;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -65,6 +66,7 @@ public class ProjectContext {
     private final Set<BallerinaModel.Import> utilityFunctionImports = new HashSet<>();
     private final Map<String, BallerinaModel.ModuleVar> utilityVars = new HashMap<>();
     private final Map<String, BallerinaModel.Listener> utilityListeners = new HashMap<>();
+    private final Map<String, BallerinaModel.ModuleTypeDef> utilityTypeDefs = new HashMap<>();
     private final Set<Intrinsics> utilityIntrinsics = new HashSet<>();
     private final Set<ComptimeFunction> utilityCompTimeFunctions = new HashSet<>();
     private final Map<String, String> processClients = new HashMap<>();
@@ -137,6 +139,19 @@ public class ProjectContext {
         return jsonToXMLFunction;
     }
 
+    @NotNull
+    BallerinaModel.TypeDesc contextType() {
+        return getOrCreateUtilityTypeDef("Context", new BallerinaModel.TypeDesc.MapTypeDesc(XML));
+    }
+
+    private BallerinaModel.TypeDesc.TypeReference getOrCreateUtilityTypeDef(String typeName,
+            BallerinaModel.TypeDesc typeDesc) {
+        return utilityTypeDefs.computeIfAbsent(typeName,
+                name -> new BallerinaModel.ModuleTypeDef(name, typeDesc))
+                .typeDesc() instanceof BallerinaModel.TypeDesc.TypeReference ref ? ref
+                        : new BallerinaModel.TypeDesc.TypeReference(typeName);
+    }
+
     private void importLibraryIfNeededToUtility(Library library) {
         conversionContext.ifPresent(cx -> {
             if (library == JDBC) {
@@ -190,6 +205,9 @@ public class ProjectContext {
 
     private BallerinaModel.TextDocument utilsFile() {
         List<BallerinaModel.Import> imports = utilityFunctionImports.stream().toList();
+        List<BallerinaModel.ModuleTypeDef> sortedTypeDefs = utilityTypeDefs.values().stream()
+                .sorted(Comparator.comparing(BallerinaModel.ModuleTypeDef::name))
+                .toList();
         List<BallerinaModel.ModuleVar> sortedConstants = utilityVars.values().stream()
                 .sorted(Comparator.comparing(BallerinaModel.ModuleVar::name))
                 .toList();
@@ -205,8 +223,8 @@ public class ProjectContext {
         List<String> combinedIntrinsics = Stream.concat(sortedIntrinsics, sortedComptimes).toList();
         List<BallerinaModel.Listener> listeners = utilityListeners.values().stream()
                 .sorted(Comparator.comparing(BallerinaModel.Listener::name)).toList();
-        return new BallerinaModel.TextDocument("utils.bal", imports, List.of(), sortedConstants,
-                listeners, List.of(), sortedFunctions, List.of(), combinedIntrinsics, List.of());
+        return new BallerinaModel.TextDocument("utils.bal", imports, sortedTypeDefs, sortedConstants,
+                        listeners, List.of(), sortedFunctions, List.of(), combinedIntrinsics, List.of());
     }
 
     private BallerinaModel.TextDocument typesFile() {

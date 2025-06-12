@@ -2,7 +2,7 @@ import ballerina/data.jsondata;
 import ballerina/data.xmldata;
 import ballerina/xslt;
 
-function activityExtension(map<xml> context) returns xml|error {
+function activityExtension(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com/test/api" version="2.0">
@@ -20,7 +20,7 @@ function activityExtension(map<xml> context) returns xml|error {
     return var4;
 }
 
-function activityExtension_2(map<xml> context) returns xml|error {
+function activityExtension_2(Context context) returns xml|error {
     xml var0 = context.get("RenderOutput");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput" version="2.0">
@@ -42,11 +42,11 @@ function activityExtension_2(map<xml> context) returns xml|error {
     return var2;
 }
 
-function pick(map<xml> context) returns xml|error {
+function pick(Context context) returns xml|error {
     return scope1ScopeFn(context);
 }
 
-function scope1ActivityRunner(map<xml> cx) returns xml|error {
+function scope1ActivityRunner(Context cx) returns xml|error {
     xml result0 = check activityExtension(cx);
     xml result1 = check activityExtension_2(cx);
     return result1;
@@ -64,7 +64,7 @@ function scope1ScopeFn(map<xml> cx) returns xml {
     return result;
 }
 
-function scopeActivityRunner(map<xml> cx) returns xml|error {
+function scopeActivityRunner(Context cx) returns xml|error {
     xml result0 = check pick(cx);
     return result0;
 }
@@ -73,7 +73,7 @@ function scopeFaultHandler(error err, map<xml> cx) returns xml {
     panic err;
 }
 
-function scopeScopeFn(map<xml> cx) returns xml {
+function scopeScopeFn(Context cx) returns xml {
     xml|error result = scopeActivityRunner(cx);
     if result is error {
         return scopeFaultHandler(result, cx);
@@ -81,7 +81,7 @@ function scopeScopeFn(map<xml> cx) returns xml {
     return result;
 }
 
-function start_test_api_MainProcess(map<xml> params = {}) returns TestResponse {
+function start_test_api_MainProcess(Context params = {}) returns TestResponse {
     xml xmlResult = scopeScopeFn(params);
     TestResponse result = convertToTestResponse(xmlResult);
     return result;

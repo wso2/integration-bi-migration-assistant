@@ -1,3 +1,3 @@
-function catchAll(map<xml> context) returns xml | error {
+function catchAll(Context context) returns xml | error {
     return scopeFn(context);
 }

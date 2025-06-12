@@ -3,14 +3,14 @@ import ballerina/log;
 import ballerina/sql;
 import ballerina/xslt;
 
-function Catch(map<xml> context) returns xml|error {
+function Catch(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
     addToContext(context, "Catch", var1);
     return var1;
 }
 
-function ErrorLog(map<xml> context) returns xml|error {
+function ErrorLog(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
@@ -33,14 +33,14 @@ function ErrorLog(map<xml> context) returns xml|error {
     return var2;
 }
 
-function HTTP_Receiver(map<xml> context) returns xml|error {
+function HTTP_Receiver(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
     addToContext(context, "HTTP-Receiver", var1);
     return var1;
 }
 
-function Log(map<xml> context) returns xml|error {
+function Log(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform0" match="/">
@@ -61,7 +61,7 @@ function Log(map<xml> context) returns xml|error {
     return var2;
 }
 
-function SQL_Direct(map<xml> context) returns xml|error {
+function SQL_Direct(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform1" match="/">
@@ -122,7 +122,7 @@ function scope0ScopeFn(map<xml> cx) returns xml {
     return result;
 }
 
-function start_Processes_Main_process(map<xml> cx) returns xml {
+function start_Processes_Main_process(Context cx) returns xml {
     return scope0ScopeFn(cx);
 }
 

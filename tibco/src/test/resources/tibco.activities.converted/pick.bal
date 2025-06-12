@@ -1,3 +1,3 @@
-function pick(map<xml> context) returns xml | error {
+function pick(Context context) returns xml | error {
     return scopeFn(context);
 }

@@ -67,7 +67,7 @@ public class ProcessContext implements ContextWithFile {
     }
 
     BallerinaModel.TypeDesc contextType() {
-        return new BallerinaModel.TypeDesc.MapTypeDesc(XML);
+        return projectContext.contextType();
     }
 
     void addResourceVariable(Variable.PropertyVariable propertyVariable) {

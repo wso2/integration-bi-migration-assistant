@@ -7,14 +7,14 @@ import ballerina/soap.soap11;
 import ballerina/sql;
 import ballerina/xslt;
 
-function Catch(map<xml> context) returns xml|error {
+function Catch(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
     addToContext(context, "Catch", var1);
     return var1;
 }
 
-function ErrorLog(map<xml> context) returns xml|error {
+function ErrorLog(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
@@ -37,14 +37,14 @@ function ErrorLog(map<xml> context) returns xml|error {
     return var2;
 }
 
-function HTTP_Receiver(map<xml> context) returns xml|error {
+function HTTP_Receiver(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
     addToContext(context, "HTTP-Receiver", var1);
     return var1;
 }
 
-function InvokeProcess(map<xml> context) returns xml|error {
+function InvokeProcess(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="HTTP-Receiver"/>     <xsl:template name="Transform1" match="/">
@@ -66,7 +66,7 @@ function InvokeProcess(map<xml> context) returns xml|error {
     return var3;
 }
 
-function Log(map<xml> context) returns xml|error {
+function Log(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform4" match="/">
@@ -88,7 +88,7 @@ function Log(map<xml> context) returns xml|error {
     return var2;
 }
 
-function Mapper(map<xml> context) returns xml|error {
+function Mapper(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="runAllTests"/>     <xsl:template name="Transform0" match="/">
@@ -105,7 +105,7 @@ function Mapper(map<xml> context) returns xml|error {
     return var2;
 }
 
-function Parse(map<xml> context) returns xml|error {
+function Parse(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Render"/>     <xsl:template name="Transform6" match="/">
@@ -125,7 +125,7 @@ function Parse(map<xml> context) returns xml|error {
     return var5;
 }
 
-function Read_file(map<xml> context) returns xml|error {
+function Read_file(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
@@ -153,7 +153,7 @@ function Read_file(map<xml> context) returns xml|error {
     return var2;
 }
 
-function Render(map<xml> context) returns xml|error {
+function Render(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform5" match="/">
@@ -167,7 +167,7 @@ function Render(map<xml> context) returns xml|error {
     return var3;
 }
 
-function SOAPRequestReply(map<xml> context) returns xml|error {
+function SOAPRequestReply(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
@@ -195,7 +195,7 @@ function SOAPRequestReply(map<xml> context) returns xml|error {
     return var4;
 }
 
-function SQL_Direct(map<xml> context) returns xml|error {
+function SQL_Direct(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
@@ -236,7 +236,7 @@ function SQL_Direct(map<xml> context) returns xml|error {
     return var4;
 }
 
-function Write_File(map<xml> context) returns xml|error {
+function Write_File(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform2" match="/">
@@ -294,18 +294,18 @@ function scope0ScopeFn(map<xml> cx) returns xml {
     return result;
 }
 
-function start_Processes_MainProcessStarter_process(map<xml> cx) returns xml {
+function start_Processes_MainProcessStarter_process(Context cx) returns xml {
     return scope0ScopeFn(cx);
 }
 
-function HTTP_Receiver_12(map<xml> context) returns xml|error {
+function HTTP_Receiver_12(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
     addToContext(context, "HTTP-Receiver", var1);
     return var1;
 }
 
-function InnerLogElement(map<xml> context) returns xml|error {
+function InnerLogElement(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="element"/>     <xsl:template name="Transform3" match="/">
@@ -327,7 +327,7 @@ function InnerLogElement(map<xml> context) returns xml|error {
     return var2;
 }
 
-function InnerLogIndex(map<xml> context) returns xml|error {
+function InnerLogIndex(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="index"/>     <xsl:template name="Transform4" match="/">
@@ -349,7 +349,7 @@ function InnerLogIndex(map<xml> context) returns xml|error {
     return var2;
 }
 
-function Log_14(map<xml> context) returns xml|error {
+function Log_14(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform1" match="/">
@@ -371,7 +371,7 @@ function Log_14(map<xml> context) returns xml|error {
     return var2;
 }
 
-function Loop(map<xml> context) returns xml|error {
+function Loop(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root></root>`;
     xml var2 = context.get("Mapper");
@@ -389,7 +389,7 @@ function Loop(map<xml> context) returns xml|error {
     return var1;
 }
 
-function Mapper_13(map<xml> context) returns xml|error {
+function Mapper_13(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="runAllTests"/>     <xsl:template name="Transform0" match="/">
@@ -406,7 +406,7 @@ function Mapper_13(map<xml> context) returns xml|error {
     return var2;
 }
 
-function Parse_JSON(map<xml> context) returns xml|error {
+function Parse_JSON(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Start"/>     <xsl:template name="Transform5" match="/">
@@ -429,7 +429,7 @@ function Parse_JSON(map<xml> context) returns xml|error {
     return var3;
 }
 
-function Render_JSON(map<xml> context) returns xml|error {
+function Render_JSON(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Parse-JSON"/>     <xsl:template name="Transform6" match="/">
@@ -459,7 +459,7 @@ function Render_JSON(map<xml> context) returns xml|error {
     return var6;
 }
 
-function Rest_call(map<xml> context) returns xml|error {
+function Rest_call(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Schedule-Poller"/>     <xsl:template name="Transform7" match="/">
@@ -513,7 +513,7 @@ function Rest_call(map<xml> context) returns xml|error {
     return var7;
 }
 
-function SOAPSendReply(map<xml> context) returns xml|error {
+function SOAPSendReply(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
@@ -577,7 +577,7 @@ function scope1ScopeFn(map<xml> cx) returns xml {
     return result;
 }
 
-function start_Processes_Other_process(map<xml> cx) returns xml {
+function start_Processes_Other_process(Context cx) returns xml {
     return scope0_1ScopeFn(cx);
 }
 

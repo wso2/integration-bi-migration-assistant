@@ -1,4 +1,4 @@
-function invoke(map<xml> context) returns xml | error {
+function invoke(Context context) returns xml | error {
     xml var0 = xml`<root></root>`;
     xml var1 = check xslt:transform(var0, xml`<?xml version="1.0"
         encoding="UTF-8"?>

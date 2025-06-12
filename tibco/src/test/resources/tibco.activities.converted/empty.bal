@@ -1,3 +1,3 @@
-function empty(map<xml> context) returns xml | error {
+function empty(Context context) returns xml | error {
     return xml`<root></root>`;
 }

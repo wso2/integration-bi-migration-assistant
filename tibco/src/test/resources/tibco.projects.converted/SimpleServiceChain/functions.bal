@@ -2,7 +2,7 @@ import ballerina/log;
 import ballerina/soap.soap11;
 import ballerina/xslt;
 
-function Call_Foo(map<xml> context) returns xml|error {
+function Call_Foo(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform1" match="/">
@@ -24,14 +24,14 @@ function Call_Foo(map<xml> context) returns xml|error {
     return var3;
 }
 
-function HTTP_Receiver(map<xml> context) returns xml|error {
+function HTTP_Receiver(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
     addToContext(context, "HTTP-Receiver", var1);
     return var1;
 }
 
-function HTTP_Response(map<xml> context) returns xml|error {
+function HTTP_Response(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Call-Foo"/>     <xsl:template name="Transform3" match="/">
@@ -56,7 +56,7 @@ function HTTP_Response(map<xml> context) returns xml|error {
     return var2;
 }
 
-function Log1(map<xml> context) returns xml|error {
+function Log1(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform0" match="/">
@@ -77,7 +77,7 @@ function Log1(map<xml> context) returns xml|error {
     return var2;
 }
 
-function Log2(map<xml> context) returns xml|error {
+function Log2(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Call-Foo"/>     <xsl:template name="Transform2" match="/">
@@ -119,18 +119,18 @@ function scope0ScopeFn(map<xml> cx) returns xml {
     return result;
 }
 
-function start_Processes_Main_process(map<xml> cx) returns xml {
+function start_Processes_Main_process(Context cx) returns xml {
     return scope0ScopeFn(cx);
 }
 
-function Bar_Receiver(map<xml> context) returns xml|error {
+function Bar_Receiver(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
     addToContext(context, "Bar-Receiver", var1);
     return var1;
 }
 
-function HTTP_Response_6(map<xml> context) returns xml|error {
+function HTTP_Response_6(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
@@ -180,11 +180,11 @@ function scope0_1ScopeFn(map<xml> cx) returns xml {
     return result;
 }
 
-function start_Processes_Bar_process(map<xml> cx) returns xml {
+function start_Processes_Bar_process(Context cx) returns xml {
     return scope0_1ScopeFn(cx);
 }
 
-function BarMapper(map<xml> context) returns xml|error {
+function BarMapper(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Call-Bar"/>     <xsl:template name="Transform2" match="/">
@@ -201,7 +201,7 @@ function BarMapper(map<xml> context) returns xml|error {
     return var2;
 }
 
-function Call_Bar(map<xml> context) returns xml|error {
+function Call_Bar(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform1" match="/">
@@ -246,14 +246,14 @@ function Call_Bar(map<xml> context) returns xml|error {
     return var4;
 }
 
-function Foo_Receiver(map<xml> context) returns xml|error {
+function Foo_Receiver(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
     addToContext(context, "Foo-Receiver", var1);
     return var1;
 }
 
-function HTTP_Response_11(map<xml> context) returns xml|error {
+function HTTP_Response_11(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/><xsl:param name="BarMapper"/>     <xsl:template name="Transform3" match="/">
@@ -288,7 +288,7 @@ function HTTP_Response_11(map<xml> context) returns xml|error {
     return var2;
 }
 
-function Log1_8(map<xml> context) returns xml|error {
+function Log1_8(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform0" match="/">
@@ -331,7 +331,7 @@ function scope0_2ScopeFn(map<xml> cx) returns xml {
     return result;
 }
 
-function start_Processes_Foo_process(map<xml> cx) returns xml {
+function start_Processes_Foo_process(Context cx) returns xml {
     return scope0_2ScopeFn(cx);
 }
 
