@@ -335,7 +335,7 @@ function start_Processes_Foo_process(Context cx) returns xml {
     return scope0_2ScopeFn(cx);
 }
 
-function addToContext(map<xml> context, string varName, xml value) {
+function addToContext(Context context, string varName, xml value) {
     xml children = value/*;
     xml transformed = xml `<root>${children}</root>`;
     context[varName] = transformed;

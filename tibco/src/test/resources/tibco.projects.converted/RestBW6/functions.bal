@@ -21,7 +21,7 @@ function activityExtension(Context context) returns xml|error {
 }
 
 function activityExtension_2(Context context) returns xml|error {
-    xml var0 = context.get("RenderOutput");
+    xml var0 = getFromContext(context, "RenderOutput");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput" version="2.0">
     <xsl:param name="JSONPayloadOut"/>
@@ -99,8 +99,16 @@ function tryBindToTestRequest(xml|json input) returns TestRequest|error {
     return input is xml ? xmldata:parseAsType(input) : jsondata:parseAsType(input);
 }
 
-function addToContext(map<xml> context, string varName, xml value) {
+function addToContext(Context context, string varName, xml value) {
     xml children = value/*;
     xml transformed = xml `<root>${children}</root>`;
     context[varName] = transformed;
+}
+
+function getFromContext(Context context, string varName) returns xml {
+    xml? value = context[varName];
+    if value == () {
+        return xml `<root/>`;
+    }
+    return value;
 }

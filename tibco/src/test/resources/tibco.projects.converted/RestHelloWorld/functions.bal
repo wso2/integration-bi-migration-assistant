@@ -374,7 +374,7 @@ function Log_14(Context context) returns xml|error {
 function Loop(Context context) returns xml|error {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root></root>`;
-    xml var2 = context.get("Mapper");
+    xml var2 = getFromContext(context, "Mapper");
     var2 = check xmldata:transform(var2, `foo/bar`);
     int var3 = -1;
     addToContext(context, "element", xml `<root></root>`);
@@ -585,10 +585,18 @@ function toXML(map<anydata> data) returns error|xml {
     return xmldata:toXml(data);
 }
 
-function addToContext(map<xml> context, string varName, xml value) {
+function addToContext(Context context, string varName, xml value) {
     xml children = value/*;
     xml transformed = xml `<root>${children}</root>`;
     context[varName] = transformed;
+}
+
+function getFromContext(Context context, string varName) returns xml {
+    xml? value = context[varName];
+    if value == () {
+        return xml `<root/>`;
+    }
+    return value;
 }
 
 function renderJSONAsXML(json value, string? namespace, string typeName) returns xml|error {

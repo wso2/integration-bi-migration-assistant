@@ -1145,9 +1145,10 @@ final class ActivityConverter {
         return new XMLTemplate("<root></root>");
     }
 
-    private static MethodCall getFromContext(ActivityContext cx, String key) {
+    private static FunctionCall getFromContext(ActivityContext cx, String key) {
         assert !key.isEmpty();
-        return new MethodCall(cx.contextVarRef(), "get", List.of(new StringConstant(key)));
+        String getFromContextFn = cx.getFromContextFn();
+        return new FunctionCall(getFromContextFn, List.of(cx.contextVarRef(), new StringConstant(key)));
     }
 
     private static Statement addToContext(ActivityContext cx, BallerinaModel.Expression value, String key) {

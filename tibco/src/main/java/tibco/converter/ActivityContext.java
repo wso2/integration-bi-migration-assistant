@@ -85,6 +85,10 @@ public class ActivityContext {
         return processContext.getAddToContextFn();
     }
 
+    String getFromContextFn() {
+        return processContext.getFromContextFn();
+    }
+
     void addLibraryImport(Library library) {
         processContext.addLibraryImport(library);
     }

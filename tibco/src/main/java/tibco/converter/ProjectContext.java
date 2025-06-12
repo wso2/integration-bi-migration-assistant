@@ -318,6 +318,11 @@ public class ProjectContext {
         typeCount++;
     }
 
+    public String getFromContextFn() {
+        utilityIntrinsics.add(Intrinsics.GET_FROM_CONTEXT);
+        return Intrinsics.GET_FROM_CONTEXT.name;
+    }
+
     public String getPredicateTestFunction() {
         utilityIntrinsics.add(Intrinsics.XPATH_PREDICATE);
         return Intrinsics.XPATH_PREDICATE.name;

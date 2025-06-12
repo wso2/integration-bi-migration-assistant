@@ -130,7 +130,7 @@ function toXML(map<anydata> data) returns error|xml {
     return xmldata:toXml(data);
 }
 
-function addToContext(map<xml> context, string varName, xml value) {
+function addToContext(Context context, string varName, xml value) {
     xml children = value/*;
     xml transformed = xml `<root>${children}</root>`;
     context[varName] = transformed;

@@ -22,13 +22,24 @@ public enum Intrinsics {
     ADD_TO_CONTEXT(
             "addToContext",
             """
-                    function addToContext(map<xml> context, string varName, xml value){
+                    function addToContext(Context context, string varName, xml value){
                         xml children = value/*;
                         xml transformed = xml `<root>${children}</root>`;
                         context[varName] = transformed;
                     }
                     """
     ),
+    GET_FROM_CONTEXT(
+                    "getFromContext",
+            """
+                            function getFromContext(Context context, string varName) returns xml {
+                                xml? value = context[varName];
+                                if value == () {
+                                    return xml `<root/>`;
+                                }
+                                return value;
+                            }
+                    """),
     XPATH_PREDICATE(
             "test",
             """

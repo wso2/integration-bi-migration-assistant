@@ -219,6 +219,10 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getAddToContextFn();
     }
 
+    String getFromContextFn() {
+        return projectContext.getFromContextFn();
+    }
+
     String getXPathFunction() {
         addLibraryImport(Library.XML_DATA);
         return "xmldata:transform";
