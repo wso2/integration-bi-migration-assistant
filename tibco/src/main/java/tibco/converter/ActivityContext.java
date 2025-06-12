@@ -57,7 +57,7 @@ public class ActivityContext {
 
     List<BallerinaModel.Parameter> parameters() {
         return List.of(
-                new BallerinaModel.Parameter(ConversionUtils.Constants.CONTEXT_VAR_NAME, ProcessContext.contextType()));
+                new BallerinaModel.Parameter(ConversionUtils.Constants.CONTEXT_VAR_NAME, processContext.contextType()));
     }
 
     static BallerinaModel.TypeDesc returnType() {

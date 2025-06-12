@@ -123,8 +123,7 @@ public class ProcessConverter {
         VarDeclStatment paramXmlDecl = new VarDeclStatment(new TypeDesc.MapTypeDesc(XML), "paramXML",
                 exprFrom("{post: %s}".formatted(inputValDecl.varName())));
         body.add(paramXmlDecl);
-        FunctionCall procFnCall = new FunctionCall(cx.getProcessStartFunction().name(),
-                List.of(new VariableReference(parameter.name()), paramXmlDecl.ref()));
+        FunctionCall procFnCall = new FunctionCall(cx.getProcessStartFunction().name(), List.of(paramXmlDecl.ref()));
         VarDeclStatment resultDecl = new VarDeclStatment(XML, "result", procFnCall);
         body.add(resultDecl);
         group.returnBindings().ifPresent(binding ->
@@ -254,12 +253,11 @@ public class ProcessConverter {
 
     private static BallerinaModel.Function generateExplicitTransitionBlockStartFunction(
             ProcessContext cx, ExplicitTransitionGroup group) {
-        List<Parameter> parameters = List.of(new Parameter("inputXML", XML),
-                new Parameter("params", new TypeDesc.MapTypeDesc(XML)));
+        Parameter cxParam = new Parameter("cx", cx.contextType());
+        List<Parameter> parameters = List.of(cxParam);
         AnalysisResult.ControlFlowFunctions controlFn = cx.getAnalysisResult().getControlFlowFunctions(group);
         String scopeFn = controlFn.scopeFn();
-        List<Statement> body = List.of(new Return<>(new FunctionCall(scopeFn,
-                List.of(new VariableReference("params")))));
+        List<Statement> body = List.of(new Return<>(new FunctionCall(scopeFn, List.of(cxParam.ref()))));
         return new BallerinaModel.Function(cx.getProcessStartFunction().name(), parameters, XML, body);
     }
 
@@ -306,14 +304,7 @@ public class ProcessConverter {
 
     private static BallerinaModel.Function generateStartFunction(ProcessContext cx) {
         List<Statement> body = new ArrayList<>();
-        var startFuncData = cx.getProcessStartFunction();
-        VariableReference inputVar = ProcessContext.processLevelFnInputVariable();
-        VarDeclStatment inputXMLVar = new VarDeclStatment(XML, "inputXML",
-                new TernaryExpression(
-                        new TypeCheckExpression(inputVar, new TypeDesc.MapTypeDesc(ANYDATA)),
-                        new CheckPanic(new FunctionCall(cx.getToXmlFunction(), List.of(inputVar))),
-                        new XMLTemplate("")));
-        body.add(inputXMLVar);
+        ProjectContext.FunctionData startFuncData = cx.getProcessStartFunction();
 
         VariableReference params = ProcessContext.processLevelFnParamVariable();
         Process process = cx.process;
@@ -326,8 +317,7 @@ public class ProcessConverter {
                             process6.scope());
                 };
         VarDeclStatment xmlResult = new VarDeclStatment(XML, "xmlResult",
-                new FunctionCall(controlFlowFunctions.scopeFn(),
-                        List.of(inputXMLVar.ref(), params)));
+                new FunctionCall(controlFlowFunctions.scopeFn(), List.of(params)));
         body.add(xmlResult);
 
         TypeDesc returnType = startFuncData.returnType();
@@ -339,15 +329,8 @@ public class ProcessConverter {
         Return<VariableReference> returnStatement = new Return<>(Optional.of(new VariableReference("result")));
         body.add(returnStatement);
 
-        TypeDesc inputType = startFuncData.inputType();
-        if (inputType == ANYDATA) {
-            inputType = JSON;
-        } else if (inputType == NIL) {
-            inputType = UnionTypeDesc.of(new TypeDesc.MapTypeDesc(ANYDATA), NIL);
-        }
         return new BallerinaModel.Function(startFuncData.name(),
-                List.of(new Parameter(inputVar.varName(), inputType),
-                        new Parameter(new TypeDesc.MapTypeDesc(XML), params.varName(), exprFrom("{}"))),
+                List.of(new Parameter(cx.contextType(), params.varName(), exprFrom("{}"))),
                 returnType, body);
     }
 
@@ -363,20 +346,9 @@ public class ProcessConverter {
                 };
         String name = controlFlowFunctions.scopeFn();
         List<Statement> body = new ArrayList<>();
-        String inputVarName = "input";
-        String paramsVarName = "params";
-        VarDeclStatment context = cx.initContextVar(paramsVarName);
-        body.add(context);
-        String addToContextFn = cx.getAddToContextFn();
-        VariableReference input = new VariableReference(inputVarName);
-        body.add(new CallStatement(new FunctionCall(addToContextFn,
-                List.of(cx.contextVarRef(), new StringConstant(ConversionUtils.Constants.CONTEXT_INPUT_NAME), input))));
-        generateScopeFnBody(controlFlowFunctions, context.ref(), body);
-        return new BallerinaModel.Function(name,
-                List.of(new Parameter(inputVarName, XML),
-                        new Parameter(paramsVarName, new TypeDesc.MapTypeDesc(XML))),
-                XML,
-                body);
+        Parameter cxParam = new Parameter("cx", cx.contextType());
+        generateScopeFnBody(controlFlowFunctions, cxParam.ref(), body);
+        return new BallerinaModel.Function(name, List.of(cxParam), XML, body);
     }
 
     private static Collection<BallerinaModel.Function> generateControlFlowFunctionsForScope(
@@ -435,7 +407,7 @@ public class ProcessConverter {
         List<Activity> activities = analysisResult.sortedActivities(scope).toList();
         String activityRunnerFunction = analysisResult.getControlFlowFunctions(scope).activityRunner();
         return generateActivityFlowFunctionInner(cx, activities, activityRunnerFunction, UnionTypeDesc.of(XML, ERROR),
-                Check::new, List.of(new Parameter("cx", new TypeDesc.MapTypeDesc(XML))));
+                Check::new, List.of(new Parameter("cx", cx.contextType())));
     }
 
     private static BallerinaModel.@NotNull Function generateActivityFlowFunctionInner(

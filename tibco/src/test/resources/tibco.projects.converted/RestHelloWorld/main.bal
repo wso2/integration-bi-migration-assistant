@@ -10,7 +10,7 @@ service on GeneralConnection_sharedhttp {
     </item>
 </root>`;
         map<xml> paramXML = {post: inputVal};
-        xml result = start_Processes_MainProcessStarter_process(input, paramXML);
+        xml result = start_Processes_MainProcessStarter_process(paramXML);
         return result;
     }
 }
@@ -23,7 +23,7 @@ service on GeneralConnection_sharedhttp {
     </item>
 </root>`;
         map<xml> paramXML = {post: inputVal};
-        xml result = start_Processes_Other_process(input, paramXML);
+        xml result = start_Processes_Other_process(paramXML);
         return result;
     }
 }

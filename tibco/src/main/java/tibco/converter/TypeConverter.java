@@ -169,10 +169,7 @@ class TypeConverter {
 
         BallerinaModel.TypeDesc returnType = getOperationReturnType(cx, messageTypes, operation);
 
-        String[] startFunctionArgs = Stream.concat(
-                bodyDataBinding.map(ParamInitResult::paramName).or("()"::describeConstable).stream(),
-                Stream.of(paramsXML.paramName)
-        ).toArray(String[]::new);
+        String[] startFunctionArgs = new String[] { paramsXML.paramName };
 
         body.add(new Return<>(Optional.of(
                 new FunctionCall(cx.getProcessStartFunction().name(), startFunctionArgs))));

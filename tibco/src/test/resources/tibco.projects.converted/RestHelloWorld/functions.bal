@@ -294,8 +294,8 @@ function scope0ScopeFn(map<xml> cx) returns xml {
     return result;
 }
 
-function start_Processes_MainProcessStarter_process(xml inputXML, map<xml> params) returns xml {
-    return scope0ScopeFn(params);
+function start_Processes_MainProcessStarter_process(map<xml> cx) returns xml {
+    return scope0ScopeFn(cx);
 }
 
 function HTTP_Receiver_12(map<xml> context) returns xml|error {
@@ -577,8 +577,8 @@ function scope1ScopeFn(map<xml> cx) returns xml {
     return result;
 }
 
-function start_Processes_Other_process(xml inputXML, map<xml> params) returns xml {
-    return scope0_1ScopeFn(params);
+function start_Processes_Other_process(map<xml> cx) returns xml {
+    return scope0_1ScopeFn(cx);
 }
 
 function toXML(map<anydata> data) returns error|xml {

@@ -119,8 +119,8 @@ function scope0ScopeFn(map<xml> cx) returns xml {
     return result;
 }
 
-function start_Processes_Main_process(xml inputXML, map<xml> params) returns xml {
-    return scope0ScopeFn(params);
+function start_Processes_Main_process(map<xml> cx) returns xml {
+    return scope0ScopeFn(cx);
 }
 
 function Bar_Receiver(map<xml> context) returns xml|error {
@@ -180,8 +180,8 @@ function scope0_1ScopeFn(map<xml> cx) returns xml {
     return result;
 }
 
-function start_Processes_Bar_process(xml inputXML, map<xml> params) returns xml {
-    return scope0_1ScopeFn(params);
+function start_Processes_Bar_process(map<xml> cx) returns xml {
+    return scope0_1ScopeFn(cx);
 }
 
 function BarMapper(map<xml> context) returns xml|error {
@@ -331,8 +331,8 @@ function scope0_2ScopeFn(map<xml> cx) returns xml {
     return result;
 }
 
-function start_Processes_Foo_process(xml inputXML, map<xml> params) returns xml {
-    return scope0_2ScopeFn(params);
+function start_Processes_Foo_process(map<xml> cx) returns xml {
+    return scope0_2ScopeFn(cx);
 }
 
 function addToContext(map<xml> context, string varName, xml value) {

@@ -357,6 +357,10 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         public Parameter(String name, TypeDesc type) {
             this(name, type, Optional.empty());
         }
+
+        public Expression.VariableReference ref() {
+            return new Expression.VariableReference(name);
+        }
     }
 
     public sealed interface Expression {

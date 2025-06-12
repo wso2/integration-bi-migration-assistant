@@ -73,19 +73,16 @@ function scopeFaultHandler(error err, map<xml> cx) returns xml {
     panic err;
 }
 
-function scopeScopeFn(xml input, map<xml> params) returns xml {
-    map<xml> context = {...params};
-    addToContext(context, "$input", input);
-    xml|error result = scopeActivityRunner(context);
+function scopeScopeFn(map<xml> cx) returns xml {
+    xml|error result = scopeActivityRunner(cx);
     if result is error {
-        return scopeFaultHandler(result, context);
+        return scopeFaultHandler(result, cx);
     }
     return result;
 }
 
-function start_test_api_MainProcess(TestRequest input, map<xml> params = {}) returns TestResponse {
-    xml inputXML = input is map<anydata> ? checkpanic toXML(input) : xml ``;
-    xml xmlResult = scopeScopeFn(inputXML, params);
+function start_test_api_MainProcess(map<xml> params = {}) returns TestResponse {
+    xml xmlResult = scopeScopeFn(params);
     TestResponse result = convertToTestResponse(xmlResult);
     return result;
 }

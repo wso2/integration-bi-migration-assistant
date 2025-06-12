@@ -122,8 +122,8 @@ function scope0ScopeFn(map<xml> cx) returns xml {
     return result;
 }
 
-function start_Processes_Main_process(xml inputXML, map<xml> params) returns xml {
-    return scope0ScopeFn(params);
+function start_Processes_Main_process(map<xml> cx) returns xml {
+    return scope0ScopeFn(cx);
 }
 
 function toXML(map<anydata> data) returns error|xml {
