@@ -169,10 +169,10 @@ class TypeConverter {
 
         BallerinaModel.TypeDesc returnType = getOperationReturnType(cx, messageTypes, operation);
 
-        String[] startFunctionArgs = new String[] { paramsXML.paramName };
-
         body.add(new Return<>(Optional.of(
-                new FunctionCall(cx.getProcessStartFunction().name(), startFunctionArgs))));
+                new FunctionCall(cx.getProcessStartFunction().name(),
+                        List.of(new FunctionCall(cx.getInitContextFn(),
+                                List.of(new VariableReference(paramsXML.paramName))))))));
 
         return new BallerinaModel.Resource(resourceMethodName, path, resourceMethodParameter.stream().toList(),
                 Optional.of(returnType), body);

@@ -19,6 +19,14 @@
 package tibco.converter;
 
 public enum Intrinsics {
+    INIT_CONTEXT(
+            "initContext",
+            """
+                    function initContext(map<xml> initVariables = {}) returns Context {
+                        return initVariables;
+                    }
+                    """
+    ),
     ADD_TO_CONTEXT(
             "addToContext",
             """

@@ -599,6 +599,10 @@ function getFromContext(Context context, string varName) returns xml {
     return value;
 }
 
+function initContext(map<xml> initVariables = {}) returns Context {
+    return initVariables;
+}
+
 function renderJSONAsXML(json value, string? namespace, string typeName) returns xml|error {
     anydata body;
     if (value is map<json>) {

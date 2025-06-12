@@ -340,3 +340,7 @@ function addToContext(Context context, string varName, xml value) {
     xml transformed = xml `<root>${children}</root>`;
     context[varName] = transformed;
 }
+
+function initContext(map<xml> initVariables = {}) returns Context {
+    return initVariables;
+}

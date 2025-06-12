@@ -25,14 +25,11 @@ import common.BallerinaModel.Expression.Check;
 import common.BallerinaModel.Expression.CheckPanic;
 import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Expression.Panic;
-import common.BallerinaModel.Expression.StringConstant;
-import common.BallerinaModel.Expression.TernaryExpression;
 import common.BallerinaModel.Expression.TypeCheckExpression;
 import common.BallerinaModel.Expression.VariableReference;
 import common.BallerinaModel.Expression.XMLTemplate;
 import common.BallerinaModel.Parameter;
 import common.BallerinaModel.Statement;
-import common.BallerinaModel.Statement.CallStatement;
 import common.BallerinaModel.Statement.Return;
 import common.BallerinaModel.Statement.VarAssignStatement;
 import common.BallerinaModel.Statement.VarDeclStatment;
@@ -62,11 +59,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static common.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
-import static common.BallerinaModel.TypeDesc.BuiltinType.JSON;
-import static common.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static common.BallerinaModel.TypeDesc.BuiltinType.UnionTypeDesc;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
@@ -123,7 +117,8 @@ public class ProcessConverter {
         VarDeclStatment paramXmlDecl = new VarDeclStatment(new TypeDesc.MapTypeDesc(XML), "paramXML",
                 exprFrom("{post: %s}".formatted(inputValDecl.varName())));
         body.add(paramXmlDecl);
-        FunctionCall procFnCall = new FunctionCall(cx.getProcessStartFunction().name(), List.of(paramXmlDecl.ref()));
+        FunctionCall procFnCall = new FunctionCall(cx.getProcessStartFunction().name(),
+                        List.of(new FunctionCall(cx.getInitContextFn(), List.of(paramXmlDecl.ref()))));
         VarDeclStatment resultDecl = new VarDeclStatment(XML, "result", procFnCall);
         body.add(resultDecl);
         group.returnBindings().ifPresent(binding ->

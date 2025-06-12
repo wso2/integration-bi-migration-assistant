@@ -94,3 +94,7 @@ function getFromContext(Context context, string varName) returns xml {
     }
     return value;
 }
+
+function initContext(map<xml> initVariables = {}) returns Context {
+    return initVariables;
+}

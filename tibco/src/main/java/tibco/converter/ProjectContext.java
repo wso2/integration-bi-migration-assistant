@@ -23,12 +23,12 @@ import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Statement.Return;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import org.jetbrains.annotations.NotNull;
 import tibco.TibcoToBalConverter;
 import tibco.XmlToTibcoModelConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.Process;
 import tibco.model.Type;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -321,6 +321,11 @@ public class ProjectContext {
     public String getFromContextFn() {
         utilityIntrinsics.add(Intrinsics.GET_FROM_CONTEXT);
         return Intrinsics.GET_FROM_CONTEXT.name;
+    }
+
+    public String getInitContextFn() {
+        utilityIntrinsics.add(Intrinsics.INIT_CONTEXT);
+        return Intrinsics.INIT_CONTEXT.name;
     }
 
     public String getPredicateTestFunction() {

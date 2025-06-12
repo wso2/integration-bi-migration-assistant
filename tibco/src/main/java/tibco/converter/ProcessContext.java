@@ -19,7 +19,6 @@
 package tibco.converter;
 
 import common.BallerinaModel;
-
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.NameSpace;
@@ -221,6 +220,10 @@ public class ProcessContext implements ContextWithFile {
 
     String getFromContextFn() {
         return projectContext.getFromContextFn();
+    }
+
+    String getInitContextFn() {
+        return projectContext.getInitContextFn();
     }
 
     String getXPathFunction() {
