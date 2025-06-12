@@ -60,9 +60,11 @@ public class HtmlReportWriter {
         String unsupportedBlocksHtml = generateUnsupportedBlocksHtml(metrics.failedBlocks);
         String dataweaveExpressionsHtml = generateDataweaveExpressionsHtml(metrics.dwConversionStats);
 
+        String reportTitle = dryRun ? MIGRATION_ASSESSMENT_TITLE : MIGRATION_SUMMARY_TITLE;
         return String.format(
                 MigrationReportTemplate.getHtmlTemplate(),
-                dryRun ? MIGRATION_ASSESSMENT_TITLE : MIGRATION_SUMMARY_TITLE,
+                reportTitle,
+                reportTitle,
                 calculateMigrationCoverage(metrics),
                 bestCaseDays, (int) Math.ceil(bestCaseDays / 5.0),
                 avgCaseDays, (int) Math.ceil(avgCaseDays / 5.0),

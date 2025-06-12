@@ -81,7 +81,7 @@ public class MigrationReportTemplate {
                   </style>
                 </head>
                 <body>
-                <h1>Migration Assessment</h1>
+                <h1>%s</h1>
 
                 <h3>Automated Migration Coverage: %d%%</h3>
 
