@@ -923,7 +923,7 @@ final class ActivityConverter {
         body.add(stmtFrom("""
                     check from var each in %1$s do {
                         xml %2$s = check %3$s(each);
-                        %4$s = %5$s + %2$s;
+                        %4$s = %5$s + xml `<Record>${%2$s}</Record>`;
                     };
                     """.formatted(stream.ref(), xmlVar, toXmlFn, accum.ref(), accum.ref())));
 

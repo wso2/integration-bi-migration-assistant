@@ -8,7 +8,7 @@ function activityExtension(map<xml> context) returns xml | error {
     xml var4 = xml``;
     check from var each in var3 do {
     xml var5 = check toXML(each);
-    var4 = var4 + var5;
+    var4 = var4 + xml `<Record>${var5}</Record>`;
 };
 
     xml var6 = xml`<root>${var4}</root>`;
