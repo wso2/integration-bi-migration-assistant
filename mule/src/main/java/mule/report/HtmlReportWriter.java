@@ -26,28 +26,30 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.logging.Logger;
+
+import static mule.MuleMigrationExecutor.logger;
 
 public class HtmlReportWriter {
 
     public static final String MIGRATION_SUMMARY_TITLE = "Migration Summary";
     public static final String MIGRATION_ASSESSMENT_TITLE = "Migration Assessment";
 
-    public static int writeHtmlReport(Context.MigrationMetrics migrationMetrics, Logger logger, Path reportFileDir,
-                                      String reportName, boolean dryRun) {
+    public static int writeHtmlReport(Context.MigrationMetrics migrationMetrics, Path reportFileDir, String reportName,
+                                      boolean dryRun) {
         Path reportFilePath = reportFileDir.resolve(reportName);
         try {
             String reportContent = generateReport(migrationMetrics, dryRun);
             Files.writeString(reportFilePath, reportContent);
-            logger.info("Migration assessment report written to " + reportFilePath);
+            logger().info("Migration assessment report written to " + reportFilePath);
             return calculateMigrationCoverage(migrationMetrics);
         } catch (IOException e) {
-            logger.severe("Error writing report to file: " + e.getMessage());
+            logger().severe("Error writing report to file: " + e.getMessage());
             return 0;
         }
     }
 
     private static String generateReport(Context.MigrationMetrics metrics, boolean dryRun) {
+        logger().info("Generating migration assessment report...");
         int totalElements = countDistinctUnsupportedElements(metrics.failedXMLTags);
         int totalDWExpressions = countUnsupportedDWExpressions(metrics.dwConversionStats);
 

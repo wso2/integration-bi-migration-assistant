@@ -36,7 +36,7 @@ public class MigrateMuleCommand implements BLauncherCmd {
     private final PrintStream errStream;
     private static final String CMD_NAME = "migrate-mule";
     private static final String USAGE = "bal migrate-mule <source-project-directory-or-file> " +
-            "[-o|--out <output-directory>] [-k|--keep-structure] [-d|--dry-run]";
+            "[-o|--out <output-directory>] [-v|--verbose] [-k|--keep-structure] [-d|--dry-run]";
 
     public MigrateMuleCommand() {
         errStream = System.err;
@@ -48,6 +48,9 @@ public class MigrateMuleCommand implements BLauncherCmd {
 
     @CommandLine.Option(names = { "--out", "-o" }, description = "Output directory path")
     private String outputPath;
+
+    @CommandLine.Option(names = {"--verbose", "-v"}, description = "Enable verbose output", defaultValue = "false")
+    private boolean verbose;
 
     @CommandLine.Option(names = {"--dry-run", "-d"},
             description = "Simulate the conversion without generating output files", defaultValue = "false")
@@ -62,12 +65,12 @@ public class MigrateMuleCommand implements BLauncherCmd {
             errStream.println("Error: mule project directory or mule xml file path is required.");
             onInvalidInput();
         }
-        MuleMigrationExecutor.migrateMuleSource(sourcePath, outputPath, dryRun, keepStructure);
+        MuleMigrationExecutor.migrateMuleSource(sourcePath, outputPath, dryRun, verbose, keepStructure);
     }
 
     private void onInvalidInput() {
         errStream.println("Usage: bal migrate-mule <source-project-directory-or-file> " +
-                "[-o|--out <output-directory>]");
+                "[-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run]");
         System.exit(1);
     }
 
@@ -82,6 +85,10 @@ public class MigrateMuleCommand implements BLauncherCmd {
         stringBuilder.append("This command accepts a Mule project directory or a standalone Mule `.xml` file path\n");
         stringBuilder.append("as input and generates equivalent Ballerina code" +
                 " that can be opened in Ballerina Integrator.\n\n");
+        stringBuilder.append("Optional flags:\n");
+        stringBuilder.append("  --keep-structure, -k     Keep mule project structure\n");
+        stringBuilder.append("  --verbose, -v            Enable verbose output during conversion\n");
+        stringBuilder.append("  --dry-run, -d            Simulate the conversion without generating output files\n");
     }
 
     @Override
@@ -92,6 +99,10 @@ public class MigrateMuleCommand implements BLauncherCmd {
         stringBuilder.append("  bal migrate-mule /path/to/mule-project --out /path/to/output\n");
         stringBuilder.append("  bal migrate-mule /path/to/mule-flow.xml");
         stringBuilder.append("  bal migrate-mule /path/to/mule-flow.xml --out /path/to/output\n");
+        stringBuilder.append("  bal migrate-mule /path/to/mule-project --dry-run\n");
+        stringBuilder.append("  bal migrate-mule /path/to/mule-project --keep-structure\n");
+        stringBuilder.append("  bal migrate-mule /path/to/mule-project --verbose\n");
+        stringBuilder.append("  bal migrate-mule /path/to/mule-project --dry-run --verbose\n");
     }
 
     @Override
