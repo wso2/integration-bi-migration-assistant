@@ -18,6 +18,7 @@
 
 package tibco.model;
 
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 
 import java.util.ArrayList;
@@ -117,12 +118,12 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
         }
 
-        public ExplicitTransitionGroup resolve() {
+        public @NotNull ExplicitTransitionGroup resolve() {
             if (startActivity != null) {
                 return this;
             }
             if (activities.isEmpty()) {
-                return null;
+                return this;
             }
             String startActivityName = transitions.stream()
                     .filter(transition -> transition.from().equalsIgnoreCase("start"))
