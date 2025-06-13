@@ -147,7 +147,7 @@ public class ProjectContext {
                                 new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("variables",
                                         new BallerinaModel.TypeDesc.MapTypeDesc(XML)),
                                 // TODO:This should be any data
-                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("result", XML))
+                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("result", ANYDATA))
                 )
         );
     }

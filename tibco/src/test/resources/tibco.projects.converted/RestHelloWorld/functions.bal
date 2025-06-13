@@ -364,7 +364,7 @@ function Loop(Context cx) returns error? {
         addToContext(cx, "index", xml `<root>${var3}</root>`);
         addToContext(cx, "element", each);
         scope1ScopeFn(cx);
-        xml result = cx.result;
+        xml result = <xml>cx.result;
         var1 = result;
     }
     addToContext(cx, "Loop", var1);

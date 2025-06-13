@@ -177,7 +177,7 @@ class TypeConverter {
         body.add(new BallerinaModel.Statement.CallStatement(
                 new FunctionCall(startFuncData.name(), List.of(contextDecl.ref()))));
 
-        VariableReference xmlResultRef = ConversionUtils.getResultFromContext(body, contextDecl.ref());
+        VariableReference xmlResultRef = ConversionUtils.getXMLResultFromContext(body, contextDecl.ref());
 
         BallerinaModel.TypeDesc resultType = startFuncData.returnType();
         String convertToTypeFunction = cx.getConvertToTypeFunction(resultType);

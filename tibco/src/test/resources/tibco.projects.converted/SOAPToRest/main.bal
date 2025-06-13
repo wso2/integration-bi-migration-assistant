@@ -12,7 +12,7 @@ service on MainConnection_sharedhttp {
         map<xml> paramXML = {post: inputVal};
         Context cx = initContext(paramXML);
         start_Processes_Main_process(cx);
-        xml result = cx.result;
+        xml result = <xml>cx.result;
         xml response = result;
         return response;
     }

@@ -385,7 +385,7 @@ final class ActivityConverter {
         // TODO: revisit this when result is not xml
         //   -- Maybe add a new function here that cast to xml
         List<Statement> buffer = new ArrayList<>();
-        VariableReference res = ConversionUtils.getResultFromContext(buffer, cx.contextVarRef());
+        VariableReference res = ConversionUtils.getXMLResultFromContext(buffer, cx.contextVarRef());
         for (Statement s : buffer) {
             sb.append(s);
         }

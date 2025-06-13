@@ -217,9 +217,10 @@ public final class ConversionUtils {
                 List.of(new BallerinaModel.Parameter("cx", cx.contextType())));
     }
 
-    public static Expression.VariableReference getResultFromContext(List<BallerinaModel.Statement> body,
-                                                                    Expression.VariableReference context) {
-        VarDeclStatment result = new VarDeclStatment(XML, "result", new Expression.FieldAccess(context, "result"));
+    public static Expression.VariableReference getXMLResultFromContext(List<BallerinaModel.Statement> body,
+                                                                       Expression.VariableReference context) {
+        VarDeclStatment result = new VarDeclStatment(XML, "result",
+                new Expression.TypeCast(XML, new Expression.FieldAccess(context, "result")));
         body.add(result);
         return result.ref();
     }
