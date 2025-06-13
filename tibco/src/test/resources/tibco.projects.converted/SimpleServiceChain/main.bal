@@ -12,8 +12,11 @@ service on MainConnection_sharedhttp {
     </item>
 </root>`;
         map<xml> paramXML = {post: inputVal};
-        xml result = start_Processes_Main_process(initContext(paramXML));
-        return result;
+        Context cx = initContext(paramXML);
+        start_Processes_Main_process(cx);
+        xml result = cx.result;
+        xml response = result;
+        return response;
     }
 }
 
@@ -25,8 +28,11 @@ service on BarConnection_sharedhttp {
     </item>
 </root>`;
         map<xml> paramXML = {post: inputVal};
-        xml result = start_Processes_Bar_process(initContext(paramXML));
-        return result;
+        Context cx = initContext(paramXML);
+        start_Processes_Bar_process(cx);
+        xml result = cx.result;
+        xml response = result;
+        return response;
     }
 }
 
@@ -38,8 +44,11 @@ service on FooConnection_sharedhttp {
     </item>
 </root>`;
         map<xml> paramXML = {post: inputVal};
-        xml result = start_Processes_Foo_process(initContext(paramXML));
-        return result;
+        Context cx = initContext(paramXML);
+        start_Processes_Foo_process(cx);
+        xml result = cx.result;
+        xml response = result;
+        return response;
     }
 }
 

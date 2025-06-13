@@ -141,7 +141,15 @@ public class ProjectContext {
 
     @NotNull
     BallerinaModel.TypeDesc contextType() {
-        return getOrCreateUtilityTypeDef("Context", new BallerinaModel.TypeDesc.MapTypeDesc(XML));
+        return getOrCreateUtilityTypeDef("Context",
+                new BallerinaModel.TypeDesc.RecordTypeDesc(
+                        List.of(
+                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("variables",
+                                        new BallerinaModel.TypeDesc.MapTypeDesc(XML)),
+                                // TODO:This should be any data
+                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("result", XML))
+                )
+        );
     }
 
     private BallerinaModel.TypeDesc.TypeReference getOrCreateUtilityTypeDef(String typeName,

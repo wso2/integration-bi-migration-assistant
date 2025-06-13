@@ -1,3 +1,2 @@
-function empty(Context context) returns xml | error {
-    return xml`<root></root>`;
+function empty(Context cx) returns error? {
 }

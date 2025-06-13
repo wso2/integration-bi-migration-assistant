@@ -10,3 +10,5 @@
 - If the method don't return null add annotation `@NotNull` to the method signature.
     - Prefer Optionals over null values.
 - If a method (or constructor) has implicit assumptions about state (such as a non-null argument), add assertions.
+- Don't add comments to describe statements, code should be self-explanatory. If not change the code.
+- Don't declare single use variables. Directly create the variable in the place where it is used.

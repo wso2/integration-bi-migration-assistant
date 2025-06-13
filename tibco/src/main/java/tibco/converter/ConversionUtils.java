@@ -44,8 +44,10 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.BuiltinType;
 import static common.BallerinaModel.TypeDesc.BuiltinType.DECIMAL;
 import static common.BallerinaModel.TypeDesc.BuiltinType.FLOAT;
 import static common.BallerinaModel.TypeDesc.BuiltinType.INT;
+import static common.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static common.BallerinaModel.TypeDesc.BuiltinType.RecordTypeDesc;
 import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
+import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
 import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 
@@ -203,6 +205,35 @@ public final class ConversionUtils {
 
         static final String CONTEXT_VAR_NAME = "context";
         static final String CONTEXT_INPUT_NAME = "$input";
+    }
+
+    public static BallerinaModel.TypeDesc.FunctionTypeDesc processFunctionType(ProcessContext cx) {
+        return new BallerinaModel.TypeDesc.FunctionTypeDesc(
+                List.of(new BallerinaModel.Parameter("cx", cx.contextType())));
+    }
+
+    public static BallerinaModel.TypeDesc.FunctionTypeDesc scopeFnType(ProcessContext cx) {
+        return new BallerinaModel.TypeDesc.FunctionTypeDesc(
+                List.of(new BallerinaModel.Parameter("cx", cx.contextType())));
+    }
+
+    public static Expression.VariableReference getResultFromContext(List<BallerinaModel.Statement> body,
+                                                                    Expression.VariableReference context) {
+        VarDeclStatment result = new VarDeclStatment(XML, "result", new Expression.FieldAccess(context, "result"));
+        body.add(result);
+        return result.ref();
+    }
+
+    public static BallerinaModel.TypeDesc.FunctionTypeDesc activityFnType(ProcessContext cx) {
+        return new BallerinaModel.TypeDesc.FunctionTypeDesc(
+                List.of(new BallerinaModel.Parameter("cx", cx.contextType())),
+                BallerinaModel.TypeDesc.UnionTypeDesc.of(NIL, BallerinaModel.TypeDesc.BuiltinType.ERROR));
+    }
+
+    public static BallerinaModel.TypeDesc.FunctionTypeDesc errorFlowFnType(ProcessContext cx) {
+        return new BallerinaModel.TypeDesc.FunctionTypeDesc(
+                List.of(new BallerinaModel.Parameter("err", BallerinaModel.TypeDesc.BuiltinType.ERROR),
+                        new BallerinaModel.Parameter("cx", cx.contextType())));
     }
 
     public static BallerinaModel.TypeDesc toTypeDesc(XSD xsd) {

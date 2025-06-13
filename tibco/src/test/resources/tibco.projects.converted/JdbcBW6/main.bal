@@ -15,7 +15,10 @@ service /TestAPI on test_api_MainProcess_listener {
 </item>`;
         xml inputXmlMap = xml `<root>${inputXml}</root>`;
         map<xml> paramXML = {post: inputXmlMap};
-        return start_test_api_MainProcess(initContext(paramXML));
+        Context context = initContext(paramXML);
+        start_test_api_MainProcess(context);
+        xml result = context.result;
+        return convertToTestResponse(result);
     }
 }
 

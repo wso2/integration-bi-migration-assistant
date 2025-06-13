@@ -169,10 +169,20 @@ class TypeConverter {
 
         BallerinaModel.TypeDesc returnType = getOperationReturnType(cx, messageTypes, operation);
 
-        body.add(new Return<>(Optional.of(
-                new FunctionCall(cx.getProcessStartFunction().name(),
-                        List.of(new FunctionCall(cx.getInitContextFn(),
-                                List.of(new VariableReference(paramsXML.paramName))))))));
+        VarDeclStatment contextDecl = new VarDeclStatment(cx.contextType(), ConversionUtils.Constants.CONTEXT_VAR_NAME,
+                new FunctionCall(cx.getInitContextFn(),
+                        List.of(new VariableReference(paramsXML.paramName))));
+        body.add(contextDecl);
+        ProjectContext.FunctionData startFuncData = cx.getProcessStartFunction();
+        body.add(new BallerinaModel.Statement.CallStatement(
+                new FunctionCall(startFuncData.name(), List.of(contextDecl.ref()))));
+
+        VariableReference xmlResultRef = ConversionUtils.getResultFromContext(body, contextDecl.ref());
+
+        BallerinaModel.TypeDesc resultType = startFuncData.returnType();
+        String convertToTypeFunction = cx.getConvertToTypeFunction(resultType);
+
+        body.add(new Return<>(new FunctionCall(convertToTypeFunction, List.of(xmlResultRef))));
 
         return new BallerinaModel.Resource(resourceMethodName, path, resourceMethodParameter.stream().toList(),
                 Optional.of(returnType), body);

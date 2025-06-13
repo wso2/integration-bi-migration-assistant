@@ -10,8 +10,11 @@ service on GeneralConnection_sharedhttp {
     </item>
 </root>`;
         map<xml> paramXML = {post: inputVal};
-        xml result = start_Processes_MainProcessStarter_process(initContext(paramXML));
-        return result;
+        Context cx = initContext(paramXML);
+        start_Processes_MainProcessStarter_process(cx);
+        xml result = cx.result;
+        xml response = result;
+        return response;
     }
 }
 
@@ -23,8 +26,11 @@ service on GeneralConnection_sharedhttp {
     </item>
 </root>`;
         map<xml> paramXML = {post: inputVal};
-        xml result = start_Processes_Other_process(initContext(paramXML));
-        return result;
+        Context cx = initContext(paramXML);
+        start_Processes_Other_process(cx);
+        xml result = cx.result;
+        xml response = result;
+        return response;
     }
 }
 

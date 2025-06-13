@@ -1,3 +1,3 @@
-function catchAll(Context context) returns xml | error {
-    return scopeFn(context);
+function catchAll(Context cx) returns error? {
+    scopeFn(cx);
 }

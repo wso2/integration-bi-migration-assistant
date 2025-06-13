@@ -203,7 +203,8 @@ public class ProcessContext implements ContextWithFile {
     }
 
     BallerinaModel.Expression.VariableReference contextVarRef() {
-        return new BallerinaModel.Expression.VariableReference(ConversionUtils.Constants.CONTEXT_VAR_NAME);
+        BallerinaModel.TypeDesc.FunctionTypeDesc activityFnType = ConversionUtils.activityFnType(this);
+        return activityFnType.parameters().getFirst().ref();
     }
 
     BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {

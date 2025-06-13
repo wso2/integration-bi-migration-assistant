@@ -1,3 +1,3 @@
-function pick(Context context) returns xml | error {
-    return scopeFn(context);
+function pick(Context cx) returns error? {
+    scopeFn(cx);
 }

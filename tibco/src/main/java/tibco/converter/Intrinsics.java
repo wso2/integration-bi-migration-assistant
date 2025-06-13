@@ -23,7 +23,7 @@ public enum Intrinsics {
             "initContext",
             """
                     function initContext(map<xml> initVariables = {}) returns Context {
-                        return initVariables;
+                        return { variables: initVariables, result: xml `<root/>` };
                     }
                     """
     ),
@@ -33,7 +33,8 @@ public enum Intrinsics {
                     function addToContext(Context context, string varName, xml value){
                         xml children = value/*;
                         xml transformed = xml `<root>${children}</root>`;
-                        context[varName] = transformed;
+                        context.variables[varName] = transformed;
+                        context.result = value;
                     }
                     """
     ),
@@ -41,7 +42,7 @@ public enum Intrinsics {
                     "getFromContext",
             """
                             function getFromContext(Context context, string varName) returns xml {
-                                xml? value = context[varName];
+                                xml? value = context.variables[varName];
                                 if value == () {
                                     return xml `<root/>`;
                                 }

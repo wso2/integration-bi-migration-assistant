@@ -2,7 +2,7 @@ import ballerina/log;
 import ballerina/soap.soap11;
 import ballerina/xslt;
 
-function Call_Foo(Context context) returns xml|error {
+function Call_Foo(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform1" match="/">
@@ -17,21 +17,19 @@ function Call_Foo(Context context) returns xml|error {
 </InvokeProcessInput>
 
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     xml var2 = var1/*;
     xml var3 = check proj_annon_var2->post("", var2);
-    addToContext(context, "Call-Foo", var3);
-    return var3;
+    addToContext(cx, "Call-Foo", var3);
 }
 
-function HTTP_Receiver(Context context) returns xml|error {
+function HTTP_Receiver(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
-    addToContext(context, "HTTP-Receiver", var1);
-    return var1;
+    addToContext(cx, "HTTP-Receiver", var1);
 }
 
-function HTTP_Response(Context context) returns xml|error {
+function HTTP_Response(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Call-Foo"/>     <xsl:template name="Transform3" match="/">
@@ -50,13 +48,12 @@ function HTTP_Response(Context context) returns xml|error {
 </ResponseActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     xml var2 = var1/**/<asciiContent>/*;
-    addToContext(context, "HTTP-Response", var2);
-    return var2;
+    addToContext(cx, "HTTP-Response", var2);
 }
 
-function Log1(Context context) returns xml|error {
+function Log1(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform0" match="/">
@@ -70,14 +67,13 @@ function Log1(Context context) returns xml|error {
 </ns:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     xml var2 = var1/**/<message>/*;
     log:printInfo(var2.toString());
-    addToContext(context, "Log1", var2);
-    return var2;
+    addToContext(cx, "Log1", var2);
 }
 
-function Log2(Context context) returns xml|error {
+function Log2(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Call-Foo"/>     <xsl:template name="Transform2" match="/">
@@ -91,46 +87,42 @@ function Log2(Context context) returns xml|error {
 </ns:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     xml var2 = var1/**/<message>/*;
     log:printInfo(var2.toString());
-    addToContext(context, "Log2", var2);
-    return var2;
+    addToContext(cx, "Log2", var2);
 }
 
-function scope0ActivityRunner(map<xml> cx) returns xml|error {
-    xml result0 = check HTTP_Receiver(cx);
-    xml result1 = check Log1(cx);
-    xml result2 = check Call_Foo(cx);
-    xml result3 = check Log2(cx);
-    xml result4 = check HTTP_Response(cx);
-    return result4;
+function scope0ActivityRunner(Context cx) returns error? {
+    check HTTP_Receiver(cx);
+    check Log1(cx);
+    check Call_Foo(cx);
+    check Log2(cx);
+    check HTTP_Response(cx);
 }
 
-function scope0FaultHandler(error err, map<xml> cx) returns xml {
+function scope0FaultHandler(error err, Context cx) returns () {
     panic err;
 }
 
-function scope0ScopeFn(map<xml> cx) returns xml {
-    xml|error result = scope0ActivityRunner(cx);
+function scope0ScopeFn(Context cx) returns () {
+    error? result = scope0ActivityRunner(cx);
     if result is error {
-        return scope0FaultHandler(result, cx);
+        scope0FaultHandler(result, cx);
     }
-    return result;
 }
 
-function start_Processes_Main_process(Context cx) returns xml {
+function start_Processes_Main_process(Context cx) returns () {
     return scope0ScopeFn(cx);
 }
 
-function Bar_Receiver(Context context) returns xml|error {
+function Bar_Receiver(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
-    addToContext(context, "Bar-Receiver", var1);
-    return var1;
+    addToContext(cx, "Bar-Receiver", var1);
 }
 
-function HTTP_Response_6(Context context) returns xml|error {
+function HTTP_Response_6(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
@@ -156,35 +148,32 @@ function HTTP_Response_6(Context context) returns xml|error {
 </ResponseActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     xml var2 = var1/**/<asciiContent>/*;
-    addToContext(context, "HTTP-Response", var2);
-    return var2;
+    addToContext(cx, "HTTP-Response", var2);
 }
 
-function scope0_1ActivityRunner(map<xml> cx) returns xml|error {
-    xml result0 = check Bar_Receiver(cx);
-    xml result1 = check HTTP_Response_6(cx);
-    return result1;
+function scope0_1ActivityRunner(Context cx) returns error? {
+    check Bar_Receiver(cx);
+    check HTTP_Response_6(cx);
 }
 
-function scope0_1FaultHandler(error err, map<xml> cx) returns xml {
+function scope0_1FaultHandler(error err, Context cx) returns () {
     panic err;
 }
 
-function scope0_1ScopeFn(map<xml> cx) returns xml {
-    xml|error result = scope0_1ActivityRunner(cx);
+function scope0_1ScopeFn(Context cx) returns () {
+    error? result = scope0_1ActivityRunner(cx);
     if result is error {
-        return scope0_1FaultHandler(result, cx);
+        scope0_1FaultHandler(result, cx);
     }
-    return result;
 }
 
-function start_Processes_Bar_process(Context cx) returns xml {
+function start_Processes_Bar_process(Context cx) returns () {
     return scope0_1ScopeFn(cx);
 }
 
-function BarMapper(Context context) returns xml|error {
+function BarMapper(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Call-Bar"/>     <xsl:template name="Transform2" match="/">
@@ -195,13 +184,12 @@ function BarMapper(Context context) returns xml|error {
 </BarResponse>
 
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     xml var2 = xml `<root>${var1}</root>`;
-    addToContext(context, "BarMapper", var2);
-    return var2;
+    addToContext(cx, "BarMapper", var2);
 }
 
-function Call_Bar(Context context) returns xml|error {
+function Call_Bar(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform1" match="/">
@@ -232,7 +220,7 @@ function Call_Bar(Context context) returns xml|error {
 </ns1:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     soap11:Client var2 = check new ("http://localhost:9092");
     xml var3 = xml `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
     soap:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
@@ -242,18 +230,16 @@ function Call_Bar(Context context) returns xml|error {
     </soap:Body>
 </soap:Envelope>`;
     xml var4 = check var2->sendReceive(var3, "SOAPAction");
-    addToContext(context, "Call-Bar", var4);
-    return var4;
+    addToContext(cx, "Call-Bar", var4);
 }
 
-function Foo_Receiver(Context context) returns xml|error {
+function Foo_Receiver(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
-    addToContext(context, "Foo-Receiver", var1);
-    return var1;
+    addToContext(cx, "Foo-Receiver", var1);
 }
 
-function HTTP_Response_11(Context context) returns xml|error {
+function HTTP_Response_11(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/><xsl:param name="BarMapper"/>     <xsl:template name="Transform3" match="/">
@@ -282,13 +268,12 @@ function HTTP_Response_11(Context context) returns xml|error {
 </ResponseActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     xml var2 = var1/**/<asciiContent>/*;
-    addToContext(context, "HTTP-Response", var2);
-    return var2;
+    addToContext(cx, "HTTP-Response", var2);
 }
 
-function Log1_8(Context context) returns xml|error {
+function Log1_8(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform0" match="/">
@@ -303,44 +288,42 @@ function Log1_8(Context context) returns xml|error {
 </ns:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     xml var2 = var1/**/<message>/*;
     log:printInfo(var2.toString());
-    addToContext(context, "Log1", var2);
-    return var2;
+    addToContext(cx, "Log1", var2);
 }
 
-function scope0_2ActivityRunner(map<xml> cx) returns xml|error {
-    xml result0 = check Foo_Receiver(cx);
-    xml result1 = check Log1_8(cx);
-    xml result2 = check Call_Bar(cx);
-    xml result3 = check BarMapper(cx);
-    xml result4 = check HTTP_Response_11(cx);
-    return result4;
+function scope0_2ActivityRunner(Context cx) returns error? {
+    check Foo_Receiver(cx);
+    check Log1_8(cx);
+    check Call_Bar(cx);
+    check BarMapper(cx);
+    check HTTP_Response_11(cx);
 }
 
-function scope0_2FaultHandler(error err, map<xml> cx) returns xml {
+function scope0_2FaultHandler(error err, Context cx) returns () {
     panic err;
 }
 
-function scope0_2ScopeFn(map<xml> cx) returns xml {
-    xml|error result = scope0_2ActivityRunner(cx);
+function scope0_2ScopeFn(Context cx) returns () {
+    error? result = scope0_2ActivityRunner(cx);
     if result is error {
-        return scope0_2FaultHandler(result, cx);
+        scope0_2FaultHandler(result, cx);
     }
-    return result;
 }
 
-function start_Processes_Foo_process(Context cx) returns xml {
+function start_Processes_Foo_process(Context cx) returns () {
     return scope0_2ScopeFn(cx);
 }
 
 function addToContext(Context context, string varName, xml value) {
     xml children = value/*;
     xml transformed = xml `<root>${children}</root>`;
-    context[varName] = transformed;
+    context.variables[varName] = transformed;
+    context.result = value;
 }
 
 function initContext(map<xml> initVariables = {}) returns Context {
-    return initVariables;
+    return {variables: initVariables, result: xml `<root/>`};
 }

@@ -2,7 +2,7 @@ import ballerina/data.jsondata;
 import ballerina/data.xmldata;
 import ballerina/xslt;
 
-function activityExtension(Context context) returns xml|error {
+function activityExtension(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com/test/api" version="2.0">
@@ -11,17 +11,16 @@ function activityExtension(Context context) returns xml|error {
             <tns:response>Hello world</tns:response>
         </tns:TestResponse>
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     //WARNING: assuming single element
     TestResponse var2 = check xmldata:parseAsType(var1);
     string var3 = var2.toJsonString();
     xml var4 = xml `<jsonString>${var3}</jsonString>`;
-    addToContext(context, "RenderOutput", var4);
-    return var4;
+    addToContext(cx, "RenderOutput", var4);
 }
 
-function activityExtension_2(Context context) returns xml|error {
-    xml var0 = getFromContext(context, "RenderOutput");
+function activityExtension_2(Context cx) returns error? {
+    xml var0 = getFromContext(cx, "RenderOutput");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput" version="2.0">
     <xsl:param name="JSONPayloadOut"/>
@@ -37,54 +36,47 @@ function activityExtension_2(Context context) returns xml|error {
             </Headers>
         </tns1:ResponseActivityInput>
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     xml var2 = xml `<root>${var1}</root>`;
-    return var2;
 }
 
-function pick(Context context) returns xml|error {
-    return scope1ScopeFn(context);
+function pick(Context cx) returns error? {
+    scope1ScopeFn(cx);
 }
 
-function scope1ActivityRunner(Context cx) returns xml|error {
-    xml result0 = check activityExtension(cx);
-    xml result1 = check activityExtension_2(cx);
-    return result1;
+function scope1ActivityRunner(Context cx) returns error? {
+    check activityExtension(cx);
+    check activityExtension_2(cx);
 }
 
-function scope1FaultHandler(error err, map<xml> cx) returns xml {
+function scope1FaultHandler(error err, Context cx) returns () {
     panic err;
 }
 
-function scope1ScopeFn(map<xml> cx) returns xml {
-    xml|error result = scope1ActivityRunner(cx);
+function scope1ScopeFn(Context cx) returns () {
+    error? result = scope1ActivityRunner(cx);
     if result is error {
-        return scope1FaultHandler(result, cx);
+        scope1FaultHandler(result, cx);
     }
-    return result;
 }
 
-function scopeActivityRunner(Context cx) returns xml|error {
-    xml result0 = check pick(cx);
-    return result0;
+function scopeActivityRunner(Context cx) returns error? {
+    check pick(cx);
 }
 
-function scopeFaultHandler(error err, map<xml> cx) returns xml {
+function scopeFaultHandler(error err, Context cx) returns () {
     panic err;
 }
 
-function scopeScopeFn(Context cx) returns xml {
-    xml|error result = scopeActivityRunner(cx);
+function scopeScopeFn(Context cx) returns () {
+    error? result = scopeActivityRunner(cx);
     if result is error {
-        return scopeFaultHandler(result, cx);
+        scopeFaultHandler(result, cx);
     }
-    return result;
 }
 
-function start_test_api_MainProcess(Context params = {}) returns TestResponse {
-    xml xmlResult = scopeScopeFn(params);
-    TestResponse result = convertToTestResponse(xmlResult);
-    return result;
+function start_test_api_MainProcess(Context params) returns () {
+    scopeScopeFn(params);
 }
 
 function convertToTestResponse(xml input) returns TestResponse {
@@ -102,11 +94,12 @@ function tryBindToTestRequest(xml|json input) returns TestRequest|error {
 function addToContext(Context context, string varName, xml value) {
     xml children = value/*;
     xml transformed = xml `<root>${children}</root>`;
-    context[varName] = transformed;
+    context.variables[varName] = transformed;
+    context.result = value;
 }
 
 function getFromContext(Context context, string varName) returns xml {
-    xml? value = context[varName];
+    xml? value = context.variables[varName];
     if value == () {
         return xml `<root/>`;
     }
@@ -114,5 +107,5 @@ function getFromContext(Context context, string varName) returns xml {
 }
 
 function initContext(map<xml> initVariables = {}) returns Context {
-    return initVariables;
+    return {variables: initVariables, result: xml `<root/>`};
 }

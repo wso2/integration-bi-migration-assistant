@@ -3,14 +3,13 @@ import ballerina/log;
 import ballerina/sql;
 import ballerina/xslt;
 
-function Catch(Context context) returns xml|error {
+function Catch(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
-    addToContext(context, "Catch", var1);
-    return var1;
+    addToContext(cx, "Catch", var1);
 }
 
-function ErrorLog(Context context) returns xml|error {
+function ErrorLog(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
@@ -26,21 +25,19 @@ function ErrorLog(Context context) returns xml|error {
 </ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     xml var2 = var1/**/<message>/*;
     log:printInfo(var2.toString());
-    addToContext(context, "ErrorLog", var2);
-    return var2;
+    addToContext(cx, "ErrorLog", var2);
 }
 
-function HTTP_Receiver(Context context) returns xml|error {
+function HTTP_Receiver(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
-    addToContext(context, "HTTP-Receiver", var1);
-    return var1;
+    addToContext(cx, "HTTP-Receiver", var1);
 }
 
-function Log(Context context) returns xml|error {
+function Log(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform0" match="/">
@@ -54,14 +51,13 @@ function Log(Context context) returns xml|error {
 </ns:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     xml var2 = var1/**/<message>/*;
     log:printInfo(var2.toString());
-    addToContext(context, "Log", var2);
-    return var2;
+    addToContext(cx, "Log", var2);
 }
 
-function SQL_Direct(Context context) returns xml|error {
+function SQL_Direct(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform1" match="/">
@@ -76,12 +72,12 @@ function SQL_Direct(Context context) returns xml|error {
 </jdbcGeneralActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     string var2 = (var1/**/<statement>/*).toString();
     sql:ParameterizedQuery var3 = `${var2}`;
     xml var4;
     if var2.startsWith("SELECT") {
-        stream<map<anydata>, error|()> var5 = JDBCConnection->query(var3);
+        stream<map<anydata>, error?> var5 = JDBCConnection->query(var3);
         xml var6 = xml ``;
         check from var each in var5
             do {
@@ -97,32 +93,28 @@ function SQL_Direct(Context context) returns xml|error {
         var4 = var10;
     }
     //WARNING: validate jdbc query result mapping
-    addToContext(context, "SQL-Direct", var4);
-    return var4;
+    addToContext(cx, "SQL-Direct", var4);
 }
 
-function scope0ActivityRunner(map<xml> cx) returns xml|error {
-    xml result0 = check HTTP_Receiver(cx);
-    xml result1 = check Log(cx);
-    xml result2 = check SQL_Direct(cx);
-    return result2;
+function scope0ActivityRunner(Context cx) returns error? {
+    check HTTP_Receiver(cx);
+    check Log(cx);
+    check SQL_Direct(cx);
 }
 
-function scope0FaultHandler(error err, map<xml> cx) returns xml {
-    xml result0 = checkpanic Catch(cx);
-    xml result1 = checkpanic ErrorLog(cx);
-    return result1;
+function scope0FaultHandler(error err, Context cx) returns () {
+    checkpanic Catch(cx);
+    checkpanic ErrorLog(cx);
 }
 
-function scope0ScopeFn(map<xml> cx) returns xml {
-    xml|error result = scope0ActivityRunner(cx);
+function scope0ScopeFn(Context cx) returns () {
+    error? result = scope0ActivityRunner(cx);
     if result is error {
-        return scope0FaultHandler(result, cx);
+        scope0FaultHandler(result, cx);
     }
-    return result;
 }
 
-function start_Processes_Main_process(Context cx) returns xml {
+function start_Processes_Main_process(Context cx) returns () {
     return scope0ScopeFn(cx);
 }
 
@@ -133,9 +125,10 @@ function toXML(map<anydata> data) returns error|xml {
 function addToContext(Context context, string varName, xml value) {
     xml children = value/*;
     xml transformed = xml `<root>${children}</root>`;
-    context[varName] = transformed;
+    context.variables[varName] = transformed;
+    context.result = value;
 }
 
 function initContext(map<xml> initVariables = {}) returns Context {
-    return initVariables;
+    return {variables: initVariables, result: xml `<root/>`};
 }
