@@ -66,7 +66,8 @@ final class AnalysisResultImpl implements AnalysisResult {
                        Map<Process, Collection<Scope>> scopes,
                        Map<String, Scope.Flow.Activity> activityByName,
                        Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencies,
-                       Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions) {
+                       Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions,
+                       TibcoAnalysisReport report) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.activityData = activityData;
@@ -81,6 +82,7 @@ final class AnalysisResultImpl implements AnalysisResult {
         this.activityByName = activityByName;
         this.explicitTransitionGroupDependencies = explicitTransitionGroupDependencies;
         this.explicitTransitionGroupControlFlowFunctions = explicitTransitionGroupControlFlowFunctions;
+        this.report = report;
     }
 
     @Override
@@ -270,8 +272,16 @@ final class AnalysisResultImpl implements AnalysisResult {
                 combineMap(this.activityByName, other.activityByName),
                 combineMap(this.explicitTransitionGroupDependencies, other.explicitTransitionGroupDependencies),
                 combineMap(this.explicitTransitionGroupControlFlowFunctions,
-                        other.explicitTransitionGroupControlFlowFunctions)
+                        other.explicitTransitionGroupControlFlowFunctions),
+                combineReports(other)
         );
+    }
+
+    private TibcoAnalysisReport combineReports(AnalysisResultImpl other) {
+        return Stream.of(getReport(), other.getReport())
+                .flatMap(Optional::stream)
+                .reduce(TibcoAnalysisReport::combine)
+                .orElseGet(TibcoAnalysisReport::empty);
     }
 
     @Override

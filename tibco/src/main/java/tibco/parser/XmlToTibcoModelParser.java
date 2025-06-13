@@ -16,18 +16,20 @@
  *  under the License.
  */
 
-package tibco;
+package tibco.parser;
 
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-
+import tibco.converter.ConversionUtils;
+import tibco.converter.ProjectConverter;
+import tibco.model.Method;
 import tibco.model.NameSpace;
 import tibco.model.NameSpaceValue;
 import tibco.model.PartnerLink;
-import tibco.model.Method;
+import tibco.model.Process;
 import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
@@ -35,22 +37,19 @@ import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.XMLRenderActi
 import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup;
 import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup.SourceExpression;
 import tibco.model.Process5.ExplicitTransitionGroup.Transition;
-import tibco.model.Scope;
-import tibco.model.Scope.Flow;
-import tibco.model.Scope.Flow.Activity.ActivityExtension.Config;
-import tibco.model.Scope.Flow.Activity.ActivityExtension.Config.AccumulateEnd;
+import tibco.model.Process6;
 import tibco.model.ProcessInfo;
 import tibco.model.ProcessInterface;
 import tibco.model.ProcessTemplateConfigurations;
 import tibco.model.Resource;
+import tibco.model.Scope;
+import tibco.model.Scope.Flow;
+import tibco.model.Scope.Flow.Activity.ActivityExtension.Config;
+import tibco.model.Scope.Flow.Activity.ActivityExtension.Config.AccumulateEnd;
 import tibco.model.Type;
-import tibco.model.XSD;
-import tibco.converter.ConversionUtils;
-import tibco.converter.ProjectConverter;
-import tibco.model.Process;
-import tibco.model.Process6;
 import tibco.model.ValueSource;
 import tibco.model.Variable;
+import tibco.model.XSD;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -69,38 +68,21 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-public final class XmlToTibcoModelConverter {
-    static final class ParseContext {
-        private long nextAnonProcessIndex = 0;
-        private long nextAnonXSLTIndex = 0;
-        private long nextUnhandledActivityIndex = 0;
-
-        public String getNextAnonymousProcessName() {
-            return "AnonymousProcess" + nextAnonProcessIndex++;
-        }
-
-        public String getAnonymousXSLTName() {
-            return "Transform" + nextAnonXSLTIndex++;
-        }
-
-        public String getAnonUnhandledAcitivityName() {
-            return "unhandled" + nextUnhandledActivityIndex++;
-        }
-    }
+public final class XmlToTibcoModelParser {
 
     private static final Logger logger = ProjectConverter.logger();
 
-    private XmlToTibcoModelConverter() {
+    private XmlToTibcoModelParser() {
     }
 
-    public static Resource.JDBCSharedResource parseSharedJDBCResource(Element root) {
+    public static Resource.JDBCSharedResource parseSharedJDBCResource(ResourceContext cx, Element root) {
         String name = getFirstChildWithTag(root, "name").getTextContent();
         Element configuration = getFirstChildWithTag(root, "config");
         String location = getFirstChildWithTag(configuration, "location").getTextContent();
         return new Resource.JDBCSharedResource(name, location);
     }
 
-    public static Resource.JDBCResource parseJDBCResource(Element root) {
+    public static Resource.JDBCResource parseJDBCResource(ResourceContext cx, Element root) {
         String name = root.getAttribute("name");
         Element configuration = getFirstChildWithTag(root, "configuration");
         String username = configuration.getAttribute("username");
@@ -110,29 +92,29 @@ public final class XmlToTibcoModelConverter {
         String dbUrl = connectionConfig.getAttribute("dbURL");
         Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(connectionConfig,
                 "substitutionBindings")
-                .map(XmlToTibcoModelConverter::parseSubstitutionBinding).toList();
+                .map(XmlToTibcoModelParser::parseSubstitutionBinding).toList();
         return new Resource.JDBCResource(name, username, password, jdbcDriver, dbUrl,
                 substitutionBindings);
     }
 
-    public static Resource.HTTPConnectionResource parseHTTPConnectionResource(Element root) {
+    public static Resource.HTTPConnectionResource parseHTTPConnectionResource(ResourceContext cx, Element root) {
         String name = root.getAttribute("name");
         Element configuration = getFirstChildWithTag(root, "configuration");
         String svcRegServiceName = configuration.getAttribute("svcRegServiceName");
         Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(configuration,
                 "substitutionBindings")
-                .map(XmlToTibcoModelConverter::parseSubstitutionBinding).toList();
+                .map(XmlToTibcoModelParser::parseSubstitutionBinding).toList();
         return new Resource.HTTPConnectionResource(name, svcRegServiceName, substitutionBindings);
     }
 
-    public static Resource.HTTPSharedResource parseHTTPSharedResource(String name, Element root) {
+    public static Resource.HTTPSharedResource parseHTTPSharedResource(ResourceContext cx, Element root) {
         Element config = getFirstChildWithTag(root, "config");
         String host = getFirstChildWithTag(config, "Host").getTextContent();
         int port = Integer.parseInt(getFirstChildWithTag(config, "Port").getTextContent());
-        return new Resource.HTTPSharedResource(name, host, port);
+        return new Resource.HTTPSharedResource(cx.getName(), host, port);
     }
 
-    public static Resource.HTTPClientResource parseHTTPClientResource(Element root) {
+    public static Resource.HTTPClientResource parseHTTPClientResource(ResourceContext cx, Element root) {
         String name = root.getAttribute("name");
         Element configuration = getFirstChildWithTag(root, "configuration");
         Element tcpDetails = getFirstChildWithTag(configuration, "tcpDetails");
@@ -140,7 +122,7 @@ public final class XmlToTibcoModelConverter {
                 : Optional.empty();
         Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(tcpDetails,
                 "substitutionBindings")
-                .map(XmlToTibcoModelConverter::parseSubstitutionBinding).toList();
+                .map(XmlToTibcoModelParser::parseSubstitutionBinding).toList();
         return new Resource.HTTPClientResource(name, port, substitutionBindings);
     }
 
@@ -150,11 +132,11 @@ public final class XmlToTibcoModelConverter {
         return new Resource.SubstitutionBinding(template, propName);
     }
 
-    public static tibco.model.Process parseProcess(Element root) {
-        return parseProcessInner(new ParseContext(), root);
+    public static tibco.model.Process parseProcess(ProcessContext cx, Element root) {
+        return parseProcessInner(cx, root);
     }
 
-    private static @NotNull Process parseProcessInner(ParseContext cx, Element root) {
+    private static @NotNull Process parseProcessInner(ProcessContext cx, Element root) {
         String name = root.getAttribute("name");
         if (name.isBlank()) {
             name = tryGetFirstChildWithTag(root, "name").map(Node::getTextContent)
@@ -175,7 +157,7 @@ public final class XmlToTibcoModelConverter {
                     if (types != null) {
                         throw new ParserException("Multiple Types elements found in the XML", root);
                     }
-                    types = parseTypes(element);
+                    types = parseTypes(cx.typeContext(), element);
                 }
                 case "ProcessInfo" -> {
                     if (processInfo != null) {
@@ -199,7 +181,7 @@ public final class XmlToTibcoModelConverter {
                     if (scope != null) {
                         throw new ParserException("Multiple scope elements found in the XML", root);
                     }
-                    scope = parseScope(element);
+                    scope = parseScope(cx, element);
                 }
                 case "ProcessInterface" -> {
                     if (processInterface.isPresent()) {
@@ -242,11 +224,11 @@ public final class XmlToTibcoModelConverter {
         return new Process5(name, nameSpaces, transitionGroup);
     }
 
-    private static Flow.Activity.Expression.XSLT parseReturnBindings(ParseContext cx, Element element) {
+    private static Flow.Activity.Expression.XSLT parseReturnBindings(Context cx, Element element) {
         return parseXSLTTag(cx, element);
     }
 
-    static InlineActivity parseInlineActivity(ParseContext cx, Element element) {
+    static InlineActivity parseInlineActivity(ProcessContext cx, Element element) {
         Flow.Activity.InputBinding inputBinding = parseInlineActivityInputBinding(cx,
                 getFirstChildWithTag(element, "inputBindings"));
         String name = element.getAttribute("name");
@@ -254,30 +236,32 @@ public final class XmlToTibcoModelConverter {
         InlineActivity.InlineActivityType type = InlineActivity.InlineActivityType.parse(
                 typeString);
         return switch (type) {
-            case ASSIGN -> parseAssignActivity(name, inputBinding, element);
-            case HTTP_EVENT_SOURCE -> parseHttpEventSource(name, inputBinding, element);
-            case HTTP_RESPONSE -> new InlineActivity.HTTPResponse(element, name, inputBinding);
-            case UNHANDLED -> new InlineActivity.UnhandledInlineActivity(element, name, typeString, inputBinding);
-            case NULL -> new InlineActivity.NullActivity(element, name, inputBinding);
-            case WRITE_LOG -> new InlineActivity.WriteLog(element, name, inputBinding);
-            case CALL_PROCESS -> parseCallProcess(element, name, inputBinding);
-            case FILE_WRITE -> parseFileWrite(element, name, inputBinding);
-            case FILE_READ -> parseFileRead(element, name, inputBinding);
-            case XML_RENDER_ACTIVITY -> parseXmlRenderActivity(element, name, inputBinding);
-            case XML_PARSE_ACTIVITY -> parseXmlParseActivity(element, name, inputBinding);
-            case SOAP_SEND_RECEIVE -> parseSoapSendReceive(element, name, inputBinding);
-            case SOAP_SEND_REPLY -> new InlineActivity.SOAPSendReply(element, name, inputBinding);
+            case ASSIGN -> parseAssignActivity(cx, name, inputBinding, element);
+            case HTTP_EVENT_SOURCE -> parseHttpEventSource(cx, name, inputBinding, element);
+            case HTTP_RESPONSE -> new InlineActivity.HTTPResponse(element, name, inputBinding, cx.fileName());
+            case UNHANDLED ->
+                    new InlineActivity.UnhandledInlineActivity(element, name, typeString, inputBinding, cx.fileName());
+            case NULL -> new InlineActivity.NullActivity(element, name, inputBinding, cx.fileName());
+            case WRITE_LOG -> new InlineActivity.WriteLog(element, name, inputBinding, cx.fileName());
+            case CALL_PROCESS -> parseCallProcess(cx, element, name, inputBinding);
+            case FILE_WRITE -> parseFileWrite(cx, element, name, inputBinding);
+            case FILE_READ -> parseFileRead(cx, element, name, inputBinding);
+            case XML_RENDER_ACTIVITY -> parseXmlRenderActivity(cx, element, name, inputBinding);
+            case XML_PARSE_ACTIVITY -> parseXmlParseActivity(cx, element, name, inputBinding);
+            case SOAP_SEND_RECEIVE -> parseSoapSendReceive(cx, element, name, inputBinding);
+            case SOAP_SEND_REPLY -> new InlineActivity.SOAPSendReply(element, name, inputBinding, cx.fileName());
             case LOOP_GROUP -> parseLoopGroup(cx, element, name, inputBinding);
-            case REST -> parseREST(element, name, inputBinding);
-            case CATCH -> new InlineActivity.Catch(element, name, inputBinding);
-            case JSON_PARSER_ACTIVITY -> parseJSONParserActivity(element, name, inputBinding);
-            case JSON_RENDER_ACTIVITY -> parseJSONRenderActivity(element, name, inputBinding);
-            case JDBC -> parseJDBCActivity(element, name, inputBinding);
-            case MAPPER -> parseMapperActivity(name, inputBinding, element);
+            case REST -> parseREST(cx, element, name, inputBinding);
+            case CATCH -> new InlineActivity.Catch(element, name, inputBinding, cx.fileName());
+            case JSON_PARSER_ACTIVITY -> parseJSONParserActivity(cx, element, name, inputBinding);
+            case JSON_RENDER_ACTIVITY -> parseJSONRenderActivity(cx, element, name, inputBinding);
+            case JDBC -> parseJDBCActivity(cx, element, name, inputBinding);
+            case MAPPER -> parseMapperActivity(cx, name, inputBinding, element);
         };
     }
 
-    private static InlineActivity.JDBC parseJDBCActivity(Element element, String name, Flow.Activity.InputBinding inputBinding) {
+    private static InlineActivity.JDBC parseJDBCActivity(ProcessContext cx, Element element, String name,
+                                                         Flow.Activity.InputBinding inputBinding) {
         String connection = tryGetInlineActivityConfigValue(element, "jdbcSharedConfig")
                 .orElseThrow(() -> new ParserException("Failed to find jdbcSharedConfig", element));
         String[] parts = connection.split("/");
@@ -285,16 +269,19 @@ public final class XmlToTibcoModelConverter {
         String suffix = ".sharedjdbc";
         connection = connection.endsWith(suffix) ? connection.substring(0, connection.length() - suffix.length())
                 : connection;
-        return new InlineActivity.JDBC(element, name, inputBinding, connection);
+        return new InlineActivity.JDBC(element, name, inputBinding, connection, cx.fileName());
     }
 
-    private static InlineActivity.JSONRender parseJSONRenderActivity(Element element, String name, Flow.Activity.InputBinding inputBinding) {
-        return new InlineActivity.JSONRender(element, name, inputBinding, getJSONActivityTarget(element));
+    private static InlineActivity.JSONRender parseJSONRenderActivity(ProcessContext cx, Element element, String name,
+                                                                     Flow.Activity.InputBinding inputBinding) {
+        return new InlineActivity.JSONRender(element, name, inputBinding, getJSONActivityTarget(element),
+                cx.fileName());
     }
 
-
-    private static InlineActivity.JSONParser parseJSONParserActivity(Element element, String name, Flow.Activity.InputBinding inputBinding) {
-        return new InlineActivity.JSONParser(element, name, inputBinding, getJSONActivityTarget(element));
+    private static InlineActivity.JSONParser parseJSONParserActivity(ProcessContext cx, Element element, String name,
+                                                                     Flow.Activity.InputBinding inputBinding) {
+        return new InlineActivity.JSONParser(element, name, inputBinding, getJSONActivityTarget(element),
+                cx.fileName());
     }
 
     private static @NotNull XSD getJSONActivityTarget(Element element) {
@@ -330,17 +317,17 @@ public final class XmlToTibcoModelConverter {
 
     private static XSD.XSDType.ComplexType.ComplexTypeBody.Sequence parseXSDSequence(Element sequence) {
         return new XSD.XSDType.ComplexType.ComplexTypeBody.Sequence(
-                ElementIterable.of(sequence).stream().map(XmlToTibcoModelConverter::parseXSDXElement).toList());
+                ElementIterable.of(sequence).stream().map(XmlToTibcoModelParser::parseXSDXElement).toList());
     }
 
-    private static InlineActivity.SOAPSendReceive parseSoapSendReceive(Element element, String name,
+    private static InlineActivity.SOAPSendReceive parseSoapSendReceive(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
         String endpointURL = getInlineActivityConfigValue(element, "endpointURL");
         Optional<String> soapAction = tryGetInlineActivityConfigValue(element, "soapAction");
-        return new InlineActivity.SOAPSendReceive(element, name, inputBinding, soapAction, endpointURL);
+        return new InlineActivity.SOAPSendReceive(element, name, inputBinding, soapAction, endpointURL, cx.fileName());
     }
 
-    private static @NotNull LoopGroup parseLoopGroup(ParseContext cx, Element element, String name,
+    private static @NotNull LoopGroup parseLoopGroup(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
         SourceExpression overExpr = parseSourceExpression(getInlineActivityConfigValue(element, "over"));
         Optional<String> iterationElementSlot = tryGetInlineActivityConfigValue(element, "iterationElementSlot");
@@ -371,7 +358,7 @@ public final class XmlToTibcoModelConverter {
         }
         transitionGroup = transitionGroup.resolve();
         return new LoopGroup(element, name, inputBinding, overExpr, iterationElementSlot, indexSlot,
-                activityOutputName, accumulateOutput, transitionGroup);
+                activityOutputName, accumulateOutput, transitionGroup, cx.fileName());
     }
 
     private static SourceExpression parseSourceExpression(String expression) {
@@ -392,7 +379,7 @@ public final class XmlToTibcoModelConverter {
         return new SourceExpression(variable, Optional.of(path));
     }
 
-    private static InlineActivity.REST parseREST(Element element, String name,
+    private static InlineActivity.REST parseREST(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
         String authChoice = getInlineActivityConfigValue(element, "authChoiceUI");
         if (!authChoice.equals("No Authentication")) {
@@ -403,36 +390,36 @@ public final class XmlToTibcoModelConverter {
         InlineActivity.REST.ResponseType responseType = InlineActivity.REST.ResponseType.from(
                 getInlineActivityConfigValue(element, "restResponseType"));
         String url = getInlineActivityConfigValue(element, "restURI");
-        return new InlineActivity.REST(element, name, inputBinding, method, responseType, url);
+        return new InlineActivity.REST(element, name, inputBinding, method, responseType, url, cx.fileName());
     }
 
-    private static InlineActivity.CallProcess parseCallProcess(Element element, String name,
+    private static InlineActivity.CallProcess parseCallProcess(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
         String processName = getInlineActivityConfigValue(element, "processName");
-        return new InlineActivity.CallProcess(element, name, inputBinding, processName);
+        return new InlineActivity.CallProcess(element, name, inputBinding, processName, cx.fileName());
     }
 
     private static InlineActivity.FileRead parseFileRead(
-            Element element, String name, Flow.Activity.InputBinding inputBinding) {
+            ProcessContext cx, Element element, String name, Flow.Activity.InputBinding inputBinding) {
         Element config = getFirstChildWithTag(element, "config");
         String encoding = getFirstChildWithTag(config, "encoding").getTextContent();
         if (!encoding.equals("text")) {
             throw new ParserException("Unsupported encoding" + encoding, element);
         }
-        return new InlineActivity.FileRead(element, name, inputBinding, encoding);
+        return new InlineActivity.FileRead(element, name, inputBinding, encoding, cx.fileName());
     }
 
-    private static XMLParseActivity parseXmlParseActivity(Element element, String name,
+    private static XMLParseActivity parseXmlParseActivity(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
         Element config = getFirstChildWithTag(element, "config");
         String inputStyle = getFirstChildWithTag(config, "inputStyle").getTextContent();
         if (!inputStyle.equalsIgnoreCase("text")) {
             throw new ParserException("Unsupported inputStyle value: " + inputStyle, element);
         }
-        return new XMLParseActivity(element, name, inputBinding);
+        return new XMLParseActivity(element, name, inputBinding, cx.fileName());
     }
 
-    private static XMLRenderActivity parseXmlRenderActivity(Element element, String name,
+    private static XMLRenderActivity parseXmlRenderActivity(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
         // TODO: extract this to a method
         Element config = getFirstChildWithTag(element, "config");
@@ -440,11 +427,11 @@ public final class XmlToTibcoModelConverter {
         if (!renderAsText.equalsIgnoreCase("text")) {
             throw new ParserException("Unsupported renderAsText value: " + renderAsText, element);
         }
-        return new XMLRenderActivity(element, name, inputBinding);
+        return new XMLRenderActivity(element, name, inputBinding, cx.fileName());
     }
 
     private static InlineActivity.FileWrite parseFileWrite(
-            Element element, String name, Flow.Activity.InputBinding inputBinding) {
+            ProcessContext cx, Element element, String name, Flow.Activity.InputBinding inputBinding) {
         Element config = getFirstChildWithTag(element, "config");
         String encoding = getFirstChildWithTag(config, "encoding").getTextContent();
         if (!encoding.equals("text")) {
@@ -452,13 +439,13 @@ public final class XmlToTibcoModelConverter {
         }
         boolean append = getFirstChildWithTag(config, "append").getTextContent()
                 .equalsIgnoreCase("true");
-        return new InlineActivity.FileWrite(element, name, inputBinding, encoding, append);
+        return new InlineActivity.FileWrite(element, name, inputBinding, encoding, append, cx.fileName());
     }
 
     private static InlineActivity.AssignActivity parseAssignActivity(
-            String name, Flow.Activity.InputBinding inputBinding, Element element) {
+            ProcessContext cx, String name, Flow.Activity.InputBinding inputBinding, Element element) {
         String variableName = getInlineActivityConfigValue(element, "variableName");
-        return new InlineActivity.AssignActivity(element, name, variableName, inputBinding);
+        return new InlineActivity.AssignActivity(element, name, variableName, inputBinding, cx.fileName());
     }
 
     private static Optional<String> tryGetInlineActivityConfigValue(Element element, String name) {
@@ -473,21 +460,21 @@ public final class XmlToTibcoModelConverter {
         return getFirstChildWithTag(config, name).getTextContent();
     }
 
-    private static InlineActivity.HttpEventSource parseHttpEventSource(String name,
+    private static InlineActivity.HttpEventSource parseHttpEventSource(ProcessContext cx, String name,
             Flow.Activity.InputBinding inputBinding,
             Element element) {
         String sharedChannel = getInlineActivityConfigValue(element, "sharedChannel");
-        return new InlineActivity.HttpEventSource(element, name, sharedChannel, inputBinding);
+        return new InlineActivity.HttpEventSource(element, name, sharedChannel, inputBinding, cx.fileName());
     }
 
-    private static InlineActivity.MapperActivity parseMapperActivity(String name,
+    private static InlineActivity.MapperActivity parseMapperActivity(ProcessContext cx, String name,
             Flow.Activity.InputBinding inputBinding,
             Element element) {
-        return new InlineActivity.MapperActivity(element, name, inputBinding);
+        return new InlineActivity.MapperActivity(element, name, inputBinding, cx.fileName());
     }
 
     private static Flow.Activity.InputBinding.CompleteBinding parseInlineActivityInputBinding(
-            ParseContext cx, Element element) {
+            Context cx, Element element) {
         if (isEmpty(element)) {
             return null;
         }
@@ -501,22 +488,22 @@ public final class XmlToTibcoModelConverter {
         return content.isBlank();
     }
 
-    private static Flow.Activity.Expression.@NotNull XSLT parseXSLTTag(ParseContext cx, Element element) {
+    private static Flow.Activity.Expression.@NotNull XSLT parseXSLTTag(Context cx, Element element) {
         String content = ElementIterable.of(element).stream().map(ConversionUtils::elementToString)
                 .collect(Collectors.joining());
         String xslt = """
                 <?xml version="1.0" encoding="UTF-8"?>
-                <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
+                <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+                               xmlns:tns="http://xmlns.example.com" version="2.0">
                      <xsl:template name="%s" match="/">
                         %s
                     </xsl:template>
                 </xsl:stylesheet>
-                """
-                .formatted(cx.getAnonymousXSLTName(), content);
+                """.formatted(cx.getAnonymousXSLTName(), content);
         return new Flow.Activity.Expression.XSLT(xslt);
     }
 
-    private static Transition parseTransition(ParseContext cx, Element element) {
+    private static Transition parseTransition(Context cx, Element element) {
         String from = getFirstChildWithTag(element, "from").getTextContent();
         String to = getFirstChildWithTag(element, "to").getTextContent();
         return new Transition(from, to);
@@ -534,42 +521,42 @@ public final class XmlToTibcoModelConverter {
         return new ProcessInterface(context, input, output);
     }
 
-    private static Scope parseScope(Element element) {
+    private static Scope parseScope(ProcessContext cx, Element element) {
         String name = element.getAttribute("name");
         Collection<Flow> flows = ElementIterable.of(element).stream()
                 .filter(each -> getTagNameWithoutNameSpace(each).equals("flow"))
-                .map(XmlToTibcoModelConverter::parseFlow).toList();
+                .map(each -> parseFlow(cx, each)).toList();
 
         Collection<Scope.Sequence> sequences = ElementIterable.of(element).stream()
                 .filter(each -> getTagNameWithoutNameSpace(each).equals("sequence"))
-                .map(XmlToTibcoModelConverter::parseSequence).toList();
+                .map(each -> parseSequence(cx, each)).toList();
         Collection<Scope.FaultHandler> faultHandlers = ElementIterable.of(element).stream()
                 .filter(each -> getTagNameWithoutNameSpace(each).equals("faultHandlers"))
-                .flatMap(XmlToTibcoModelConverter::parseFaultHandlers).toList();
+                .flatMap(each -> parseFaultHandlers(cx, each)).toList();
         return new Scope(name, flows, sequences, faultHandlers);
     }
 
-    private static Stream<Scope.FaultHandler> parseFaultHandlers(Element element) {
-        return ElementIterable.of(element).stream().map(XmlToTibcoModelConverter::parseFaultHandler);
+    private static Stream<Scope.FaultHandler> parseFaultHandlers(ProcessContext cx, Element element) {
+        return ElementIterable.of(element).stream().map(each -> parseFaultHandler(cx, each));
     }
 
-    private static Scope.FaultHandler parseFaultHandler(Element element) {
+    private static Scope.FaultHandler parseFaultHandler(ProcessContext cx, Element element) {
         String tag = getTagNameWithoutNameSpace(element);
         return switch (tag) {
-            case "catchAll" -> parseCatchAll(element);
+            case "catchAll" -> parseCatchAll(cx, element);
             default -> throw new ParserException("Unsupported fault handler " + tag, element);
         };
     }
 
-    private static Flow.Activity.CatchAll parseCatchAll(Element element) {
+    private static Flow.Activity.CatchAll parseCatchAll(ProcessContext cx, Element element) {
         Element scope = expectNChildren(element, 1).iterator().next();
         if (!getTagNameWithoutNameSpace(scope).equals("scope")) {
             throw new ParserException("Expected a scope", element);
         }
-        return new Flow.Activity.CatchAll(parseScope(scope), element);
+        return new Flow.Activity.CatchAll(parseScope(cx, scope), element, cx.fileName());
     }
 
-    private static Flow parseFlow(Element flow) {
+    private static Flow parseFlow(ProcessContext cx, Element flow) {
         String name = flow.getAttribute("name");
         Collection<Flow.Link> links = null;
         List<Flow.Activity> activities = new ArrayList<>();
@@ -581,7 +568,7 @@ public final class XmlToTibcoModelConverter {
                 }
                 links = parseLinks(element);
             } else {
-                activities.add(tryParseActivity(element));
+                activities.add(tryParseActivity(cx, element));
             }
         }
         if (links == null) {
@@ -593,51 +580,51 @@ public final class XmlToTibcoModelConverter {
         return new Flow(name, links, activities);
     }
 
-    private static Flow.Activity tryParseActivity(Element element) {
+    private static Flow.Activity tryParseActivity(ProcessContext cx, Element element) {
         try {
-            return parseActivity(element);
+            return parseActivity(cx, element);
         } catch (Exception ex) {
-            return parseUnhandledActivity(element, ex.getMessage());
+            return parseUnhandledActivity(cx, element, ex.getMessage());
         }
     }
 
-    public static Flow.Activity parseActivity(Element element) {
+    public static Flow.Activity parseActivity(ProcessContext cx, Element element) {
         String tag = getTagNameWithoutNameSpace(element);
         return switch (tag) {
-            case "extensionActivity" -> parseExtensionActivity(element);
-            case "invoke" -> parseInvoke(element);
-            case "pick" -> parsePick(element);
-            case "empty" -> parseEmpty(element);
-            case "reply" -> parseReply(element);
-            case "throw" -> parseThrow(element);
-            case "scope" -> parseNestedScope(element);
-            case "assign" -> parseAssign(element);
-            case "forEach" -> parseForeach(element);
-            case "catchAll" -> parseCatchAll(element);
+            case "extensionActivity" -> parseExtensionActivity(cx, element);
+            case "invoke" -> parseInvoke(cx, element);
+            case "pick" -> parsePick(cx, element);
+            case "empty" -> parseEmpty(cx, element);
+            case "reply" -> parseReply(cx, element);
+            case "throw" -> parseThrow(cx, element);
+            case "scope" -> parseNestedScope(cx, element);
+            case "assign" -> parseAssign(cx, element);
+            case "forEach" -> parseForeach(cx, element);
+            case "catchAll" -> parseCatchAll(cx, element);
             default -> throw new ParserException("Unsupported activity tag: " + tag, element);
         };
     }
 
-    private static Flow.Activity.Foreach parseForeach(Element element) {
+    private static Flow.Activity.Foreach parseForeach(ProcessContext cx, Element element) {
         String counterName = element.getAttribute("counterName");
         ValueSource startCounterValue = parseValueSource(
                 getFirstChildWithTag(element, "startCounterValue"));
         ValueSource finalCounterValue = parseValueSource(
                 getFirstChildWithTag(element, "finalCounterValue"));
-        Scope scope = parseScope(getFirstChildWithTag(element, "scope"));
+        Scope scope = parseScope(cx, getFirstChildWithTag(element, "scope"));
         return new Flow.Activity.Foreach(counterName, scope, startCounterValue, finalCounterValue,
-                element);
+                element, cx.fileName());
     }
 
-    private static Flow.Activity.Assign parseAssign(Element element) {
+    private static Flow.Activity.Assign parseAssign(ProcessContext cx, Element element) {
         Collection<Flow.Activity.Target> targets = ElementIterable.of(element).stream()
                 .filter(each -> getTagNameWithoutNameSpace(each).equals("targets"))
-                .map(XmlToTibcoModelConverter::parseTargets).flatMap(Collection::stream).toList();
+                .map(XmlToTibcoModelParser::parseTargets).flatMap(Collection::stream).toList();
         List<Flow.Activity.Source> sources = ElementIterable.of(element).stream()
                 .filter(each -> getTagNameWithoutNameSpace(each).equals("sources"))
-                .map(XmlToTibcoModelConverter::parseSources).flatMap(Collection::stream).toList();
+                .map(XmlToTibcoModelParser::parseSources).flatMap(Collection::stream).toList();
         Flow.Activity.Assign.Copy copy = parseCopy(getFirstChildWithTag(element, "copy"));
-        return new Flow.Activity.Assign(sources, targets, copy, element);
+        return new Flow.Activity.Assign(sources, targets, copy, element, cx.fileName());
     }
 
     private static Flow.Activity.Assign.Copy parseCopy(Element element) {
@@ -667,38 +654,38 @@ public final class XmlToTibcoModelConverter {
         return new ValueSource.VarRef(variable);
     }
 
-    private static Flow.Activity.NestedScope parseNestedScope(Element element) {
+    private static Flow.Activity.NestedScope parseNestedScope(ProcessContext cx, Element element) {
         String name = element.getAttribute("name");
         Collection<Flow> flows = ElementIterable.of(element).stream()
                 .filter(each -> getTagNameWithoutNameSpace(each).equals("flow"))
-                .map(XmlToTibcoModelConverter::parseFlow).toList();
+                .map(each -> parseFlow(cx, each)).toList();
 
         Collection<Scope.Sequence> sequences = ElementIterable.of(element).stream()
                 .filter(each -> getTagNameWithoutNameSpace(each).equals("sequence"))
-                .map(XmlToTibcoModelConverter::parseSequence).toList();
+                .map(each -> parseSequence(cx, each)).toList();
         Collection<Scope.FaultHandler> faultHandlers = ElementIterable.of(element).stream()
                 .filter(each -> getTagNameWithoutNameSpace(each).equals("faultHandlers"))
-                .flatMap(XmlToTibcoModelConverter::parseFaultHandlers).toList();
+                .flatMap(each -> parseFaultHandlers(cx, each)).toList();
         Collection<Flow.Activity.Target> targets = ElementIterable.of(element).stream()
                 .filter(each -> getTagNameWithoutNameSpace(each).equals("targets"))
-                .map(XmlToTibcoModelConverter::parseTargets).flatMap(Collection::stream).toList();
+                .map(XmlToTibcoModelParser::parseTargets).flatMap(Collection::stream).toList();
         List<Flow.Activity.Source> sources = ElementIterable.of(element).stream()
                 .filter(each -> getTagNameWithoutNameSpace(each).equals("sources"))
-                .map(XmlToTibcoModelConverter::parseSources).flatMap(Collection::stream).toList();
+                .map(XmlToTibcoModelParser::parseSources).flatMap(Collection::stream).toList();
         return new Flow.Activity.NestedScope(name, sources, targets, sequences, flows,
-                faultHandlers, element);
+                faultHandlers, element, cx.fileName());
     }
 
-    private static Scope.Sequence parseSequence(Element element) {
+    private static Scope.Sequence parseSequence(ProcessContext cx, Element element) {
         String name = element.getAttribute("name");
         List<Flow.Activity> activities = ElementIterable.of(element).stream()
-                .map(XmlToTibcoModelConverter::parseActivity).toList();
+                .map(each -> parseActivity(cx, each)).toList();
         return new Scope.Sequence(name, activities);
     }
 
-    private static Flow.Activity.Throw parseThrow(Element element) {
+    private static Flow.Activity.Throw parseThrow(ProcessContext cx, Element element) {
         ActivityInputOutput result = getActivityInputOutput(element);
-        return new Flow.Activity.Throw(result.inputBindings(), result.targets(), element);
+        return new Flow.Activity.Throw(result.inputBindings(), result.targets(), element, cx.fileName());
     }
 
     private static @NotNull ActivityInputOutput getActivityInputOutput(Element element) {
@@ -722,7 +709,7 @@ public final class XmlToTibcoModelConverter {
 
     }
 
-    private static Flow.Activity parseUnhandledActivity(Element element, String reason) {
+    private static Flow.Activity parseUnhandledActivity(ProcessContext cx, Element element, String reason) {
         Collection<Flow.Activity.Target> targets = new ArrayList<>();
         List<Flow.Activity.Source> sources = new ArrayList<>();
 
@@ -736,10 +723,10 @@ public final class XmlToTibcoModelConverter {
             }
         }
 
-        return new Flow.Activity.UnhandledActivity(" FIXME: " + reason, sources, targets, element);
+        return new Flow.Activity.UnhandledActivity(" FIXME: " + reason, sources, targets, element, cx.fileName());
     }
 
-    private static Flow.Activity.Reply parseReply(Element element) {
+    private static Flow.Activity.Reply parseReply(ProcessContext cx, Element element) {
         String name = element.getAttribute("name");
         var operation = Method.from(
                 element.getAttribute("operation"));
@@ -747,32 +734,32 @@ public final class XmlToTibcoModelConverter {
         String portType = element.getAttribute("portType");
         ActivityInputOutput result = getActivityInputOutput(element);
         return new Flow.Activity.Reply(name, operation, partnerLink, portType, result.inputBindings,
-                result.targets, element);
+                result.targets, element, cx.fileName());
     }
 
-    private static Flow.Activity.Empty parseEmpty(Element element) {
+    private static Flow.Activity.Empty parseEmpty(ProcessContext cx, Element element) {
         String name = element.getAttribute("name");
-        return new Flow.Activity.Empty(name, element);
+        return new Flow.Activity.Empty(name, element, cx.fileName());
     }
 
-    private static Flow.Activity.Pick parsePick(Element element) {
+    private static Flow.Activity.Pick parsePick(ProcessContext cx, Element element) {
         boolean createInstance = expectBooleanAttribute(element, "createInstance");
-        Flow.Activity.Pick.OnMessage onMessage = parseOnMessage(
+        Flow.Activity.Pick.OnMessage onMessage = parseOnMessage(cx,
                 getFirstChildWithTag(element, "onMessage"));
-        return new Flow.Activity.Pick(createInstance, onMessage, element);
+        return new Flow.Activity.Pick(createInstance, onMessage, element, cx.fileName());
     }
 
-    private static Flow.Activity.Pick.OnMessage parseOnMessage(Element element) {
+    private static Flow.Activity.Pick.OnMessage parseOnMessage(ProcessContext cx, Element element) {
         var operation = Method.from(
                 element.getAttribute("operation"));
         String partnerLink = element.getAttribute("partnerLink");
         String portType = element.getAttribute("portType");
         String variable = element.getAttribute("variable");
-        Scope scope = parseScope(getFirstChildWithTag(element, "scope"));
+        Scope scope = parseScope(cx, getFirstChildWithTag(element, "scope"));
         return new Flow.Activity.Pick.OnMessage(operation, partnerLink, portType, variable, scope);
     }
 
-    private static Flow.Activity.Invoke parseInvoke(Element element) {
+    private static Flow.Activity.Invoke parseInvoke(ProcessContext cx, Element element) {
         String inputVariable = element.getAttribute("inputVariable");
         String outputVariable = element.getAttribute("outputVariable");
         Method operation;
@@ -806,7 +793,7 @@ public final class XmlToTibcoModelConverter {
             }
         }
         return new Flow.Activity.Invoke(inputVariable, outputVariable, operation, partnerLink,
-                inputBindings, targets, sources, element);
+                inputBindings, targets, sources, element, cx.fileName());
     }
 
     private static List<? extends Flow.Activity.InputBinding> parseInputBindings(Element element) {
@@ -869,25 +856,25 @@ public final class XmlToTibcoModelConverter {
         return result;
     }
 
-    private static Flow.Activity parseExtensionActivity(Element element) {
+    private static Flow.Activity parseExtensionActivity(ProcessContext cx, Element element) {
         Element activity = expectNChildren(element, 1).iterator().next();
         String tag = getTagNameWithoutNameSpace(activity);
         switch (tag) {
             case "receiveEvent" -> {
-                return parseReceiveEvent(activity);
+                return parseReceiveEvent(cx, activity);
             }
             case "activityExtension" -> {
-                return parseActivityExtension(activity);
+                return parseActivityExtension(cx, activity);
             }
             case "extActivity" -> {
-                return parseExtActivity(activity);
+                return parseExtActivity(cx, activity);
             }
             default -> throw new ParserException(
                     "Unsupported extension activity tag: " + tag, element);
         }
     }
 
-    private static Flow.Activity.ExtActivity parseExtActivity(Element element) {
+    private static Flow.Activity.ExtActivity parseExtActivity(ProcessContext cx, Element element) {
         Optional<Flow.Activity.Expression> expression = element.getAttribute("expression").isBlank()
                 ? Optional.empty()
                 : Optional.of(parseExpressionNode(element));
@@ -905,14 +892,14 @@ public final class XmlToTibcoModelConverter {
                         throw new ParserException("Multiple sources elements found in the XML", element);
                     }
                     sources = ElementIterable.of(getFirstChildWithTag(element, "sources")).stream()
-                            .map(XmlToTibcoModelConverter::parseSource).toList();
+                            .map(XmlToTibcoModelParser::parseSource).toList();
                 }
                 case "targets" -> {
                     if (targets != null) {
                         throw new ParserException("Multiple targets elements found in the XML", element);
                     }
                     targets = ElementIterable.of(getFirstChildWithTag(element, "targets")).stream()
-                            .map(XmlToTibcoModelConverter::parseTarget).toList();
+                            .map(XmlToTibcoModelParser::parseTarget).toList();
                 }
                 case "inputBinding" -> inputBindings.add(new Flow.Activity.InputBinding.CompleteBinding(
                         parseExpressionNode(each)));
@@ -933,7 +920,7 @@ public final class XmlToTibcoModelConverter {
             targets = List.of();
         }
         return new Flow.Activity.ExtActivity(expression, inputVariable, outputVariable, sources,
-                targets, inputBindings, callProcess, element);
+                targets, inputBindings, callProcess, element, cx.fileName());
     }
 
     private static Flow.Activity.ExtActivity.CallProcess parseCallProcesses(Element element) {
@@ -941,35 +928,35 @@ public final class XmlToTibcoModelConverter {
         return new Flow.Activity.ExtActivity.CallProcess(subProcessName);
     }
 
-    private static Flow.Activity.ActivityExtension parseActivityExtension(Element activity) {
+    private static Flow.Activity.ActivityExtension parseActivityExtension(ProcessContext cx, Element activity) {
         Optional<String> inputVariable = tryGetAttributeIgnoringNamespace(activity, "inputVariable");
         Optional<String> name = tryGetAttributeIgnoringNamespace(activity, "name");
         Optional<String> outputVariable = tryGetAttributeIgnoringNamespace(activity, "outputVariable");
         Optional<Element> targetsElement = tryGetFirstChildWithTag(activity, "targets");
         Collection<Flow.Activity.Target> targets = targetsElement.map(ElementIterable::of)
                 .map(ElementIterable::stream)
-                .map(s -> s.map(XmlToTibcoModelConverter::parseTarget).toList())
+                .map(s -> s.map(XmlToTibcoModelParser::parseTarget).toList())
                 .orElse(List.of());
 
         Optional<Element> sourcesElement = tryGetFirstChildWithTag(activity, "sources");
         List<Flow.Activity.Source> sources = sourcesElement.map(ElementIterable::of)
                 .map(ElementIterable::stream)
-                .map(s -> s.map(XmlToTibcoModelConverter::parseSource).toList())
+                .map(s -> s.map(XmlToTibcoModelParser::parseSource).toList())
                 .orElse(List.of());
         List<Flow.Activity.InputBinding> inputBindings = new ArrayList<>();
         Optional<Element> inputBindingElement = tryGetFirstChildWithTag(activity, "inputBindings");
         inputBindingElement.ifPresent(elem -> inputBindings.addAll(parseInputBindings(elem)));
         Config config = parseActivityExtensionConfig(getFirstChildWithTag(activity, "config"));
         return new Flow.Activity.ActivityExtension(name, inputVariable, outputVariable, targets,
-                sources, inputBindings, config, activity);
+                sources, inputBindings, config, activity, cx.fileName());
     }
 
     private static Collection<Flow.Activity.Target> parseTargets(Element each) {
-        return ElementIterable.of(each).stream().map(XmlToTibcoModelConverter::parseTarget).toList();
+        return ElementIterable.of(each).stream().map(XmlToTibcoModelParser::parseTarget).toList();
     }
 
     private static Collection<Flow.Activity.Source> parseSources(Element each) {
-        return ElementIterable.of(each).stream().map(XmlToTibcoModelConverter::parseSource).toList();
+        return ElementIterable.of(each).stream().map(XmlToTibcoModelParser::parseSource).toList();
     }
 
     private static Flow.Activity.Target parseTarget(Element each) {
@@ -1072,10 +1059,10 @@ public final class XmlToTibcoModelConverter {
         assert !sharedResourceProperty.isEmpty();
         String query = unEscapeXml(value.getAttribute("sqlStatement"));
         List<Config.SQL.SQLParameter> parameters = getChildrenWithTag(value, "PreparedParameters")
-                .map(XmlToTibcoModelConverter::parseSqlParameter).toList();
+                .map(XmlToTibcoModelParser::parseSqlParameter).toList();
 
         List<Config.SQL.Column> columns = getChildrenWithTag(value, "columnMetadata")
-                .map(XmlToTibcoModelConverter::parseColumn).toList();
+                .map(XmlToTibcoModelParser::parseColumn).toList();
         return new Config.SQL(sharedResourceProperty, query, columns,
                 parameters);
     }
@@ -1098,22 +1085,22 @@ public final class XmlToTibcoModelConverter {
                         preparedParameters.getAttribute("DataTypeDisplayValue")));
     }
 
-    private static Flow.Activity.ReceiveEvent parseReceiveEvent(Element activity) {
+    private static Flow.Activity.ReceiveEvent parseReceiveEvent(ProcessContext cx, Element activity) {
         boolean createInstance = activity.getAttribute("createInstance").equals("yes");
         float eventTimeout = expectFloatAttribute(activity, "eventTimeout");
         String variable = activity.getAttribute("variable");
         List<Flow.Activity.Source> sources = ElementIterable
                 .of(getFirstChildWithTag(activity, "sources")).stream()
-                .map(XmlToTibcoModelConverter::parseSource).toList();
+                .map(XmlToTibcoModelParser::parseSource).toList();
 
         return new Flow.Activity.ReceiveEvent(createInstance, eventTimeout, variable, sources,
-                activity);
+                activity, cx.fileName());
     }
 
     private static Flow.Activity.Source parseSource(Element element) {
         String linkName = element.getAttribute("linkName");
         Optional<Flow.Activity.Source.Predicate> predicate = tryGetFirstChildWithTag(element,
-                "transitionCondition").map(XmlToTibcoModelConverter::parseCondition);
+                "transitionCondition").map(XmlToTibcoModelParser::parseCondition);
         return new Flow.Activity.ReceiveEvent.Source(linkName, predicate);
     }
 
@@ -1140,7 +1127,7 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static Collection<Variable> parseVariables(Element element) {
-        return ElementIterable.of(element).stream().map(XmlToTibcoModelConverter::parseVariable).toList();
+        return ElementIterable.of(element).stream().map(XmlToTibcoModelParser::parseVariable).toList();
     }
 
     private static Variable parseVariable(Element element) {
@@ -1188,7 +1175,7 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static Collection<PartnerLink> parsePartnerLinks(Element element) {
-        return ElementIterable.of(element).stream().map(XmlToTibcoModelConverter::parsePartnerLink).toList();
+        return ElementIterable.of(element).stream().map(XmlToTibcoModelParser::parsePartnerLink).toList();
     }
 
     private static PartnerLink parsePartnerLink(Element element) {
@@ -1262,14 +1249,14 @@ public final class XmlToTibcoModelConverter {
                 PartnerLink.Binding.Operation.MessageStyle::from,
                 operation.getAttribute("responseStyle"));
         Optional<PartnerLink.Binding.Operation.Format> clientFormat = parseIfPresent(
-                XmlToTibcoModelConverter::parseFormat,
+                XmlToTibcoModelParser::parseFormat,
                 tryGetFirstChildWithTag(operation, "clientFormat"));
 
         Optional<PartnerLink.Binding.Operation.Format> clientRequestFormat = parseIfPresent(
-                XmlToTibcoModelConverter::parseFormat,
+                XmlToTibcoModelParser::parseFormat,
                 tryGetFirstChildWithTag(operation, "clientRequestFormat"));
         List<PartnerLink.RestPartnerLink.Binding.Operation.Parameter> parameters = tryGetFirstChildWithTag(
-                operation, "parameters").map(XmlToTibcoModelConverter::parseParameters)
+                operation, "parameters").map(XmlToTibcoModelParser::parseParameters)
                 .orElseGet(Collections::emptyList);
         return new PartnerLink.RestPartnerLink.Binding.Operation(method, requestEntityProcessing,
                 requestStyle, responseStyle, clientFormat, clientRequestFormat, parameters);
@@ -1290,12 +1277,7 @@ public final class XmlToTibcoModelConverter {
             Element parameters) {
         return List.of();
         // return
-        // ElementIterable.of(parameters).stream().map(XmlToTibcoModelConverter::parseParameter).toList();
-    }
-
-    private static PartnerLink.RestPartnerLink.Binding.Operation.Parameter parseParameter(Element element) {
-        // TODO: support this when we properly support path parameters
-        throw new UnsupportedOperationException("unimplemented");
+        // ElementIterable.of(parameters).stream().map(XmlToTibcoModelParser::parseParameter).toList();
     }
 
     private static PartnerLink.RestPartnerLink.Binding.Operation.Format parseFormat(Element clientFormat) {
@@ -1340,12 +1322,12 @@ public final class XmlToTibcoModelConverter {
         return new ProcessInfo(callable, modifiers, scalable, singleton, stateless, type);
     }
 
-    private static Collection<Type> parseTypes(Element element) {
+    private static Collection<Type> parseTypes(TypeContext cx, Element element) {
         List<Type> members = new ArrayList<>();
         for (Element child : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
-                case "schema" -> members.add(parseSchema(child));
+                case "schema" -> members.add(parseSchema(cx, child));
                 case "definitions" -> tryParseWSDLDefinition(child).ifPresent(members::add);
                 default -> throw new ParserException("Unsupported types member tag: " + tag, element);
             }
@@ -1353,7 +1335,7 @@ public final class XmlToTibcoModelConverter {
         return members;
     }
 
-    static Type.Schema parseSchema(Element element) {
+    public static Type.Schema parseSchema(TypeContext cx, Element element) {
         return new Type.Schema(element);
     }
 
@@ -1426,15 +1408,16 @@ public final class XmlToTibcoModelConverter {
         return new Type.WSDLDefinition.PortType(name, apiPath, basePath, portOperation);
     }
 
+    private record MessageNamePair(NameSpaceValue message, String name) {
+
+        static MessageNamePair from(Element element) {
+            return new MessageNamePair(NameSpaceValue.from(element.getAttribute("message")),
+                    element.getAttribute("name"));
+        }
+    }
+
     private static Type.WSDLDefinition.PortType.Operation parsePortOperation(Element operation) {
 
-        record MessageNamePair(NameSpaceValue message, String name) {
-
-            static MessageNamePair from(Element element) {
-                return new MessageNamePair(NameSpaceValue.from(element.getAttribute("message")),
-                        element.getAttribute("name"));
-            }
-        }
         String name = operation.getAttribute("name");
         Type.WSDLDefinition.PortType.Operation.Input input = null;
         Type.WSDLDefinition.PortType.Operation.Output output = null;
@@ -1467,7 +1450,7 @@ public final class XmlToTibcoModelConverter {
     private static Type.WSDLDefinition.Message parseMessage(Element element) {
         String name = element.getAttribute("name");
         List<Type.WSDLDefinition.Message.Part> parts = parseSequence(element,
-                XmlToTibcoModelConverter::parseMessagePart);
+                XmlToTibcoModelParser::parseMessagePart);
         return new Type.WSDLDefinition.Message(name, parts);
     }
 

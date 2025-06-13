@@ -24,10 +24,10 @@ import common.BallerinaModel.Statement.Return;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import tibco.TibcoToBalConverter;
-import tibco.XmlToTibcoModelConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.Process;
 import tibco.model.Type;
+import tibco.parser.XmlToTibcoModelParser;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -233,7 +233,7 @@ public class ProjectContext {
 
     BallerinaModel.TypeDesc getTypeByName(String name, ContextWithFile cx) {
         // TODO: how to handle names spaces
-        name = ConversionUtils.sanitizes(XmlToTibcoModelConverter.getTagNameWithoutNameSpace(name));
+        name = ConversionUtils.sanitizes(XmlToTibcoModelParser.getTagNameWithoutNameSpace(name));
         if (typeCx.moduleTypeDefs.containsKey(name)) {
             return new BallerinaModel.TypeDesc.TypeReference(name);
         }

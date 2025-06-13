@@ -25,7 +25,6 @@ import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 import tibco.TibcoToBalConverter;
-import tibco.XmlToTibcoModelConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.TibcoAnalysisReport;
 import tibco.model.Method;
@@ -33,6 +32,7 @@ import tibco.model.PartnerLink;
 import tibco.model.Process;
 import tibco.model.Process5;
 import tibco.model.Scope;
+import tibco.parser.XmlToTibcoModelParser;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -54,10 +54,11 @@ public class ActivityConversionTest {
     @Test(groups = {"tibco", "converter"}, dataProvider = "activityTestCaseProvider")
     public void testProjectConversion(Path activityPath, Path expectedFunction) throws IOException,
             ParserConfigurationException, SAXException {
+        tibco.parser.ProcessContext cx =
+                new tibco.parser.ProcessContext(new tibco.parser.ProjectContext(), "ANON.process");
         Element activityElement = stringToElement(fileContent(activityPath));
-        Scope.Flow.Activity activity = XmlToTibcoModelConverter.parseActivity(activityElement);
-        ProcessContext cx = getProcessContext(activity);
-        BallerinaModel.Function result = ActivityConverter.convertActivity(cx, activity);
+        Scope.Flow.Activity activity = XmlToTibcoModelParser.parseActivity(cx, activityElement);
+        BallerinaModel.Function result = ActivityConverter.convertActivity(getProcessContext(activity), activity);
         String actual = toString(result);
 //        bless(expectedFunction, actual);
         String expected = fileContent(expectedFunction);

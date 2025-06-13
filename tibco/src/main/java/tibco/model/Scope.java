@@ -58,6 +58,8 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
             Element element();
 
+            String fileName();
+
             sealed interface ActivityWithSources extends Flow.Activity {
 
                 List<Source> sources();
@@ -124,7 +126,8 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
             record NestedScope(String name, List<Flow.Activity.Source> sources,
                                Collection<Flow.Activity.Target> targets,
                                Collection<Sequence> sequences, Collection<Flow> flows,
-                               Collection<FaultHandler> faultHandlers, Element element) implements Flow.Activity,
+                               Collection<FaultHandler> faultHandlers, Element element, String fileName)
+                    implements Flow.Activity,
                     Flow.Activity.ActivityWithSources, Flow.Activity.ActivityWithTargets,
                     Flow.Activity.ActivityWithScope, Flow.Activity.ActivityWithName {
 
@@ -138,22 +141,23 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                 }
             }
 
-            record CatchAll(Scope scope,
-                            Element element) implements FaultHandler, Flow.Activity.ActivityWithScope,
+            record CatchAll(Scope scope, Element element, String fileName)
+                    implements FaultHandler, Flow.Activity.ActivityWithScope,
                     Flow.Activity.StartActivity {
 
             }
 
             record UnhandledActivity(String reason, List<Flow.Activity.Source> sources,
                                      Collection<Flow.Activity.Target> targets,
-                                     Element element) implements Flow.Activity, Flow.Activity.ActivityWithSources,
+                                     Element element, String fileName)
+                    implements Flow.Activity, Flow.Activity.ActivityWithSources,
                     Flow.Activity.ActivityWithTargets {
 
             }
 
             record Assign(List<Flow.Activity.Source> sources, Collection<Flow.Activity.Target> targets,
                           Flow.Activity.Assign.Copy operation,
-                          Element element) implements Flow.Activity, Flow.Activity.ActivityWithSources,
+                          Element element, String fileName) implements Flow.Activity, Flow.Activity.ActivityWithSources,
                     Flow.Activity.ActivityWithTargets {
 
                 public record Copy(ValueSource from, ValueSource.VarRef to) {
@@ -162,14 +166,14 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
             }
 
             record Foreach(String counterName, Scope scope, ValueSource startCounterValue,
-                           ValueSource finalCounterValue, Element element) implements Flow.Activity,
+                           ValueSource finalCounterValue, Element element, String fileName) implements Flow.Activity,
                     Flow.Activity.ActivityWithScope {
 
             }
 
             record Reply(String name, Method operation, String partnerLink, String portType,
                          List<Flow.Activity.InputBinding> inputBindings, Collection<Flow.Activity.Target> targets,
-                         Element element)
+                         Element element, String fileName)
                     implements Flow.Activity, Flow.Activity.ActivityWithTargets, Flow.Activity.ActivityWithName {
 
                 @Override
@@ -179,12 +183,13 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
             }
 
             record Throw(List<Flow.Activity.InputBinding> inputBindings, Collection<Flow.Activity.Target> targets,
-                         Element element)
+                         Element element, String fileName)
                     implements Flow.Activity, Flow.Activity.ActivityWithTargets {
 
             }
 
-            record Empty(String name, Element element) implements Flow.Activity, Flow.Activity.ActivityWithName {
+            record Empty(String name, Element element, String fileName)
+                    implements Flow.Activity, Flow.Activity.ActivityWithName {
 
                 @Override
                 public Optional<String> getName() {
@@ -193,7 +198,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
             }
 
             record Pick(boolean createInstance, Flow.Activity.Pick.OnMessage onMessage,
-                        Element element) implements Flow.Activity, Flow.Activity.ActivityWithScope,
+                        Element element, String fileName) implements Flow.Activity, Flow.Activity.ActivityWithScope,
                     Flow.Activity.StartActivity {
 
                 @Override
@@ -208,24 +213,22 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
             }
 
             record ReceiveEvent(boolean createInstance, float eventTimeout, Optional<String> variable,
-                                List<Flow.Activity.Source> sources, Element element) implements Flow.Activity,
-                    Flow.Activity.ActivityWithSources {
+                                List<Flow.Activity.Source> sources, Element element, String fileName)
+                    implements Flow.Activity, Flow.Activity.ActivityWithSources {
 
                 public ReceiveEvent(boolean createInstance, float eventTimeout, String variable,
-                                    List<Source> sources, Element element) {
+                                    List<Source> sources, Element element, String fileName) {
                     this(createInstance, eventTimeout,
-                            variable.isEmpty() ? Optional.empty() : Optional.of(variable), sources, element);
+                            variable.isEmpty() ? Optional.empty() : Optional.of(variable), sources, element, fileName);
                 }
 
             }
 
             record ExtActivity(Optional<Flow.Activity.Expression> expression, String inputVariable,
-                               String outputVariable,
-                               List<Flow.Activity.Source> sources, List<Flow.Activity.Target> targets,
-                               List<Flow.Activity.InputBinding> inputBindings,
-                               Flow.Activity.ExtActivity.CallProcess callProcess, Element element) implements
-                    Flow.Activity,
-                    Flow.Activity.ActivityWithSources, Flow.Activity.ActivityWithTargets,
+                               String outputVariable, List<Flow.Activity.Source> sources,
+                               List<Flow.Activity.Target> targets, List<Flow.Activity.InputBinding> inputBindings,
+                               Flow.Activity.ExtActivity.CallProcess callProcess, Element element, String fileName)
+                    implements Flow.Activity, Flow.Activity.ActivityWithSources, Flow.Activity.ActivityWithTargets,
                     Flow.Activity.ActivityWithOutput {
 
                 public ExtActivity {
@@ -250,9 +253,8 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
             record ActivityExtension(Optional<String> name, Optional<String> inputVariable,
                                      Optional<String> outputVariable, Collection<Flow.Activity.Target> targets,
                                      List<Flow.Activity.Source> sources, List<Flow.Activity.InputBinding> inputBindings,
-                                     Flow.Activity.ActivityExtension.Config config,
-                                     Element element) implements Flow.Activity, Flow.Activity.ActivityWithTargets,
-                    Flow.Activity.ActivityWithSources,
+                                     Flow.Activity.ActivityExtension.Config config, Element element, String fileName)
+                    implements Flow.Activity, Flow.Activity.ActivityWithTargets, Flow.Activity.ActivityWithSources,
                     Flow.Activity.ActivityWithName, Flow.Activity.ActivityWithOutput {
 
                 @Override
@@ -455,7 +457,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
             record Invoke(String inputVariable, String outputVariable, Method operation, String partnerLink,
                           List<Flow.Activity.InputBinding> inputBindings, Collection<Flow.Activity.Target> targets,
                           List<Flow.Activity.Source> sources,
-                          Element element)
+                          Element element, String fileName)
                     implements Flow.Activity, Flow.Activity.ActivityWithSources, Flow.Activity.ActivityWithTargets,
                     Flow.Activity.ActivityWithOutput {
 
