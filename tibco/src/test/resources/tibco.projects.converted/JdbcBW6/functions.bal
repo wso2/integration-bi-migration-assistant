@@ -62,10 +62,6 @@ function start_test_api_MainProcess(Context params) returns () {
     scopeScopeFn(params);
 }
 
-function convertToTestResponse(xml input) returns TestResponse {
-    return checkpanic xmldata:parseAsType(input);
-}
-
 function toXML(map<anydata> data) returns error|xml {
     return xmldata:toXml(data);
 }
@@ -91,4 +87,8 @@ function getFromContext(Context context, string varName) returns xml {
 
 function initContext(map<xml> initVariables = {}) returns Context {
     return {variables: initVariables, result: xml `<root/>`};
+}
+
+function convertToTestResponse(xml input) returns TestResponse {
+    return checkpanic xmldata:parseAsType(input);
 }

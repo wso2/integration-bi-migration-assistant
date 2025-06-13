@@ -83,7 +83,6 @@ public class ProjectContext {
     private final Map<String, String> generatedResources = new HashMap<>();
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
     private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
-    private final Map<BallerinaModel.TypeDesc, String> typeConversionFunction = new HashMap<>();
     private final Map<String, String> renderJsonAsXMLFunction = new HashMap<>();
     private final Map<Process, AnalysisResult> analysisResult;
     private Collection<Type.Schema> schemas = new ArrayList<>();
@@ -170,21 +169,10 @@ public class ProjectContext {
     }
 
     String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
-        return typeConversionFunction.computeIfAbsent(targetType, this::createConvertToTypeFunction);
-    }
-
-    private String createConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
-        String functionName = "convertTo" + ConversionUtils.sanitizes(targetType.toString());
-        importLibraryIfNeededToUtility(Library.XML_DATA);
-        FunctionCall parseAsTypeCall = new FunctionCall(
-                "xmldata:parseAsType", new String[] { "input" });
-        BallerinaModel.Expression.CheckPanic checkPanic = new BallerinaModel.Expression.CheckPanic(parseAsTypeCall);
-        Return<BallerinaModel.Expression.CheckPanic> returnStmt = new Return<>(Optional.of(checkPanic));
-        BallerinaModel.Function function =
-                new BallerinaModel.Function(functionName, List.of(new BallerinaModel.Parameter("input", XML)),
-                        targetType, List.of(returnStmt));
-        utilityFunctions.add(function);
-        return functionName;
+        importLibraryIfNeededToUtility(XML_DATA);
+        ComptimeFunction convertToType = new ConvertToType(targetType);
+        utilityCompTimeFunctions.add(convertToType);
+        return convertToType.functionName();
     }
 
     String getTryDataBindToTypeFunction(BallerinaModel.TypeDesc targetType) {
