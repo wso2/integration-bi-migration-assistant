@@ -106,6 +106,15 @@ function initContext(map<xml> initVariables = {}) returns Context {
     return {variables: initVariables, result: xml `<root/>`};
 }
 
-function convertToTestResponse(xml input) returns TestResponse {
-    return checkpanic xmldata:parseAsType(input);
+function convertToTestResponse(anydata input) returns TestResponse {
+    if input is TestResponse {
+        return input;
+    }
+    if (input is xml) {
+        return checkpanic xmldata:parseAsType(input);
+    }
+    if (input is json) {
+        return checkpanic jsondata:parseAsType(input);
+    }
+    panic error("Unexpected: unsupported source type for convert to TestResponse");
 }

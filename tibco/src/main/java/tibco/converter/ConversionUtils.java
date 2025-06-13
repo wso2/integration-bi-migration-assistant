@@ -225,6 +225,10 @@ public final class ConversionUtils {
         return result.ref();
     }
 
+    public static Expression getResultFromContext(Expression.VariableReference context) {
+        return new Expression.FieldAccess(context, "result");
+    }
+
     public static BallerinaModel.TypeDesc.FunctionTypeDesc activityFnType(ProcessContext cx) {
         return new BallerinaModel.TypeDesc.FunctionTypeDesc(
                 List.of(new BallerinaModel.Parameter("cx", cx.contextType())),

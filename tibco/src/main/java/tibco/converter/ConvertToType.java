@@ -24,8 +24,17 @@ public record ConvertToType(String targetType) implements ComptimeFunction {
 
     private static final String NAME = "convertTo%s";
     private static final String FUNCTION = """
-            function convertTo%1$s(xml input) returns %1$s {
-                return checkpanic xmldata:parseAsType(input);
+            function convertTo%1$s(anydata input) returns %1$s {
+                if input is %1$s {
+                    return input;
+                }
+                if (input is xml) {
+                    return checkpanic xmldata:parseAsType(input);
+                }
+                if (input is json) {
+                    return checkpanic jsondata:parseAsType(input);
+                }
+                panic error("Unexpected: unsupported source type for convert to %1$s");
             }
             """;
 
