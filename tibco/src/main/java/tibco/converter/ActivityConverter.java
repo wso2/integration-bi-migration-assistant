@@ -382,8 +382,6 @@ final class ActivityConverter {
         String scopeFn = analysisResult.getControlFlowFunctions(loop.body()).scopeFn();
         sb.append(new CallStatement(new FunctionCall(scopeFn, List.of(cx.contextVarRef()))));
         // TODO: need a cleaner way to do this
-        // TODO: revisit this when result is not xml
-        //   -- Maybe add a new function here that cast to xml
         List<Statement> buffer = new ArrayList<>();
         VariableReference res = ConversionUtils.getXMLResultFromContext(buffer, cx.contextVarRef());
         for (Statement s : buffer) {

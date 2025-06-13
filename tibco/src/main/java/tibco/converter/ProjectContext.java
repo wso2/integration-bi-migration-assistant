@@ -145,7 +145,6 @@ public class ProjectContext {
                         List.of(
                                 new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("variables",
                                         new BallerinaModel.TypeDesc.MapTypeDesc(XML)),
-                                // TODO:This should be any data
                                 new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("result", ANYDATA))
                 )
         );
@@ -170,6 +169,7 @@ public class ProjectContext {
 
     String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
         importLibraryIfNeededToUtility(XML_DATA);
+        importLibraryIfNeededToUtility(JSON_DATA);
         ComptimeFunction convertToType = new ConvertToType(targetType);
         utilityCompTimeFunctions.add(convertToType);
         return convertToType.functionName();

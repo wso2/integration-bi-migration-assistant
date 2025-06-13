@@ -93,10 +93,10 @@ function convertToTestResponse(anydata input) returns TestResponse {
     if input is TestResponse {
         return input;
     }
-    if (input is xml) {
+    if input is xml {
         return checkpanic xmldata:parseAsType(input);
     }
-    if (input is json) {
+    if input is json {
         return checkpanic jsondata:parseAsType(input);
     }
     panic error("Unexpected: unsupported source type for convert to TestResponse");

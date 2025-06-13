@@ -28,10 +28,10 @@ public record ConvertToType(String targetType) implements ComptimeFunction {
                 if input is %1$s {
                     return input;
                 }
-                if (input is xml) {
+                if input is xml {
                     return checkpanic xmldata:parseAsType(input);
                 }
-                if (input is json) {
+                if input is json {
                     return checkpanic jsondata:parseAsType(input);
                 }
                 panic error("Unexpected: unsupported source type for convert to %1$s");
