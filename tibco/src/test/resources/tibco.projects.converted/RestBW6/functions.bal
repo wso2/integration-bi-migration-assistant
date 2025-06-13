@@ -37,7 +37,23 @@ function activityExtension_2(Context cx) returns error? {
         </tns1:ResponseActivityInput>
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
-    xml var2 = xml `<root>${var1}</root>`;
+    //FIXME ignoring headers others than content type
+    xmlns "http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput" as ns;
+    string var2 = (var1/**/<ns:Content\-Type>/*).toString();
+    string var3 = (var1/**/<ns:asciiContent>/*).toString();
+    match var2 {
+        "application/json" => {
+            map<json> jsonRepr = check jsondata:parseString(var3);
+            cx.result = jsonRepr;
+        }
+        "application/xml" => {
+            xml xmlRepr = xml `${var3}`;
+            cx.result = xmlRepr;
+        }
+        _ => {
+            panic error("Unsupported content type: " + var2);
+        }
+    }
 }
 
 function pick(Context cx) returns error? {

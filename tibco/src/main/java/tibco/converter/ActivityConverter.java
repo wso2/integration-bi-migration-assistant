@@ -759,7 +759,8 @@ final class ActivityConverter {
             case ActivityExtension.Config.HTTPSend httpSend -> createHttpSend(cx, result, httpSend);
             case JsonOperation jsonOperation -> createJsonOperation(cx, result, jsonOperation);
             case ActivityExtension.Config.SQL sql -> createSQLOperation(cx, result, sql);
-            case ActivityExtension.Config.SendHTTPResponse ignored -> emptyExtensionConversion(cx, result);
+            case ActivityExtension.Config.SendHTTPResponse sendHTTPResponse ->
+                    createSendHttpResponse(cx, result, sendHTTPResponse);
             case ActivityExtension.Config.FileWrite fileWrite -> createFileWriteOperation(cx, result, fileWrite);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.RenderXML ignored -> finishXmlRenderActivity(cx, result);
@@ -774,6 +775,47 @@ final class ActivityConverter {
         activityExtension.outputVariable()
                 .ifPresent(outputVar -> body.add(addToContext(cx, conversion.result(), outputVar)));
         return body;
+    }
+
+    private static ActivityConversionResult createSendHttpResponse(
+            ActivityContext cx, VariableReference input, ActivityExtension.Config.SendHTTPResponse sendHTTPResponse) {
+        List<Statement> body = new ArrayList<>();
+        body.add(new Comment("FIXME ignoring headers others than content type"));
+        VarDeclStatment contentType;
+        VarDeclStatment asciiContent;
+        if (sendHTTPResponse.ResponseActivityInputNamespace().isPresent()) {
+            body.add(
+                    stmtFrom("xmlns \"%s\" as ns;".formatted(sendHTTPResponse.ResponseActivityInputNamespace().get())));
+            contentType = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                    exprFrom("(%s/**/<ns:Content\\-Type>/*).toString()".formatted(input.varName())));
+            asciiContent = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                    exprFrom("(%s/**/<ns:asciiContent>/*).toString()".formatted(input.varName())));
+        } else {
+            contentType = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                    exprFrom("(%s/**/<Content\\-Type>/*).toString()".formatted(input.varName())));
+            asciiContent = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                    exprFrom("(%s/**/<asciiContent>/*).toString()".formatted(input.varName())));
+        }
+        body.add(contentType);
+        body.add(asciiContent);
+        cx.addLibraryImport(Library.JSON_DATA);
+        cx.addLibraryImport(Library.XML_DATA);
+        body.add(common.ConversionUtils.stmtFrom("""
+                match %1$s {
+                    "application/json" => {
+                        map<json> jsonRepr = check jsondata:parseString(%2$s);
+                        cx.result = jsonRepr;
+                    }
+                    "application/xml" => {
+                        xml xmlRepr = xml `${%2$s}`;
+                        cx.result = xmlRepr;
+                    }
+                    _ => {
+                        panic error("Unsupported content type: " + %1$s);
+                    }
+                }
+                """.formatted(contentType.ref(), asciiContent.ref())));
+        return new ActivityConversionResult(asciiContent.ref(), body);
     }
 
     private static ActivityConversionResult createAccumulateEnd(
