@@ -989,11 +989,20 @@ public final class XmlToTibcoModelConverter {
             case JSON_PARSER -> parseJSONOperation(config, Config.ExtensionKind.JSON_PARSER);
             case LOG -> new Config.Log();
             case RENDER_XML -> new Config.RenderXML();
-            case SEND_HTTP_RESPONSE -> new Config.SendHTTPResponse();
+            case SEND_HTTP_RESPONSE -> parseSendHTTPResponse(config);
             case MAPPER -> new Config.Mapper();
             case SQL -> parasSqlActivityExtension(config);
             case ACCUMULATE_END -> parseAccumulateEnd(activity);
         };
+    }
+
+    private static Config.@NotNull SendHTTPResponse parseSendHTTPResponse(Element config) {
+        Element activity = getFirstChildWithTag(config, "BWActivity");
+        String responseActivityInputNs = activity.getAttribute("xmlns:ResponseActivityInput").trim();
+        if (responseActivityInputNs.isBlank()) {
+            return new Config.SendHTTPResponse(Optional.empty());
+        }
+        return new Config.SendHTTPResponse(Optional.of(responseActivityInputNs));
     }
 
     private static Config parseJSONOperation(Element config, Config.ExtensionKind kind) {

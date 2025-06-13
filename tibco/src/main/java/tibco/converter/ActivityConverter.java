@@ -32,7 +32,6 @@ import common.BallerinaModel.Expression.XMLTemplate;
 import common.BallerinaModel.Statement;
 import common.BallerinaModel.Statement.CallStatement;
 import common.BallerinaModel.Statement.Comment;
-import common.BallerinaModel.Statement.Return;
 import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc.StreamTypeDesc;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
@@ -122,7 +121,8 @@ final class ActivityConverter {
                     sources, targets, activity.element());
             body = tryConvertActivityBody(cx, unhandledActivity);
         }
-        return new BallerinaModel.Function(cx.functionName(), cx.parameters(), ActivityContext.returnType(),
+        BallerinaModel.TypeDesc.FunctionTypeDesc activityFnType = ConversionUtils.activityFnType(cx.processContext);
+        return new BallerinaModel.Function(cx.functionName(), activityFnType.parameters(), activityFnType.returnType(),
                 body);
     }
 
@@ -192,7 +192,6 @@ final class ActivityConverter {
             };
             body.addAll(conversion.body());
             body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
-            body.add(new Return<>(conversion.result()));
             return body;
         }
 
@@ -381,14 +380,18 @@ final class ActivityConverter {
         loop.elementSlot().ifPresent(s -> sb.append(addToContext(cx, new VariableReference(element), s)));
         AnalysisResult analysisResult = cx.processContext.getAnalysisResult();
         String scopeFn = analysisResult.getControlFlowFunctions(loop.body()).scopeFn();
-        VarDeclStatment res = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new FunctionCall(scopeFn, List.of(cx.contextVarRef())));
-        sb.append(res);
+        sb.append(new CallStatement(new FunctionCall(scopeFn, List.of(cx.contextVarRef()))));
+        // TODO: need a cleaner way to do this
+        List<Statement> buffer = new ArrayList<>();
+        VariableReference res = ConversionUtils.getXMLResultFromContext(buffer, cx.contextVarRef());
+        for (Statement s : buffer) {
+            sb.append(s);
+        }
         BallerinaModel.Expression resultUpdate;
         if (loop.accumulateOutput()) {
             resultUpdate = exprFrom("%s + %s".formatted(result, res));
         } else {
-            resultUpdate = res.ref();
+            resultUpdate = res;
         }
         sb.append(new Statement.VarAssignStatement(result, resultUpdate));
         sb.append("}");
@@ -636,7 +639,6 @@ final class ActivityConverter {
                     }
                     """.formatted(foreach.counterName(), init, end, contextUpdate, result.ref(), scopeFn,
                 cx.contextVarRef())));
-        body.add(new Return<>(result.ref()));
         return body;
     }
 
@@ -679,18 +681,11 @@ final class ActivityConverter {
 
     private static List<Statement> convertThrowActivity(ActivityContext cx, Throw throwActivity) {
         List<Statement> body = new ArrayList<>();
-        BallerinaModel.Expression result;
         VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
         body.add(inputDecl);
         VariableReference input = inputDecl.ref();
-        if (throwActivity.inputBindings().isEmpty()) {
-            result = input;
-        } else {
-            List<VarDeclStatment> inputBindings = convertInputBindings(cx, input,
-                    throwActivity.inputBindings());
-            body.addAll(inputBindings);
-            result = inputBindings.getLast().ref();
-        }
+        List<VarDeclStatment> inputBindings = convertInputBindings(cx, input, throwActivity.inputBindings());
+        body.addAll(inputBindings);
         // TODO: set the body correctly using result
         VarDeclStatment errorValue = new VarDeclStatment(ERROR, cx.getAnnonVarName(),
                 exprFrom("error(\"TODO: create error value\")"));
@@ -709,14 +704,12 @@ final class ActivityConverter {
         String scopeFn =
                 cx.processContext.getAnalysisResult().getControlFlowFunctions(activityWithScope.scope())
                         .scopeFn();
-        return List.of(new Return<>(new FunctionCall(scopeFn, List.of(cx.contextVarRef()))));
+        return List.of(new CallStatement(new FunctionCall(scopeFn, List.of(cx.contextVarRef()))));
     }
 
     private static List<Statement> convertUnhandledActivity(ActivityContext cx,
                                                             UnhandledActivity unhandledActivity) {
-        BallerinaModel.Expression inputXml = defaultEmptyXml();
-        return List.of(new Comment(unhandledActivity.reason()), elementAsComment(unhandledActivity.element()),
-                new Return<>(inputXml));
+        return List.of(new Comment(unhandledActivity.reason()), elementAsComment(unhandledActivity.element()));
     }
 
     private static Comment elementAsComment(Element element) {
@@ -728,15 +721,10 @@ final class ActivityConverter {
         VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
         body.add(inputDecl);
         VariableReference input = inputDecl.ref();
-        VariableReference result;
-        if (reply.inputBindings().isEmpty()) {
-            result = input;
-        } else {
+        if (!reply.inputBindings().isEmpty()) {
             List<VarDeclStatment> inputBindings = convertInputBindings(cx, input, reply.inputBindings());
             body.addAll(inputBindings);
-            result = new VariableReference(inputBindings.getLast().varName());
         }
-        body.add(new Return<>(result));
         return body;
     }
 
@@ -745,10 +733,7 @@ final class ActivityConverter {
     }
 
     private static List<Statement> convertEmptyAction(ActivityContext cx) {
-        List<Statement> body = new ArrayList<>();
-        BallerinaModel.Expression inputXml = defaultEmptyXml();
-        body.add(new Return<>(Optional.of(inputXml)));
-        return body;
+        return List.of();
     }
 
     private static List<Statement> convertActivityExtension(ActivityContext cx,
@@ -772,7 +757,8 @@ final class ActivityConverter {
             case ActivityExtension.Config.HTTPSend httpSend -> createHttpSend(cx, result, httpSend);
             case JsonOperation jsonOperation -> createJsonOperation(cx, result, jsonOperation);
             case ActivityExtension.Config.SQL sql -> createSQLOperation(cx, result, sql);
-            case ActivityExtension.Config.SendHTTPResponse ignored -> emptyExtensionConversion(cx, result);
+            case ActivityExtension.Config.SendHTTPResponse sendHTTPResponse ->
+                    createSendHttpResponse(cx, result, sendHTTPResponse);
             case ActivityExtension.Config.FileWrite fileWrite -> createFileWriteOperation(cx, result, fileWrite);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.RenderXML ignored -> finishXmlRenderActivity(cx, result);
@@ -786,8 +772,48 @@ final class ActivityConverter {
         body.addAll(conversion.body());
         activityExtension.outputVariable()
                 .ifPresent(outputVar -> body.add(addToContext(cx, conversion.result(), outputVar)));
-        body.add(new Return<>(conversion.result()));
         return body;
+    }
+
+    private static ActivityConversionResult createSendHttpResponse(
+            ActivityContext cx, VariableReference input, ActivityExtension.Config.SendHTTPResponse sendHTTPResponse) {
+        List<Statement> body = new ArrayList<>();
+        body.add(new Comment("FIXME ignoring headers others than content type"));
+        VarDeclStatment contentType;
+        VarDeclStatment asciiContent;
+        if (sendHTTPResponse.ResponseActivityInputNamespace().isPresent()) {
+            body.add(
+                    stmtFrom("xmlns \"%s\" as ns;".formatted(sendHTTPResponse.ResponseActivityInputNamespace().get())));
+            contentType = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                    exprFrom("(%s/**/<ns:Content\\-Type>/*).toString()".formatted(input.varName())));
+            asciiContent = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                    exprFrom("(%s/**/<ns:asciiContent>/*).toString()".formatted(input.varName())));
+        } else {
+            contentType = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                    exprFrom("(%s/**/<Content\\-Type>/*).toString()".formatted(input.varName())));
+            asciiContent = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                    exprFrom("(%s/**/<asciiContent>/*).toString()".formatted(input.varName())));
+        }
+        body.add(contentType);
+        body.add(asciiContent);
+        cx.addLibraryImport(Library.JSON_DATA);
+        cx.addLibraryImport(Library.XML_DATA);
+        body.add(common.ConversionUtils.stmtFrom("""
+                match %1$s {
+                    "application/json" => {
+                        map<json> jsonRepr = check jsondata:parseString(%2$s);
+                        cx.result = jsonRepr;
+                    }
+                    "application/xml" => {
+                        xml xmlRepr = xml `${%2$s}`;
+                        cx.result = xmlRepr;
+                    }
+                    _ => {
+                        panic error("Unsupported content type: " + %1$s);
+                    }
+                }
+                """.formatted(contentType.ref(), asciiContent.ref())));
+        return new ActivityConversionResult(asciiContent.ref(), body);
     }
 
     private static ActivityConversionResult createAccumulateEnd(
@@ -982,10 +1008,9 @@ final class ActivityConverter {
             var variable = receiveEvent.variable().get();
             return List.of(
                     addToContext(cx, getFromContext(cx,
-                            ConversionUtils.Constants.CONTEXT_INPUT_NAME), variable),
-                    new Return<>(getFromContext(cx, ConversionUtils.Constants.CONTEXT_INPUT_NAME)));
+                            ConversionUtils.Constants.CONTEXT_INPUT_NAME), variable));
         } else {
-            return List.of(new Return<>(defaultEmptyXml()));
+            return List.of();
         }
     }
 
@@ -1030,7 +1055,6 @@ final class ActivityConverter {
         VariableReference result = new VariableReference(resultDecl.varName());
 
         body.add(addToContext(cx, result, invoke.outputVariable()));
-        body.add(new Return<>(result));
         return body;
     }
 
@@ -1069,7 +1093,6 @@ final class ActivityConverter {
         body.add(resultDecl);
         VariableReference resultRef = resultDecl.ref();
         body.add(addToContext(cx, resultRef, extActivity.outputVariable()));
-        body.add(new Return<>(resultRef));
         return body;
     }
 
@@ -1138,16 +1161,18 @@ final class ActivityConverter {
         cx.addLibraryImport(Library.XSLT);
         String styleSheet = xsltTransformer.apply(cx, xslt.expression());
         return new Check(new FunctionCall(XSLTConstants.XSLT_TRANSFORM_FUNCTION,
-                List.of(inputVariable, new XMLTemplate(styleSheet), cx.contextVarRef())));
+                List.of(inputVariable, new XMLTemplate(styleSheet),
+                        new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "variables"))));
     }
 
     private static XMLTemplate defaultEmptyXml() {
         return new XMLTemplate("<root></root>");
     }
 
-    private static MethodCall getFromContext(ActivityContext cx, String key) {
+    private static FunctionCall getFromContext(ActivityContext cx, String key) {
         assert !key.isEmpty();
-        return new MethodCall(cx.contextVarRef(), "get", List.of(new StringConstant(key)));
+        String getFromContextFn = cx.getFromContextFn();
+        return new FunctionCall(getFromContextFn, List.of(cx.contextVarRef(), new StringConstant(key)));
     }
 
     private static Statement addToContext(ActivityContext cx, BallerinaModel.Expression value, String key) {

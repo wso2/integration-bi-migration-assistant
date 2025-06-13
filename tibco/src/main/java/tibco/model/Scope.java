@@ -303,7 +303,8 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
-                    record SendHTTPResponse() implements ActivityExtension.Config {
+                    record SendHTTPResponse(Optional<String> ResponseActivityInputNamespace)
+                            implements ActivityExtension.Config {
 
                         @Override
                         public ExtensionKind kind() {

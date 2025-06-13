@@ -19,7 +19,6 @@
 package tibco.converter;
 
 import common.BallerinaModel;
-import common.BallerinaModel.Statement.VarDeclStatment;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.NameSpace;
@@ -66,12 +65,8 @@ public class ProcessContext implements ContextWithFile {
         this.process = process;
     }
 
-    static BallerinaModel.TypeDesc contextType() {
-        return new BallerinaModel.TypeDesc.MapTypeDesc(XML);
-    }
-
-    VarDeclStatment initContextVar(String paramsVarName) {
-        return new VarDeclStatment(contextType(), "context", exprFrom("{...%s}".formatted(paramsVarName)));
+    BallerinaModel.TypeDesc contextType() {
+        return projectContext.contextType();
     }
 
     void addResourceVariable(Variable.PropertyVariable propertyVariable) {
@@ -208,7 +203,8 @@ public class ProcessContext implements ContextWithFile {
     }
 
     BallerinaModel.Expression.VariableReference contextVarRef() {
-        return new BallerinaModel.Expression.VariableReference(ConversionUtils.Constants.CONTEXT_VAR_NAME);
+        BallerinaModel.TypeDesc.FunctionTypeDesc activityFnType = ConversionUtils.activityFnType(this);
+        return activityFnType.parameters().getFirst().ref();
     }
 
     BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {
@@ -221,6 +217,14 @@ public class ProcessContext implements ContextWithFile {
 
     String getAddToContextFn() {
         return projectContext.getAddToContextFn();
+    }
+
+    String getFromContextFn() {
+        return projectContext.getFromContextFn();
+    }
+
+    String getInitContextFn() {
+        return projectContext.getInitContextFn();
     }
 
     String getXPathFunction() {
@@ -290,10 +294,6 @@ public class ProcessContext implements ContextWithFile {
         }
         processClient.isUsed = true;
         return Optional.of(processClient);
-    }
-
-    static BallerinaModel.Expression.VariableReference processLevelFnInputVariable() {
-        return new BallerinaModel.Expression.VariableReference("input");
     }
 
     static BallerinaModel.Expression.VariableReference processLevelFnParamVariable() {

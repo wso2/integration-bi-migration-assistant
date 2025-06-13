@@ -19,16 +19,36 @@
 package tibco.converter;
 
 public enum Intrinsics {
-    ADD_TO_CONTEXT(
-            "addToContext",
+    INIT_CONTEXT(
+            "initContext",
             """
-                    function addToContext(map<xml> context, string varName, xml value){
-                        xml children = value/*;
-                        xml transformed = xml `<root>${children}</root>`;
-                        context[varName] = transformed;
+                    function initContext(map<xml> initVariables = {}) returns Context {
+                        return { variables: initVariables, result: xml `<root/>` };
                     }
                     """
     ),
+    ADD_TO_CONTEXT(
+            "addToContext",
+            """
+                    function addToContext(Context context, string varName, xml value){
+                        xml children = value/*;
+                        xml transformed = xml `<root>${children}</root>`;
+                        context.variables[varName] = transformed;
+                        context.result = value;
+                    }
+                    """
+    ),
+    GET_FROM_CONTEXT(
+                    "getFromContext",
+            """
+                            function getFromContext(Context context, string varName) returns xml {
+                                xml? value = context.variables[varName];
+                                if value == () {
+                                    return xml `<root/>`;
+                                }
+                                return value;
+                            }
+                    """),
     XPATH_PREDICATE(
             "test",
             """
