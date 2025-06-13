@@ -50,15 +50,11 @@ public class DWConversionStats {
         return total == 0 ? 0 : (100.0 * getConvertedWeight() / total);
     }
 
-    public Map<DWConstruct, Integer> getEncountered() {
-        return encountered;
-    }
-
-    public Map<DWConstruct, Integer> getConverted() {
-        return converted;
-    }
-
     public List<String> getFailedDWExpressions() {
         return failedDWExpressions;
+    }
+
+    public boolean dataWeaveFound() {
+        return !encountered.isEmpty();
     }
 }

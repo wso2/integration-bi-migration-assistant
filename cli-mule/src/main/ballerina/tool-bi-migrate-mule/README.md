@@ -14,7 +14,7 @@ $ bal tool pull migrate-mule
 ### Command Syntax
 
 ```bash
-$ bal migrate-mule <source-project-directory-or-file> [-o|--out <output-directory>]
+$ bal migrate-mule <source-project-directory-or-file> [-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run]
 ```
 
 ### Parameters
@@ -24,6 +24,9 @@ $ bal migrate-mule <source-project-directory-or-file> [-o|--out <output-director
 - **-o or --out** - *Optional*. The directory where the new Ballerina package will be created. If not provided,
     - For a project directory input, the new Ballerina package is created inside the source project directory.
     - For a standalone XML file, the new Ballerina package is created in the same directory as the source file.
+- **-k or --keep-structure** - *Optional*. If specified, preserves the original Mule project structure during migration. By default, this option is disabled.
+- **-v or --verbose** - *Optional*. Enable verbose output during conversion.
+- **-d or --dry-run** - *Optional*. Run the parsing and analysis phases and generate the `migration_assessment.html` file without generating the Ballerina package.
 
 ### Project Structure Requirements
 
@@ -67,19 +70,47 @@ $ bal migrate-mule /path/to/mule-flow.xml --out /path/to/output-dir
 
 This will create a Ballerina package at `/path/to/output-dir`.
 
+#### Preserve Mule Project Structure During Conversion
+
+```bash
+$ bal migrate-mule /path/to/mule-project --keep-structure
+```
+
+By default, the Mule project is converted using the standard Ballerina Integration(BI) file structure. However, if 
+the `--keep-structure` flag is used, each Mule config xml file will be converted into a separate `.bal` file named 
+after the xml file, maintaining the original project structure instead of following the standard BI layout.
+
+#### Convert a Mule Project with Verbose Output
+
+```bash
+$ bal migrate-mule /path/to/mule-project --verbose
+```
+
+This will convert the project with detailed logging during the conversion process.
+
+### Convert a Mule project in dry-run mode
+
+```bash
+$ bal migrate-mule /path/to/mule-project --dry-run
+```
+
+This will run the parsing and analysis phases and generate the `migration_assessment.html` file without actually 
+performing Ballerina package generation. It is useful for assessing migration feasibility and obtaining a time estimation. 
+The generated report also lists the sections that will require manual conversion.
+
 ## Output
 - For a mule project directory input: A new Ballerina package is created with the same name as the input project
-  directory, appended with a `-ballerina` suffix.
-    - For example,  if the input project directory is `my-project`, the
-      output ballerina package name will be `my-project-ballerina`.
+  directory, appended with a `_ballerina` suffix.
+    - For example,  if the input project directory is `my_project`, the
+      output ballerina package name will be `my_project_ballerina`.
 
 - Each `.xml` file within `src/main/app` is converted to a corresponding `.bal` file with the same name. When you have
   directories within  `src/main/app` the directory structure is reflected in the corresponding `.bal` file name.
-    - For example, if you have a file `src/main/app/common/my-flow.xml`, the corresponding `.bal` file will be
-      `my-project-ballerina/common.my-flow.bal`.
+    - For example, if you have a file `src/main/app/common/my_flow.xml`, the corresponding `.bal` file will be
+      `my_project_ballerina/common.my_flow.bal`.
 
 - For a Standalone XML file input: A new Ballerina package is created with the same name as the XML file, appended
-  with a `-ballerina` suffix. Inside that, a new `.bal` file will be created with the same name as the input file but
+  with a `_ballerina` suffix. Inside that, a new `.bal` file will be created with the same name as the input file but
   with a `.bal` extension.
 
 
@@ -91,8 +122,9 @@ project.
     2. **Overall Project Conversion Percentage** – Represents the combined conversion rate based on both component-level
 and DataWeave conversions.
 
-- A detailed report is generated as `migration_summary.html` in the root of the newly created Ballerina package. This
-  report provides a breakdown of the conversion percentage.
+- A detailed report is generated as `migration_summary.html` in the root of the newly created Ballerina package. 
+  This report provides the percentage of automated migration coverage and an estimated time for completing the remaining parts.
+  Sections that require manual conversion are also highlighted in the report.
 
 - Each XML element tag in the Mule configuration is assigned a weight based on its type and frequency of occurrence.
   The overall conversion percentage is then calculated based on the successful conversion of these weighted elements.

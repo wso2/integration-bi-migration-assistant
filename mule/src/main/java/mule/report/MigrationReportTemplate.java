@@ -27,7 +27,7 @@ public class MigrationReportTemplate {
                 <!DOCTYPE html>
                 <html>
                 <head>
-                  <title>Migration Assessment</title>
+                  <title>%s</title>
                   <style>
                     body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; }
                     table { width: 100%%; border-collapse: collapse; margin: 20px 0; }
@@ -81,7 +81,7 @@ public class MigrationReportTemplate {
                   </style>
                 </head>
                 <body>
-                <h1>Migration Assessment</h1>
+                <h1>%s</h1>
 
                 <h3>Automated Migration Coverage: %d%%</h3>
 

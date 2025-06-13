@@ -1,6 +1,6 @@
 [package]
-org = "heshanp"
-name = "muleprojectdemo_ballerina"
+org = "migrate_mule"
+name = "demo_project_classic_ballerina"
 version = "0.1.0"
 distribution = "2201.12.3"
 
