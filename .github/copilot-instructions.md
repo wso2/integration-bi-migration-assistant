@@ -9,3 +9,4 @@
 - Wrap single line if statements in parentheses.
 - If the method don't return null add annotation `@NotNull` to the method signature.
     - Prefer Optionals over null values.
+- If a method (or constructor) has implicit assumptions about state (such as a non-null argument), add assertions.
