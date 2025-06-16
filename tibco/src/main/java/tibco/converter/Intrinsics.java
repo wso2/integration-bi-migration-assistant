@@ -30,17 +30,23 @@ public enum Intrinsics {
     RESPONSE_FROM_CONTEXT(
             "responseFromContext",
             """
-                    function responseFromContext(Context context) returns http:Response {
-                        http:Response response = new;
-                        anydata result = context.result;
-                        if result is xml {
-                            response.setXmlPayload(result);
-                        } else if result is json {
-                            response.setJsonPayload(result);
+                    function responseFromContext(Context cx) returns http:Response {
+                        http:Response httpRes = new;
+                        Response? res = cx.response;
+                        if res is JSONResponse {
+                            httpRes.setJsonPayload(res.payload);
+                        } else if res is XMLResponse {
+                            httpRes.setXmlPayload(res.payload);
                         } else {
-                            response.setTextPayload(result.toString());
+                            httpRes.setXmlPayload(<xml>cx.result);
                         }
-                        return response;
+
+                        if res != () {
+                            foreach var header in res.headers.entries() {
+                                httpRes.setHeader(header[0], header[1]);
+                            }
+                        }
+                        return httpRes;
                     }
                     """),
     ADD_TO_CONTEXT(
@@ -269,6 +275,29 @@ public enum Intrinsics {
                             attributes["test"] = path;
                         }
                         return input;
+                    }
+                    """
+    ),
+    SET_JSON_RESPONSE(
+            "setJSONResponse",
+            """
+                    function setJSONResponse(Context cx, json payload, map<string> headers) {
+                        cx.response = {
+                            kind: "JSONResponse",
+                            payload,
+                            headers
+                        };
+                    }
+                    """),
+    SET_XML_RESPONSE(
+            "setXMLResponse",
+            """
+                    function setXMLResponse(Context cx, xml payload, map<string> headers) {
+                        cx.response = {
+                            kind: "XMLResponse",
+                            payload,
+                            headers
+                        };
                     }
                     """
     );

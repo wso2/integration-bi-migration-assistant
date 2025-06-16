@@ -45,11 +45,11 @@ function activityExtension_2(Context cx) returns error? {
     match var2 {
         "application/json" => {
             map<json> jsonRepr = check jsondata:parseString(var3);
-            cx.result = jsonRepr;
+            setJSONResponse(cx, jsonRepr, {});
         }
         "application/xml" => {
             xml xmlRepr = xml `${var3}`;
-            cx.result = xmlRepr;
+            setXMLResponse(cx, xmlRepr, {});
         }
         _ => {
             panic error("Unsupported content type: " + var2);
@@ -123,15 +123,37 @@ function initContext(map<xml> initVariables = {}) returns Context {
     return {variables: initVariables, result: xml `<root/>`};
 }
 
-function responseFromContext(Context context) returns http:Response {
-    http:Response response = new;
-    anydata result = context.result;
-    if result is xml {
-        response.setXmlPayload(result);
-    } else if result is json {
-        response.setJsonPayload(result);
+function responseFromContext(Context cx) returns http:Response {
+    http:Response httpRes = new;
+    Response? res = cx.response;
+    if res is JSONResponse {
+        httpRes.setJsonPayload(res.payload);
+    } else if res is XMLResponse {
+        httpRes.setXmlPayload(res.payload);
     } else {
-        response.setTextPayload(result.toString());
+        httpRes.setXmlPayload(<xml>cx.result);
     }
-    return response;
+
+    if res != () {
+        foreach var header in res.headers.entries() {
+            httpRes.setHeader(header[0], header[1]);
+        }
+    }
+    return httpRes;
+}
+
+function setJSONResponse(Context cx, json payload, map<string> headers) {
+    cx.response = {
+        kind: "JSONResponse",
+        payload,
+        headers
+    };
+}
+
+function setXMLResponse(Context cx, xml payload, map<string> headers) {
+    cx.response = {
+        kind: "XMLResponse",
+        payload,
+        headers
+    };
 }

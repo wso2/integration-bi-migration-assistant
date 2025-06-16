@@ -797,22 +797,25 @@ final class ActivityConverter {
         body.add(contentType);
         body.add(asciiContent);
         cx.addLibraryImport(Library.JSON_DATA);
-        cx.addLibraryImport(Library.XML_DATA);
+        String setJSONResponseFn = cx.getSetJSONResponseFn();
+        String setXMLResponseFn = cx.getSetXMLResponseFn();
+        // FIXME: change the order of parameters to format
         body.add(common.ConversionUtils.stmtFrom("""
                 match %1$s {
                     "application/json" => {
                         map<json> jsonRepr = check jsondata:parseString(%2$s);
-                        cx.result = jsonRepr;
+                        %4$s(%3$s, jsonRepr, {});
                     }
                     "application/xml" => {
                         xml xmlRepr = xml `${%2$s}`;
-                        cx.result = xmlRepr;
+                        %5$s(%3$s, xmlRepr, {});
                     }
                     _ => {
                         panic error("Unsupported content type: " + %1$s);
                     }
                 }
-                """.formatted(contentType.ref(), asciiContent.ref())));
+                """.formatted(contentType.ref(), asciiContent.ref(), cx.contextVarRef(), setJSONResponseFn,
+                setXMLResponseFn)));
         return new ActivityConversionResult(asciiContent.ref(), body);
     }
 

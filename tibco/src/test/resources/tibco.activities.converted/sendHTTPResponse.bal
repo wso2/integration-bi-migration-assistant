@@ -11,11 +11,11 @@ function activityExtension(Context cx) returns error? {
     match var2 {
     "application/json" => {
         map<json> jsonRepr = check jsondata:parseString(var3);
-        cx.result = jsonRepr;
+        setJSONResponse(cx, jsonRepr, {});
     }
     "application/xml" => {
         xml xmlRepr = xml `${var3}`;
-        cx.result = xmlRepr;
+        setXMLResponse(cx, xmlRepr, {});
     }
     _ => {
         panic error("Unsupported content type: " + var2);

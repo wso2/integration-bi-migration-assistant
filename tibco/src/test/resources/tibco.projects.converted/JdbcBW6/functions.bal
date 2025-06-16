@@ -90,15 +90,21 @@ function initContext(map<xml> initVariables = {}) returns Context {
     return {variables: initVariables, result: xml `<root/>`};
 }
 
-function responseFromContext(Context context) returns http:Response {
-    http:Response response = new;
-    anydata result = context.result;
-    if result is xml {
-        response.setXmlPayload(result);
-    } else if result is json {
-        response.setJsonPayload(result);
+function responseFromContext(Context cx) returns http:Response {
+    http:Response httpRes = new;
+    Response? res = cx.response;
+    if res is JSONResponse {
+        httpRes.setJsonPayload(res.payload);
+    } else if res is XMLResponse {
+        httpRes.setXmlPayload(res.payload);
     } else {
-        response.setTextPayload(result.toString());
+        httpRes.setXmlPayload(<xml>cx.result);
     }
-    return response;
+
+    if res != () {
+        foreach var header in res.headers.entries() {
+            httpRes.setHeader(header[0], header[1]);
+        }
+    }
+    return httpRes;
 }

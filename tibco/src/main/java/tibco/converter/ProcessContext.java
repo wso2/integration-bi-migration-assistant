@@ -351,4 +351,12 @@ public class ProcessContext implements ContextWithFile {
     String getAnonName() {
         return projectContext.getAnonName();
     }
+
+    public String getSetJSONResponseFn() {
+        return projectContext.getSetJSONResponseFn();
+    }
+
+    public String getSetXMLResponseFn() {
+        return projectContext.getSetXMLResponseFn();
+    }
 }

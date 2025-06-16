@@ -123,4 +123,12 @@ public class ActivityContext {
     public BallerinaModel.Expression.VariableReference dbClient(String connection) {
         return projectContext().dbClient(connection);
     }
+
+    public String getSetJSONResponseFn() {
+        return processContext.getSetJSONResponseFn();
+    }
+
+    public String getSetXMLResponseFn() {
+        return processContext.getSetXMLResponseFn();
+    }
 }

@@ -480,6 +480,16 @@ public class ProjectContext {
         processClients.put(processName, clientName);
     }
 
+    public String getSetJSONResponseFn() {
+        utilityIntrinsics.add(Intrinsics.SET_JSON_RESPONSE);
+        return Intrinsics.SET_JSON_RESPONSE.name;
+    }
+
+    public String getSetXMLResponseFn() {
+        utilityIntrinsics.add(Intrinsics.SET_XML_RESPONSE);
+        return Intrinsics.SET_XML_RESPONSE.name;
+    }
+
     private static class ContextWrapperForTypeFile implements ContextWithFile {
 
         final Set<BallerinaModel.Import> imports = new HashSet<>();
