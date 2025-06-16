@@ -8,7 +8,7 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
     <http:listener-config name="config" host="0.0.0.0" port="${http.port}"  doc:name="HTTP Listener Configuration" basePath="mule3"/>
-    <db:mysql-config name="MySQL_Configuration" host="localhost" port="${db.port}" user="root" password="${db.pwd}" database="${db.database}" doc:name="MySQL Configuration"/>
+    <db:mysql-config name="MySQL_Configuration" host="localhost" port="${db.port}" user="${db.user}" password="${db.pwd}" database="${db.database}" doc:name="MySQL Configuration"/>
     <flow name="demoFlow">
         <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
         <db:select config-ref="MySQL_Configuration" doc:name="Database">
