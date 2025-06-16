@@ -778,26 +778,12 @@ final class ActivityConverter {
             ActivityContext cx, VariableReference input, ActivityExtension.Config.SendHTTPResponse sendHTTPResponse) {
         List<Statement> body = new ArrayList<>();
         body.add(new Comment("FIXME ignoring headers others than content type"));
-        VarDeclStatment contentType;
-        VarDeclStatment asciiContent;
-        VarDeclStatment headers;
-        if (sendHTTPResponse.ResponseActivityInputNamespace().isPresent()) {
-            body.add(
-                    stmtFrom("xmlns \"%s\" as ns;".formatted(sendHTTPResponse.ResponseActivityInputNamespace().get())));
-            contentType = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                    exprFrom("(%s/**/<ns:Content\\-Type>/*).toString()".formatted(input.varName())));
-            asciiContent = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                    exprFrom("(%s/**/<ns:asciiContent>/*).toString()".formatted(input.varName())));
-            headers = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                    exprFrom("(%s/**/<ns:Headers>/*)".formatted(input.varName())));
-        } else {
-            contentType = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                    exprFrom("(%s/**/<Content\\-Type>/*).toString()".formatted(input.varName())));
-            asciiContent = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                    exprFrom("(%s/**/<asciiContent>/*).toString()".formatted(input.varName())));
-            headers = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                    exprFrom("(%s/**/<Headers>/*)".formatted(input.varName())));
-        }
+        VarDeclStatment contentType = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                        exprFrom("(%s/**/<Content\\-Type>/*).toString()".formatted(input.varName())));
+        VarDeclStatment asciiContent = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                        exprFrom("(%s/**/<asciiContent>/*).toString()".formatted(input.varName())));
+        VarDeclStatment headers = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                        exprFrom("(%s/**/<Headers>/*)".formatted(input.varName())));
         body.add(contentType);
         body.add(asciiContent);
         body.add(headers);
