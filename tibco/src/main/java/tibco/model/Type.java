@@ -78,7 +78,11 @@ public sealed interface Type {
 
     }
 
-    record Schema(Element element) implements Type {
+    record Schema(Element element, Collection<SchemaXsdType> xsdTypes) implements Type {
+
+        public record SchemaXsdType(String name, XSD.XSDType type) {
+
+        }
 
     }
 

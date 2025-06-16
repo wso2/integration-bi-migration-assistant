@@ -14,7 +14,9 @@ function activityExtension(Context cx) returns error? {
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
     //WARNING: assuming single element
-    TestResponse var2 = check xmldata:parseAsType(var1);
+    record {|
+        string response;
+    |} var2 = check xmldata:parseAsType(var1);
     string var3 = var2.toJsonString();
     xml var4 = xml `<jsonString>${var3}</jsonString>`;
     xml var5 = xml `<root>${var4}</root>`;

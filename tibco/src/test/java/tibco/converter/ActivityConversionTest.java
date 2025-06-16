@@ -33,11 +33,13 @@ import tibco.model.PartnerLink;
 import tibco.model.Process;
 import tibco.model.Process5;
 import tibco.model.Scope;
+import tibco.model.XSD;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -285,6 +287,20 @@ public class ActivityConversionTest {
                 @Override
                 public void setReport(TibcoAnalysisReport report) {
 
+                }
+
+                @Override
+                public XSD.XSDType getType(String name) {
+                    return new XSD.XSDType.ComplexType(new XSD.XSDType.ComplexType.ComplexTypeBody.Sequence(
+                            List.of(
+                                    new XSD.Element("dob", XSD.XSDType.BasicXSDType.STRING, Optional.empty(),
+                                            Optional.empty()),
+                                    new XSD.Element("firstName", XSD.XSDType.BasicXSDType.STRING, Optional.empty(),
+                                            Optional.empty()),
+                                    new XSD.Element("lastName", XSD.XSDType.BasicXSDType.STRING, Optional.empty(),
+                                            Optional.empty()),
+                                    new XSD.Element("ssn", XSD.XSDType.BasicXSDType.STRING, Optional.empty(),
+                                            Optional.empty()))));
                 }
             };
         }

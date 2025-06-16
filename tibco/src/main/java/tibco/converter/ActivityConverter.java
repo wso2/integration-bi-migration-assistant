@@ -861,8 +861,9 @@ final class ActivityConverter {
     private static ActivityConversionResult createJsonRenderOperation(ActivityContext cx,
                                                                       VariableReference input,
                                                                       JsonOperation jsonOperation) {
-        return finishConvertJsonRender(cx, new ArrayList<>(),
-                common.ConversionUtils.typeFrom(jsonOperation.type().name()), "root", input);
+        AnalysisResult ar = cx.processContext.getAnalysisResult();
+        BallerinaModel.TypeDesc targetType = ConversionUtils.toTypeDesc(ar.getType(jsonOperation.type().name()));
+        return finishConvertJsonRender(cx, new ArrayList<>(), targetType, "root", input);
     }
 
     private static @NotNull ActivityConversionResult emptyExtensionConversion(ActivityContext cx,

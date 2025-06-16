@@ -23,6 +23,7 @@ import tibco.model.PartnerLink;
 import tibco.model.Process;
 import tibco.model.Process5.ExplicitTransitionGroup;
 import tibco.model.Scope;
+import tibco.model.XSD;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -42,7 +43,7 @@ public interface AnalysisResult {
         return new AnalysisResultImpl(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
-                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
     }
 
     Collection<String> inputTypeName(Process process);
@@ -89,6 +90,8 @@ public interface AnalysisResult {
 
     void setReport(TibcoAnalysisReport report);
 
+    XSD.XSDType getType(String name);
+
     record ActivityData(String functionName, BallerinaModel.TypeDesc argumentType,
                         BallerinaModel.TypeDesc returnType) {
 
@@ -108,4 +111,5 @@ public interface AnalysisResult {
 
     record ControlFlowFunctions(String scopeFn, String activityRunner, String errorHandler) {
     }
+
 }

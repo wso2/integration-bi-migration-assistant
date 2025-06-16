@@ -292,7 +292,7 @@ public final class ConversionUtils {
         return toTypeDesc(xsd.type().type());
     }
 
-    private static BallerinaModel.TypeDesc toTypeDesc(XSD.XSDType type) {
+    public static BallerinaModel.TypeDesc toTypeDesc(XSD.XSDType type) {
         return switch (type) {
             case XSD.XSDType.BasicXSDType basicXSDType -> basicTypeToTD(basicXSDType);
             case XSD.XSDType.ComplexType complexType -> complexTypeToTD(complexType);

@@ -36,7 +36,7 @@ public record XSD(Element type, org.w3c.dom.Element element) {
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document doc = builder.newDocument();
         org.w3c.dom.Element wrapped = wrapElement(doc, element, "schema");
-        return new Type.Schema(wrapped);
+        return new Type.Schema(wrapped, List.of(new Type.Schema.SchemaXsdType(this.type.name(), this.type.type())));
     }
 
     private static org.w3c.dom.Element wrapElement(Document doc, org.w3c.dom.Element originalElement,

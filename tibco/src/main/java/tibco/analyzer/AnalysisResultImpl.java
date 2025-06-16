@@ -24,6 +24,7 @@ import tibco.model.PartnerLink;
 import tibco.model.Process;
 import tibco.model.Process5.ExplicitTransitionGroup;
 import tibco.model.Scope;
+import tibco.model.XSD;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -51,6 +52,7 @@ final class AnalysisResultImpl implements AnalysisResult {
     private final Map<String, Scope.Flow.Activity> activityByName;
     private final Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencies;
     private final Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions;
+    private final Map<String, XSD.XSDType> xsdTypes;
     TibcoAnalysisReport report;
 
     AnalysisResultImpl(Map<Scope.Flow.Link, Collection<Scope.Flow.Activity>> destinationMap,
@@ -66,7 +68,8 @@ final class AnalysisResultImpl implements AnalysisResult {
                        Map<Process, Collection<Scope>> scopes,
                        Map<String, Scope.Flow.Activity> activityByName,
                        Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencies,
-                       Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions) {
+                       Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions,
+                       Map<String, XSD.XSDType> xsdTypes) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.activityData = activityData;
@@ -81,6 +84,7 @@ final class AnalysisResultImpl implements AnalysisResult {
         this.activityByName = activityByName;
         this.explicitTransitionGroupDependencies = explicitTransitionGroupDependencies;
         this.explicitTransitionGroupControlFlowFunctions = explicitTransitionGroupControlFlowFunctions;
+        this.xsdTypes = xsdTypes;
     }
 
     @Override
@@ -270,7 +274,8 @@ final class AnalysisResultImpl implements AnalysisResult {
                 combineMap(this.activityByName, other.activityByName),
                 combineMap(this.explicitTransitionGroupDependencies, other.explicitTransitionGroupDependencies),
                 combineMap(this.explicitTransitionGroupControlFlowFunctions,
-                        other.explicitTransitionGroupControlFlowFunctions)
+                        other.explicitTransitionGroupControlFlowFunctions),
+                combineMap(this.xsdTypes, other.xsdTypes)
         );
     }
 
@@ -282,6 +287,15 @@ final class AnalysisResultImpl implements AnalysisResult {
     @Override
     public void setReport(TibcoAnalysisReport report) {
         this.report = report;
+    }
+
+    @Override
+    public XSD.@NotNull XSDType getType(String name) {
+        XSD.XSDType type = xsdTypes.get(name);
+        if (type == null) {
+            throw new IllegalArgumentException("No XSD type found for name: " + name);
+        }
+        return type;
     }
 
     static <K, V> Map<K, V> combineMap(Map<K, V> map1, Map<K, V> map2) {
