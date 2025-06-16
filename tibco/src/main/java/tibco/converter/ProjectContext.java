@@ -140,14 +140,16 @@ public class ProjectContext {
 
     @NotNull
     BallerinaModel.TypeDesc contextType() {
-        return getOrCreateUtilityTypeDef("Context",
-                new BallerinaModel.TypeDesc.RecordTypeDesc(
-                        List.of(
-                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("variables",
-                                        new BallerinaModel.TypeDesc.MapTypeDesc(XML)),
-                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("result", ANYDATA))
-                )
-        );
+        BallerinaModel.TypeDesc.TypeReference responseTy =
+                getOrCreateUtilityTypeDef("Response", ConversionUtils.Constants.RESPONSE_TYPE_DESC);
+        getOrCreateUtilityTypeDef("JSONResponse", ConversionUtils.Constants.JSON_RESPONSE_TYPE_DESC);
+        getOrCreateUtilityTypeDef("XMLResponse", ConversionUtils.Constants.XML_RESPONSE_TYPE_DESC);
+        return getOrCreateUtilityTypeDef("Context", new BallerinaModel.TypeDesc.RecordTypeDesc(
+                List.of(
+                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("variables",
+                                new BallerinaModel.TypeDesc.MapTypeDesc(XML)),
+                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("result", ANYDATA),
+                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("response", responseTy, true))));
     }
 
     private BallerinaModel.TypeDesc.TypeReference getOrCreateUtilityTypeDef(String typeName,

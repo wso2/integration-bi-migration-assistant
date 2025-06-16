@@ -44,6 +44,7 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.BuiltinType;
 import static common.BallerinaModel.TypeDesc.BuiltinType.DECIMAL;
 import static common.BallerinaModel.TypeDesc.BuiltinType.FLOAT;
 import static common.BallerinaModel.TypeDesc.BuiltinType.INT;
+import static common.BallerinaModel.TypeDesc.BuiltinType.JSON;
 import static common.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static common.BallerinaModel.TypeDesc.BuiltinType.RecordTypeDesc;
 import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
@@ -208,6 +209,37 @@ public final class ConversionUtils {
         static final String CONTEXT_INPUT_NAME = "$input";
 
         static final BallerinaModel.TypeDesc HTTP_RESPONSE = typeFrom("http:Response");
+
+        static final BallerinaModel.TypeDesc.RecordTypeDesc RESPONSE_TYPE_DESC =
+                new BallerinaModel.TypeDesc.RecordTypeDesc(
+                        List.of(
+                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("kind",
+                                        BallerinaModel.TypeDesc.UnionTypeDesc.of(
+                                                new Expression.StringConstant("JSONResponse"),
+                                                new Expression.StringConstant("XMLResponse"))),
+                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("payload", ANYDATA),
+                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("headers",
+                                        new BallerinaModel.TypeDesc.MapTypeDesc(STRING))));
+
+        static final BallerinaModel.TypeDesc.RecordTypeDesc JSON_RESPONSE_TYPE_DESC =
+                new BallerinaModel.TypeDesc.RecordTypeDesc(
+                        List.of(new BallerinaModel.TypeDesc.TypeReference("Response")),
+                        List.of(
+                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("kind",
+                                        new Expression.StringConstant("JSONResponse"),
+                                        new BallerinaModel.Expression.StringConstant("JSONResponse")),
+                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("payload", JSON)),
+                        BallerinaModel.TypeDesc.BuiltinType.NEVER);
+
+        static final BallerinaModel.TypeDesc.RecordTypeDesc XML_RESPONSE_TYPE_DESC =
+                new BallerinaModel.TypeDesc.RecordTypeDesc(
+                        List.of(new BallerinaModel.TypeDesc.TypeReference("Response")),
+                        List.of(
+                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("kind",
+                                        new Expression.StringConstant("XMLResponse"),
+                                        new BallerinaModel.Expression.StringConstant("XMLResponse")),
+                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("payload", XML)),
+                        BallerinaModel.TypeDesc.BuiltinType.NEVER);
     }
 
     public static BallerinaModel.TypeDesc.FunctionTypeDesc processFunctionType(ProcessContext cx) {
@@ -226,10 +258,6 @@ public final class ConversionUtils {
                 new Expression.TypeCast(XML, new Expression.FieldAccess(context, "result")));
         body.add(result);
         return result.ref();
-    }
-
-    public static Expression getResultFromContext(Expression.VariableReference context) {
-        return new Expression.FieldAccess(context, "result");
     }
 
     public static BallerinaModel.TypeDesc.FunctionTypeDesc activityFnType(ProcessContext cx) {
