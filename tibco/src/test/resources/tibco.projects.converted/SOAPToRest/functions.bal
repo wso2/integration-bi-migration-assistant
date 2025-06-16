@@ -3,14 +3,13 @@ import ballerina/http;
 import ballerina/log;
 import ballerina/xslt;
 
-function HTTP_Receiver(map<xml> context) returns xml|error {
+function HTTP_Receiver(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
-    addToContext(context, "HTTP-Receiver", var1);
-    return var1;
+    addToContext(cx, "HTTP-Receiver", var1);
 }
 
-function Log1(map<xml> context) returns xml|error {
+function Log1(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform0" match="/">
@@ -26,14 +25,13 @@ function Log1(map<xml> context) returns xml|error {
 </ns:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     xml var2 = var1/**/<message>/*;
     log:printInfo(var2.toString());
-    addToContext(context, "Log1", var2);
-    return var2;
+    addToContext(cx, "Log1", var2);
 }
 
-function Rest_call(map<xml> context) returns xml|error {
+function Rest_call(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform1" match="/">
@@ -62,18 +60,17 @@ function Rest_call(map<xml> context) returns xml|error {
 </ns1:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     xml var2 = var1/**/<Body>;
     map<json> var3 = <map<json>>xmlToJson(var2);
     http:Client var4 = check new ("http://localhost:8080/weather");
     json var5 = check var4->post("/", var3["Body"]);
     xml var6 = check toXML(<map<json>>var5);
     xml var7 = xml `<ns:RESTOutput><msg>${var6}</msg></ns:RESTOutput>`;
-    addToContext(context, "Rest-call", var7);
-    return var7;
+    addToContext(cx, "Rest-call", var7);
 }
 
-function SOAP_Response(map<xml> context) returns xml|error {
+function SOAP_Response(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Rest-call"/>     <xsl:template name="Transform2" match="/">
@@ -118,44 +115,46 @@ function SOAP_Response(map<xml> context) returns xml|error {
 </ResponseActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, context);
+</xsl:stylesheet>`, cx.variables);
     xml var2 = var1/**/<asciiContent>/*;
-    addToContext(context, "SOAP-Response", var2);
-    return var2;
+    addToContext(cx, "SOAP-Response", var2);
 }
 
-function scope0ActivityRunner(map<xml> cx) returns xml|error {
-    xml result0 = check HTTP_Receiver(cx);
-    xml result1 = check Log1(cx);
-    xml result2 = check Rest_call(cx);
-    xml result3 = check SOAP_Response(cx);
-    return result3;
+function scope0ActivityRunner(Context cx) returns error? {
+    check HTTP_Receiver(cx);
+    check Log1(cx);
+    check Rest_call(cx);
+    check SOAP_Response(cx);
 }
 
-function scope0FaultHandler(error err, map<xml> cx) returns xml {
+function scope0FaultHandler(error err, Context cx) returns () {
     panic err;
 }
 
-function scope0ScopeFn(map<xml> cx) returns xml {
-    xml|error result = scope0ActivityRunner(cx);
+function scope0ScopeFn(Context cx) returns () {
+    error? result = scope0ActivityRunner(cx);
     if result is error {
-        return scope0FaultHandler(result, cx);
+        scope0FaultHandler(result, cx);
     }
-    return result;
 }
 
-function start_Processes_Main_process(xml inputXML, map<xml> params) returns xml {
-    return scope0ScopeFn(params);
+function start_Processes_Main_process(Context cx) returns () {
+    return scope0ScopeFn(cx);
 }
 
 function toXML(map<anydata> data) returns error|xml {
     return xmldata:toXml(data);
 }
 
-function addToContext(map<xml> context, string varName, xml value) {
+function addToContext(Context context, string varName, xml value) {
     xml children = value/*;
     xml transformed = xml `<root>${children}</root>`;
-    context[varName] = transformed;
+    context.variables[varName] = transformed;
+    context.result = value;
+}
+
+function initContext(map<xml> initVariables = {}) returns Context {
+    return {variables: initVariables, result: xml `<root/>`};
 }
 
 function xmlToJson(xml value) returns json {

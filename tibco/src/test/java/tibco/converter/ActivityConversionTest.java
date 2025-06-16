@@ -59,7 +59,9 @@ public class ActivityConversionTest {
         ProcessContext cx = getProcessContext(activity);
         BallerinaModel.Function result = ActivityConverter.convertActivity(cx, activity);
         String actual = toString(result);
-//        bless(expectedFunction, actual);
+        if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
+            bless(expectedFunction, actual);
+        }
         String expected = fileContent(expectedFunction);
         Assert.assertEquals(actual, expected);
     }

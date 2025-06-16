@@ -22,11 +22,7 @@ import common.BallerinaModel;
 import tibco.model.Scope;
 import tibco.model.Type;
 
-import java.util.List;
 import java.util.Optional;
-
-import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
-import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 
 public class ActivityContext {
 
@@ -55,15 +51,6 @@ public class ActivityContext {
         return processContext.getAnalysisResult().from(activity).functionName();
     }
 
-    List<BallerinaModel.Parameter> parameters() {
-        return List.of(
-                new BallerinaModel.Parameter(ConversionUtils.Constants.CONTEXT_VAR_NAME, ProcessContext.contextType()));
-    }
-
-    static BallerinaModel.TypeDesc returnType() {
-        return new BallerinaModel.TypeDesc.UnionTypeDesc(List.of(XML, ERROR));
-    }
-
     BallerinaModel.Expression.VariableReference contextVarRef() {
         return processContext.contextVarRef();
     }
@@ -72,17 +59,16 @@ public class ActivityContext {
         return processContext.client(sharedResourcePropertyName);
     }
 
-    String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
-        return processContext.getConvertToTypeFunction(targetType);
-    }
-
-
     public String getNamespaceFixFn() {
         return processContext.getNamespaceFixFn();
     }
 
     String getAddToContextFn() {
         return processContext.getAddToContextFn();
+    }
+
+    String getFromContextFn() {
+        return processContext.getFromContextFn();
     }
 
     void addLibraryImport(Library library) {

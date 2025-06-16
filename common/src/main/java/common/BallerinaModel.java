@@ -19,6 +19,7 @@
 package common;
 
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -93,6 +94,23 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public sealed interface TypeDesc {
+
+        record FunctionTypeDesc(List<Parameter> parameters, TypeDesc returnType) implements TypeDesc {
+
+            public FunctionTypeDesc(List<Parameter> parameters) {
+                this(parameters, BuiltinType.NIL);
+            }
+
+            @Override
+            public @NotNull String toString() {
+                String params = String.join(", ", parameters.stream().map(Object::toString).toList());
+                if (returnType == BuiltinType.NIL) {
+                    return "function(" + params + ")";
+                } else {
+                    return "function(" + params + ") returns " + returnType;
+                }
+            }
+        }
 
         record BallerinaType(String value) implements TypeDesc {
 
@@ -210,7 +228,17 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
 
             @Override
-            public String toString() {
+            public @NotNull String toString() {
+                if (members.size() == 2) {
+                    List<TypeDesc> memberList = List.copyOf(members);
+                    if (memberList.contains(BuiltinType.NIL)) {
+                        return memberList.stream()
+                                .filter(type -> type != BuiltinType.NIL)
+                                .findFirst()
+                                .map(type -> type + "?")
+                                .orElse("()");
+                    }
+                }
                 return String.join(" | ", members.stream().map(Object::toString).toList());
             }
         }
@@ -356,6 +384,17 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
         public Parameter(String name, TypeDesc type) {
             this(name, type, Optional.empty());
+        }
+
+        public Expression.VariableReference ref() {
+            return new Expression.VariableReference(name);
+        }
+
+        @Override
+        public @NotNull String toString() {
+            return defaultExpr
+                    .map(expr -> String.format("%s %s = %s", type, name, expr))
+                    .orElseGet(() -> String.format("%s %s", type, name));
         }
     }
 

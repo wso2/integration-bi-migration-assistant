@@ -1,4 +1,3 @@
-function receiveEvent(map<xml> context) returns xml | error {
-    addToContext(context, "Start", context.get("$input"));
-    return context.get("$input");
+function receiveEvent(Context cx) returns error? {
+    addToContext(cx, "Start", getFromContext(cx, "$input"));
 }

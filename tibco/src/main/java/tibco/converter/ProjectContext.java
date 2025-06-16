@@ -23,6 +23,7 @@ import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Statement.Return;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import org.jetbrains.annotations.NotNull;
 import tibco.TibcoToBalConverter;
 import tibco.XmlToTibcoModelConverter;
 import tibco.analyzer.AnalysisResult;
@@ -65,6 +66,7 @@ public class ProjectContext {
     private final Set<BallerinaModel.Import> utilityFunctionImports = new HashSet<>();
     private final Map<String, BallerinaModel.ModuleVar> utilityVars = new HashMap<>();
     private final Map<String, BallerinaModel.Listener> utilityListeners = new HashMap<>();
+    private final Map<String, BallerinaModel.ModuleTypeDef> utilityTypeDefs = new HashMap<>();
     private final Set<Intrinsics> utilityIntrinsics = new HashSet<>();
     private final Set<ComptimeFunction> utilityCompTimeFunctions = new HashSet<>();
     private final Map<String, String> processClients = new HashMap<>();
@@ -81,7 +83,6 @@ public class ProjectContext {
     private final Map<String, String> generatedResources = new HashMap<>();
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
     private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
-    private final Map<BallerinaModel.TypeDesc, String> typeConversionFunction = new HashMap<>();
     private final Map<String, String> renderJsonAsXMLFunction = new HashMap<>();
     private final Map<Process, AnalysisResult> analysisResult;
     private Collection<Type.Schema> schemas = new ArrayList<>();
@@ -137,6 +138,26 @@ public class ProjectContext {
         return jsonToXMLFunction;
     }
 
+    @NotNull
+    BallerinaModel.TypeDesc contextType() {
+        return getOrCreateUtilityTypeDef("Context",
+                new BallerinaModel.TypeDesc.RecordTypeDesc(
+                        List.of(
+                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("variables",
+                                        new BallerinaModel.TypeDesc.MapTypeDesc(XML)),
+                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("result", ANYDATA))
+                )
+        );
+    }
+
+    private BallerinaModel.TypeDesc.TypeReference getOrCreateUtilityTypeDef(String typeName,
+            BallerinaModel.TypeDesc typeDesc) {
+        return utilityTypeDefs.computeIfAbsent(typeName,
+                name -> new BallerinaModel.ModuleTypeDef(name, typeDesc))
+                .typeDesc() instanceof BallerinaModel.TypeDesc.TypeReference ref ? ref
+                        : new BallerinaModel.TypeDesc.TypeReference(typeName);
+    }
+
     private void importLibraryIfNeededToUtility(Library library) {
         conversionContext.ifPresent(cx -> {
             if (library == JDBC) {
@@ -147,21 +168,11 @@ public class ProjectContext {
     }
 
     String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
-        return typeConversionFunction.computeIfAbsent(targetType, this::createConvertToTypeFunction);
-    }
-
-    private String createConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
-        String functionName = "convertTo" + ConversionUtils.sanitizes(targetType.toString());
-        importLibraryIfNeededToUtility(Library.XML_DATA);
-        FunctionCall parseAsTypeCall = new FunctionCall(
-                "xmldata:parseAsType", new String[] { "input" });
-        BallerinaModel.Expression.CheckPanic checkPanic = new BallerinaModel.Expression.CheckPanic(parseAsTypeCall);
-        Return<BallerinaModel.Expression.CheckPanic> returnStmt = new Return<>(Optional.of(checkPanic));
-        BallerinaModel.Function function =
-                new BallerinaModel.Function(functionName, List.of(new BallerinaModel.Parameter("input", XML)),
-                        targetType, List.of(returnStmt));
-        utilityFunctions.add(function);
-        return functionName;
+        importLibraryIfNeededToUtility(XML_DATA);
+        importLibraryIfNeededToUtility(JSON_DATA);
+        ComptimeFunction convertToType = new ConvertToType(targetType);
+        utilityCompTimeFunctions.add(convertToType);
+        return convertToType.functionName();
     }
 
     String getTryDataBindToTypeFunction(BallerinaModel.TypeDesc targetType) {
@@ -190,6 +201,9 @@ public class ProjectContext {
 
     private BallerinaModel.TextDocument utilsFile() {
         List<BallerinaModel.Import> imports = utilityFunctionImports.stream().toList();
+        List<BallerinaModel.ModuleTypeDef> sortedTypeDefs = utilityTypeDefs.values().stream()
+                .sorted(Comparator.comparing(BallerinaModel.ModuleTypeDef::name))
+                .toList();
         List<BallerinaModel.ModuleVar> sortedConstants = utilityVars.values().stream()
                 .sorted(Comparator.comparing(BallerinaModel.ModuleVar::name))
                 .toList();
@@ -205,8 +219,8 @@ public class ProjectContext {
         List<String> combinedIntrinsics = Stream.concat(sortedIntrinsics, sortedComptimes).toList();
         List<BallerinaModel.Listener> listeners = utilityListeners.values().stream()
                 .sorted(Comparator.comparing(BallerinaModel.Listener::name)).toList();
-        return new BallerinaModel.TextDocument("utils.bal", imports, List.of(), sortedConstants,
-                listeners, List.of(), sortedFunctions, List.of(), combinedIntrinsics, List.of());
+        return new BallerinaModel.TextDocument("utils.bal", imports, sortedTypeDefs, sortedConstants,
+                        listeners, List.of(), sortedFunctions, List.of(), combinedIntrinsics, List.of());
     }
 
     private BallerinaModel.TextDocument typesFile() {
@@ -298,6 +312,16 @@ public class ProjectContext {
 
     void incrementTypeCount() {
         typeCount++;
+    }
+
+    public String getFromContextFn() {
+        utilityIntrinsics.add(Intrinsics.GET_FROM_CONTEXT);
+        return Intrinsics.GET_FROM_CONTEXT.name;
+    }
+
+    public String getInitContextFn() {
+        utilityIntrinsics.add(Intrinsics.INIT_CONTEXT);
+        return Intrinsics.INIT_CONTEXT.name;
     }
 
     public String getPredicateTestFunction() {

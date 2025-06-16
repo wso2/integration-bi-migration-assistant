@@ -10,8 +10,11 @@ service on GeneralConnection_sharedhttp {
     </item>
 </root>`;
         map<xml> paramXML = {post: inputVal};
-        xml result = start_Processes_Main_process(input, paramXML);
-        return result;
+        Context cx = initContext(paramXML);
+        start_Processes_Main_process(cx);
+        xml result = <xml>cx.result;
+        xml response = result;
+        return response;
     }
 }
 
