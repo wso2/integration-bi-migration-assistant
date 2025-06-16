@@ -216,7 +216,8 @@ public final class ConversionUtils {
                                 new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("kind",
                                         BallerinaModel.TypeDesc.UnionTypeDesc.of(
                                                 new Expression.StringConstant("JSONResponse"),
-                                                new Expression.StringConstant("XMLResponse"))),
+                                                new Expression.StringConstant("XMLResponse"),
+                                                new Expression.StringConstant("TextResponse"))),
                                 new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("payload", ANYDATA),
                                 new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("headers",
                                         new BallerinaModel.TypeDesc.MapTypeDesc(STRING))));
@@ -239,6 +240,16 @@ public final class ConversionUtils {
                                         new Expression.StringConstant("XMLResponse"),
                                         new BallerinaModel.Expression.StringConstant("XMLResponse")),
                                 new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("payload", XML)),
+                        BallerinaModel.TypeDesc.BuiltinType.NEVER);
+
+        static final BallerinaModel.TypeDesc.RecordTypeDesc TEXT_RESPONSE_TYPE_DESC =
+                new BallerinaModel.TypeDesc.RecordTypeDesc(
+                        List.of(new BallerinaModel.TypeDesc.TypeReference("Response")),
+                        List.of(
+                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("kind",
+                                        new Expression.StringConstant("TextResponse"),
+                                        new BallerinaModel.Expression.StringConstant("TextResponse")),
+                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("payload", STRING)),
                         BallerinaModel.TypeDesc.BuiltinType.NEVER);
     }
 

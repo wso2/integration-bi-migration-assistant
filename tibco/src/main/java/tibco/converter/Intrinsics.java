@@ -37,6 +37,8 @@ public enum Intrinsics {
                             httpRes.setJsonPayload(res.payload);
                         } else if res is XMLResponse {
                             httpRes.setXmlPayload(res.payload);
+                        } else if res is TextResponse {
+                            httpRes.setTextPayload(res.payload);
                         } else {
                             httpRes.setXmlPayload(<xml>cx.result);
                         }
@@ -295,6 +297,18 @@ public enum Intrinsics {
                     function setXMLResponse(Context cx, xml payload, map<string> headers) {
                         cx.response = {
                             kind: "XMLResponse",
+                            payload,
+                            headers
+                        };
+                    }
+                    """
+    ),
+    SET_TEXT_RESPONSE(
+            "setTextResponse",
+            """
+                    function setTextResponse(Context cx, string payload, map<string> headers) {
+                        cx.response = {
+                            kind: "TextResponse",
                             payload,
                             headers
                         };

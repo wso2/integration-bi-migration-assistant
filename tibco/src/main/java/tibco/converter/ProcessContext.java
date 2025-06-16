@@ -360,6 +360,10 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getSetXMLResponseFn();
     }
 
+    public String getSetTextResponseFn() {
+        return projectContext.getSetTextResponseFn();
+    }
+
     public String getParseHeadersFn() {
         return projectContext.getParseHeadersFn();
     }

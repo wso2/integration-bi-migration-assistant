@@ -144,6 +144,7 @@ public class ProjectContext {
                 getOrCreateUtilityTypeDef("Response", ConversionUtils.Constants.RESPONSE_TYPE_DESC);
         getOrCreateUtilityTypeDef("JSONResponse", ConversionUtils.Constants.JSON_RESPONSE_TYPE_DESC);
         getOrCreateUtilityTypeDef("XMLResponse", ConversionUtils.Constants.XML_RESPONSE_TYPE_DESC);
+        getOrCreateUtilityTypeDef("TextResponse", ConversionUtils.Constants.TEXT_RESPONSE_TYPE_DESC);
         return getOrCreateUtilityTypeDef("Context", new BallerinaModel.TypeDesc.RecordTypeDesc(
                 List.of(
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("variables",
@@ -488,6 +489,11 @@ public class ProjectContext {
     public String getSetXMLResponseFn() {
         utilityIntrinsics.add(Intrinsics.SET_XML_RESPONSE);
         return Intrinsics.SET_XML_RESPONSE.name;
+    }
+
+    public String getSetTextResponseFn() {
+        utilityIntrinsics.add(Intrinsics.SET_TEXT_RESPONSE);
+        return Intrinsics.SET_TEXT_RESPONSE.name;
     }
 
     public String getParseHeadersFn() {

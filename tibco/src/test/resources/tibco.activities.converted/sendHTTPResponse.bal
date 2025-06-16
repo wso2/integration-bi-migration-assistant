@@ -20,7 +20,7 @@ function activityExtension(Context cx) returns error? {
         setXMLResponse(cx, xmlRepr, var5);
     }
     _ => {
-        panic error("Unsupported content type: " + var2);
+        setTextResponse(cx, var3, var5);
     }
 }
 

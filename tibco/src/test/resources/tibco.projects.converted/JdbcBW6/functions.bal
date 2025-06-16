@@ -97,6 +97,8 @@ function responseFromContext(Context cx) returns http:Response {
         httpRes.setJsonPayload(res.payload);
     } else if res is XMLResponse {
         httpRes.setXmlPayload(res.payload);
+    } else if res is TextResponse {
+        httpRes.setTextPayload(res.payload);
     } else {
         httpRes.setXmlPayload(<xml>cx.result);
     }

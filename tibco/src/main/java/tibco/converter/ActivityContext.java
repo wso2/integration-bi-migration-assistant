@@ -132,6 +132,10 @@ public class ActivityContext {
         return processContext.getSetXMLResponseFn();
     }
 
+    public String getSetTextResponseFn() {
+        return processContext.getSetTextResponseFn();
+    }
+
     public String getParseHeadersFn() {
         return processContext.getParseHeadersFn();
     }

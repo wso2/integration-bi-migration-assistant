@@ -54,7 +54,7 @@ function activityExtension_2(Context cx) returns error? {
             setXMLResponse(cx, xmlRepr, var5);
         }
         _ => {
-            panic error("Unsupported content type: " + var2);
+            setTextResponse(cx, var3, var5);
         }
     }
 }
@@ -146,6 +146,8 @@ function responseFromContext(Context cx) returns http:Response {
         httpRes.setJsonPayload(res.payload);
     } else if res is XMLResponse {
         httpRes.setXmlPayload(res.payload);
+    } else if res is TextResponse {
+        httpRes.setTextPayload(res.payload);
     } else {
         httpRes.setXmlPayload(<xml>cx.result);
     }
@@ -161,6 +163,14 @@ function responseFromContext(Context cx) returns http:Response {
 function setJSONResponse(Context cx, json payload, map<string> headers) {
     cx.response = {
         kind: "JSONResponse",
+        payload,
+        headers
+    };
+}
+
+function setTextResponse(Context cx, string payload, map<string> headers) {
+    cx.response = {
+        kind: "TextResponse",
         payload,
         headers
     };
