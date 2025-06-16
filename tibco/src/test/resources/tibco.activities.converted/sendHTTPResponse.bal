@@ -5,10 +5,9 @@ function activityExtension(Context cx) returns error? {
     
 //FIXME ignoring headers others than content type
 
-    xmlns "http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput" as ns;
-    string var2 = (var1/**/<ns:Content\-Type>/*).toString();
-    string var3 = (var1/**/<ns:asciiContent>/*).toString();
-    xml var4 = (var1/**/<ns:Headers>/*);
+    string var2 = (var1/**/<Content\-Type>/*).toString();
+    string var3 = (var1/**/<asciiContent>/*).toString();
+    xml var4 = (var1/**/<Headers>/*);
     map<string> var5 = parseHeaders(var4);
     match var2 {
     "application/json" => {

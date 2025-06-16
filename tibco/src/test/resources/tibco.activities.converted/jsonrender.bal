@@ -26,5 +26,6 @@ function activityExtension(Context cx) returns error? {
     InputElement var2 = check xmldata:parseAsType(var1);
     string var3 = var2.toJsonString();
     xml var4 = xml`<jsonString>${var3}</jsonString>`;
-    addToContext(cx, "OutputVariable", var4);
+    xml var5 = xml`<root>${var4}</root>`;
+    addToContext(cx, "OutputVariable", var5);
 }

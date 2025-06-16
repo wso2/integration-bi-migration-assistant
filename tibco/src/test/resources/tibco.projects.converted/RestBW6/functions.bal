@@ -17,18 +17,18 @@ function activityExtension(Context cx) returns error? {
     TestResponse var2 = check xmldata:parseAsType(var1);
     string var3 = var2.toJsonString();
     xml var4 = xml `<jsonString>${var3}</jsonString>`;
-    addToContext(cx, "RenderOutput", var4);
+    xml var5 = xml `<root>${var4}</root>`;
+    addToContext(cx, "RenderOutput", var5);
 }
 
 function activityExtension_2(Context cx) returns error? {
     xml var0 = getFromContext(cx, "RenderOutput");
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput" version="2.0">
-    <xsl:param name="JSONPayloadOut"/>
     <xsl:template name="SendHTTPResponse-input" match="/">
         <tns1:ResponseActivityInput>
             <asciiContent>
-                <xsl:value-of select="$JSONPayloadOut/root/jsonString"/>
+                <xsl:value-of select="/root/jsonString"/>
             </asciiContent>
             <Headers>
                 <Content-Type>
@@ -39,10 +39,9 @@ function activityExtension_2(Context cx) returns error? {
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
     //FIXME ignoring headers others than content type
-    xmlns "http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput" as ns;
-    string var2 = (var1/**/<ns:Content\-Type>/*).toString();
-    string var3 = (var1/**/<ns:asciiContent>/*).toString();
-    xml var4 = (var1/**/<ns:Headers>/*);
+    string var2 = (var1/**/<Content\-Type>/*).toString();
+    string var3 = (var1/**/<asciiContent>/*).toString();
+    xml var4 = (var1/**/<Headers>/*);
     map<string> var5 = parseHeaders(var4);
     match var2 {
         "application/json" => {
@@ -161,25 +160,28 @@ function responseFromContext(Context cx) returns http:Response {
 }
 
 function setJSONResponse(Context cx, json payload, map<string> headers) {
-    cx.response = {
+    JSONResponse res = {
         kind: "JSONResponse",
-        payload,
-        headers
+        payload: payload.cloneReadOnly(),
+        headers: headers.cloneReadOnly()
     };
+    cx.response = res;
 }
 
 function setTextResponse(Context cx, string payload, map<string> headers) {
-    cx.response = {
+    TextResponse res = {
         kind: "TextResponse",
-        payload,
-        headers
+        payload: payload.cloneReadOnly(),
+        headers: headers.cloneReadOnly()
     };
+    cx.response = res;
 }
 
 function setXMLResponse(Context cx, xml payload, map<string> headers) {
-    cx.response = {
+    XMLResponse res = {
         kind: "XMLResponse",
-        payload,
-        headers
+        payload: payload.cloneReadOnly(),
+        headers: headers.cloneReadOnly()
     };
+    cx.response = res;
 }

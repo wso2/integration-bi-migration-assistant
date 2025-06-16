@@ -239,19 +239,6 @@ final class ActivityConverter {
                                                                              BallerinaModel.TypeDesc targetType,
                                                                              String outerTag,
                                                                              VariableReference input) {
-        var intermediateResult = finishConvertJsonRender(cx, body, targetType, input);
-
-        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(
-                "<%s>${%s}</%s>"
-                        .formatted(outerTag, intermediateResult.result, outerTag)));
-        body.add(result);
-        return new ActivityConversionResult(result.ref(), body);
-    }
-
-    private static @NotNull ActivityConversionResult finishConvertJsonRender(ActivityContext cx,
-                                                                             List<Statement> body,
-                                                                             BallerinaModel.TypeDesc targetType,
-                                                                             VariableReference input) {
         body.add(new Comment("WARNING: assuming single element"));
         cx.addLibraryImport(Library.XML_DATA);
         String parseAsTypeFn = XMLDataConstants.PARSE_AS_TYPE;
@@ -267,7 +254,13 @@ final class ActivityConverter {
                 new XMLTemplate("<jsonString>${%s}</jsonString>".formatted(jsonStringContent.ref())));
         body.add(jsonString);
 
-        return new ActivityConversionResult(jsonString.ref(), body);
+        var intermediateResult = new ActivityConversionResult(jsonString.ref(), body);
+
+        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(
+                "<%s>${%s}</%s>"
+                        .formatted(outerTag, intermediateResult.result, outerTag)));
+        body.add(result);
+        return new ActivityConversionResult(result.ref(), body);
     }
 
     private static ActivityConversionResult convertJsonParser(
@@ -869,7 +862,7 @@ final class ActivityConverter {
                                                                       VariableReference input,
                                                                       JsonOperation jsonOperation) {
         return finishConvertJsonRender(cx, new ArrayList<>(),
-                common.ConversionUtils.typeFrom(jsonOperation.type().name()), input);
+                common.ConversionUtils.typeFrom(jsonOperation.type().name()), "root", input);
     }
 
     private static @NotNull ActivityConversionResult emptyExtensionConversion(ActivityContext cx,
