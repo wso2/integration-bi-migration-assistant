@@ -781,6 +781,7 @@ final class ActivityConverter {
         body.add(new Comment("FIXME ignoring headers others than content type"));
         VarDeclStatment contentType;
         VarDeclStatment asciiContent;
+        VarDeclStatment headers;
         if (sendHTTPResponse.ResponseActivityInputNamespace().isPresent()) {
             body.add(
                     stmtFrom("xmlns \"%s\" as ns;".formatted(sendHTTPResponse.ResponseActivityInputNamespace().get())));
@@ -788,14 +789,24 @@ final class ActivityConverter {
                     exprFrom("(%s/**/<ns:Content\\-Type>/*).toString()".formatted(input.varName())));
             asciiContent = new VarDeclStatment(STRING, cx.getAnnonVarName(),
                     exprFrom("(%s/**/<ns:asciiContent>/*).toString()".formatted(input.varName())));
+            headers = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                    exprFrom("(%s/**/<ns:Headers>/*)".formatted(input.varName())));
         } else {
             contentType = new VarDeclStatment(STRING, cx.getAnnonVarName(),
                     exprFrom("(%s/**/<Content\\-Type>/*).toString()".formatted(input.varName())));
             asciiContent = new VarDeclStatment(STRING, cx.getAnnonVarName(),
                     exprFrom("(%s/**/<asciiContent>/*).toString()".formatted(input.varName())));
+            headers = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                    exprFrom("(%s/**/<Headers>/*)".formatted(input.varName())));
         }
         body.add(contentType);
         body.add(asciiContent);
+        body.add(headers);
+        VarDeclStatment headerMap =
+                new VarDeclStatment(new BallerinaModel.TypeDesc.MapTypeDesc(STRING), cx.getAnnonVarName(),
+                        new FunctionCall(cx.getParseHeadersFn(), List.of(
+                                headers.ref())));
+        body.add(headerMap);
         cx.addLibraryImport(Library.JSON_DATA);
         String setJSONResponseFn = cx.getSetJSONResponseFn();
         String setXMLResponseFn = cx.getSetXMLResponseFn();
@@ -804,18 +815,18 @@ final class ActivityConverter {
                 match %1$s {
                     "application/json" => {
                         map<json> jsonRepr = check jsondata:parseString(%2$s);
-                        %4$s(%3$s, jsonRepr, {});
+                        %4$s(%3$s, jsonRepr, %6$s);
                     }
                     "application/xml" => {
                         xml xmlRepr = xml `${%2$s}`;
-                        %5$s(%3$s, xmlRepr, {});
+                        %5$s(%3$s, xmlRepr, %6$s);
                     }
                     _ => {
                         panic error("Unsupported content type: " + %1$s);
                     }
                 }
                 """.formatted(contentType.ref(), asciiContent.ref(), cx.contextVarRef(), setJSONResponseFn,
-                setXMLResponseFn)));
+                setXMLResponseFn, headerMap.ref())));
         return new ActivityConversionResult(asciiContent.ref(), body);
     }
 

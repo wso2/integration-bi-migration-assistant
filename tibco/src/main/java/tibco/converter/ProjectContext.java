@@ -490,6 +490,11 @@ public class ProjectContext {
         return Intrinsics.SET_XML_RESPONSE.name;
     }
 
+    public String getParseHeadersFn() {
+        utilityIntrinsics.add(Intrinsics.PARSE_HEADERS);
+        return Intrinsics.PARSE_HEADERS.name;
+    }
+
     private static class ContextWrapperForTypeFile implements ContextWithFile {
 
         final Set<BallerinaModel.Import> imports = new HashSet<>();

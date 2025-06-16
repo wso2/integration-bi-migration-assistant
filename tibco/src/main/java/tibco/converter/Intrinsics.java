@@ -300,6 +300,24 @@ public enum Intrinsics {
                         };
                     }
                     """
+    ),
+    PARSE_HEADERS(
+            "parseHeaders",
+            """
+                    function parseHeaders(xml headers) returns map<string> {
+                        map<string> headerMap = {};
+                        foreach xml header in headers {
+                            if header is xml:Element {
+                                string fullName = header.getName();
+                                int? lastIndex = fullName.lastIndexOf("}");
+                                string headerName = lastIndex is int ? fullName.substring(lastIndex + 1) : fullName;
+                                string headerValue = header.data();
+                                headerMap[headerName] = headerValue;
+                            }
+                        }
+                        return headerMap;
+                    }
+                    """
     );
     public final String body;
     public final String name;
