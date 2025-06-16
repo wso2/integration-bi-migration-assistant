@@ -88,7 +88,7 @@ $ bal migrate-mule /path/to/mule-project --verbose
 
 This will convert the project with detailed logging during the conversion process.
 
-### Convert a Mule project in dry-run mode
+#### Convert a Mule project in dry-run mode
 
 ```bash
 $ bal migrate-mule /path/to/mule-project --dry-run
@@ -169,54 +169,54 @@ public function endpoint(Context ctx) returns http:Response|error {
 ### Mule Components
 The migration tool currently supports converting the following MuleSoft components:
 
-- Async
-- Catch Exception Strategy
-- Choice
-- Choice Exception Strategy
-- Database Connector
-- Expression Component
-- Flow
-- Http Listener
-- Http Request
-- Logger
-- Message Enricher
-- Object To Json
-- Object To String
-- Reference Exception Strategy
-- Session Variable
-- Set Payload
-- Sub Flow
-- Transform Message
-- Variable
-- Vm Connector
+- [Async](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#async)
+- [Catch Exception Strategy](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#catch-exception-strategy)
+- [Choice](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#choice)
+- [Choice Exception Strategy](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#choice-exception-strategy)
+- [Database Connector](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#database-connector)
+- [Expression Component](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#expression-component)
+- [Flow](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#flow)
+- [Http Listener](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#http-listener)
+- [Http Request](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#http-request)
+- [Logger](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#logger)
+- [Message Enricher](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#message-enricher)
+- [Object To Json](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#object-to-json)
+- [Object To String](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#object-to-string)
+- [Reference Exception Strategy](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#reference-exception-strategy)
+- [Session Variable](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#session-variable)
+- [Set Payload](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#set-payload)
+- [Sub Flow](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#sub-flow)
+- [Transform Message](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#transform-message)
+- [Variable](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#variable)
+- [Vm Connector](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#vm-connector)
 
 ### DataWeave Transformations
 
 The migration tool currently supports the following DataWeave expressions:
 
-- Concat Array Expression
-- Concat Object Expression
-- Concat String Expression
-- Date Type Expression
-- Filter Value Identifier Expression
-- Lower Expression
-- Map Combination Expression
-- Map Index Identifier Expression
-- Map Index Identifier Only Expression
-- Map Value Identifier Expression
-- Map With Parameters Expression
-- Replace With Expression
-- Single Selector Expression
-- Sizeof Expression
-- String Return Expression
-- Type Coercion Date To Number Expression
-- Type Coercion Format Expression
-- Type Coercion Number Expression
-- Type Coercion String Expression
-- Type Coercion To Date Expression
-- Upper Expression
-- When Otherwise Expression
-- When Otherwise Nested Expression
+- [Concat Array Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#concat-array-expression)
+- [Concat Object Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#concat-object-expression)
+- [Concat String Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#concat-string-expression)
+- [Date Type Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#date-type-expression)
+- [Filter Value Identifier Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#filter-value-identifier-expression)
+- [Lower Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#lower-expression)
+- [Map Combination Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#map-combination-expression)
+- [Map Index Identifier Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#map-index-identifier-expression)
+- [Map Index Identifier Only Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#map-index-identifier-only-expression)
+- [Map Value Identifier Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#map-value-identifier-expression)
+- [Map With Parameters Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#map-with-parameters-expression)
+- [Replace With Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#replace-with-expression)
+- [Single Selector Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#single-selector-expression)
+- [Sizeof Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#sizeof-expression)
+- [String Return Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#string-return-expression)
+- [Type Coercion Date To Number Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#type-coercion-date-to-number-expression)
+- [Type Coercion Format Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#type-coercion-format-expression)
+- [Type Coercion Number Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#type-coercion-number-expression)
+- [Type Coercion String Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#type-coercion-string-expression)
+- [Type Coercion To Date Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#type-coercion-to-date-expression)
+- [Upper Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#upper-expression)
+- [When Otherwise Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#when-otherwise-expression)
+- [When Otherwise Nested Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#when-otherwise-nested-expression)
 
 ## Limitations
 - Currently supports Mule **3.x only**. Support for Mule **4.x** is planned for future releases.
