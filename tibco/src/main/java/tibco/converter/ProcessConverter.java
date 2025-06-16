@@ -129,7 +129,8 @@ public class ProcessConverter {
         body.add(new Statement.CallStatement(
                 new FunctionCall(cx.getProcessStartFunction().name(), List.of(contextDecl.ref()))));
         VarDeclStatment resultDecl =
-                new VarDeclStatment(XML, "response", ConversionUtils.getXMLResultFromContext(body, contextDecl.ref()));
+                        new VarDeclStatment(XML, "response",
+                                        ConversionUtils.getXMLResultFromContext(contextDecl.ref()));
         body.add(resultDecl);
         group.returnBindings().ifPresent(binding ->
                 body.add(new VarAssignStatement(resultDecl.ref(), xsltTransform(cx, resultDecl.ref(), binding))));

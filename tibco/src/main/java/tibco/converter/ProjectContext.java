@@ -149,7 +149,7 @@ public class ProjectContext {
                 List.of(
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("variables",
                                 new BallerinaModel.TypeDesc.MapTypeDesc(XML)),
-                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("result", ANYDATA),
+                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("result", XML),
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("response", responseTy, true))));
     }
 

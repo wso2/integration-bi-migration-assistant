@@ -21,6 +21,7 @@ package tibco.converter;
 import common.BallerinaModel;
 import common.BallerinaModel.Expression;
 import common.BallerinaModel.Statement.VarDeclStatment;
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.model.Scope;
 import tibco.model.Scope.Flow.Activity.ActivityExtension.Config.SQL;
@@ -263,12 +264,9 @@ public final class ConversionUtils {
                 List.of(new BallerinaModel.Parameter("cx", cx.contextType())));
     }
 
-    public static Expression.VariableReference getXMLResultFromContext(List<BallerinaModel.Statement> body,
-                                                                       Expression.VariableReference context) {
-        VarDeclStatment result = new VarDeclStatment(XML, "result",
-                new Expression.TypeCast(XML, new Expression.FieldAccess(context, "result")));
-        body.add(result);
-        return result.ref();
+    @NotNull
+    public static Expression.FieldAccess getXMLResultFromContext(Expression.VariableReference context) {
+        return new Expression.FieldAccess(context, "result");
     }
 
     public static BallerinaModel.TypeDesc.FunctionTypeDesc activityFnType(ProcessContext cx) {

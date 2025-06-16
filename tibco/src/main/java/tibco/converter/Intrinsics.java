@@ -40,7 +40,7 @@ public enum Intrinsics {
                         } else if res is TextResponse {
                             httpRes.setTextPayload(res.payload);
                         } else {
-                            httpRes.setXmlPayload(<xml>cx.result);
+                            httpRes.setXmlPayload(cx.result);
                         }
 
                         if res != () {

@@ -382,11 +382,10 @@ final class ActivityConverter {
         String scopeFn = analysisResult.getControlFlowFunctions(loop.body()).scopeFn();
         sb.append(new CallStatement(new FunctionCall(scopeFn, List.of(cx.contextVarRef()))));
         // TODO: need a cleaner way to do this
-        List<Statement> buffer = new ArrayList<>();
-        VariableReference res = ConversionUtils.getXMLResultFromContext(buffer, cx.contextVarRef());
-        for (Statement s : buffer) {
-            sb.append(s);
-        }
+        VarDeclStatment resultDecl = new VarDeclStatment(XML, "result",
+                        ConversionUtils.getXMLResultFromContext(cx.contextVarRef()));
+        sb.append(resultDecl);
+        VariableReference res = resultDecl.ref();
         BallerinaModel.Expression resultUpdate;
         if (loop.accumulateOutput()) {
             resultUpdate = exprFrom("%s + %s".formatted(result, res));
