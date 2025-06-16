@@ -1,5 +1,6 @@
 import ballerina/data.jsondata;
 import ballerina/data.xmldata;
+import ballerina/http;
 import ballerina/xslt;
 
 function activityExtension(Context cx) returns error? {
@@ -41,17 +42,19 @@ function activityExtension_2(Context cx) returns error? {
     xmlns "http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput" as ns;
     string var2 = (var1/**/<ns:Content\-Type>/*).toString();
     string var3 = (var1/**/<ns:asciiContent>/*).toString();
+    xml var4 = (var1/**/<ns:Headers>/*);
+    map<string> var5 = parseHeaders(var4);
     match var2 {
         "application/json" => {
             map<json> jsonRepr = check jsondata:parseString(var3);
-            cx.result = jsonRepr;
+            setJSONResponse(cx, jsonRepr, var5);
         }
         "application/xml" => {
             xml xmlRepr = xml `${var3}`;
-            cx.result = xmlRepr;
+            setXMLResponse(cx, xmlRepr, var5);
         }
         _ => {
-            panic error("Unsupported content type: " + var2);
+            setTextResponse(cx, var3, var5);
         }
     }
 }
@@ -122,15 +125,61 @@ function initContext(map<xml> initVariables = {}) returns Context {
     return {variables: initVariables, result: xml `<root/>`};
 }
 
-function convertToTestResponse(anydata input) returns TestResponse {
-    if input is TestResponse {
-        return input;
+function parseHeaders(xml headers) returns map<string> {
+    map<string> headerMap = {};
+    foreach xml header in headers {
+        if header is xml:Element {
+            string fullName = header.getName();
+            int? lastIndex = fullName.lastIndexOf("}");
+            string headerName = lastIndex is int ? fullName.substring(lastIndex + 1) : fullName;
+            string headerValue = header.data();
+            headerMap[headerName] = headerValue;
+        }
     }
-    if input is xml {
-        return checkpanic xmldata:parseAsType(input);
+    return headerMap;
+}
+
+function responseFromContext(Context cx) returns http:Response {
+    http:Response httpRes = new;
+    Response? res = cx.response;
+    if res is JSONResponse {
+        httpRes.setJsonPayload(res.payload);
+    } else if res is XMLResponse {
+        httpRes.setXmlPayload(res.payload);
+    } else if res is TextResponse {
+        httpRes.setTextPayload(res.payload);
+    } else {
+        httpRes.setXmlPayload(cx.result);
     }
-    if input is json {
-        return checkpanic jsondata:parseAsType(input);
+
+    if res != () {
+        foreach var header in res.headers.entries() {
+            httpRes.setHeader(header[0], header[1]);
+        }
     }
-    panic error("Unexpected: unsupported source type for convert to TestResponse");
+    return httpRes;
+}
+
+function setJSONResponse(Context cx, json payload, map<string> headers) {
+    cx.response = {
+        kind: "JSONResponse",
+        payload,
+        headers
+    };
+}
+
+function setTextResponse(Context cx, string payload, map<string> headers) {
+    cx.response = {
+        kind: "TextResponse",
+        payload,
+        headers
+    };
+}
+
+function setXMLResponse(Context cx, xml payload, map<string> headers) {
+    cx.response = {
+        kind: "XMLResponse",
+        payload,
+        headers
+    };
 }

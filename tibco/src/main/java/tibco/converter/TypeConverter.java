@@ -47,7 +47,6 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
@@ -167,8 +166,6 @@ class TypeConverter {
                 expectedBodyType.map(expectedTy ->
                         new BallerinaModel.Parameter(bodyRef.varName(), cx.serviceInputType(expectedTy)));
 
-        BallerinaModel.TypeDesc returnType = getOperationReturnType(cx, messageTypes, operation);
-
         VarDeclStatment contextDecl = new VarDeclStatment(cx.contextType(), ConversionUtils.Constants.CONTEXT_VAR_NAME,
                 new FunctionCall(cx.getInitContextFn(),
                         List.of(new VariableReference(paramsXML.paramName))));
@@ -177,11 +174,12 @@ class TypeConverter {
         body.add(new BallerinaModel.Statement.CallStatement(
                 new FunctionCall(startFuncData.name(), List.of(contextDecl.ref()))));
 
-        body.add(new Return<>(new FunctionCall(cx.getConvertToTypeFunction(startFuncData.returnType()), List.of(
-                ConversionUtils.getResultFromContext(contextDecl.ref())))));
+        body.add(new Return<>(new FunctionCall(cx.getResponseFromContextFn(), List.of(contextDecl.ref()))));
 
+        cx.addLibraryImport(Library.HTTP);
         return new BallerinaModel.Resource(resourceMethodName, path, resourceMethodParameter.stream().toList(),
-                Optional.of(returnType), body);
+                Optional.of(BallerinaModel.TypeDesc.UnionTypeDesc.of(ConversionUtils.Constants.HTTP_RESPONSE, ERROR)),
+                body);
     }
 
     private static ParamInitResult dataBindingForBody(ProcessContext cx,
@@ -194,21 +192,9 @@ class TypeConverter {
                 new FunctionCall(cx.getTryDataBindToTypeFunction(targetType), List.of(inputValRef)));
         body.add(inputDecl);
         IfElseStatement handleError = IfElseStatement.ifStatement(new TypeCheckExpression(inputDecl.ref(), ERROR),
-                List.of(new Return<>(exprFrom("<http:InternalServerError>{}"))));
+                List.of(new Return<>(inputDecl.ref())));
         body.add(handleError);
         return new ParamInitResult(inputDecl.varName(), body);
-    }
-
-    private static BallerinaModel.TypeDesc getOperationReturnType(ProcessContext cx, Map<String, String> messageTypes,
-                                                                  Operation operation) {
-        List<BallerinaModel.TypeDesc> returnTypeMembers =
-                Stream.concat(
-                        Stream.of(operation.output().message()),
-                                operation.faults().stream().map(Operation.Fault::message))
-                        .map(message -> cx.getTypeByName(messageTypes.get(message.value())))
-                        .toList();
-        return returnTypeMembers.size() == 1 ? returnTypeMembers.getFirst() :
-                new BallerinaModel.TypeDesc.UnionTypeDesc(returnTypeMembers);
     }
 
     private record ParamInitResult(String paramName, List<BallerinaModel.Statement> initStatements) {

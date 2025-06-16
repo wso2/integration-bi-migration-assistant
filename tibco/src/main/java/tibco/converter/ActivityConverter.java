@@ -382,11 +382,10 @@ final class ActivityConverter {
         String scopeFn = analysisResult.getControlFlowFunctions(loop.body()).scopeFn();
         sb.append(new CallStatement(new FunctionCall(scopeFn, List.of(cx.contextVarRef()))));
         // TODO: need a cleaner way to do this
-        List<Statement> buffer = new ArrayList<>();
-        VariableReference res = ConversionUtils.getXMLResultFromContext(buffer, cx.contextVarRef());
-        for (Statement s : buffer) {
-            sb.append(s);
-        }
+        VarDeclStatment resultDecl = new VarDeclStatment(XML, "result",
+                        ConversionUtils.getXMLResultFromContext(cx.contextVarRef()));
+        sb.append(resultDecl);
+        VariableReference res = resultDecl.ref();
         BallerinaModel.Expression resultUpdate;
         if (loop.accumulateOutput()) {
             resultUpdate = exprFrom("%s + %s".formatted(result, res));
@@ -781,6 +780,7 @@ final class ActivityConverter {
         body.add(new Comment("FIXME ignoring headers others than content type"));
         VarDeclStatment contentType;
         VarDeclStatment asciiContent;
+        VarDeclStatment headers;
         if (sendHTTPResponse.ResponseActivityInputNamespace().isPresent()) {
             body.add(
                     stmtFrom("xmlns \"%s\" as ns;".formatted(sendHTTPResponse.ResponseActivityInputNamespace().get())));
@@ -788,31 +788,44 @@ final class ActivityConverter {
                     exprFrom("(%s/**/<ns:Content\\-Type>/*).toString()".formatted(input.varName())));
             asciiContent = new VarDeclStatment(STRING, cx.getAnnonVarName(),
                     exprFrom("(%s/**/<ns:asciiContent>/*).toString()".formatted(input.varName())));
+            headers = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                    exprFrom("(%s/**/<ns:Headers>/*)".formatted(input.varName())));
         } else {
             contentType = new VarDeclStatment(STRING, cx.getAnnonVarName(),
                     exprFrom("(%s/**/<Content\\-Type>/*).toString()".formatted(input.varName())));
             asciiContent = new VarDeclStatment(STRING, cx.getAnnonVarName(),
                     exprFrom("(%s/**/<asciiContent>/*).toString()".formatted(input.varName())));
+            headers = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                    exprFrom("(%s/**/<Headers>/*)".formatted(input.varName())));
         }
         body.add(contentType);
         body.add(asciiContent);
+        body.add(headers);
+        VarDeclStatment headerMap =
+                new VarDeclStatment(new BallerinaModel.TypeDesc.MapTypeDesc(STRING), cx.getAnnonVarName(),
+                        new FunctionCall(cx.getParseHeadersFn(), List.of(
+                                headers.ref())));
+        body.add(headerMap);
         cx.addLibraryImport(Library.JSON_DATA);
-        cx.addLibraryImport(Library.XML_DATA);
+        String setJSONResponseFn = cx.getSetJSONResponseFn();
+        String setXMLResponseFn = cx.getSetXMLResponseFn();
+        String setTextResponseFn = cx.getSetTextResponseFn();
         body.add(common.ConversionUtils.stmtFrom("""
-                match %1$s {
+                match %5$s {
                     "application/json" => {
-                        map<json> jsonRepr = check jsondata:parseString(%2$s);
-                        cx.result = jsonRepr;
+                        map<json> jsonRepr = check jsondata:parseString(%6$s);
+                        %2$s(%1$s, jsonRepr, %7$s);
                     }
                     "application/xml" => {
-                        xml xmlRepr = xml `${%2$s}`;
-                        cx.result = xmlRepr;
+                        xml xmlRepr = xml `${%6$s}`;
+                        %3$s(%1$s, xmlRepr, %7$s);
                     }
                     _ => {
-                        panic error("Unsupported content type: " + %1$s);
+                        %4$s(%1$s, %6$s, %7$s);
                     }
                 }
-                """.formatted(contentType.ref(), asciiContent.ref())));
+                """.formatted(cx.contextVarRef(), setJSONResponseFn, setXMLResponseFn, setTextResponseFn,
+                contentType.ref(), asciiContent.ref(), headerMap.ref())));
         return new ActivityConversionResult(asciiContent.ref(), body);
     }
 

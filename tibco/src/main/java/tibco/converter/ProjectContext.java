@@ -140,14 +140,17 @@ public class ProjectContext {
 
     @NotNull
     BallerinaModel.TypeDesc contextType() {
-        return getOrCreateUtilityTypeDef("Context",
-                new BallerinaModel.TypeDesc.RecordTypeDesc(
-                        List.of(
-                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("variables",
-                                        new BallerinaModel.TypeDesc.MapTypeDesc(XML)),
-                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("result", ANYDATA))
-                )
-        );
+        BallerinaModel.TypeDesc.TypeReference responseTy =
+                getOrCreateUtilityTypeDef("Response", ConversionUtils.Constants.RESPONSE_TYPE_DESC);
+        getOrCreateUtilityTypeDef("JSONResponse", ConversionUtils.Constants.JSON_RESPONSE_TYPE_DESC);
+        getOrCreateUtilityTypeDef("XMLResponse", ConversionUtils.Constants.XML_RESPONSE_TYPE_DESC);
+        getOrCreateUtilityTypeDef("TextResponse", ConversionUtils.Constants.TEXT_RESPONSE_TYPE_DESC);
+        return getOrCreateUtilityTypeDef("Context", new BallerinaModel.TypeDesc.RecordTypeDesc(
+                List.of(
+                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("variables",
+                                new BallerinaModel.TypeDesc.MapTypeDesc(XML)),
+                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("result", XML),
+                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("response", responseTy, true))));
     }
 
     private BallerinaModel.TypeDesc.TypeReference getOrCreateUtilityTypeDef(String typeName,
@@ -453,6 +456,12 @@ public class ProjectContext {
         return Intrinsics.ADD_TO_CONTEXT.name;
     }
 
+    public String getResponseFromContextFn() {
+        utilityIntrinsics.add(Intrinsics.RESPONSE_FROM_CONTEXT);
+        importLibraryIfNeededToUtility(HTTP);
+        return Intrinsics.RESPONSE_FROM_CONTEXT.name;
+    }
+
     public String getNamespaceFixFn() {
         utilityIntrinsics.add(Intrinsics.XML_PARSER_RESULT);
         utilityIntrinsics.add(Intrinsics.XML_PARSER);
@@ -470,6 +479,26 @@ public class ProjectContext {
 
     public void registerProcessClient(String processName, String clientName) {
         processClients.put(processName, clientName);
+    }
+
+    public String getSetJSONResponseFn() {
+        utilityIntrinsics.add(Intrinsics.SET_JSON_RESPONSE);
+        return Intrinsics.SET_JSON_RESPONSE.name;
+    }
+
+    public String getSetXMLResponseFn() {
+        utilityIntrinsics.add(Intrinsics.SET_XML_RESPONSE);
+        return Intrinsics.SET_XML_RESPONSE.name;
+    }
+
+    public String getSetTextResponseFn() {
+        utilityIntrinsics.add(Intrinsics.SET_TEXT_RESPONSE);
+        return Intrinsics.SET_TEXT_RESPONSE.name;
+    }
+
+    public String getParseHeadersFn() {
+        utilityIntrinsics.add(Intrinsics.PARSE_HEADERS);
+        return Intrinsics.PARSE_HEADERS.name;
     }
 
     private static class ContextWrapperForTypeFile implements ContextWithFile {

@@ -3,10 +3,10 @@ import ballerina/http;
 public listener http:Listener test_api_MainProcess_listener = new (8080, {host: "localhost"});
 
 service /TestAPI on test_api_MainProcess_listener {
-    resource function post test(TestRequest|xml req) returns TestResponse|http:NotFound|http:InternalServerError {
+    resource function post test(TestRequest|xml req) returns http:Response|error {
         TestRequest|error input = tryBindToTestRequest(req);
         if input is error {
-            return <http:InternalServerError>{};
+            return input;
         }
         xml inputValXml = checkpanic toXML(input);
         xml extractedBody = inputValXml/*;
@@ -17,7 +17,7 @@ service /TestAPI on test_api_MainProcess_listener {
         map<xml> paramXML = {post: inputXmlMap};
         Context context = initContext(paramXML);
         start_test_api_MainProcess(context);
-        return convertToTestResponse(context.result);
+        return responseFromContext(context);
     }
 }
 

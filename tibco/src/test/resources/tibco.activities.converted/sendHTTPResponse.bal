@@ -8,17 +8,19 @@ function activityExtension(Context cx) returns error? {
     xmlns "http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput" as ns;
     string var2 = (var1/**/<ns:Content\-Type>/*).toString();
     string var3 = (var1/**/<ns:asciiContent>/*).toString();
+    xml var4 = (var1/**/<ns:Headers>/*);
+    map<string> var5 = parseHeaders(var4);
     match var2 {
     "application/json" => {
         map<json> jsonRepr = check jsondata:parseString(var3);
-        cx.result = jsonRepr;
+        setJSONResponse(cx, jsonRepr, var5);
     }
     "application/xml" => {
         xml xmlRepr = xml `${var3}`;
-        cx.result = xmlRepr;
+        setXMLResponse(cx, xmlRepr, var5);
     }
     _ => {
-        panic error("Unsupported content type: " + var2);
+        setTextResponse(cx, var3, var5);
     }
 }
 

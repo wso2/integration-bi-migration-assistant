@@ -487,7 +487,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
-        record StringConstant(String value) implements Expression {
+        record StringConstant(String value) implements Expression, TypeDesc {
 
             @Override
             public String toString() {

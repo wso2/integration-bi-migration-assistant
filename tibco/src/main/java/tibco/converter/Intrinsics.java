@@ -27,6 +27,30 @@ public enum Intrinsics {
                     }
                     """
     ),
+    RESPONSE_FROM_CONTEXT(
+            "responseFromContext",
+            """
+                    function responseFromContext(Context cx) returns http:Response {
+                        http:Response httpRes = new;
+                        Response? res = cx.response;
+                        if res is JSONResponse {
+                            httpRes.setJsonPayload(res.payload);
+                        } else if res is XMLResponse {
+                            httpRes.setXmlPayload(res.payload);
+                        } else if res is TextResponse {
+                            httpRes.setTextPayload(res.payload);
+                        } else {
+                            httpRes.setXmlPayload(cx.result);
+                        }
+
+                        if res != () {
+                            foreach var header in res.headers.entries() {
+                                httpRes.setHeader(header[0], header[1]);
+                            }
+                        }
+                        return httpRes;
+                    }
+                    """),
     ADD_TO_CONTEXT(
             "addToContext",
             """
@@ -253,6 +277,59 @@ public enum Intrinsics {
                             attributes["test"] = path;
                         }
                         return input;
+                    }
+                    """
+    ),
+    SET_JSON_RESPONSE(
+            "setJSONResponse",
+            """
+                    function setJSONResponse(Context cx, json payload, map<string> headers) {
+                        cx.response = {
+                            kind: "JSONResponse",
+                            payload,
+                            headers
+                        };
+                    }
+                    """),
+    SET_XML_RESPONSE(
+            "setXMLResponse",
+            """
+                    function setXMLResponse(Context cx, xml payload, map<string> headers) {
+                        cx.response = {
+                            kind: "XMLResponse",
+                            payload,
+                            headers
+                        };
+                    }
+                    """
+    ),
+    SET_TEXT_RESPONSE(
+            "setTextResponse",
+            """
+                    function setTextResponse(Context cx, string payload, map<string> headers) {
+                        cx.response = {
+                            kind: "TextResponse",
+                            payload,
+                            headers
+                        };
+                    }
+                    """
+    ),
+    PARSE_HEADERS(
+            "parseHeaders",
+            """
+                    function parseHeaders(xml headers) returns map<string> {
+                        map<string> headerMap = {};
+                        foreach xml header in headers {
+                            if header is xml:Element {
+                                string fullName = header.getName();
+                                int? lastIndex = fullName.lastIndexOf("}");
+                                string headerName = lastIndex is int ? fullName.substring(lastIndex + 1) : fullName;
+                                string headerValue = header.data();
+                                headerMap[headerName] = headerValue;
+                            }
+                        }
+                        return headerMap;
                     }
                     """
     );

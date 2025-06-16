@@ -1,5 +1,6 @@
 import ballerina/data.jsondata;
 import ballerina/data.xmldata;
+import ballerina/http;
 import ballerina/sql;
 import ballerina/xslt;
 
@@ -89,15 +90,23 @@ function initContext(map<xml> initVariables = {}) returns Context {
     return {variables: initVariables, result: xml `<root/>`};
 }
 
-function convertToTestResponse(anydata input) returns TestResponse {
-    if input is TestResponse {
-        return input;
+function responseFromContext(Context cx) returns http:Response {
+    http:Response httpRes = new;
+    Response? res = cx.response;
+    if res is JSONResponse {
+        httpRes.setJsonPayload(res.payload);
+    } else if res is XMLResponse {
+        httpRes.setXmlPayload(res.payload);
+    } else if res is TextResponse {
+        httpRes.setTextPayload(res.payload);
+    } else {
+        httpRes.setXmlPayload(cx.result);
     }
-    if input is xml {
-        return checkpanic xmldata:parseAsType(input);
+
+    if res != () {
+        foreach var header in res.headers.entries() {
+            httpRes.setHeader(header[0], header[1]);
+        }
     }
-    if input is json {
-        return checkpanic jsondata:parseAsType(input);
-    }
-    panic error("Unexpected: unsupported source type for convert to TestResponse");
+    return httpRes;
 }

@@ -312,6 +312,10 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getNamespaceFixFn();
     }
 
+    public String getResponseFromContextFn() {
+        return projectContext.getResponseFromContextFn();
+    }
+
     String variableType(String variable) {
         return getAnalysisResult().variableType(process, variable);
     }
@@ -346,5 +350,21 @@ public class ProcessContext implements ContextWithFile {
 
     String getAnonName() {
         return projectContext.getAnonName();
+    }
+
+    public String getSetJSONResponseFn() {
+        return projectContext.getSetJSONResponseFn();
+    }
+
+    public String getSetXMLResponseFn() {
+        return projectContext.getSetXMLResponseFn();
+    }
+
+    public String getSetTextResponseFn() {
+        return projectContext.getSetTextResponseFn();
+    }
+
+    public String getParseHeadersFn() {
+        return projectContext.getParseHeadersFn();
     }
 }
