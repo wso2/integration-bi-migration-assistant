@@ -37,7 +37,7 @@ public final class BICodeConverter {
             BallerinaModel.ModuleVar::isConfigurable;
 
     public static final Predicate<BallerinaModel.ModuleVar> DEFAULT_IS_CONNECTION_PREDICATE = new TypeNamePredicate(
-            Set.of("http:Client", "jdbc:Client"));
+            Set.of("http:Client", "jdbc:Client", "mysql:Client", "oracledb:Client"));
     public static final Predicate<BallerinaModel.TextDocument> DEFAULT_SKIP_CONVERSION_PREDICATE = ignored -> false;
 
     private final Predicate<BallerinaModel.ModuleVar> isConfigurable;
@@ -91,11 +91,12 @@ public final class BICodeConverter {
         List<BallerinaModel.Service> services = extractServices(module);
         List<BallerinaModel.Listener> listeners = extractListeners(module);
         List<String> intrinsics = extractNamespaceInrinsics(module);
+        // uncategorized module vars are kept in main file.
+        List<BallerinaModel.ModuleVar> moduleVars = extractUncategorizedModuleVars(module);
 
-        return new BallerinaModel.TextDocument("main.bal", List.of(), List.of(), List.of(),
+        return new BallerinaModel.TextDocument("main.bal", List.of(), List.of(), moduleVars,
                 listeners, services, List.of(), List.of(), intrinsics, List.of());
     }
-
 
     private BallerinaModel.TextDocument comments(BallerinaModel.Module module) {
         List<String> comments = extractDocComments(module);
@@ -129,7 +130,7 @@ public final class BICodeConverter {
         Set<BallerinaModel.Import> imports = new HashSet<>();
 
         while (matcher.find()) {
-            prefixToImport(matcher.group(1)).ifPresent(imports::add);
+            imports.addAll(prefixToImport(matcher.group(1)));
         }
 
         List<BallerinaModel.Import> combinedImports = Stream.concat(doc.imports().stream(), imports.stream()).toList();
@@ -138,18 +139,26 @@ public final class BICodeConverter {
                 doc.astNodes());
     }
 
-    private Optional<BallerinaModel.Import> prefixToImport(String prefix) {
+    private List<BallerinaModel.Import> prefixToImport(String prefix) {
         return switch (prefix) {
-            case "http" -> Optional.of(new BallerinaModel.Import("ballerina", "http"));
-            case "xslt" -> Optional.of(new BallerinaModel.Import("ballerina", "xslt"));
-            case "xmldata" -> Optional.of(new BallerinaModel.Import("ballerina", "data.xmldata"));
-            case "jsondata" -> Optional.of(new BallerinaModel.Import("ballerina", "data.jsondata"));
-            case "java.jdbc", "jdbc" -> Optional.of(new BallerinaModel.Import("ballerinax", "java.jdbc"));
-            case "io" -> Optional.of(new BallerinaModel.Import("ballerina", "io"));
-            case "log" -> Optional.of(new BallerinaModel.Import("ballerina", "log"));
-            case "soap11" -> Optional.of(new BallerinaModel.Import("ballerina", "soap.soap11"));
-            case "sql" -> Optional.of(new BallerinaModel.Import("ballerina", "sql"));
-            default -> Optional.empty();
+            case "http" -> List.of(new BallerinaModel.Import("ballerina", "http"));
+            case "xslt" -> List.of(new BallerinaModel.Import("ballerina", "xslt"));
+            case "xmldata" -> List.of(new BallerinaModel.Import("ballerina", "data.xmldata"));
+            case "jsondata" -> List.of(new BallerinaModel.Import("ballerina", "data.jsondata"));
+            case "java.jdbc", "jdbc" -> List.of(new BallerinaModel.Import("ballerinax", "java.jdbc"));
+            case "io" -> List.of(new BallerinaModel.Import("ballerina", "io"));
+            case "log" -> List.of(new BallerinaModel.Import("ballerina", "log"));
+            case "soap11" -> List.of(new BallerinaModel.Import("ballerina", "soap.soap11"));
+            case "sql" -> List.of(new BallerinaModel.Import("ballerina", "sql"));
+            case "mysql" -> List.of(
+                    new BallerinaModel.Import("ballerinax", "mysql"),
+                    new BallerinaModel.Import("ballerinax", "mysql.driver", Optional.of("_"))
+            );
+            case "oracledb" -> List.of(
+                    new BallerinaModel.Import("ballerinax", "oracledb"),
+                    new BallerinaModel.Import("ballerinax", "oracledb.driver", Optional.of("_"))
+            );
+            default -> List.of();
         };
     }
 
@@ -192,6 +201,12 @@ public final class BICodeConverter {
     private List<BallerinaModel.ModuleVar> extractConnections(BallerinaModel.Module module) {
         return getTextDocumentStream(module).flatMap(doc -> doc.moduleVars().stream())
                 .filter(isConnection).toList();
+    }
+
+    private List<BallerinaModel.ModuleVar> extractUncategorizedModuleVars(BallerinaModel.Module module) {
+        Predicate<BallerinaModel.ModuleVar> isConfigurableOrConnection = isConfigurable.or(isConnection);
+        return getTextDocumentStream(module).flatMap(doc -> doc.moduleVars().stream())
+                .filter(isConfigurableOrConnection.negate()).toList();
     }
 
     private List<BallerinaModel.Service> extractServices(BallerinaModel.Module module) {
