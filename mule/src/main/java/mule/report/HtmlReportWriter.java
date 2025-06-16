@@ -31,6 +31,14 @@ import static mule.MuleMigrationExecutor.logger;
 
 public class HtmlReportWriter {
 
+    public static final double BEST_CASE_COMP_TIME = 1;
+    public static final double AVG_CASE_COMP_TIME = 2;
+    public static final double WORST_CASE_COMP_TIME = 3;
+
+    public static final double BEST_DW_EXPR_TIME = 0.0625; // 30min
+    public static final double AVG_CASE_DW_EXPR_TIME = 0.125; // 1 hour
+    public static final double WORST_CASE_DW_EXPR_TIME = 0.25; // 2 hours
+
     public static final String MIGRATION_SUMMARY_TITLE = "Migration Summary";
     public static final String MIGRATION_ASSESSMENT_TITLE = "Migration Assessment";
 
@@ -149,15 +157,15 @@ public class HtmlReportWriter {
     }
 
     private static double calculateBestCaseEstimate(int elements, int dwExpressions) {
-        return elements * 1.0 + dwExpressions * 0.25;
+        return elements * BEST_CASE_COMP_TIME + dwExpressions * BEST_DW_EXPR_TIME;
     }
 
     private static double calculateAverageCaseEstimate(int elements, int dwExpressions) {
-        return elements * 3.0 + dwExpressions * 0.5;
+        return elements * AVG_CASE_COMP_TIME + dwExpressions * AVG_CASE_DW_EXPR_TIME;
     }
 
     private static double calculateWorstCaseEstimate(int elements, int dwExpressions) {
-        return elements * 6.0 + dwExpressions * 1.5;
+        return elements * WORST_CASE_COMP_TIME + dwExpressions * WORST_CASE_DW_EXPR_TIME;
     }
 
     private static int countDistinctUnsupportedElements(LinkedHashMap<String, Integer> failedTags) {

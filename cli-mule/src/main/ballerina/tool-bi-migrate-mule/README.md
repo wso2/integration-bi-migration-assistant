@@ -88,7 +88,7 @@ $ bal migrate-mule /path/to/mule-project --verbose
 
 This will convert the project with detailed logging during the conversion process.
 
-### Convert a Mule project in dry-run mode
+#### Convert a Mule project in dry-run mode
 
 ```bash
 $ bal migrate-mule /path/to/mule-project --dry-run
