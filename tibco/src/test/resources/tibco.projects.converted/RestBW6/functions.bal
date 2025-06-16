@@ -1,5 +1,6 @@
 import ballerina/data.jsondata;
 import ballerina/data.xmldata;
+import ballerina/http;
 import ballerina/xslt;
 
 function activityExtension(Context cx) returns error? {
@@ -122,15 +123,15 @@ function initContext(map<xml> initVariables = {}) returns Context {
     return {variables: initVariables, result: xml `<root/>`};
 }
 
-function convertToTestResponse(anydata input) returns TestResponse {
-    if input is TestResponse {
-        return input;
+function responseFromContext(Context context) returns http:Response {
+    http:Response response = new;
+    anydata result = context.result;
+    if result is xml {
+        response.setXmlPayload(result);
+    } else if result is json {
+        response.setJsonPayload(result);
+    } else {
+        response.setTextPayload(result.toString());
     }
-    if input is xml {
-        return checkpanic xmldata:parseAsType(input);
-    }
-    if input is json {
-        return checkpanic jsondata:parseAsType(input);
-    }
-    panic error("Unexpected: unsupported source type for convert to TestResponse");
+    return response;
 }

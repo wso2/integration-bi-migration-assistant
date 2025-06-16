@@ -124,6 +124,8 @@ public class ProcessConverter {
                 new FunctionCall(cx.getInitContextFn(), List.of(paramXmlDecl.ref())));
         body.add(contextDecl);
 
+        // TODO: it is better if we can reuse the same logic as Process6 where we use the intrinsic and return
+        //  http response. But we need to refactor how deal with return bindings
         body.add(new Statement.CallStatement(
                 new FunctionCall(cx.getProcessStartFunction().name(), List.of(contextDecl.ref()))));
         VarDeclStatment resultDecl =

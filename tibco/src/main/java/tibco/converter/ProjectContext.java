@@ -453,6 +453,12 @@ public class ProjectContext {
         return Intrinsics.ADD_TO_CONTEXT.name;
     }
 
+    public String getResponseFromContextFn() {
+        utilityIntrinsics.add(Intrinsics.RESPONSE_FROM_CONTEXT);
+        importLibraryIfNeededToUtility(HTTP);
+        return Intrinsics.RESPONSE_FROM_CONTEXT.name;
+    }
+
     public String getNamespaceFixFn() {
         utilityIntrinsics.add(Intrinsics.XML_PARSER_RESULT);
         utilityIntrinsics.add(Intrinsics.XML_PARSER);

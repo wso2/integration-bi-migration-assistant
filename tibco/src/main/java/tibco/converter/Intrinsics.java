@@ -27,6 +27,22 @@ public enum Intrinsics {
                     }
                     """
     ),
+    RESPONSE_FROM_CONTEXT(
+            "responseFromContext",
+            """
+                    function responseFromContext(Context context) returns http:Response {
+                        http:Response response = new;
+                        anydata result = context.result;
+                        if result is xml {
+                            response.setXmlPayload(result);
+                        } else if result is json {
+                            response.setJsonPayload(result);
+                        } else {
+                            response.setTextPayload(result.toString());
+                        }
+                        return response;
+                    }
+                    """),
     ADD_TO_CONTEXT(
             "addToContext",
             """

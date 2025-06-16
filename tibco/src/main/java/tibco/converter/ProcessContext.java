@@ -312,6 +312,10 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getNamespaceFixFn();
     }
 
+    public String getResponseFromContextFn() {
+        return projectContext.getResponseFromContextFn();
+    }
+
     String variableType(String variable) {
         return getAnalysisResult().variableType(process, variable);
     }

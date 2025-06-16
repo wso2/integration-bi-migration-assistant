@@ -49,6 +49,7 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.RecordTypeDesc;
 import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
+import static common.ConversionUtils.typeFrom;
 import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 
 public final class ConversionUtils {
@@ -205,6 +206,8 @@ public final class ConversionUtils {
 
         static final String CONTEXT_VAR_NAME = "context";
         static final String CONTEXT_INPUT_NAME = "$input";
+
+        static final BallerinaModel.TypeDesc HTTP_RESPONSE = typeFrom("http:Response");
     }
 
     public static BallerinaModel.TypeDesc.FunctionTypeDesc processFunctionType(ProcessContext cx) {

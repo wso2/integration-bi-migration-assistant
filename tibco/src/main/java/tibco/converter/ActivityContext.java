@@ -63,6 +63,10 @@ public class ActivityContext {
         return processContext.getNamespaceFixFn();
     }
 
+    public String getResponseFromContextFn() {
+        return processContext.getResponseFromContextFn();
+    }
+
     String getAddToContextFn() {
         return processContext.getAddToContextFn();
     }
