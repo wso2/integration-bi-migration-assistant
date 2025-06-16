@@ -114,22 +114,22 @@ public class MigrationReportTemplate {
                     <ul>
                       <li>Best case scenario:
                         <ul>
-                          <li>1 day per unsupported element for analysis, implementation, and testing</li>
-                          <li>0.25 day per unsupported dataweave expression for translation and validation</li>
+                          <li>%s day per unsupported element for analysis, implementation, and testing</li>
+                          <li>%s days per unsupported dataweave expression for translation and validation</li>
                           <li>Assumes minimal complexity and straightforward implementations</li>
                         </ul>
                       </li>
                       <li>Average case scenario:
                         <ul>
-                          <li>3 days per unsupported element for analysis, implementation, and testing</li>
-                          <li>0.5 day per unsupported dataweave expression including edge cases</li>
+                          <li>%s days per unsupported element for analysis, implementation, and testing</li>
+                          <li>%s days per unsupported dataweave expression including edge cases</li>
                           <li>Includes time for code review and integration testing</li>
                         </ul>
                       </li>
                       <li>Worst case scenario:
                         <ul>
-                          <li>6 days per unsupported element due to complex dependencies and edge cases</li>
-                          <li>1.5 days per unsupported dataweave expression with complex transformations</li>
+                          <li>%s days per unsupported element due to complex dependencies and edge cases</li>
+                          <li>%s days per unsupported dataweave expression with complex transformations</li>
                           <li>Accounts for additional requirements, debugging, and performance optimization</li>
                         </ul>
                       </li>

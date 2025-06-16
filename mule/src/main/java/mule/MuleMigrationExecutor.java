@@ -335,7 +335,7 @@ public class MuleMigrationExecutor {
     private static void printDryRunCompletion(Path balPackageDir, String reportName) {
         OUT.println("________________________________________________________________");
         OUT.println("Dry run completed. Migration assessment report written to " +
-                balPackageDir.resolve(reportName + ".html"));
+                balPackageDir.resolve(reportName));
         OUT.println("________________________________________________________________");
     }
 
