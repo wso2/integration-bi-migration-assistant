@@ -14,7 +14,7 @@ on:
 jobs:
   publish-release:
     runs-on: ubuntu-22.04
-    if: github.repository_owner == 'wso2-enterprise'
+    if: github.repository_owner == 'wso2'
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
