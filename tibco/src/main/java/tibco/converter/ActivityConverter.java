@@ -148,8 +148,10 @@ final class ActivityConverter {
         private static @NotNull List<Statement> convertInlineActivity(
                 ActivityContext cx, InlineActivity inlineActivity) {
             List<Statement> body = new ArrayList<>();
-            // FIXME: if jms extract input value from jms
-            VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+            BallerinaModel.Expression startingValue =
+                    inlineActivity instanceof InlineActivity.JMSQueueEventSource ? getFromContext(cx, "jms") :
+                            defaultEmptyXml();
+            VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), startingValue);
             body.add(inputDecl);
             VariableReference result;
             if (inlineActivity.hasInputBinding()) {
@@ -160,11 +162,9 @@ final class ActivityConverter {
             } else {
                 result = inputDecl.ref();
             }
-            // FIXME: properly wrap it
             ActivityConversionResult conversion = switch (inlineActivity) {
                 case InlineActivity.HttpEventSource ignored ->
                         emptyExtensionConversion(cx, result);
-                case InlineActivity.JMSQueueEventSource ignored -> emptyExtensionConversion(cx, result);
                 case InlineActivity.MapperActivity ignored ->
                         emptyExtensionConversion(cx, result);
                 case InlineActivity.UnhandledInlineActivity unhandledInlineActivity ->
@@ -192,11 +192,30 @@ final class ActivityConverter {
                 case InlineActivity.JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
                 case InlineActivity.JSONRender jsonRender -> convertJsonRender(cx, result, jsonRender);
                 case InlineActivity.JDBC jdbc -> convertJDBC(cx, result, jdbc);
+                case InlineActivity.JMSQueueEventSource jmsEventSource ->
+                        convertJMSEventSource(cx, result, jmsEventSource);
             };
             body.addAll(conversion.body());
             body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
             return body;
         }
+
+    private static ActivityConversionResult convertJMSEventSource(
+            ActivityContext cx, VariableReference input, InlineActivity.JMSQueueEventSource jmsEventSource) {
+        XMLTemplate jmsTemplate = new XMLTemplate(
+                """
+                           <root>
+                               <ActivityOutput xmlns="http://www.tibco.com/namespaces/tnt/plugins/jms">
+                                    <Body>
+                                        ${%s}
+                                    </Body>
+                               </ActivityOutput>
+                           </root>
+                        """.formatted(input)
+        );
+        VarDeclStatment jmsOutput = new VarDeclStatment(XML, cx.getAnnonVarName(), jmsTemplate);
+        return new ActivityConversionResult(jmsOutput.ref(), List.of(jmsOutput));
+    }
 
     private static ActivityConversionResult convertJDBC(
             ActivityContext cx, VariableReference input, InlineActivity.JDBC jdbc) {

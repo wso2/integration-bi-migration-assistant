@@ -2,8 +2,14 @@ import ballerina/log;
 import ballerina/xslt;
 
 function JMS_Queue_Receiver(Context cx) returns error? {
-    xml var0 = xml `<root></root>`;
-    xml var1 = xml `<root>${var0}</root>`;
+    xml var0 = getFromContext(cx, "jms");
+    xml var1 = xml `<root>
+       <ActivityOutput xmlns="http://www.tibco.com/namespaces/tnt/plugins/jms">
+            <Body>
+                ${var0}
+            </Body>
+       </ActivityOutput>
+   </root>`;
     addToContext(cx, "JMS-Queue-Receiver", var1);
 }
 
@@ -53,6 +59,14 @@ function addToContext(Context context, string varName, xml value) {
     xml transformed = xml `<root>${children}</root>`;
     context.variables[varName] = transformed;
     context.result = value;
+}
+
+function getFromContext(Context context, string varName) returns xml {
+    xml? value = context.variables[varName];
+    if value == () {
+        return xml `<root/>`;
+    }
+    return value;
 }
 
 function initContext(map<xml> initVariables = {}) returns Context {
