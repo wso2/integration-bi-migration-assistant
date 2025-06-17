@@ -19,9 +19,7 @@ service "JMS_Queue_Receiver" on jmsJMS_Queue_ReceiverListener {
             panic error("Unsupported JMS message type");
         }
         string content = message.content;
-        xml inputXML = xml `<root>
-    ${content}
-</root>`;
+        xml inputXML = xml `${content}`;
         map<xml> paramXML = {jms: inputXML};
         Context cx = initContext(paramXML);
         start_Main_process(cx);

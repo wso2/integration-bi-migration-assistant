@@ -109,11 +109,7 @@ public class ProcessConverter {
         VarDeclStatment content =
                 new VarDeclStatment(STRING, "content", new Expression.FieldAccess(parameter.ref(), "content"));
         body.add(content);
-        XMLTemplate inputXml = new XMLTemplate("""
-                <root>
-                    ${%s}
-                </root>
-                """.formatted(content.ref()));
+        XMLTemplate inputXml = new XMLTemplate("${%s}".formatted(content.ref()));
         VarDeclStatment inputValDecl = new VarDeclStatment(XML, "inputXML", inputXml);
         body.add(inputValDecl);
         VarDeclStatment paramXmlDecl = new VarDeclStatment(new TypeDesc.MapTypeDesc(XML), "paramXML",
