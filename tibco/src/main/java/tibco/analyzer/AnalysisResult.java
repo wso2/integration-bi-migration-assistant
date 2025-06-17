@@ -43,7 +43,8 @@ public interface AnalysisResult {
         return new AnalysisResultImpl(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
-                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+                Collections.emptyMap(), TibcoAnalysisReport.empty());
     }
 
     Collection<String> inputTypeName(Process process);
@@ -93,12 +94,12 @@ public interface AnalysisResult {
     XSD.XSDType getType(String name);
 
     record ActivityData(String functionName, BallerinaModel.TypeDesc argumentType,
-                        BallerinaModel.TypeDesc returnType) {
+            BallerinaModel.TypeDesc returnType) {
 
     }
 
     record TransitionData(Scope.Flow.Activity activity,
-                          Scope.Flow.Activity.Source.Predicate predicate) {
+            Scope.Flow.Activity.Source.Predicate predicate) {
 
     }
 

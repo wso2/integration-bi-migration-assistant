@@ -118,7 +118,7 @@ final class ActivityConverter {
                             : List.of();
             UnhandledActivity unhandledActivity = new UnhandledActivity(
                     "Failed to codegen activity due to %s".formatted(e.getMessage()),
-                    sources, targets, activity.element());
+                    sources, targets, activity.element(), activity.fileName());
             body = tryConvertActivityBody(cx, unhandledActivity);
         }
         BallerinaModel.TypeDesc.FunctionTypeDesc activityFnType = ConversionUtils.activityFnType(cx.processContext);

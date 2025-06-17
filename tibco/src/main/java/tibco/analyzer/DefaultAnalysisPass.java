@@ -75,7 +75,8 @@ public final class DefaultAnalysisPass extends AnalysisPass {
                 activityData, partnerLinkBindings, cx.getQueryIndex(), inputTypeNames, outputTypeName, variableTypes,
                 cx.getDependencyGraphs(), cx.getControlFlowFunctions(), scopes, activityByName,
                 cx.getExplicitTransitionGroupDependencyGraph(), cx.getTransitionGroupControlFlowFunctions(),
-                cx.xsdTypes());
+                cx.xsdTypes(), TibcoAnalysisReport.empty()
+        );
     }
 
     private void analyseProcessInner(ProcessAnalysisContext cx, Process5 process) {
@@ -143,7 +144,7 @@ public final class DefaultAnalysisPass extends AnalysisPass {
 
     @Override
     protected void analyzeProcessInterface(ProcessAnalysisContext cx,
-                                           ProcessInterface processInterface) {
+            ProcessInterface processInterface) {
         String inputType = sanitizeTypeName(processInterface.input());
         if (!inputType.isEmpty()) {
             cx.appendInputTypeName(inputType);
@@ -176,7 +177,7 @@ public final class DefaultAnalysisPass extends AnalysisPass {
 
     @Override
     protected void analyseWSDLDefinition(ProcessAnalysisContext cx,
-                                         Type.WSDLDefinition wsdlDefinition) {
+            Type.WSDLDefinition wsdlDefinition) {
         var messageTypes = getMessageTypeDefinitions(wsdlDefinition);
         wsdlDefinition.portType().forEach(portType -> {
             var operation = portType.operation();
@@ -227,7 +228,6 @@ public final class DefaultAnalysisPass extends AnalysisPass {
                 .forEach(link -> cx.setPartnerLinkBinding(link, link.binding()));
     }
 
-
     @Override
     protected void analyseScope(ProcessAnalysisContext cx, Scope scope) {
         cx.allocateControlFlowFunctionsIfNeeded(scope);
@@ -237,7 +237,6 @@ public final class DefaultAnalysisPass extends AnalysisPass {
         scope.sequence().forEach(sequence -> analyseSequence(cx, sequence));
         cx.popScope();
     }
-
 
     @Override
     protected void analyseSequence(ProcessAnalysisContext cx, Scope.Sequence sequence) {
@@ -265,7 +264,6 @@ public final class DefaultAnalysisPass extends AnalysisPass {
         flow.activities().forEach(activity -> analyseActivity(cx, activity));
         cx.getInSequence().pop();
     }
-
 
     @Override
     protected void analyseLink(ProcessAnalysisContext cx, Scope.Flow.Link link) {
