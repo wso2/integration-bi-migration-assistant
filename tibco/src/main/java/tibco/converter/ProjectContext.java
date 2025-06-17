@@ -28,6 +28,7 @@ import tibco.TibcoToBalConverter;
 import tibco.XmlToTibcoModelConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.Process;
+import tibco.model.Resource;
 import tibco.model.Type;
 
 import java.util.ArrayList;
@@ -84,6 +85,7 @@ public class ProjectContext {
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
     private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
     private final Map<String, String> renderJsonAsXMLFunction = new HashMap<>();
+    private final Map<String, Resource.JMSSharedResource> jmsResourceMap = new HashMap<>();
     private final Map<Process, AnalysisResult> analysisResult;
     private Collection<Type.Schema> schemas = new ArrayList<>();
 
@@ -338,6 +340,20 @@ public class ProjectContext {
 
     public void addTypeDefAsIntrinsic(String content) {
         typeCx.addTypeDefAsIntrinsic(content);
+    }
+
+    public void addJMSResource(Resource.JMSSharedResource jmsResource) {
+        String fileName = ConversionUtils.extractFileName(jmsResource.fileName());
+        jmsResourceMap.put(fileName, jmsResource);
+    }
+
+    public Resource.JMSSharedResource getJMSResource(String fileName) {
+        String extractedFileName = ConversionUtils.extractFileName(fileName);
+        Resource.JMSSharedResource resource = jmsResourceMap.get(extractedFileName);
+        if (resource == null) {
+            throw new RuntimeException("JMS shared resource not found for file: " + fileName);
+        }
+        return resource;
     }
 
     public void addConfigurableVariable(String name, String source) {

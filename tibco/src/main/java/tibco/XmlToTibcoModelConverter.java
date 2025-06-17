@@ -100,6 +100,62 @@ public final class XmlToTibcoModelConverter {
         return new Resource.JDBCSharedResource(name, location);
     }
 
+    public static Resource.JMSSharedResource parseJMSSharedResource(String fileName, Element root) {
+        String name = getFirstChildWithTag(root, "name").getTextContent();
+        Element config = getFirstChildWithTag(root, "config");
+
+        var namingEnvironment = parseJMSNamingEnvironment(config);
+        var connectionAttributes = parseJMSConnectionAttributes(config);
+        java.util.Map<String, String> jndiProperties = parseJMSJNDIProperties(config);
+
+        return new Resource.JMSSharedResource(name, fileName, namingEnvironment, connectionAttributes, jndiProperties);
+    }
+
+    private static Resource.JMSSharedResource.NamingEnvironment parseJMSNamingEnvironment(Element config) {
+        Element namingEnvElement = getFirstChildWithTag(config, "NamingEnvironment");
+        boolean useJNDI = Boolean.parseBoolean(getFirstChildWithTag(namingEnvElement, "UseJNDI").getTextContent());
+        String providerURL = getFirstChildWithTag(namingEnvElement, "ProviderURL").getTextContent();
+        String namingURL = getFirstChildWithTag(namingEnvElement, "NamingURL").getTextContent();
+        String namingInitialContextFactory = getFirstChildWithTag(namingEnvElement, "NamingInitialContextFactory").getTextContent();
+        String topicFactoryName = getFirstChildWithTag(namingEnvElement, "TopicFactoryName").getTextContent();
+        String queueFactoryName = getFirstChildWithTag(namingEnvElement, "QueueFactoryName").getTextContent();
+        String namingPrincipal = getFirstChildWithTag(namingEnvElement, "NamingPrincipal").getTextContent();
+        String namingCredential = getFirstChildWithTag(namingEnvElement, "NamingCredential").getTextContent();
+
+        return new Resource.JMSSharedResource.NamingEnvironment(useJNDI, providerURL, namingURL,
+                namingInitialContextFactory, topicFactoryName, queueFactoryName, namingPrincipal, namingCredential);
+    }
+
+    private static Resource.JMSSharedResource.ConnectionAttributes parseJMSConnectionAttributes(Element config) {
+        Element connAttrsElement = getFirstChildWithTag(config, "ConnectionAttributes");
+        Optional<String> username = tryGetFirstChildWithTag(connAttrsElement, "username")
+                .map(Element::getTextContent)
+                .filter(s -> !s.isBlank());
+        Optional<String> password = tryGetFirstChildWithTag(connAttrsElement, "password")
+                .map(Element::getTextContent)
+                .filter(s -> !s.isBlank());
+        Optional<String> clientID = tryGetFirstChildWithTag(connAttrsElement, "clientID")
+                .map(Element::getTextContent)
+                .filter(s -> !s.isBlank());
+        boolean autoGenClientID = Boolean.parseBoolean(getFirstChildWithTag(connAttrsElement, "autoGenClientID").getTextContent());
+
+        return new Resource.JMSSharedResource.ConnectionAttributes(username, password, clientID, autoGenClientID);
+    }
+
+    private static Map<String, String> parseJMSJNDIProperties(Element config) {
+        Map<String, String> jndiProperties = new HashMap<>();
+        tryGetFirstChildWithTag(config, "JNDIProperties").ifPresent(jndiPropsElement -> {
+            for (Element row : new ElementIterable(jndiPropsElement)) {
+                if (getTagNameWithoutNameSpace(row).equals("row")) {
+                    String propName = getFirstChildWithTag(row, "Name").getTextContent();
+                    String propValue = getFirstChildWithTag(row, "Value").getTextContent();
+                    jndiProperties.put(propName, propValue);
+                }
+            }
+        });
+        return jndiProperties;
+    }
+
     public static Resource.JDBCResource parseJDBCResource(Element root) {
         String name = root.getAttribute("name");
         Element configuration = getFirstChildWithTag(root, "configuration");

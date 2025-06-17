@@ -44,7 +44,8 @@ public class ProjectConverter {
             Collection<Resource.HTTPConnectionResource> httpConnectionResources,
             Set<Resource.HTTPClientResource> httpClientResources,
             Set<Resource.HTTPSharedResource> httpSharedResources,
-            Set<Resource.JDBCSharedResource> jdbcSharedResource
+            Set<Resource.JDBCSharedResource> jdbcSharedResource,
+            Set<Resource.JMSSharedResource> jmsSharedResource
     ) {
 
     }
@@ -135,6 +136,9 @@ public class ProjectConverter {
         }
         for (Resource.JDBCSharedResource resource : projectResources.jdbcSharedResource) {
             ResourceConvertor.convertJDBCSharedResource(cx, resource);
+        }
+        for (Resource.JMSSharedResource resource : projectResources.jmsSharedResource) {
+            cx.addJMSResource(resource);
         }
     }
 

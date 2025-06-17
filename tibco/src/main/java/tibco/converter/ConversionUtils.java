@@ -316,4 +316,13 @@ public final class ConversionUtils {
             case BOOLEAN -> BOOLEAN;
         };
     }
+
+    public static String extractFileName(String filePath) {
+        if (filePath == null || filePath.isBlank()) {
+            throw new IllegalArgumentException("File path cannot be null or blank");
+        }
+        // Handle both forward slashes and backslashes
+        int lastSlash = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
+        return lastSlash >= 0 ? filePath.substring(lastSlash + 1) : filePath;
+    }
 }
