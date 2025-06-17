@@ -19,6 +19,7 @@
 package tibco.analyzer;
 
 import tibco.model.Process;
+import tibco.model.Type;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -34,8 +35,17 @@ public class ModelAnalyser {
         this.passes = passes;
     }
 
-    public Map<Process, AnalysisResult> analyseProcesses(ProjectAnalysisContext cx,
-                                                         Collection<Process> processes) {
+    public Map<Process, AnalysisResult> analyseProject(ProjectAnalysisContext context,
+                                                       Collection<Process> processes,
+                                                       Collection<Type.Schema> schemas) {
+        schemas.stream().map(Type.Schema::xsdTypes).flatMap(Collection::stream).forEachOrdered(each -> {
+            context.addXsdType(each.name(), each.type());
+        });
+        return analyseProcesses(context, processes);
+    }
+
+    private Map<Process, AnalysisResult> analyseProcesses(ProjectAnalysisContext cx,
+                                                          Collection<Process> processes) {
         Map<Process, AnalysisResult> analysisResults = new HashMap<>();
         for (Process process : processes) {
             AnalysisResult combined = AnalysisResult.empty();

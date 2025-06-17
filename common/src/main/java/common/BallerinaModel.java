@@ -95,6 +95,18 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     public sealed interface TypeDesc {
 
+        record IntersectionTypeDesc(Collection<? extends TypeDesc> members) implements TypeDesc {
+
+            public static IntersectionTypeDesc of(TypeDesc... members) {
+                return new IntersectionTypeDesc(List.of(members));
+            }
+
+            @Override
+            public @NotNull String toString() {
+                return String.join(" & ", members.stream().map(Object::toString).toList());
+            }
+        }
+
         record FunctionTypeDesc(List<Parameter> parameters, TypeDesc returnType) implements TypeDesc {
 
             public FunctionTypeDesc(List<Parameter> parameters) {
@@ -255,6 +267,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             NIL("()"),
             STRING("string"),
             HANDLE("handle"),
+            READONLY("readonly"),
             XML("xml");
 
             private final String name;

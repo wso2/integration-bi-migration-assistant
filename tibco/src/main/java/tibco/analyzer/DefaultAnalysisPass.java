@@ -74,7 +74,8 @@ public final class DefaultAnalysisPass extends AnalysisPass {
         return new AnalysisResultImpl(cx.getDestinationMap(), cx.getSourceMap(),
                 activityData, partnerLinkBindings, cx.getQueryIndex(), inputTypeNames, outputTypeName, variableTypes,
                 cx.getDependencyGraphs(), cx.getControlFlowFunctions(), scopes, activityByName,
-                cx.getExplicitTransitionGroupDependencyGraph(), cx.getTransitionGroupControlFlowFunctions());
+                cx.getExplicitTransitionGroupDependencyGraph(), cx.getTransitionGroupControlFlowFunctions(),
+                cx.xsdTypes());
     }
 
     private void analyseProcessInner(ProcessAnalysisContext cx, Process5 process) {
@@ -166,8 +167,9 @@ public final class DefaultAnalysisPass extends AnalysisPass {
     @Override
     protected void analyseTypes(ProcessAnalysisContext cx, Collection<Type> types) {
         types.forEach(type -> {
-            if (type instanceof Type.WSDLDefinition wsdlDefinition) {
-                analyseWSDLDefinition(cx, wsdlDefinition);
+            switch (type) {
+                case Type.WSDLDefinition wsdlDefinition -> analyseWSDLDefinition(cx, wsdlDefinition);
+                case Type.Schema schema -> schema.xsdTypes().forEach(each -> cx.addXsdType(each.name(), each.type()));
             }
         });
     }

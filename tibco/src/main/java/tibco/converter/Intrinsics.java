@@ -284,22 +284,24 @@ public enum Intrinsics {
             "setJSONResponse",
             """
                     function setJSONResponse(Context cx, json payload, map<string> headers) {
-                        cx.response = {
+                        JSONResponse res = {
                             kind: "JSONResponse",
-                            payload,
-                            headers
+                            payload: payload.cloneReadOnly(),
+                            headers: headers.cloneReadOnly()
                         };
+                        cx.response = res;
                     }
                     """),
     SET_XML_RESPONSE(
             "setXMLResponse",
             """
                     function setXMLResponse(Context cx, xml payload, map<string> headers) {
-                        cx.response = {
+                        XMLResponse res = {
                             kind: "XMLResponse",
-                            payload,
-                            headers
+                            payload: payload.cloneReadOnly(),
+                            headers: headers.cloneReadOnly()
                         };
+                        cx.response = res;
                     }
                     """
     ),
@@ -307,11 +309,12 @@ public enum Intrinsics {
             "setTextResponse",
             """
                     function setTextResponse(Context cx, string payload, map<string> headers) {
-                        cx.response = {
+                        TextResponse res = {
                             kind: "TextResponse",
-                            payload,
-                            headers
+                            payload: payload.cloneReadOnly(),
+                            headers: headers.cloneReadOnly()
                         };
+                        cx.response = res;
                     }
                     """
     ),

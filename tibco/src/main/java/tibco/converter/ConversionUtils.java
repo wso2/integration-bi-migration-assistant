@@ -47,6 +47,7 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.FLOAT;
 import static common.BallerinaModel.TypeDesc.BuiltinType.INT;
 import static common.BallerinaModel.TypeDesc.BuiltinType.JSON;
 import static common.BallerinaModel.TypeDesc.BuiltinType.NIL;
+import static common.BallerinaModel.TypeDesc.BuiltinType.READONLY;
 import static common.BallerinaModel.TypeDesc.BuiltinType.RecordTypeDesc;
 import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
@@ -211,7 +212,7 @@ public final class ConversionUtils {
 
         static final BallerinaModel.TypeDesc HTTP_RESPONSE = typeFrom("http:Response");
 
-        static final BallerinaModel.TypeDesc.RecordTypeDesc RESPONSE_TYPE_DESC =
+        static final BallerinaModel.TypeDesc RESPONSE_TYPE_DESC =
                 new BallerinaModel.TypeDesc.RecordTypeDesc(
                         List.of(
                                 new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("kind",
@@ -223,35 +224,41 @@ public final class ConversionUtils {
                                 new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("headers",
                                         new BallerinaModel.TypeDesc.MapTypeDesc(STRING))));
 
-        static final BallerinaModel.TypeDesc.RecordTypeDesc JSON_RESPONSE_TYPE_DESC =
-                new BallerinaModel.TypeDesc.RecordTypeDesc(
-                        List.of(new BallerinaModel.TypeDesc.TypeReference("Response")),
-                        List.of(
-                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("kind",
-                                        new Expression.StringConstant("JSONResponse"),
-                                        new BallerinaModel.Expression.StringConstant("JSONResponse")),
-                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("payload", JSON)),
-                        BallerinaModel.TypeDesc.BuiltinType.NEVER);
+        static final BallerinaModel.TypeDesc JSON_RESPONSE_TYPE_DESC =
+                BallerinaModel.TypeDesc.IntersectionTypeDesc.of(
+                        READONLY,
+                        new BallerinaModel.TypeDesc.RecordTypeDesc(
+                                List.of(new BallerinaModel.TypeDesc.TypeReference("Response")),
+                                List.of(
+                                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("kind",
+                                                new Expression.StringConstant("JSONResponse"),
+                                                new BallerinaModel.Expression.StringConstant("JSONResponse")),
+                                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("payload", JSON)),
+                                BallerinaModel.TypeDesc.BuiltinType.NEVER));
 
-        static final BallerinaModel.TypeDesc.RecordTypeDesc XML_RESPONSE_TYPE_DESC =
-                new BallerinaModel.TypeDesc.RecordTypeDesc(
-                        List.of(new BallerinaModel.TypeDesc.TypeReference("Response")),
-                        List.of(
-                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("kind",
-                                        new Expression.StringConstant("XMLResponse"),
-                                        new BallerinaModel.Expression.StringConstant("XMLResponse")),
-                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("payload", XML)),
-                        BallerinaModel.TypeDesc.BuiltinType.NEVER);
+        static final BallerinaModel.TypeDesc XML_RESPONSE_TYPE_DESC =
+                BallerinaModel.TypeDesc.IntersectionTypeDesc.of(
+                        READONLY,
+                        new BallerinaModel.TypeDesc.RecordTypeDesc(
+                                List.of(new BallerinaModel.TypeDesc.TypeReference("Response")),
+                                List.of(
+                                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("kind",
+                                                new Expression.StringConstant("XMLResponse"),
+                                                new BallerinaModel.Expression.StringConstant("XMLResponse")),
+                                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("payload", XML)),
+                                BallerinaModel.TypeDesc.BuiltinType.NEVER));
 
-        static final BallerinaModel.TypeDesc.RecordTypeDesc TEXT_RESPONSE_TYPE_DESC =
-                new BallerinaModel.TypeDesc.RecordTypeDesc(
-                        List.of(new BallerinaModel.TypeDesc.TypeReference("Response")),
-                        List.of(
-                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("kind",
-                                        new Expression.StringConstant("TextResponse"),
-                                        new BallerinaModel.Expression.StringConstant("TextResponse")),
-                                new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("payload", STRING)),
-                        BallerinaModel.TypeDesc.BuiltinType.NEVER);
+        static final BallerinaModel.TypeDesc TEXT_RESPONSE_TYPE_DESC =
+                BallerinaModel.TypeDesc.IntersectionTypeDesc.of(
+                        READONLY,
+                        new BallerinaModel.TypeDesc.RecordTypeDesc(
+                                List.of(new BallerinaModel.TypeDesc.TypeReference("Response")),
+                                List.of(
+                                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("kind",
+                                                new Expression.StringConstant("TextResponse"),
+                                                new BallerinaModel.Expression.StringConstant("TextResponse")),
+                                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("payload", STRING)),
+                                BallerinaModel.TypeDesc.BuiltinType.NEVER));
     }
 
     public static BallerinaModel.TypeDesc.FunctionTypeDesc processFunctionType(ProcessContext cx) {
@@ -285,7 +292,7 @@ public final class ConversionUtils {
         return toTypeDesc(xsd.type().type());
     }
 
-    private static BallerinaModel.TypeDesc toTypeDesc(XSD.XSDType type) {
+    public static BallerinaModel.TypeDesc toTypeDesc(XSD.XSDType type) {
         return switch (type) {
             case XSD.XSDType.BasicXSDType basicXSDType -> basicTypeToTD(basicXSDType);
             case XSD.XSDType.ComplexType complexType -> complexTypeToTD(complexType);

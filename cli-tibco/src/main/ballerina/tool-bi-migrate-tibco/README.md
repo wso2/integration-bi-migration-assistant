@@ -167,7 +167,3 @@ function unhandled(map<xml> context) returns xml|error {
 - `com.tibco.plugin.json.activities.JSONRenderActivity`
 - `com.tibco.plugin.soap.SOAPSendReplyActivity`
 - `com.tibco.pe.core.WriteToLogActivity`
-
-## Limitations
-
-- Currently supports only TIBCO BusinessWorks 5.

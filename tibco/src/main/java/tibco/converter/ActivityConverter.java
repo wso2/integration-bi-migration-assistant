@@ -239,19 +239,6 @@ final class ActivityConverter {
                                                                              BallerinaModel.TypeDesc targetType,
                                                                              String outerTag,
                                                                              VariableReference input) {
-        var intermediateResult = finishConvertJsonRender(cx, body, targetType, input);
-
-        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(
-                "<%s>${%s}</%s>"
-                        .formatted(outerTag, intermediateResult.result, outerTag)));
-        body.add(result);
-        return new ActivityConversionResult(result.ref(), body);
-    }
-
-    private static @NotNull ActivityConversionResult finishConvertJsonRender(ActivityContext cx,
-                                                                             List<Statement> body,
-                                                                             BallerinaModel.TypeDesc targetType,
-                                                                             VariableReference input) {
         body.add(new Comment("WARNING: assuming single element"));
         cx.addLibraryImport(Library.XML_DATA);
         String parseAsTypeFn = XMLDataConstants.PARSE_AS_TYPE;
@@ -267,7 +254,13 @@ final class ActivityConverter {
                 new XMLTemplate("<jsonString>${%s}</jsonString>".formatted(jsonStringContent.ref())));
         body.add(jsonString);
 
-        return new ActivityConversionResult(jsonString.ref(), body);
+        var intermediateResult = new ActivityConversionResult(jsonString.ref(), body);
+
+        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(
+                "<%s>${%s}</%s>"
+                        .formatted(outerTag, intermediateResult.result, outerTag)));
+        body.add(result);
+        return new ActivityConversionResult(result.ref(), body);
     }
 
     private static ActivityConversionResult convertJsonParser(
@@ -778,26 +771,12 @@ final class ActivityConverter {
             ActivityContext cx, VariableReference input, ActivityExtension.Config.SendHTTPResponse sendHTTPResponse) {
         List<Statement> body = new ArrayList<>();
         body.add(new Comment("FIXME ignoring headers others than content type"));
-        VarDeclStatment contentType;
-        VarDeclStatment asciiContent;
-        VarDeclStatment headers;
-        if (sendHTTPResponse.ResponseActivityInputNamespace().isPresent()) {
-            body.add(
-                    stmtFrom("xmlns \"%s\" as ns;".formatted(sendHTTPResponse.ResponseActivityInputNamespace().get())));
-            contentType = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                    exprFrom("(%s/**/<ns:Content\\-Type>/*).toString()".formatted(input.varName())));
-            asciiContent = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                    exprFrom("(%s/**/<ns:asciiContent>/*).toString()".formatted(input.varName())));
-            headers = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                    exprFrom("(%s/**/<ns:Headers>/*)".formatted(input.varName())));
-        } else {
-            contentType = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                    exprFrom("(%s/**/<Content\\-Type>/*).toString()".formatted(input.varName())));
-            asciiContent = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                    exprFrom("(%s/**/<asciiContent>/*).toString()".formatted(input.varName())));
-            headers = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                    exprFrom("(%s/**/<Headers>/*)".formatted(input.varName())));
-        }
+        VarDeclStatment contentType = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                        exprFrom("(%s/**/<Content\\-Type>/*).toString()".formatted(input.varName())));
+        VarDeclStatment asciiContent = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                        exprFrom("(%s/**/<asciiContent>/*).toString()".formatted(input.varName())));
+        VarDeclStatment headers = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                        exprFrom("(%s/**/<Headers>/*)".formatted(input.varName())));
         body.add(contentType);
         body.add(asciiContent);
         body.add(headers);
@@ -882,8 +861,9 @@ final class ActivityConverter {
     private static ActivityConversionResult createJsonRenderOperation(ActivityContext cx,
                                                                       VariableReference input,
                                                                       JsonOperation jsonOperation) {
-        return finishConvertJsonRender(cx, new ArrayList<>(),
-                common.ConversionUtils.typeFrom(jsonOperation.type().name()), input);
+        AnalysisResult ar = cx.processContext.getAnalysisResult();
+        BallerinaModel.TypeDesc targetType = ConversionUtils.toTypeDesc(ar.getType(jsonOperation.type().name()));
+        return finishConvertJsonRender(cx, new ArrayList<>(), targetType, "root", input);
     }
 
     private static @NotNull ActivityConversionResult emptyExtensionConversion(ActivityContext cx,

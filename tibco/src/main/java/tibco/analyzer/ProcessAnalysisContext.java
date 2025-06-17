@@ -22,6 +22,7 @@ import tibco.converter.ConversionUtils;
 import tibco.model.PartnerLink;
 import tibco.model.Process5.ExplicitTransitionGroup;
 import tibco.model.Scope;
+import tibco.model.XSD;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -319,5 +320,13 @@ public class ProcessAnalysisContext {
 
     public Map<String, AnalysisResult.GraphNode> getActivityNodes() {
         return Collections.unmodifiableMap(activityNodes);
+    }
+
+    void addXsdType(String name, XSD.XSDType type) {
+        projectAnalysisContext.addXsdType(name, type);
+    }
+
+    public Map<String, XSD.XSDType> xsdTypes() {
+        return projectAnalysisContext.xsdTypes();
     }
 }

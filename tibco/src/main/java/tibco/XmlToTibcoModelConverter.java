@@ -318,7 +318,8 @@ public final class XmlToTibcoModelConverter {
                 : Optional.of(Integer.parseInt(minOccursAttrib));
 
         String maxOccursAttrib = element.getAttribute("maxOccurs");
-        Optional<Integer> maxOccurs = maxOccursAttrib.isBlank() ? Optional.empty()
+        Optional<Integer> maxOccurs =
+                maxOccursAttrib.isBlank() || maxOccursAttrib.equals("unbounded") ? Optional.empty()
                 : Optional.of(Integer.parseInt(maxOccursAttrib));
 
         return new XSD.Element(name, type, minOccurs, maxOccurs);
@@ -1363,7 +1364,26 @@ public final class XmlToTibcoModelConverter {
     }
 
     static Type.Schema parseSchema(Element element) {
-        return new Type.Schema(element);
+        Map<String, Type.Schema.SchemaXsdType> complexTypes = new HashMap<>();
+        Map<String, String> aliases = new HashMap<>();
+        for (Element child : ElementIterable.of(element)) {
+            String tag = getTagNameWithoutNameSpace(child);
+            String name = child.getAttribute("name");
+            if (tag.equals("complexType")) {
+                complexTypes.put(name, new Type.Schema.SchemaXsdType(name, parseComplexType(child)));
+            } else if (tag.equals("element")) {
+                String type = ConversionUtils.stripNamespace(child.getAttribute("type"));
+                aliases.put(name, type);
+            }
+        }
+        for (var each : aliases.entrySet()) {
+            String type = each.getValue();
+            String name = each.getKey();
+            if (complexTypes.containsKey(type)) {
+                complexTypes.put(name, new Type.Schema.SchemaXsdType(name, complexTypes.get(type).type()));
+            }
+        }
+        return new Type.Schema(element, complexTypes.values());
     }
 
     private static NameSpace parseImport(Element each) {
