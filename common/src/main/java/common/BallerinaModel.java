@@ -379,7 +379,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
-        record JMSListener(String name, String initialContextFactory, String providerUrl, String destinationName)
+        record JMSListener(String name, String initialContextFactory, String providerUrl, String destinationName,
+                           Optional<String> username, Optional<String> password)
                 implements Listener {
 
             @Override
@@ -390,11 +391,19 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             @Override
             @NotNull
             public String toString() {
+                StringBuilder connectionConfig = new StringBuilder();
+                connectionConfig.append("initialContextFactory: \"").append(initialContextFactory).append("\",\n");
+                connectionConfig.append("providerUrl: \"").append(providerUrl).append("\"");
+
+                if (username.isPresent() && password.isPresent()) {
+                    connectionConfig.append(",\nusername: \"").append(username.get()).append("\",\n");
+                    connectionConfig.append("password: \"").append(password.get()).append("\"");
+                }
+
                 return String.format("""
                         public listener jms:Listener %s = new jms:Listener(
                             connectionConfig = {
-                                initialContextFactory: "%s",
-                                providerUrl: "%s"
+                                %s
                             },
                             consumerOptions = {
                                 destination: {
@@ -402,7 +411,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                                     name: "%s"
                                 }
                             }
-                        );""", name, initialContextFactory, providerUrl, destinationName);
+                        );""", name, connectionConfig, destinationName);
             }
         }
     }

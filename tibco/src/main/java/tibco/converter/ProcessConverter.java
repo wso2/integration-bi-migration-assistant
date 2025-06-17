@@ -141,7 +141,8 @@ public class ProcessConverter {
 
         BallerinaModel.Listener.JMSListener listener =
                 new BallerinaModel.Listener.JMSListener(listenerName, initialContextFactory, providerUrl,
-                        destinationName);
+                        destinationName, jmsResource.connectionAttributes().username(),
+                        jmsResource.connectionAttributes().password());
         cx.projectContext.addListnerDeclartion(jmsQueueEventSource.connectionReference(), listener, List.of(),
                 List.of(JMS));
         return listener;
