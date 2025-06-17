@@ -1707,6 +1707,9 @@ public final class XmlToTibcoModelConverter {
         Element config = getFirstChildWithTag(element, "config");
 
         String permittedMessageType = getFirstChildWithTag(config, "PermittedMessageType").getTextContent();
+        if (!permittedMessageType.equals("Text")) {
+            throw new UnsupportedOperationException("Unsupported permitted message type: " + permittedMessageType);
+        }
         InlineActivity.JMSQueueEventSource.SessionAttributes sessionAttributes = parseJMSSessionAttributes(config);
         InlineActivity.JMSQueueEventSource.ConfigurableHeaders configurableHeaders = parseJMSConfigurableHeaders(
                 config);

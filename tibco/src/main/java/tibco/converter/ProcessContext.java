@@ -20,6 +20,7 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import org.jetbrains.annotations.NotNull;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.NameSpace;
 import tibco.model.Process;
@@ -106,6 +107,11 @@ public class ProcessContext implements ContextWithFile {
 
     public BallerinaModel.TypeDesc getTypeByName(String name) {
         return projectContext.getTypeByName(name, this);
+    }
+
+    @NotNull
+    public tibco.model.Resource.JMSSharedResource getJMSResource(String fileName) {
+        return projectContext.getJMSResource(fileName);
     }
 
     String declareConstant(String name, String valueRepr, String type) {

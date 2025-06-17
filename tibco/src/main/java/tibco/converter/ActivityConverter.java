@@ -148,6 +148,7 @@ final class ActivityConverter {
         private static @NotNull List<Statement> convertInlineActivity(
                 ActivityContext cx, InlineActivity inlineActivity) {
             List<Statement> body = new ArrayList<>();
+            // FIXME: if jms extract input value from jms
             VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
             body.add(inputDecl);
             VariableReference result;
@@ -159,6 +160,7 @@ final class ActivityConverter {
             } else {
                 result = inputDecl.ref();
             }
+            // FIXME: properly wrap it
             ActivityConversionResult conversion = switch (inlineActivity) {
                 case InlineActivity.HttpEventSource ignored ->
                         emptyExtensionConversion(cx, result);

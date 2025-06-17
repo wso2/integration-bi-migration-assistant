@@ -210,6 +210,11 @@ public final class ConversionUtils {
         static final String CONTEXT_VAR_NAME = "context";
         static final String CONTEXT_INPUT_NAME = "$input";
 
+        static final BallerinaModel.TypeDesc.TypeReference JMS_MESSAGE_TYPE =
+                new BallerinaModel.TypeDesc.TypeReference("jms:Message");
+        static final BallerinaModel.TypeDesc.TypeReference JMS_TEXT_MESSAGE_TYPE =
+                new BallerinaModel.TypeDesc.TypeReference("jms:TextMessage");
+
         static final BallerinaModel.TypeDesc HTTP_RESPONSE = typeFrom("http:Response");
 
         static final BallerinaModel.TypeDesc RESPONSE_TYPE_DESC =
