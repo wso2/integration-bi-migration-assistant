@@ -331,6 +331,7 @@ public final class XmlToTibcoModelConverter {
             case JDBC -> parseJDBCActivity(element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
             case JMS_QUEUE_EVENT_SOURCE -> parseJMSQueueEventSource(element, name, inputBinding);
+            case JMS_QUEUE_SEND_ACTIVITY -> parseJMSQueueSendActivity(element, name, inputBinding);
         };
     }
 
@@ -1709,6 +1710,11 @@ public final class XmlToTibcoModelConverter {
     private static InlineActivity.JMSQueueEventSource parseJMSQueueEventSource(Element element, String name,
                                                                                Flow.Activity.InputBinding inputBinding) {
         return new InlineActivity.JMSQueueEventSource(parseJMSActivityInner(element, name, inputBinding));
+    }
+
+    private static InlineActivity.JMSQueueSendActivity parseJMSQueueSendActivity(Element element, String name,
+                                                                                 Flow.Activity.InputBinding inputBinding) {
+        return new InlineActivity.JMSQueueSendActivity(parseJMSActivityInner(element, name, inputBinding));
     }
 
     private static InlineActivity.JMSActivityBase parseJMSActivityInner(Element element, String name,

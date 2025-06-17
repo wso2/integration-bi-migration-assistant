@@ -37,7 +37,7 @@ public final class BICodeConverter {
             BallerinaModel.ModuleVar::isConfigurable;
 
     public static final Predicate<BallerinaModel.ModuleVar> DEFAULT_IS_CONNECTION_PREDICATE = new TypeNamePredicate(
-            Set.of("http:Client", "jdbc:Client", "mysql:Client", "oracledb:Client"));
+            Set.of("http:Client", "jdbc:Client", "mysql:Client", "oracledb:Client", "jms:Connection"));
     public static final Predicate<BallerinaModel.TextDocument> DEFAULT_SKIP_CONVERSION_PREDICATE = ignored -> false;
 
     private final Predicate<BallerinaModel.ModuleVar> isConfigurable;

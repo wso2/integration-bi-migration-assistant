@@ -214,6 +214,14 @@ public final class ConversionUtils {
                 new BallerinaModel.TypeDesc.TypeReference("jms:Message");
         static final BallerinaModel.TypeDesc.TypeReference JMS_TEXT_MESSAGE_TYPE =
                 new BallerinaModel.TypeDesc.TypeReference("jms:TextMessage");
+        static final BallerinaModel.TypeDesc.TypeReference JMS_CONNECTION =
+                new BallerinaModel.TypeDesc.TypeReference("jms:Connection");
+        static final BallerinaModel.TypeDesc.TypeReference JMS_SESSION =
+                new BallerinaModel.TypeDesc.TypeReference("jms:Session");
+        static final BallerinaModel.TypeDesc.TypeReference JMS_MESSAGE_PRODUCER =
+                new BallerinaModel.TypeDesc.TypeReference("jms:MessageProducer");
+        static final BallerinaModel.TypeDesc.TypeReference JMS_TEXT_MESSAGE =
+                new BallerinaModel.TypeDesc.TypeReference("jms:TextMessage");
 
         static final BallerinaModel.TypeDesc HTTP_RESPONSE = typeFrom("http:Response");
 

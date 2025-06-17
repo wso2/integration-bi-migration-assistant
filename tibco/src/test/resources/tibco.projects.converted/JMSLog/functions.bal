@@ -1,5 +1,6 @@
 import ballerina/log;
 import ballerina/xslt;
+import ballerinax/java.jms;
 
 function JMS_Queue_Receiver(Context cx) returns error? {
     xml var0 = getFromContext(cx, "jms");
@@ -11,6 +12,34 @@ function JMS_Queue_Receiver(Context cx) returns error? {
        </ActivityOutput>
    </root>`;
     addToContext(cx, "JMS-Queue-Receiver", var1);
+}
+
+function JMS_Send(Context cx) returns error? {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
+     <xsl:template name="Transform1" match="/">
+        <ns1:ActivityInput xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms">
+                    
+    <Body>
+                            
+        <xsl:value-of select="&quot;RECEIVED&quot;" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                        
+    </Body>
+                
+</ns1:ActivityInput>
+
+    </xsl:template>
+</xsl:stylesheet>`, cx.variables);
+    jms:Connection var2 = check new (initialContextFactory = "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl = "tcp://localhost:61617", username = "userName", password = "password");
+    jms:Session var3 = check var2->createSession();
+    //WARNING: using default destination configuration
+    jms:MessageProducer var4 = check var3.createProducer();
+    string var5 = (var1/**/<Body>/*).toString().trim();
+    jms:TextMessage var6 = {content: var5};
+    check var4->send(var6);
+    xml var7 = xml `<root></root>`;
+    addToContext(cx, "JMS-Send", var7);
 }
 
 function Log(Context cx) returns error? {
@@ -37,6 +66,7 @@ function Log(Context cx) returns error? {
 function scope0ActivityRunner(Context cx) returns error? {
     check JMS_Queue_Receiver(cx);
     check Log(cx);
+    check JMS_Send(cx);
 }
 
 function scope0FaultHandler(error err, Context cx) returns () {
