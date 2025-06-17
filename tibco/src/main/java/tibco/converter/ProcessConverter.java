@@ -35,7 +35,6 @@ import common.BallerinaModel.Statement.VarAssignStatement;
 import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
-
 import org.jetbrains.annotations.NotNull;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.Process;
@@ -88,9 +87,9 @@ public class ProcessConverter {
         };
     }
 
-    private static BallerinaModel.Service createJMSListenerServiceForStartActivity(ProcessContext cx,
-                                                                                   ExplicitTransitionGroup group,
-                                                                                   ExplicitTransitionGroup.InlineActivity.JMSQueueEventSource jmsQueueEventSource) {
+    private static BallerinaModel.Service createJMSListenerServiceForStartActivity(
+                    ProcessContext cx, ExplicitTransitionGroup group,
+                    ExplicitTransitionGroup.InlineActivity.JMSQueueEventSource jmsQueueEventSource) {
         cx.addLibraryImport(JMS);
         BallerinaModel.Listener.JMSListener listener = createJMSListener(cx, jmsQueueEventSource);
         BallerinaModel.Remote remoteFn = generateRemoteFunctionForJMSStartActivity(cx, group, jmsQueueEventSource);
@@ -99,9 +98,9 @@ public class ProcessConverter {
                 List.of(listener.name()), Optional.empty(), List.of(), List.of(), List.of(), List.of(remoteFn));
     }
 
-    private static BallerinaModel.Remote generateRemoteFunctionForJMSStartActivity(ProcessContext cx,
-                                                                                   ExplicitTransitionGroup group,
-                                                                                   ExplicitTransitionGroup.InlineActivity.JMSQueueEventSource jmsQueueEventSource) {
+    private static BallerinaModel.Remote generateRemoteFunctionForJMSStartActivity(
+                    ProcessContext cx, ExplicitTransitionGroup group,
+                    ExplicitTransitionGroup.InlineActivity.JMSQueueEventSource jmsQueueEventSource) {
         Parameter parameter = new Parameter("message", ConversionUtils.Constants.JMS_MESSAGE_TYPE);
         List<Statement> body = new ArrayList<>();
         body.add(Statement.IfElseStatement.ifStatement(common.ConversionUtils.exprFrom(

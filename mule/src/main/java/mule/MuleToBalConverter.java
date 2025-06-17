@@ -45,7 +45,6 @@ import static common.BallerinaModel.BlockFunctionBody;
 import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.Listener;
-import static common.BallerinaModel.Listener.ListenerType;
 import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
 import static common.BallerinaModel.Parameter;

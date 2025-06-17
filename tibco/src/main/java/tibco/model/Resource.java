@@ -79,8 +79,8 @@ public interface Resource {
                 String queueFactoryName, String namingPrincipal, String namingCredential) {
         }
 
-        public record ConnectionAttributes(Optional<String> username, Optional<String> password, Optional<String> clientID,
-                boolean autoGenClientID) {
+        public record ConnectionAttributes(Optional<String> username, Optional<String> password,
+                Optional<String> clientID, boolean autoGenClientID) {
         }
     }
 }

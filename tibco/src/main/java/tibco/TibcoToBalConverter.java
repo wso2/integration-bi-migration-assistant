@@ -100,7 +100,8 @@ public class TibcoToBalConverter {
         }
         return ProjectConverter.convertProject(cx, analysisResult, processes, types,
                 new ProjectConverter.ProjectResources(jdbcResources,
-                        httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource, jmsSharedResource),
+                        httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource,
+                        jmsSharedResource),
                 report);
     }
 

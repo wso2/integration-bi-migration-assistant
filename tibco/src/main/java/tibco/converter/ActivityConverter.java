@@ -187,7 +187,7 @@ final class ActivityConverter {
                 case Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup loopGroup ->
                         convertLoopGroup(cx, result, loopGroup);
                 case InlineActivity.REST rest -> convertREST(cx, result, rest);
-                case InlineActivity.Catch ignored ->
+                case Process5.ExplicitTransitionGroup.InlineActivity.Catch ignored ->
                         emptyExtensionConversion(cx, result);
                 case InlineActivity.JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
                 case InlineActivity.JSONRender jsonRender -> convertJsonRender(cx, result, jsonRender);
@@ -811,7 +811,7 @@ final class ActivityConverter {
         String setJSONResponseFn = cx.getSetJSONResponseFn();
         String setXMLResponseFn = cx.getSetXMLResponseFn();
         String setTextResponseFn = cx.getSetTextResponseFn();
-        body.add(stmtFrom("""
+        body.add(common.ConversionUtils.stmtFrom("""
                 match %5$s {
                     "application/json" => {
                         map<json> jsonRepr = check jsondata:parseString(%6$s);

@@ -410,8 +410,12 @@ public final class XmlToTibcoModelConverter {
         for (Element child : new ElementIterable(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
-                case "activity" -> transitionGroup = transitionGroup.append(parseInlineActivity(cx, child));
-                case "transition" -> transitionGroup = transitionGroup.append(parseTransition(cx, child));
+                case "activity" -> {
+                    transitionGroup = transitionGroup.append(parseInlineActivity(cx, child));
+                }
+                case "transition" -> {
+                    transitionGroup = transitionGroup.append(parseTransition(cx, child));
+                }
                 case "starter" -> transitionGroup = transitionGroup.setStartActivity(parseInlineActivity(cx, child));
                 case "returnBindings" -> {
                     if (!isEmpty(child)) {
