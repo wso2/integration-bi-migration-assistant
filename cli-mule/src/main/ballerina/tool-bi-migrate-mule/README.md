@@ -14,7 +14,7 @@ $ bal tool pull migrate-mule
 ### Command Syntax
 
 ```bash
-$ bal migrate-mule <source-project-directory-or-file> [-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run]
+$ bal migrate-mule <source-project-directory-or-file> [-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root]
 ```
 
 ### Parameters

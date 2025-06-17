@@ -26,7 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
-import static mule.MuleMigrationExecutor.testConvertMuleProject;
+import static mule.MuleMigrationExecutor.testConvertingMuleProject;
 import static mule.MuleToBalConverter.convertStandaloneXMLFileToBallerina;
 
 public class TestConverter {
@@ -54,7 +54,7 @@ public class TestConverter {
         }
 
         OUT.println("Generating Ballerina package...");
-        testConvertMuleProject("src/test/resources/projects/demo_project_bi", null, false, false, false);
+        testConvertingMuleProject("src/test/resources/projects/demo_project_bi", null, false, false);
         OUT.println("________________________________________________________________");
         OUT.println("Conversion completed. Output written to " +
                 "src/test/resources/demo_project_bi/demo_project_bi_ballerina");
@@ -73,7 +73,7 @@ public class TestConverter {
         }
 
         OUT.println("Generating Ballerina package...");
-        testConvertMuleProject("src/test/resources/projects/demo_project_classic", null, false, false, true);
+        testConvertingMuleProject("src/test/resources/projects/demo_project_classic", null, false, true);
         OUT.println("________________________________________________________________");
         OUT.println("Conversion completed. Output written to " +
                 "src/test/resources/demo_project_classic/demo_project_classic_ballerina");
