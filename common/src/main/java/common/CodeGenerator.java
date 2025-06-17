@@ -49,6 +49,7 @@ import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
 import static common.BallerinaModel.ObjectField;
 import static common.BallerinaModel.Parameter;
+import static common.BallerinaModel.Remote;
 import static common.BallerinaModel.Resource;
 import static common.BallerinaModel.Service;
 import static common.BallerinaModel.Statement;
@@ -124,6 +125,20 @@ public class CodeGenerator {
             for (Function function : service.functions()) {
                 FunctionDefinitionNode funcDefn = genFunctionDefinitionNode(function);
                 members.add(funcDefn);
+            }
+
+            for (Remote remote : service.remoteFunctions()) {
+                Function function = remote.function();
+                String funcParamStr = constructFunctionParameterString(function.parameters(), false);
+                FunctionDefinitionNode remoteMethod = (FunctionDefinitionNode) NodeParser.parseObjectMember(
+                        String.format("remote function %s(%s) %s {}",
+                                function.functionName(), funcParamStr,
+                                getReturnTypeDescriptor(function.returnType())));
+
+                FunctionBodyBlockNode funcBodyBlock = constructFunctionBodyBlock(
+                        ((BallerinaModel.BlockFunctionBody) function.body()).statements());
+                remoteMethod = remoteMethod.modify().withFunctionBody(funcBodyBlock).apply();
+                members.add(remoteMethod);
             }
 
             NodeList<Node> nodeList = NodeFactory.createNodeList(members);

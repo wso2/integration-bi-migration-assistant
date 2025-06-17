@@ -326,12 +326,21 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
     }
 
+    public record Remote(Function function) {
+
+    }
+
     public record Service(String basePath, List<String> listenerRefs, Optional<Function> initFunc,
                           List<Resource> resources, List<Function> functions,
-                          List<ObjectField> fields) {
+                          List<ObjectField> fields, List<Remote> remoteFunctions) {
         public Service(String basePath, String listenerRef, List<Resource> resources) {
             this(basePath, Collections.singletonList(listenerRef), Optional.empty(), resources,
-                    Collections.emptyList(), Collections.emptyList());
+                    Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        }
+
+        public Service(String basePath, List<String> listenerRefs, Optional<Function> initFunc,
+                       List<Resource> resources, List<Function> functions, List<ObjectField> fields) {
+            this(basePath, listenerRefs, initFunc, resources, functions, fields, Collections.emptyList());
         }
     }
 
@@ -353,7 +362,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public enum ListenerType {
-        HTTP
+        HTTP,
+        JMS
     }
 
     public record Resource(String resourceMethodName, String path, List<Parameter> parameters,
