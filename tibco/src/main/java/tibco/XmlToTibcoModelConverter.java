@@ -1708,38 +1708,43 @@ public final class XmlToTibcoModelConverter {
 
     private static InlineActivity.JMSQueueEventSource parseJMSQueueEventSource(Element element, String name,
                                                                                Flow.Activity.InputBinding inputBinding) {
+        return new InlineActivity.JMSQueueEventSource(parseJMSActivityInner(element, name, inputBinding));
+    }
+
+    private static InlineActivity.JMSActivityBase parseJMSActivityInner(Element element, String name,
+                                                                        Flow.Activity.InputBinding inputBinding) {
         Element config = getFirstChildWithTag(element, "config");
 
         String permittedMessageType = getFirstChildWithTag(config, "PermittedMessageType").getTextContent();
         if (!permittedMessageType.equals("Text")) {
             throw new UnsupportedOperationException("Unsupported permitted message type: " + permittedMessageType);
         }
-        InlineActivity.JMSQueueEventSource.SessionAttributes sessionAttributes = parseJMSSessionAttributes(config);
-        InlineActivity.JMSQueueEventSource.ConfigurableHeaders configurableHeaders = parseJMSConfigurableHeaders(
+        InlineActivity.JMSActivityBase.SessionAttributes sessionAttributes = parseJMSSessionAttributes(config);
+        InlineActivity.JMSActivityBase.ConfigurableHeaders configurableHeaders = parseJMSConfigurableHeaders(
                 config);
         String connectionReference = getFirstChildWithTag(config, "ConnectionReference").getTextContent();
 
-        return new InlineActivity.JMSQueueEventSource(element, name, inputBinding, permittedMessageType,
+        return new InlineActivity.JMSActivityBase(element, name, inputBinding, permittedMessageType,
                 sessionAttributes, configurableHeaders, connectionReference);
     }
 
-    private static InlineActivity.JMSQueueEventSource.SessionAttributes parseJMSSessionAttributes(Element config) {
+    private static InlineActivity.JMSActivityBase.SessionAttributes parseJMSSessionAttributes(Element config) {
         Element sessionAttrs = getFirstChildWithTag(config, "SessionAttributes");
         boolean transacted = Boolean.parseBoolean(getFirstChildWithTag(sessionAttrs, "transacted").getTextContent());
         int acknowledgeMode = Integer.parseInt(getFirstChildWithTag(sessionAttrs, "acknowledgeMode").getTextContent());
         int maxSessions = Integer.parseInt(getFirstChildWithTag(sessionAttrs, "maxSessions").getTextContent());
         String destination = getFirstChildWithTag(sessionAttrs, "destination").getTextContent();
 
-        return new InlineActivity.JMSQueueEventSource.SessionAttributes(transacted, acknowledgeMode, maxSessions,
+        return new InlineActivity.JMSActivityBase.SessionAttributes(transacted, acknowledgeMode, maxSessions,
                 destination);
     }
 
-    private static InlineActivity.JMSQueueEventSource.ConfigurableHeaders parseJMSConfigurableHeaders(Element config) {
+    private static InlineActivity.JMSActivityBase.ConfigurableHeaders parseJMSConfigurableHeaders(Element config) {
         Element configurableHeaders = getFirstChildWithTag(config, "ConfigurableHeaders");
         String jmsDeliveryMode = getFirstChildWithTag(configurableHeaders, "JMSDeliveryMode").getTextContent();
         String jmsExpiration = getFirstChildWithTag(configurableHeaders, "JMSExpiration").getTextContent();
         String jmsPriority = getFirstChildWithTag(configurableHeaders, "JMSPriority").getTextContent();
 
-        return new InlineActivity.JMSQueueEventSource.ConfigurableHeaders(jmsDeliveryMode, jmsExpiration, jmsPriority);
+        return new InlineActivity.JMSActivityBase.ConfigurableHeaders(jmsDeliveryMode, jmsExpiration, jmsPriority);
     }
 }

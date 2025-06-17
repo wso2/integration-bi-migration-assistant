@@ -558,10 +558,10 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 }
             }
 
-            record JMSQueueEventSource(Element element, String name, InputBinding inputBinding,
-                                       String permittedMessageType, SessionAttributes sessionAttributes,
-                                       ConfigurableHeaders configurableHeaders,
-                                       String connectionReference) implements ExplicitTransitionGroup.InlineActivity {
+            record JMSActivityBase(Element element, String name, InputBinding inputBinding,
+                                   String permittedMessageType, SessionAttributes sessionAttributes,
+                                   ConfigurableHeaders configurableHeaders,
+                                   String connectionReference) {
 
                 public record SessionAttributes(boolean transacted, int acknowledgeMode, int maxSessions,
                                                 String destination) {
@@ -571,6 +571,18 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 public record ConfigurableHeaders(String jmsDeliveryMode, String jmsExpiration,
                                                   String jmsPriority) {
 
+                }
+
+            }
+
+            record JMSQueueEventSource(Element element, String name, InputBinding inputBinding,
+                                       String permittedMessageType, JMSActivityBase.SessionAttributes sessionAttributes,
+                                       JMSActivityBase.ConfigurableHeaders configurableHeaders,
+                                       String connectionReference) implements ExplicitTransitionGroup.InlineActivity {
+
+                public JMSQueueEventSource(JMSActivityBase base) {
+                    this(base.element, base.name, base.inputBinding, base.permittedMessageType,
+                            base.sessionAttributes, base.configurableHeaders, base.connectionReference);
                 }
 
                 @Override
