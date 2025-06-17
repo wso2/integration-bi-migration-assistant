@@ -348,22 +348,63 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     }
 
-    public record Listener(ListenerType type, String name, String port, String host) {
-        @Override
-        public String toString() {
-            String argList;
-            if (host.equals("0.0.0.0")) {
-                argList = "(%s)".formatted(port);
-            } else {
-                argList = "(%s, {host: \"%s\"})".formatted(port, host);
-            }
-            return "public listener http:Listener %s = new %s;".formatted(name, argList);
-        }
-    }
+    public sealed interface Listener {
 
-    public enum ListenerType {
-        HTTP,
-        JMS
+        ListenerType type();
+
+        String name();
+
+        enum ListenerType {
+            HTTP,
+            JMS
+        }
+
+        record HTTPListener(String name, String port, String host) implements Listener {
+
+            @Override
+            @NotNull
+            public String toString() {
+                String argList;
+                if (host.equals("0.0.0.0")) {
+                    argList = "(%s)".formatted(port);
+                } else {
+                    argList = "(%s, {host: \"%s\"})".formatted(port, host);
+                }
+                return "public listener http:Listener %s = new %s;".formatted(name, argList);
+            }
+
+            @Override
+            public ListenerType type() {
+                return ListenerType.HTTP;
+            }
+        }
+
+        record JMSListener(String name, String initialContextFactory, String providerUrl, String destinationName)
+                implements Listener {
+
+            @Override
+            public ListenerType type() {
+                return ListenerType.JMS;
+            }
+
+            @Override
+            @NotNull
+            public String toString() {
+                return String.format("""
+                        public listener jms:Listener %s = new jms:Listener(
+                            connectionConfig = {
+                                initialContextFactory: "%s",
+                                providerUrl: "%s"
+                            },
+                            consumerOptions = {
+                                destination: {
+                                    'type: jms:QUEUE,
+                                    name: "%s"
+                                }
+                            }
+                        );""", name, initialContextFactory, providerUrl, destinationName);
+            }
+        }
     }
 
     public record Resource(String resourceMethodName, String path, List<Parameter> parameters,
