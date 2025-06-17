@@ -330,6 +330,7 @@ public final class XmlToTibcoModelConverter {
             case JSON_RENDER_ACTIVITY -> parseJSONRenderActivity(element, name, inputBinding);
             case JDBC -> parseJDBCActivity(element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
+            case JMS_QUEUE_EVENT_SOURCE -> parseJMSQueueEventSource(element, name, inputBinding);
         };
     }
 
@@ -409,12 +410,8 @@ public final class XmlToTibcoModelConverter {
         for (Element child : new ElementIterable(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
-                case "activity" -> {
-                    transitionGroup = transitionGroup.append(parseInlineActivity(cx, child));
-                }
-                case "transition" -> {
-                    transitionGroup = transitionGroup.append(parseTransition(cx, child));
-                }
+                case "activity" -> transitionGroup = transitionGroup.append(parseInlineActivity(cx, child));
+                case "transition" -> transitionGroup = transitionGroup.append(parseTransition(cx, child));
                 case "starter" -> transitionGroup = transitionGroup.setStartActivity(parseInlineActivity(cx, child));
                 case "returnBindings" -> {
                     if (!isEmpty(child)) {
@@ -1705,4 +1702,37 @@ public final class XmlToTibcoModelConverter {
 
     }
 
+    private static InlineActivity.JMSQueueEventSource parseJMSQueueEventSource(Element element, String name,
+                                                                               Flow.Activity.InputBinding inputBinding) {
+        Element config = getFirstChildWithTag(element, "config");
+
+        String permittedMessageType = getFirstChildWithTag(config, "PermittedMessageType").getTextContent();
+        InlineActivity.JMSQueueEventSource.SessionAttributes sessionAttributes = parseJMSSessionAttributes(config);
+        InlineActivity.JMSQueueEventSource.ConfigurableHeaders configurableHeaders = parseJMSConfigurableHeaders(
+                config);
+        String connectionReference = getFirstChildWithTag(config, "ConnectionReference").getTextContent();
+
+        return new InlineActivity.JMSQueueEventSource(element, name, inputBinding, permittedMessageType,
+                sessionAttributes, configurableHeaders, connectionReference);
+    }
+
+    private static InlineActivity.JMSQueueEventSource.SessionAttributes parseJMSSessionAttributes(Element config) {
+        Element sessionAttrs = getFirstChildWithTag(config, "SessionAttributes");
+        boolean transacted = Boolean.parseBoolean(getFirstChildWithTag(sessionAttrs, "transacted").getTextContent());
+        int acknowledgeMode = Integer.parseInt(getFirstChildWithTag(sessionAttrs, "acknowledgeMode").getTextContent());
+        int maxSessions = Integer.parseInt(getFirstChildWithTag(sessionAttrs, "maxSessions").getTextContent());
+        String destination = getFirstChildWithTag(sessionAttrs, "destination").getTextContent();
+
+        return new InlineActivity.JMSQueueEventSource.SessionAttributes(transacted, acknowledgeMode, maxSessions,
+                destination);
+    }
+
+    private static InlineActivity.JMSQueueEventSource.ConfigurableHeaders parseJMSConfigurableHeaders(Element config) {
+        Element configurableHeaders = getFirstChildWithTag(config, "ConfigurableHeaders");
+        String jmsDeliveryMode = getFirstChildWithTag(configurableHeaders, "JMSDeliveryMode").getTextContent();
+        String jmsExpiration = getFirstChildWithTag(configurableHeaders, "JMSExpiration").getTextContent();
+        String jmsPriority = getFirstChildWithTag(configurableHeaders, "JMSPriority").getTextContent();
+
+        return new InlineActivity.JMSQueueEventSource.ConfigurableHeaders(jmsDeliveryMode, jmsExpiration, jmsPriority);
+    }
 }

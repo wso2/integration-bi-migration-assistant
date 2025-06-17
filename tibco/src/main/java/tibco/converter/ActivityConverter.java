@@ -162,6 +162,7 @@ final class ActivityConverter {
             ActivityConversionResult conversion = switch (inlineActivity) {
                 case InlineActivity.HttpEventSource ignored ->
                         emptyExtensionConversion(cx, result);
+                case InlineActivity.JMSQueueEventSource ignored -> emptyExtensionConversion(cx, result);
                 case InlineActivity.MapperActivity ignored ->
                         emptyExtensionConversion(cx, result);
                 case InlineActivity.UnhandledInlineActivity unhandledInlineActivity ->
@@ -184,7 +185,7 @@ final class ActivityConverter {
                 case Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup loopGroup ->
                         convertLoopGroup(cx, result, loopGroup);
                 case InlineActivity.REST rest -> convertREST(cx, result, rest);
-                case Process5.ExplicitTransitionGroup.InlineActivity.Catch ignored ->
+                case InlineActivity.Catch ignored ->
                         emptyExtensionConversion(cx, result);
                 case InlineActivity.JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
                 case InlineActivity.JSONRender jsonRender -> convertJsonRender(cx, result, jsonRender);
@@ -789,7 +790,7 @@ final class ActivityConverter {
         String setJSONResponseFn = cx.getSetJSONResponseFn();
         String setXMLResponseFn = cx.getSetXMLResponseFn();
         String setTextResponseFn = cx.getSetTextResponseFn();
-        body.add(common.ConversionUtils.stmtFrom("""
+        body.add(stmtFrom("""
                 match %5$s {
                     "application/json" => {
                         map<json> jsonRepr = check jsondata:parseString(%6$s);

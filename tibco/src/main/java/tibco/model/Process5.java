@@ -170,7 +170,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 JSON_PARSER_ACTIVITY,
                 JSON_RENDER_ACTIVITY,
                 JDBC,
-                MAPPER;
+                MAPPER,
+                JMS_QUEUE_EVENT_SOURCE;
 
                 public static ExplicitTransitionGroup.InlineActivity.InlineActivityType parse(String type) {
                     record LookUpData(String suffix,
@@ -197,6 +198,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                     new LookUpData("JSONParserActivity", JSON_PARSER_ACTIVITY),
                                     new LookUpData("JSONRenderActivity", JSON_RENDER_ACTIVITY),
                                     new LookUpData("SOAPSendReplyActivity", SOAP_SEND_REPLY),
+                                    new LookUpData("JMSQueueEventSource", JMS_QUEUE_EVENT_SOURCE),
                                     new LookUpData("WriteToLogActivity", WRITE_LOG))
                             .filter(each -> type.endsWith(each.suffix)).findFirst()
                             .map(LookUpData::activityType).orElse(UNHANDLED);
@@ -548,6 +550,32 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 @Override
                 public InlineActivityType type() {
                     return InlineActivityType.HTTP_EVENT_SOURCE;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
+                }
+            }
+
+            record JMSQueueEventSource(Element element, String name, InputBinding inputBinding,
+                                       String permittedMessageType, SessionAttributes sessionAttributes,
+                                       ConfigurableHeaders configurableHeaders,
+                                       String connectionReference) implements ExplicitTransitionGroup.InlineActivity {
+
+                public record SessionAttributes(boolean transacted, int acknowledgeMode, int maxSessions,
+                                                String destination) {
+
+                }
+
+                public record ConfigurableHeaders(String jmsDeliveryMode, String jmsExpiration,
+                                                  String jmsPriority) {
+
+                }
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.JMS_QUEUE_EVENT_SOURCE;
                 }
 
                 @Override

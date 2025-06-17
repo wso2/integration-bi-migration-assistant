@@ -146,6 +146,7 @@ public final class BICodeConverter {
             case "xmldata" -> List.of(new BallerinaModel.Import("ballerina", "data.xmldata"));
             case "jsondata" -> List.of(new BallerinaModel.Import("ballerina", "data.jsondata"));
             case "java.jdbc", "jdbc" -> List.of(new BallerinaModel.Import("ballerinax", "java.jdbc"));
+            case "java.jms" -> List.of(new BallerinaModel.Import("ballerinax", "java.jms"));
             case "io" -> List.of(new BallerinaModel.Import("ballerina", "io"));
             case "log" -> List.of(new BallerinaModel.Import("ballerina", "log"));
             case "soap11" -> List.of(new BallerinaModel.Import("ballerina", "soap.soap11"));
