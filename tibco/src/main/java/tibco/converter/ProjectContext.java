@@ -329,11 +329,6 @@ public class ProjectContext {
         return Intrinsics.INIT_CONTEXT.name;
     }
 
-    public String getPredicateTestFunction() {
-        utilityIntrinsics.add(Intrinsics.XPATH_PREDICATE);
-        return Intrinsics.XPATH_PREDICATE.name;
-    }
-
     public void addTypeAstNode(String name, ModuleMemberDeclarationNode node) {
         typeCx.addTypeAstNode(name, node);
     }

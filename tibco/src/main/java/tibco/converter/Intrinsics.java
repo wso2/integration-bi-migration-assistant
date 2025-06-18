@@ -73,15 +73,6 @@ public enum Intrinsics {
                                 return value;
                             }
                     """),
-    XPATH_PREDICATE(
-            "test",
-            """
-                    function test(xml input, string xpath) returns boolean {
-                        // TODO: support XPath
-                        return false;
-                    }
-                    """
-    ),
     XML_PARSER_RESULT(
             "XMLElementParseResult",
             """
