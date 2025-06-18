@@ -35,12 +35,12 @@ public class AggregateReportWriter {
     public static final String MIGRATION_SUMMARY_TITLE = "Aggregate Migration Summary";
     public static final String MIGRATION_ASSESSMENT_TITLE = "Aggregate Migration Assessment";
 
-    public static void genAndWriteAggregateReport(List<ProjectMigrationSummary> projectSummaries, Path pathToProjects,
-                                                  boolean dryRun) {
-        Path reportFilePath = pathToProjects.resolve(AGGREGATE_MIGRATION_REPORT_NAME);
+    public static void genAndWriteAggregateReport(List<ProjectMigrationSummary> projectSummaries,
+                                                  Path convertedProjectsDir, boolean dryRun) {
+        Path reportFilePath = convertedProjectsDir.resolve(AGGREGATE_MIGRATION_REPORT_NAME);
         String reportTitle = dryRun ? MIGRATION_ASSESSMENT_TITLE : MIGRATION_SUMMARY_TITLE;
         try {
-            String reportContent = generateReport(projectSummaries, reportTitle);
+            String reportContent = generateReport(projectSummaries, reportTitle, convertedProjectsDir);
             Files.writeString(reportFilePath, reportContent);
             logger().info("'%s' report written to %s".formatted(reportTitle, reportFilePath));
         } catch (IOException e) {
@@ -48,16 +48,17 @@ public class AggregateReportWriter {
         }
     }
 
-    private static String generateReport(List<ProjectMigrationSummary> projectSummaries, String reportTitle) {
+    private static String generateReport(List<ProjectMigrationSummary> projectSummaries, String reportTitle,
+                                         Path convertedProjectsDir) {
         double avgCoverage = projectSummaries.stream()
                 .mapToDouble(ProjectMigrationSummary::migrationCoverage)
                 .average()
                 .orElse(0.0);
 
-        // TODO: fix logic
-        int totalDistinctFailedElements = projectSummaries.stream()
-                .mapToInt(ProjectMigrationSummary::failedDistinctXMLTagCount)
-                .sum();
+        int totalDistinctFailedElements = (int) projectSummaries.stream()
+                .flatMap(ps -> ps.failedXMLTags().keySet().stream())
+                .distinct()
+                .count();
 
         int totalFailedDWExpressions = projectSummaries.stream()
                 .mapToInt(ProjectMigrationSummary::failedDWExprCount)
@@ -83,7 +84,8 @@ public class AggregateReportWriter {
                 avgCoverage,
                 totalDistinctFailedElements,
                 totalFailedDWExpressions,
-                generateProjectCards(projectSummaries),
+                generateProjectCards(projectSummaries, convertedProjectsDir),
+                generateFailedElementsRows(projectSummaries),
                 generateProjectRows(projectSummaries),
                 totalBestCaseDays,
                 totalAverageCaseDays,
@@ -91,7 +93,8 @@ public class AggregateReportWriter {
         );
     }
 
-    private static String generateProjectCards(List<ProjectMigrationSummary> projectSummaries) {
+    private static String generateProjectCards(List<ProjectMigrationSummary> projectSummaries,
+                                               Path convertedProjectsDir) {
         StringBuilder html = new StringBuilder();
 
         for (ProjectMigrationSummary projectSummary : projectSummaries) {
@@ -100,9 +103,8 @@ public class AggregateReportWriter {
             String statusText = projectSummary.migrationCoverage() >= 75 ? "High Coverage" :
                     projectSummary.migrationCoverage() >= 50 ? "Medium Coverage" : "Low Coverage";
 
-            String relativePath = projectSummary.reportFilePath().toString()
-                    .replace("\\", "/")
-                    .replaceAll("^.*?/projects/", "");
+            Path relativePath = convertedProjectsDir.relativize(projectSummary.reportFilePath());
+//            String relativePath = projectSummary.reportFilePath().toString();
 
             html.append("      <div class=\"project-card\">\n");
             html.append("        <div>\n");
@@ -150,6 +152,50 @@ public class AggregateReportWriter {
             html.append("          <td>").append(String.format("%.1f days", project.bestCaseDays())).append("</td>\n");
             html.append("          <td>").append(String.format("%.1f days", project.averageCaseDays())).append("</td>\n");
             html.append("          <td>").append(String.format("%.1f days", project.worstCaseDays())).append("</td>\n");
+            html.append("        </tr>\n");
+        }
+
+        return html.toString();
+    }
+
+    private static String generateFailedElementsRows(List<ProjectMigrationSummary> projectSummaries) {
+        StringBuilder html = new StringBuilder();
+
+        // Create a map to collect all failed XML tags across all projects
+        // Key: XML tag name, Value: Map<Project name, Count>
+        var elementFrequencyMap = new java.util.LinkedHashMap<String, java.util.Map<String, Integer>>();
+
+        // Populate the map with data from all projects
+        for (ProjectMigrationSummary project : projectSummaries) {
+            for (var entry : project.failedXMLTags().entrySet()) {
+                String elementType = entry.getKey();
+                Integer count = entry.getValue();
+
+                elementFrequencyMap.computeIfAbsent(elementType, k -> new java.util.LinkedHashMap<>())
+                        .put(project.sourceProjectName(), count);
+            }
+        }
+
+        // Sort elements by total frequency (descending)
+        var sortedElements = elementFrequencyMap.entrySet().stream()
+                .sorted((e1, e2) -> {
+                    int total1 = e1.getValue().values().stream().mapToInt(Integer::intValue).sum();
+                    int total2 = e2.getValue().values().stream().mapToInt(Integer::intValue).sum();
+                    return Integer.compare(total2, total1); // Descending order
+                })
+                .toList();
+
+        // Generate HTML rows
+        for (var entry : sortedElements) {
+            String elementType = entry.getKey();
+            var projectCounts = entry.getValue();
+            int totalFrequency = projectCounts.values().stream().mapToInt(Integer::intValue).sum();
+            String affectedProjects = String.join(", ", projectCounts.keySet());
+
+            html.append("        <tr>\n");
+            html.append("          <td>").append(elementType).append("</td>\n");
+            html.append("          <td>").append(totalFrequency).append("</td>\n");
+            html.append("          <td>").append(affectedProjects).append("</td>\n");
             html.append("        </tr>\n");
         }
 

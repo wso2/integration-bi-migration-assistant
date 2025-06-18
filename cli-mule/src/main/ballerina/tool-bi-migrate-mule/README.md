@@ -26,7 +26,8 @@ $ bal migrate-mule <source-project-directory-or-file> [-o|--out <output-director
     - For a standalone XML file, the new Ballerina package is created in the same directory as the source file.
 - **-k or --keep-structure** - *Optional*. If specified, preserves the original Mule project structure during migration. By default, this option is disabled.
 - **-v or --verbose** - *Optional*. Enable verbose output during conversion.
-- **-d or --dry-run** - *Optional*. Run the parsing and analysis phases and generate the `migration_assessment.html` file without generating the Ballerina package.
+- **-d or --dry-run** - *Optional*. Run the parsing and analysis phases and generate the `migration_report.html` file without generating the Ballerina package.
+- **-m or --multi-root** - *Optional*. Treat each child directory as a separate project and convert all of them. The source must be a directory containing multiple MuleSoft projects.
 
 ### Project Structure Requirements
 
@@ -94,9 +95,25 @@ This will convert the project with detailed logging during the conversion proces
 $ bal migrate-mule /path/to/mule-project --dry-run
 ```
 
-This will run the parsing and analysis phases and generate the `migration_assessment.html` file without actually 
+This will run the parsing and analysis phases and generate the `migration_report.html` file without actually 
 performing Ballerina package generation. It is useful for assessing migration feasibility and obtaining a time estimation. 
 The generated report also lists the sections that will require manual conversion.
+
+#### Convert Multiple Mule projects with multi-root mode
+
+```bash
+$ bal migrate-tibco path/to/projects-directory --multi-root
+```
+
+`--multi-root` will treat each child directory within `path/to/projects-directory` as a separate Mule project and convert all of them into Ballerina packages. `aggregate_migration_report.html` will be generated in the `projects-directory`, summarizing the migration results for all projects.
+
+```bash
+$ bal migrate-tibco path/to/projects-directory --multi-root --dry-run
+```
+
+Additionally, you can use the `--dry-run` flag to run the parsing and analysis phases without generating Ballerina packages. This will generate individual analysis reports for each project found in the directory and an aggregated report `aggregate_migration_report.html` summarizing the migration results.
+
+
 
 ## Output
 - For a mule project directory input: A new Ballerina package is created with the same name as the input project
@@ -122,7 +139,7 @@ project.
     2. **Overall Project Conversion Percentage** – Represents the combined conversion rate based on both component-level
 and DataWeave conversions.
 
-- A detailed report is generated as `migration_summary.html` in the root of the newly created Ballerina package. 
+- A detailed report is generated as `migration_report.html` in the root of the newly created Ballerina package. 
   This report provides the percentage of automated migration coverage and an estimated time for completing the remaining parts.
   Sections that require manual conversion are also highlighted in the report.
 

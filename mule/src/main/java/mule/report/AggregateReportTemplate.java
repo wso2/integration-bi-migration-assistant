@@ -106,14 +106,32 @@ public class AggregateReportTemplate {
                         </div>
                         <div class="metric">
                           <span class="metric-value">%d</span>
-                          <span class="metric-label">Total Failed DataWeave Expressions</span>
+                          <span class="metric-label">Total Failed DataWeave</span>
                         </div>
                       </div>
                     </div>
 
                     <div class="summary-container">
-                      <h2>Projects</h2>
+                      <h2>MuleSoft Projects</h2>
                       %s
+                    </div>
+
+                    <div class="summary-container">
+                      <h2>Elements Awaiting Tool Support</h2>
+                      <div id="toolSupportSection">
+                        <table>
+                            <tr>
+                            <th>Element Type</th>
+                            <th>Frequency</th>
+                            <th>Projects Affected</th>
+                            </tr>
+                            %s
+                        </table>
+                        <p class="empty-message" id="toolSupportEmpty"
+                            style="display: none; text-align: center; padding: 20px; color: #666;">
+                            No elements awaiting tool support
+                        </p>
+                      </div>
                     </div>
 
                     <div class="summary-container">
@@ -139,11 +157,21 @@ public class AggregateReportTemplate {
                   <footer>
                     <p>Report generated on: <span id="datetime"></span></p>
                   </footer>
-
+                  <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // Check Elements Awaiting Tool Support
+                        const toolSupportTable = document.querySelector('#toolSupportSection table');
+                        if (toolSupportTable.rows.length <= 1) {
+                            toolSupportTable.style.display = 'none';
+                            document.getElementById('toolSupportEmpty').style.display = 'block';
+                        }
+                    });
+                  </script>
                   <script>
                     document.getElementById("datetime").innerHTML = new Date().toLocaleString();
                   </script>
                 </body>
-                </html>""";
+                </html>
+                """;
     }
 }

@@ -95,6 +95,8 @@ public class MigrateMuleCommand implements BLauncherCmd {
         stringBuilder.append("  --keep-structure, -k     Keep mule project structure\n");
         stringBuilder.append("  --verbose, -v            Enable verbose output during conversion\n");
         stringBuilder.append("  --dry-run, -d            Simulate the conversion without generating output files\n");
+        stringBuilder.append("  --multi-root, -m         Treat each child directory as a separate project and convert" +
+                " all of them\n");
     }
 
     @Override
@@ -109,6 +111,8 @@ public class MigrateMuleCommand implements BLauncherCmd {
         stringBuilder.append("  bal migrate-mule /path/to/mule-project --keep-structure\n");
         stringBuilder.append("  bal migrate-mule /path/to/mule-project --verbose\n");
         stringBuilder.append("  bal migrate-mule /path/to/mule-project --dry-run --verbose\n");
+        stringBuilder.append("  bal migrate-mule /path/to/mule-projects-directory --multi-root\n");
+        stringBuilder.append("  bal migrate-mule /path/to/mule-projects-directory --multi-root --dry-run\n");
     }
 
     @Override

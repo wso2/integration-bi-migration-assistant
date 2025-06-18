@@ -46,6 +46,7 @@ import static common.BallerinaModel.Import;
 import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.TextDocument;
 import static mule.MuleToBalConverter.convertXMLFileToBir;
+import static mule.report.AggregateReportWriter.AGGREGATE_MIGRATION_REPORT_NAME;
 import static mule.report.AggregateReportWriter.genAndWriteAggregateReport;
 import static mule.report.MigrationReportWriter.getProjectMigrationSummary;
 import static mule.report.MigrationReportWriter.genAndWriteMigrationReport;
@@ -71,6 +72,7 @@ public class MuleMigrationExecutor {
             System.exit(1);
         }
 
+        // TODO: handle migrate-mule pathToProjects missing -m flag scenario
         if (multiRoot) {
             logger().info("Multi-root mode enabled. Converting all Mule projects in the directory: '" +
                     sourcePath + "'");
@@ -94,11 +96,20 @@ public class MuleMigrationExecutor {
         }
     }
 
-    public static void testConvertingMuleProject(String inputPathArg, String outputPathArg, boolean dryRun,
-                                                 boolean keepStructure) {
+    // ----------------------------------------------- Testing API ------------------------------------------------
+
+    public static void testConvertingMuleProject(String inputPathArg, boolean dryRun, boolean keepStructure) {
         logger = createSilentLogger("migrate-mule-test-suite");
-        convertMuleProject(inputPathArg, outputPathArg, dryRun, keepStructure, false);
+        convertMuleProject(inputPathArg, null, dryRun, keepStructure, false);
     }
+
+    public static void testConvertingMultiMuleProjects(String pathToProjects, String outputPathArg, boolean dryRun,
+                                                       boolean keepStructure) {
+        logger = createSilentLogger("migrate-mule-test-suite");
+        convertMuleMultiProjects(pathToProjects, outputPathArg, dryRun, keepStructure);
+    }
+
+    // --------------------------------------------- End of Testing API ---------------------------------------------
 
     private static void validateOutputPathArg(String outputPathArg) {
         if (outputPathArg != null) {
@@ -159,14 +170,14 @@ public class MuleMigrationExecutor {
                 keepStructure, multiRoot);
     }
 
-    private static void convertMuleMultiProjects(String pathToProjects, String outputPathArg, boolean dryRun,
+    private static void convertMuleMultiProjects(String sourceProjectsDir, String outputPathArg, boolean dryRun,
                                                  boolean keepStructure) {
-        Path directory = Path.of(pathToProjects);
+        Path sourceProjectsDirPath = Path.of(sourceProjectsDir);
         List<Path> projectDirectories;
         try {
-            projectDirectories = getImmediateSubdirectories(directory);
+            projectDirectories = getImmediateSubdirectories(sourceProjectsDirPath);
         } catch (IOException e) {
-            logger().severe("Error listing subdirectories of " + pathToProjects + ": " + e.getMessage());
+            logger().severe("Error listing subdirectories of " + sourceProjectsDir + ": " + e.getMessage());
             return;
         }
 
@@ -182,7 +193,9 @@ public class MuleMigrationExecutor {
             }
         }
 
-        genAndWriteAggregateReport(projectSummaries, directory, dryRun);
+        Path targetDir = outputPathArg != null ? Path.of(outputPathArg) : sourceProjectsDirPath;
+        genAndWriteAggregateReport(projectSummaries, targetDir, dryRun);
+        printMultiRootCompletion(targetDir.resolve(AGGREGATE_MIGRATION_REPORT_NAME), dryRun);
     }
 
     private static ProjectMigrationSummary convertToBalProject(List<File> xmlFiles, List<File> propertyFiles,
@@ -379,6 +392,13 @@ public class MuleMigrationExecutor {
     private static void printDryRunCompletion(Path reportFilePath) {
         OUT.println("________________________________________________________________");
         OUT.println("Dry run completed. Migration assessment report written to " + reportFilePath);
+        OUT.println("________________________________________________________________");
+    }
+
+    private static void printMultiRootCompletion(Path reportFilePath, boolean dryRun) {
+        OUT.println("________________________________________________________________");
+        String task = dryRun ? "assessment" : "conversion";
+        OUT.printf("Multi root project %s completed. Migration report written to %s%n", task, reportFilePath);
         OUT.println("________________________________________________________________");
     }
 
