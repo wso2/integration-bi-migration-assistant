@@ -19,6 +19,7 @@
 package tibco.converter;
 
 import common.BallerinaModel;
+import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.Type;
 
@@ -138,5 +139,9 @@ public class ActivityContext {
 
     public String getParseHeadersFn() {
         return processContext.getParseHeadersFn();
+    }
+
+    public Resource.JMSSharedResource getJmsResource(String connectionReference) {
+        return processContext.getJMSResource(connectionReference);
     }
 }

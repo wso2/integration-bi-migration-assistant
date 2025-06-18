@@ -45,7 +45,6 @@ import static common.BallerinaModel.BlockFunctionBody;
 import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.Listener;
-import static common.BallerinaModel.ListenerType;
 import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
 import static common.BallerinaModel.Parameter;
@@ -165,7 +164,7 @@ public class MuleToBalConverter {
         // Add global listeners
         List<Listener> listeners = new ArrayList<>();
         for (HTTPListenerConfig httpListenerConfig : ctx.currentFileCtx.configs.httpListenerConfigs.values()) {
-            listeners.add(new Listener(ListenerType.HTTP, httpListenerConfig.name(),
+            listeners.add(new Listener.HTTPListener(httpListenerConfig.name(),
                     getAttrValInt(ctx, httpListenerConfig.port()), httpListenerConfig.host()));
         }
 

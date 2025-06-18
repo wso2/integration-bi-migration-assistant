@@ -210,6 +210,19 @@ public final class ConversionUtils {
         static final String CONTEXT_VAR_NAME = "context";
         static final String CONTEXT_INPUT_NAME = "$input";
 
+        static final BallerinaModel.TypeDesc.TypeReference JMS_MESSAGE_TYPE =
+                new BallerinaModel.TypeDesc.TypeReference("jms:Message");
+        static final BallerinaModel.TypeDesc.TypeReference JMS_TEXT_MESSAGE_TYPE =
+                new BallerinaModel.TypeDesc.TypeReference("jms:TextMessage");
+        static final BallerinaModel.TypeDesc.TypeReference JMS_CONNECTION =
+                new BallerinaModel.TypeDesc.TypeReference("jms:Connection");
+        static final BallerinaModel.TypeDesc.TypeReference JMS_SESSION =
+                new BallerinaModel.TypeDesc.TypeReference("jms:Session");
+        static final BallerinaModel.TypeDesc.TypeReference JMS_MESSAGE_PRODUCER =
+                new BallerinaModel.TypeDesc.TypeReference("jms:MessageProducer");
+        static final BallerinaModel.TypeDesc.TypeReference JMS_TEXT_MESSAGE =
+                new BallerinaModel.TypeDesc.TypeReference("jms:TextMessage");
+
         static final BallerinaModel.TypeDesc HTTP_RESPONSE = typeFrom("http:Response");
 
         static final BallerinaModel.TypeDesc RESPONSE_TYPE_DESC =
@@ -315,5 +328,14 @@ public final class ConversionUtils {
             case FLOAT, DOUBLE -> FLOAT;
             case BOOLEAN -> BOOLEAN;
         };
+    }
+
+    public static String extractFileName(String filePath) {
+        if (filePath == null || filePath.isBlank()) {
+            throw new IllegalArgumentException("File path cannot be null or blank");
+        }
+        // Handle both forward slashes and backslashes
+        int lastSlash = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
+        return lastSlash >= 0 ? filePath.substring(lastSlash + 1) : filePath;
     }
 }

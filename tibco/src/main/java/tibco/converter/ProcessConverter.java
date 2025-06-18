@@ -34,6 +34,7 @@ import common.BallerinaModel.Statement.Return;
 import common.BallerinaModel.Statement.VarAssignStatement;
 import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc;
+import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import org.jetbrains.annotations.NotNull;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.Process;
@@ -62,11 +63,12 @@ import java.util.stream.Stream;
 import static common.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static common.BallerinaModel.TypeDesc.BuiltinType.NIL;
-import static common.BallerinaModel.TypeDesc.BuiltinType.UnionTypeDesc;
+import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
 import static common.ConversionUtils.stmtFrom;
 import static tibco.converter.ConversionUtils.baseName;
+import static tibco.converter.Library.JMS;
 
 public class ProcessConverter {
 
@@ -75,10 +77,82 @@ public class ProcessConverter {
 
     static BallerinaModel.Service convertStartActivityService(
             ProcessContext cx, ExplicitTransitionGroup group) {
-        BallerinaModel.Resource resource = generateResourceFunctionForStartActivity(cx, group);
         ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity();
-        assert startActivity instanceof HttpEventSource;
-        String name = baseName(((HttpEventSource) startActivity).sharedChannel());
+        return switch (startActivity) {
+            case HttpEventSource httpEventSource -> createHTTPServiceForStartActivity(cx, group, httpEventSource);
+            case ExplicitTransitionGroup.InlineActivity.JMSQueueEventSource jmsQueueEventSource ->
+                    createJMSListenerServiceForStartActivity(cx, group, jmsQueueEventSource);
+            default -> throw new IllegalArgumentException(
+                    "Unsupported start activity type: " + startActivity.type());
+        };
+    }
+
+    private static BallerinaModel.Service createJMSListenerServiceForStartActivity(
+                    ProcessContext cx, ExplicitTransitionGroup group,
+                    ExplicitTransitionGroup.InlineActivity.JMSQueueEventSource jmsQueueEventSource) {
+        cx.addLibraryImport(JMS);
+        BallerinaModel.Listener.JMSListener listener = createJMSListener(cx, jmsQueueEventSource);
+        BallerinaModel.Remote remoteFn = generateRemoteFunctionForJMSStartActivity(cx, group, jmsQueueEventSource);
+
+        return new BallerinaModel.Service("\"" + ConversionUtils.sanitizes(jmsQueueEventSource.name()) + "\"",
+                List.of(listener.name()), Optional.empty(), List.of(), List.of(), List.of(), List.of(remoteFn));
+    }
+
+    private static BallerinaModel.Remote generateRemoteFunctionForJMSStartActivity(
+                    ProcessContext cx, ExplicitTransitionGroup group,
+                    ExplicitTransitionGroup.InlineActivity.JMSQueueEventSource jmsQueueEventSource) {
+        Parameter parameter = new Parameter("message", ConversionUtils.Constants.JMS_MESSAGE_TYPE);
+        List<Statement> body = new ArrayList<>();
+        body.add(Statement.IfElseStatement.ifStatement(common.ConversionUtils.exprFrom(
+                        "%s !is %s".formatted(parameter.name(), ConversionUtils.Constants.JMS_TEXT_MESSAGE_TYPE)),
+                List.of(common.ConversionUtils.stmtFrom("panic error(\"Unsupported JMS message type\");"))));
+        VarDeclStatment content =
+                new VarDeclStatment(STRING, "content", new Expression.FieldAccess(parameter.ref(), "content"));
+        body.add(content);
+        XMLTemplate inputXml = new XMLTemplate("${%s}".formatted(content.ref()));
+        VarDeclStatment inputValDecl = new VarDeclStatment(XML, "inputXML", inputXml);
+        body.add(inputValDecl);
+        VarDeclStatment paramXmlDecl = new VarDeclStatment(new TypeDesc.MapTypeDesc(XML), "paramXML",
+                exprFrom("{jms: %s}".formatted(inputValDecl.varName())));
+        body.add(paramXmlDecl);
+
+        BallerinaModel.TypeDesc.FunctionTypeDesc processFnType = ConversionUtils.processFunctionType(cx);
+        VarDeclStatment contextDecl = new VarDeclStatment(cx.contextType(), processFnType.parameters().get(0).name(),
+                new FunctionCall(cx.getInitContextFn(), List.of(paramXmlDecl.ref())));
+        body.add(contextDecl);
+
+        body.add(new Statement.CallStatement(
+                new FunctionCall(cx.getProcessStartFunction().name(), List.of(contextDecl.ref()))));
+        return new BallerinaModel.Remote(
+                new BallerinaModel.Function(Optional.empty(), "onMessage", List.of(parameter), Optional.empty(),
+                        new BallerinaModel.BlockFunctionBody(body)));
+    }
+
+    private static BallerinaModel.Listener.JMSListener createJMSListener(
+            ProcessContext cx, ExplicitTransitionGroup.InlineActivity.JMSQueueEventSource jmsQueueEventSource) {
+        assert jmsQueueEventSource.connectionReference() != null : "JMS connection reference cannot be null";
+
+        Resource.JMSSharedResource jmsResource = cx.getJMSResource(jmsQueueEventSource.connectionReference());
+
+        String listenerName = "jms" + ConversionUtils.sanitizes(jmsQueueEventSource.name()) + "Listener";
+        String initialContextFactory = jmsResource.namingEnvironment().namingInitialContextFactory();
+        String providerUrl = jmsResource.namingEnvironment().providerURL();
+        String destinationName = jmsQueueEventSource.sessionAttributes().destination();
+
+        BallerinaModel.Listener.JMSListener listener =
+                new BallerinaModel.Listener.JMSListener(listenerName, initialContextFactory, providerUrl,
+                        destinationName, jmsResource.connectionAttributes().username(),
+                        jmsResource.connectionAttributes().password());
+        cx.projectContext.addListnerDeclartion(jmsQueueEventSource.connectionReference(), listener, List.of(),
+                List.of(JMS));
+        return listener;
+    }
+
+    private static BallerinaModel.@NotNull Service createHTTPServiceForStartActivity(ProcessContext cx,
+                                                                                     ExplicitTransitionGroup group,
+                                                                                     HttpEventSource startActivity) {
+        BallerinaModel.Resource resource = generateResourceFunctionForHTTPStartActivity(cx, group);
+        String name = baseName(startActivity.sharedChannel());
         VariableReference listenerRef = cx.getProjectContext().httpListener(name);
         return new BallerinaModel.Service("", listenerRef.varName(), List.of(resource));
     }
@@ -102,7 +176,7 @@ public class ProcessConverter {
         cx.registerProcessClient(moduleVar.name());
     }
 
-    private static BallerinaModel.@NotNull Resource generateResourceFunctionForStartActivity(
+    private static BallerinaModel.@NotNull Resource generateResourceFunctionForHTTPStartActivity(
             ProcessContext cx, ExplicitTransitionGroup group) {
         List<Statement> body = new ArrayList<>();
         Parameter parameter = new Parameter("input", XML);

@@ -69,6 +69,7 @@ public class TibcoToBalConverter {
         Set<Resource.HTTPClientResource> httpClientResources;
         Set<Resource.HTTPSharedResource> httpSharedResources;
         Set<Resource.JDBCSharedResource> jdbcSharedResource;
+        Set<Resource.JMSSharedResource> jmsSharedResource;
         try {
             processes = PROCESS_PARSING_UNIT.parse(projectPath);
             types = XSD_PARSING_UNIT.parse(projectPath);
@@ -78,6 +79,8 @@ public class TibcoToBalConverter {
             var httpSharedResourceParser = new HTTPSharedResourceParsingUnit();
             httpSharedResources = httpSharedResourceParser.parse(projectPath);
             jdbcSharedResource = SHARED_JDBC_RESOURCE_PARSING_UNIT.parse(projectPath);
+            var jmsSharedResourceParser = new JMSSharedResourceParsingUnit();
+            jmsSharedResource = jmsSharedResourceParser.parse(projectPath);
         } catch (IOException | SAXException | ParserConfigurationException e) {
             logger().severe("Unrecoverable error while parsing project file: " + projectPath);
             throw new RuntimeException("Error while parsing the XML file: ", e);
@@ -97,7 +100,8 @@ public class TibcoToBalConverter {
         }
         return ProjectConverter.convertProject(cx, analysisResult, processes, types,
                 new ProjectConverter.ProjectResources(jdbcResources,
-                        httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource),
+                        httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource,
+                        jmsSharedResource),
                 report);
     }
 
@@ -136,6 +140,22 @@ public class TibcoToBalConverter {
                 Path filePath = Path.of(file);
                 String fileName = filePath.getFileName().toString();
                 result.add(XmlToTibcoModelConverter.parseHTTPSharedResource(fileName, element));
+            }
+            return result;
+        }
+    }
+
+    static final class JMSSharedResourceParsingUnit implements ParsingUnit<Resource.JMSSharedResource> {
+
+        @Override
+        public Set<Resource.JMSSharedResource> parse(String projectPath) throws
+                IOException, ParserConfigurationException, SAXException {
+            Set<Resource.JMSSharedResource> result = new LinkedHashSet<>();
+            for (String file : getFilesWithExtension(projectPath, "sharedjmscon")) {
+                Element element = parseXmlFile(file);
+                Path filePath = Path.of(file);
+                String fileName = filePath.getFileName().toString();
+                result.add(XmlToTibcoModelConverter.parseJMSSharedResource(fileName, element));
             }
             return result;
         }

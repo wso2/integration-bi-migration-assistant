@@ -100,6 +100,62 @@ public final class XmlToTibcoModelConverter {
         return new Resource.JDBCSharedResource(name, location);
     }
 
+    public static Resource.JMSSharedResource parseJMSSharedResource(String fileName, Element root) {
+        String name = getFirstChildWithTag(root, "name").getTextContent();
+        Element config = getFirstChildWithTag(root, "config");
+
+        var namingEnvironment = parseJMSNamingEnvironment(config);
+        var connectionAttributes = parseJMSConnectionAttributes(config);
+        java.util.Map<String, String> jndiProperties = parseJMSJNDIProperties(config);
+
+        return new Resource.JMSSharedResource(name, fileName, namingEnvironment, connectionAttributes, jndiProperties);
+    }
+
+    private static Resource.JMSSharedResource.NamingEnvironment parseJMSNamingEnvironment(Element config) {
+        Element namingEnvElement = getFirstChildWithTag(config, "NamingEnvironment");
+        boolean useJNDI = Boolean.parseBoolean(getFirstChildWithTag(namingEnvElement, "UseJNDI").getTextContent());
+        String providerURL = getFirstChildWithTag(namingEnvElement, "ProviderURL").getTextContent();
+        String namingURL = getFirstChildWithTag(namingEnvElement, "NamingURL").getTextContent();
+        String namingInitialContextFactory = getFirstChildWithTag(namingEnvElement, "NamingInitialContextFactory").getTextContent();
+        String topicFactoryName = getFirstChildWithTag(namingEnvElement, "TopicFactoryName").getTextContent();
+        String queueFactoryName = getFirstChildWithTag(namingEnvElement, "QueueFactoryName").getTextContent();
+        String namingPrincipal = getFirstChildWithTag(namingEnvElement, "NamingPrincipal").getTextContent();
+        String namingCredential = getFirstChildWithTag(namingEnvElement, "NamingCredential").getTextContent();
+
+        return new Resource.JMSSharedResource.NamingEnvironment(useJNDI, providerURL, namingURL,
+                namingInitialContextFactory, topicFactoryName, queueFactoryName, namingPrincipal, namingCredential);
+    }
+
+    private static Resource.JMSSharedResource.ConnectionAttributes parseJMSConnectionAttributes(Element config) {
+        Element connAttrsElement = getFirstChildWithTag(config, "ConnectionAttributes");
+        Optional<String> username = tryGetFirstChildWithTag(connAttrsElement, "username")
+                .map(Element::getTextContent)
+                .filter(s -> !s.isBlank());
+        Optional<String> password = tryGetFirstChildWithTag(connAttrsElement, "password")
+                .map(Element::getTextContent)
+                .filter(s -> !s.isBlank());
+        Optional<String> clientID = tryGetFirstChildWithTag(connAttrsElement, "clientID")
+                .map(Element::getTextContent)
+                .filter(s -> !s.isBlank());
+        boolean autoGenClientID = Boolean.parseBoolean(getFirstChildWithTag(connAttrsElement, "autoGenClientID").getTextContent());
+
+        return new Resource.JMSSharedResource.ConnectionAttributes(username, password, clientID, autoGenClientID);
+    }
+
+    private static Map<String, String> parseJMSJNDIProperties(Element config) {
+        Map<String, String> jndiProperties = new HashMap<>();
+        tryGetFirstChildWithTag(config, "JNDIProperties").ifPresent(jndiPropsElement -> {
+            for (Element row : new ElementIterable(jndiPropsElement)) {
+                if (getTagNameWithoutNameSpace(row).equals("row")) {
+                    String propName = getFirstChildWithTag(row, "Name").getTextContent();
+                    String propValue = getFirstChildWithTag(row, "Value").getTextContent();
+                    jndiProperties.put(propName, propValue);
+                }
+            }
+        });
+        return jndiProperties;
+    }
+
     public static Resource.JDBCResource parseJDBCResource(Element root) {
         String name = root.getAttribute("name");
         Element configuration = getFirstChildWithTag(root, "configuration");
@@ -274,6 +330,8 @@ public final class XmlToTibcoModelConverter {
             case JSON_RENDER_ACTIVITY -> parseJSONRenderActivity(element, name, inputBinding);
             case JDBC -> parseJDBCActivity(element, name, inputBinding);
             case MAPPER -> parseMapperActivity(name, inputBinding, element);
+            case JMS_QUEUE_EVENT_SOURCE -> parseJMSQueueEventSource(element, name, inputBinding);
+            case JMS_QUEUE_SEND_ACTIVITY -> parseJMSQueueSendActivity(element, name, inputBinding);
         };
     }
 
@@ -1649,4 +1707,50 @@ public final class XmlToTibcoModelConverter {
 
     }
 
+    private static InlineActivity.JMSQueueEventSource parseJMSQueueEventSource(Element element, String name,
+                                                                               Flow.Activity.InputBinding inputBinding) {
+        return new InlineActivity.JMSQueueEventSource(parseJMSActivityInner(element, name, inputBinding));
+    }
+
+    private static InlineActivity.JMSQueueSendActivity parseJMSQueueSendActivity(Element element, String name,
+                                                                                 Flow.Activity.InputBinding inputBinding) {
+        return new InlineActivity.JMSQueueSendActivity(parseJMSActivityInner(element, name, inputBinding));
+    }
+
+    private static InlineActivity.JMSActivityBase parseJMSActivityInner(Element element, String name,
+                                                                        Flow.Activity.InputBinding inputBinding) {
+        Element config = getFirstChildWithTag(element, "config");
+
+        String permittedMessageType = getFirstChildWithTag(config, "PermittedMessageType").getTextContent();
+        if (!permittedMessageType.equals("Text")) {
+            throw new UnsupportedOperationException("Unsupported permitted message type: " + permittedMessageType);
+        }
+        InlineActivity.JMSActivityBase.SessionAttributes sessionAttributes = parseJMSSessionAttributes(config);
+        InlineActivity.JMSActivityBase.ConfigurableHeaders configurableHeaders = parseJMSConfigurableHeaders(
+                config);
+        String connectionReference = getFirstChildWithTag(config, "ConnectionReference").getTextContent();
+
+        return new InlineActivity.JMSActivityBase(element, name, inputBinding, permittedMessageType,
+                sessionAttributes, configurableHeaders, connectionReference);
+    }
+
+    private static InlineActivity.JMSActivityBase.SessionAttributes parseJMSSessionAttributes(Element config) {
+        Element sessionAttrs = getFirstChildWithTag(config, "SessionAttributes");
+        boolean transacted = Boolean.parseBoolean(getFirstChildWithTag(sessionAttrs, "transacted").getTextContent());
+        int acknowledgeMode = Integer.parseInt(getFirstChildWithTag(sessionAttrs, "acknowledgeMode").getTextContent());
+        int maxSessions = Integer.parseInt(getFirstChildWithTag(sessionAttrs, "maxSessions").getTextContent());
+        String destination = getFirstChildWithTag(sessionAttrs, "destination").getTextContent();
+
+        return new InlineActivity.JMSActivityBase.SessionAttributes(transacted, acknowledgeMode, maxSessions,
+                destination);
+    }
+
+    private static InlineActivity.JMSActivityBase.ConfigurableHeaders parseJMSConfigurableHeaders(Element config) {
+        Element configurableHeaders = getFirstChildWithTag(config, "ConfigurableHeaders");
+        String jmsDeliveryMode = getFirstChildWithTag(configurableHeaders, "JMSDeliveryMode").getTextContent();
+        String jmsExpiration = getFirstChildWithTag(configurableHeaders, "JMSExpiration").getTextContent();
+        String jmsPriority = getFirstChildWithTag(configurableHeaders, "JMSPriority").getTextContent();
+
+        return new InlineActivity.JMSActivityBase.ConfigurableHeaders(jmsDeliveryMode, jmsExpiration, jmsPriority);
+    }
 }

@@ -42,6 +42,7 @@ import tibco.analyzer.AnalysisResult;
 import tibco.model.PartnerLink;
 import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
+import tibco.model.Resource;
 import tibco.model.Scope.Flow.Activity;
 import tibco.model.Scope.Flow.Activity.ActivityExtension;
 import tibco.model.Scope.Flow.Activity.ActivityExtension.Config.JsonOperation;
@@ -148,7 +149,10 @@ final class ActivityConverter {
         private static @NotNull List<Statement> convertInlineActivity(
                 ActivityContext cx, InlineActivity inlineActivity) {
             List<Statement> body = new ArrayList<>();
-            VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+            BallerinaModel.Expression startingValue =
+                    inlineActivity instanceof InlineActivity.JMSQueueEventSource ? getFromContext(cx, "jms") :
+                            defaultEmptyXml();
+            VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), startingValue);
             body.add(inputDecl);
             VariableReference result;
             if (inlineActivity.hasInputBinding()) {
@@ -184,16 +188,94 @@ final class ActivityConverter {
                 case Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup loopGroup ->
                         convertLoopGroup(cx, result, loopGroup);
                 case InlineActivity.REST rest -> convertREST(cx, result, rest);
-                case Process5.ExplicitTransitionGroup.InlineActivity.Catch ignored ->
+                case InlineActivity.Catch ignored ->
                         emptyExtensionConversion(cx, result);
                 case InlineActivity.JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
                 case InlineActivity.JSONRender jsonRender -> convertJsonRender(cx, result, jsonRender);
                 case InlineActivity.JDBC jdbc -> convertJDBC(cx, result, jdbc);
+                case InlineActivity.JMSQueueEventSource jmsEventSource ->
+                        convertJMSEventSource(cx, result, jmsEventSource);
+                case InlineActivity.JMSQueueSendActivity jmsQueueSendActivity ->
+                        convertJMSQueueSendActivity(cx, result, jmsQueueSendActivity);
             };
             body.addAll(conversion.body());
             body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
             return body;
         }
+
+    private static ActivityConversionResult convertJMSQueueSendActivity(
+            ActivityContext cx, VariableReference input, InlineActivity.JMSQueueSendActivity jmsQueueSendActivity) {
+        List<Statement> body = new ArrayList<>();
+        JMSConnectionData jmsConnectionData =
+                JMSConnectionData.from(cx, cx.getJmsResource(jmsQueueSendActivity.connectionReference()));
+        body.add(jmsConnectionData.connection);
+        body.add(jmsConnectionData.session);
+        body.add(new Comment("WARNING: using default destination configuration"));
+        VarDeclStatment producer = new VarDeclStatment(ConversionUtils.Constants.JMS_MESSAGE_PRODUCER,
+                cx.getAnnonVarName(),
+                new Check(new MethodCall(jmsConnectionData.session().ref(), "createProducer", List.of())));
+        body.add(producer);
+
+        VarDeclStatment contentString = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<Body>/*).toString().trim()".formatted(input.varName())));
+        body.add(contentString);
+
+        VarDeclStatment msg = new VarDeclStatment(ConversionUtils.Constants.JMS_TEXT_MESSAGE, cx.getAnnonVarName(),
+                exprFrom("{ content: %s }".formatted(contentString.ref())));
+        body.add(msg);
+
+        body.add(new CallStatement(new Check(new RemoteMethodCallAction(producer.ref(), "send", List.of(msg.ref())))));
+        VarDeclStatment emptyResult = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+        body.add(emptyResult);
+        return new ActivityConversionResult(emptyResult.ref(), body);
+    }
+
+    record JMSConnectionData(VarDeclStatment connection, VarDeclStatment session) {
+
+        static JMSConnectionData from(ActivityContext cx, Resource.JMSSharedResource jmsSharedResource) {
+            StringBuilder sb = new StringBuilder();
+            String initialContextFactory = jmsSharedResource.namingEnvironment()
+                    .namingInitialContextFactory();
+            sb.append("initialContextFactory = \"").append(initialContextFactory).append("\",");
+            String providerUrl = jmsSharedResource.namingEnvironment().providerURL();
+            sb.append("providerUrl = \"").append(providerUrl).append("\",");
+            jmsSharedResource.connectionAttributes().username().ifPresent(userName -> {
+                sb.append("username = \"").append(userName).append("\"");
+            });
+            jmsSharedResource.connectionAttributes().password().ifPresent(password -> {
+                if (sb.charAt(sb.length() - 1) != ',') {
+                    sb.append(",");
+                }
+                sb.append("password = \"").append(password).append("\"");
+            });
+            VarDeclStatment connection =
+                    new VarDeclStatment(ConversionUtils.Constants.JMS_CONNECTION, cx.getAnnonVarName(),
+                            new Check(common.ConversionUtils.exprFrom("new (" + sb + ")")));
+
+            VarDeclStatment session = new VarDeclStatment(ConversionUtils.Constants.JMS_SESSION,
+                    cx.getAnnonVarName(),
+                    new Check(new RemoteMethodCallAction(connection.ref(), "createSession", List.of())));
+
+            return new JMSConnectionData(connection, session);
+        }
+    }
+
+    private static ActivityConversionResult convertJMSEventSource(
+            ActivityContext cx, VariableReference input, InlineActivity.JMSQueueEventSource jmsEventSource) {
+        XMLTemplate jmsTemplate = new XMLTemplate(
+                """
+                           <root>
+                               <ActivityOutput xmlns="http://www.tibco.com/namespaces/tnt/plugins/jms">
+                                    <Body>
+                                        ${%s}
+                                    </Body>
+                               </ActivityOutput>
+                           </root>
+                        """.formatted(input)
+        );
+        VarDeclStatment jmsOutput = new VarDeclStatment(XML, cx.getAnnonVarName(), jmsTemplate);
+        return new ActivityConversionResult(jmsOutput.ref(), List.of(jmsOutput));
+    }
 
     private static ActivityConversionResult convertJDBC(
             ActivityContext cx, VariableReference input, InlineActivity.JDBC jdbc) {
@@ -815,7 +897,8 @@ final class ActivityConverter {
         String setJSONResponseFn = cx.getSetJSONResponseFn();
         String setXMLResponseFn = cx.getSetXMLResponseFn();
         String setTextResponseFn = cx.getSetTextResponseFn();
-        body.add(common.ConversionUtils.stmtFrom("""
+        body.add(stmtFrom(
+                """
                 match %5$s {
                     "application/json" => {
                         map<json> jsonRepr = check jsondata:parseString(%6$s);

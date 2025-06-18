@@ -326,12 +326,21 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
     }
 
+    public record Remote(Function function) {
+
+    }
+
     public record Service(String basePath, List<String> listenerRefs, Optional<Function> initFunc,
                           List<Resource> resources, List<Function> functions,
-                          List<ObjectField> fields) {
+                          List<ObjectField> fields, List<Remote> remoteFunctions) {
         public Service(String basePath, String listenerRef, List<Resource> resources) {
             this(basePath, Collections.singletonList(listenerRef), Optional.empty(), resources,
-                    Collections.emptyList(), Collections.emptyList());
+                    Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        }
+
+        public Service(String basePath, List<String> listenerRefs, Optional<Function> initFunc,
+                       List<Resource> resources, List<Function> functions, List<ObjectField> fields) {
+            this(basePath, listenerRefs, initFunc, resources, functions, fields, Collections.emptyList());
         }
     }
 
@@ -339,21 +348,72 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     }
 
-    public record Listener(ListenerType type, String name, String port, String host) {
-        @Override
-        public String toString() {
-            String argList;
-            if (host.equals("0.0.0.0")) {
-                argList = "(%s)".formatted(port);
-            } else {
-                argList = "(%s, {host: \"%s\"})".formatted(port, host);
-            }
-            return "public listener http:Listener %s = new %s;".formatted(name, argList);
-        }
-    }
+    public sealed interface Listener {
 
-    public enum ListenerType {
-        HTTP
+        ListenerType type();
+
+        String name();
+
+        enum ListenerType {
+            HTTP,
+            JMS
+        }
+
+        record HTTPListener(String name, String port, String host) implements Listener {
+
+            @Override
+            @NotNull
+            public String toString() {
+                String argList;
+                if (host.equals("0.0.0.0")) {
+                    argList = "(%s)".formatted(port);
+                } else {
+                    argList = "(%s, {host: \"%s\"})".formatted(port, host);
+                }
+                return "public listener http:Listener %s = new %s;".formatted(name, argList);
+            }
+
+            @Override
+            public ListenerType type() {
+                return ListenerType.HTTP;
+            }
+        }
+
+        record JMSListener(String name, String initialContextFactory, String providerUrl, String destinationName,
+                           Optional<String> username, Optional<String> password)
+                implements Listener {
+
+            @Override
+            public ListenerType type() {
+                return ListenerType.JMS;
+            }
+
+            @Override
+            @NotNull
+            public String toString() {
+                StringBuilder connectionConfig = new StringBuilder();
+                connectionConfig.append("initialContextFactory: \"").append(initialContextFactory).append("\",\n");
+                connectionConfig.append("providerUrl: \"").append(providerUrl).append("\"");
+
+                if (username.isPresent() && password.isPresent()) {
+                    connectionConfig.append(",\nusername: \"").append(username.get()).append("\",\n");
+                    connectionConfig.append("password: \"").append(password.get()).append("\"");
+                }
+
+                return String.format("""
+                        public listener jms:Listener %s = new jms:Listener(
+                            connectionConfig = {
+                                %s
+                            },
+                            consumerOptions = {
+                                destination: {
+                                    'type: jms:QUEUE,
+                                    name: "%s"
+                                }
+                            }
+                        );""", name, connectionConfig, destinationName);
+            }
+        }
     }
 
     public record Resource(String resourceMethodName, String path, List<Parameter> parameters,

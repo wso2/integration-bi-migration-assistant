@@ -2,7 +2,7 @@
  *  Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
  *
  *  WSO2 LLC. licenses this file to you under the Apache License,
- *  Version 2.0 (the "License"); you may not use this file except
+         *  Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License.
  *  You may obtain a copy of the License at
  *
@@ -20,6 +20,7 @@ package tibco.model;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface Resource {
@@ -62,5 +63,24 @@ public interface Resource {
 
     record SubstitutionBinding(String template, String propName) {
 
+    }
+
+    record JMSSharedResource(String name, String fileName, NamingEnvironment namingEnvironment,
+            ConnectionAttributes connectionAttributes, Map<String, String> jndiProperties)
+            implements Resource {
+
+        @Override
+        public Collection<SubstitutionBinding> substitutionBindings() {
+            return List.of();
+        }
+
+        public record NamingEnvironment(boolean useJNDI, String providerURL, String namingURL,
+                String namingInitialContextFactory, String topicFactoryName,
+                String queueFactoryName, String namingPrincipal, String namingCredential) {
+        }
+
+        public record ConnectionAttributes(Optional<String> username, Optional<String> password,
+                Optional<String> clientID, boolean autoGenClientID) {
+        }
     }
 }

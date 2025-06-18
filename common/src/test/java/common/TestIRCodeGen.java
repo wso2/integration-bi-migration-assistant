@@ -43,8 +43,8 @@ public class TestIRCodeGen {
         HashSet<BallerinaModel.Import> imports = new HashSet<>();
 
         // Create a http listener
-        BallerinaModel.Listener httpListener = new BallerinaModel.Listener(BallerinaModel.ListenerType.HTTP,
-                listenerName, "9090", "0.0.0.0");
+        BallerinaModel.Listener httpListener =
+                new BallerinaModel.Listener.HTTPListener(listenerName, "9090", "0.0.0.0");
         imports.add(new BallerinaModel.Import("ballerina", "http"));
 
         // Create resource body statements

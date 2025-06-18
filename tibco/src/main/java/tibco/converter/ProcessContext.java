@@ -20,6 +20,7 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import org.jetbrains.annotations.NotNull;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.NameSpace;
 import tibco.model.Process;
@@ -47,7 +48,7 @@ import static tibco.converter.ConversionUtils.baseName;
 public class ProcessContext implements ContextWithFile {
 
     private final Set<BallerinaModel.Import> imports = new HashSet<>();
-    private BallerinaModel.Listener defaultListener = null;
+    private BallerinaModel.Listener.HTTPListener defaultListener = null;
     private final Map<String, BallerinaModel.ModuleVar> constants = new HashMap<>();
     private final Map<String, BallerinaModel.ModuleVar> configurables = new HashMap<>();
     public final Process process;
@@ -108,6 +109,11 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getTypeByName(name, this);
     }
 
+    @NotNull
+    public tibco.model.Resource.JMSSharedResource getJMSResource(String fileName) {
+        return projectContext.getJMSResource(fileName);
+    }
+
     String declareConstant(String name, String valueRepr, String type) {
         name = ConversionUtils.sanitizes(name);
         BallerinaModel.TypeDesc td = getTypeByName(type);
@@ -148,7 +154,8 @@ public class ProcessContext implements ContextWithFile {
         if (defaultListener == null) {
             addLibraryImport(Library.HTTP);
             String listenerRef = ConversionUtils.sanitizes(process.name()) + "_listener";
-            defaultListener = new BallerinaModel.Listener(BallerinaModel.ListenerType.HTTP, listenerRef,
+            defaultListener =
+                    new BallerinaModel.Listener.HTTPListener(listenerRef,
                     Integer.toString(projectContext.allocatePort()), "localhost");
         }
         return defaultListener.name();
