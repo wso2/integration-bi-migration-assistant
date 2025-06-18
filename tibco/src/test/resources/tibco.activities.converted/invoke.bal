@@ -9,5 +9,6 @@ function invoke(Context cx) returns error? {
         test="$Start/root/field"><tns3:F><xsl:value-of select="$Start/root/field"/></tns3:F></tns3:Request></item><httpHeaders><tns1:httpHeaders/></httpHeaders></tns:postRequest1></xsl:template></xsl:stylesheet>`, cx.variables);
     json var2 = check httpClient0->post("/path", var1);
     xml var3 = check fromJson(var2);
-    addToContext(cx, "OutputVariable", var3);
+    xml var4 = xml`<root>${var3}</root>`;
+    addToContext(cx, "OutputVariable", var4);
 }

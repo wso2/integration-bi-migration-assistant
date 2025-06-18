@@ -59,7 +59,8 @@ function InvokeProcess(Context cx) returns error? {
 </xsl:stylesheet>`, cx.variables);
     xml var2 = var1/*;
     xml var3 = check proj_annon_var1->post("", var2);
-    addToContext(cx, "InvokeProcess", var3);
+    xml var4 = xml `<root>${var3}</root>`;
+    addToContext(cx, "InvokeProcess", var4);
 }
 
 function Log(Context cx) returns error? {
@@ -182,7 +183,8 @@ function SOAPRequestReply(Context cx) returns error? {
     </soap:Body>
 </soap:Envelope>`;
     xml var4 = check var2->sendReceive(var3, "SOAPAction");
-    addToContext(cx, "SOAPRequestReply", var4);
+    xml var5 = xml `<root>${var4}</root>`;
+    addToContext(cx, "SOAPRequestReply", var5);
 }
 
 function SQL_Direct(Context cx) returns error? {
@@ -405,7 +407,8 @@ function Parse_JSON(Context cx) returns error? {
     xmlns "http://www.tibco.com/namespaces/tnt/plugins/json" as ns;
     xml var2 = check renderJsonAsFooXML(var1);
     xml var3 = xml `<ActivityOutputClass>var2</ActivityOutputClass>`;
-    addToContext(cx, "Parse-JSON", var3);
+    xml var4 = xml `<root>${var3}</root>`;
+    addToContext(cx, "Parse-JSON", var4);
 }
 
 function Render_JSON(Context cx) returns error? {
@@ -487,7 +490,8 @@ function Rest_call(Context cx) returns error? {
     json var5 = check var4->post("/", var3["Body"]);
     xml var6 = check toXML(<map<json>>var5);
     xml var7 = xml `<ns:RESTOutput><msg>${var6}</msg></ns:RESTOutput>`;
-    addToContext(cx, "Rest-call", var7);
+    xml var8 = xml `<root>${var7}</root>`;
+    addToContext(cx, "Rest-call", var8);
 }
 
 function SOAPSendReply(Context cx) returns error? {
@@ -512,7 +516,8 @@ function SOAPSendReply(Context cx) returns error? {
         ${var1}
     </soap:Body>
 </soap:Envelope>`;
-    addToContext(cx, "SOAPSendReply", var2);
+    xml var3 = xml `<root>${var2}</root>`;
+    addToContext(cx, "SOAPSendReply", var3);
 }
 
 function scope0_1ActivityRunner(Context cx) returns error? {

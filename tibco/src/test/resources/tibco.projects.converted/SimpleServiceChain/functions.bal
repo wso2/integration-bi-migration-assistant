@@ -20,7 +20,8 @@ function Call_Foo(Context cx) returns error? {
 </xsl:stylesheet>`, cx.variables);
     xml var2 = var1/*;
     xml var3 = check proj_annon_var2->post("", var2);
-    addToContext(cx, "Call-Foo", var3);
+    xml var4 = xml `<root>${var3}</root>`;
+    addToContext(cx, "Call-Foo", var4);
 }
 
 function HTTP_Receiver(Context cx) returns error? {
@@ -50,7 +51,8 @@ function HTTP_Response(Context cx) returns error? {
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
     xml var2 = var1/**/<asciiContent>/*;
-    addToContext(cx, "HTTP-Response", var2);
+    xml var3 = xml `<root>${var2}</root>`;
+    addToContext(cx, "HTTP-Response", var3);
 }
 
 function Log1(Context cx) returns error? {
@@ -150,7 +152,8 @@ function HTTP_Response_6(Context cx) returns error? {
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
     xml var2 = var1/**/<asciiContent>/*;
-    addToContext(cx, "HTTP-Response", var2);
+    xml var3 = xml `<root>${var2}</root>`;
+    addToContext(cx, "HTTP-Response", var3);
 }
 
 function scope0_1ActivityRunner(Context cx) returns error? {
@@ -230,7 +233,8 @@ function Call_Bar(Context cx) returns error? {
     </soap:Body>
 </soap:Envelope>`;
     xml var4 = check var2->sendReceive(var3, "SOAPAction");
-    addToContext(cx, "Call-Bar", var4);
+    xml var5 = xml `<root>${var4}</root>`;
+    addToContext(cx, "Call-Bar", var5);
 }
 
 function Foo_Receiver(Context cx) returns error? {
@@ -270,7 +274,8 @@ function HTTP_Response_11(Context cx) returns error? {
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
     xml var2 = var1/**/<asciiContent>/*;
-    addToContext(cx, "HTTP-Response", var2);
+    xml var3 = xml `<root>${var2}</root>`;
+    addToContext(cx, "HTTP-Response", var3);
 }
 
 function Log1_8(Context cx) returns error? {
