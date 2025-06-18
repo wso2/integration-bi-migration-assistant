@@ -197,14 +197,63 @@ final class ActivityConverter {
                         convertJMSEventSource(cx, result, jmsEventSource);
                 case InlineActivity.JMSQueueSendActivity jmsQueueSendActivity ->
                         convertJMSQueueSendActivity(cx, result, jmsQueueSendActivity);
+                case InlineActivity.JMSQueueGetMessageActivity jmsQueueGetMessageActivity ->
+                        convertJMSQueueGetActivity(cx, result, jmsQueueGetMessageActivity);
             };
             body.addAll(conversion.body());
             body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
             return body;
         }
 
+    private static ActivityConversionResult convertJMSQueueGetActivity(
+            ActivityContext cx, VariableReference input,
+            InlineActivity.JMSQueueGetMessageActivity jmsQueueGetMessageActivity) {
+        cx.addLibraryImport(Library.JMS);
+        List<Statement> body = new ArrayList<>();
+        JMSConnectionData jmsConnectionData =
+                JMSConnectionData.from(cx, cx.getJmsResource(jmsQueueGetMessageActivity.connectionReference()));
+        body.add(jmsConnectionData.connection);
+        body.add(jmsConnectionData.session);
+        body.add(new Comment("WARNING: using default destination configuration"));
+        VarDeclStatment consumer = new VarDeclStatment(ConversionUtils.Constants.JMS_MESSAGE_CONSUMER,
+                cx.getAnnonVarName(),
+                new Check(new MethodCall(jmsConnectionData.session().ref(), "createConsumer",
+                        List.of(common.ConversionUtils.exprFrom("""
+                                destination = {
+                                    'type: jms:QUEUE,
+                                    name: "Default queue"
+                                }
+                                """)))));
+        body.add(consumer);
+        VarDeclStatment msg =
+                new VarDeclStatment(UnionTypeDesc.of(NIL, ConversionUtils.Constants.JMS_MESSAGE), cx.getAnnonVarName(),
+                        new Check(new RemoteMethodCallAction(consumer.ref(), "receive", List.of())));
+        body.add(msg);
+        body.add(Statement.IfElseStatement.ifStatement(
+                exprFrom("%s !is %s".formatted(msg.ref(), ConversionUtils.Constants.JMS_TEXT_MESSAGE)),
+                List.of(new Statement.Return<>(
+                        new FunctionCall("error", List.of(new StringConstant("Unexpected msg type")))))));
+        VarDeclStatment contentString = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                new BallerinaModel.Expression.FieldAccess(msg.ref(), "content"));
+        body.add(contentString);
+        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(
+                """
+                           <root>
+                               <ActivityOutput xmlns="http://www.tibco.com/namespaces/tnt/plugins/jms">
+                                    <Body>
+                                        ${%s}
+                                    </Body>
+                               </ActivityOutput>
+                           </root>
+                        """.formatted(contentString.ref())
+        ));
+        body.add(result);
+        return new ActivityConversionResult(result.ref(), body);
+    }
+
     private static ActivityConversionResult convertJMSQueueSendActivity(
             ActivityContext cx, VariableReference input, InlineActivity.JMSQueueSendActivity jmsQueueSendActivity) {
+        cx.addLibraryImport(Library.JMS);
         List<Statement> body = new ArrayList<>();
         JMSConnectionData jmsConnectionData =
                 JMSConnectionData.from(cx, cx.getJmsResource(jmsQueueSendActivity.connectionReference()));
@@ -238,8 +287,11 @@ final class ActivityConverter {
                     .namingInitialContextFactory();
             sb.append("initialContextFactory = \"").append(initialContextFactory).append("\",");
             String providerUrl = jmsSharedResource.namingEnvironment().providerURL();
-            sb.append("providerUrl = \"").append(providerUrl).append("\",");
+            sb.append("providerUrl = \"").append(providerUrl).append("\"");
             jmsSharedResource.connectionAttributes().username().ifPresent(userName -> {
+                if (sb.charAt(sb.length() - 1) != ',') {
+                    sb.append(",");
+                }
                 sb.append("username = \"").append(userName).append("\"");
             });
             jmsSharedResource.connectionAttributes().password().ifPresent(password -> {
@@ -250,7 +302,7 @@ final class ActivityConverter {
             });
             VarDeclStatment connection =
                     new VarDeclStatment(ConversionUtils.Constants.JMS_CONNECTION, cx.getAnnonVarName(),
-                            new Check(common.ConversionUtils.exprFrom("new (" + sb + ")")));
+                            new Check(exprFrom("new (" + sb + ")")));
 
             VarDeclStatment session = new VarDeclStatment(ConversionUtils.Constants.JMS_SESSION,
                     cx.getAnnonVarName(),
@@ -824,7 +876,7 @@ final class ActivityConverter {
             result = inputBindings.getLast().ref();
         }
         body.add(new CallStatement(new FunctionCall(cx.getSetXMLResponseFn(), List.of(cx.contextVarRef(), result,
-                common.ConversionUtils.exprFrom("{}")))));
+                exprFrom("{}")))));
         return body;
     }
 

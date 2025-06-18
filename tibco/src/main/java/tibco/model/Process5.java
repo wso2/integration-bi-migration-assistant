@@ -172,7 +172,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 JDBC,
                 MAPPER,
                 JMS_QUEUE_EVENT_SOURCE,
-                JMS_QUEUE_SEND_ACTIVITY;
+                JMS_QUEUE_SEND_ACTIVITY,
+                JMS_QUEUE_GET_MESSAGE_ACTIVITY;
 
                 public static ExplicitTransitionGroup.InlineActivity.InlineActivityType parse(String type) {
                     record LookUpData(String suffix,
@@ -201,6 +202,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                     new LookUpData("SOAPSendReplyActivity", SOAP_SEND_REPLY),
                                     new LookUpData("JMSQueueEventSource", JMS_QUEUE_EVENT_SOURCE),
                                     new LookUpData("JMSQueueSendActivity", JMS_QUEUE_SEND_ACTIVITY),
+                                    new LookUpData("JMSQueueGetMessageActivity", JMS_QUEUE_GET_MESSAGE_ACTIVITY),
                                     new LookUpData("WriteToLogActivity", WRITE_LOG))
                             .filter(each -> type.endsWith(each.suffix)).findFirst()
                             .map(LookUpData::activityType).orElse(UNHANDLED);
@@ -612,6 +614,29 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 @Override
                 public InlineActivityType type() {
                     return InlineActivityType.JMS_QUEUE_SEND_ACTIVITY;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
+                }
+            }
+
+            record JMSQueueGetMessageActivity(Element element, String name, InputBinding inputBinding,
+                                              String permittedMessageType,
+                                              JMSActivityBase.SessionAttributes sessionAttributes,
+                                              JMSActivityBase.ConfigurableHeaders configurableHeaders,
+                                              String connectionReference)
+                    implements ExplicitTransitionGroup.InlineActivity {
+
+                public JMSQueueGetMessageActivity(JMSActivityBase base) {
+                    this(base.element, base.name, base.inputBinding, base.permittedMessageType,
+                            base.sessionAttributes, base.configurableHeaders, base.connectionReference);
+                }
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.JMS_QUEUE_GET_MESSAGE_ACTIVITY;
                 }
 
                 @Override
