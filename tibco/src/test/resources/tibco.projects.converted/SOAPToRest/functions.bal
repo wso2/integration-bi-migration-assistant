@@ -67,7 +67,8 @@ function Rest_call(Context cx) returns error? {
     json var5 = check var4->post("/", var3["Body"]);
     xml var6 = check toXML(<map<json>>var5);
     xml var7 = xml `<ns:RESTOutput><msg>${var6}</msg></ns:RESTOutput>`;
-    addToContext(cx, "Rest-call", var7);
+    xml var8 = xml `<root>${var7}</root>`;
+    addToContext(cx, "Rest-call", var8);
 }
 
 function SOAP_Response(Context cx) returns error? {
@@ -117,7 +118,8 @@ function SOAP_Response(Context cx) returns error? {
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
     xml var2 = var1/**/<asciiContent>/*;
-    addToContext(cx, "SOAP-Response", var2);
+    xml var3 = xml `<root>${var2}</root>`;
+    addToContext(cx, "SOAP-Response", var3);
 }
 
 function scope0ActivityRunner(Context cx) returns error? {

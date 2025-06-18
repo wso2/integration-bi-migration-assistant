@@ -40,6 +40,7 @@ function reply(Context cx) returns error? {
                     </ns1:Response>
                     </xsl:template>
                     </xsl:stylesheet>`, cx.variables);
+    setXMLResponse(cx, var1, {});
 }
 
 function scopeActivityRunner(Context cx) returns error? {
@@ -109,4 +110,13 @@ function responseFromContext(Context cx) returns http:Response {
         }
     }
     return httpRes;
+}
+
+function setXMLResponse(Context cx, xml payload, map<string> headers) {
+    XMLResponse res = {
+        kind: "XMLResponse",
+        payload: payload.cloneReadOnly(),
+        headers: headers.cloneReadOnly()
+    };
+    cx.response = res;
 }

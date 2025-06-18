@@ -279,27 +279,36 @@ final class ActivityConverter {
 
     private static @NotNull ActivityConversionResult finishConvertJsonParser(
             ActivityContext cx, VariableReference input, String targetTypeName, String outerTag, List<Statement> body) {
-        var intermediateResult = finishConvertJsonParser(cx, input, targetTypeName, body);
+        var intermediateResult = finishConvertJsonParser(cx, input, targetTypeName, body, true);
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new XMLTemplate("<%s>%s</%s>".formatted(outerTag, intermediateResult.result, outerTag)));
         body.add(result);
-        return new ActivityConversionResult(result.ref(), body);
+        VarDeclStatment wrappedResult = wrapWithRoot(cx, result.ref());
+        body.add(wrappedResult);
+        return new ActivityConversionResult(wrappedResult.ref(), body);
     }
 
     private static @NotNull ActivityConversionResult finishConvertJsonParser(
-            ActivityContext cx, VariableReference input, String targetTypeName, List<Statement> body) {
+            ActivityContext cx, VariableReference input, String targetTypeName, List<Statement> body,
+            boolean noWrapper) {
         String renderFn = cx.getRenderJsonAsXMLFunction(targetTypeName);
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new Check(new FunctionCall(renderFn, List.of(input))));
         body.add(result);
-        return new ActivityConversionResult(result.ref(), body);
+        if (noWrapper) {
+            return new ActivityConversionResult(result.ref(), body);
+        }
+        VarDeclStatment wrappedResult = wrapWithRoot(cx, result.ref());
+        body.add(wrappedResult);
+        return new ActivityConversionResult(wrappedResult.ref(), body);
     }
 
     private static ActivityConversionResult convertSoapSendReply(
             ActivityContext cx, VariableReference result, InlineActivity.SOAPSendReply soapSendReply) {
         VarDeclStatment envelop = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new XMLTemplate(ConversionUtils.createSoapEnvelope(result)));
-        return new ActivityConversionResult(envelop.ref(), List.of(envelop));
+        VarDeclStatment wrappedEnvelop = wrapWithRoot(cx, envelop.ref());
+        return new ActivityConversionResult(wrappedEnvelop.ref(), List.of(envelop, wrappedEnvelop));
     }
 
     private static ActivityConversionResult convertSoapSendReceive(
@@ -317,8 +326,10 @@ final class ActivityConverter {
                 new RemoteMethodCallAction(new VariableReference(clientName), "sendReceive",
                         List.of(envelope.ref(), soapAction))));
         body.add(res);
+        VarDeclStatment wrappedResponse = wrapWithRoot(cx, res.ref());
+        body.add(wrappedResponse);
 
-        return new ActivityConversionResult(res.ref(), body);
+        return new ActivityConversionResult(wrappedResponse.ref(), body);
     }
 
     private static Collection<Statement> initSoapClient(ActivityContext cx,
@@ -451,23 +462,33 @@ final class ActivityConverter {
                 new XMLTemplate("<ns:RESTOutput><msg>${%s}</msg></ns:RESTOutput>"
                         .formatted(response.ref())));
         body.add(result);
-        return new ActivityConversionResult(result.ref(), body);
+        VarDeclStatment wrappedResult = wrapWithRoot(cx, result.ref());
+        body.add(wrappedResult);
+        return new ActivityConversionResult(wrappedResult.ref(), body);
     }
 
     private static ActivityConversionResult convertCallProcess(
-            ActivityContext cx, VariableReference result, InlineActivity.CallProcess callProcess) {
+            ActivityContext cx, VariableReference input, InlineActivity.CallProcess callProcess) {
         VariableReference client = cx.getProcessClient(callProcess.processName());
         List<Statement> body = new ArrayList<>();
-        VarDeclStatment input = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                exprFrom("%s/*".formatted(result.varName())));
-        body.add(input);
+        VarDeclStatment request = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                exprFrom("%s/*".formatted(input.varName())));
+        body.add(request);
 
-        VarDeclStatment returnVal = new VarDeclStatment(XML, cx.getAnnonVarName(),
+        VarDeclStatment returnedValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new Check(new RemoteMethodCallAction(client, "post",
-                        List.of(new StringConstant(""), input.ref()))));
-        body.add(returnVal);
-        return new ActivityConversionResult(returnVal.ref(), body);
+                        List.of(new StringConstant(""), request.ref()))));
+        body.add(returnedValue);
+        VarDeclStatment result = wrapWithRoot(cx, returnedValue.ref());
+        body.add(result);
+        return new ActivityConversionResult(result.ref(), body);
     }
+
+    private static VarDeclStatment wrapWithRoot(ActivityContext cx, VariableReference input) {
+        return new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("<root>${%s}</root>".formatted(input.varName())));
+    }
+
 
     private static ActivityConversionResult convertFileRead(
             ActivityContext cx, VariableReference result, InlineActivity.FileRead fileRead) {
@@ -582,12 +603,14 @@ final class ActivityConverter {
     }
 
     private static ActivityConversionResult convertHttpResponse(
-            ActivityContext cx, VariableReference result, InlineActivity.HTTPResponse httpResponse) {
+            ActivityContext cx, VariableReference input, InlineActivity.HTTPResponse httpResponse) {
         List<Statement> body = new ArrayList<>();
         VarDeclStatment responseValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                exprFrom("%s/**/<asciiContent>/*".formatted(result.varName())));
+                exprFrom("%s/**/<asciiContent>/*".formatted(input.varName())));
         body.add(responseValue);
-        return new ActivityConversionResult(responseValue.ref(), body);
+        VarDeclStatment result = wrapWithRoot(cx, responseValue.ref());
+        body.add(result);
+        return new ActivityConversionResult(result.ref(), body);
     }
 
     private static ActivityConversionResult convertAssignActivity(
@@ -712,11 +735,14 @@ final class ActivityConverter {
         List<Statement> body = new ArrayList<>();
         VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
         body.add(inputDecl);
-        VariableReference input = inputDecl.ref();
+        VariableReference result = inputDecl.ref();
         if (!reply.inputBindings().isEmpty()) {
-            List<VarDeclStatment> inputBindings = convertInputBindings(cx, input, reply.inputBindings());
+            List<VarDeclStatment> inputBindings = convertInputBindings(cx, result, reply.inputBindings());
             body.addAll(inputBindings);
+            result = inputBindings.getLast().ref();
         }
+        body.add(new CallStatement(new FunctionCall(cx.getSetXMLResponseFn(), List.of(cx.contextVarRef(), result,
+                common.ConversionUtils.exprFrom("{}")))));
         return body;
     }
 
@@ -855,7 +881,7 @@ final class ActivityConverter {
             ActivityContext cx, VariableReference input,
             JsonOperation jsonOperation) {
         ArrayList<Statement> body = new ArrayList<>();
-        return finishConvertJsonParser(cx, input, jsonOperation.type().name(), body);
+        return finishConvertJsonParser(cx, input, jsonOperation.type().name(), body, false);
     }
 
     private static ActivityConversionResult createJsonRenderOperation(ActivityContext cx,
@@ -1045,9 +1071,10 @@ final class ActivityConverter {
         VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new Check(jsonToXMLFunctionCall));
         body.add(resultDecl);
-        VariableReference result = new VariableReference(resultDecl.varName());
+        VarDeclStatment returnVale = wrapWithRoot(cx, resultDecl.ref());
+        body.add(returnVale);
 
-        body.add(addToContext(cx, result, invoke.outputVariable()));
+        body.add(addToContext(cx, returnVale.ref(), invoke.outputVariable()));
         return body;
     }
 
@@ -1084,8 +1111,9 @@ final class ActivityConverter {
                 .orElseGet(() -> callProcessDirectlyUsingStartFunction(
                         cx, cx.getProcessStartFunctionName(targetProcess), finalResult));
         body.add(resultDecl);
-        VariableReference resultRef = resultDecl.ref();
-        body.add(addToContext(cx, resultRef, extActivity.outputVariable()));
+        VarDeclStatment wrappedResult = wrapWithRoot(cx, resultDecl.ref());
+        body.add(wrappedResult);
+        body.add(addToContext(cx, wrappedResult.ref(), extActivity.outputVariable()));
         return body;
     }
 
