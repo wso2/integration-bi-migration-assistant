@@ -22,8 +22,11 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -49,9 +52,14 @@ public record XSD(Element type, org.w3c.dom.Element element) {
 
     public record Element(String name, XSDType type, Optional<Integer> minOccur, Optional<Integer> maxOccur) {
 
+        Stream<String> names() {
+            return Stream.concat(Stream.of(name), type.names().stream());
+        }
     }
 
     public sealed interface XSDType {
+
+        Collection<String> names();
 
         enum BasicXSDType implements XSDType {
             STRING("string"),
@@ -90,9 +98,19 @@ public record XSD(Element type, org.w3c.dom.Element element) {
                         .findFirst()
                         .orElseThrow(() -> new IllegalArgumentException("Unsupported XSD type: " + typeStr));
             }
+
+            @Override
+            public Collection<String> names() {
+                return List.of(value);
+            }
         }
 
         record ComplexType(XSDType.ComplexType.ComplexTypeBody body) implements XSDType {
+
+            @Override
+            public Collection<String> names() {
+                return body.elements().stream().flatMap(Element::names).collect(Collectors.toSet());
+            }
 
             public sealed interface ComplexTypeBody {
 

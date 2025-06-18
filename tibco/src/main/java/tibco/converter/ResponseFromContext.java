@@ -18,26 +18,8 @@
 
 package tibco.converter;
 
-public class ResponseFromContext implements ComptimeFunction {
-    private static ResponseFromContext instance;
-
-    private final ContextTypeNames typeNames;
+public record ResponseFromContext(ContextTypeNames typeNames) implements ComptimeFunction {
     private static final String FUNCTION_NAME = "responseFromContext";
-
-    private ResponseFromContext(ContextTypeNames typeNames) {
-        this.typeNames = typeNames;
-    }
-
-    public static synchronized ResponseFromContext getInstance(ContextTypeNames typeNames) {
-        if (instance == null) {
-            instance = new ResponseFromContext(typeNames);
-        } else if (!instance.typeNames.equals(typeNames)) {
-            throw new IllegalStateException(
-                    "ResponseFromContext instance already exists with different ContextTypeNames. " +
-                            "Existing: " + instance.typeNames + ", Requested: " + typeNames);
-        }
-        return instance;
-    }
 
     @Override
     public String functionName() {

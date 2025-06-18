@@ -18,26 +18,8 @@
 
 package tibco.converter;
 
-public class GetFromContext implements ComptimeFunction {
-    private static GetFromContext instance;
-
-    private final ContextTypeNames typeNames;
+public record GetFromContext(ContextTypeNames typeNames) implements ComptimeFunction {
     private static final String FUNCTION_NAME = "getFromContext";
-
-    private GetFromContext(ContextTypeNames typeNames) {
-        this.typeNames = typeNames;
-    }
-
-    public static synchronized GetFromContext getInstance(ContextTypeNames typeNames) {
-        if (instance == null) {
-            instance = new GetFromContext(typeNames);
-        } else if (!instance.typeNames.equals(typeNames)) {
-            throw new IllegalStateException(
-                    "GetFromContext instance already exists with different ContextTypeNames. " +
-                            "Existing: " + instance.typeNames + ", Requested: " + typeNames);
-        }
-        return instance;
-    }
 
     @Override
     public String functionName() {

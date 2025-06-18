@@ -21,7 +21,4 @@ package tibco.converter;
 public record ContextTypeNames(String context, String response, String jsonResponse, String xmlResponse,
                                String textResponse) {
 
-    public static ContextTypeNames defaultNames() {
-        return new ContextTypeNames("Context", "Response", "JSONResponse", "XMLResponse", "TextResponse");
-    }
 }

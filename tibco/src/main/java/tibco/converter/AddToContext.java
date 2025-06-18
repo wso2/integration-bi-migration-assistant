@@ -18,26 +18,8 @@
 
 package tibco.converter;
 
-public class AddToContext implements ComptimeFunction {
-    private static AddToContext instance;
-
-    private final ContextTypeNames typeNames;
+public record AddToContext(ContextTypeNames typeNames) implements ComptimeFunction {
     private static final String FUNCTION_NAME = "addToContext";
-
-    private AddToContext(ContextTypeNames typeNames) {
-        this.typeNames = typeNames;
-    }
-
-    public static synchronized AddToContext getInstance(ContextTypeNames typeNames) {
-        if (instance == null) {
-            instance = new AddToContext(typeNames);
-        } else if (!instance.typeNames.equals(typeNames)) {
-            throw new IllegalStateException(
-                    "AddToContext instance already exists with different ContextTypeNames. " +
-                            "Existing: " + instance.typeNames + ", Requested: " + typeNames);
-        }
-        return instance;
-    }
 
     @Override
     public String functionName() {

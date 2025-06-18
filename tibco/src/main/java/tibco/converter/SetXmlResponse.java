@@ -18,26 +18,8 @@
 
 package tibco.converter;
 
-public class SetXmlResponse implements ComptimeFunction {
-    private static SetXmlResponse instance;
-
-    private final ContextTypeNames typeNames;
+public record SetXmlResponse(ContextTypeNames typeNames) implements ComptimeFunction {
     private static final String FUNCTION_NAME = "setXMLResponse";
-
-    private SetXmlResponse(ContextTypeNames typeNames) {
-        this.typeNames = typeNames;
-    }
-
-    public static synchronized SetXmlResponse getInstance(ContextTypeNames typeNames) {
-        if (instance == null) {
-            instance = new SetXmlResponse(typeNames);
-        } else if (!instance.typeNames.equals(typeNames)) {
-            throw new IllegalStateException(
-                    "SetXmlResponse instance already exists with different ContextTypeNames. " +
-                            "Existing: " + instance.typeNames + ", Requested: " + typeNames);
-        }
-        return instance;
-    }
 
     @Override
     public String functionName() {

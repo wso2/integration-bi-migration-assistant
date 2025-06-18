@@ -93,7 +93,7 @@ function getFromContext(Context context, string varName) returns xml {
 
 function responseFromContext(Context cx) returns http:Response {
     http:Response httpRes = new;
-    Response? res = cx.response;
+    Response_21? res = cx.response;
     if res is JSONResponse {
         httpRes.setJsonPayload(res.payload);
     } else if res is XMLResponse {

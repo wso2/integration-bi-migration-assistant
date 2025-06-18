@@ -18,26 +18,8 @@
 
 package tibco.converter;
 
-public class SetTextResponse implements ComptimeFunction {
-    private static SetTextResponse instance;
-
-    private final ContextTypeNames typeNames;
+public record SetTextResponse(ContextTypeNames typeNames) implements ComptimeFunction {
     private static final String FUNCTION_NAME = "setTextResponse";
-
-    private SetTextResponse(ContextTypeNames typeNames) {
-        this.typeNames = typeNames;
-    }
-
-    public static synchronized SetTextResponse getInstance(ContextTypeNames typeNames) {
-        if (instance == null) {
-            instance = new SetTextResponse(typeNames);
-        } else if (!instance.typeNames.equals(typeNames)) {
-            throw new IllegalStateException(
-                    "SetTextResponse instance already exists with different ContextTypeNames. " +
-                            "Existing: " + instance.typeNames + ", Requested: " + typeNames);
-        }
-        return instance;
-    }
 
     @Override
     public String functionName() {
