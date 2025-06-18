@@ -37,15 +37,51 @@ public enum Intrinsics {
                         return getter();
                     }
                     """),
-    XPATH_PREDICATE(
-            "test",
+    RESPONSE_FROM_CONTEXT(
+            "responseFromContext",
             """
-                    function test(xml input, string xpath) returns boolean {
-                        // TODO: support XPath
-                        return false;
+                    function responseFromContext(Context cx) returns http:Response {
+                        http:Response httpRes = new;
+                        Response? res = cx.response;
+                        if res is JSONResponse {
+                            httpRes.setJsonPayload(res.payload);
+                        } else if res is XMLResponse {
+                            httpRes.setXmlPayload(res.payload);
+                        } else if res is TextResponse {
+                            httpRes.setTextPayload(res.payload);
+                        } else {
+                            httpRes.setXmlPayload(cx.result);
+                        }
+
+                        if res != () {
+                            foreach var header in res.headers.entries() {
+                                httpRes.setHeader(header[0], header[1]);
+                            }
+                        }
+                        return httpRes;
                     }
-                    """
-    ),
+                    """),
+    ADD_TO_CONTEXT(
+            "addToContext",
+            """
+                    function addToContext(Context context, string varName, xml value){
+                        xml children = value/*;
+                        xml transformed = xml `<root>${children}</root>`;
+                        context.variables[varName] = transformed;
+                        context.result = value;
+                    }
+                    """),
+    GET_FROM_CONTEXT(
+            "getFromContext",
+            """
+                            function getFromContext(Context context, string varName) returns xml {
+                                xml? value = context.variables[varName];
+                                if value == () {
+                                    return xml `<root/>`;
+                                }
+                                return value;
+                            }
+                    """),
     XML_PARSER_RESULT(
             "XMLElementParseResult",
             """
@@ -53,8 +89,7 @@ public enum Intrinsics {
                         string? namespace;
                         string name;
                     |};
-                    """
-    ),
+                    """),
     XML_PARSER(
             "",
             """
@@ -71,8 +106,7 @@ public enum Intrinsics {
                         }
                         return {namespace: (), name: name};
                     }
-                    """
-    ),
+                    """),
     TO_JSON("xmlToJson",
             """
                     function xmlToJson(xml value) returns json {
@@ -137,8 +171,7 @@ public enum Intrinsics {
                         json jsonValue = xmlToJson(value);
                         return xml `<root><jsonString>${jsonValue.toJsonString()}</jsonString></root>`;
                     }
-                    """
-    ),
+                    """),
     PATCH_XML_NAMESPACES(
             "transform",
             """
@@ -207,8 +240,7 @@ public enum Intrinsics {
                         attributes["xmlns"] = namespace;
                         return result;
                     }
-                    """
-    ),
+                    """),
     TRANSFORM_XSLT(
             "transformXSLT",
             """
@@ -242,9 +274,8 @@ public enum Intrinsics {
                         }
                         return input;
                     }
-                    """
-    ),
-            PARSE_HEADERS(
+                    """),
+    PARSE_HEADERS(
             "parseHeaders",
             """
                     function parseHeaders(xml headers) returns map<string> {
@@ -260,8 +291,8 @@ public enum Intrinsics {
                         }
                         return headerMap;
                     }
-                    """
-    );
+                    """);
+
     public final String body;
     public final String name;
 
