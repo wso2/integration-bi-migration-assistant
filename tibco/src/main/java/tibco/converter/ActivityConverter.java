@@ -735,11 +735,14 @@ final class ActivityConverter {
         List<Statement> body = new ArrayList<>();
         VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
         body.add(inputDecl);
-        VariableReference input = inputDecl.ref();
+        VariableReference result = inputDecl.ref();
         if (!reply.inputBindings().isEmpty()) {
-            List<VarDeclStatment> inputBindings = convertInputBindings(cx, input, reply.inputBindings());
+            List<VarDeclStatment> inputBindings = convertInputBindings(cx, result, reply.inputBindings());
             body.addAll(inputBindings);
+            result = inputBindings.getLast().ref();
         }
+        body.add(new CallStatement(new FunctionCall(cx.getSetXMLResponseFn(), List.of(cx.contextVarRef(), result,
+                common.ConversionUtils.exprFrom("{}")))));
         return body;
     }
 
