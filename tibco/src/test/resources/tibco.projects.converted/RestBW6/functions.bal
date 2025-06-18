@@ -107,21 +107,6 @@ function tryBindToTestRequest(xml|json input) returns TestRequest|error {
     return input is xml ? xmldata:parseAsType(input) : jsondata:parseAsType(input);
 }
 
-function addToContext(Context context, string varName, xml value) {
-    xml children = value/*;
-    xml transformed = xml `<root>${children}</root>`;
-    context.variables[varName] = transformed;
-    context.result = value;
-}
-
-function getFromContext(Context context, string varName) returns xml {
-    xml? value = context.variables[varName];
-    if value == () {
-        return xml `<root/>`;
-    }
-    return value;
-}
-
 function initContext(map<xml> initVariables = {}) returns Context {
     return {variables: initVariables, result: xml `<root/>`};
 }
@@ -138,6 +123,21 @@ function parseHeaders(xml headers) returns map<string> {
         }
     }
     return headerMap;
+}
+
+function addToContext(Context context, string varName, xml value) {
+    xml children = value/*;
+    xml transformed = xml `<root>${children}</root>`;
+    context.variables[varName] = transformed;
+    context.result = value;
+}
+
+function getFromContext(Context context, string varName) returns xml {
+    xml? value = context.variables[varName];
+    if value == () {
+        return xml `<root/>`;
+    }
+    return value;
 }
 
 function responseFromContext(Context cx) returns http:Response {

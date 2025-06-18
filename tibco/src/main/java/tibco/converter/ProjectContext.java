@@ -320,8 +320,10 @@ public class ProjectContext {
     }
 
     public String getFromContextFn() {
-        utilityIntrinsics.add(Intrinsics.GET_FROM_CONTEXT);
-        return Intrinsics.GET_FROM_CONTEXT.name;
+        ContextTypeNames typeNames = ContextTypeNames.defaultNames();
+        ComptimeFunction getFromContext = GetFromContext.getInstance(typeNames);
+        utilityCompTimeFunctions.add(getFromContext);
+        return getFromContext.functionName();
     }
 
     public String getInitContextFn() {
@@ -468,14 +470,18 @@ public class ProjectContext {
     }
 
     public String getAddToContextFn() {
-        utilityIntrinsics.add(Intrinsics.ADD_TO_CONTEXT);
-        return Intrinsics.ADD_TO_CONTEXT.name;
+        ContextTypeNames typeNames = ContextTypeNames.defaultNames();
+        ComptimeFunction addToContext = AddToContext.getInstance(typeNames);
+        utilityCompTimeFunctions.add(addToContext);
+        return addToContext.functionName();
     }
 
     public String getResponseFromContextFn() {
-        utilityIntrinsics.add(Intrinsics.RESPONSE_FROM_CONTEXT);
+        ContextTypeNames typeNames = ContextTypeNames.defaultNames();
+        ComptimeFunction responseFromContext = ResponseFromContext.getInstance(typeNames);
+        utilityCompTimeFunctions.add(responseFromContext);
         importLibraryIfNeededToUtility(HTTP);
-        return Intrinsics.RESPONSE_FROM_CONTEXT.name;
+        return responseFromContext.functionName();
     }
 
     public String getNamespaceFixFn() {
@@ -498,18 +504,24 @@ public class ProjectContext {
     }
 
     public String getSetJSONResponseFn() {
-        utilityIntrinsics.add(Intrinsics.SET_JSON_RESPONSE);
-        return Intrinsics.SET_JSON_RESPONSE.name;
+        ContextTypeNames typeNames = ContextTypeNames.defaultNames();
+        ComptimeFunction setJsonResponse = SetJsonResponse.getInstance(typeNames);
+        utilityCompTimeFunctions.add(setJsonResponse);
+        return setJsonResponse.functionName();
     }
 
     public String getSetXMLResponseFn() {
-        utilityIntrinsics.add(Intrinsics.SET_XML_RESPONSE);
-        return Intrinsics.SET_XML_RESPONSE.name;
+        ContextTypeNames typeNames = ContextTypeNames.defaultNames();
+        ComptimeFunction setXmlResponse = SetXmlResponse.getInstance(typeNames);
+        utilityCompTimeFunctions.add(setXmlResponse);
+        return setXmlResponse.functionName();
     }
 
     public String getSetTextResponseFn() {
-        utilityIntrinsics.add(Intrinsics.SET_TEXT_RESPONSE);
-        return Intrinsics.SET_TEXT_RESPONSE.name;
+        ContextTypeNames typeNames = ContextTypeNames.defaultNames();
+        ComptimeFunction setTextResponse = SetTextResponse.getInstance(typeNames);
+        utilityCompTimeFunctions.add(setTextResponse);
+        return setTextResponse.functionName();
     }
 
     public String getParseHeadersFn() {
