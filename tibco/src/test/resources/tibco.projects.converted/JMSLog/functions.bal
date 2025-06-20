@@ -2,6 +2,31 @@ import ballerina/log;
 import ballerina/xslt;
 import ballerinax/java.jms;
 
+function JMG_Get(Context cx) returns error? {
+    xml var0 = xml `<root></root>`;
+    jms:Connection var1 = check new (initialContextFactory = "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl = "tcp://localhost:61616");
+    jms:Session var2 = check var1->createSession();
+    //WARNING: using default destination configuration
+    jms:MessageConsumer var3 = check var2.createConsumer(destination = {
+        'type: jms:QUEUE,
+        name: "Default queue"
+    }
+);
+    jms:Message? var4 = check var3->receive();
+    if var4 !is jms:TextMessage {
+        return error("Unexpected msg type");
+    }
+    string var5 = var4.content;
+    xml var6 = xml `<root>
+       <ActivityOutput xmlns="http://www.tibco.com/namespaces/tnt/plugins/jms">
+            <Body>
+                ${var5}
+            </Body>
+       </ActivityOutput>
+   </root>`;
+    addToContext(cx, "JMG-Get", var6);
+}
+
 function JMS_Queue_Receiver(Context cx) returns error? {
     xml var0 = getFromContext(cx, "jms");
     xml var1 = xml `<root>
@@ -61,6 +86,27 @@ function Log(Context cx) returns error? {
     xml var2 = var1/**/<message>/*;
     log:printInfo(var2.toString());
     addToContext(cx, "Log", var2);
+}
+
+function Log_End(Context cx) returns error? {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="JMS-Get"/>     <xsl:template name="Transform2" match="/">
+        <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema">
+                    
+    <message>
+                            
+        <xsl:value-of select="$JMS-Get/root/ns1:ActivityOutput/Body" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                        
+    </message>
+                
+</ns:ActivityInput>
+
+    </xsl:template>
+</xsl:stylesheet>`, cx.variables);
+    xml var2 = var1/**/<message>/*;
+    log:printInfo(var2.toString());
+    addToContext(cx, "Log-End", var2);
 }
 
 function scope0ActivityRunner(Context cx) returns error? {

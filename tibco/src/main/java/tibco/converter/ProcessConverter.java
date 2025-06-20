@@ -104,7 +104,7 @@ public class ProcessConverter {
         Parameter parameter = new Parameter("message", ConversionUtils.Constants.JMS_MESSAGE_TYPE);
         List<Statement> body = new ArrayList<>();
         body.add(Statement.IfElseStatement.ifStatement(common.ConversionUtils.exprFrom(
-                        "%s !is %s".formatted(parameter.name(), ConversionUtils.Constants.JMS_TEXT_MESSAGE_TYPE)),
+                        "%s !is %s".formatted(parameter.name(), ConversionUtils.Constants.JMS_TEXT_MESSAGE)),
                 List.of(common.ConversionUtils.stmtFrom("panic error(\"Unsupported JMS message type\");"))));
         VarDeclStatment content =
                 new VarDeclStatment(STRING, "content", new Expression.FieldAccess(parameter.ref(), "content"));
