@@ -26,7 +26,8 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
-import static mule.MuleMigrationExecutor.testConvertMuleProject;
+import static mule.MuleMigrationExecutor.testConvertingMuleProject;
+import static mule.MuleMigrationExecutor.testConvertingMultiMuleProjects;
 import static mule.MuleToBalConverter.convertStandaloneXMLFileToBallerina;
 
 public class TestConverter {
@@ -42,28 +43,27 @@ public class TestConverter {
         OUT.println("________________________________________________________________");
     }
 
-    @Test(description = "Test converting mule project")
+    @Test(description = "Test converting a Mule project with default BI structure")
     public void testMuleProjectConversionWithBiStructure() {
-        Path balProjectDir = Path.of("src/test/resources/projects/demo_project_bi/demo_project_bi_ballerina");
-        if (Files.exists(balProjectDir)) {
-            try {
-                deleteDirectory(balProjectDir);
-            } catch (IOException e) {
-                throw new RuntimeException("Issue deleting directory: " + balProjectDir, e);
-            }
-        }
-
-        OUT.println("Generating Ballerina package...");
-        testConvertMuleProject("src/test/resources/projects/demo_project_bi", null, false, false, false);
-        OUT.println("________________________________________________________________");
-        OUT.println("Conversion completed. Output written to " +
-                "src/test/resources/demo_project_bi/demo_project_bi_ballerina");
-        OUT.println("________________________________________________________________");
+        deleteDirectoryIfExists("src/test/resources/projects/demo_project_bi/demo_project_bi_ballerina");
+        testConvertingMuleProject("src/test/resources/projects/demo_project_bi", false, false);
     }
 
-    @Test(description = "Test converting mule project")
+    @Test(description = "Test converting a Mule project with --keep-structure option enabled")
     public void testMuleProjectConversionWithKeepStructure() {
-        Path balProjectDir = Path.of("src/test/resources/projects/demo_project_classic/demo_project_classic_ballerina");
+        deleteDirectoryIfExists("src/test/resources/projects/demo_project_classic/demo_project_classic_ballerina");
+        testConvertingMuleProject("src/test/resources/projects/demo_project_classic", false, true);
+    }
+
+    @Test(description = "Test converting multi Mule projects with --multi-root option enabled")
+    public void testMultiMuleProjectsConversion() {
+        deleteDirectoryIfExists("src/test/resources/misc/multi_root_output");
+        testConvertingMultiMuleProjects("src/test/resources/projects", "src/test/resources/misc/multi_root_output",
+                false, false);
+    }
+
+    private void deleteDirectoryIfExists(String first) {
+        Path balProjectDir = Path.of(first);
         if (Files.exists(balProjectDir)) {
             try {
                 deleteDirectory(balProjectDir);
@@ -71,13 +71,6 @@ public class TestConverter {
                 throw new RuntimeException("Issue deleting directory: " + balProjectDir, e);
             }
         }
-
-        OUT.println("Generating Ballerina package...");
-        testConvertMuleProject("src/test/resources/projects/demo_project_classic", null, false, false, true);
-        OUT.println("________________________________________________________________");
-        OUT.println("Conversion completed. Output written to " +
-                "src/test/resources/demo_project_classic/demo_project_classic_ballerina");
-        OUT.println("________________________________________________________________");
     }
 
     private void deleteDirectory(Path path) throws IOException {

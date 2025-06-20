@@ -194,6 +194,7 @@ public class MigrationReportTemplate {
                   });
                 </script>
                 <script>document.getElementById("datetime").innerHTML = new Date().toLocaleString();</script>
-                </body></html>""";
+                </body></html>
+                """;
     }
 }
