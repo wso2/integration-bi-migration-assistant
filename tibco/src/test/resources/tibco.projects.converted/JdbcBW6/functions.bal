@@ -72,6 +72,10 @@ function tryBindToTestRequest(xml|json input) returns TestRequest|error {
     return input is xml ? xmldata:parseAsType(input) : jsondata:parseAsType(input);
 }
 
+function initContext(map<xml> initVariables = {}) returns Context {
+    return {variables: initVariables, result: xml `<root/>`};
+}
+
 function addToContext(Context context, string varName, xml value) {
     xml children = value/*;
     xml transformed = xml `<root>${children}</root>`;
@@ -87,13 +91,9 @@ function getFromContext(Context context, string varName) returns xml {
     return value;
 }
 
-function initContext(map<xml> initVariables = {}) returns Context {
-    return {variables: initVariables, result: xml `<root/>`};
-}
-
 function responseFromContext(Context cx) returns http:Response {
     http:Response httpRes = new;
-    Response? res = cx.response;
+    Response_21? res = cx.response;
     if res is JSONResponse {
         httpRes.setJsonPayload(res.payload);
     } else if res is XMLResponse {

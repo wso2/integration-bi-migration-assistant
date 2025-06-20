@@ -42,6 +42,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -300,6 +301,11 @@ public class ActivityConversionTest {
                                             Optional.empty()),
                                     new XSD.Element("ssn", XSD.XSDType.BasicXSDType.STRING, Optional.empty(),
                                             Optional.empty()))));
+                }
+
+                @Override
+                public Set<String> getTypeNames() {
+                    return Set.of();
                 }
             };
         }

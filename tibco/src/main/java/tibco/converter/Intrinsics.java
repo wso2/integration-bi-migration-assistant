@@ -27,52 +27,6 @@ public enum Intrinsics {
                     }
                     """
     ),
-    RESPONSE_FROM_CONTEXT(
-            "responseFromContext",
-            """
-                    function responseFromContext(Context cx) returns http:Response {
-                        http:Response httpRes = new;
-                        Response? res = cx.response;
-                        if res is JSONResponse {
-                            httpRes.setJsonPayload(res.payload);
-                        } else if res is XMLResponse {
-                            httpRes.setXmlPayload(res.payload);
-                        } else if res is TextResponse {
-                            httpRes.setTextPayload(res.payload);
-                        } else {
-                            httpRes.setXmlPayload(cx.result);
-                        }
-
-                        if res != () {
-                            foreach var header in res.headers.entries() {
-                                httpRes.setHeader(header[0], header[1]);
-                            }
-                        }
-                        return httpRes;
-                    }
-                    """),
-    ADD_TO_CONTEXT(
-            "addToContext",
-            """
-                    function addToContext(Context context, string varName, xml value){
-                        xml children = value/*;
-                        xml transformed = xml `<root>${children}</root>`;
-                        context.variables[varName] = transformed;
-                        context.result = value;
-                    }
-                    """
-    ),
-    GET_FROM_CONTEXT(
-                    "getFromContext",
-            """
-                            function getFromContext(Context context, string varName) returns xml {
-                                xml? value = context.variables[varName];
-                                if value == () {
-                                    return xml `<root/>`;
-                                }
-                                return value;
-                            }
-                    """),
     XPATH_PREDICATE(
             "test",
             """
@@ -280,45 +234,7 @@ public enum Intrinsics {
                     }
                     """
     ),
-    SET_JSON_RESPONSE(
-            "setJSONResponse",
-            """
-                    function setJSONResponse(Context cx, json payload, map<string> headers) {
-                        JSONResponse res = {
-                            kind: "JSONResponse",
-                            payload: payload.cloneReadOnly(),
-                            headers: headers.cloneReadOnly()
-                        };
-                        cx.response = res;
-                    }
-                    """),
-    SET_XML_RESPONSE(
-            "setXMLResponse",
-            """
-                    function setXMLResponse(Context cx, xml payload, map<string> headers) {
-                        XMLResponse res = {
-                            kind: "XMLResponse",
-                            payload: payload.cloneReadOnly(),
-                            headers: headers.cloneReadOnly()
-                        };
-                        cx.response = res;
-                    }
-                    """
-    ),
-    SET_TEXT_RESPONSE(
-            "setTextResponse",
-            """
-                    function setTextResponse(Context cx, string payload, map<string> headers) {
-                        TextResponse res = {
-                            kind: "TextResponse",
-                            payload: payload.cloneReadOnly(),
-                            headers: headers.cloneReadOnly()
-                        };
-                        cx.response = res;
-                    }
-                    """
-    ),
-    PARSE_HEADERS(
+            PARSE_HEADERS(
             "parseHeaders",
             """
                     function parseHeaders(xml headers) returns map<string> {

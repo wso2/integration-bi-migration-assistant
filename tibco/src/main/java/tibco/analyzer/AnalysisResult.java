@@ -28,6 +28,7 @@ import tibco.model.XSD;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public interface AnalysisResult {
@@ -91,6 +92,8 @@ public interface AnalysisResult {
     void setReport(TibcoAnalysisReport report);
 
     XSD.XSDType getType(String name);
+
+    Set<String> getTypeNames();
 
     record ActivityData(String functionName, BallerinaModel.TypeDesc argumentType,
                         BallerinaModel.TypeDesc returnType) {

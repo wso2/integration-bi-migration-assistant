@@ -42,6 +42,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static common.BallerinaModel.Expression.TernaryExpression;
@@ -88,6 +89,7 @@ public class ProjectContext {
     private final Map<String, Resource.JMSSharedResource> jmsResourceMap = new HashMap<>();
     private final Map<Process, AnalysisResult> analysisResult;
     private Collection<Type.Schema> schemas = new ArrayList<>();
+    private ContextTypeNames contextTypeNames = null;
 
     ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
                    Map<Process, AnalysisResult> analysisResult) {
@@ -142,12 +144,13 @@ public class ProjectContext {
 
     @NotNull
     BallerinaModel.TypeDesc contextType() {
+        ContextTypeNames contextTypeNames = getContextTypeNames();
         BallerinaModel.TypeDesc.TypeReference responseTy =
-                getOrCreateUtilityTypeDef("Response", ConversionUtils.Constants.RESPONSE_TYPE_DESC);
-        getOrCreateUtilityTypeDef("JSONResponse", ConversionUtils.Constants.JSON_RESPONSE_TYPE_DESC);
-        getOrCreateUtilityTypeDef("XMLResponse", ConversionUtils.Constants.XML_RESPONSE_TYPE_DESC);
-        getOrCreateUtilityTypeDef("TextResponse", ConversionUtils.Constants.TEXT_RESPONSE_TYPE_DESC);
-        return getOrCreateUtilityTypeDef("Context", new BallerinaModel.TypeDesc.RecordTypeDesc(
+                getOrCreateUtilityTypeDef(contextTypeNames.response(), ConversionUtils.Constants.RESPONSE_TYPE_DESC);
+        getOrCreateUtilityTypeDef(contextTypeNames.jsonResponse(), ConversionUtils.jsonResponseTypeDesc(responseTy));
+        getOrCreateUtilityTypeDef(contextTypeNames.xmlResponse(), ConversionUtils.xmlResponseTypeDesc(responseTy));
+        getOrCreateUtilityTypeDef(contextTypeNames.textResponse(), ConversionUtils.textResponseTypeDesc(responseTy));
+        return getOrCreateUtilityTypeDef(contextTypeNames.context(), new BallerinaModel.TypeDesc.RecordTypeDesc(
                 List.of(
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("variables",
                                 new BallerinaModel.TypeDesc.MapTypeDesc(XML)),
@@ -320,8 +323,10 @@ public class ProjectContext {
     }
 
     public String getFromContextFn() {
-        utilityIntrinsics.add(Intrinsics.GET_FROM_CONTEXT);
-        return Intrinsics.GET_FROM_CONTEXT.name;
+        ContextTypeNames typeNames = getContextTypeNames();
+        ComptimeFunction getFromContext = new GetFromContext(typeNames);
+        utilityCompTimeFunctions.add(getFromContext);
+        return getFromContext.functionName();
     }
 
     public String getInitContextFn() {
@@ -468,14 +473,18 @@ public class ProjectContext {
     }
 
     public String getAddToContextFn() {
-        utilityIntrinsics.add(Intrinsics.ADD_TO_CONTEXT);
-        return Intrinsics.ADD_TO_CONTEXT.name;
+        ContextTypeNames typeNames = getContextTypeNames();
+        ComptimeFunction addToContext = new AddToContext(typeNames);
+        utilityCompTimeFunctions.add(addToContext);
+        return addToContext.functionName();
     }
 
     public String getResponseFromContextFn() {
-        utilityIntrinsics.add(Intrinsics.RESPONSE_FROM_CONTEXT);
+        ContextTypeNames typeNames = getContextTypeNames();
+        ComptimeFunction responseFromContext = new ResponseFromContext(typeNames);
+        utilityCompTimeFunctions.add(responseFromContext);
         importLibraryIfNeededToUtility(HTTP);
-        return Intrinsics.RESPONSE_FROM_CONTEXT.name;
+        return responseFromContext.functionName();
     }
 
     public String getNamespaceFixFn() {
@@ -498,18 +507,40 @@ public class ProjectContext {
     }
 
     public String getSetJSONResponseFn() {
-        utilityIntrinsics.add(Intrinsics.SET_JSON_RESPONSE);
-        return Intrinsics.SET_JSON_RESPONSE.name;
+        ContextTypeNames typeNames = getContextTypeNames();
+        ComptimeFunction setJsonResponse = new SetJsonResponse(typeNames);
+        utilityCompTimeFunctions.add(setJsonResponse);
+        return setJsonResponse.functionName();
     }
 
     public String getSetXMLResponseFn() {
-        utilityIntrinsics.add(Intrinsics.SET_XML_RESPONSE);
-        return Intrinsics.SET_XML_RESPONSE.name;
+        ContextTypeNames typeNames = getContextTypeNames();
+        ComptimeFunction setXmlResponse = new SetXmlResponse(typeNames);
+        utilityCompTimeFunctions.add(setXmlResponse);
+        return setXmlResponse.functionName();
     }
 
     public String getSetTextResponseFn() {
-        utilityIntrinsics.add(Intrinsics.SET_TEXT_RESPONSE);
-        return Intrinsics.SET_TEXT_RESPONSE.name;
+        ContextTypeNames typeNames = getContextTypeNames();
+        ComptimeFunction setTextResponse = new SetTextResponse(typeNames);
+        utilityCompTimeFunctions.add(setTextResponse);
+        return setTextResponse.functionName();
+    }
+
+    private ContextTypeNames getContextTypeNames() {
+        if (contextTypeNames == null) {
+            contextTypeNames = new ContextTypeNames(
+                    getTypeName("Context"), getTypeName("Response"), getTypeName("JSONResponse"),
+                    getTypeName("XMLResponse"), getTypeName("TextResponse"));
+        }
+        return contextTypeNames;
+    }
+
+    private String getTypeName(String name) {
+        Set<String> used =
+                analysisResult.values().stream().map(AnalysisResult::getTypeNames).flatMap(Set::stream).collect(
+                        Collectors.toSet());
+        return ConversionUtils.getSanitizedUniqueName(name, used);
     }
 
     public String getParseHeadersFn() {

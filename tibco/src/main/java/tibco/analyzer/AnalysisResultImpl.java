@@ -33,7 +33,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 final class AnalysisResultImpl implements AnalysisResult {
@@ -296,6 +298,12 @@ final class AnalysisResultImpl implements AnalysisResult {
             throw new IllegalArgumentException("No XSD type found for name: " + name);
         }
         return type;
+    }
+
+    @Override
+    public Set<String> getTypeNames() {
+        return xsdTypes.values().stream().map(XSD.XSDType::names).flatMap(Collection::stream)
+                .collect(Collectors.toSet());
     }
 
     static <K, V> Map<K, V> combineMap(Map<K, V> map1, Map<K, V> map2) {

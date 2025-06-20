@@ -148,13 +148,6 @@ function toXML(map<anydata> data) returns error|xml {
     return xmldata:toXml(data);
 }
 
-function addToContext(Context context, string varName, xml value) {
-    xml children = value/*;
-    xml transformed = xml `<root>${children}</root>`;
-    context.variables[varName] = transformed;
-    context.result = value;
-}
-
 function initContext(map<xml> initVariables = {}) returns Context {
     return {variables: initVariables, result: xml `<root/>`};
 }
@@ -226,4 +219,11 @@ function parseElement(xml:Element element) returns XMLElementParseResult {
         return {namespace: namespace, name: name};
     }
     return {namespace: (), name: name};
+}
+
+function addToContext(Context context, string varName, xml value) {
+    xml children = value/*;
+    xml transformed = xml `<root>${children}</root>`;
+    context.variables[varName] = transformed;
+    context.result = value;
 }
