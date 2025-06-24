@@ -35,8 +35,8 @@ public class MigrateMuleCommand implements BLauncherCmd {
 
     private final PrintStream errStream;
     private static final String CMD_NAME = "migrate-mule";
-    private static final String USAGE = "bal migrate-mule <source-project-directory-or-file> " +
-            "[-o|--out <output-directory>] [-v|--verbose] [-k|--keep-structure] [-d|--dry-run]";
+    private static final String USAGE = "bal migrate-mule <source-project/s-directory-or-file> " +
+            "[-o|--out <output-directory>] [-v|--verbose] [-k|--keep-structure] [-d|--dry-run] [-m|--multi-root]";
 
     public MigrateMuleCommand() {
         errStream = System.err;
@@ -56,8 +56,14 @@ public class MigrateMuleCommand implements BLauncherCmd {
             description = "Simulate the conversion without generating output files", defaultValue = "false")
     private boolean dryRun;
 
-    @CommandLine.Option(names = { "--keep-structure", "-k" }, description = "Keep mule project structure")
+    @CommandLine.Option(names = { "--keep-structure", "-k" },
+            description = "Keep mule project structure", defaultValue = "false")
     private boolean keepStructure;
+
+    @CommandLine.Option(names = {"--multi-root", "-m"},
+            description = "Treat each child directory as a separate project and convert all of them",
+            defaultValue = "false")
+    private boolean multiRoot;
 
     @Override
     public void execute() {
@@ -65,12 +71,12 @@ public class MigrateMuleCommand implements BLauncherCmd {
             errStream.println("Error: mule project directory or mule xml file path is required.");
             onInvalidInput();
         }
-        MuleMigrationExecutor.migrateMuleSource(sourcePath, outputPath, dryRun, verbose, keepStructure);
+        MuleMigrationExecutor.migrateMuleSource(sourcePath, outputPath, dryRun, verbose, keepStructure, multiRoot);
     }
 
     private void onInvalidInput() {
         errStream.println("Usage: bal migrate-mule <source-project-directory-or-file> " +
-                "[-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run]");
+                "[-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root]");
         System.exit(1);
     }
 
@@ -89,6 +95,8 @@ public class MigrateMuleCommand implements BLauncherCmd {
         stringBuilder.append("  --keep-structure, -k     Keep mule project structure\n");
         stringBuilder.append("  --verbose, -v            Enable verbose output during conversion\n");
         stringBuilder.append("  --dry-run, -d            Simulate the conversion without generating output files\n");
+        stringBuilder.append("  --multi-root, -m         Treat each child directory as a separate project and convert" +
+                " all of them\n");
     }
 
     @Override
@@ -103,6 +111,8 @@ public class MigrateMuleCommand implements BLauncherCmd {
         stringBuilder.append("  bal migrate-mule /path/to/mule-project --keep-structure\n");
         stringBuilder.append("  bal migrate-mule /path/to/mule-project --verbose\n");
         stringBuilder.append("  bal migrate-mule /path/to/mule-project --dry-run --verbose\n");
+        stringBuilder.append("  bal migrate-mule /path/to/mule-projects-directory --multi-root\n");
+        stringBuilder.append("  bal migrate-mule /path/to/mule-projects-directory --multi-root --dry-run\n");
     }
 
     @Override

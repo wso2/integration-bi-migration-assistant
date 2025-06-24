@@ -29,7 +29,7 @@ import java.util.List;
 
 import static mule.MuleMigrationExecutor.logger;
 
-public class HtmlReportWriter {
+public class MigrationReportWriter {
 
     public static final double BEST_CASE_COMP_TIME = 1;
     public static final double AVG_CASE_COMP_TIME = 2;
@@ -39,55 +39,66 @@ public class HtmlReportWriter {
     public static final double AVG_CASE_DW_EXPR_TIME = 0.125; // 1 hour
     public static final double WORST_CASE_DW_EXPR_TIME = 0.25; // 2 hours
 
+    public static final String MIGRATION_REPORT_NAME = "migration_report.html";
     public static final String MIGRATION_SUMMARY_TITLE = "Migration Summary";
     public static final String MIGRATION_ASSESSMENT_TITLE = "Migration Assessment";
 
-    public static int writeHtmlReport(Context.MigrationMetrics migrationMetrics, Path reportFileDir, String reportName,
-                                      boolean dryRun) {
-        Path reportFilePath = reportFileDir.resolve(reportName);
+    public static void genAndWriteMigrationReport(ProjectMigrationSummary projSummary) {
+        String reportTitle = projSummary.dryRun() ? MIGRATION_ASSESSMENT_TITLE : MIGRATION_SUMMARY_TITLE;
         try {
-            String reportContent = generateReport(migrationMetrics, dryRun);
-            Files.writeString(reportFilePath, reportContent);
-            logger().info("Migration assessment report written to " + reportFilePath);
-            return calculateMigrationCoverage(migrationMetrics);
+            String reportContent = generateReport(projSummary, reportTitle);
+            Files.writeString(projSummary.reportFilePath(), reportContent);
+            logger().info("'%s' report written to %s".formatted(reportTitle, projSummary.reportFilePath()));
         } catch (IOException e) {
             logger().severe("Error writing report to file: " + e.getMessage());
-            return 0;
         }
     }
 
-    private static String generateReport(Context.MigrationMetrics metrics, boolean dryRun) {
+    private static String generateReport(ProjectMigrationSummary pms, String reportTitle) {
         logger().info("Generating migration assessment report...");
-        int totalElements = countDistinctUnsupportedElements(metrics.failedXMLTags);
-        int totalDWExpressions = countUnsupportedDWExpressions(metrics.dwConversionStats);
+        String unsupportedElementsTable = generateUnsupportedElementsTable(pms.failedXMLTags());
+        String unsupportedBlocksHtml = generateUnsupportedBlocksHtml(pms.failedBlocks());
+        String dataweaveExpressionsHtml = generateDataweaveExpressionsHtml(pms.dwConversionStats());
 
-        // Calculate implementation times
-        double bestCaseDays = calculateBestCaseEstimate(totalElements, totalDWExpressions);
-        double avgCaseDays = calculateAverageCaseEstimate(totalElements, totalDWExpressions);
-        double worstCaseDays = calculateWorstCaseEstimate(totalElements, totalDWExpressions);
-
-        String unsupportedElementsTable = generateUnsupportedElementsTable(metrics.failedXMLTags);
-        String unsupportedBlocksHtml = generateUnsupportedBlocksHtml(metrics.failedBlocks);
-        String dataweaveExpressionsHtml = generateDataweaveExpressionsHtml(metrics.dwConversionStats);
-
-        String reportTitle = dryRun ? MIGRATION_ASSESSMENT_TITLE : MIGRATION_SUMMARY_TITLE;
         return String.format(
                 MigrationReportTemplate.getHtmlTemplate(),
                 reportTitle,
                 reportTitle,
-                calculateMigrationCoverage(metrics),
-                bestCaseDays, (int) Math.ceil(bestCaseDays / 5.0),
-                avgCaseDays, (int) Math.ceil(avgCaseDays / 5.0),
-                worstCaseDays, (int) Math.ceil(worstCaseDays / 5.0),
+                pms.migrationCoverage(),
+                pms.bestCaseDays(), (int) Math.ceil(pms.bestCaseDays() / 5.0),
+                pms.averageCaseDays(), (int) Math.ceil(pms.averageCaseDays() / 5.0),
+                pms.worstCaseDays(), (int) Math.ceil(pms.worstCaseDays() / 5.0),
                 BEST_CASE_COMP_TIME, BEST_DW_EXPR_TIME,
                 AVG_CASE_COMP_TIME, AVG_CASE_DW_EXPR_TIME,
                 WORST_CASE_COMP_TIME, WORST_CASE_DW_EXPR_TIME,
-                totalElements,
-                totalDWExpressions,
+                pms.failedXMLTags().size(),
+                pms.failedDWExprCount(),
                 unsupportedElementsTable,
                 unsupportedBlocksHtml,
                 dataweaveExpressionsHtml
         );
+    }
+
+    public static ProjectMigrationSummary getProjectMigrationSummary(String sourceProjectName,
+                                                                     String balPackageName,
+                                                                     Path balPackageDir,
+                                                                     boolean dryRun,
+                                                                     Context.MigrationMetrics metrics) {
+        int distinctUnsupportedElementCount = countDistinctUnsupportedElements(metrics.failedXMLTags);
+        int failedDWExprCount = countUnsupportedDWExpressions(metrics.dwConversionStats);
+
+        // Calculate implementation times
+        double bestCaseDays = calculateBestCaseEstimate(distinctUnsupportedElementCount, failedDWExprCount);
+        double avgCaseDays = calculateAverageCaseEstimate(distinctUnsupportedElementCount, failedDWExprCount);
+        double worstCaseDays = calculateWorstCaseEstimate(distinctUnsupportedElementCount, failedDWExprCount);
+
+        int migrationCoverage = calculateMigrationCoverage(metrics);
+        Path reportFilePath = balPackageDir.resolve(MIGRATION_REPORT_NAME);
+
+        return new ProjectMigrationSummary(sourceProjectName, balPackageName, reportFilePath, dryRun,
+                metrics.failedXMLTags, metrics.failedBlocks, metrics.dwConversionStats,
+                migrationCoverage, bestCaseDays, avgCaseDays, worstCaseDays,
+                metrics.failedXMLTags.size(), failedDWExprCount);
     }
 
     private static int calculateMigrationCoverage(Context.MigrationMetrics metrics) {

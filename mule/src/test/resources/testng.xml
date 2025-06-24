@@ -3,14 +3,7 @@
     <test name="LoggerTest">
         <packages>
             <package name="blocks.*"/>
-        </packages>
-        <classes>
-            <class name="TestConverter"/>
-        </classes>
-    </test>
-    <test name="ParserTest">
-        <packages>
-            <package name="dw.parser.*"/>
+            <package name="dw.*"/>
         </packages>
         <classes>
             <class name="TestConverter"/>
