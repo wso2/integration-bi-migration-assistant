@@ -60,23 +60,95 @@ public class MigrationReportWriter {
         String unsupportedBlocksHtml = generateUnsupportedBlocksHtml(pms.failedBlocks());
         String dataweaveExpressionsHtml = generateDataweaveExpressionsHtml(pms.dwConversionStats());
 
+        // XML Elements metrics
+        int totalXmlElements = calculateTotalXmlElements(pms);
+        int migratableXmlElements = calculateMigratableXmlElements(pms);
+        int nonMigratableXmlElements = totalXmlElements - migratableXmlElements;
+
+        // Calculate element coverage and DataWeave coverage
+        int elementCoverage = calculateElementsCoverage(pms);
+        String elementCoverageColor = getCoverageColor(elementCoverage);
+
+        // DataWeave metrics
+        DWConversionStats dwStats = pms.dwConversionStats();
+        int totalDwConstructs = dwStats.getTotalEncounteredCount();
+        int migratableDwConstructs = dwStats.getConvertedCount();
+        int nonMigratableDwConstructs = totalDwConstructs - migratableDwConstructs;
+
+        int dataweaveCoverage = calculateDataweaveCoverage(pms);
+        String dataweaveCoverageColor = getCoverageColor(dataweaveCoverage);
+
+        // Calculate total items, migratable items, and non-migratable items
+        int totalItems = totalXmlElements + totalDwConstructs;
+        int migratableItems = migratableXmlElements + migratableDwConstructs;
+        int nonMigratableItems = nonMigratableXmlElements + nonMigratableDwConstructs;
+
+        // Calculate overall coverage metrics
+        int migrationCoverage = pms.migrationCoverage();
+        String coverageColor = getCoverageColor(migrationCoverage);
+        String coverageStatus = getCoverageStatus(migrationCoverage);
+        String badgeClass = getCoverageBadgeClass(migrationCoverage);
+
         return String.format(
                 MigrationReportTemplate.getHtmlTemplate(),
                 reportTitle,
+                pms.sourceProjectName(),
                 reportTitle,
-                pms.migrationCoverage(),
+                // Elements coverage section parameters
+                elementCoverage,
+                elementCoverage, elementCoverageColor,
+                totalXmlElements, migratableXmlElements, nonMigratableXmlElements,
+                // DataWeave coverage section parameters
+                dataweaveCoverage,
+                dataweaveCoverage, dataweaveCoverageColor,
+                totalDwConstructs, migratableDwConstructs, nonMigratableDwConstructs,
+                // Overall coverage section parameters
+                migrationCoverage,
+                migrationCoverage, coverageColor,
+                badgeClass, coverageStatus,
+                totalItems, migratableItems, nonMigratableItems,
+                // Time estimation section parameters
                 pms.bestCaseDays(), (int) Math.ceil(pms.bestCaseDays() / 5.0),
                 pms.averageCaseDays(), (int) Math.ceil(pms.averageCaseDays() / 5.0),
                 pms.worstCaseDays(), (int) Math.ceil(pms.worstCaseDays() / 5.0),
-                BEST_CASE_COMP_TIME, BEST_DW_EXPR_TIME,
-                AVG_CASE_COMP_TIME, AVG_CASE_DW_EXPR_TIME,
-                WORST_CASE_COMP_TIME, WORST_CASE_DW_EXPR_TIME,
-                pms.failedXMLTags().size(),
-                pms.failedDWExprCount(),
+                BEST_CASE_COMP_TIME, BEST_DW_EXPR_TIME * 8 * 60,
+                AVG_CASE_COMP_TIME, AVG_CASE_DW_EXPR_TIME * 8,
+                WORST_CASE_COMP_TIME, WORST_CASE_DW_EXPR_TIME * 8,
+                // Content sections
                 unsupportedElementsTable,
                 unsupportedBlocksHtml,
                 dataweaveExpressionsHtml
         );
+    }
+
+    private static String getCoverageColor(int coverage) {
+        if (coverage >= 75) {
+            return "#4CAF50"; // Green for high coverage
+        } else if (coverage >= 50) {
+            return "#FFC107"; // Yellow/amber for medium coverage
+        } else {
+            return "#F44336"; // Red for low coverage
+        }
+    }
+
+    private static String getCoverageStatus(int coverage) {
+        if (coverage >= 75) {
+            return "High";
+        } else if (coverage >= 50) {
+            return "Medium";
+        } else {
+            return "Low";
+        }
+    }
+
+    private static String getCoverageBadgeClass(int coverage) {
+        if (coverage >= 75) {
+            return "status-high";
+        } else if (coverage >= 50) {
+            return "status-medium";
+        } else {
+            return "status-low";
+        }
     }
 
     public static ProjectMigrationSummary getProjectMigrationSummary(String sourceProjectName,
@@ -96,7 +168,7 @@ public class MigrationReportWriter {
         Path reportFilePath = balPackageDir.resolve(MIGRATION_REPORT_NAME);
 
         return new ProjectMigrationSummary(sourceProjectName, balPackageName, reportFilePath, dryRun,
-                metrics.failedXMLTags, metrics.failedBlocks, metrics.dwConversionStats,
+                metrics.passedXMLTags, metrics.failedXMLTags, metrics.failedBlocks, metrics.dwConversionStats,
                 migrationCoverage, bestCaseDays, avgCaseDays, worstCaseDays,
                 metrics.failedXMLTags.size(), failedDWExprCount);
     }
@@ -188,5 +260,29 @@ public class MigrationReportWriter {
 
     private static int countUnsupportedDWExpressions(DWConversionStats dwStats) {
         return dwStats.getFailedDWExpressions().size();
+    }
+
+    private static int calculateElementsCoverage(ProjectMigrationSummary pms) {
+        int xmlPassedWeight = calculateTotalWeight(pms.passedXMLTags());
+        int xmlFailedWeight = calculateTotalWeight(pms.failedXMLTags());
+        int totalXmlWeight = xmlPassedWeight + xmlFailedWeight;
+        return totalXmlWeight > 0 ? (xmlPassedWeight * 100) / totalXmlWeight : 0;
+    }
+
+    private static int calculateDataweaveCoverage(ProjectMigrationSummary pms) {
+        DWConversionStats stats = pms.dwConversionStats();
+        int convertedWeight = stats.getConvertedWeight();
+        int totalWeight = stats.getTotalWeight();
+        return totalWeight > 0 ? (convertedWeight * 100) / totalWeight : 0;
+    }
+
+    private static int calculateTotalXmlElements(ProjectMigrationSummary pms) {
+        int passedCount = pms.passedXMLTags().values().stream().mapToInt(i -> i).sum();
+        int failedCount = pms.failedXMLTags().values().stream().mapToInt(i -> i).sum();
+        return passedCount + failedCount;
+    }
+
+    private static int calculateMigratableXmlElements(ProjectMigrationSummary pms) {
+        return pms.passedXMLTags().values().stream().mapToInt(i -> i).sum();
     }
 }

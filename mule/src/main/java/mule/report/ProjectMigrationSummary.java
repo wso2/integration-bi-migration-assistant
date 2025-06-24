@@ -30,6 +30,7 @@ import java.util.List;
  * @param balPackageName            name of the converted bal package
  * @param reportFilePath            path to the migration report
  * @param dryRun                    indicates if the migration was a dry run
+ * @param passedXMLTags             a map of successfully migrated XML tags with their counts
  * @param failedXMLTags             a map of failed XML tags with their counts
  * @param failedBlocks              a list of blocks that failed during migration
  * @param dwConversionStats         statistics of DataWeave conversion
@@ -45,6 +46,7 @@ public record ProjectMigrationSummary(String sourceProjectName,
                                       String balPackageName,
                                       Path reportFilePath,
                                       boolean dryRun,
+                                      LinkedHashMap<String, Integer> passedXMLTags,
                                       LinkedHashMap<String, Integer> failedXMLTags,
                                       List<String> failedBlocks,
                                       DWConversionStats dwConversionStats,
