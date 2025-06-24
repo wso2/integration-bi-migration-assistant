@@ -76,20 +76,57 @@ public class AggregateReportWriter {
                 .mapToDouble(ProjectMigrationSummary::worstCaseDays)
                 .sum();
 
+        // Calculate total items across all projects
+        int totalElements = projectSummaries.stream()
+                .mapToInt(AggregateReportWriter::calculateTotalXmlElements)
+                .sum();
+
+        int totalDWExpressions = projectSummaries.stream()
+                .mapToInt(ps -> ps.dwConversionStats().getTotalEncounteredCount() )
+                .sum();
+
+
+        int totalItems = totalElements + totalDWExpressions;
+
+
+        int migratableElements = projectSummaries.stream()
+                .mapToInt(AggregateReportWriter::calculateMigratableXmlElements)
+                .sum();
+        int migratableDWExpressions = projectSummaries.stream()
+                .mapToInt(ps -> ps.dwConversionStats().getConvertedCount() )
+                .sum();
+
+        int migratableItems = migratableElements + migratableDWExpressions;
+        int nonMigratableItems = totalItems - migratableItems;
+
+
+        // Get appropriate color based on coverage
+        String barColor = avgCoverage >= 75 ? "#4CAF50" :  // Green for high
+                          avgCoverage >= 50 ? "#FFC107" :  // Amber for medium
+                          "#F44336";                       // Red for low
+
         return String.format(
                 AggregateReportTemplate.getHtmlTemplate(),
-                reportTitle,
-                reportTitle,
-                projectSummaries.size(),
-                avgCoverage,
-                totalDistinctFailedElements,
-                totalFailedDWExpressions,
-                generateProjectCards(projectSummaries, convertedProjectsDir),
-                generateFailedElementsRows(projectSummaries),
-                generateProjectRows(projectSummaries),
-                totalBestCaseDays,
-                totalAverageCaseDays,
-                totalWorstCaseDays
+                reportTitle,                                     // %s - title
+                reportTitle,                                     // %s - title again
+                projectSummaries.size(),                         // %d - project count
+                avgCoverage,                                     // %.0f - avg coverage
+                avgCoverage,                                     // %.0f - avg coverage for width
+                barColor,                                        // %s - color for coverage bar
+                totalItems,                                      // %d - total items
+                migratableItems,                                 // %d - migratable items
+                nonMigratableItems,                              // %d - non-migratable items
+                totalBestCaseDays,                               // %.1f - best case days
+                totalBestCaseDays / 5.0,                         // %.1f - best case weeks
+                totalAverageCaseDays,                            // %.1f - average case days
+                totalAverageCaseDays / 5.0,                      // %.1f - average case weeks
+                totalWorstCaseDays,                              // %.1f - worst case days
+                totalWorstCaseDays / 5.0,                        // %.1f - worst case weeks
+                projectSummaries.size(),                         // %d - project count again
+                avgCoverage,                                     // %.0f - avg coverage again
+                generateProjectCards(projectSummaries, convertedProjectsDir),  // %s - project cards
+                // html
+                generateFailedElementsRows(projectSummaries)      // %s - failed elements rows html
         );
     }
 
@@ -104,40 +141,84 @@ public class AggregateReportWriter {
                     projectSummary.migrationCoverage() >= 50 ? "Medium Coverage" : "Low Coverage";
 
             Path relativePath = convertedProjectsDir.relativize(projectSummary.reportFilePath());
-//            String relativePath = projectSummary.reportFilePath().toString();
 
-            html.append("      <div class=\"project-card\">\n");
-            html.append("        <div>\n");
+            // Get the appropriate color for the coverage bar
+            String barColor = projectSummary.migrationCoverage() >= 75 ? "#4CAF50" : // Green for high
+                   projectSummary.migrationCoverage() >= 50 ? "#FFC107" :            // Amber for medium
+                   "#F44336";                                                        // Red for low
+
+            int totalItems = calculateTotalXmlElements(projectSummary) +
+                    projectSummary.dwConversionStats().getTotalEncounteredCount();
+            int migratableItems = calculateMigratableXmlElements(projectSummary) +
+                    projectSummary.dwConversionStats().getConvertedCount();
+            int nonMigratableItems = totalItems - migratableItems;
+
+            html.append("    <div class=\"project-card\">\n");
+            html.append("      <div class=\"project-left\">\n");
+            html.append("        <div class=\"project-header\">\n");
             html.append("          <div class=\"project-name\">\n");
             html.append("            <a href=\"").append(relativePath).append("\" class=\"project-link\">")
                     .append(projectSummary.sourceProjectName()).append("</a>\n");
             html.append("          </div>\n");
-            html.append("          <div class=\"metrics\">\n");
-            html.append("            <div class=\"metric\">\n");
-            html.append("              <span class=\"metric-value\">").append(String.format("%d%%", projectSummary.migrationCoverage())).append("</span>\n");
-            html.append("              <span class=\"metric-label\">Coverage</span>\n");
-            html.append("            </div>\n");
-            html.append("            <div class=\"metric\">\n");
-            html.append("              <span class=\"metric-value\">").append(String.format("%.1fd", projectSummary.bestCaseDays())).append("</span>\n");
-            html.append("              <span class=\"metric-label\">Best Case</span>\n");
-            html.append("            </div>\n");
-            html.append("            <div class=\"metric\">\n");
-            html.append("              <span class=\"metric-value\">").append(projectSummary.failedDWExprCount()).append("</span>\n");
-            html.append("              <span class=\"metric-label\">Failed DataWeave</span>\n");
-            html.append("            </div>\n");
-            html.append("            <div class=\"metric\">\n");
-            html.append("              <span class=\"metric-value\">").append(projectSummary.failedDistinctXMLTagCount()).append("</span>\n");
-            html.append("              <span class=\"metric-label\">Failed XML Elements</span>\n");
-            html.append("            </div>\n");
-            html.append("          </div>\n");
-            html.append("        </div>\n");
-            html.append("        <div style=\"display: flex; flex-direction: column; align-items: center;\">\n");
-            html.append("          <div class=\"coverage-indicator\">\n");
-            html.append("            <div class=\"coverage-bar\" style=\"width: ").append(projectSummary.migrationCoverage()).append("%\"></div>\n");
-            html.append("          </div>\n");
             html.append("          <span class=\"status-badge ").append(statusClass).append("\">").append(statusText).append("</span>\n");
+            html.append("        </div>\n\n");
+
+            html.append("        <div class=\"project-details\">\n");
+            html.append("          <div class=\"project-metrics\">\n");
+            html.append("            <div class=\"metric\">\n");
+            html.append("              <div class=\"metric-left\">\n");
+            html.append("                <span class=\"metric-value\">").append(String.format("%d%%", projectSummary.migrationCoverage())).append("</span>\n");
+            html.append("                <span class=\"metric-label\">Automated Coverage</span>\n");
+            html.append("                <div class=\"coverage-indicator\">\n");
+            html.append("                  <div class=\"coverage-bar\" style=\"width: ").append(projectSummary.migrationCoverage())
+                    .append("%; background-color: ").append(barColor).append(";\"></div>\n");
+            html.append("                </div>\n");
+            html.append("              </div>\n");
+            html.append("              <div class=\"metric-right\">\n");
+            html.append("                <div class=\"coverage-breakdown\">\n");
+            html.append("                  <div>\n");
+            html.append("                    <span class=\"breakdown-label\">Total Items:</span>\n");
+            html.append("                    <span class=\"breakdown-value\">").append(totalItems).append("</span>\n");
+            html.append("                  </div>\n");
+            html.append("                  <div>\n");
+            html.append("                    <span class=\"breakdown-label\">Migratable Items:</span>\n");
+            html.append("                    <span class=\"breakdown-value\">").append(migratableItems).append("</span>\n");
+            html.append("                  </div>\n");
+            html.append("                  <div>\n");
+            html.append("                    <span class=\"breakdown-label\">Non-migratable Items:</span>\n");
+            html.append("                    <span class=\"breakdown-value\">").append(nonMigratableItems).append("</span>\n");
+            html.append("                  </div>\n");
+            html.append("                </div>\n");
+            html.append("              </div>\n");
+            html.append("            </div>\n");
+            html.append("          </div>\n");
             html.append("        </div>\n");
             html.append("      </div>\n\n");
+
+            html.append("      <div class=\"time-estimates\">\n");
+            html.append("        <div class=\"time-estimate best-case\">\n");
+            html.append("          <div class=\"time-label\">Best Case</div>\n");
+            html.append("          <div class=\"time-value time-best\">\n");
+            html.append("            <span class=\"time-days\">").append(String.format("%.1fd", projectSummary.bestCaseDays())).append("</span>\n");
+            html.append("            <span class=\"time-weeks\">(~").append(String.format("%.1fw", projectSummary.bestCaseDays() / 5.0)).append(")</span>\n");
+            html.append("          </div>\n");
+            html.append("        </div>\n");
+            html.append("        <div class=\"time-estimate avg-case\">\n");
+            html.append("          <div class=\"time-label\">Average Case</div>\n");
+            html.append("          <div class=\"time-value time-avg\">\n");
+            html.append("            <span class=\"time-days\">").append(String.format("%.1fd", projectSummary.averageCaseDays())).append("</span>\n");
+            html.append("            <span class=\"time-weeks\">(~").append(String.format("%.1fw", projectSummary.averageCaseDays() / 5.0)).append(")</span>\n");
+            html.append("          </div>\n");
+            html.append("        </div>\n");
+            html.append("        <div class=\"time-estimate worst-case\">\n");
+            html.append("          <div class=\"time-label\">Worst Case</div>\n");
+            html.append("          <div class=\"time-value time-worst\">\n");
+            html.append("            <span class=\"time-days\">").append(String.format("%.1fd", projectSummary.worstCaseDays())).append("</span>\n");
+            html.append("            <span class=\"time-weeks\">(~").append(String.format("%.1fw", projectSummary.worstCaseDays() / 5.0)).append(")</span>\n");
+            html.append("          </div>\n");
+            html.append("        </div>\n");
+            html.append("      </div>\n");
+            html.append("    </div>\n\n");
         }
 
         return html.toString();
@@ -200,5 +281,15 @@ public class AggregateReportWriter {
         }
 
         return html.toString();
+    }
+
+    private static int calculateTotalXmlElements(ProjectMigrationSummary pms) {
+        int passedCount = pms.passedXMLTags().values().stream().mapToInt(i -> i).sum();
+        int failedCount = pms.failedXMLTags().values().stream().mapToInt(i -> i).sum();
+        return passedCount + failedCount;
+    }
+
+    private static int calculateMigratableXmlElements(ProjectMigrationSummary pms) {
+        return pms.passedXMLTags().values().stream().mapToInt(i -> i).sum();
     }
 }
