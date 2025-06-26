@@ -15,6 +15,8 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
+package mule.v3;
+
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.testng.annotations.Test;
 
@@ -37,7 +39,7 @@ public class TestConverter {
     @Test(description = "Test converting standalone mule xml file")
     public void convertAndPrintMuleXMLFile() {
         OUT.println("Generating Ballerina code...");
-        SyntaxTree syntaxTree = convertStandaloneXMLFileToBallerina("src/test/resources/test_converter.xml");
+        SyntaxTree syntaxTree = convertStandaloneXMLFileToBallerina("src/test/resources/mule/v3/test_converter.xml");
         OUT.println("________________________________________________________________");
         OUT.println(syntaxTree.toSourceCode());
         OUT.println("________________________________________________________________");
@@ -45,21 +47,22 @@ public class TestConverter {
 
     @Test(description = "Test converting a Mule project with default BI structure")
     public void testMuleProjectConversionWithBiStructure() {
-        deleteDirectoryIfExists("src/test/resources/projects/demo_project_bi/demo_project_bi_ballerina");
-        testConvertingMuleProject("src/test/resources/projects/demo_project_bi", false, false);
+        deleteDirectoryIfExists("src/test/resources/mule/v3/projects/demo_project_bi/demo_project_bi_ballerina");
+        testConvertingMuleProject("src/test/resources/mule/v3/projects/demo_project_bi", false, false);
     }
 
     @Test(description = "Test converting a Mule project with --keep-structure option enabled")
     public void testMuleProjectConversionWithKeepStructure() {
-        deleteDirectoryIfExists("src/test/resources/projects/demo_project_classic/demo_project_classic_ballerina");
-        testConvertingMuleProject("src/test/resources/projects/demo_project_classic", false, true);
+        deleteDirectoryIfExists(
+                "src/test/resources/mule/v3/projects/demo_project_classic/demo_project_classic_ballerina");
+        testConvertingMuleProject("src/test/resources/mule/v3/projects/demo_project_classic", false, true);
     }
 
     @Test(description = "Test converting multi Mule projects with --multi-root option enabled")
     public void testMultiMuleProjectsConversion() {
-        deleteDirectoryIfExists("src/test/resources/misc/multi_root_output");
-        testConvertingMultiMuleProjects("src/test/resources/projects", "src/test/resources/misc/multi_root_output",
-                false, false);
+        deleteDirectoryIfExists("src/test/resources/mule/v3/misc/multi_root_output");
+        testConvertingMultiMuleProjects("src/test/resources/mule/v3/projects",
+                "src/test/resources/mule/v3/misc/multi_root_output", false, false);
     }
 
     private void deleteDirectoryIfExists(String first) {

@@ -21,7 +21,6 @@ import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.testng.Assert;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -30,10 +29,10 @@ import static mule.v3.MuleToBalConverter.convertStandaloneXMLFileToBallerina;
 
 public class AbstractBlockTest {
 
-    private static final Path RESOURCE_DIRECTORY = Path.of("src", "test", "resources");
-    private static final String BLOCKS_DIRECTORY = "blocks";
-    private static final String MULE_3_DIRECTORY = "mule3";
-    private static final String TEMPLATES_DIRECTORY = "templates";
+    private static final Path MULE_RESOURCE_DIR = Path.of("src", "test", "resources", "mule");
+    private static final String BLOCKS_DIR = "blocks";
+    private static final String MULE_V3_DIR = "v3";
+    private static final String TEMPLATES_DIR = "templates";
 
     /**
      * <b>WARNING</b>: Enabling this flag will update all the assertion files in unit tests.
@@ -42,11 +41,11 @@ public class AbstractBlockTest {
     private static final boolean UPDATE_ASSERTS = false;
 
     public static void testMule3ToBal(String sourcePath, String targetPath) {
-        testMuleToBal(MULE_3_DIRECTORY, sourcePath, targetPath);
+        testMuleToBal(MULE_V3_DIR, sourcePath, targetPath);
     }
 
     private static void testMuleToBal(String muleVersionDir, String sourcePath, String targetPath) {
-        Path testDir = RESOURCE_DIRECTORY.resolve(BLOCKS_DIRECTORY).resolve(muleVersionDir);
+        Path testDir = MULE_RESOURCE_DIR.resolve(muleVersionDir).resolve(BLOCKS_DIR);
         SyntaxTree syntaxTree = convertStandaloneXMLFileToBallerina(testDir.resolve(sourcePath).toString());
         String expectedBalCode = getSourceText(testDir.resolve(targetPath));
         String actualBalCode = syntaxTree.toSourceCode();
@@ -85,8 +84,7 @@ public class AbstractBlockTest {
             String xmlTemplate = getXmlTemplate();
             String modifiedXml = xmlTemplate.replace("DW_PATH", sourceDwlPath);
             Path tempXmlFile = Files.createTempFile("TEMP_XML", ".xml");
-            Files.write(tempXmlFile, modifiedXml.getBytes(StandardCharsets.UTF_8),
-                    StandardOpenOption.TRUNCATE_EXISTING);
+            Files.writeString(tempXmlFile, modifiedXml, StandardOpenOption.TRUNCATE_EXISTING);
             testMule3ToBal(tempXmlFile.toString(), targetBalPath);
             Files.deleteIfExists(tempXmlFile);
         } catch (IOException e) {
@@ -95,8 +93,7 @@ public class AbstractBlockTest {
     }
 
     private static String getXmlTemplate() throws IOException {
-        Path templatePath = RESOURCE_DIRECTORY.resolve(TEMPLATES_DIRECTORY).resolve("dw_set_payload.xml");
-        return new String(Files.readAllBytes(templatePath), StandardCharsets.UTF_8); // Specify UTF-8 explicitly
+        Path templatePath = MULE_RESOURCE_DIR.resolve(MULE_V3_DIR).resolve(TEMPLATES_DIR).resolve("dw_set_payload.xml");
+        return Files.readString(templatePath); // Specify UTF-8 explicitly
     }
-
 }

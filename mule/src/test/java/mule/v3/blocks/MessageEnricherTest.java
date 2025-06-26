@@ -15,27 +15,26 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.blocks.mule3;
+package mule.v3.blocks;
 
-import mule.v3.blocks.AbstractBlockTest;
 import org.testng.annotations.Test;
 
-public class HttpRequestTest extends AbstractBlockTest {
+public class MessageEnricherTest extends AbstractBlockTest {
 
     @Test
-    public void testBasicHttpRequest() {
-        testMule3ToBal("http-request/basic_http_request.xml", "http-request/basic_http_request.bal");
+    public void testEmptyMessageEnricher() {
+        testMule3ToBal("message-enricher/empty_message_enricher.xml", "message-enricher/empty_message_enricher.bal");
     }
 
     @Test
-    public void testHttpRequestWithPathHavingSpecialCharacters() {
-        testMule3ToBal("http-request/http_request_path_with_special_characters.xml",
-                "http-request/http_request_path_with_special_characters.bal");
+    public void testEnricherWithInsideLogger() {
+        testMule3ToBal("message-enricher/enricher_with_inside_logger.xml",
+                "message-enricher/enricher_with_inside_logger.bal");
     }
 
     @Test
-    public void testHttpRequestWithHttpSource() {
-        testMule3ToBal("http-request/http_request_with_http_source.xml",
-                "http-request/http_request_with_http_source.bal");
+    public void testEnricherWithInsideFlowReference() {
+        testMule3ToBal("message-enricher/enricher_with_inside_flow_reference.xml",
+                "message-enricher/enricher_with_inside_flow_reference.bal");
     }
 }

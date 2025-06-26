@@ -15,15 +15,19 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.blocks.mule3;
+package mule.v3.blocks;
 
-import mule.v3.blocks.AbstractBlockTest;
 import org.testng.annotations.Test;
 
-public class ObjectToJsonTest extends AbstractBlockTest {
+public class LoggerTest extends AbstractBlockTest {
 
     @Test
-    public void testBasicObjectToJson() {
-        testMule3ToBal("object-to-json/basic_object_to_json.xml", "object-to-json/basic_object_to_json.bal");
+    public void testBasicLogger() {
+        testMule3ToBal("logger/basic_logger.xml", "logger/basic_logger.bal");
+    }
+
+    @Test
+    public void testLoggerLevels() {
+        testMule3ToBal("logger/logger_levels.xml", "logger/logger_levels.bal");
     }
 }

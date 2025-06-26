@@ -15,27 +15,19 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.blocks.mule3;
+package mule.v3.blocks;
 
-import mule.v3.blocks.AbstractBlockTest;
 import org.testng.annotations.Test;
 
-public class VMConnectorTest extends AbstractBlockTest {
+/**
+ * Tests for miscellaneous Mule 3 parts that do not fit into other categories.
+ *
+ * @since 1.0.2
+ */
+public class MiscTest extends AbstractBlockTest {
 
     @Test
-    public void testSimpleVMConnector() {
-        testMule3ToBal("vm-connector/simple_vm_connector.xml", "vm-connector/simple_vm_connector.bal");
-    }
-
-    @Test
-    public void testVMConnectorWithHttpSource() {
-        testMule3ToBal("vm-connector/vm_connector_wth_http_source.xml",
-                "vm-connector/vm_connector_wth_http_source.bal");
-    }
-
-    @Test
-    public void testVMConnectorInsideAnASyncBlock() {
-        testMule3ToBal("vm-connector/vm_connector_inside_async_block.xml",
-                "vm-connector/vm_connector_inside_async_block.bal");
+    public void testExternalPropertyAccess() {
+        testMule3ToBal("misc/external_property_access_in_message.xml", "misc/external_property_access_in_message.bal");
     }
 }

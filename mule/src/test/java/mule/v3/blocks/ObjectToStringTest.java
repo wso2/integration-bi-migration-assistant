@@ -15,20 +15,14 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.blocks.mule3;
+package mule.v3.blocks;
 
-import mule.v3.blocks.AbstractBlockTest;
 import org.testng.annotations.Test;
 
-/**
- * Tests for miscellaneous Mule 3 parts that do not fit into other categories.
- *
- * @since 1.0.2
- */
-public class MiscTest extends AbstractBlockTest {
+public class ObjectToStringTest extends AbstractBlockTest {
 
     @Test
-    public void testExternalPropertyAccess() {
-        testMule3ToBal("misc/external_property_access_in_message.xml", "misc/external_property_access_in_message.bal");
+    public void testBasicObjectToString() {
+        testMule3ToBal("object-to-string/basic_object_to_string.xml", "object-to-string/basic_object_to_string.bal");
     }
 }

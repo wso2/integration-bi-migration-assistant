@@ -15,27 +15,26 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.blocks.mule3;
+package mule.v3.blocks;
 
-import mule.v3.blocks.AbstractBlockTest;
 import org.testng.annotations.Test;
 
-public class MessageEnricherTest extends AbstractBlockTest {
+public class VMConnectorTest extends AbstractBlockTest {
 
     @Test
-    public void testEmptyMessageEnricher() {
-        testMule3ToBal("message-enricher/empty_message_enricher.xml", "message-enricher/empty_message_enricher.bal");
+    public void testSimpleVMConnector() {
+        testMule3ToBal("vm-connector/simple_vm_connector.xml", "vm-connector/simple_vm_connector.bal");
     }
 
     @Test
-    public void testEnricherWithInsideLogger() {
-        testMule3ToBal("message-enricher/enricher_with_inside_logger.xml",
-                "message-enricher/enricher_with_inside_logger.bal");
+    public void testVMConnectorWithHttpSource() {
+        testMule3ToBal("vm-connector/vm_connector_wth_http_source.xml",
+                "vm-connector/vm_connector_wth_http_source.bal");
     }
 
     @Test
-    public void testEnricherWithInsideFlowReference() {
-        testMule3ToBal("message-enricher/enricher_with_inside_flow_reference.xml",
-                "message-enricher/enricher_with_inside_flow_reference.bal");
+    public void testVMConnectorInsideAnASyncBlock() {
+        testMule3ToBal("vm-connector/vm_connector_inside_async_block.xml",
+                "vm-connector/vm_connector_inside_async_block.bal");
     }
 }

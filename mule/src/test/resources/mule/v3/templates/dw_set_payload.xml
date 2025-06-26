@@ -12,7 +12,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
     <flow name="sampleFlow">
         <dw:transform-message>
             <dw:input-payload mimeType="application/json"/>
-            <dw:set-payload resource="blocks/mule3/DW_PATH"/>
+            <dw:set-payload resource="mule/v3/blocks/DW_PATH"/>
         </dw:transform-message>
     </flow>
 </mule>

@@ -15,22 +15,14 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.blocks.mule3;
+package mule.v3.blocks;
 
-import mule.v3.blocks.AbstractBlockTest;
 import org.testng.annotations.Test;
 
-public class ReferenceExceptionStrategyTest extends AbstractBlockTest {
+public class ObjectToJsonTest extends AbstractBlockTest {
 
     @Test
-    public void testBasicRefernceExceptionStrategy() {
-        testMule3ToBal("reference-exception-strategy/basic_reference_exception_strategy.xml",
-                "reference-exception-strategy/basic_reference_exception_strategy.bal");
-    }
-
-    @Test
-    public void testReferenceExceptionWithHttpListenerSource() {
-        testMule3ToBal("reference-exception-strategy/reference_exception_with_http_listener_source.xml",
-                "reference-exception-strategy/reference_exception_with_http_listener_source.bal");
+    public void testBasicObjectToJson() {
+        testMule3ToBal("object-to-json/basic_object_to_json.xml", "object-to-json/basic_object_to_json.bal");
     }
 }

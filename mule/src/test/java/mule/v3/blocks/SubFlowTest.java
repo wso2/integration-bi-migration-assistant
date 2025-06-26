@@ -15,20 +15,14 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.blocks.mule3;
+package mule.v3.blocks;
 
-import mule.v3.blocks.AbstractBlockTest;
 import org.testng.annotations.Test;
 
-public class VariableTest extends AbstractBlockTest {
+public class SubFlowTest extends AbstractBlockTest {
 
     @Test
-    public void testBasicSetVariable() {
-        testMule3ToBal("variable/basic_set_variable.xml", "variable/basic_set_variable.bal");
-    }
-
-    @Test
-    public void testSimpleRemoveVariable() {
-        testMule3ToBal("variable/simple_remove_variable.xml", "variable/simple_remove_variable.bal");
+    public void testBasicSubFlow() {
+        testMule3ToBal("sub-flow/basic_sub_flow.xml", "sub-flow/basic_sub_flow.bal");
     }
 }

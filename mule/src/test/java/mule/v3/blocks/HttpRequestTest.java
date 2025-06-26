@@ -15,20 +15,26 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.blocks.mule3;
+package mule.v3.blocks;
 
-import mule.v3.blocks.AbstractBlockTest;
 import org.testng.annotations.Test;
 
-public class LoggerTest extends AbstractBlockTest {
+public class HttpRequestTest extends AbstractBlockTest {
 
     @Test
-    public void testBasicLogger() {
-        testMule3ToBal("logger/basic_logger.xml", "logger/basic_logger.bal");
+    public void testBasicHttpRequest() {
+        testMule3ToBal("http-request/basic_http_request.xml", "http-request/basic_http_request.bal");
     }
 
     @Test
-    public void testLoggerLevels() {
-        testMule3ToBal("logger/logger_levels.xml", "logger/logger_levels.bal");
+    public void testHttpRequestWithPathHavingSpecialCharacters() {
+        testMule3ToBal("http-request/http_request_path_with_special_characters.xml",
+                "http-request/http_request_path_with_special_characters.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithHttpSource() {
+        testMule3ToBal("http-request/http_request_with_http_source.xml",
+                "http-request/http_request_with_http_source.bal");
     }
 }

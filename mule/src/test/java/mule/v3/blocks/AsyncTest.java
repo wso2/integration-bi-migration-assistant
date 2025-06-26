@@ -15,16 +15,14 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.blocks.mule3;
+package mule.v3.blocks;
 
-import mule.v3.blocks.AbstractBlockTest;
 import org.testng.annotations.Test;
 
-public class ExpressionComponentTest extends AbstractBlockTest {
+public class AsyncTest extends AbstractBlockTest {
 
     @Test
-    public void testSimpleExpressionComponent() {
-        testMule3ToBal("expression-component/simple_expression_component.xml",
-                "expression-component/simple_expression_component.bal");
+    public void testSimpleAsync() {
+        testMule3ToBal("async/simple_async.xml", "async/simple_async.bal");
     }
 }

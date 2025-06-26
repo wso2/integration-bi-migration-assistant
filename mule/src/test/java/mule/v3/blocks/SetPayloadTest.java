@@ -15,20 +15,19 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.blocks.mule3;
+package mule.v3.blocks;
 
-import mule.v3.blocks.AbstractBlockTest;
 import org.testng.annotations.Test;
 
-public class FlowTest extends AbstractBlockTest {
+public class SetPayloadTest extends AbstractBlockTest {
 
     @Test
-    public void testBasicFlow() {
-        testMule3ToBal("flow/basic_flow.xml", "flow/basic_flow.bal");
+    public void testBasicSetPayload() {
+        testMule3ToBal("set-payload/basic_set_payload.xml", "set-payload/basic_set_payload.bal");
     }
 
     @Test
-    public void testPrivateFlow() {
-        testMule3ToBal("flow/private_flow.xml", "flow/private_flow.bal");
+    public void testMultipleSetPayloads() {
+        testMule3ToBal("set-payload/multiple_set_payloads.xml", "set-payload/multiple_set_payloads.bal");
     }
 }

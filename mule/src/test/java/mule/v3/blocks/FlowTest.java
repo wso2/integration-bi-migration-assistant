@@ -15,22 +15,19 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.blocks.mule3;
+package mule.v3.blocks;
 
-import mule.v3.blocks.AbstractBlockTest;
 import org.testng.annotations.Test;
 
-public class CatchExceptionStrategyTest extends AbstractBlockTest {
+public class FlowTest extends AbstractBlockTest {
 
     @Test
-    public void testBasicCatchExceptionStrategy() {
-        testMule3ToBal("catch-exception-strategy/basic_catch_exception_strategy.xml",
-                "catch-exception-strategy/basic_catch_exception_strategy.bal");
+    public void testBasicFlow() {
+        testMule3ToBal("flow/basic_flow.xml", "flow/basic_flow.bal");
     }
 
     @Test
-    public void testCatchExceptionWithHttpListenerSource() {
-        testMule3ToBal("catch-exception-strategy/catch_exception_with_http_listener_source.xml",
-                "catch-exception-strategy/catch_exception_with_http_listener_source.bal");
+    public void testPrivateFlow() {
+        testMule3ToBal("flow/private_flow.xml", "flow/private_flow.bal");
     }
 }

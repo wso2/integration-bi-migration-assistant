@@ -15,15 +15,25 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.blocks.mule3;
+package mule.v3.blocks;
 
-import mule.v3.blocks.AbstractBlockTest;
 import org.testng.annotations.Test;
 
-public class SubFlowTest extends AbstractBlockTest {
+public class DatabaseConnectorTest extends AbstractBlockTest {
 
     @Test
-    public void testBasicSubFlow() {
-        testMule3ToBal("sub-flow/basic_sub_flow.xml", "sub-flow/basic_sub_flow.bal");
+    public void testBasicDbSelect() {
+        testMule3ToBal("database-connector/basic_db_select.xml", "database-connector/basic_db_select.bal");
+    }
+
+    @Test
+    public void testDbSelectQueryFromTemplate() {
+        testMule3ToBal("database-connector/db_select_query_from_template.xml",
+                "database-connector/db_select_query_from_template.bal");
+    }
+
+    @Test
+    public void testOracleDbSelect() {
+        testMule3ToBal("database-connector/oracle_db_select.xml", "database-connector/oracle_db_select.bal");
     }
 }

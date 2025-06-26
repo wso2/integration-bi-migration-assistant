@@ -15,20 +15,24 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.blocks.mule3;
+package mule.v3.blocks;
 
-import mule.v3.blocks.AbstractBlockTest;
 import org.testng.annotations.Test;
 
-public class UnsupportedBlockTest extends AbstractBlockTest {
+public class ChoiceTest extends AbstractBlockTest {
 
     @Test
-    public void testUnsupportedBlock() {
-        testMule3ToBal("unsupported-block/unsupported_block.xml", "unsupported-block/unsupported_block.bal");
+    public void testBasicChoice() {
+        testMule3ToBal("choice/basic_choice.xml", "choice/basic_choice.bal");
     }
 
     @Test
-    public void testUnsupportedSource() {
-        testMule3ToBal("unsupported-block/unsupported_source.xml", "unsupported-block/unsupported_source.bal");
+    public void testChoiceWithMultipleConditions() {
+        testMule3ToBal("choice/choice_with_multiple_conditions.xml", "choice/choice_with_multiple_conditions.bal");
+    }
+
+    @Test
+    public void testChoiceWithHttpListenerSource() {
+        testMule3ToBal("choice/choice_with_http_listener_source.xml", "choice/choice_with_http_listener_source.bal");
     }
 }

@@ -15,25 +15,21 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.blocks.mule3;
+package mule.v3.blocks;
 
-import mule.v3.blocks.AbstractBlockTest;
 import org.testng.annotations.Test;
 
-public class ChoiceTest extends AbstractBlockTest {
+public class ChoiceExceptionStrategyTest extends AbstractBlockTest {
 
     @Test
-    public void testBasicChoice() {
-        testMule3ToBal("choice/basic_choice.xml", "choice/basic_choice.bal");
+    public void testBasicChoiceExceptionStrategy() {
+        testMule3ToBal("choice-exception-strategy/basic_choice_exception_strategy.xml",
+                "choice-exception-strategy/basic_choice_exception_strategy.bal");
     }
 
     @Test
-    public void testChoiceWithMultipleConditions() {
-        testMule3ToBal("choice/choice_with_multiple_conditions.xml", "choice/choice_with_multiple_conditions.bal");
-    }
-
-    @Test
-    public void testChoiceWithHttpListenerSource() {
-        testMule3ToBal("choice/choice_with_http_listener_source.xml", "choice/choice_with_http_listener_source.bal");
+    public void testChoiceExceptionWithHttpListenerSource() {
+        testMule3ToBal("choice-exception-strategy/choice_exception_with_http_listener_source.xml",
+                "choice-exception-strategy/choice_exception_with_http_listener_source.bal");
     }
 }
