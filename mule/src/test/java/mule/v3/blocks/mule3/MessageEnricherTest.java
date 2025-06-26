@@ -1,0 +1,41 @@
+/*
+ *  Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+ *
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
+package mule.v3.blocks.mule3;
+
+import mule.v3.blocks.AbstractBlockTest;
+import org.testng.annotations.Test;
+
+public class MessageEnricherTest extends AbstractBlockTest {
+
+    @Test
+    public void testEmptyMessageEnricher() {
+        testMule3ToBal("message-enricher/empty_message_enricher.xml", "message-enricher/empty_message_enricher.bal");
+    }
+
+    @Test
+    public void testEnricherWithInsideLogger() {
+        testMule3ToBal("message-enricher/enricher_with_inside_logger.xml",
+                "message-enricher/enricher_with_inside_logger.bal");
+    }
+
+    @Test
+    public void testEnricherWithInsideFlowReference() {
+        testMule3ToBal("message-enricher/enricher_with_inside_flow_reference.xml",
+                "message-enricher/enricher_with_inside_flow_reference.bal");
+    }
+}

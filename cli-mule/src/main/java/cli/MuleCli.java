@@ -17,7 +17,7 @@
  */
 package cli;
 
-import mule.MuleMigrationExecutor;
+import mule.v3.MuleMigrationExecutor;
 
 import java.util.logging.Logger;
 

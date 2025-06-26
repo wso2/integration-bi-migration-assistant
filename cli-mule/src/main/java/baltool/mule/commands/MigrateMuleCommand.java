@@ -18,7 +18,7 @@
 package baltool.mule.commands;
 
 import io.ballerina.cli.BLauncherCmd;
-import mule.MuleMigrationExecutor;
+import mule.v3.MuleMigrationExecutor;
 import picocli.CommandLine;
 
 import java.io.PrintStream;
