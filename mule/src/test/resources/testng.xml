@@ -4,9 +4,12 @@
         <packages>
             <package name="mule.v3.blocks.*"/>
             <package name="mule.v3.dw.*"/>
+            <package name="mule.v4.blocks.*"/>
+<!--            <package name="mule.v4.dw.*"/>-->
         </packages>
         <classes>
             <class name="mule.v3.TestConverter"/>
+            <class name="mule.v4.TestConverter"/>
         </classes>
     </test>
 </suite>

@@ -1,0 +1,17 @@
+{
+  "type" : "Script",
+  "header" : {
+    "type" : "Header",
+    "directives" : [ {
+      "type" : "Version",
+      "version" : "1.0"
+    } ]
+  },
+  "body" : {
+    "type" : "Body",
+    "expression" : {
+      "type" : "Identifier",
+      "name" : "a"
+    }
+  }
+}

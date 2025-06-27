@@ -1,0 +1,34 @@
+{
+  "type" : "Script",
+  "header" : {
+    "type" : "Header",
+    "directives" : [ {
+      "type" : "Version",
+      "version" : "1.0"
+    }, {
+      "type" : "Output",
+      "output" : "application/json"
+    }, {
+      "type" : "Variable",
+      "identifier" : "toUser",
+      "expression" : {
+        "type" : "InlineLambda",
+        "args" : "user",
+        "expression" : {
+          "type" : "Object",
+          "firstName" : {
+            "type" : "Identifier",
+            "name" : "user"
+          }
+        }
+      }
+    } ]
+  },
+  "body" : {
+    "type" : "Body",
+    "expression" : {
+      "type" : "Identifier",
+      "name" : "a"
+    }
+  }
+}
