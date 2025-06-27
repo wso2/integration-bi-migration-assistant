@@ -418,14 +418,29 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static XSD parseXSD(Element element) {
-        return new XSD(parseXSDXElement(element), element);
+        return new XSD(parseXSDElement(element), element);
     }
 
-    private static XSD.Element parseXSDXElement(Element element) {
+    private static XSD.Element parseXSDElement(Element element) {
+        String tagName = getTagNameWithoutNameSpace(element);
+        if (tagName.equals("any")) {
+            return new XSD.Element(XSD.XSDType.BasicXSDType.ANYDATA, Optional.empty(), Optional.empty());
+        }
+
         String name = element.getAttribute("name");
         String typeAttr = element.getAttribute("type");
-        XSD.XSDType type = typeAttr.isBlank() ? parseComplexType(getFirstChildWithTag(element, "complexType"))
-                : XSD.XSDType.BasicXSDType.parse(typeAttr);
+        XSD.XSDType type;
+        if (typeAttr.isBlank()) {
+            type = parseComplexType(getFirstChildWithTag(element, "complexType"));
+        } else {
+            try {
+                type = XSD.XSDType.BasicXSDType.parse(typeAttr);
+            } catch (IllegalArgumentException e) {
+                logger.warning("Unknown or unsupported XSD type: " + typeAttr + ". Using anydata as placeholder.");
+                type = XSD.XSDType.BasicXSDType.ANYDATA;
+            }
+        }
+
         String minOccursAttrib = element.getAttribute("minOccurs");
         Optional<Integer> minOccurs = minOccursAttrib.isBlank() ? Optional.empty()
                 : Optional.of(Integer.parseInt(minOccursAttrib));
@@ -439,12 +454,41 @@ public final class XmlToTibcoModelConverter {
     }
 
     private static XSD.XSDType.ComplexType parseComplexType(Element complexType) {
+        // Check for complexContent with extension (inheritance)
+        Optional<Element> complexContent = tryGetFirstChildWithTag(complexType, "complexContent");
+        if (complexContent.isPresent()) {
+            Element content = complexContent.get();
+            Optional<Element> extension = tryGetFirstChildWithTag(content, "extension");
+            if (extension.isPresent()) {
+                String baseType = extension.get().getAttribute("base");
+                logger.warning("XSD inheritance not supported: " + baseType + ". Using anydata as placeholder.");
+                // Return a placeholder complex type with anydata
+                return new XSD.XSDType.ComplexType(
+                        new XSD.XSDType.ComplexType.ComplexTypeBody.Sequence(
+                                List.of(new XSD.Element("placeholder", XSD.XSDType.BasicXSDType.ANYDATA,
+                                        Optional.empty(), Optional.empty()))));
+            }
+        }
+
+        // Check for choice (not supported, use anydata as placeholder)
+        Optional<Element> choice = tryGetFirstChildWithTag(complexType, "choice");
+        if (choice.isPresent()) {
+            logger.warning("XSD choice not supported. Using anydata as placeholder.");
+            return new XSD.XSDType.ComplexType(
+                    new XSD.XSDType.ComplexType.ComplexTypeBody.Sequence(
+                            List.of(new XSD.Element("placeholder", XSD.XSDType.BasicXSDType.ANYDATA, Optional.empty(),
+                                    Optional.empty()))));
+        }
+
+        // Handle normal complexType with sequence
         return new XSD.XSDType.ComplexType(parseXSDSequence(getFirstChildWithTag(complexType, "sequence")));
     }
 
     private static XSD.XSDType.ComplexType.ComplexTypeBody.Sequence parseXSDSequence(Element sequence) {
         return new XSD.XSDType.ComplexType.ComplexTypeBody.Sequence(
-                ElementIterable.of(sequence).stream().map(XmlToTibcoModelConverter::parseXSDXElement).toList());
+                ElementIterable.of(sequence).stream()
+                        .map(XmlToTibcoModelConverter::parseXSDElement)
+                        .toList());
     }
 
     private static InlineActivity.SOAPSendReceive parseSoapSendReceive(Element element, String name,

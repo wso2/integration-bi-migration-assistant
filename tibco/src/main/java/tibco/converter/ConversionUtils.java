@@ -325,9 +325,12 @@ public final class ConversionUtils {
 
     private static BallerinaModel.TypeDesc complexTypeToTD(XSD.XSDType.ComplexType complexType) {
         List<RecordTypeDesc.RecordField> fields = complexType.body().elements().stream()
-                .map(each ->
-                        new RecordTypeDesc.RecordField(each.name(), toTypeDesc(each.type()),
-                                each.minOccur().map(minOccurs -> minOccurs == 0).orElse(false))).toList();
+                .map(each -> {
+                    String elementName = each.name().orElseThrow(
+                            () -> new IllegalStateException("XSD element must have a name to create record field"));
+                    return new RecordTypeDesc.RecordField(elementName, toTypeDesc(each.type()),
+                            each.minOccur().map(minOccurs -> minOccurs == 0).orElse(false));
+                }).toList();
         return new RecordTypeDesc(fields);
     }
 
@@ -338,6 +341,7 @@ public final class ConversionUtils {
             case DECIMAL -> DECIMAL;
             case FLOAT, DOUBLE -> FLOAT;
             case BOOLEAN -> BOOLEAN;
+            case ANYDATA, ANYTYPE -> ANYDATA;
         };
     }
 
