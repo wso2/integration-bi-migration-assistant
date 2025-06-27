@@ -14,8 +14,8 @@ public type Context record {|
 
 public listener http:Listener config = new (8081);
 
-service /demo on config {
-    resource function get testquery(http:Request request) returns http:Response|error {
+service /mule4 on config {
+    resource function get test_query(http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new}};
         log:printInfo("xxx: logger invoked");
         log:printInfo(string `Path params - version: ${ctx.inboundProperties.request.getQueryParamValue("country").toString()}, id: ${ctx.inboundProperties.request.getQueryParamValue("city").toString()}`);

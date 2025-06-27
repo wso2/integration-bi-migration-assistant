@@ -25,13 +25,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
-import static mule.v3.MuleToBalConverter.convertStandaloneXMLFileToBallerina;
+import static mule.v4.MuleToBalConverter.convertStandaloneXMLFileToBallerina;
 
 public class AbstractBlockTest {
 
     private static final Path MULE_RESOURCE_DIR = Path.of("src", "test", "resources", "mule");
     private static final String BLOCKS_DIR = "blocks";
-    private static final String MULE_V3_DIR = "v4"; // TODO
+    private static final String MULE_V4_DIR = "v4";
     private static final String TEMPLATES_DIR = "templates";
 
     /**
@@ -41,7 +41,7 @@ public class AbstractBlockTest {
     private static final boolean UPDATE_ASSERTS = false;
 
     public static void testMule3ToBal(String sourcePath, String targetPath) {
-        testMuleToBal(MULE_V3_DIR, sourcePath, targetPath);
+        testMuleToBal(MULE_V4_DIR, sourcePath, targetPath);
     }
 
     private static void testMuleToBal(String muleVersionDir, String sourcePath, String targetPath) {
@@ -93,7 +93,7 @@ public class AbstractBlockTest {
     }
 
     private static String getXmlTemplate() throws IOException {
-        Path templatePath = MULE_RESOURCE_DIR.resolve(MULE_V3_DIR).resolve(TEMPLATES_DIR).resolve("dw_set_payload.xml");
+        Path templatePath = MULE_RESOURCE_DIR.resolve(MULE_V4_DIR).resolve(TEMPLATES_DIR).resolve("dw_set_payload.xml");
         return Files.readString(templatePath); // Specify UTF-8 explicitly
     }
 }

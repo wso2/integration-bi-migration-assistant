@@ -60,20 +60,17 @@ public class MELConverter {
                 continue;
             }
 
-            if ((currentChar == '[' || currentChar == '.')) {
+            if (currentChar == '.') {
+                if (isAttributesToken(tokenStr)) {
+                    i = processAttributes(melExpr, i, tokenStr, result, addToStringCalls);
+                    token.setLength(0);
+                    continue;
+                }
                 if (isFlowOrSessionVarToken(tokenStr)) {
                     // We reach here for two kinds of syntax.
                     // 1. flowVars.foo
                     // 2. flowVars['foo']
                     i = processFlowOrSessionVars(melExpr, i, tokenStr, result, addToStringCalls);
-                    token.setLength(0);
-                    continue;
-                }
-                if (isInboundPropertyToken(tokenStr)) {
-                    // We reach here for two kinds of syntax.
-                    // 1. message.inboundProperties.'http.query.params'.foo
-                    // 2. message.inboundProperties['http.query.params'].foo
-                    i = processInboundProperty(melExpr, i, tokenStr, result, addToStringCalls);
                     token.setLength(0);
                     continue;
                 }
@@ -108,8 +105,8 @@ public class MELConverter {
         return result.toString();
     }
 
-    private static boolean isInboundPropertyToken(String token) {
-        return token.equals("message.inboundProperties") || token.equals("inboundProperties");
+    private static boolean isAttributesToken(String token) {
+        return token.equals("attributes");
     }
 
     private static boolean isFlowOrSessionVarToken(String token) {
@@ -252,29 +249,18 @@ public class MELConverter {
         return i;
     }
 
-    private static int processInboundProperty(String melExpr, int startPos, String baseToken, StringBuilder result,
-                                              boolean addToStringCalls) {
-        StringBuilder propertyKeyToken = new StringBuilder();
+    private static int processAttributes(String melExpr, int startPos, String baseToken, StringBuilder result,
+                                         boolean addToStringCalls) {
+        StringBuilder attributeKeyToken = new StringBuilder();
         int i = startPos;
-        i++; // skip the opening bracket or dot
+        i++; // skip the dot
 
-        assert melExpr.charAt(i) == '\'';
-        propertyKeyToken.append('\'');
-        i++;
-
-        while (i < melExpr.length() && melExpr.charAt(i) != '\'') {
-            propertyKeyToken.append(melExpr.charAt(i));
+        while (i < melExpr.length() && isTokenChar(melExpr.charAt(i)) && melExpr.charAt(i) != '.') {
+            attributeKeyToken.append(melExpr.charAt(i));
             i++;
         }
 
-        propertyKeyToken.append('\''); // append the closing quote
-        i++;
-
-        if (i < melExpr.length() && melExpr.charAt(i) == ']') {
-            i++; // Skip the closing bracket
-        }
-
-        // Capture property access if present (e.g., http.query.params.paramName)
+        // Capture param access if present (e.g., attributes.uriParams.paramName)
         StringBuilder paramAccessToken = new StringBuilder();
         if (i < melExpr.length() && melExpr.charAt(i) == '.') {
             i++; // Skip the dot
@@ -286,7 +272,7 @@ public class MELConverter {
         }
 
         String paramName = ConversionUtils.convertToBalIdentifier(paramAccessToken.toString());
-        String tokenResult = convertInboundPropertyAccess(propertyKeyToken.toString(), paramName);
+        String tokenResult = convertAttributeAccess(attributeKeyToken.toString(), paramName);
         result.append(tokenResult);
         if (addToStringCalls) {
             result.append(".toString()");
@@ -296,17 +282,17 @@ public class MELConverter {
         return i;
     }
 
-    private static String convertInboundPropertyAccess(String propertyKey, String paramName) {
+    private static String convertAttributeAccess(String attributeKey, String paramName) {
         StringBuilder resultantStr = new StringBuilder();
-        resultantStr.append("ctx.inboundProperties");
-        switch (propertyKey) {
-            case "'http.uri.params'" -> {
+        resultantStr.append("ctx.inboundProperties"); // TODO: Rename to ctx.attributes
+        switch (attributeKey) {
+            case "uriParams" -> {
                 resultantStr.append(".uriParams");
                 if (!paramName.isEmpty()) {
                     resultantStr.append(".get(\"%s\")".formatted(paramName));
                 }
             }
-            case "'http.query.params'" -> {
+            case "queryParams" -> {
                 resultantStr.append(".request");
                 if (paramName.isEmpty()) {
                     resultantStr.append(".getQueryParams()");
@@ -315,9 +301,9 @@ public class MELConverter {
                 }
             }
 
-            case "'http.method'" -> resultantStr.append(".request.method");
+            case "method" -> resultantStr.append(".request.method");
             default -> {
-                resultantStr.append("[\"%s\"]".formatted(propertyKey.substring(1, propertyKey.length() - 1)));
+                resultantStr.append("[\"%s\"]".formatted(attributeKey));
                 if (!paramName.isEmpty()) {
                     resultantStr.append(".").append(paramName);
                 }

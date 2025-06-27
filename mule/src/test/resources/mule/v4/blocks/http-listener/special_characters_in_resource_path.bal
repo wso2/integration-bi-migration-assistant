@@ -14,7 +14,7 @@ public type Context record {|
 
 public listener http:Listener config = new (8081);
 
-service /mule\-3 on config {
+service /mule4 on config {
     resource function get v\-1/demo/'1\.0/main\-contract/'new(http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new}};
         log:printInfo("xxx: logger invoked");

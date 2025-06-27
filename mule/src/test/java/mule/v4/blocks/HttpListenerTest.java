@@ -67,8 +67,8 @@ public class HttpListenerTest extends AbstractBlockTest {
     @DataProvider(name = "httpMethodsTestData")
     public Object[][] httpMethodsTestData() {
         return new Object[][] {
-                // test GET
-                {"http-listener/allowed_resource_get_method.xml", "http-listener/allowed_resource_get_method.bal"},
+                // test POST
+                {"http-listener/allowed_resource_post_method.xml", "http-listener/allowed_resource_post_method.bal"},
                 // test GET, POST, DELETE
                 {"http-listener/allowed_resource_multiple_methods.xml",
                         "http-listener/allowed_resource_multiple_methods.bal"},
@@ -85,8 +85,7 @@ public class HttpListenerTest extends AbstractBlockTest {
     }
 
     @Test
-    public void testListenerInboundProperties() {
-        testMule3ToBal("http-listener/http_listener_inbound_properties.xml",
-                "http-listener/http_listener_inbound_properties.bal");
+    public void testListenerAttributes() {
+        testMule3ToBal("http-listener/http_listener_attributes.xml", "http-listener/http_listener_attributes.bal");
     }
 }
