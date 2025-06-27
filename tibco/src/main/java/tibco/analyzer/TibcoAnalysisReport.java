@@ -27,7 +27,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityCount,
                                   Collection<UnhandledActivityElement> unhandledActivityElements) {
@@ -52,40 +54,32 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
     }
 
     /**
-     * Creates a map of unhandled activity elements using their unique identifiers as keys.
-     * - For named activities, type is used as the key
-     * - For unnamed activities, each one gets a unique key "unnamed-activity-#"
+     * Creates a map of unhandled activity elements using their kind as keys.
+     * - For named activities, they are grouped by type
+     * - For unnamed activities, each one gets a unique key "unnamed-activity-#" as they are treated as unique
      *
-     * @return A map with unique activity identifiers as keys and string representations of their elements
+     * @return A map with activity kinds as keys and collections of string representations as values
      */
-    private Map<String, String> createUnhandledElementsMap() {
-        Map<String, String> elementsMap = new HashMap<>();
-
-        // Map to store representative elements for each named type
-        Map<String, NamedUnhandledActivityElement> namedTypeRepresentatives = new HashMap<>();
-        int unnamedCounter = 0;
-
-        // First pass: collect representatives for named types
-        for (UnhandledActivityElement element : unhandledActivityElements) {
-            if (element instanceof NamedUnhandledActivityElement named) {
-                namedTypeRepresentatives.putIfAbsent(named.type(), named);
+    private Map<String, Collection<AnalysisReport.UnhandledElement>> createUnhandledElementsMap() {
+        Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = new HashMap<>();
+        for (UnhandledActivityElement unhandledActivityElement : unhandledActivityElements) {
+            String code = ConversionUtils.elementToString(unhandledActivityElement.element());
+            switch (unhandledActivityElement) {
+                case NamedUnhandledActivityElement namedElement -> {
+                    String type = namedElement.type();
+                    String name = namedElement.name();
+                    unhandledElementsMap
+                            .computeIfAbsent(type, k -> new HashSet<>())
+                            .add(new AnalysisReport.UnhandledElement(code, Optional.of(name)));
+                }
+                case UnhandledActivityElement.UnNamedUnhandledActivityElement ignored -> {
+                    String uniqueKey = "unnamed-activity-" + unhandledElementsMap.size();
+                    unhandledElementsMap.put(uniqueKey, List.of(
+                            new AnalysisReport.UnhandledElement(code, Optional.empty())));
+                }
             }
         }
-
-        // Add the representative elements for named types as strings
-        for (Map.Entry<String, NamedUnhandledActivityElement> entry : namedTypeRepresentatives.entrySet()) {
-            elementsMap.put(entry.getKey(), ConversionUtils.elementToString(entry.getValue().element()));
-        }
-
-        // Add unnamed elements with unique keys as strings
-        for (UnhandledActivityElement element : unhandledActivityElements) {
-            if (element instanceof UnhandledActivityElement.UnNamedUnhandledActivityElement) {
-                elementsMap.put("unnamed-activity-" + (++unnamedCounter),
-                        ConversionUtils.elementToString(element.element()));
-            }
-        }
-
-        return elementsMap;
+        return unhandledElementsMap;
     }
 
     public static TibcoAnalysisReport combine(TibcoAnalysisReport report1, TibcoAnalysisReport report2) {
@@ -108,8 +102,8 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
      * @return A string containing the HTML report
      */
     public String toHTML() {
-        // Create a map of unhandled elements as strings
-        Map<String, String> unhandledElementsMap = createUnhandledElementsMap();
+        // Create a map of unhandled elements grouped by their kind
+        Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
 
         // Create and use a generic AnalysisReport
         AnalysisReport report = new AnalysisReport(
