@@ -429,6 +429,7 @@ public final class XmlToTibcoModelConverter {
 
         String name = element.getAttribute("name");
         String refAttr = element.getAttribute("ref");
+        String typeAttr = element.getAttribute("type");
 
         // Handle elements with ref attributes (references to other elements)
         if (!refAttr.isBlank()) {
@@ -438,7 +439,14 @@ public final class XmlToTibcoModelConverter {
                     Optional.empty());
         }
 
-        String typeAttr = element.getAttribute("type");
+        // Handle element tags with type attributes (alias elements)
+        if (tagName.equals("element") && !typeAttr.isBlank()) {
+            String targetTypeName = ConversionUtils.stripNamespace(typeAttr);
+            logger.info("XSD element type alias found: " + typeAttr + " -> " + targetTypeName);
+            return new XSD.Element(name, new XSD.XSDType.ReferenceType(targetTypeName), Optional.empty(),
+                    Optional.empty());
+        }
+
         XSD.XSDType type;
         if (typeAttr.isBlank()) {
             // Try to find a complexType child
