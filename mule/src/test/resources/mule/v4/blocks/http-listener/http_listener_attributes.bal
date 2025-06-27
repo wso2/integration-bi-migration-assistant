@@ -3,12 +3,10 @@ import ballerina/http;
 public type FlowVars record {|
     map<string[]> queryParams?;
     string city?;
-    map<string[]> queryParams2?;
-    string city2?;
     map<string> uriParams?;
     string country?;
-    anydata unsupportedProperty?;
-    anydata unsupportedPropertyAccess?;
+    anydata unsupportedAttribute?;
+    anydata unsupportedAttributeAccess?;
     anydata httpMethod?;
 |};
 
@@ -24,19 +22,17 @@ public type Context record {|
     InboundProperties inboundProperties;
 |};
 
-public listener http:Listener HTTP_Listener_Configuration = new (8081);
+public listener http:Listener config = new (8081);
 
-service / on HTTP_Listener_Configuration {
-    resource function get proptest/[string country]/v1(http:Request request) returns http:Response|error {
+service /mule4 on config {
+    resource function get attribute_test/[string country]/v1(http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new, uriParams: {country}}};
         ctx.flowVars.queryParams = ctx.inboundProperties.request.getQueryParams();
         ctx.flowVars.city = ctx.inboundProperties.request.getQueryParamValue("city");
-        ctx.flowVars.queryParams2 = ctx.inboundProperties.request.getQueryParams();
-        ctx.flowVars.city2 = ctx.inboundProperties.request.getQueryParamValue("city");
         ctx.flowVars.uriParams = ctx.inboundProperties.uriParams;
         ctx.flowVars.country = ctx.inboundProperties.uriParams.get("country");
-        ctx.flowVars.unsupportedProperty = ctx.inboundProperties["unsupported.property"];
-        ctx.flowVars.unsupportedPropertyAccess = ctx.inboundProperties["unsupported.property"].city;
+        ctx.flowVars.unsupportedAttribute = ctx.inboundProperties["unsupportedAttribute"];
+        ctx.flowVars.unsupportedAttributeAccess = ctx.inboundProperties["unsupportedAttribute"].city;
         ctx.flowVars.httpMethod = ctx.inboundProperties.request.method;
 
         ctx.inboundProperties.response.setPayload(ctx.payload);

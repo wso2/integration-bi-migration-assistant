@@ -74,6 +74,7 @@ import static mule.v4.model.MuleModel.UnsupportedBlock;
 import static mule.v4.model.MuleModel.VMInboundEndpoint;
 import static mule.v4.model.MuleModel.VMOutboundEndpoint;
 import static mule.v4.model.MuleModel.WhenInChoice;
+import static mule.v4.model.MuleXMLTag.HTTP_LISTENER_CONNECTION;
 
 public class MuleConfigReader {
 
@@ -559,9 +560,21 @@ public class MuleConfigReader {
         Element element = muleElement.getElement();
         ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP));
         String listenerName = element.getAttribute("name");
-        String host = element.getAttribute("host");
-        String port = element.getAttribute("port");
         String basePath = element.getAttribute("basePath");
+
+        // For Mule 4.x, host and port are within a nested http:listener-connection element
+        String host = "0.0.0.0"; // Default value
+        String port = "8080";    // Default value
+
+        while (muleElement.peekChild() != null) {
+            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals(HTTP_LISTENER_CONNECTION.tag())) {
+                host = childElement.getAttribute("host");
+                port = childElement.getAttribute("port");
+            }
+        }
+
         return new HTTPListenerConfig(listenerName, basePath, port, host);
     }
 

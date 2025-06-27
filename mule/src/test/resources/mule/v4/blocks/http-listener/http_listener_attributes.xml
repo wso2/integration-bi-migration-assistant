@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="config" doc:name="HTTP Listener config" doc:id="85b56e19-f77d-4d11-bfbe-b30beae6e98a" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="demoFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c" >
+        <http:listener doc:name="Listener" doc:id="2d80f8b6-ba81-46e0-91b7-516a8e4fdb67" config-ref="config" path="/attribute_test/{country}/v1" allowedMethods="GET"/>
+        <set-variable value="#[attributes.queryParams]" doc:name="Set Query Params Variable" doc:id="18c52daa-b688-4927-a50a-be5bdff893ef" variableName="queryParams"/>
+        <set-variable value="#[attributes.queryParams.city]" doc:name="Set City Variable" doc:id="0a4e42a3-6eff-47cc-a93e-bb839feb261e" variableName="city"/>
+        <set-variable value="#[attributes.uriParams]" doc:name="Set Uri Params Variable" doc:id="0fbdf860-e2be-4f8d-8cc0-018b20915110" variableName="uriParams"/>
+        <set-variable value="#[attributes.uriParams.country]" doc:name="Set Country Variable" doc:id="e5af65e9-2cba-49b3-b242-39d68cbd0670" variableName="country"/>
+        <set-variable value="#[attributes.unsupportedAttribute]" doc:name="Set Unsupported Attribute Variable" doc:id="2e9f9576-af2c-4441-b22b-36b57f45f2f3" variableName="unsupportedAttribute"/>
+        <set-variable value="#[attributes.unsupportedAttribute.city]" doc:name="Set Unsupported Attribute Access Variable" doc:id="97575d11-1194-4ebf-a2f1-6706de417dbb" variableName="unsupportedAttributeAccess"/>
+        <set-variable value="#[attributes.method]" doc:name="Set Http Method Variable" doc:id="2deb05da-de20-4911-9736-dc388a2edbc6" variableName="httpMethod"/>
+    </flow>
+</mule>

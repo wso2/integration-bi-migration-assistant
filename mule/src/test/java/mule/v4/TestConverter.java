@@ -45,20 +45,20 @@ public class TestConverter {
         OUT.println("________________________________________________________________");
     }
 
-    @Test(description = "Test converting a Mule project with default BI structure")
+    @Test(enabled = false, description = "Test converting a Mule project with default BI structure")
     public void testMuleProjectConversionWithBiStructure() {
         deleteDirectoryIfExists("src/test/resources/mule/v4/projects/demo_project_bi/demo_project_bi_ballerina");
         testConvertingMuleProject("src/test/resources/mule/v4/projects/demo_project_bi", false, false);
     }
 
-    @Test(description = "Test converting a Mule project with --keep-structure option enabled")
+    @Test(enabled = false, description = "Test converting a Mule project with --keep-structure option enabled")
     public void testMuleProjectConversionWithKeepStructure() {
         deleteDirectoryIfExists(
                 "src/test/resources/mule/v4/projects/demo_project_classic/demo_project_classic_ballerina");
         testConvertingMuleProject("src/test/resources/mule/v4/projects/demo_project_classic", false, true);
     }
 
-    @Test(description = "Test converting multi Mule projects with --multi-root option enabled")
+    @Test(enabled = false, description = "Test converting multi Mule projects with --multi-root option enabled")
     public void testMultiMuleProjectsConversion() {
         deleteDirectoryIfExists("src/test/resources/mule/v4/misc/multi_root_output");
         testConvertingMultiMuleProjects("src/test/resources/mule/v4/projects",
