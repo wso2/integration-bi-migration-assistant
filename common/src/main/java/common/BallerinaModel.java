@@ -108,6 +108,27 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
+        record ArrayTypeDesc(TypeDesc elementType, int[] dimensions) implements TypeDesc {
+
+            public ArrayTypeDesc(TypeDesc elementType) {
+                this(elementType, new int[0]);
+            }
+
+            @Override
+            @NotNull
+            public String toString() {
+                if (dimensions.length == 0) {
+                    return elementType + "[]";
+                }
+                StringBuilder sb = new StringBuilder();
+                sb.append(elementType);
+                for (int dimension : dimensions) {
+                    sb.append("[").append(dimension).append("]");
+                }
+                return sb.toString();
+            }
+        }
+
         record FunctionTypeDesc(List<Parameter> parameters, TypeDesc returnType) implements TypeDesc {
 
             public FunctionTypeDesc(List<Parameter> parameters) {
@@ -259,7 +280,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         enum BuiltinType implements TypeDesc {
             ANYDATA("anydata"),
             BOOLEAN("boolean"),
-            DECIMAL("decimal"),
+            BYTE("byte"),
+                    DECIMAL("decimal"),
             FLOAT("float"),
             ERROR("error"),
             INT("int"),
