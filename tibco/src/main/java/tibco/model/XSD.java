@@ -122,5 +122,13 @@ public record XSD(Element type, org.w3c.dom.Element element) {
             }
 
         }
+
+        record ReferenceType(String referenceName) implements XSDType {
+
+            @Override
+            public Collection<String> names() {
+                return List.of(referenceName);
+            }
+        }
     }
 }

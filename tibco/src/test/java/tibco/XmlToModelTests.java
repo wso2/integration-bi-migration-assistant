@@ -26,6 +26,7 @@ import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
 import tibco.model.Resource;
 import tibco.model.Scope;
+import tibco.model.XSD;
 import tibco.util.TestUtils;
 
 import static org.testng.Assert.assertEquals;
@@ -209,5 +210,49 @@ public class XmlToModelTests {
                                 </xsl:stylesheet>
                                 """)));
         assertEquals(actual, expected);
+    }
+
+    @Test
+    public void testParseXSDElementWithRefAttribute() throws Exception {
+        String xmlText = """
+                <element ref="tns:CommonType" minOccurs="0" maxOccurs="1" xmlns:tns="http://example.com/types"/>
+                """;
+        Element element = TestUtils.stringToElement(xmlText);
+        XSD.Element actual = XmlToTibcoModelConverter.parseXSDXElement(element);
+        
+        assertEquals(actual.name(), "CommonType");
+        assertEquals(actual.type().getClass(), XSD.XSDType.ReferenceType.class);
+        XSD.XSDType.ReferenceType refType = (XSD.XSDType.ReferenceType) actual.type();
+        assertEquals(refType.referenceName(), "tns:CommonType");
+        assertEquals(actual.minOccur().get(), Integer.valueOf(0));
+        assertEquals(actual.maxOccur().get(), Integer.valueOf(1));
+    }
+
+    @Test
+    public void testParseXSDElementWithCustomTypeAsReference() throws Exception {
+        String xmlText = """
+                <element name="CustomElement" type="tns:CustomType" xmlns:tns="http://example.com/types"/>
+                """;
+        Element element = TestUtils.stringToElement(xmlText);
+        XSD.Element actual = XmlToTibcoModelConverter.parseXSDXElement(element);
+        
+        assertEquals(actual.name(), "CustomElement");
+        assertEquals(actual.type().getClass(), XSD.XSDType.ReferenceType.class);
+        XSD.XSDType.ReferenceType refType = (XSD.XSDType.ReferenceType) actual.type();
+        assertEquals(refType.referenceName(), "tns:CustomType");
+    }
+
+    @Test
+    public void testParseXSDElementWithBasicType() throws Exception {
+        String xmlText = """
+                <element name="SimpleElement" type="string"/>
+                """;
+        Element element = TestUtils.stringToElement(xmlText);
+        XSD.Element actual = XmlToTibcoModelConverter.parseXSDXElement(element);
+        
+        assertEquals(actual.name(), "SimpleElement");
+        assertEquals(actual.type().getClass(), XSD.XSDType.BasicXSDType.class);
+        XSD.XSDType.BasicXSDType basicType = (XSD.XSDType.BasicXSDType) actual.type();
+        assertEquals(basicType, XSD.XSDType.BasicXSDType.STRING);
     }
 }

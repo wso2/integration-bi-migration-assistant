@@ -367,11 +367,38 @@ public final class XmlToTibcoModelConverter {
         return new XSD(parseXSDXElement(element), element);
     }
 
-    private static XSD.Element parseXSDXElement(Element element) {
+    static XSD.Element parseXSDXElement(Element element) {
         String name = element.getAttribute("name");
         String typeAttr = element.getAttribute("type");
-        XSD.XSDType type = typeAttr.isBlank() ? parseComplexType(getFirstChildWithTag(element, "complexType"))
-                : XSD.XSDType.BasicXSDType.parse(typeAttr);
+        String refAttr = element.getAttribute("ref");
+        
+        XSD.XSDType type;
+        if (!refAttr.isBlank()) {
+            // Handle ref attribute - reference to another element
+            type = new XSD.XSDType.ReferenceType(refAttr);
+            // When ref is used, name comes from the referenced element
+            if (name.isBlank()) {
+                name = refAttr.contains(":") ? refAttr.substring(refAttr.indexOf(":") + 1) : refAttr;
+            }
+        } else if (!typeAttr.isBlank()) {
+            // Handle type attribute - reference to a type
+            try {
+                type = XSD.XSDType.BasicXSDType.parse(typeAttr);
+            } catch (IllegalArgumentException e) {
+                // If not a basic type, treat as reference type
+                type = new XSD.XSDType.ReferenceType(typeAttr);
+            }
+        } else {
+            // Handle inline complex type
+            Element complexTypeElement = tryGetFirstChildWithTag(element, "complexType").orElse(null);
+            if (complexTypeElement != null) {
+                type = parseComplexType(complexTypeElement);
+            } else {
+                // Default case - create a reference type with the element name
+                type = new XSD.XSDType.ReferenceType(name);
+            }
+        }
+        
         String minOccursAttrib = element.getAttribute("minOccurs");
         Optional<Integer> minOccurs = minOccursAttrib.isBlank() ? Optional.empty()
                 : Optional.of(Integer.parseInt(minOccursAttrib));
