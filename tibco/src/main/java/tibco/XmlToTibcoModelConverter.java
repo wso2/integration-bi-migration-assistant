@@ -428,10 +428,25 @@ public final class XmlToTibcoModelConverter {
         }
 
         String name = element.getAttribute("name");
+        String refAttr = element.getAttribute("ref");
+
+        // Handle elements with ref attributes (references to other elements)
+        if (!refAttr.isBlank()) {
+            logger.warning("XSD element references not supported: " + refAttr + ". Using anydata as placeholder.");
+            return new XSD.Element(name, XSD.XSDType.BasicXSDType.ANYDATA, Optional.empty(), Optional.empty());
+        }
+
         String typeAttr = element.getAttribute("type");
         XSD.XSDType type;
         if (typeAttr.isBlank()) {
-            type = parseComplexType(getFirstChildWithTag(element, "complexType"));
+            // Try to find a complexType child
+            Optional<Element> complexTypeChild = tryGetFirstChildWithTag(element, "complexType");
+            if (complexTypeChild.isPresent()) {
+                type = parseComplexType(complexTypeChild.get());
+            } else {
+                logger.warning("No type attribute or complexType child found. Using anydata as placeholder.");
+                type = XSD.XSDType.BasicXSDType.ANYDATA;
+            }
         } else {
             try {
                 type = XSD.XSDType.BasicXSDType.parse(typeAttr);
@@ -470,23 +485,36 @@ public final class XmlToTibcoModelConverter {
             }
         }
 
-        // Check for choice (not supported, use anydata as placeholder)
+        // Check for choice
         Optional<Element> choice = tryGetFirstChildWithTag(complexType, "choice");
         if (choice.isPresent()) {
-            logger.warning("XSD choice not supported. Using anydata as placeholder.");
-            return new XSD.XSDType.ComplexType(
-                    new XSD.XSDType.ComplexType.ComplexTypeBody.Sequence(
-                            List.of(new XSD.Element("placeholder", XSD.XSDType.BasicXSDType.ANYDATA, Optional.empty(),
-                                    Optional.empty()))));
+            return new XSD.XSDType.ComplexType(parseXSDChoice(choice.get()));
         }
 
-        // Handle normal complexType with sequence
-        return new XSD.XSDType.ComplexType(parseXSDSequence(getFirstChildWithTag(complexType, "sequence")));
+        // Check for sequence
+        Optional<Element> sequence = tryGetFirstChildWithTag(complexType, "sequence");
+        if (sequence.isPresent()) {
+            return new XSD.XSDType.ComplexType(parseXSDSequence(sequence.get()));
+        }
+
+        // If neither choice nor sequence is found, create a placeholder
+        logger.warning("No sequence or choice found in complexType. Using anydata as placeholder.");
+        return new XSD.XSDType.ComplexType(
+                new XSD.XSDType.ComplexType.ComplexTypeBody.Sequence(
+                        List.of(new XSD.Element("placeholder", XSD.XSDType.BasicXSDType.ANYDATA,
+                                Optional.empty(), Optional.empty()))));
     }
 
     private static XSD.XSDType.ComplexType.ComplexTypeBody.Sequence parseXSDSequence(Element sequence) {
         return new XSD.XSDType.ComplexType.ComplexTypeBody.Sequence(
                 ElementIterable.of(sequence).stream()
+                        .map(XmlToTibcoModelConverter::parseXSDElement)
+                        .toList());
+    }
+
+    private static XSD.XSDType.ComplexType.ComplexTypeBody.Choice parseXSDChoice(Element choice) {
+        return new XSD.XSDType.ComplexType.ComplexTypeBody.Choice(
+                ElementIterable.of(choice).stream()
                         .map(XmlToTibcoModelConverter::parseXSDElement)
                         .toList());
     }
@@ -1570,8 +1598,32 @@ public final class XmlToTibcoModelConverter {
                 if (tag.equals("complexType")) {
                     complexTypes.put(name, new Type.Schema.SchemaXsdType(name, parseComplexType(child)));
                 } else if (tag.equals("element")) {
-                    String type = ConversionUtils.stripNamespace(child.getAttribute("type"));
-                    aliases.put(name, type);
+                    // Check if this is a simple alias (has type attribute) or complex definition
+                    // (has complexType child)
+                    String type = child.getAttribute("type");
+                    if (!type.isBlank()) {
+                        // This is a simple alias - element references another type
+                        String strippedType = ConversionUtils.stripNamespace(type);
+                        aliases.put(name, strippedType);
+                    } else {
+                        // This is a complex element definition - check for complexType child
+                        Optional<Element> complexTypeChild = tryGetFirstChildWithTag(child, "complexType");
+                        if (complexTypeChild.isPresent()) {
+                            // Create a complex type for this element
+                            complexTypes.put(name,
+                                    new Type.Schema.SchemaXsdType(name, parseComplexType(complexTypeChild.get())));
+                        } else {
+                            // No type attribute and no complexType child - this might be an error or
+                            // unsupported case
+                            logger.warning("Element '" + name
+                                    + "' has no type attribute and no complexType child. Using anydata as placeholder.");
+                            complexTypes.put(name, new Type.Schema.SchemaXsdType(name,
+                                    new XSD.XSDType.ComplexType(
+                                            new XSD.XSDType.ComplexType.ComplexTypeBody.Sequence(
+                                                    List.of(new XSD.Element("placeholder", XSD.XSDType.BasicXSDType.ANYDATA,
+                                                            Optional.empty(), Optional.empty()))))));
+                        }
+                    }
                 }
             }
             for (var each : aliases.entrySet()) {

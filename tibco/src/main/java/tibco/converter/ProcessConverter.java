@@ -673,6 +673,10 @@ public class ProcessConverter {
         AnalysisResult analysisResult = cx.getAnalysisResult();
         record TransitionFunctionData(VariableReference inputVar, String functionName) {
 
+            TransitionFunctionData {
+                assert inputVar != null : "Input variable cannot be null";
+                assert functionName != null && !functionName.isBlank() : "Function name cannot be null or blank";
+            }
         }
         List<FunctionCall> predicates = analysisResult.transitionConditions(activity)
                 .map(data -> new TransitionFunctionData(activityResults.get(data.activity()),
