@@ -1,0 +1,17 @@
+{
+  "type" : "Script",
+  "header" : {
+    "type" : "Header",
+    "directives" : [ {
+      "type" : "Output",
+      "output" : "application/xml"
+    } ]
+  },
+  "body" : {
+    "type" : "Body",
+    "expression" : {
+      "type" : "Identifier",
+      "name" : "a"
+    }
+  }
+}

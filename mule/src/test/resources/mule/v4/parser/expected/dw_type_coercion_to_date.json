@@ -1,0 +1,40 @@
+{
+  "type" : "Script",
+  "header" : {
+    "type" : "Header",
+    "directives" : [ {
+      "type" : "Version",
+      "version" : "1.0"
+    }, {
+      "type" : "Output",
+      "output" : "application/json"
+    } ]
+  },
+  "body" : {
+    "type" : "Body",
+    "expression" : {
+      "type" : "Object",
+      "a" : {
+        "type" : "datetime",
+        "expression" : {
+          "type" : "Literal",
+          "value" : "1436287232"
+        },
+        "operator" : "as"
+      },
+      "b" : {
+        "type" : "localdatetime",
+        "expression" : {
+          "type" : "Literal",
+          "value" : "\"2015-10-07 16:40:32.000\""
+        },
+        "operator" : "as",
+        "format" : {
+          "type" : "FormatOption",
+          "key" : "format",
+          "value" : "\"yyyy-MM-dd HH:mm:ss.SSS\""
+        }
+      }
+    }
+  }
+}

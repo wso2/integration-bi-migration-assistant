@@ -1,0 +1,21 @@
+{
+  "type" : "Script",
+  "header" : {
+    "type" : "Header",
+    "directives" : [ {
+      "type" : "Version",
+      "version" : "1.0"
+    }, {
+      "type" : "Input",
+      "identifier" : "payload",
+      "input" : "application/json"
+    } ]
+  },
+  "body" : {
+    "type" : "Body",
+    "expression" : {
+      "type" : "Identifier",
+      "name" : "payload"
+    }
+  }
+}

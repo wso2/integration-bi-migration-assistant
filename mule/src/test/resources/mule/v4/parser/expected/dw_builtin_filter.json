@@ -1,0 +1,57 @@
+{
+  "type" : "Script",
+  "header" : {
+    "type" : "Header",
+    "directives" : [ {
+      "type" : "Version",
+      "version" : "1.0"
+    }, {
+      "type" : "Output",
+      "output" : "application/json"
+    }, {
+      "type" : "Input",
+      "identifier" : "payload",
+      "input" : "application/json"
+    } ]
+  },
+  "body" : {
+    "type" : "Body",
+    "expression" : {
+      "type" : "DefaultExpression",
+      "expression" : {
+        "type" : "Array",
+        "elements" : [ {
+          "type" : "Literal",
+          "value" : "1"
+        }, {
+          "type" : "Literal",
+          "value" : "2"
+        }, {
+          "type" : "Literal",
+          "value" : "3"
+        }, {
+          "type" : "Literal",
+          "value" : "4"
+        }, {
+          "type" : "Literal",
+          "value" : "5"
+        } ]
+      },
+      "default" : {
+        "type" : "Filter",
+        "lambda" : {
+          "type" : "RelationalExpression",
+          "left" : {
+            "type" : "Identifier",
+            "name" : "$"
+          },
+          "operator" : ">",
+          "right1" : {
+            "type" : "Literal",
+            "value" : "2"
+          }
+        }
+      }
+    }
+  }
+}

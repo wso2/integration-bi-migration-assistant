@@ -1,0 +1,53 @@
+{
+  "type" : "Script",
+  "header" : {
+    "type" : "Header",
+    "directives" : [ {
+      "type" : "Version",
+      "version" : "1.0"
+    }, {
+      "type" : "Output",
+      "output" : "application/json"
+    } ]
+  },
+  "body" : {
+    "type" : "Body",
+    "expression" : {
+      "type" : "Object",
+      "a" : {
+        "type" : "string",
+        "expression" : {
+          "type" : "Literal",
+          "value" : "1"
+        },
+        "operator" : "as",
+        "format" : {
+          "type" : "FormatOption",
+          "key" : "format",
+          "value" : "\"##,#\""
+        }
+      },
+      "b" : {
+        "type" : "string",
+        "expression" : {
+          "type" : "Identifier",
+          "name" : "now"
+        },
+        "operator" : "as",
+        "format" : {
+          "type" : "FormatOption",
+          "key" : "format",
+          "value" : "\"yyyy-MM-dd\""
+        }
+      },
+      "c" : {
+        "type" : "string",
+        "expression" : {
+          "type" : "Literal",
+          "value" : "true"
+        },
+        "operator" : "as"
+      }
+    }
+  }
+}

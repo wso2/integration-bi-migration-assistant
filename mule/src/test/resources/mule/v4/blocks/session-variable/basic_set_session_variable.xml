@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:json="http://www.mulesoft.org/schema/mule/json"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <flow name="myFlow">
+        <logger message="xxx: flow starting logger invoked" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="day" value="21" doc:name="Session Variable"/>
+        <set-session-variable variableName="month" value="July" doc:name="Session Variable"/>
+        <set-session-variable variableName="from" value="2025" doc:name="Session Variable"/>
+        <logger message="Session variables are: day - #[sessionVars.day], month - #[sessionVars.month], from - #[sessionVars['from']]" level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>
