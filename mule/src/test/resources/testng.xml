@@ -2,11 +2,11 @@
 <suite name="Suite" time-out="120000">
     <test name="LoggerTest">
         <packages>
-            <package name="blocks.*"/>
-            <package name="dw.*"/>
+            <package name="mule.v3.blocks.*"/>
+            <package name="mule.v3.dw.*"/>
         </packages>
         <classes>
-            <class name="TestConverter"/>
+            <class name="mule.v3.TestConverter"/>
         </classes>
     </test>
 </suite>
