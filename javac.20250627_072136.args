@@ -1,0 +1,4 @@
+-Xlint:unchecked
+-cp
+/dev/null
+tibco/src/main/java/tibco/model/XSD.java

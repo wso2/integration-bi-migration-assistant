@@ -255,4 +255,15 @@ public class XmlToModelTests {
         XSD.XSDType.BasicXSDType basicType = (XSD.XSDType.BasicXSDType) actual.type();
         assertEquals(basicType, XSD.XSDType.BasicXSDType.STRING);
     }
+
+    @Test
+    public void testReferenceTypeIntegrationWithConversionUtils() throws Exception {
+        // Test that ReferenceType converts correctly to BallerinaModel.TypeDesc
+        XSD.XSDType.ReferenceType refType = new XSD.XSDType.ReferenceType("tns:CustomType");
+        common.BallerinaModel.TypeDesc result = tibco.converter.ConversionUtils.toTypeDesc(refType);
+        
+        assertEquals(result.getClass(), common.BallerinaModel.TypeDesc.TypeReference.class);
+        common.BallerinaModel.TypeDesc.TypeReference typeRef = (common.BallerinaModel.TypeDesc.TypeReference) result;
+        assertEquals(typeRef.name(), "CustomType");
+    }
 }

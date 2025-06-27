@@ -318,6 +318,7 @@ public final class ConversionUtils {
         return switch (type) {
             case XSD.XSDType.BasicXSDType basicXSDType -> basicTypeToTD(basicXSDType);
             case XSD.XSDType.ComplexType complexType -> complexTypeToTD(complexType);
+            case XSD.XSDType.ReferenceType referenceType -> referenceTypeToTD(referenceType);
         };
     }
 
@@ -337,6 +338,16 @@ public final class ConversionUtils {
             case FLOAT, DOUBLE -> FLOAT;
             case BOOLEAN -> BOOLEAN;
         };
+    }
+
+    private static BallerinaModel.TypeDesc referenceTypeToTD(XSD.XSDType.ReferenceType referenceType) {
+        // For reference types, we create a TypeReference that will be resolved later
+        // Strip namespace prefix if present to get the local name
+        String typeName = referenceType.referenceName();
+        if (typeName.contains(":")) {
+            typeName = typeName.substring(typeName.indexOf(":") + 1);
+        }
+        return new BallerinaModel.TypeDesc.TypeReference(typeName);
     }
 
     public static String extractFileName(String filePath) {
