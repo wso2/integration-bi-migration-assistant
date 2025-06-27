@@ -14,8 +14,8 @@ public type Context record {|
 
 public listener http:Listener config = new (8081);
 
-service /mule3 on config {
-    resource function get .(http:Request request) returns http:Response|error {
+service /mule4 on config {
+    resource function get flow(http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new}};
         log:printInfo("xxx: logger invoked via http end point");
         demoPrivateFlow(ctx);

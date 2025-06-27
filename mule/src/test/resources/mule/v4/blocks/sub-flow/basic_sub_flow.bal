@@ -14,11 +14,11 @@ public type Context record {|
 
 public listener http:Listener config = new (8081);
 
-service /mule3 on config {
-    resource function get .(http:Request request) returns http:Response|error {
+service /mule4 on config {
+    resource function get sub_flow(http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new}};
         log:printInfo("xxx: logger invoked via http end point");
-        demoSub_Flow(ctx);
+        demoSubFlow(ctx);
         log:printInfo("xxx: logger after flow reference invoked");
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -26,7 +26,7 @@ service /mule3 on config {
     }
 }
 
-public function demoSub_Flow(Context ctx) {
+public function demoSubFlow(Context ctx) {
     log:printInfo("xxx: sub flow logger invoked");
 
     // set payload

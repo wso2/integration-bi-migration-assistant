@@ -13,7 +13,6 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <set-variable variableName="name" value="John" doc:name="Variable"/>
         <set-variable variableName="age" value="29" doc:name="Variable"/>
         <set-variable variableName="from" value="USA" doc:name="Variable"/>
-        <logger
-                message="Variables defined are: name - #[flowVars.name], age - #[flowVars['age']], from - #[flowVars['from']]" level="INFO" doc:name="Logger"/>
+        <logger message="Variables defined are: name - #[flowVars.name], age - #[flowVars['age']], from - #[flowVars['from']]" level="INFO" doc:name="Logger"/>
     </flow>
 </mule>
