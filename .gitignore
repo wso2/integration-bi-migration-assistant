@@ -46,3 +46,4 @@ bin/
 .project
 tibco/src/test/resources/tibco.projects.converted/*/types.bal
 tibco/src/test/resources/tibco.projects.converted/*/report.html
+javac.*.args
