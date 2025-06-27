@@ -83,6 +83,7 @@ public record XSD(Element type, org.w3c.dom.Element element) {
             FLOAT("float"),
             DOUBLE("double"),
             BOOLEAN("boolean"),
+            BASE64BINARY("base64Binary"),
             ANYDATA("anydata"),
             ANYTYPE("anyType");
 
@@ -131,6 +132,10 @@ public record XSD(Element type, org.w3c.dom.Element element) {
                 List<Element> elements();
 
                 record Sequence(List<Element> elements) implements ComplexType.ComplexTypeBody {
+
+                }
+
+                record Choice(List<Element> elements) implements ComplexType.ComplexTypeBody {
 
                 }
             }
