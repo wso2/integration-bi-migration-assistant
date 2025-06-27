@@ -39,6 +39,9 @@
 - `com.tibco.plugin.json.activities.JSONParserActivity`
 - `com.tibco.plugin.json.activities.JSONRenderActivity`
 - `com.tibco.plugin.soap.SOAPSendReplyActivity`
+- `com.tibco.plugin.jms.JMSQueueEventSource`
+- `com.tibco.plugin.jms.JMSQueueSendActivity`
+- `com.tibco.plugin.jms.JMSQueueGetMessageActivity`
 - `com.tibco.pe.core.WriteToLogActivity`
 
 ## Sample conversion projects
