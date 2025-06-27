@@ -313,18 +313,36 @@ public final class ConversionUtils {
                         new BallerinaModel.Parameter("cx", cx.contextType())));
     }
 
-    public static BallerinaModel.TypeDesc toTypeDesc(XSD xsd) {
-        return toTypeDesc(xsd.type().type());
+    public static BallerinaModel.TypeDesc toTypeDesc(ProcessContext cx, XSD xsd) {
+        return toTypeDesc(cx, xsd.type().type());
     }
 
-    public static BallerinaModel.TypeDesc toTypeDesc(XSD.XSDType type) {
+    public static BallerinaModel.TypeDesc toTypeDesc(ProcessContext cx, XSD.XSDType type) {
         return switch (type) {
             case XSD.XSDType.BasicXSDType basicXSDType -> basicTypeToTD(basicXSDType);
-            case XSD.XSDType.ComplexType complexType -> complexTypeToTD(complexType);
+            case XSD.XSDType.ComplexType complexType -> complexTypeToTD(complexType, cx);
+            case XSD.XSDType.ReferenceType referenceType -> {
+                XSD.XSDType actualType = cx.getAnalysisResult().getType(referenceType.targetTypeName());
+                // Recursively register all referenced types in the XSD type
+                registerReferencedTypes(cx, actualType);
+                yield new BallerinaModel.TypeDesc.TypeReference(referenceType.targetTypeName());
+            }
         };
     }
 
-    private static BallerinaModel.TypeDesc complexTypeToTD(XSD.XSDType.ComplexType complexType) {
+    private static void registerReferencedTypes(ProcessContext cx, XSD.XSDType type) {
+        switch (type) {
+            case XSD.XSDType.BasicXSDType ignored -> {
+            }
+            case XSD.XSDType.ComplexType complexType -> complexType.body().elements().stream().map(XSD.Element::type)
+                    .forEach(each -> registerReferencedTypes(cx, each));
+            case XSD.XSDType.ReferenceType referenceType ->
+                    cx.projectContext.getOrCreateUtilityTypeDef(referenceType.targetTypeName(),
+                            toTypeDesc(cx, referenceType));
+        }
+    }
+
+    private static BallerinaModel.TypeDesc complexTypeToTD(XSD.XSDType.ComplexType complexType, ProcessContext cx) {
         return switch (complexType.body()) {
             case XSD.XSDType.ComplexType.ComplexTypeBody.Sequence sequence ->
                 new RecordTypeDesc(sequence.elements().stream()
@@ -332,7 +350,7 @@ public final class ConversionUtils {
                             String elementName = each.name().orElseThrow(
                                     () -> new IllegalStateException(
                                             "XSD element must have a name to create record field"));
-                            return new RecordTypeDesc.RecordField(elementName, toTypeDesc(each.type()),
+                            return new RecordTypeDesc.RecordField(elementName, toTypeDesc(cx, each.type()),
                                     each.minOccur().map(minOccurs -> minOccurs == 0).orElse(false));
                         }).toList());
             case XSD.XSDType.ComplexType.ComplexTypeBody.Choice choice ->
@@ -343,7 +361,7 @@ public final class ConversionUtils {
                                             "XSD element must have a name to create union type"));
                             return new RecordTypeDesc(List.of(
                                     new RecordTypeDesc.RecordField(elementName,
-                                            toTypeDesc(each.type()),
+                                            toTypeDesc(cx, each.type()),
                                             each.minOccur().map(minOccurs -> minOccurs == 0)
                                                     .orElse(false))));
                         }).toArray(BallerinaModel.TypeDesc[]::new));

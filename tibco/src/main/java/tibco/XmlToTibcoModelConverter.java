@@ -432,8 +432,10 @@ public final class XmlToTibcoModelConverter {
 
         // Handle elements with ref attributes (references to other elements)
         if (!refAttr.isBlank()) {
-            logger.warning("XSD element references not supported: " + refAttr + ". Using anydata as placeholder.");
-            return new XSD.Element(name, XSD.XSDType.BasicXSDType.ANYDATA, Optional.empty(), Optional.empty());
+            String targetTypeName = ConversionUtils.stripNamespace(refAttr);
+            logger.info("XSD element reference found: " + refAttr + " -> " + targetTypeName);
+            return new XSD.Element(name, new XSD.XSDType.ReferenceType(targetTypeName), Optional.empty(),
+                    Optional.empty());
         }
 
         String typeAttr = element.getAttribute("type");
@@ -1787,7 +1789,7 @@ public final class XmlToTibcoModelConverter {
                         NameSpaceValue.from(portTypeName)));
     }
 
-    private static String getTagNameWithoutNameSpace(Element element) {
+    public static String getTagNameWithoutNameSpace(Element element) {
         String tagName = element.getTagName();
         return getTagNameWithoutNameSpace(tagName);
     }
