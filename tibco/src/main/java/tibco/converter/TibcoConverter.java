@@ -78,7 +78,7 @@ public class TibcoConverter {
         try {
             result = TibcoToBalConverter.convertProject(cx, projectPath);
         } catch (Exception e) {
-            logger().severe("Unrecoverable error while converting project");
+            logger().log(Level.SEVERE, "Unrecoverable error while converting project", e);
             System.exit(1);
             return;
         }
@@ -172,7 +172,7 @@ public class TibcoConverter {
                 name = "%s"
                 version = "%s"
                 distribution = "%s"
-                
+
                 [build-options]
                 observabilityIncluded = true""".formatted(org, name, version, distribution));
         for (var each : cx.javaDependencies()) {
