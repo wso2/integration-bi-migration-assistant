@@ -78,14 +78,14 @@ public class TibcoConverter {
         try {
             result = TibcoToBalConverter.convertProject(cx, projectPath);
         } catch (Exception e) {
-            logger().severe("Unrecoverable error while converting project: " + e.getMessage());
+            logger().log(Level.SEVERE, "Unrecoverable error while converting project", e);
             System.exit(1);
             return;
         }
         try {
             writeAnalysisReport(targetDir, result.report());
         } catch (IOException e) {
-            logger().log(Level.SEVERE, "Error creating analysis report: " + e.getMessage());
+            logger().log(Level.SEVERE, "Error creating analysis report", e);
         }
         if (cx.dryRun()) {
             return;

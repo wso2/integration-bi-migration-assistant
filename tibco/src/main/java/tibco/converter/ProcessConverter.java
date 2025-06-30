@@ -90,7 +90,7 @@ public class ProcessConverter {
 
     private static BallerinaModel.Service createFallbackServices(ProcessContext cx,
                                                                  ExplicitTransitionGroup.InlineActivity startActivity) {
-        TibcoToBalConverter.logger()
+        TibcoConverter.logger()
                 .warning("Unsupported start activity %s generating fallback service".formatted(startActivity.name()));
         List<Statement> body = List.of(
                 new Statement.Comment("FIXME: service for start activity: %s".formatted(startActivity.name())),
