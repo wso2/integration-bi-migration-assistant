@@ -36,6 +36,8 @@ import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import org.jetbrains.annotations.NotNull;
+
+import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.Process;
 import tibco.model.Process5;
@@ -82,9 +84,26 @@ public class ProcessConverter {
             case HttpEventSource httpEventSource -> createHTTPServiceForStartActivity(cx, group, httpEventSource);
             case ExplicitTransitionGroup.InlineActivity.JMSQueueEventSource jmsQueueEventSource ->
                     createJMSListenerServiceForStartActivity(cx, group, jmsQueueEventSource);
-            default -> throw new IllegalArgumentException(
-                    "Unsupported start activity type: " + startActivity.type());
+            default -> createFallbackServices(cx, startActivity);
         };
+    }
+
+    private static BallerinaModel.Service createFallbackServices(ProcessContext cx,
+                                                                 ExplicitTransitionGroup.InlineActivity startActivity) {
+        TibcoToBalConverter.logger()
+                .warning("Unsupported start activity %s generating fallback service".formatted(startActivity.name()));
+        List<Statement> body = List.of(
+                new Statement.Comment("FIXME: service for start activity: %s".formatted(startActivity.name())),
+                new Statement.Comment(
+                        "FIXME: call %s from fixed service".formatted(cx.getProcessStartFunction().name()))
+        );
+
+        BallerinaModel.Remote remoteFn = new BallerinaModel.Remote(
+                new BallerinaModel.Function(Optional.empty(), "onStart", List.of(), Optional.empty(),
+                        new BallerinaModel.BlockFunctionBody(body)));
+
+        return new BallerinaModel.Service("\"" + ConversionUtils.sanitizes(startActivity.name()) + "\"",
+                List.of(), Optional.empty(), List.of(), List.of(), List.of(), List.of(remoteFn));
     }
 
     private static BallerinaModel.Service createJMSListenerServiceForStartActivity(
