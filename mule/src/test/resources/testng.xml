@@ -17,6 +17,9 @@
             <class name="mule.v4.blocks.FlowTest"/>
             <class name="mule.v4.blocks.SubFlowTest"/>
             <class name="mule.v4.blocks.SetPayloadTest"/>
+            <class name="mule.v4.blocks.VariableTest"/>
+            <!--        TODO:session variables do not exist in mule 4. Merge with VariableTest-->
+            <!--        <class name="mule.v4.blocks.SessionVariableTest"/>-->
         </classes>
     </test>
 </suite>

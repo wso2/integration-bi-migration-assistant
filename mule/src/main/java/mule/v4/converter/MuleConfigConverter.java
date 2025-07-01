@@ -225,7 +225,12 @@ public class MuleConfigConverter {
     }
 
     private static List<Statement> convertRemoveVariable(Context ctx, RemoveVariable removeVariable) {
-        String varName = ConversionUtils.convertToBalIdentifier(removeVariable.variableName());
+        String variableName = removeVariable.variableName();
+        if (variableName.startsWith("#[vars.") && variableName.endsWith("]")) {
+            variableName = variableName.substring(7, variableName.length() - 1);
+        }
+
+        String varName = ConversionUtils.convertToBalIdentifier(variableName);
         Statement stmt;
         if (removeVariable.kind() == Kind.REMOVE_VARIABLE && ctx.projectCtx.flowVars.containsKey(varName)) {
             stmt = stmtFrom(String.format("%s.%s = %s;", Constants.FLOW_VARS_FIELD_ACCESS, varName, "()"));
@@ -233,7 +238,8 @@ public class MuleConfigConverter {
                 ctx.projectCtx.sessionVars.containsKey(varName)) {
             stmt = stmtFrom(String.format("%s.%s = %s;", Constants.SESSION_VARS_FIELD_ACCESS, varName, "()"));
         } else {
-            throw new IllegalStateException();
+            // Removing undeclared variable in mule won't give error, so we just ignore it here
+            return Collections.emptyList();
         }
         return List.of(stmt);
     }
