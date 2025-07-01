@@ -36,8 +36,6 @@ import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import org.jetbrains.annotations.NotNull;
-
-import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.Process;
 import tibco.model.Process5;
