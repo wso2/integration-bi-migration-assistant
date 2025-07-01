@@ -22,7 +22,6 @@ public class ParseContext {
 
     private long nextAnonProcessIndex = 0;
     private long nextAnonXSLTIndex = 0;
-    private long nextUnhandledActivityIndex = 0;
 
     public String getNextAnonymousProcessName() {
         return "AnonymousProcess" + nextAnonProcessIndex++;
@@ -32,7 +31,4 @@ public class ParseContext {
         return "Transform" + nextAnonXSLTIndex++;
     }
 
-    public String getAnonUnhandledAcitivityName() {
-        return "unhandled" + nextUnhandledActivityIndex++;
-    }
 }

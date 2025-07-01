@@ -24,7 +24,6 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
-
 import tibco.ParseContext;
 import tibco.TibcoToBalConverter;
 import tibco.XmlToTibcoModelConverter;
