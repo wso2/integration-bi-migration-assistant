@@ -159,6 +159,7 @@ public final class BICodeConverter {
                     new BallerinaModel.Import("ballerinax", "oracledb"),
                     new BallerinaModel.Import("ballerinax", "oracledb.driver", Optional.of("_"))
             );
+            case "runtime" -> List.of(new BallerinaModel.Import("ballerina", "lang.runtime"));
             default -> List.of();
         };
     }
