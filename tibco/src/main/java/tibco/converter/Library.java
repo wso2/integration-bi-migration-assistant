@@ -25,6 +25,7 @@ enum Library {
     JSON_DATA("ballerina", "data.jsondata"),
     JMS("ballerinax", "java.jms"),
     JDBC("ballerinax", "java.jdbc"),
+    RUNTIME("ballerina", "lang.runtime"),
     IO("ballerina", "io"),
     LOG("ballerina", "log"),
     SOAP("ballerina", "soap.soap11"),
