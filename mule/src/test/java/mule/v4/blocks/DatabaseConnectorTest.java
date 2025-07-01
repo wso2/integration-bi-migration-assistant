@@ -27,13 +27,14 @@ public class DatabaseConnectorTest extends AbstractBlockTest {
     }
 
     @Test
-    public void testDbSelectQueryFromTemplate() {
-        testMule3ToBal("database-connector/db_select_query_from_template.xml",
-                "database-connector/db_select_query_from_template.bal");
+    public void testOracleDbSelect() {
+        testMule3ToBal("database-connector/oracle_db_select.xml", "database-connector/oracle_db_select.bal");
     }
 
     @Test
-    public void testOracleDbSelect() {
-        testMule3ToBal("database-connector/oracle_db_select.xml", "database-connector/oracle_db_select.bal");
+    public void testDbInputParameters() {
+        // Note: this is yet to support. This is to check the TODO comment
+        testMule3ToBal("database-connector/db_input_parameters.xml",
+                "database-connector/db_input_parameters.bal");
     }
 }

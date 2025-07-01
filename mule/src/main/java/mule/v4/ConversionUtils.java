@@ -37,6 +37,7 @@ import javax.xml.transform.stream.StreamResult;
 import static common.BallerinaModel.ModuleVar;
 import static common.ConversionUtils.exprFrom;
 import static mule.v4.converter.MELConverter.convertMELToBal;
+import static mule.v4.model.MuleModel.UnsupportedBlock;
 
 /**
  * Utility class for converting mule configs.
@@ -328,6 +329,8 @@ public class ConversionUtils {
         if (propValue.startsWith("${") && propValue.endsWith("}")) {
             String configVarRef = processPropertyName(ctx, propValue.substring(2, propValue.length() - 1));
             return isInt ? "check int:fromString(%s)".formatted(configVarRef) : configVarRef;
+        } else if (propValue.startsWith("#[") && propValue.endsWith("]")) {
+            return convertMELToBal(ctx, propValue, false);
         } else {
             return isInt ? propValue : "\"" + propValue.replace("\"", "\\\"") + "\"";
         }
@@ -386,6 +389,22 @@ public class ConversionUtils {
         } catch (Exception e) {
             throw new RuntimeException("Error converting Element to String", e);
         }
+    }
+
+    public static String convertToUnsupportedTODO(Context ctx, List<UnsupportedBlock> unsupportedBlocks) {
+        assert !unsupportedBlocks.isEmpty();
+        StringBuilder sb = new StringBuilder();
+        for (UnsupportedBlock unsupportedBlock : unsupportedBlocks) {
+            sb.append(unsupportedBlock.xmlBlock()).append("/n");
+            ctx.migrationMetrics.failedBlocks.add(unsupportedBlock.xmlBlock());
+        }
+
+        return wrapElementInUnsupportedBlockComment(sb.toString());
+    }
+
+    public static String convertToUnsupportedTODO(Context ctx, UnsupportedBlock unsupportedBlock) {
+        ctx.migrationMetrics.failedBlocks.add(unsupportedBlock.xmlBlock());
+        return wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());
     }
 
     public static String wrapElementInUnsupportedBlockComment(String input) {
