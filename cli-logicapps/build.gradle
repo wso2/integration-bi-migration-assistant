@@ -1,0 +1,137 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'checkstyle'
+    id 'com.github.spotbugs' version '5.1.3'
+}
+
+def ballerinaToolDir = "${projectDir}/src/main/ballerina/tool-bi-migrate-logicapps"
+def balToolVersion = "${logicAppsVersion}"
+def ballerinaVersion = "${ballerinaLangVersion}"
+
+group 'com.wso2'
+version '0.1.0-SNAPSHOT'
+
+def libJarPath = "../../../../build/libs/logicapps-migration-assistant-${project.version}.jar"
+
+dependencies {
+    // Dev dependencies
+    implementation group: 'info.picocli', name: 'picocli', version: "${picocliVersion}"
+    implementation group: 'org.jetbrains', name: 'annotations', version: "${jetbrainsAnnotationsVersion}"
+    testImplementation group: 'org.testng', name: 'testng', version: "${testngVersion}"
+    spotbugs group: 'com.github.spotbugs', name: 'spotbugs', version: "${spotbugsVersion}"
+
+    // LogicApps specific dependencies
+    implementation "com.google.code.gson:gson:${gsonVersion}"
+    implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:toml-parser:${ballerinaLangVersion}"
+}
+
+checkstyle {
+    toolVersion = '10.12.5'
+    config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
+}
+
+spotbugs {
+    reportLevel = 'high'
+    excludeFilter = file("${rootProject.projectDir}/spotbugs-exclude.xml")
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+    reports {
+        html.required = true
+        xml.required = false
+    }
+}
+
+test {
+    useTestNG() {
+        suites 'src/test/resources/testng.xml'
+    }
+}
+
+// Keep this for backward compatibility
+application {
+    mainClassName = 'cli.Main'
+}
+
+task updateTomlFile {
+    def balToml = file("${ballerinaToolDir}/Ballerina.toml")
+    def toolToml = file("${ballerinaToolDir}/BalTool.toml")
+    doLast {
+        if (balToml.exists()) {
+            def text = balToml.text
+            text = text.replaceAll('version\\s*=\\s*"[^"]*"', 'version = "' + balToolVersion + '"')
+            text = text.replaceAll('distribution\\s*=\\s*"[^"]*"', 'distribution = "' + ballerinaVersion + '"')
+            balToml.text = text
+        }
+        if (toolToml.exists()) {
+            def text = toolToml.text
+            text = text.replaceAll('path\\s*=\\s*"[^"]*"', 'path = "' + libJarPath + '"')
+            toolToml.text = text
+        }
+    }
+}
+
+// Default jar task - we'll keep it for backward compatibility
+jar {
+    dependsOn ':common:jar'
+    manifest {
+        attributes(
+                'Main-Class': 'cli.Main'
+        )
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveFileName = 'integration-bi-migration-assistant.jar'
+}
+
+// Create a separate JAR for LogicApp migrations
+task logicAppsJar(type: Jar) {
+    dependsOn ':common:jar'
+    manifest {
+        attributes(
+                'Main-Class': 'cli.LogicAppsCli'
+        )
+    }
+    from {
+        sourceSets.main.output
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveBaseName = 'logicapps-migration-assistant'
+    archiveVersion = project.version
+}
+
+tasks.register('logicAppsPack', Exec) {
+    dependsOn logicAppsJar, updateTomlFile
+    workingDir ballerinaToolDir
+    commandLine 'bal', 'pack'
+    group = 'build'
+}
+
+tasks.register('logicAppsRelease', Exec) {
+    dependsOn logicAppsPack
+    workingDir ballerinaToolDir
+    commandLine 'bal', 'push'
+    group = 'build'
+}
+
+tasks.register('logicAppsReleaseLocal', Exec) {
+    dependsOn logicAppsPack
+    workingDir ballerinaToolDir
+    commandLine 'bal', 'push', '--repository=local'
+    group = 'build'
+}
+
+build {
+    dependsOn checkstyleMain
+    dependsOn spotbugsMain
+    dependsOn logicAppsJar
+}
