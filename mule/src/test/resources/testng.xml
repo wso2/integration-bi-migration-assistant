@@ -20,6 +20,7 @@
             <class name="mule.v4.blocks.VariableTest"/>
             <!--        TODO:session variables do not exist in mule 4. Merge with VariableTest-->
             <!--        <class name="mule.v4.blocks.SessionVariableTest"/>-->
+            <class name="mule.v4.blocks.ChoiceTest"/>
         </classes>
     </test>
 </suite>
