@@ -24,6 +24,8 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
+
+import tibco.ParseContext;
 import tibco.TibcoToBalConverter;
 import tibco.XmlToTibcoModelConverter;
 import tibco.analyzer.AnalysisResult;
@@ -57,7 +59,8 @@ public class ActivityConversionTest {
     public void testProjectConversion(Path activityPath, Path expectedFunction) throws IOException,
             ParserConfigurationException, SAXException {
         Element activityElement = stringToElement(fileContent(activityPath));
-        Scope.Flow.Activity activity = XmlToTibcoModelConverter.parseActivity(activityElement);
+        ParseContext parseContext = new ParseContext();
+        Scope.Flow.Activity activity = XmlToTibcoModelConverter.parseActivity(parseContext, activityElement);
         ProcessContext cx = getProcessContext(activity);
         BallerinaModel.Function result = ActivityConverter.convertActivity(cx, activity);
         String actual = toString(result);
