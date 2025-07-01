@@ -189,8 +189,8 @@ public final class XmlToTibcoModelConverter {
         return new Resource.SubstitutionBinding(template, propName);
     }
 
-    public static tibco.model.Process parseProcess(Element root) {
-        return parseProcessInner(new ParseContext(), root);
+    public static tibco.model.Process parseProcess(ParseContext cx, Element root) {
+        return parseProcessInner(cx, root);
     }
 
     private static @NotNull Process parseProcessInner(ParseContext cx, Element root) {
@@ -1742,5 +1742,31 @@ public final class XmlToTibcoModelConverter {
         String jmsPriority = getFirstChildWithTag(configurableHeaders, "JMSPriority").getTextContent();
 
         return new InlineActivity.JMSActivityBase.ConfigurableHeaders(jmsDeliveryMode, jmsExpiration, jmsPriority);
+    }
+
+    public static Resource.SharedVariable parseSharedVariable(ParseContext cx, Element root) {
+        String name = getFirstChildWithTag(root, "name").getTextContent();
+        Element config = getFirstChildWithTag(root, "config");
+        boolean persistent = tryGetFirstChildWithTag(config, "persistent")
+                .map(Element::getTextContent)
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+        String initialValue = tryGetFirstChildWithTag(config, "initialValue")
+                .map(Element::getTextContent).orElse("");
+        if (!initialValue.equals("byRef")) {
+            logger.severe(
+                    "initialValue for sharedVariable '" + name + "' is not byRef. Using empty string as placeholder.");
+            initialValue = "<root/>";
+            return new Resource.SharedVariable(name, persistent, initialValue);
+        }
+        String initialValueRef = getFirstChildWithTag(config, "initialValueRef").getTextContent();
+        try {
+            initialValue = cx.getFileContent(initialValueRef);
+        } catch (java.io.IOException e) {
+            logger.severe("Failed to read initial value for sharedVariable '" + name + "' from '" + initialValueRef
+                    + "': " + e.getMessage());
+            initialValue = "<root/>";
+        }
+        return new Resource.SharedVariable(name, persistent, initialValue);
     }
 }
