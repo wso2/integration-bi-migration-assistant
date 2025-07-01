@@ -174,7 +174,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 JMS_QUEUE_EVENT_SOURCE,
                 JMS_QUEUE_SEND_ACTIVITY,
                 JMS_QUEUE_GET_MESSAGE_ACTIVITY,
-                SLEEP;
+                SLEEP,
+                GENERATE_ERROR;
 
                 public static ExplicitTransitionGroup.InlineActivity.InlineActivityType parse(String type) {
                     record LookUpData(String suffix,
@@ -204,7 +205,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                     new LookUpData("JMSQueueEventSource", JMS_QUEUE_EVENT_SOURCE),
                                     new LookUpData("JMSQueueSendActivity", JMS_QUEUE_SEND_ACTIVITY),
                                     new LookUpData("JMSQueueGetMessageActivity", JMS_QUEUE_GET_MESSAGE_ACTIVITY),
-                            new LookUpData("WriteToLogActivity", WRITE_LOG),
+                                    new LookUpData("GenerateErrorActivity", GENERATE_ERROR),
+                                    new LookUpData("WriteToLogActivity", WRITE_LOG),
                             new LookUpData("SleepActivity", SLEEP))
                             .filter(each -> type.endsWith(each.suffix)).findFirst()
                             .map(LookUpData::activityType).orElse(UNHANDLED);
@@ -657,6 +659,24 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 @Override
                 public InlineActivityType type() {
                     return InlineActivityType.SLEEP;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return true;
+                }
+            }
+
+            record GenerateError(Element element, String name, InputBinding inputBinding)
+                    implements ExplicitTransitionGroup.InlineActivity {
+
+                public GenerateError {
+                    assert inputBinding != null;
+                }
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.GENERATE_ERROR;
                 }
 
                 @Override

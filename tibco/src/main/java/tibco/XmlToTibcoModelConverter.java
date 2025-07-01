@@ -317,6 +317,7 @@ public final class XmlToTibcoModelConverter {
             case JMS_QUEUE_SEND_ACTIVITY -> parseJMSQueueSendActivity(element, name, inputBinding);
             case JMS_QUEUE_GET_MESSAGE_ACTIVITY -> parseJMSQueueGetMessageActivity(element, name, inputBinding);
             case SLEEP -> new InlineActivity.Sleep(element, name, inputBinding);
+            case GENERATE_ERROR -> new InlineActivity.GenerateError(element, name, inputBinding);
         };
     }
 
