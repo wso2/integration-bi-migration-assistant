@@ -38,7 +38,7 @@ public class TibcoConverter {
 
     public static void migrateTibco(String sourcePath, String outputPath, boolean preserverStructure, boolean verbose,
                                     boolean dryRun) {
-        logger = verbose ? createDefaultLogger("migrate-tibco") : createSilentLogger("migrate-tibco");
+        logger = verbose ? createVerboseLogger("migrate-tibco") : createDefaultLogger("migrate-tibco");
         Path inputPath = null;
         try {
             inputPath = Paths.get(sourcePath).toRealPath();
@@ -63,7 +63,7 @@ public class TibcoConverter {
 
     static void migrateTibcoProject(String projectPath, String targetPath, boolean preserverStructure, boolean verbose,
                                     boolean dryRun) {
-        logger = verbose ? createDefaultLogger("migrate-tibco") : createSilentLogger("migrate-tibco");
+        logger = verbose ? createVerboseLogger("migrate-tibco") : createDefaultLogger("migrate-tibco");
         Path targetDir = Paths.get(targetPath);
         try {
             createTargetDirectoryIfNeeded(targetDir);
@@ -78,7 +78,7 @@ public class TibcoConverter {
         try {
             result = TibcoToBalConverter.convertProject(cx, projectPath);
         } catch (Exception e) {
-            logger().severe("Unrecoverable error while converting project");
+            logger().log(Level.SEVERE, "Unrecoverable error while converting project", e);
             System.exit(1);
             return;
         }
@@ -188,14 +188,14 @@ public class TibcoConverter {
         return logger;
     }
 
-    public static Logger createSilentLogger(String name) {
-        Logger silentLogger = Logger.getLogger(name);
-        silentLogger.setFilter(record ->
-                record.getLevel().intValue() >= java.util.logging.Level.SEVERE.intValue());
-        return silentLogger;
+    public static Logger createDefaultLogger(String name) {
+        Logger defaultLogger = Logger.getLogger(name);
+        defaultLogger.setFilter(record ->
+                record.getLevel().intValue() >= java.util.logging.Level.WARNING.intValue());
+        return defaultLogger;
     }
 
-    public static Logger createDefaultLogger(String name) {
+    public static Logger createVerboseLogger(String name) {
         return Logger.getLogger(name);
     }
 }

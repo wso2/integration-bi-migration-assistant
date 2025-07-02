@@ -1,0 +1,12 @@
+<pd:activity name="Sleep" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/timer">
+    <pd:type>com.tibco.plugin.timer.SleepActivity</pd:type>
+    <pd:resourceType>ae.activities.sleep</pd:resourceType>
+    <config/>
+    <pd:inputBindings>
+        <ns0:SleepInputSchema>
+            <IntervalInMillisec>
+                <xsl:value-of select="100"/>
+            </IntervalInMillisec>
+        </ns0:SleepInputSchema>
+    </pd:inputBindings>
+</pd:activity>

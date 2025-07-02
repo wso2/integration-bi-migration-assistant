@@ -16,26 +16,19 @@
  *  under the License.
  */
 
-package tibco.converter;
+package tibco;
 
-enum Library {
-    HTTP("ballerina", "http"),
-    XSLT("ballerina", "xslt"),
-    XML_DATA("ballerina", "data.xmldata"),
-    JSON_DATA("ballerina", "data.jsondata"),
-    JMS("ballerinax", "java.jms"),
-    JDBC("ballerinax", "java.jdbc"),
-    RUNTIME("ballerina", "lang.runtime"),
-    IO("ballerina", "io"),
-    LOG("ballerina", "log"),
-    SOAP("ballerina", "soap.soap11"),
-    SQL("ballerina", "sql");
+public class ParseContext {
 
-    public final String moduleName;
-    public final String orgName;
+    private long nextAnonProcessIndex = 0;
+    private long nextAnonXSLTIndex = 0;
 
-    Library(String orgName, String moduleName) {
-        this.moduleName = moduleName;
-        this.orgName = orgName;
+    public String getNextAnonymousProcessName() {
+        return "AnonymousProcess" + nextAnonProcessIndex++;
     }
+
+    public String getAnonymousXSLTName() {
+        return "Transform" + nextAnonXSLTIndex++;
+    }
+
 }

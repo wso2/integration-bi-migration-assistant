@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema">
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/timer">
     <pd:name>Main.process</pd:name>
     <pd:startName>JMS Queue Receiver</pd:startName>
     <pd:returnBindings/>
@@ -67,6 +67,18 @@
             </ns1:ActivityInput>
         </pd:inputBindings>
     </pd:activity>
+    <pd:activity name="Sleep">
+        <pd:type>com.tibco.plugin.timer.SleepActivity</pd:type>
+        <pd:resourceType>ae.activities.sleep</pd:resourceType>
+        <config/>
+        <pd:inputBindings>
+            <ns0:SleepInputSchema>
+                <IntervalInMillisec>
+                    <xsl:value-of select="100"/>
+                </IntervalInMillisec>
+            </ns0:SleepInputSchema>
+        </pd:inputBindings>
+    </pd:activity>
     <pd:activity name="JMG Get">
         <pd:type>com.tibco.plugin.jms.JMSQueueGetMessageActivity</pd:type>
         <pd:resourceType>ae.activities.JMSQueueGetMessageActivity</pd:resourceType>
@@ -114,6 +126,11 @@
     </pd:transition>
     <pd:transition>
         <pd:from>JMS Send</pd:from>
+        <pd:to>Sleep</pd:to>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Sleep</pd:from>
         <pd:to>JMS Get</pd:to>
         <pd:conditionType>always</pd:conditionType>
     </pd:transition>
