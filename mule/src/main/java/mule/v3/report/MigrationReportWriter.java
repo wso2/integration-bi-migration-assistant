@@ -160,13 +160,13 @@ public class MigrationReportWriter {
                                                                      Path balPackageDir,
                                                                      boolean dryRun,
                                                                      Context.MigrationMetrics metrics) {
-        int distinctUnsupportedElementCount = countDistinctUnsupportedElements(metrics.failedXMLTags);
+        int unsupportedElementCount = countUnsupportedElements(metrics.failedXMLTags);
         int failedDWExprCount = countUnsupportedDWExpressions(metrics.dwConversionStats);
 
         // Calculate implementation times
-        double bestCaseDays = calculateBestCaseEstimate(distinctUnsupportedElementCount, failedDWExprCount);
-        double avgCaseDays = calculateAverageCaseEstimate(distinctUnsupportedElementCount, failedDWExprCount);
-        double worstCaseDays = calculateWorstCaseEstimate(distinctUnsupportedElementCount, failedDWExprCount);
+        double bestCaseDays = calculateBestCaseEstimate(unsupportedElementCount, failedDWExprCount);
+        double avgCaseDays = calculateAverageCaseEstimate(unsupportedElementCount, failedDWExprCount);
+        double worstCaseDays = calculateWorstCaseEstimate(unsupportedElementCount, failedDWExprCount);
 
         int migrationCoverage = calculateMigrationCoverage(metrics);
         Path reportFilePath = balPackageDir.resolve(MIGRATION_REPORT_NAME);
@@ -258,8 +258,8 @@ public class MigrationReportWriter {
         return elements * WORST_CASE_COMP_TIME + dwExpressions * WORST_CASE_DW_EXPR_TIME;
     }
 
-    private static int countDistinctUnsupportedElements(LinkedHashMap<String, Integer> failedTags) {
-        return failedTags.size();
+    private static int countUnsupportedElements(LinkedHashMap<String, Integer> failedTags) {
+        return failedTags.values().stream().mapToInt(integer -> integer).sum();
     }
 
     private static int countUnsupportedDWExpressions(DWConversionStats dwStats) {

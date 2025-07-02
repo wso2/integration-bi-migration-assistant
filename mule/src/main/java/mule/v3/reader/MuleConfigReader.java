@@ -21,7 +21,6 @@ import mule.v3.Constants;
 import mule.v3.Context;
 import mule.v3.ConversionUtils;
 import mule.v3.model.MuleXMLTag;
-import org.w3c.dom.CDATASection;
 import org.w3c.dom.Element;
 
 import java.util.ArrayList;
@@ -670,8 +669,7 @@ public class MuleConfigReader {
                     String resource = element.getAttribute("resource");
                     String script = null;
                     if (resource.isEmpty()) {
-                        // TODO: fix CDATA cast
-                        script = ((CDATASection) element.getChildNodes().item(0)).getData();
+                        script = element.getTextContent();
                     }
                     transformMessageElements.add(new SetSessionVariableElement(
                             resource, script, variableName));

@@ -198,6 +198,7 @@ public class MuleToBalConverter {
         // Global comments at the end of file
         List<String> comments = new ArrayList<>();
         for (UnsupportedBlock unsupportedBlock : ctx.currentFileCtx.configs.unsupportedBlocks) {
+            ctx.migrationMetrics.failedBlocks.add(unsupportedBlock.xmlBlock());
             String comment = ConversionUtils.wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());
             comments.add(comment);
         }
