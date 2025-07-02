@@ -201,11 +201,42 @@ final class ActivityConverter {
                 case InlineActivity.JMSQueueGetMessageActivity jmsQueueGetMessageActivity ->
                         convertJMSQueueGetActivity(cx, result, jmsQueueGetMessageActivity);
                 case InlineActivity.Sleep sleep -> convertSleep(cx, result, sleep);
+                case InlineActivity.GetSharedVariable getSharedVariable ->
+                        convertGetSharedVariable(cx, result, getSharedVariable);
+                case InlineActivity.SetSharedVariable setSharedVariable ->
+                        convertSetSharedVariable(cx, result, setSharedVariable);
             };
             body.addAll(conversion.body());
             body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
             return body;
         }
+
+    private static ActivityConversionResult convertSetSharedVariable(
+            ActivityContext cx, VariableReference input, InlineActivity.SetSharedVariable setSharedVariable) {
+        String setSharedVariableFn = cx.processContext.getSetSharedVariableFn();
+        Resource.SharedVariable sharedVariable =
+                cx.getSharedVariableByRelativePath(setSharedVariable.variableConfig())
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Shared variable not found for: " + setSharedVariable.name()));
+        List<Statement> body = List.of(new CallStatement(
+                new FunctionCall(setSharedVariableFn,
+                        List.of(cx.contextVarRef(), new StringConstant(sharedVariable.name()), input))));
+        return new ActivityConversionResult(input, body);
+    }
+
+    private static ActivityConversionResult convertGetSharedVariable(
+            ActivityContext cx, VariableReference input, InlineActivity.GetSharedVariable getSharedVariable) {
+        String getSharedVariableFn = cx.processContext.getGetSharedVariableFn();
+        Resource.SharedVariable sharedVariable =
+                cx.getSharedVariableByRelativePath(getSharedVariable.variableConfig())
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Shared variable not found for: " + getSharedVariable.name()));
+        VarDeclStatment value = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new FunctionCall(getSharedVariableFn,
+                        List.of(cx.contextVarRef(), new StringConstant(sharedVariable.name()))));
+        return new ActivityConversionResult(value.ref(), List.of(value));
+
+    }
 
     private static ActivityConversionResult convertJMSQueueGetActivity(
             ActivityContext cx, VariableReference input,

@@ -70,6 +70,7 @@ public class TibcoToBalConverter {
         Set<Resource.HTTPSharedResource> httpSharedResources;
         Set<Resource.JDBCSharedResource> jdbcSharedResource;
         Set<Resource.JMSSharedResource> jmsSharedResource;
+        Set<Resource.SharedVariable> sharedVariables;
         try {
             processes = PROCESS_PARSING_UNIT.parse(projectPath);
             types = XSD_PARSING_UNIT.parse(projectPath);
@@ -81,6 +82,7 @@ public class TibcoToBalConverter {
             jdbcSharedResource = SHARED_JDBC_RESOURCE_PARSING_UNIT.parse(projectPath);
             var jmsSharedResourceParser = new JMSSharedResourceParsingUnit();
             jmsSharedResource = jmsSharedResourceParser.parse(projectPath);
+            sharedVariables = SHARED_VARIABLE_PARSING_UNIT.parse(projectPath);
         } catch (IOException | SAXException | ParserConfigurationException e) {
             logger().severe("Unrecoverable error while parsing project file: " + projectPath);
             throw new RuntimeException("Error while parsing the XML file: ", e);
@@ -101,12 +103,23 @@ public class TibcoToBalConverter {
         return ProjectConverter.convertProject(cx, analysisResult, processes, types,
                 new ProjectConverter.ProjectResources(jdbcResources,
                         httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource,
-                        jmsSharedResource),
+                        jmsSharedResource, sharedVariables),
                 report);
     }
 
-    private static final ParsingUnit<Process> PROCESS_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(
-            TibcoToBalConverter::getBwpFiles, XmlToTibcoModelConverter::parseProcess);
+    private static final ParsingUnit<Process> PROCESS_PARSING_UNIT = new ParsingUnit<>() {
+        @Override
+        public Set<Process> parse(String projectPath) throws IOException, ParserConfigurationException, SAXException {
+            Set<Process> elements = new HashSet<>();
+            ParseContext cx = new ParseContext(projectPath);
+            for (String s : getBwpFiles(projectPath)) {
+                Element element = parseXmlFile(s);
+                Process parsedElement = XmlToTibcoModelConverter.parseProcess(cx, element);
+                elements.add(parsedElement);
+            }
+            return elements;
+        }
+    };
     private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT = new ParsingUnit.SimpleParsingUnit<>(
             TibcoToBalConverter::getXSDFiles, XmlToTibcoModelConverter::parseSchema);
     private static final ParsingUnit<Resource.JDBCResource> JDBC_RESOURCE_PARSING_UNIT =
@@ -124,6 +137,26 @@ public class TibcoToBalConverter {
             new ParsingUnit.SimpleParsingUnit<>(
                     TibcoToBalConverter::getHTTPClientResourceFiles,
                     XmlToTibcoModelConverter::parseHTTPClientResource);
+    private static final ParsingUnit<Resource.SharedVariable> SHARED_VARIABLE_PARSING_UNIT = new ParsingUnit<>() {
+        @Override
+        public Set<Resource.SharedVariable> parse(String projectPath)
+                throws IOException, ParserConfigurationException, SAXException {
+            Set<Resource.SharedVariable> variables = new HashSet<>();
+            ParseContext cx = new ParseContext(projectPath);
+
+            for (String s : getFilesWithExtension(projectPath, "sharedvariable")) {
+                String relativePath = "/" + Paths.get(projectPath).relativize(Paths.get(s)).toString();
+                variables.add(XmlToTibcoModelConverter.parseSharedVariable(cx, parseXmlFile(s), relativePath));
+            }
+
+            for (String s : getFilesWithExtension(projectPath, "jobsharedvariable")) {
+                String relativePath = "/" + Paths.get(projectPath).relativize(Paths.get(s)).toString();
+                variables.add(XmlToTibcoModelConverter.parseJobSharedVariable(cx, parseXmlFile(s), relativePath));
+            }
+
+            return variables;
+        }
+    };
 
     public static Logger logger() {
         return TibcoConverter.logger();
@@ -219,6 +252,7 @@ public class TibcoToBalConverter {
             return pathStream
                     .filter(Files::isRegularFile)
                     .map(Path::toString)
+                    .sorted()
                     .filter(string -> string.endsWith(extensionWithDot))
                     .toList();
         }

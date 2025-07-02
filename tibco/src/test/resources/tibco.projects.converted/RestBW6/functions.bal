@@ -107,10 +107,6 @@ function tryBindToTestRequest(xml|json input) returns TestRequest|error {
     return input is xml ? xmldata:parseAsType(input) : jsondata:parseAsType(input);
 }
 
-function initContext(map<xml> initVariables = {}) returns Context {
-    return {variables: initVariables, result: xml `<root/>`};
-}
-
 function parseHeaders(xml headers) returns map<string> {
     map<string> headerMap = {};
     foreach xml header in headers {
@@ -138,6 +134,17 @@ function getFromContext(Context context, string varName) returns xml {
         return xml `<root/>`;
     }
     return value;
+}
+
+function initContext(map<xml> initVariables = {},
+        map<SharedVariableContext> jobSharedVariables = {})
+            returns Context {
+    map<SharedVariableContext> sharedVariables = {};
+
+    foreach var key in jobSharedVariables.keys() {
+        sharedVariables[key] = jobSharedVariables.get(key);
+    }
+    return {variables: initVariables, result: xml `<root/>`, sharedVariables};
 }
 
 function responseFromContext(Context cx) returns http:Response {

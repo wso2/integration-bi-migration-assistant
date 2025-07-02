@@ -4,13 +4,14 @@ public listener http:Listener GeneralConnection_sharedhttp = new (9090, {host: "
 
 service on GeneralConnection_sharedhttp {
     resource function 'default [string... path](xml input) returns xml {
+        map<SharedVariableContext> jobSharedVariables = {};
         xml inputVal = xml `<root>
     <item>
         ${input}
     </item>
 </root>`;
         map<xml> paramXML = {post: inputVal};
-        Context cx = initContext(paramXML);
+        Context cx = initContext(paramXML, jobSharedVariables);
         start_Processes_Main_process(cx);
         xml response = cx.result;
         return response;

@@ -18,10 +18,20 @@
 
 package tibco;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 public class ParseContext {
 
     private long nextAnonProcessIndex = 0;
     private long nextAnonXSLTIndex = 0;
+    private final String projectPath;
+
+    public ParseContext(String projectPath) {
+        this.projectPath = projectPath;
+    }
 
     public String getNextAnonymousProcessName() {
         return "AnonymousProcess" + nextAnonProcessIndex++;
@@ -29,6 +39,11 @@ public class ParseContext {
 
     public String getAnonymousXSLTName() {
         return "Transform" + nextAnonXSLTIndex++;
+    }
+
+    public String getFileContent(String relativePath) throws IOException {
+        Path fullPath = Paths.get(projectPath, relativePath);
+        return Files.readString(fullPath);
     }
 
 }

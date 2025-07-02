@@ -58,7 +58,7 @@ public class ActivityConversionTest {
     public void testProjectConversion(Path activityPath, Path expectedFunction) throws IOException,
             ParserConfigurationException, SAXException {
         Element activityElement = stringToElement(fileContent(activityPath));
-        ParseContext parseContext = new ParseContext();
+        ParseContext parseContext = new ParseContext("");
         Scope.Flow.Activity activity = XmlToTibcoModelConverter.parseActivity(parseContext, activityElement);
         ProcessContext cx = getProcessContext(activity);
         BallerinaModel.Function result = ActivityConverter.convertActivity(cx, activity);
