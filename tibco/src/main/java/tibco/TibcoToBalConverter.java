@@ -252,6 +252,7 @@ public class TibcoToBalConverter {
             return pathStream
                     .filter(Files::isRegularFile)
                     .map(Path::toString)
+                    .sorted()
                     .filter(string -> string.endsWith(extensionWithDot))
                     .toList();
         }
