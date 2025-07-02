@@ -9,11 +9,11 @@ public type Context record {|
     FlowVars flowVars = {};
 |};
 
-public function muleProject(Context ctx) {
+public function demoFlow(Context ctx) {
     ctx.flowVars.age = 29;
     if ctx.flowVars.age > 18 {
         log:printInfo(string `Adult detected: Age is ${ctx.flowVars.age.toString()} years.`);
     } else {
-        log:printInfo("Minor detected: Age is flowVars.age years.");
+        log:printInfo(string `Minor detected: Age is ${ctx.flowVars.age.toString()} years.`);
     }
 }

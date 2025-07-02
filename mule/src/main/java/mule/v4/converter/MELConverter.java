@@ -60,17 +60,20 @@ public class MELConverter {
                 continue;
             }
 
-            if (currentChar == '.') {
+            if (currentChar == '.' || currentChar == '[') {
                 if (isAttributesToken(tokenStr)) {
+                    // We reach here for two kinds of syntax.
+                    // 1. attributes.queryParams.foo
+                    // 2. attributes['queryParams'].foo
                     i = processAttributes(melExpr, i, tokenStr, result, addToStringCalls);
                     token.setLength(0);
                     continue;
                 }
-                if (isFlowOrSessionVarToken(tokenStr)) {
+                if (isVarsToken(tokenStr)) {
                     // We reach here for two kinds of syntax.
-                    // 1. flowVars.foo
-                    // 2. flowVars['foo']
-                    i = processFlowOrSessionVars(melExpr, i, tokenStr, result, addToStringCalls);
+                    // 1. vars.foo
+                    // 2. vars['foo']
+                    i = processVars(melExpr, i, tokenStr, result, addToStringCalls);
                     token.setLength(0);
                     continue;
                 }
@@ -109,8 +112,8 @@ public class MELConverter {
         return token.equals("attributes");
     }
 
-    private static boolean isFlowOrSessionVarToken(String token) {
-        return token.equals("flowVars") || token.equals("sessionVars");
+    private static boolean isVarsToken(String token) {
+        return token.equals("vars");
     }
 
     private static int processStringLiteral(Context ctx, String melExpr, int startPos,
@@ -166,8 +169,8 @@ public class MELConverter {
         return i;
     }
 
-    private static int processFlowOrSessionVars(String melExpr, int startPos, String baseToken, StringBuilder result,
-                                                boolean addToStringCalls) {
+    private static int processVars(String melExpr, int startPos, String baseToken, StringBuilder result,
+                                   boolean addToStringCalls) {
         StringBuilder varNameToken = new StringBuilder();
         int i = startPos;
 
@@ -192,7 +195,8 @@ public class MELConverter {
         }
 
         String varName = ConversionUtils.convertToBalIdentifier(varNameToken.toString());
-        result.append(Constants.CONTEXT_REFERENCE).append(".").append(baseToken).append(".").append(varName);
+        // TODO: MULE4 - change 'flowVars' to 'vars'
+        result.append(Constants.CONTEXT_REFERENCE).append(".").append("flowVars").append(".").append(varName);
         if (addToStringCalls) {
             result.append(".toString()");
         }
@@ -253,11 +257,25 @@ public class MELConverter {
                                          boolean addToStringCalls) {
         StringBuilder attributeKeyToken = new StringBuilder();
         int i = startPos;
-        i++; // skip the dot
+
+        char c = melExpr.charAt(i);
+        if (c == '[') {
+            i++; // Skip the opening bracket
+            i++; // Skip the opening quote
+        } else if (c == '.') {
+            i++; // Skip the dot
+        } else {
+            throw new IllegalStateException("Unexpected character: " + c);
+        }
 
         while (i < melExpr.length() && isTokenChar(melExpr.charAt(i)) && melExpr.charAt(i) != '.') {
             attributeKeyToken.append(melExpr.charAt(i));
             i++;
+        }
+
+        if (i < melExpr.length() && melExpr.charAt(i) == '\'') {
+            i++; // Skip the closing quote
+            i++; // Skip the closing bracket
         }
 
         // Capture param access if present (e.g., attributes.uriParams.paramName)
@@ -284,7 +302,7 @@ public class MELConverter {
 
     private static String convertAttributeAccess(String attributeKey, String paramName) {
         StringBuilder resultantStr = new StringBuilder();
-        resultantStr.append("ctx.inboundProperties"); // TODO: Rename to ctx.attributes
+        resultantStr.append("ctx.inboundProperties"); // TODO: MULE4 - Rename to ctx.attributes
         switch (attributeKey) {
             case "uriParams" -> {
                 resultantStr.append(".uriParams");

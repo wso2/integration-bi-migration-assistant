@@ -1248,7 +1248,6 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
     <flow name="currency-api-flow">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/proptest/{country}/v1" doc:name="HTTP" allowedMethods="GET"/>
         <set-variable variableName="queryParams" value="#[message.inboundProperties.'http.query.params']" doc:name="Set Query Params Variable"/>
-
         <set-variable variableName="city" value="#[message.inboundProperties.'http.query.params'.city]" doc:name="Set City Variable"/>
         <set-variable variableName="queryParams2" value="#[message.inboundProperties['http.query.params']]" doc:name="Set Query Params2 Variable"/>
         <set-variable variableName="city2" value="#[message.inboundProperties['http.query.params'].city]" doc:name="Set City2 Variable"/>

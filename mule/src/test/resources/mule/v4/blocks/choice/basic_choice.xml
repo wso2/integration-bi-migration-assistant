@@ -1,21 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-      xmlns:spring="http://www.springframework.org/schema/beans"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
-http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
-    <flow name="muleProject">
-        <set-variable variableName="age" value="#[29]" doc:name="Variable"/>
-        <choice doc:name="Choice">
-            <when expression="#[flowVars.age > 18]">
-                <logger message="Adult detected: Age is #[flowVars.age] years." level="INFO" doc:name="Logger"/>
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+    <flow name="demoFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c" >
+        <set-variable value="#[29]" doc:name="Set Variable" doc:id="c92878cc-4b5f-4965-858d-55c6ab90e62b" variableName="age" />
+        <choice doc:name="Choice" doc:id="b9372ec9-6743-4047-945e-b378284f018f" >
+            <when expression="#[vars.age &gt; 18]">
+                <logger level="INFO" doc:name="Logger" doc:id="120cc6e6-95af-4b47-9e42-68cb91f33b6a" message="Adult detected: Age is #[vars.age] years."/>
             </when>
-            <otherwise>
-                <logger message="Minor detected: Age is flowVars.age years." level="INFO" doc:name="Logger"/>
+            <otherwise >
+                <logger level="INFO" doc:name="Logger" doc:id="5e5c770a-1d59-4d36-8142-51f10fdecf34" message="Minor detected: Age is #[vars.age] years."/>
             </otherwise>
         </choice>
     </flow>
