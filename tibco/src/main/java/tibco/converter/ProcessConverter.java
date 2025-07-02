@@ -315,6 +315,7 @@ public class ProcessConverter {
         List<BallerinaModel.Function> functions = cx.getAnalysisResult().activities().stream()
                 .map(activity -> ActivityConverter.convertActivity(cx, activity))
                 .collect(Collectors.toCollection(ArrayList::new));
+        result.mainFn.ifPresent(functions::add);
         functions.addAll(convertExplicitTransitionGroup(cx, process.transitionGroup()));
         AnalysisResult analysisResult = cx.getAnalysisResult();
         analysisResult.scopes(process).stream().map(scope -> generateControlFlowFunctionsForScope(cx, scope))
@@ -423,8 +424,34 @@ public class ProcessConverter {
         return new TypeConversionResult(services);
     }
 
-    record TypeConversionResult(Collection<BallerinaModel.Service> service) {
+    @NotNull
+    static BallerinaModel.Function createMainFunction(ProcessContext cx, Process5 process) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment jobSharedVariables =
+                new VarDeclStatment(new TypeDesc.MapTypeDesc(common.ConversionUtils.typeFrom("SharedVariableContext")),
+                        "jobSharedVariables", exprFrom("{}"));
+        body.add(jobSharedVariables);
+        body.addAll(initJobSharedVariables(cx.projectContext, jobSharedVariables.ref()));
+        VarDeclStatment paramXmlDecl = new VarDeclStatment(new TypeDesc.MapTypeDesc(XML), "paramXML",
+                exprFrom("{}"));
+        body.add(paramXmlDecl);
 
+        BallerinaModel.TypeDesc.FunctionTypeDesc processFnType = ConversionUtils.processFunctionType(cx);
+        VarDeclStatment contextDecl = new VarDeclStatment(cx.contextType(), processFnType.parameters().get(0).name(),
+                new FunctionCall(cx.getInitContextFn(), List.of(paramXmlDecl.ref(), jobSharedVariables.ref())));
+        body.add(contextDecl);
+
+        body.add(new Statement.CallStatement(
+                new FunctionCall(cx.getProcessStartFunction().name(), List.of(contextDecl.ref()))));
+        return new BallerinaModel.Function(Optional.of("public"), "main", List.of(), Optional.empty(),
+                new BallerinaModel.BlockFunctionBody(body));
+    }
+
+    record TypeConversionResult(Collection<BallerinaModel.Service> service, Optional<BallerinaModel.Function> mainFn) {
+
+        TypeConversionResult(Collection<BallerinaModel.Service> service) {
+            this(service, Optional.empty());
+        }
     }
 
     private static BallerinaModel.Function generateExplicitTransitionBlockStartFunction(
