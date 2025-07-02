@@ -661,7 +661,7 @@ public class MuleConfigReader {
                     String resource = element.getAttribute("resource");
                     String script = null;
                     if (resource.isEmpty()) {
-                        script = ((CDATASection) element.getChildNodes().item(0)).getData();
+                        script = element.getTextContent();
                     }
                     transformMessageElements.add(new SetVariableElement(resource, script, variableName));
                 }
