@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:activity name="Parse" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <pd:type>com.tibco.plugin.xml.XMLParseActivity</pd:type>
+    <pd:resourceType>ae.activities.XMLParseActivity</pd:resourceType>
+    <config>
+        <inputStyle>text</inputStyle>
+        <xsdVersion>default</xsdVersion>
+        <validateOutput>true</validateOutput>
+        <term>
+            <xsd:any processContents="skip"/>
+        </term>
+    </config>
+    <pd:inputBindings>
+        <xmlString>
+            <xsl:value-of select="$Render/xmlString"/>
+        </xmlString>
+    </pd:inputBindings>
+</pd:activity>
