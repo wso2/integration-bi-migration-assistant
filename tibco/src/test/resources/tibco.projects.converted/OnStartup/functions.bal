@@ -9,10 +9,8 @@ function Log(Context cx) returns error? {
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema">
                     
     <message>
-                            
-        <xsl:value-of select="&quot;Hello World!&quot;" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-                        
-    </message>
+                    "Hello World!"
+                </message>
                 
 </ns:ActivityInput>
 

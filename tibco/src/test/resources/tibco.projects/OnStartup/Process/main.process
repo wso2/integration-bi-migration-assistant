@@ -22,7 +22,7 @@
         <pd:inputBindings>
             <ns:ActivityInput>
                 <message>
-                    <xsl:value-of select="&quot;Hello World!&quot;"/>
+                    "Hello World!"
                 </message>
             </ns:ActivityInput>
         </pd:inputBindings>
