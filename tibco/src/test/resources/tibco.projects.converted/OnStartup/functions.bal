@@ -23,13 +23,6 @@ function Log(Context cx) returns error? {
     addToContext(cx, "Log", var2);
 }
 
-public function main() {
-    map<SharedVariableContext> jobSharedVariables = {};
-    map<xml> paramXML = {};
-    Context cx = initContext(paramXML, jobSharedVariables);
-    start_main_process(cx);
-}
-
 function onStartup(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
