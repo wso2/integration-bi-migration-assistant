@@ -27,52 +27,6 @@ public enum Intrinsics {
                     }
                     """
     ),
-    RESPONSE_FROM_CONTEXT(
-            "responseFromContext",
-            """
-                    function responseFromContext(Context cx) returns http:Response {
-                        http:Response httpRes = new;
-                        Response? res = cx.response;
-                        if res is JSONResponse {
-                            httpRes.setJsonPayload(res.payload);
-                        } else if res is XMLResponse {
-                            httpRes.setXmlPayload(res.payload);
-                        } else if res is TextResponse {
-                            httpRes.setTextPayload(res.payload);
-                        } else {
-                            httpRes.setXmlPayload(cx.result);
-                        }
-
-                        if res != () {
-                            foreach var header in res.headers.entries() {
-                                httpRes.setHeader(header[0], header[1]);
-                            }
-                        }
-                        return httpRes;
-                    }
-                    """),
-    ADD_TO_CONTEXT(
-            "addToContext",
-            """
-                    function addToContext(Context context, string varName, xml value){
-                        xml children = value/*;
-                        xml transformed = xml `<root>${children}</root>`;
-                        context.variables[varName] = transformed;
-                        context.result = value;
-                    }
-                    """
-    ),
-    GET_FROM_CONTEXT(
-                    "getFromContext",
-            """
-                            function getFromContext(Context context, string varName) returns xml {
-                                xml? value = context.variables[varName];
-                                if value == () {
-                                    return xml `<root/>`;
-                                }
-                                return value;
-                            }
-                    """),
     XML_PARSER_RESULT(
             "XMLElementParseResult",
             """
