@@ -233,13 +233,28 @@ function storeSharedVariable(Context cx) returns error? {
     addToContext(cx, "storeSharedVariable", var1);
 }
 
-function initContext(map<xml> initVariables = {}) returns Context {
-    return {variables: initVariables, result: xml `<root/>`};
-}
-
 function addToContext(Context context, string varName, xml value) {
     xml children = value/*;
     xml transformed = xml `<root>${children}</root>`;
     context.variables[varName] = transformed;
     context.result = value;
+}
+
+function initContext(map<xml> initVariables = {}, map<SharedVariableContext> jobSharedVariables = {}) returns Context {
+    map<SharedVariableContext> sharedVariables = {};
+    SharedVariableContext sharedVarContext1 = {
+        getter: function() returns xml {
+            return sharedVariable;
+        },
+        setter: function(xml value) {
+            sharedVariable = value;
+        }
+    };
+
+    sharedVariables["sharedVariable"] = sharedVarContext1;
+
+    foreach var key in jobSharedVariables.keys() {
+        sharedVariables[key] = jobSharedVariables.get(key);
+    }
+    return {variables: initVariables, result: xml `<root/>`, sharedVariables};
 }

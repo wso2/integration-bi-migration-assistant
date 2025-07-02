@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -151,12 +152,27 @@ public class ProjectContext {
         getOrCreateUtilityTypeDef(contextTypeNames.jsonResponse(), ConversionUtils.jsonResponseTypeDesc(responseTy));
         getOrCreateUtilityTypeDef(contextTypeNames.xmlResponse(), ConversionUtils.xmlResponseTypeDesc(responseTy));
         getOrCreateUtilityTypeDef(contextTypeNames.textResponse(), ConversionUtils.textResponseTypeDesc(responseTy));
+
+        // Create SharedVariableContext type
+        BallerinaModel.TypeDesc getterFunctionType = new BallerinaModel.TypeDesc.FunctionTypeDesc(
+                List.of(), XML);
+        BallerinaModel.TypeDesc setterFunctionType = new BallerinaModel.TypeDesc.FunctionTypeDesc(
+                List.of(new BallerinaModel.Parameter("value", XML)), NIL);
+        BallerinaModel.TypeDesc sharedVariableContextType = new BallerinaModel.TypeDesc.RecordTypeDesc(
+                List.of(
+                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("getter", getterFunctionType),
+                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("setter", setterFunctionType)));
+        getOrCreateUtilityTypeDef("SharedVariableContext", sharedVariableContextType);
+
         return getOrCreateUtilityTypeDef(contextTypeNames.context(), new BallerinaModel.TypeDesc.RecordTypeDesc(
                 List.of(
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("variables",
                                 new BallerinaModel.TypeDesc.MapTypeDesc(XML)),
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("result", XML),
-                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("response", responseTy, true))));
+                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("response", responseTy, true),
+                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("sharedVariables",
+                                new BallerinaModel.TypeDesc.MapTypeDesc(
+                                        new BallerinaModel.TypeDesc.TypeReference("SharedVariableContext"))))));
     }
 
     private BallerinaModel.TypeDesc.TypeReference getOrCreateUtilityTypeDef(String typeName,
@@ -331,8 +347,11 @@ public class ProjectContext {
     }
 
     public String getInitContextFn() {
-        utilityIntrinsics.add(Intrinsics.INIT_CONTEXT);
-        return Intrinsics.INIT_CONTEXT.name;
+        Collection<SharedVariableInfo> sharedVariables = getProjectSharedVariables().map(this::addProjectSharedVariable)
+                .toList();
+        ComptimeFunction initContext = new InitContext(sharedVariables);
+        utilityCompTimeFunctions.add(initContext);
+        return initContext.functionName();
     }
 
     public String getPredicateTestFunction() {
@@ -364,6 +383,26 @@ public class ProjectContext {
 
     public void addSharedVariable(Resource.SharedVariable sharedVariable) {
         sharedVariables.add(sharedVariable);
+    }
+
+    public Stream<Resource.SharedVariable> getProjectSharedVariables() {
+        return sharedVariables.stream()
+                .filter(Resource.SharedVariable::isShared);
+    }
+
+    public Stream<Resource.SharedVariable> getJobSharedVariables() {
+        return sharedVariables.stream()
+                .filter(Predicate.not(Resource.SharedVariable::isShared));
+    }
+
+    private SharedVariableInfo addProjectSharedVariable(Resource.SharedVariable sharedVariable) {
+        assert sharedVariable.isShared() : "job shared variables must be declared within service";
+        assert !sharedVariable.initialValue().isBlank() : "Initial value should be a valid XML";
+        String name = ConversionUtils.getSanitizedUniqueName(sharedVariable.name(), utilityVars.keySet());
+        BallerinaModel.ModuleVar var = new BallerinaModel.ModuleVar(name, XML,
+                new BallerinaModel.Expression.XMLTemplate(sharedVariable.initialValue()));
+        utilityVars.put(name, var);
+        return new SharedVariableInfo(sharedVariable.name(), new VariableReference(name));
     }
 
     public void addConfigurableVariable(String name, String source) {

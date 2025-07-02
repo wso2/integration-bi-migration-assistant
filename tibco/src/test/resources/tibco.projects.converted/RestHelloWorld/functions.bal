@@ -562,10 +562,6 @@ function toXML(map<anydata> data) returns error|xml {
     return xmldata:toXml(data);
 }
 
-function initContext(map<xml> initVariables = {}) returns Context {
-    return {variables: initVariables, result: xml `<root/>`};
-}
-
 function renderJSONAsXML(json value, string? namespace, string typeName) returns xml|error {
     anydata body;
     if (value is map<json>) {
@@ -673,6 +669,15 @@ function getFromContext(Context context, string varName) returns xml {
         return xml `<root/>`;
     }
     return value;
+}
+
+function initContext(map<xml> initVariables = {}, map<SharedVariableContext> jobSharedVariables = {}) returns Context {
+    map<SharedVariableContext> sharedVariables = {};
+
+    foreach var key in jobSharedVariables.keys() {
+        sharedVariables[key] = jobSharedVariables.get(key);
+    }
+    return {variables: initVariables, result: xml `<root/>`, sharedVariables};
 }
 
 function renderJsonAsFooXML(xml value) returns xml|error {

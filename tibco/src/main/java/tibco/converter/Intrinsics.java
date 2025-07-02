@@ -19,14 +19,6 @@
 package tibco.converter;
 
 public enum Intrinsics {
-    INIT_CONTEXT(
-            "initContext",
-            """
-                    function initContext(map<xml> initVariables = {}) returns Context {
-                        return { variables: initVariables, result: xml `<root/>` };
-                    }
-                    """
-    ),
     XPATH_PREDICATE(
             "test",
             """
@@ -73,7 +65,7 @@ public enum Intrinsics {
                             return result;
                         }
                     }
-                    
+
                     function toJsonInner(xml value) returns json {
                         json result;
                         if (value is xml:Element) {
@@ -83,11 +75,11 @@ public enum Intrinsics {
                         }
                         return result;
                     }
-                    
+
                     function toJsonElement(xml:Element element) returns json {
                         XMLElementParseResult parseResult = parseElement(element);
                         string name = parseResult.name;
-                    
+
                         xml children = element/*;
                         map<json> body = {};
                         map<json> result = {};
@@ -137,7 +129,7 @@ public enum Intrinsics {
                         string str = result.toString();
                         return checkpanic xml:fromString(str);
                     }
-                    
+
                     function transformInner(xml value) returns xml {
                         xml result;
                         if (value is xml:Element) {
@@ -147,22 +139,22 @@ public enum Intrinsics {
                         }
                         return result;
                     }
-                    
+
                     function transformElement(xml:Element element) returns xml {
                         XMLElementParseResult parseResult = parseElement(element);
                         string? namespace = parseResult.namespace;
-                    
+
                         xml:Element transformedElement = element.clone();
                         transformedElement.setName(parseResult.name);
                         map<string> attributes = transformedElement.getAttributes();
                         if namespace != () {
                             attributes["xmlns"] = namespace;
                         }
-                    
+
                         // Get children and transform them recursively
                         xml children = element/*.clone();
                         xml transformedChildren = children.map(transform);
-                    
+
                         // Create new element with transformed children
                         transformedElement.setChildren(transformedChildren);
                         return transformedElement;
@@ -184,7 +176,7 @@ public enum Intrinsics {
                         } else {
                             body = value;
                         }
-                    
+
                         string rep = string `<${typeName}>${body.toString()}</${typeName}>`;
                         xml result = check xml:fromString(rep);
                         if (namespace == ()) {

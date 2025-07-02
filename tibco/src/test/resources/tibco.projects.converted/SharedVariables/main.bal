@@ -1,5 +1,6 @@
 import ballerina/http;
 
+xml sharedVariable = xml `<sharedData><count>0</count></sharedData>`;
 public listener http:Listener GeneralConnection_sharedhttp = new (9090, {host: "localhost"});
 
 service on GeneralConnection_sharedhttp {
