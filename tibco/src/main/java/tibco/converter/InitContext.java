@@ -18,8 +18,6 @@
 
 package tibco.converter;
 
-import common.BallerinaModel;
-
 import java.util.Collection;
 
 public class InitContext implements ComptimeFunction {
@@ -69,7 +67,9 @@ public class InitContext implements ComptimeFunction {
 
         return String
                 .format("""
-                                function initContext(map<xml> initVariables = {}, map<SharedVariableContext> jobSharedVariables = {}) returns Context {
+                                function initContext(map<xml> initVariables = {},
+                                                     map<SharedVariableContext> jobSharedVariables = {})
+                                              returns Context {
                                     map<SharedVariableContext> sharedVariables = {};
                                     %s
                                     %s
@@ -77,8 +77,8 @@ public class InitContext implements ComptimeFunction {
                                         sharedVariables[key] = jobSharedVariables.get(key);
                                     }
                                     return {variables: initVariables, result: xml `<root/>`, sharedVariables};
-                }
-                        """,
-                        sharedVarContexts.toString(), sharedVarAssignments.toString());
+                                }
+                                """,
+                        sharedVarContexts, sharedVarAssignments);
     }
 }

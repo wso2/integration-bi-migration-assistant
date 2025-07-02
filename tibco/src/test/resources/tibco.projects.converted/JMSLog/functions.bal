@@ -170,7 +170,9 @@ function getFromContext(Context context, string varName) returns xml {
     return value;
 }
 
-function initContext(map<xml> initVariables = {}, map<SharedVariableContext> jobSharedVariables = {}) returns Context {
+function initContext(map<xml> initVariables = {},
+        map<SharedVariableContext> jobSharedVariables = {})
+            returns Context {
     map<SharedVariableContext> sharedVariables = {};
 
     foreach var key in jobSharedVariables.keys() {

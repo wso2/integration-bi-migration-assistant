@@ -129,7 +129,9 @@ function addToContext(Context context, string varName, xml value) {
     context.result = value;
 }
 
-function initContext(map<xml> initVariables = {}, map<SharedVariableContext> jobSharedVariables = {}) returns Context {
+function initContext(map<xml> initVariables = {},
+        map<SharedVariableContext> jobSharedVariables = {})
+            returns Context {
     map<SharedVariableContext> sharedVariables = {};
 
     foreach var key in jobSharedVariables.keys() {
