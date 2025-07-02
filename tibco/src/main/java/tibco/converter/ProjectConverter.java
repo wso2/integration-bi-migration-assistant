@@ -142,7 +142,7 @@ public class ProjectConverter {
             cx.addJMSResource(resource);
         }
         for (Resource.SharedVariable resource : projectResources.sharedVariables) {
-            // TODO: handle shared variable conversion
+            cx.addSharedVariable(resource);
         }
     }
 

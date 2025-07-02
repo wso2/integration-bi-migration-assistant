@@ -90,6 +90,7 @@ public class ProjectContext {
     private final Map<Process, AnalysisResult> analysisResult;
     private Collection<Type.Schema> schemas = new ArrayList<>();
     private ContextTypeNames contextTypeNames = null;
+    private final Set<Resource.SharedVariable> sharedVariables = new HashSet<>();
 
     ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
                    Map<Process, AnalysisResult> analysisResult) {
@@ -361,6 +362,10 @@ public class ProjectContext {
         return resource;
     }
 
+    public void addSharedVariable(Resource.SharedVariable sharedVariable) {
+        sharedVariables.add(sharedVariable);
+    }
+
     public void addConfigurableVariable(String name, String source) {
         BallerinaModel.ModuleVar var = BallerinaModel.ModuleVar.configurable(source, STRING);
         utilityVars.put(name, var);
@@ -415,7 +420,7 @@ public class ProjectContext {
     }
 
     public AnalysisResult getAnalysisResult(Process process) {
-        return Objects.requireNonNull(analysisResult.get(process), 
+        return Objects.requireNonNull(analysisResult.get(process),
                 "Analysis result not found for process: " + process.name());
     }
 
