@@ -158,7 +158,7 @@ public class ProjectContext {
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("response", responseTy, true))));
     }
 
-    private BallerinaModel.TypeDesc.TypeReference getOrCreateUtilityTypeDef(String typeName,
+    public BallerinaModel.TypeDesc.TypeReference getOrCreateUtilityTypeDef(String typeName,
             BallerinaModel.TypeDesc typeDesc) {
         return utilityTypeDefs.computeIfAbsent(typeName,
                 name -> new BallerinaModel.ModuleTypeDef(name, typeDesc))
@@ -415,8 +415,8 @@ public class ProjectContext {
     }
 
     public AnalysisResult getAnalysisResult(Process process) {
-        return Objects.requireNonNull(analysisResult.get(process), 
-                "Analysis result not found for process: " + process.name());
+        return Objects.requireNonNull(analysisResult.get(process),
+                        "Analysis result not found for process: " + process.name());
     }
 
     public void addXSDSchemaToConversion(Type.Schema schema) {

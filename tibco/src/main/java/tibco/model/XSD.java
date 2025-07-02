@@ -39,7 +39,9 @@ public record XSD(Element type, org.w3c.dom.Element element) {
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document doc = builder.newDocument();
         org.w3c.dom.Element wrapped = wrapElement(doc, element, "schema");
-        return new Type.Schema(wrapped, List.of(new Type.Schema.SchemaXsdType(this.type.name(), this.type.type())));
+        String elementName = this.type.name()
+                .orElseThrow(() -> new IllegalStateException("XSD element must have a name to create schema"));
+        return new Type.Schema(wrapped, List.of(new Type.Schema.SchemaXsdType(elementName, this.type.type())));
     }
 
     private static org.w3c.dom.Element wrapElement(Document doc, org.w3c.dom.Element originalElement,
@@ -50,10 +52,20 @@ public record XSD(Element type, org.w3c.dom.Element element) {
         return wrapper;
     }
 
-    public record Element(String name, XSDType type, Optional<Integer> minOccur, Optional<Integer> maxOccur) {
+    public record Element(Optional<String> name, XSDType type, Optional<Integer> minOccur, Optional<Integer> maxOccur) {
+
+        // Constructor for elements with a name
+        public Element(String name, XSDType type, Optional<Integer> minOccur, Optional<Integer> maxOccur) {
+            this(Optional.of(name), type, minOccur, maxOccur);
+        }
+
+        // Constructor for elements without a name (like xs:any)
+        public Element(XSDType type, Optional<Integer> minOccur, Optional<Integer> maxOccur) {
+            this(Optional.empty(), type, minOccur, maxOccur);
+        }
 
         Stream<String> names() {
-            return Stream.concat(Stream.of(name), type.names().stream());
+            return Stream.concat(name.stream(), type.names().stream());
         }
     }
 
@@ -70,7 +82,10 @@ public record XSD(Element type, org.w3c.dom.Element element) {
             DECIMAL("decimal"),
             FLOAT("float"),
             DOUBLE("double"),
-            BOOLEAN("boolean");
+            BOOLEAN("boolean"),
+            BASE64BINARY("base64Binary"),
+            ANYDATA("anydata"),
+            ANYTYPE("anyType");
 
             private final String value;
 
@@ -83,8 +98,13 @@ public record XSD(Element type, org.w3c.dom.Element element) {
             }
 
             public static BasicXSDType parse(String typeStr) {
+                return parseInner(typeStr).orElseThrow(
+                        () -> new IllegalArgumentException("Unsupported XSD type: " + typeStr));
+            }
+
+            private static Optional<BasicXSDType> parseInner(String typeStr) {
                 if (typeStr == null || typeStr.isEmpty()) {
-                    throw new IllegalArgumentException("XSD type string cannot be null or empty");
+                    return Optional.empty();
                 }
 
                 String type = typeStr;
@@ -95,13 +115,24 @@ public record XSD(Element type, org.w3c.dom.Element element) {
                 String finalType = type;
                 return Arrays.stream(BasicXSDType.values())
                         .filter(basicType -> basicType.getValue().equalsIgnoreCase(finalType))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException("Unsupported XSD type: " + typeStr));
+                        .findFirst();
+            }
+
+            public static boolean couldBeBasicType(String typeStr) {
+                return typeStr != null && !typeStr.isBlank() && parseInner(typeStr).isPresent();
             }
 
             @Override
             public Collection<String> names() {
                 return List.of(value);
+            }
+        }
+
+        record ReferenceType(String targetTypeName) implements XSDType {
+
+            @Override
+            public Collection<String> names() {
+                return List.of(targetTypeName);
             }
         }
 
@@ -117,6 +148,10 @@ public record XSD(Element type, org.w3c.dom.Element element) {
                 List<Element> elements();
 
                 record Sequence(List<Element> elements) implements ComplexType.ComplexTypeBody {
+
+                }
+
+                record Choice(List<Element> elements) implements ComplexType.ComplexTypeBody {
 
                 }
             }

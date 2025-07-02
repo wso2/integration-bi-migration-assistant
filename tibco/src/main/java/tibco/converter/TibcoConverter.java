@@ -172,7 +172,7 @@ public class TibcoConverter {
                 name = "%s"
                 version = "%s"
                 distribution = "%s"
-                
+
                 [build-options]
                 observabilityIncluded = true""".formatted(org, name, version, distribution));
         for (var each : cx.javaDependencies()) {
