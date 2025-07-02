@@ -25,8 +25,19 @@ service /mule4 on config {
         Context ctx = {inboundProperties: {request, response: new}};
 
         // database operation
-        sql:ParameterizedQuery dbQuery0 = `SELECT * FROM users;`;
+        sql:ParameterizedQuery dbQuery0 = `SELECT * FROM users WHERE id = :id AND name = :name;`;
         stream<Record, sql:Error?> dbStream0 = mySql_Config->query(dbQuery0);
+
+        // TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.
+        // ------------------------------------------------------------------------
+        // <db:input-parameters xmlns:db="http://www.mulesoft.org/schema/mule/db"><![CDATA[
+        //         		#[{
+        //             		'id': vars.userId,
+        //             		'name': vars.userName
+        //         		}]
+        //     		]]></db:input-parameters>/n
+        // ------------------------------------------------------------------------
+
         Record[] dbSelect0 = check from Record _iterator_ in dbStream0
             select _iterator_;
         ctx.payload = dbSelect0;

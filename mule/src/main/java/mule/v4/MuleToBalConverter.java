@@ -21,6 +21,7 @@ import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.reader.MuleXMLNavigator;
 import mule.v4.reader.MuleXMLNavigator.MuleElement;
 import org.w3c.dom.Document;
@@ -42,6 +43,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import static common.BallerinaModel.BlockFunctionBody;
+import static common.BallerinaModel.Expression;
 import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.Listener;
@@ -68,9 +70,9 @@ import static mule.v4.converter.MuleConfigConverter.getCatchExceptionBody;
 import static mule.v4.converter.MuleConfigConverter.getChoiceExceptionBody;
 import static mule.v4.model.MuleModel.CatchExceptionStrategy;
 import static mule.v4.model.MuleModel.ChoiceExceptionStrategy;
-import static mule.v4.model.MuleModel.DbMSQLConfig;
-import static mule.v4.model.MuleModel.DbOracleConfig;
-import static mule.v4.model.MuleModel.DbTemplateQuery;
+import static mule.v4.model.MuleModel.DbConnection;
+import static mule.v4.model.MuleModel.DbMySqlConnection;
+import static mule.v4.model.MuleModel.DbOracleConnection;
 import static mule.v4.model.MuleModel.Flow;
 import static mule.v4.model.MuleModel.HTTPListenerConfig;
 import static mule.v4.model.MuleModel.HttpListener;
@@ -170,27 +172,31 @@ public class MuleToBalConverter {
 
         // Add module vars
         List<ModuleVar> moduleVars = new ArrayList<>();
+        for (DbConfig dbConfig : ctx.currentFileCtx.configs.dbConfigs.values()) {
+            DbConnection dbConnection = dbConfig.dbConnection();
+            TypeDesc dbClientType;
+            Expression balExpr;
+            if (dbConnection.kind() == Kind.DB_MYSQL_CONNECTION) {
+                DbMySqlConnection con = (DbMySqlConnection) dbConnection;
+                dbClientType = typeFrom(Constants.MYSQL_CLIENT_TYPE);
+                balExpr = exprFrom("check new (%s, %s, %s, %s, %s)".formatted(
+                        getAttrVal(ctx, con.host()), getAttrVal(ctx, con.user()),
+                        getAttrVal(ctx, con.password()), getAttrVal(ctx, con.database()),
+                        getAttrValInt(ctx, con.port())));
+            } else if (dbConnection.kind() == Kind.DB_ORACLE_CONNECTION) {
+                DbOracleConnection con = (DbOracleConnection) dbConnection;
+                dbClientType = typeFrom(Constants.ORACLEDB_CLIENT_TYPE);
+                String database = con.instance().isEmpty() ? con.serviceName() : con.instance();
+                String port = con.port().isEmpty() ? "1521" : con.port();
+                balExpr = exprFrom(String.format("check new (%s, %s, %s, %s, %s)",
+                        getAttrVal(ctx, con.host()), getAttrVal(ctx, con.user()),
+                        getAttrVal(ctx, con.password()), getAttrVal(ctx, database),
+                        getAttrValInt(ctx, port)));
+            } else {
+                throw new IllegalStateException("Unsupported DB connection type: " + dbConnection.kind());
+            }
 
-        for (DbMSQLConfig dbMSQLConfig : ctx.currentFileCtx.configs.dbMySQLConfigs.values()) {
-            var balExpr = exprFrom("check new (%s, %s, %s, %s, %s)".formatted(
-                    getAttrVal(ctx, dbMSQLConfig.host()), getAttrVal(ctx, dbMSQLConfig.user()),
-                    getAttrVal(ctx, dbMSQLConfig.password()), getAttrVal(ctx, dbMSQLConfig.database()),
-                    getAttrValInt(ctx, dbMSQLConfig.port())));
-            moduleVars.add(new ModuleVar(dbMSQLConfig.name(), typeFrom(Constants.MYSQL_CLIENT_TYPE), balExpr));
-        }
-
-        for (DbOracleConfig dbOracleConfig : ctx.currentFileCtx.configs.dbOracleConfigs.values()) {
-            var balExpr = exprFrom(String.format("check new (%s, %s, %s, %s, %s)",
-                    getAttrVal(ctx, dbOracleConfig.host()), getAttrVal(ctx, dbOracleConfig.user()),
-                    getAttrVal(ctx, dbOracleConfig.password()), getAttrVal(ctx, dbOracleConfig.instance()),
-                    getAttrValInt(ctx, dbOracleConfig.port())));
-            moduleVars.add(new ModuleVar(dbOracleConfig.name(), typeFrom(Constants.ORACLEDB_CLIENT_TYPE), balExpr));
-        }
-
-        for (DbTemplateQuery dbTemplateQuery : ctx.currentFileCtx.configs.dbTemplateQueries.values()) {
-            var balExpr = exprFrom(String.format("`%s`", dbTemplateQuery.parameterizedQuery()));
-            moduleVars.add(new ModuleVar(dbTemplateQuery.name(), typeFrom(Constants.SQL_PARAMETERIZED_QUERY_TYPE),
-                    balExpr));
+            moduleVars.add(new ModuleVar(dbConfig.name(), dbClientType, balExpr));
         }
 
         moduleVars.addAll(ctx.currentFileCtx.balConstructs.moduleVars.values());
@@ -198,7 +204,7 @@ public class MuleToBalConverter {
         // Global comments at the end of file
         List<String> comments = new ArrayList<>();
         for (UnsupportedBlock unsupportedBlock : ctx.currentFileCtx.configs.unsupportedBlocks) {
-            String comment = ConversionUtils.wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());
+            String comment = ConversionUtils.convertToUnsupportedTODO(ctx, unsupportedBlock);
             comments.add(comment);
         }
 
