@@ -12,23 +12,23 @@ function LogLoadedVars(Context cx) returns error? {
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="loadSharedVariable"/><xsl:param name="loadJobSharedVariable"/>     <xsl:template name="Transform0" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
-
+                    
     <message>
-
+                            
         <sharedValue>
-
+                                    
             <xsl:value-of select="$loadSharedVariable" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-
+                                
         </sharedValue>
-
+                            
         <jobValue>
-
+                                    
             <xsl:value-of select="$loadJobSharedVariable" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-
+                                
         </jobValue>
-
+                        
     </message>
-
+                
 </ns:ActivityInput>
 
     </xsl:template>
@@ -43,23 +43,23 @@ function LogLoadedVars2(Context cx) returns error? {
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="loadSharedVariable2"/><xsl:param name="loadJobSharedVariable2"/>     <xsl:template name="Transform3" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
-
+                    
     <message>
-
+                            
         <sharedValue>
-
+                                    
             <xsl:value-of select="$loadSharedVariable2" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-
+                                
         </sharedValue>
-
+                            
         <jobValue>
-
+                                    
             <xsl:value-of select="$loadJobSharedVariable2" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-
+                                
         </jobValue>
-
+                        
     </message>
-
+                
 </ns:ActivityInput>
 
     </xsl:template>
@@ -74,23 +74,23 @@ function MapperXMLPayload(Context cx) returns error? {
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="loadSharedVariable2"/><xsl:param name="loadJobSharedVariable2"/>     <xsl:template name="Transform4" match="/">
         <payload>
-
+                    
     <results>
-
+                            
         <shared>
-
+                                    
             <xsl:value-of select="$loadSharedVariable2" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-
+                                
         </shared>
-
+                            
         <job>
-
+                                    
             <xsl:value-of select="$loadJobSharedVariable2" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-
+                                
         </job>
-
+                        
     </results>
-
+                
 </payload>
 
     </xsl:template>
@@ -155,7 +155,15 @@ function storeJobSharedVariable(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="loadJobSharedVariable"/>     <xsl:template name="Transform2" match="/">
+        <root>
+                    
+    <count>
+                            
         <xsl:value-of select="$loadJobSharedVariable/root/count + 1" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                        
+    </count>
+                
+</root>
 
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
@@ -167,7 +175,15 @@ function storeSharedVariable(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="loadSharedVariable"/>     <xsl:template name="Transform1" match="/">
+        <root>
+                    
+    <count>
+                            
         <xsl:value-of select="$loadSharedVariable/root/count + 1" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                        
+    </count>
+                
+</root>
 
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
