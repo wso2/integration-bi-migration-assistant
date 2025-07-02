@@ -98,8 +98,13 @@ public record XSD(Element type, org.w3c.dom.Element element) {
             }
 
             public static BasicXSDType parse(String typeStr) {
+                return parseInner(typeStr).orElseThrow(
+                        () -> new IllegalArgumentException("Unsupported XSD type: " + typeStr));
+            }
+
+            private static Optional<BasicXSDType> parseInner(String typeStr) {
                 if (typeStr == null || typeStr.isEmpty()) {
-                    throw new IllegalArgumentException("XSD type string cannot be null or empty");
+                    return Optional.empty();
                 }
 
                 String type = typeStr;
@@ -110,8 +115,11 @@ public record XSD(Element type, org.w3c.dom.Element element) {
                 String finalType = type;
                 return Arrays.stream(BasicXSDType.values())
                         .filter(basicType -> basicType.getValue().equalsIgnoreCase(finalType))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException("Unsupported XSD type: " + typeStr));
+                        .findFirst();
+            }
+
+            public static boolean couldBeBasicType(String typeStr) {
+                return typeStr != null && !typeStr.isBlank() && parseInner(typeStr).isPresent();
             }
 
             @Override

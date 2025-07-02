@@ -440,8 +440,9 @@ public final class XmlToTibcoModelConverter {
         }
 
         // Handle element tags with type attributes (alias elements)
-        if (tagName.equals("element") && !typeAttr.isBlank()) {
+        if (tagName.equals("element") && !typeAttr.isBlank() && !XSD.XSDType.BasicXSDType.couldBeBasicType(typeAttr)) {
             String targetTypeName = ConversionUtils.stripNamespace(typeAttr);
+            assert !targetTypeName.isBlank();
             logger.info("XSD element type alias found: " + typeAttr + " -> " + targetTypeName);
             return new XSD.Element(name, new XSD.XSDType.ReferenceType(targetTypeName), Optional.empty(),
                     Optional.empty());
