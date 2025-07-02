@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="config" doc:name="HTTP Listener config" doc:id="85b56e19-f77d-4d11-bfbe-b30beae6e98a" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="demoFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c" >
+        <http:listener doc:name="Listener" doc:id="2d80f8b6-ba81-46e0-91b7-516a8e4fdb67" config-ref="config" path="/logger" allowedMethods="GET"/>
+        <logger level="INFO" doc:name="Logger" doc:id="af520ce8-f697-4442-8729-866a2a6ae7a4" message="xxx: INFO level logger invoked"/>
+        <logger level="DEBUG" doc:name="Logger" doc:id="b476f2a5-cd98-47f8-b291-b5f153e13738" message="xxx: DEBUG level logger invoked"/>
+        <logger level="ERROR" doc:name="Logger" doc:id="a4f13466-9499-41f0-830b-783ac39c448c" message="xxx: ERROR level logger invoked"/>
+        <logger level="WARN" doc:name="Logger" doc:id="80b34917-3d6b-4596-8260-9ad085b316fd" message="xxx: WARN level logger invoked"/>
+        <logger level="TRACE" doc:name="Logger" doc:id="9f60cebc-7a91-451e-86ff-713b15d120c9" message="xxx: TRACE level logger invoked"/>
+    </flow>
+</mule>

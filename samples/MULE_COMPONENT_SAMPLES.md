@@ -1248,7 +1248,6 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
     <flow name="currency-api-flow">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/proptest/{country}/v1" doc:name="HTTP" allowedMethods="GET"/>
         <set-variable variableName="queryParams" value="#[message.inboundProperties.'http.query.params']" doc:name="Set Query Params Variable"/>
-
         <set-variable variableName="city" value="#[message.inboundProperties.'http.query.params'.city]" doc:name="Set City Variable"/>
         <set-variable variableName="queryParams2" value="#[message.inboundProperties['http.query.params']]" doc:name="Set Query Params2 Variable"/>
         <set-variable variableName="city2" value="#[message.inboundProperties['http.query.params'].city]" doc:name="Set City2 Variable"/>
@@ -2704,11 +2703,9 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <http:listener config-ref="config" path="/" allowedMethods="GET" doc:name="HTTP"/>
         <dw:transform-message>
             <dw:input-payload mimeType="application/json"/>
-            <dw:set-variable variableName="myVariable"
-                             resource="blocks/mule3/transform-message/dataweave-files/transform_message_with_components.dwl"/>
-            <dw:set-payload resource="blocks/mule3/transform-message/dataweave-files/transform_message_with_components.dwl"/>
-            <dw:set-session-variable variableName="mySessionVariable"
-                      resource="blocks/mule3/transform-message/dataweave-files/transform_message_with_components.dwl"/>
+            <dw:set-variable variableName="myVariable" resource="mule/v3/blocks/transform-message/dataweave-files/transform_message_with_components.dwl"/>
+            <dw:set-payload resource="mule/v3/blocks/transform-message/dataweave-files/transform_message_with_components.dwl"/>
+            <dw:set-session-variable variableName="mySessionVariable" resource="mule/v3/blocks/transform-message/dataweave-files/transform_message_with_components.dwl"/>
         </dw:transform-message>
     </flow>
 </mule>

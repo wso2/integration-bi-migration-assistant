@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:activity name="SOAPRequestReply" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <pd:type>com.tibco.plugin.soap.SOAPSendReceiveActivity</pd:type>
+    <pd:resourceType>ae.activities.SOAPSendReceiveUI</pd:resourceType>
+    <config>
+        <soapAction>SOAPAction</soapAction>
+        <endpointURL>http://localhost:8800</endpointURL>
+    </config>
+    <pd:inputBindings>
+        <inputMessage>
+            <message>
+                "foo bar"
+            </message>
+        </inputMessage>
+    </pd:inputBindings>
+</pd:activity>

@@ -38,12 +38,16 @@ checkstyle {
     config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
 }
 
-checkstyleMain.exclude("mule/dataweave/parser/*.java")
+checkstyleMain.exclude("mule/v3/dataweave/parser/*.java")
+checkstyleMain.exclude("mule/v4/dataweave/parser/*.java")
 
 // To bypass 120 word limit for html template
-checkstyleMain.exclude("mule/report/MigrationReportTemplate.java")
-checkstyleMain.exclude("mule/report/AggregateReportTemplate.java")
-checkstyleMain.exclude("mule/report/AggregateReportWriter.java")
+checkstyleMain.exclude("mule/v3/report/MigrationReportTemplate.java")
+checkstyleMain.exclude("mule/v3/report/AggregateReportTemplate.java")
+checkstyleMain.exclude("mule/v3/report/AggregateReportWriter.java")
+checkstyleMain.exclude("mule/v4/report/MigrationReportTemplate.java")
+checkstyleMain.exclude("mule/v4/report/AggregateReportTemplate.java")
+checkstyleMain.exclude("mule/v4/report/AggregateReportWriter.java")
 
 spotbugs {
     reportLevel = 'high'

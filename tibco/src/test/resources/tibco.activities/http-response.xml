@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:activity name="HTTP Response" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <pd:type>com.tibco.plugin.http.HTTPResponseActivity</pd:type>
+    <pd:resourceType>httppalette.httpResponseActivity</pd:resourceType>
+    <config>
+        <responseHeader>
+            <header name="Content-Type">text/xml; charset=UTF-8</header>
+        </responseHeader>
+        <httpResponseCode>200</httpResponseCode>
+    </config>
+    <pd:inputBindings>
+        <ResponseActivityInput>
+            <asciiContent>
+                <Response>
+                    <xsl:value-of select="$Call-Foo//FromBar"/>
+                </Response>
+            </asciiContent>
+        </ResponseActivityInput>
+    </pd:inputBindings>
+</pd:activity>

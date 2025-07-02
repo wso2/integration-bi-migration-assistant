@@ -109,7 +109,7 @@ public class XmlToModelTests {
 
         Element element = TestUtils.stringToElement(activityXml);
         InlineActivity actual =
-                XmlToTibcoModelConverter.parseInlineActivity(new XmlToTibcoModelConverter.ParseContext(),
+                XmlToTibcoModelConverter.parseInlineActivity(new ParseContext(),
                 element);
         InlineActivity.MapperActivity expected =
                 new InlineActivity.MapperActivity(element,
@@ -151,7 +151,7 @@ public class XmlToModelTests {
                 """;
 
         Element element = TestUtils.stringToElement(activityXml);
-        InlineActivity actual = XmlToTibcoModelConverter.parseInlineActivity(new XmlToTibcoModelConverter.ParseContext(),
+        InlineActivity actual = XmlToTibcoModelConverter.parseInlineActivity(new ParseContext(),
                 element);
         InlineActivity.WriteLog expected = new InlineActivity.WriteLog(element, "Log",
                 new Scope.Flow.Activity.InputBinding.CompleteBinding(
@@ -192,7 +192,7 @@ public class XmlToModelTests {
                 """;
 
         Element element = TestUtils.stringToElement(activityXml);
-        InlineActivity actual = XmlToTibcoModelConverter.parseInlineActivity(new XmlToTibcoModelConverter.ParseContext(),
+        InlineActivity actual = XmlToTibcoModelConverter.parseInlineActivity(new ParseContext(),
                 element);
         InlineActivity.AssignActivity expected = new InlineActivity.AssignActivity(element, "Assign", "Error",
                 new Scope.Flow.Activity.InputBinding.CompleteBinding(

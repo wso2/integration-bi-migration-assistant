@@ -26,6 +26,7 @@ service "JMS_Queue_Receiver" on jmsJMS_Queue_ReceiverListener {
     }
 }
 
+xmlns "http://www.tibco.com/namespaces/tnt/plugins/timer" as ns0;
 xmlns "http://xmlns.tibco.com/bw/process/2003" as pd;
 xmlns "http://www.w3.org/1999/XSL/Transform" as xsl;
 xmlns "http://www.tibco.com/namespaces/tnt/plugins/jms" as ns1;

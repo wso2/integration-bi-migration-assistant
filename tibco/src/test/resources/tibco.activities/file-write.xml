@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:activity name="Write File" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/file">
+    <pd:type>com.tibco.plugin.file.FileWriteActivity</pd:type>
+    <pd:resourceType>ae.activities.FileWriteActivity</pd:resourceType>
+    <config>
+        <encoding>text</encoding>
+        <compressFile>None</compressFile>
+        <append>true</append>
+    </config>
+    <pd:inputBindings>
+        <ns0:WriteActivityInputTextClass xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/file">
+            <fileName>
+                <xsl:value-of select="&quot;output.txt&quot;"/>
+            </fileName>
+            <textContent>
+                <xsl:value-of select="$Mapper"/>
+            </textContent>
+            <addLineSeparator>
+                <xsl:value-of select="true()"/>
+            </addLineSeparator>
+        </ns0:WriteActivityInputTextClass>
+    </pd:inputBindings>
+</pd:activity>

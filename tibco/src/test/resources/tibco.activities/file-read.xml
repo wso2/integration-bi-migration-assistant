@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:activity name="Read file" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <pd:type>com.tibco.plugin.file.FileReadActivity</pd:type>
+    <pd:resourceType>ae.activities.FileReadActivity</pd:resourceType>
+    <config>
+        <encoding>text</encoding>
+    </config>
+    <pd:inputBindings>
+        <ReadActivityInputClass>
+            <fileName>
+                <xsl:value-of select="&quot;input.txt&quot;"/>
+            </fileName>
+        </ReadActivityInputClass>
+    </pd:inputBindings>
+</pd:activity>

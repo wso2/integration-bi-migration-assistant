@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="config" doc:name="HTTP Listener config" doc:id="85b56e19-f77d-4d11-bfbe-b30beae6e98a" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="demoFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c" >
+        <http:listener doc:name="Listener" doc:id="2d80f8b6-ba81-46e0-91b7-516a8e4fdb67" config-ref="config" path="/sub_flow" allowedMethods="GET"/>
+        <logger level="INFO" doc:name="Logger" doc:id="af520ce8-f697-4442-8729-866a2a6ae7a4" message="xxx: logger invoked via http end point"/>
+        <flow-ref doc:name="Flow Reference" doc:id="6022619f-49d4-4928-bfbf-ab4d31bc9b49" name="demoSubFlow"/>
+        <logger level="INFO" doc:name="Logger" doc:id="192687ab-f765-4b7e-ad44-40ddcae9e62d" message="xxx: logger after flow reference invoked"/>
+    </flow>
+    <sub-flow name="demoSubFlow" doc:id="a341a351-05f2-4fa1-950c-3b630809bc2d" >
+        <logger level="INFO" doc:name="Logger" doc:id="f2d03f15-d40b-40fc-91fa-af57257fa7e4" message="xxx: sub flow logger invoked"/>
+        <set-payload value="This is a sub flow set-payload call" doc:name="Set Payload" doc:id="2d38087d-c540-4189-b0c3-53a5dafe59f6" />
+    </sub-flow>
+</mule>

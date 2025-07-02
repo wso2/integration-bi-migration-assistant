@@ -2,11 +2,25 @@
 <suite name="Suite" time-out="120000">
     <test name="LoggerTest">
         <packages>
-            <package name="blocks.*"/>
-            <package name="dw.*"/>
+            <package name="mule.v3.blocks.*"/>
+            <package name="mule.v3.dw.*"/>
+<!--            <package name="mule.v4.blocks.*"/>-->
+<!--            <package name="mule.v4.dw.*"/>-->
         </packages>
         <classes>
-            <class name="TestConverter"/>
+            <class name="mule.v3.TestConverter"/>
+            <class name="mule.v4.TestConverter"/>
+
+            <!-- V4 support updated blocks -->
+            <class name="mule.v4.blocks.HttpListenerTest"/>
+            <class name="mule.v4.blocks.LoggerTest"/>
+            <class name="mule.v4.blocks.FlowTest"/>
+            <class name="mule.v4.blocks.SubFlowTest"/>
+            <class name="mule.v4.blocks.SetPayloadTest"/>
+            <class name="mule.v4.blocks.VariableTest"/>
+            <!--        TODO:session variables do not exist in mule 4. Merge with VariableTest-->
+            <!--        <class name="mule.v4.blocks.SessionVariableTest"/>-->
+            <class name="mule.v4.blocks.ChoiceTest"/>
         </classes>
     </test>
 </suite>

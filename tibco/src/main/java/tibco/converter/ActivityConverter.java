@@ -74,6 +74,7 @@ import java.util.stream.Collectors;
 import javax.xml.parsers.ParserConfigurationException;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
+import static common.BallerinaModel.TypeDesc.BuiltinType.DECIMAL;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static common.BallerinaModel.TypeDesc.BuiltinType.INT;
 import static common.BallerinaModel.TypeDesc.BuiltinType.JSON;
@@ -199,6 +200,7 @@ final class ActivityConverter {
                         convertJMSQueueSendActivity(cx, result, jmsQueueSendActivity);
                 case InlineActivity.JMSQueueGetMessageActivity jmsQueueGetMessageActivity ->
                         convertJMSQueueGetActivity(cx, result, jmsQueueGetMessageActivity);
+                case InlineActivity.Sleep sleep -> convertSleep(cx, result, sleep);
             };
             body.addAll(conversion.body());
             body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
@@ -327,6 +329,26 @@ final class ActivityConverter {
         );
         VarDeclStatment jmsOutput = new VarDeclStatment(XML, cx.getAnnonVarName(), jmsTemplate);
         return new ActivityConversionResult(jmsOutput.ref(), List.of(jmsOutput));
+    }
+
+    private static ActivityConversionResult convertSleep(
+            ActivityContext cx, VariableReference input, InlineActivity.Sleep sleep) {
+        List<Statement> body = new ArrayList<>();
+
+        // Extract the interval value from the input XML
+        VarDeclStatment intervalInMillisec = new VarDeclStatment(DECIMAL, cx.getAnnonVarName(),
+                new Check(new FunctionCall("decimal:fromString", List.of(
+                        exprFrom("(%s/**/<IntervalInMillisec>/*).toString().trim()"
+                                .formatted(input.varName()))))));
+        body.add(intervalInMillisec);
+
+        // Call runtime:sleep with the interval converted to seconds
+        cx.addLibraryImport(Library.RUNTIME);
+        body.add(new CallStatement(new FunctionCall("runtime:sleep", List.of(
+                exprFrom("%s / 1000".formatted(intervalInMillisec.ref()))))));
+        VarDeclStatment empty = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+        body.add(empty);
+        return new ActivityConversionResult(empty.ref(), body);
     }
 
     private static ActivityConversionResult convertJDBC(

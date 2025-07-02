@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+    <http:listener-config name="config" doc:name="HTTP Listener config" doc:id="85b56e19-f77d-4d11-bfbe-b30beae6e98a" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="demoFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c" >
+        <http:listener doc:name="Listener" doc:id="2d80f8b6-ba81-46e0-91b7-516a8e4fdb67" config-ref="config" path="/remove_variable" allowedMethods="GET"/>
+        <set-variable value="#['Hello']" doc:name="Set Variable" doc:id="c92878cc-4b5f-4965-858d-55c6ab90e62b" variableName="greeting" />
+        <set-variable value="USA" doc:name="Set Variable" doc:id="76718e06-caaf-4ed6-9d4f-f8c74889d6c7" variableName="from"/>
+        <logger level="INFO" doc:name="Logger" doc:id="3f618f6e-1097-4ede-afe8-983754c0525a" message="Variables before removing: greeting - #[vars.greeting], from - #[vars['from']]"/>
+        <remove-variable doc:name="Remove Variable" doc:id="deed0bbe-6bf7-4d1e-a092-c3ff1aecab6c" variableName="greeting"/>
+        <remove-variable doc:name="Remove Variable" doc:id="29e8b65e-286d-4315-b45e-34a3d36f0a76" variableName="#[vars.from]"/>
+        <remove-variable doc:name="Remove Variable" doc:id="b1623562-be57-4239-b643-a8eea8de5d09" variableName="undefVar"/>
+        <logger level="INFO" doc:name="Logger" doc:id="e2fe579d-338f-4c53-b3df-d085dd3990dd" message="Variables after removing: greeting - #[vars.greeting], from - #[vars['from']]"/>
+    </flow>
+</mule>

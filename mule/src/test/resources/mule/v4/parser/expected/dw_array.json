@@ -1,0 +1,30 @@
+{
+  "type" : "Script",
+  "header" : {
+    "type" : "Header",
+    "directives" : [ {
+      "type" : "Version",
+      "version" : "2.0"
+    }, {
+      "type" : "Output",
+      "output" : "application/json"
+    } ]
+  },
+  "body" : {
+    "type" : "Body",
+    "expression" : {
+      "type" : "Array",
+      "elements" : [ {
+        "type" : "Literal",
+        "value" : "1"
+      }, {
+        "type" : "Literal",
+        "value" : "2"
+      }, {
+        "type" : "Literal",
+        "value" : "3"
+      } ]
+    }
+  }
+}
+
