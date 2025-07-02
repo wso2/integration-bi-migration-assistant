@@ -119,7 +119,12 @@ public class ProcessConverter {
                     ProcessContext cx, ExplicitTransitionGroup group,
                     ExplicitTransitionGroup.InlineActivity.JMSQueueEventSource jmsQueueEventSource) {
         Parameter parameter = new Parameter("message", ConversionUtils.Constants.JMS_MESSAGE_TYPE);
-        List<Statement> body = new ArrayList<>(initJobSharedVariables(cx.projectContext));
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment jobSharedVariables =
+                new VarDeclStatment(new TypeDesc.MapTypeDesc(common.ConversionUtils.typeFrom("SharedVariableContext")),
+                        "jobSharedVariables", exprFrom("{}"));
+        body.add(jobSharedVariables);
+        body.addAll(initJobSharedVariables(cx.projectContext, jobSharedVariables.ref()));
         body.add(Statement.IfElseStatement.ifStatement(common.ConversionUtils.exprFrom(
                         "%s !is %s".formatted(parameter.name(), ConversionUtils.Constants.JMS_TEXT_MESSAGE)),
                 List.of(common.ConversionUtils.stmtFrom("panic error(\"Unsupported JMS message type\");"))));
@@ -135,7 +140,7 @@ public class ProcessConverter {
 
         BallerinaModel.TypeDesc.FunctionTypeDesc processFnType = ConversionUtils.processFunctionType(cx);
         VarDeclStatment contextDecl = new VarDeclStatment(cx.contextType(), processFnType.parameters().get(0).name(),
-                new FunctionCall(cx.getInitContextFn(), List.of(paramXmlDecl.ref())));
+                new FunctionCall(cx.getInitContextFn(), List.of(paramXmlDecl.ref(), jobSharedVariables.ref())));
         body.add(contextDecl);
 
         body.add(new Statement.CallStatement(
@@ -195,7 +200,12 @@ public class ProcessConverter {
 
     private static BallerinaModel.@NotNull Resource generateResourceFunctionForHTTPStartActivity(
             ProcessContext cx, ExplicitTransitionGroup group) {
-        List<Statement> body = new ArrayList<>(initJobSharedVariables(cx.projectContext));
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment jobSharedVariables =
+                new VarDeclStatment(new TypeDesc.MapTypeDesc(common.ConversionUtils.typeFrom("SharedVariableContext")),
+                        "jobSharedVariables", exprFrom("{}"));
+        body.add(jobSharedVariables);
+        body.addAll(initJobSharedVariables(cx.projectContext, jobSharedVariables.ref()));
         Parameter parameter = new Parameter("input", XML);
         XMLTemplate inputXml = new XMLTemplate("""
                 <root>
@@ -212,7 +222,7 @@ public class ProcessConverter {
 
         BallerinaModel.TypeDesc.FunctionTypeDesc processFnType = ConversionUtils.processFunctionType(cx);
         VarDeclStatment contextDecl = new VarDeclStatment(cx.contextType(), processFnType.parameters().get(0).name(),
-                new FunctionCall(cx.getInitContextFn(), List.of(paramXmlDecl.ref())));
+                new FunctionCall(cx.getInitContextFn(), List.of(paramXmlDecl.ref(), jobSharedVariables.ref())));
         body.add(contextDecl);
 
         // TODO: it is better if we can reuse the same logic as Process6 where we use the intrinsic and return
@@ -602,7 +612,8 @@ public class ProcessConverter {
                 List.of(inputVariable, new XMLTemplate(xslt.expression()))));
     }
 
-    private static List<Statement> initJobSharedVariables(ProjectContext projectContext) {
+    private static List<Statement> initJobSharedVariables(ProjectContext projectContext,
+                                                          VariableReference jobSharedVariables) {
         List<Statement> statements = new ArrayList<>();
 
         projectContext.getJobSharedVariables().forEach(jobSharedVariable -> {
@@ -625,7 +636,7 @@ public class ProcessConverter {
             statements.add(contextDecl);
 
             BallerinaModel.Expression mapAssignment = new BallerinaModel.Expression.BallerinaExpression(
-                    "sharedVariables[\"" + jobSharedVariable.name() + "\"] = " + contextVarName);
+                    jobSharedVariables.varName() + "[\"" + jobSharedVariable.name() + "\"] = " + contextVarName);
             statements.add(new Statement.BallerinaStatement(mapAssignment + ";"));
         });
 

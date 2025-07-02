@@ -395,6 +395,12 @@ public class ProjectContext {
                 .filter(Predicate.not(Resource.SharedVariable::isShared));
     }
 
+    public Optional<Resource.SharedVariable> getSharedVariableByRelativePath(String relativePath) {
+        return sharedVariables.stream()
+                .filter(sv -> sv.relativePath().equals(relativePath))
+                .findFirst();
+    }
+
     private SharedVariableInfo addProjectSharedVariable(Resource.SharedVariable sharedVariable) {
         assert sharedVariable.isShared() : "job shared variables must be declared within service";
         assert !sharedVariable.initialValue().isBlank() : "Initial value should be a valid XML";
@@ -590,6 +596,16 @@ public class ProjectContext {
     public String getParseHeadersFn() {
         utilityIntrinsics.add(Intrinsics.PARSE_HEADERS);
         return Intrinsics.PARSE_HEADERS.name;
+    }
+
+    public String getSetSharedVariableFn() {
+        utilityIntrinsics.add(Intrinsics.SET_SHARED_VARIABLE);
+        return Intrinsics.SET_SHARED_VARIABLE.name;
+    }
+
+    public String getGetSharedVariableFn() {
+        utilityIntrinsics.add(Intrinsics.GET_SHARED_VARIABLE);
+        return Intrinsics.GET_SHARED_VARIABLE.name;
     }
 
     private static class ContextWrapperForTypeFile implements ContextWithFile {

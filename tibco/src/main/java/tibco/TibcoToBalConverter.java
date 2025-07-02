@@ -145,11 +145,13 @@ public class TibcoToBalConverter {
             ParseContext cx = new ParseContext(projectPath);
 
             for (String s : getFilesWithExtension(projectPath, "sharedvariable")) {
-                variables.add(XmlToTibcoModelConverter.parseSharedVariable(cx, parseXmlFile(s)));
+                String relativePath = "/" + Paths.get(projectPath).relativize(Paths.get(s)).toString();
+                variables.add(XmlToTibcoModelConverter.parseSharedVariable(cx, parseXmlFile(s), relativePath));
             }
 
             for (String s : getFilesWithExtension(projectPath, "jobsharedvariable")) {
-                variables.add(XmlToTibcoModelConverter.parseJobSharedVariable(cx, parseXmlFile(s)));
+                String relativePath = "/" + Paths.get(projectPath).relativize(Paths.get(s)).toString();
+                variables.add(XmlToTibcoModelConverter.parseJobSharedVariable(cx, parseXmlFile(s), relativePath));
             }
 
             return variables;

@@ -12,23 +12,23 @@ function LogLoadedVars(Context cx) returns error? {
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="loadSharedVariable"/><xsl:param name="loadJobSharedVariable"/>     <xsl:template name="Transform0" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
-                    
+
     <message>
-                            
+
         <sharedValue>
-                                    
+
             <xsl:value-of select="$loadSharedVariable" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-                                
+
         </sharedValue>
-                            
+
         <jobValue>
-                                    
+
             <xsl:value-of select="$loadJobSharedVariable" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-                                
+
         </jobValue>
-                        
+
     </message>
-                
+
 </ns:ActivityInput>
 
     </xsl:template>
@@ -43,23 +43,23 @@ function LogLoadedVars2(Context cx) returns error? {
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="loadSharedVariable2"/><xsl:param name="loadJobSharedVariable2"/>     <xsl:template name="Transform3" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
-                    
+
     <message>
-                            
+
         <sharedValue>
-                                    
+
             <xsl:value-of select="$loadSharedVariable2" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-                                
+
         </sharedValue>
-                            
+
         <jobValue>
-                                    
+
             <xsl:value-of select="$loadJobSharedVariable2" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-                                
+
         </jobValue>
-                        
+
     </message>
-                
+
 </ns:ActivityInput>
 
     </xsl:template>
@@ -74,23 +74,23 @@ function MapperXMLPayload(Context cx) returns error? {
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="loadSharedVariable2"/><xsl:param name="loadJobSharedVariable2"/>     <xsl:template name="Transform4" match="/">
         <payload>
-                    
+
     <results>
-                            
+
         <shared>
-                                    
+
             <xsl:value-of select="$loadSharedVariable2" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-                                
+
         </shared>
-                            
+
         <job>
-                                    
+
             <xsl:value-of select="$loadJobSharedVariable2" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-                                
+
         </job>
-                        
+
     </results>
-                
+
 </payload>
 
     </xsl:template>
@@ -101,62 +101,26 @@ function MapperXMLPayload(Context cx) returns error? {
 
 function loadJobSharedVariable(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    //FIXME: Failed to convert rest of activity
-
-    //<pd:activity name="loadJobSharedVariable" xmlns:pd="http://xmlns.tibco.com/bw/process/2003">
-    //    <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
-    //    <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
-    //    <config>
-    //        <variableConfig>/Variables/shared.jobsharedvariable</variableConfig>
-    //    </config>
-    //    <pd:inputBindings/>
-    //</pd:activity>
-    addToContext(cx, "loadJobSharedVariable", var0);
+    xml var1 = getSharedVariable(cx, "sharedVariable");
+    addToContext(cx, "loadJobSharedVariable", var1);
 }
 
 function loadJobSharedVariable2(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    //FIXME: Failed to convert rest of activity
-
-    //<pd:activity name="loadJobSharedVariable2" xmlns:pd="http://xmlns.tibco.com/bw/process/2003">
-    //    <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
-    //    <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
-    //    <config>
-    //        <variableConfig>/Variables/shared.jobsharedvariable</variableConfig>
-    //    </config>
-    //    <pd:inputBindings/>
-    //</pd:activity>
-    addToContext(cx, "loadJobSharedVariable2", var0);
+    xml var1 = getSharedVariable(cx, "sharedVariable");
+    addToContext(cx, "loadJobSharedVariable2", var1);
 }
 
 function loadSharedVariable(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    //FIXME: Failed to convert rest of activity
-
-    //<pd:activity name="loadSharedVariable" xmlns:pd="http://xmlns.tibco.com/bw/process/2003">
-    //    <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
-    //    <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
-    //    <config>
-    //        <variableConfig>/Variables/callVar.sharedvariable</variableConfig>
-    //    </config>
-    //    <pd:inputBindings/>
-    //</pd:activity>
-    addToContext(cx, "loadSharedVariable", var0);
+    xml var1 = getSharedVariable(cx, "callVar");
+    addToContext(cx, "loadSharedVariable", var1);
 }
 
 function loadSharedVariable2(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    //FIXME: Failed to convert rest of activity
-
-    //<pd:activity name="loadSharedVariable2" xmlns:pd="http://xmlns.tibco.com/bw/process/2003">
-    //    <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
-    //    <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
-    //    <config>
-    //        <variableConfig>/Variables/callVar.sharedvariable</variableConfig>
-    //    </config>
-    //    <pd:inputBindings/>
-    //</pd:activity>
-    addToContext(cx, "loadSharedVariable2", var0);
+    xml var1 = getSharedVariable(cx, "callVar");
+    addToContext(cx, "loadSharedVariable2", var1);
 }
 
 function scope0ActivityRunner(Context cx) returns error? {
@@ -195,18 +159,7 @@ function storeJobSharedVariable(Context cx) returns error? {
 
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
-    //FIXME: Failed to convert rest of activity
-
-    //<pd:activity name="storeJobSharedVariable" xmlns:pd="http://xmlns.tibco.com/bw/process/2003">
-    //    <pd:type>com.tibco.pe.core.SetSharedVariableActivity</pd:type>
-    //    <pd:resourceType>ae.activities.setSharedVariable</pd:resourceType>
-    //    <config>
-    //        <variableConfig>/Variables/shared.jobsharedvariable</variableConfig>
-    //    </config>
-    //    <pd:inputBindings>
-    //        <xsl:value-of select="$loadJobSharedVariable/count + 1" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-    //    </pd:inputBindings>
-    //</pd:activity>
+    setSharedVariable(cx, "sharedVariable", var1);
     addToContext(cx, "storeJobSharedVariable", var1);
 }
 
@@ -218,19 +171,20 @@ function storeSharedVariable(Context cx) returns error? {
 
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
-    //FIXME: Failed to convert rest of activity
-
-    //<pd:activity name="storeSharedVariable" xmlns:pd="http://xmlns.tibco.com/bw/process/2003">
-    //    <pd:type>com.tibco.pe.core.SetSharedVariableActivity</pd:type>
-    //    <pd:resourceType>ae.activities.setSharedVariable</pd:resourceType>
-    //    <config>
-    //        <variableConfig>/Variables/callVar.sharedvariable</variableConfig>
-    //    </config>
-    //    <pd:inputBindings>
-    //        <xsl:value-of select="$loadSharedVariable/count + 1" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-    //    </pd:inputBindings>
-    //</pd:activity>
+    setSharedVariable(cx, "callVar", var1);
     addToContext(cx, "storeSharedVariable", var1);
+}
+
+function getSharedVariable(Context cx, string varName) returns xml {
+    SharedVariableContext varContext = cx.sharedVariables.get(varName);
+    function () returns xml getter = varContext.getter;
+    return getter();
+}
+
+function setSharedVariable(Context cx, string varName, xml value) {
+    SharedVariableContext varContext = cx.sharedVariables.get(varName);
+    function (xml) setter = varContext.setter;
+    setter(value);
 }
 
 function addToContext(Context context, string varName, xml value) {

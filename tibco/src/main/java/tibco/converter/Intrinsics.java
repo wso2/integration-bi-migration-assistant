@@ -19,6 +19,24 @@
 package tibco.converter;
 
 public enum Intrinsics {
+    SET_SHARED_VARIABLE(
+            "setSharedVariable",
+            """
+                    function setSharedVariable(Context cx, string varName, xml value) {
+                        SharedVariableContext varContext = cx.sharedVariables.get(varName);
+                        function(xml) setter = varContext.setter;
+                        setter(value);
+                    }
+                    """),
+    GET_SHARED_VARIABLE(
+            "getSharedVariable",
+            """
+                    function getSharedVariable(Context cx, string varName) returns xml{
+                        SharedVariableContext varContext = cx.sharedVariables.get(varName);
+                        function() returns xml getter = varContext.getter;
+                        return getter();
+                    }
+                    """),
     XPATH_PREDICATE(
             "test",
             """

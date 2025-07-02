@@ -84,7 +84,7 @@ public interface Resource {
         }
     }
 
-    record SharedVariable(String name, boolean persistent, String initialValue, boolean isShared)
+    record SharedVariable(String name, boolean persistent, String initialValue, boolean isShared, String relativePath)
             implements Resource {
         @Override
         public Collection<SubstitutionBinding> substitutionBindings() {

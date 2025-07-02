@@ -95,7 +95,11 @@
             <variableConfig>/Variables/callVar.sharedvariable</variableConfig>
         </config>
         <pd:inputBindings>
-            <xsl:value-of select="$loadSharedVariable/count + 1"/>
+            <root>
+                <count>
+                    <xsl:value-of select="$loadSharedVariable/count + 1"/>
+                </count>
+            </root>
         </pd:inputBindings>
     </pd:activity>
     <pd:activity name="storeJobSharedVariable">
@@ -105,7 +109,11 @@
             <variableConfig>/Variables/shared.jobsharedvariable</variableConfig>
         </config>
         <pd:inputBindings>
-            <xsl:value-of select="$loadJobSharedVariable/count + 1"/>
+            <root>
+                <count>
+                    <xsl:value-of select="$loadJobSharedVariable/count + 1"/>
+                </count>
+            </root>
         </pd:inputBindings>
     </pd:activity>
     <pd:activity name="loadSharedVariable2">

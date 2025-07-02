@@ -15,13 +15,14 @@ public listener jms:Listener jmsJMS_Queue_ReceiverListener = new jms:Listener(
 
 service "JMS_Queue_Receiver" on jmsJMS_Queue_ReceiverListener {
     remote function onMessage(jms:Message message) {
+        map<SharedVariableContext> jobSharedVariables = {};
         if message !is jms:TextMessage {
             panic error("Unsupported JMS message type");
         }
         string content = message.content;
         xml inputXML = xml `${content}`;
         map<xml> paramXML = {jms: inputXML};
-        Context cx = initContext(paramXML);
+        Context cx = initContext(paramXML, jobSharedVariables);
         start_Main_process(cx);
     }
 }
