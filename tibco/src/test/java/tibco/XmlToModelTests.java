@@ -80,7 +80,8 @@ public class XmlToModelTests {
                 </pd:ProcessDefinition>
                 """;
         Process5 process =
-                (Process5) XmlToTibcoModelConverter.parseProcess(TestUtils.stringToElement(processXml));
+                (Process5) XmlToTibcoModelConverter.parseProcess(new ParseContext(""),
+                        TestUtils.stringToElement(processXml));
         assertEquals(process.name(), "Processes/MainProcessStarter.process");
         Process5.ExplicitTransitionGroup transitionGroup = process.transitionGroup();
         Assert.assertEquals(transitionGroup.startActivity().name(), "HTTP Receiver");

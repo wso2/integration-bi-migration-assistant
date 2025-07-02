@@ -1745,6 +1745,14 @@ public final class XmlToTibcoModelConverter {
     }
 
     public static Resource.SharedVariable parseSharedVariable(ParseContext cx, Element root) {
+        return parseSharedVariable(cx, root, false);
+    }
+
+    public static Resource.SharedVariable parseJobSharedVariable(ParseContext cx, Element root) {
+        return parseSharedVariable(cx, root, true);
+    }
+
+    private static Resource.SharedVariable parseSharedVariable(ParseContext cx, Element root, boolean isShared) {
         String name = getFirstChildWithTag(root, "name").getTextContent();
         Element config = getFirstChildWithTag(root, "config");
         boolean persistent = tryGetFirstChildWithTag(config, "persistent")
@@ -1757,7 +1765,7 @@ public final class XmlToTibcoModelConverter {
             logger.severe(
                     "initialValue for sharedVariable '" + name + "' is not byRef. Using empty string as placeholder.");
             initialValue = "<root/>";
-            return new Resource.SharedVariable(name, persistent, initialValue);
+            return new Resource.SharedVariable(name, persistent, initialValue, isShared);
         }
         String initialValueRef = getFirstChildWithTag(config, "initialValueRef").getTextContent();
         try {
@@ -1767,6 +1775,6 @@ public final class XmlToTibcoModelConverter {
                     + "': " + e.getMessage());
             initialValue = "<root/>";
         }
-        return new Resource.SharedVariable(name, persistent, initialValue);
+        return new Resource.SharedVariable(name, persistent, initialValue, isShared);
     }
 }

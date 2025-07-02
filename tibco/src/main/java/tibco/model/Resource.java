@@ -84,7 +84,8 @@ public interface Resource {
         }
     }
 
-    record SharedVariable(String name, boolean persistent, String initialValue) implements Resource {
+    record SharedVariable(String name, boolean persistent, String initialValue, boolean isShared)
+            implements Resource {
         @Override
         public Collection<SubstitutionBinding> substitutionBindings() {
             return List.of();

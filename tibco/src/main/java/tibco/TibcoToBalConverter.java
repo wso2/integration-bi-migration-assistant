@@ -141,17 +141,18 @@ public class TibcoToBalConverter {
         @Override
         public Set<Resource.SharedVariable> parse(String projectPath)
                 throws IOException, ParserConfigurationException, SAXException {
-            List<String> sharedVarFiles = new ArrayList<>();
-            sharedVarFiles.addAll(getFilesWithExtension(projectPath, "sharedvariable"));
-            sharedVarFiles.addAll(getFilesWithExtension(projectPath, "jobsharedvariable"));
-            Set<Resource.SharedVariable> elements = new HashSet<>();
+            Set<Resource.SharedVariable> variables = new HashSet<>();
             ParseContext cx = new ParseContext(projectPath);
-            for (String s : sharedVarFiles) {
-                Element element = parseXmlFile(s);
-                Resource.SharedVariable parsedElement = XmlToTibcoModelConverter.parseSharedVariable(cx, element);
-                elements.add(parsedElement);
+
+            for (String s : getFilesWithExtension(projectPath, "sharedvariable")) {
+                variables.add(XmlToTibcoModelConverter.parseSharedVariable(cx, parseXmlFile(s)));
             }
-            return elements;
+
+            for (String s : getFilesWithExtension(projectPath, "jobsharedvariable")) {
+                variables.add(XmlToTibcoModelConverter.parseJobSharedVariable(cx, parseXmlFile(s)));
+            }
+
+            return variables;
         }
     };
 
