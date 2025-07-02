@@ -78,6 +78,10 @@ public class MigrationReportWriter {
         int dataweaveCoverage = calculateDataweaveCoverage(pms);
         String dataweaveCoverageColor = getCoverageColor(dataweaveCoverage);
 
+        // Format DataWeave coverage to display N/A when total is zero
+        String dataweaveDisplayValue = totalDwConstructs > 0 ? dataweaveCoverage + "%" : "N/A";
+        String dataweaveBarWidth = totalDwConstructs > 0 ? dataweaveCoverage + "%" : "0%";
+
         // Calculate total items, migratable items, and non-migratable items
         int totalItems = totalXmlElements + totalDwConstructs;
         int migratableItems = migratableXmlElements + migratableDwConstructs;
@@ -104,8 +108,8 @@ public class MigrationReportWriter {
                 elementCoverage, elementCoverageColor,
                 totalXmlElements, migratableXmlElements, nonMigratableXmlElements,
                 // DataWeave coverage section parameters
-                dataweaveCoverage,
-                dataweaveCoverage, dataweaveCoverageColor,
+                dataweaveDisplayValue,
+                dataweaveBarWidth, dataweaveCoverageColor,
                 totalDwConstructs, migratableDwConstructs, nonMigratableDwConstructs,
                 // Time estimation section parameters
                 pms.bestCaseDays(), (int) Math.ceil(pms.bestCaseDays() / 5.0),
