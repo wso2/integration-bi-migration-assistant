@@ -94,6 +94,11 @@ public class MigrationReportWriter {
                 reportTitle,
                 pms.sourceProjectName(),
                 reportTitle,
+                // Overall coverage section parameters
+                migrationCoverage,
+                migrationCoverage, coverageColor,
+                badgeClass, coverageStatus,
+                totalItems, migratableItems, nonMigratableItems,
                 // Elements coverage section parameters
                 elementCoverage,
                 elementCoverage, elementCoverageColor,
@@ -102,11 +107,6 @@ public class MigrationReportWriter {
                 dataweaveCoverage,
                 dataweaveCoverage, dataweaveCoverageColor,
                 totalDwConstructs, migratableDwConstructs, nonMigratableDwConstructs,
-                // Overall coverage section parameters
-                migrationCoverage,
-                migrationCoverage, coverageColor,
-                badgeClass, coverageStatus,
-                totalItems, migratableItems, nonMigratableItems,
                 // Time estimation section parameters
                 pms.bestCaseDays(), (int) Math.ceil(pms.bestCaseDays() / 5.0),
                 pms.averageCaseDays(), (int) Math.ceil(pms.averageCaseDays() / 5.0),

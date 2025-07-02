@@ -497,15 +497,15 @@ public class AggregateReportTemplate {
                         <div class="metric-right" style="flex: 1; padding-top: 10px;">
                           <div class="coverage-breakdown" style="font-size: 0.85em; color: #666;">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                              <span class="breakdown-label">Total Items:</span>
+                              <span class="breakdown-label">Total Code Lines:</span>
                               <span class="breakdown-value" style="font-weight: 600;">%d</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                              <span class="breakdown-label">Migratable Items:</span>
+                              <span class="breakdown-label">Migratable Code Lines:</span>
                               <span class="breakdown-value" style="font-weight: 600;">%d</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                              <span class="breakdown-label">Non-migratable Items:</span>
+                              <span class="breakdown-label">Non-migratable Code Lines:</span>
                               <span class="breakdown-value" style="font-weight: 600;">%d</span>
                             </div>
                           </div>
@@ -544,8 +544,9 @@ public class AggregateReportTemplate {
                       <ul>
                         <li>%d MuleSoft projects analyzed for migration to Ballerina</li>
                         <li>%.0f%% average automated conversion rate across all projects</li>
-                        <li>An 'Item' represents either a Mule Element or a DataWeave construct</li>
-                        <li>Total estimated effort shown above represents manual work required to complete migration for all projects</li>
+                        <li>Code lines are weighted based on their complexity, when calculating the percentage</li>
+                        <li>Time estimates shown above represents manual work required to complete migration for all projects combined</li>
+                        <li>Time measurement: 1 day = 8 hours, 5 working days = 1 week</li>
                       </ul>
                     </div>
                   </div>
@@ -555,7 +556,7 @@ public class AggregateReportTemplate {
                   </div>
 
                   <div class="summary-container">
-                    <h2>Elements Awaiting Tool Support</h2>
+                    <h2>Currently Unsupported Elements</h2>
                     <div id="toolSupportSection">
                       <table>
                         <tr>
@@ -567,8 +568,11 @@ public class AggregateReportTemplate {
                       </table>
                       <p class="empty-message" id="toolSupportEmpty" 
                          style="display: none; text-align: center; padding: 20px; color: #666;">
-                        No elements awaiting tool support
+                        No unsupported elements found
                       </p>
+                      <div class="estimation-notes">
+                        <p><strong>Note:</strong> These elements are expected to be supported in future versions of the migration tool.</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -583,6 +587,7 @@ public class AggregateReportTemplate {
                       if (toolSupportTable.rows.length <= 1) {
                           toolSupportTable.style.display = 'none';
                           document.getElementById('toolSupportEmpty').style.display = 'block';
+                          document.querySelector('#toolSupportSection .estimation-notes').style.display = 'none';
                       }
                   });
 

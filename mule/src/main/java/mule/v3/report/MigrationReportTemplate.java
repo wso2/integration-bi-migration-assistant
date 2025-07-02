@@ -335,6 +335,37 @@ public class MigrationReportTemplate {
                   <div class="summary-container">
                     <h2>Migration Coverage Overview</h2>
                     <div class="metrics" style="flex-direction: column; align-items: center; width: 100%%;">
+                   
+                      <!-- Overall Coverage -->
+                      <div class="metric" style="width: 100%%; box-sizing: border-box; padding: 15px 20px; display: flex; flex-direction: row; align-items: flex-start; gap: 20px; background-color: #f0f8ff;">
+                        <div class="metric-left" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                          <span class="metric-value" style="font-size: 2em; color: #4682B4;">%d%%</span>
+                          <span class="metric-label" style="font-size: 1em; margin-top: 5px;">Overall Coverage</span>
+                          <div class="coverage-indicator" style="width: 80%%; height: 6px; background-color: #f0f0f0; border-radius: 3px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1); margin-top: 8px;">
+                            <div class="coverage-bar" style="width: %d%%; background-color: %s; height: 100%%; border-radius: 3px;"></div>
+                          </div>
+                          <div style="margin-top: 5px;">
+                            <span class="status-badge %s">%s Coverage</span>
+                          </div>
+                        </div>
+                        <div class="metric-right" style="flex: 1; padding-top: 10px;">
+                          <div class="coverage-breakdown" style="font-size: 0.85em; color: #666;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                              <span class="breakdown-label">Total Elements:</span>
+                              <span class="breakdown-value" style="font-weight: 600;">%d</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                              <span class="breakdown-label">Migratable Elements:</span>
+                              <span class="breakdown-value" style="font-weight: 600;">%d</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                              <span class="breakdown-label">Non-migratable Elements:</span>
+                              <span class="breakdown-value" style="font-weight: 600;">%d</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
                       <!-- Elements Coverage -->
                       <div class="metric" style="width: 100%%; box-sizing: border-box; padding: 15px 20px; display: flex; flex-direction: row; align-items: flex-start; gap: 20px;">
                         <div class="metric-left" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
@@ -383,36 +414,6 @@ public class MigrationReportTemplate {
                             </div>
                             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                               <span class="breakdown-label">Non-migratable Dataweave Constructs:</span>
-                              <span class="breakdown-value" style="font-weight: 600;">%d</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- Overall Coverage -->
-                      <div class="metric" style="width: 100%%; box-sizing: border-box; padding: 15px 20px; display: flex; flex-direction: row; align-items: flex-start; gap: 20px; background-color: #f0f8ff;">
-                        <div class="metric-left" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
-                          <span class="metric-value" style="font-size: 2em; color: #4682B4;">%d%%</span>
-                          <span class="metric-label" style="font-size: 1em; margin-top: 5px;">Overall Coverage</span>
-                          <div class="coverage-indicator" style="width: 80%%; height: 6px; background-color: #f0f0f0; border-radius: 3px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1); margin-top: 8px;">
-                            <div class="coverage-bar" style="width: %d%%; background-color: %s; height: 100%%; border-radius: 3px;"></div>
-                          </div>
-                          <div style="margin-top: 5px;">
-                            <span class="status-badge %s">%s Coverage</span>
-                          </div>
-                        </div>
-                        <div class="metric-right" style="flex: 1; padding-top: 10px;">
-                          <div class="coverage-breakdown" style="font-size: 0.85em; color: #666;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                              <span class="breakdown-label">Total Elements:</span>
-                              <span class="breakdown-value" style="font-weight: 600;">%d</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                              <span class="breakdown-label">Migratable Elements:</span>
-                              <span class="breakdown-value" style="font-weight: 600;">%d</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                              <span class="breakdown-label">Non-migratable Elements:</span>
                               <span class="breakdown-value" style="font-weight: 600;">%d</span>
                             </div>
                           </div>
@@ -474,20 +475,20 @@ public class MigrationReportTemplate {
                   </div>
                   
                   <div class="summary-container">
-                    <h2>Elements Awaiting Tool Support</h2>
+                    <h2>Currently Unsupported Elements</h2>
                     <div id="toolSupportSection">
                       <table>
                         <tr><th>Tag Name</th><th>Frequency</th></tr>%s
                       </table>
                       <p class="empty-message" id="toolSupportEmpty" style="display: none;">
-                        No elements awaiting tool support
+                        No unsupported elements found
                       </p>
                       <div class="estimation-notes">
-                        <p><strong>Note:</strong> These elements will be supported in future versions of the migration tool.</p>
+                        <p><strong>Note:</strong> These elements are expected to be supported in future versions of the migration tool.</p>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div class="summary-container">
                     <h2>Element Blocks that Require Manual Conversion</h2>
                     <div class="unsupported-blocks">%s
@@ -510,7 +511,7 @@ public class MigrationReportTemplate {
                 <footer><p>Report generated on: <span id="datetime"></span></p></footer>
                 <script>
                   document.addEventListener('DOMContentLoaded', function() {
-                      // Check Elements Awaiting Tool Support
+                      // Check Currently Unsupported Elements
                       const toolSupportTable = document.querySelector('#toolSupportSection table');
                       if (toolSupportTable.rows.length <= 1) {
                           toolSupportTable.style.display = 'none';

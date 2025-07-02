@@ -177,15 +177,15 @@ public class AggregateReportWriter {
             html.append("              <div class=\"metric-right\">\n");
             html.append("                <div class=\"coverage-breakdown\">\n");
             html.append("                  <div>\n");
-            html.append("                    <span class=\"breakdown-label\">Total Items:</span>\n");
+            html.append("                    <span class=\"breakdown-label\">Total Code Lines:</span>\n");
             html.append("                    <span class=\"breakdown-value\">").append(totalItems).append("</span>\n");
             html.append("                  </div>\n");
             html.append("                  <div>\n");
-            html.append("                    <span class=\"breakdown-label\">Migratable Items:</span>\n");
+            html.append("                    <span class=\"breakdown-label\">Migratable Code Lines:</span>\n");
             html.append("                    <span class=\"breakdown-value\">").append(migratableItems).append("</span>\n");
             html.append("                  </div>\n");
             html.append("                  <div>\n");
-            html.append("                    <span class=\"breakdown-label\">Non-migratable Items:</span>\n");
+            html.append("                    <span class=\"breakdown-label\">Non-migratable Code Lines:</span>\n");
             html.append("                    <span class=\"breakdown-value\">").append(nonMigratableItems).append("</span>\n");
             html.append("                  </div>\n");
             html.append("                </div>\n");
@@ -219,21 +219,6 @@ public class AggregateReportWriter {
             html.append("        </div>\n");
             html.append("      </div>\n");
             html.append("    </div>\n\n");
-        }
-
-        return html.toString();
-    }
-
-    private static String generateProjectRows(List<ProjectMigrationSummary> projectSummaries) {
-        StringBuilder html = new StringBuilder();
-
-        for (ProjectMigrationSummary project : projectSummaries) {
-            html.append("        <tr>\n");
-            html.append("          <td>").append(project.sourceProjectName()).append("</td>\n");
-            html.append("          <td>").append(String.format("%.1f days", project.bestCaseDays())).append("</td>\n");
-            html.append("          <td>").append(String.format("%.1f days", project.averageCaseDays())).append("</td>\n");
-            html.append("          <td>").append(String.format("%.1f days", project.worstCaseDays())).append("</td>\n");
-            html.append("        </tr>\n");
         }
 
         return html.toString();
