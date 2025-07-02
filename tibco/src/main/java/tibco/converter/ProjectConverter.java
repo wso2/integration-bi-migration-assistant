@@ -117,7 +117,8 @@ public class ProjectConverter {
     }
 
     private static boolean isLifecycleProcess(Process5 process) {
-        return false;
+        return process.transitionGroup()
+                .startActivity() instanceof Process5.ExplicitTransitionGroup.InlineActivity.OnStartupEventSource;
     }
 
     private static ProcessResult convertServices(ProjectContext cx, Process6 process) {

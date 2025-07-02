@@ -321,6 +321,7 @@ public final class XmlToTibcoModelConverter {
             case GET_SHARED_VARIABLE -> parseGetSharedVariable(name, inputBinding, element);
             case SET_SHARED_VARIABLE -> parseSetSharedVariable(name, inputBinding, element);
             case FILE_EVENT_SOURCE -> parseFileEventSource(name, inputBinding, element);
+            case ON_STARTUP -> new InlineActivity.OnStartupEventSource(element, name, inputBinding);
         };
     }
 

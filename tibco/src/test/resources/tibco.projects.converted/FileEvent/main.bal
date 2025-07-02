@@ -8,7 +8,7 @@ public listener file:Listener File_PollerListener = new (
 service "File_Poller" on File_PollerListener {
     remote function onCreate(file:FileEvent event) {
         map<SharedVariableContext> jobSharedVariables = {};
-        //TODO: add any addition data to this XML
+        // TODO: add any addition data to this XML
         xml data = xml `<fileInfo>
     <fileName>
         ${event.name}
@@ -21,7 +21,7 @@ service "File_Poller" on File_PollerListener {
 
     remote function onModify(file:FileEvent event) {
         map<SharedVariableContext> jobSharedVariables = {};
-        //TODO: add any addition data to this XML
+        // TODO: add any addition data to this XML
         xml data = xml `<fileInfo>
     <fileName>
         ${event.name}
@@ -34,7 +34,7 @@ service "File_Poller" on File_PollerListener {
 
     remote function onDelete(file:FileEvent event) {
         map<SharedVariableContext> jobSharedVariables = {};
-        //TODO: add any addition data to this XML
+        // TODO: add any addition data to this XML
         xml data = xml `<fileInfo>
     <fileName>
         ${event.name}
