@@ -5,6 +5,13 @@ public listener http:Listener GeneralConnection_sharedhttp = new (9090, {host: "
 
 service on GeneralConnection_sharedhttp {
     resource function 'default [string... path](xml input) returns xml {
+        xml callVar = xml `<callData><count>0</count></callData>`;
+        SharedVariableContext callVarContext = {getter: function() returns xml {
+                return callVar;
+            }, setter: function(xml value) {
+                callVar = value;
+            }};
+        sharedVariables["callVar"] = callVarContext;
         xml inputVal = xml `<root>
     <item>
         ${input}
