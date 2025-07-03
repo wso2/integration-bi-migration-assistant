@@ -184,12 +184,13 @@ public class ProjectContext {
     }
 
     private void importLibraryIfNeededToUtility(Library library) {
-        conversionContext.ifPresent(cx -> {
-            if (library == JDBC) {
-                cx.javaDependencies().add(TibcoToBalConverter.JavaDependencies.JDBC);
-            }
-        });
         utilityFunctionImports.add(new BallerinaModel.Import(library.orgName, library.moduleName, Optional.empty()));
+    }
+
+    public void addJavaDependency(TibcoToBalConverter.JavaDependencies dependencies) {
+        conversionContext.ifPresent(cx -> {
+            cx.javaDependencies().add(dependencies);
+        });
     }
 
     String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {

@@ -272,11 +272,35 @@ public class TibcoToBalConverter {
     }
 
     public enum JavaDependencies {
-        JDBC("""
+        JDBC_H2("""
                 [[platform.java17.dependency]]
                 artifactId = "h2"
                 version = "2.0.206"
                 groupId = "com.h2database"
+                """),
+        JDBC_POSTGRESQL("""
+                [[platform.java17.dependency]]
+                artifactId = "postgresql"
+                version = "42.7.2"
+                groupId = "org.postgresql"
+                """),
+        JDBC_MYSQL("""
+                [[platform.java17.dependency]]
+                artifactId = "mysql-connector-java"
+                version = "8.0.33"
+                groupId = "mysql"
+                """),
+        JDBC_ORACLE("""
+                [[platform.java17.dependency]]
+                artifactId = "ojdbc8"
+                version = "21.9.0.0"
+                groupId = "com.oracle.database.jdbc"
+                """),
+        JDBC_MARIADB("""
+                [[platform.java17.dependency]]
+                artifactId = "mariadb-java-client"
+                version = "3.1.4"
+                groupId = "org.mariadb.jdbc"
                 """);
 
         public final String dependencyParam;
