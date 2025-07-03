@@ -15,7 +15,6 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
 package common;
 
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
@@ -96,8 +95,9 @@ public class CodeGenerator {
 
         for (Service service : textDocument.services()) {
             String listenerRefs = constructCommaSeparatedString(service.listenerRefs());
+            String comment = service.comment().isPresent() ? service.comment().get().toString() : "";
             ServiceDeclarationNode serviceDecl = (ServiceDeclarationNode) NodeParser.parseModuleMemberDeclaration(
-                    String.format("service %s on %s { }", service.basePath(), listenerRefs));
+                    String.format("%sservice %s on %s { }", comment, service.basePath(), listenerRefs));
 
             List<Node> members = new ArrayList<>();
             for (ObjectField field : service.fields()) {

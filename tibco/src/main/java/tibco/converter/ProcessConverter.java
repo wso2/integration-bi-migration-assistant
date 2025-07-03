@@ -101,7 +101,7 @@ public class ProcessConverter {
                         new BallerinaModel.BlockFunctionBody(body)));
 
         return new BallerinaModel.Service("\"" + ConversionUtils.sanitizes(startActivity.name()) + "\"",
-                List.of(), Optional.empty(), List.of(), List.of(), List.of(), List.of(remoteFn));
+                List.of(), Optional.empty(), List.of(), List.of(), List.of(), List.of(remoteFn), Optional.empty());
     }
 
     private static BallerinaModel.Service createJMSListenerServiceForStartActivity(
@@ -112,7 +112,8 @@ public class ProcessConverter {
         BallerinaModel.Remote remoteFn = generateRemoteFunctionForJMSStartActivity(cx, group, jmsQueueEventSource);
 
         return new BallerinaModel.Service("\"" + ConversionUtils.sanitizes(jmsQueueEventSource.name()) + "\"",
-                List.of(listener.name()), Optional.empty(), List.of(), List.of(), List.of(), List.of(remoteFn));
+                List.of(listener.name()), Optional.empty(), List.of(), List.of(), List.of(), List.of(remoteFn),
+                Optional.empty());
     }
 
     private static BallerinaModel.Remote generateRemoteFunctionForJMSStartActivity(

@@ -15,7 +15,6 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
 package common;
 
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
@@ -29,6 +28,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import static common.BallerinaModel.Statement.Comment;
 
 public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules) {
 
@@ -68,7 +69,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
     }
 
-    public record ModuleTypeDef(String name, TypeDesc typeDesc, List<Statement.Comment> comments) {
+    public record ModuleTypeDef(String name, TypeDesc typeDesc, List<Comment> comments) {
 
         public ModuleTypeDef(String name, TypeDesc typeDesc) {
             this(name, typeDesc, List.of());
@@ -77,7 +78,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
-            for (Statement.Comment comment : comments) {
+            for (Comment comment : comments) {
                 sb.append(comment);
             }
             if (typeDesc instanceof TypeDesc.RecordTypeDesc recordTypeDesc) {
@@ -332,15 +333,22 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     public record Service(String basePath, List<String> listenerRefs, Optional<Function> initFunc,
                           List<Resource> resources, List<Function> functions,
-                          List<ObjectField> fields, List<Remote> remoteFunctions) {
+                          List<ObjectField> fields, List<Remote> remoteFunctions, Optional<Comment> comment) {
         public Service(String basePath, String listenerRef, List<Resource> resources) {
             this(basePath, Collections.singletonList(listenerRef), Optional.empty(), resources,
-                    Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+                    Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Optional.empty());
+        }
+
+        public Service(String basePath, String listenerRef, List<Resource> resources, Comment comment) {
+            this(basePath, Collections.singletonList(listenerRef), Optional.empty(), resources,
+                    Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+                    Optional.ofNullable(comment));
         }
 
         public Service(String basePath, List<String> listenerRefs, Optional<Function> initFunc,
                        List<Resource> resources, List<Function> functions, List<ObjectField> fields) {
-            this(basePath, listenerRefs, initFunc, resources, functions, fields, Collections.emptyList());
+            this(basePath, listenerRefs, initFunc, resources, functions, fields, Collections.emptyList(),
+                    Optional.empty());
         }
     }
 
@@ -809,8 +817,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
             @Override
             public String toString() {
-                return "\n//" +
-                        comment.lines().filter(Predicate.not(String::isBlank)).collect(Collectors.joining("\n//")) +
+                return "\n// " +
+                        comment.lines().filter(Predicate.not(String::isBlank)).collect(Collectors.joining("\n// ")) +
                         "\n";
             }
         }

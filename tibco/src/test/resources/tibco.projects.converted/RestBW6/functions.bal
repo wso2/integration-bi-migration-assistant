@@ -13,7 +13,7 @@ function activityExtension(Context cx) returns error? {
         </tns:TestResponse>
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
-    //WARNING: assuming single element
+    // WARNING: assuming single element
     record {|
         string response;
     |} var2 = check xmldata:parseAsType(var1);
@@ -40,7 +40,7 @@ function activityExtension_2(Context cx) returns error? {
         </tns1:ResponseActivityInput>
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
-    //FIXME ignoring headers others than content type
+    // FIXME ignoring headers others than content type
     string var2 = (var1/**/<Content\-Type>/*).toString();
     string var3 = (var1/**/<asciiContent>/*).toString();
     xml var4 = (var1/**/<Headers>/*);
