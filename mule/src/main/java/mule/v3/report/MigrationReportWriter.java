@@ -215,11 +215,17 @@ public class MigrationReportWriter {
                     <pre class="block-code"><code>%s</code></pre>
                 </div>
                 """,
-                i + 1,
-                getBlockType(failedBlocks.get(i)),
-                failedBlocks.get(i)));
+                i + 1, getBlockType(failedBlocks.get(i)), escapeHtml(failedBlocks.get(i))));
         }
         return sb.toString();
+    }
+
+    private static String escapeHtml(String text) {
+        return text.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 
     private static String generateDataweaveExpressionsHtml(DWConversionStats dwStats) {
