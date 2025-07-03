@@ -319,6 +319,7 @@ public final class XmlToTibcoModelConverter {
             case SLEEP -> new InlineActivity.Sleep(element, name, inputBinding);
             case GET_SHARED_VARIABLE -> parseGetSharedVariable(name, inputBinding, element);
             case SET_SHARED_VARIABLE -> parseSetSharedVariable(name, inputBinding, element);
+            case FILE_EVENT_SOURCE -> parseFileEventSource(name, inputBinding, element);
         };
     }
 
@@ -1793,5 +1794,46 @@ public final class XmlToTibcoModelConverter {
             initialValue = "<root/>";
         }
         return new Resource.SharedVariable(name, persistent, initialValue, isShared, relativePath);
+    }
+
+    private static InlineActivity.FileEventSource parseFileEventSource(String name,
+            Flow.Activity.InputBinding inputBinding, Element element) {
+        // Parse the required boolean fields with default false if missing
+        boolean createEvent = tryGetInlineActivityConfigValue(element, "createEvent")
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+        boolean modifyEvent = tryGetInlineActivityConfigValue(element, "modifyEvent")
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+        boolean deleteEvent = tryGetInlineActivityConfigValue(element, "deleteEvent")
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+        boolean excludeContent = tryGetInlineActivityConfigValue(element, "excludeContent")
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+
+        // Parse fileName - required field
+        String fileName = tryGetInlineActivityConfigValue(element, "fileName")
+                .orElseThrow(() -> new ParserException("fileName is required for FileEventSource", element));
+
+        // Log warnings for ignored fields
+        if (tryGetInlineActivityConfigValue(element, "mode").isPresent()) {
+            logger.warning("Ignoring 'mode' field in FileEventSource configuration");
+        }
+        if (tryGetInlineActivityConfigValue(element, "encoding").isPresent()) {
+            logger.warning("Ignoring 'encoding' field in FileEventSource configuration");
+        }
+        if (tryGetInlineActivityConfigValue(element, "sortby").isPresent()) {
+            logger.warning("Ignoring 'sortby' field in FileEventSource configuration");
+        }
+        if (tryGetInlineActivityConfigValue(element, "sortorder").isPresent()) {
+            logger.warning("Ignoring 'sortorder' field in FileEventSource configuration");
+        }
+        if (tryGetInlineActivityConfigValue(element, "pollInterval").isPresent()) {
+            logger.warning("Ignoring 'pollInterval' field in FileEventSource configuration");
+        }
+
+        return new InlineActivity.FileEventSource(element, name, inputBinding, createEvent, modifyEvent, deleteEvent,
+                excludeContent, fileName);
     }
 }

@@ -356,7 +356,26 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
         enum ListenerType {
             HTTP,
-            JMS
+            JMS,
+            FILE
+        }
+
+        record FileListener(String name, String path, boolean recursive) implements Listener {
+
+            @Override
+            @NotNull
+            public String toString() {
+                return """
+                        public listener file:Listener %s = new (
+                            path = "%s",
+                            recursive = %s
+                        );""".formatted(name, path, recursive);
+            }
+
+            @Override
+            public ListenerType type() {
+                return ListenerType.FILE;
+            }
         }
 
         record HTTPListener(String name, String port, String host) implements Listener {
