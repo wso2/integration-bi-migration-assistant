@@ -190,7 +190,16 @@ public final class XmlToTibcoModelConverter {
     }
 
     public static tibco.model.Process parseProcess(ParseContext cx, Element root) {
-        return parseProcessInner(cx, root);
+        String processName = root.hasAttribute("name") ? root.getAttribute("name") : "<unknown>";
+        logger.fine("Start parsing process: " + processName);
+        try {
+            tibco.model.Process result = parseProcessInner(cx, root);
+            logger.fine("Done parsing process: " + processName);
+            return result;
+        } catch (Exception ex) {
+            logger.severe("Exception while parsing process: " + processName + ". " + ex.getMessage());
+            throw ex;
+        }
     }
 
     private static @NotNull Process parseProcessInner(ParseContext cx, Element root) {
@@ -286,12 +295,16 @@ public final class XmlToTibcoModelConverter {
     }
 
     static InlineActivity parseInlineActivity(ParseContext cx, Element element) {
+        String name = element.getAttribute("name");
+        logger.fine("Start parsing inline activity: " + name);
         try {
-            return parseInlineActivityInner(cx, element);
+            InlineActivity result = parseInlineActivityInner(cx, element);
+            logger.fine("Done parsing inline activity: " + name);
+            return result;
         } catch (Exception ex) {
-            logger.warning("Failed to parse inline activity: " + element.getAttribute("name") + ". "
-                    + ex.getMessage());
-            return new InlineActivity.UnhandledInlineActivity(element, element.getAttribute("name"),
+            logger.warning("Failed to parse inline activity: " + name + ". " + ex.getMessage());
+                    logger.severe("Exception while parsing inline activity: " + name + ". " + ex.getMessage());
+            return new InlineActivity.UnhandledInlineActivity(element, name,
                     "Unhandled activity type", null);
         }
     }
@@ -652,7 +665,7 @@ public final class XmlToTibcoModelConverter {
                 }
                 links = parseLinks(element);
             } else {
-                activities.add(tryParseActivity(cx, element));
+                activities.add(parseActivity(cx, element));
             }
         }
         if (links == null) {
@@ -664,15 +677,21 @@ public final class XmlToTibcoModelConverter {
         return new Flow(name, links, activities);
     }
 
-    private static Flow.Activity tryParseActivity(ParseContext cx, Element element) {
+    public static Flow.Activity parseActivity(ParseContext cx, Element element) {
+        String tag = getTagNameWithoutNameSpace(element);
+        String name = element.hasAttribute("name") ? element.getAttribute("name") : tag;
+        logger.fine("Start parsing activity: " + name);
         try {
-            return parseActivity(cx, element);
+            Flow.Activity result = parseActivityInner(cx, element);
+            logger.fine("Done parsing activity: " + name);
+            return result;
         } catch (Exception ex) {
+            logger.severe("Exception while parsing activity: " + name + ". " + ex.getMessage());
             return parseUnhandledActivity(element, ex.getMessage());
         }
     }
 
-    public static Flow.Activity parseActivity(ParseContext cx, Element element) {
+    private static Flow.Activity parseActivityInner(ParseContext cx, Element element) {
         String tag = getTagNameWithoutNameSpace(element);
         return switch (tag) {
             case "extensionActivity" -> parseExtensionActivity(element);
