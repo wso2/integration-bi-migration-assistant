@@ -38,7 +38,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
-import static common.ConversionUtils.exprFrom;
 
 final class ResourceConvertor {
 

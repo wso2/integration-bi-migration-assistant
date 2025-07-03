@@ -57,7 +57,6 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
 import static tibco.converter.Library.HTTP;
-import static tibco.converter.Library.JDBC;
 import static tibco.converter.Library.JSON_DATA;
 import static tibco.converter.Library.XML_DATA;
 
