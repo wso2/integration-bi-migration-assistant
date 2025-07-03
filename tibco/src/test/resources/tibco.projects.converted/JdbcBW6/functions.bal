@@ -12,7 +12,7 @@ function activityExtension(Context cx) returns error? {
     string lastName = (var1/<lastName>/*).toString().trim();
     string age = (var1/<age>/*).toString().trim();
     sql:ParameterizedQuery var2 = `select * from table where firstName like ${firstName} and lastName like ${lastName} and age < ${age}`;
-    stream<map<anydata>, error?> var3 = dbConnection->query(var2);
+    stream<record {|anydata...;|}, error?> var3 = dbConnection->query(var2);
     xml var4 = xml ``;
     check from var each in var3
         do {
