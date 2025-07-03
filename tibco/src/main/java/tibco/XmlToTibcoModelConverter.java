@@ -286,6 +286,17 @@ public final class XmlToTibcoModelConverter {
     }
 
     static InlineActivity parseInlineActivity(ParseContext cx, Element element) {
+        try {
+            return parseInlineActivityInner(cx, element);
+        } catch (Exception ex) {
+            logger.warning("Failed to parse inline activity: " + element.getAttribute("name") + ". "
+                    + ex.getMessage());
+            return new InlineActivity.UnhandledInlineActivity(element, element.getAttribute("name"),
+                    "Unhandled activity type", null);
+        }
+    }
+
+    private static @NotNull InlineActivity parseInlineActivityInner(ParseContext cx, Element element) {
         Flow.Activity.InputBinding inputBinding = parseInlineActivityInputBinding(cx,
                 getFirstChildWithTag(element, "inputBindings"));
         String name = element.getAttribute("name");
