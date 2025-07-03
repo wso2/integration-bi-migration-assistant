@@ -4,10 +4,10 @@ import ballerina/xslt;
 function File_Poller(Context cx) returns error? {
     xml var0 = getFromContext(cx, "file");
     xml var1 = xml `<root>
-       <EventSourceOutputNoContentClass xmlns="http://www.tibco.com/namespaces/tnt/plugins/file">
-            ${var0}
-       </EventSourceOutputNoContentClass>
-   </root>`;
+    <EventSourceOutputNoContentClass xmlns="http://www.tibco.com/namespaces/tnt/plugins/file">
+         ${var0}
+    </EventSourceOutputNoContentClass>
+</root>`;
     addToContext(cx, "File-Poller", var1);
 }
 
@@ -19,7 +19,7 @@ function Log(Context cx) returns error? {
                     
     <message>
                             
-        <xsl:value-of select="$File-Poller/root/ns1:EventSourceOuputNoContentClass/fileInfo/fileName" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+        <xsl:value-of select="$File-Poller/root/ns1:EventSourceOutputNoContentClass/fileInfo/fileName" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
                         
     </message>
                 

@@ -39,7 +39,6 @@ import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
-import tibco.model.NameSpace;
 import tibco.model.PartnerLink;
 import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
@@ -224,13 +223,12 @@ final class ActivityConverter {
                                                                    InlineActivity.FileEventSource fileEventSource) {
         XMLTemplate fileTemplate = new XMLTemplate(
                 """
-                           <root>
-                               <EventSourceOutputNoContentClass xmlns="http://www.tibco.com/namespaces/tnt/plugins/file">
-                                    ${%s}
-                               </EventSourceOutputNoContentClass>
-                           </root>
+                        <root>
+                            <EventSourceOutputNoContentClass xmlns="http://www.tibco.com/namespaces/tnt/plugins/file">
+                                 ${%s}
+                            </EventSourceOutputNoContentClass>
+                        </root>
                         """.formatted(input));
-        ;
         VarDeclStatment output = new VarDeclStatment(XML, cx.getAnnonVarName(), fileTemplate);
         return new ActivityConversionResult(output.ref(), List.of(output));
     }

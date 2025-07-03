@@ -33,7 +33,7 @@
         <pd:inputBindings>
             <ns:ActivityInput>
                 <message>
-                    <xsl:value-of select="$File-Poller/ns1:EventSourceOuputNoContentClass/fileInfo/fileName"/>
+                    <xsl:value-of select="$File-Poller/ns1:EventSourceOutputNoContentClass/fileInfo/fileName"/>
                 </message>
             </ns:ActivityInput>
         </pd:inputBindings>

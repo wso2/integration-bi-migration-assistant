@@ -571,7 +571,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
 
             record FileEventSource(Element element, String name, InputBinding inputBinding,
                                    boolean createEvent, boolean modifyEvent, boolean deleteEvent,
-                                   boolean excludeContent, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+                                   boolean excludeContent, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
 
                 @Override
                 public InlineActivityType type() {
