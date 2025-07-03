@@ -28,6 +28,7 @@ enum Library {
     RUNTIME("ballerina", "lang.runtime"),
     IO("ballerina", "io"),
     LOG("ballerina", "log"),
+    FILE("ballerina", "file"),
     SOAP("ballerina", "soap.soap11"),
     SQL("ballerina", "sql");
 

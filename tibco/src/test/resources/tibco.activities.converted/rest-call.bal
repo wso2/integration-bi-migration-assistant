@@ -1,7 +1,7 @@
 function Rest call(Context cx) returns error? {
     xml var0 = xml`<root></root>`;
     xml var1 = check xslt:transform(var0, xml`<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform0" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform0" match="/">
         <ns1:ActivityInput xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json">
                 
     <ns1:Parameters>

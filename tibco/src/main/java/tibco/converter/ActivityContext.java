@@ -19,6 +19,7 @@
 package tibco.converter;
 
 import common.BallerinaModel;
+import tibco.model.NameSpace;
 import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.Type;
@@ -155,5 +156,9 @@ public class ActivityContext {
 
     public String getGetSharedVariableFn() {
         return processContext.getGetSharedVariableFn();
+    }
+
+    public Optional<NameSpace> getNameSpaceByUri(String uri) {
+        return processContext.getNameSpaceByUri(uri);
     }
 }

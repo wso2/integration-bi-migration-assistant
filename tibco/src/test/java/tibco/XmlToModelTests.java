@@ -22,6 +22,9 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 
+import java.util.List;
+
+import tibco.model.NameSpace;
 import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
 import tibco.model.Resource;
@@ -118,7 +121,7 @@ public class XmlToModelTests {
                         new Scope.Flow.Activity.InputBinding.CompleteBinding(
                                 new Scope.Flow.Activity.Expression.XSLT("""
                                 <?xml version="1.0" encoding="UTF-8"?>
-                                <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
+                                                                                                                        <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0">
                                      <xsl:template name="Transform0" match="/">
                                         <failedTestsCount>
                                         <xsl:value-of select="count($runAllTests/ns:test-suites-results-msg/test-suites-results/ns3:test-suites-results//ns3:test-failure)"/>
@@ -158,7 +161,7 @@ public class XmlToModelTests {
                 new Scope.Flow.Activity.InputBinding.CompleteBinding(
                         new Scope.Flow.Activity.Expression.XSLT("""
                                 <?xml version="1.0" encoding="UTF-8"?>
-                                <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
+                                <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0">
                                      <xsl:template name="Transform0" match="/">
                                         <ns:ActivityInput>
                                             <message>
@@ -199,7 +202,7 @@ public class XmlToModelTests {
                 new Scope.Flow.Activity.InputBinding.CompleteBinding(
                         new Scope.Flow.Activity.Expression.XSLT("""
                                 <?xml version="1.0" encoding="UTF-8"?>
-                                <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
+                                <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0">
                                      <xsl:template name="Transform0" match="/">
                                         <Error>
                                             <msg>
@@ -210,5 +213,42 @@ public class XmlToModelTests {
                                 </xsl:stylesheet>
                                 """)));
         assertEquals(actual, expected);
+    }
+
+    @Test
+    public void testXSLTWithNamespaces() throws Exception {
+        String activityXml = """
+                <pd:activity name="TestActivity">
+                    <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+                    <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+                    <pd:x>204</pd:x>
+                    <pd:y>224</pd:y>
+                    <config>
+                        <variableName>TestVar</variableName>
+                    </config>
+                    <pd:inputBindings>
+                        <TestElement>
+                            <xsl:value-of select="$input/test:data"/>
+                        </TestElement>
+                    </pd:inputBindings>
+                </pd:activity>
+                """;
+
+        Element element = TestUtils.stringToElement(activityXml);
+        ParseContext parseContext = new ParseContext("");
+        // Add namespaces to the context
+        parseContext.nameSpaces = List.of(
+                new NameSpace("test", "http://test.example.com"),
+                new NameSpace("ns1", "http://ns1.example.com"));
+
+        InlineActivity actual = XmlToTibcoModelConverter.parseInlineActivity(parseContext, element);
+
+        // Verify that the XSLT contains the namespaces
+        String xsltContent = ((Scope.Flow.Activity.InputBinding.CompleteBinding) actual.inputBinding()).expression()
+                .toString();
+        assert xsltContent.contains("xmlns:test=\"http://test.example.com\"");
+        assert xsltContent.contains("xmlns:ns1=\"http://ns1.example.com\"");
+        assert xsltContent.contains("xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"");
+        assert !xsltContent.contains("xmlns:tns=\"http://xmlns.example.com\"");
     }
 }
