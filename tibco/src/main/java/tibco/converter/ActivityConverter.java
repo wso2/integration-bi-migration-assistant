@@ -204,6 +204,8 @@ final class ActivityConverter {
                         convertGetSharedVariable(cx, result, getSharedVariable);
                 case InlineActivity.SetSharedVariable setSharedVariable ->
                         convertSetSharedVariable(cx, result, setSharedVariable);
+                    case InlineActivity.OnStartupEventSource ignored ->
+                            emptyExtensionConversion(cx, result);
             };
             body.addAll(conversion.body());
             body.add(addToContext(cx, conversion.result(), inlineActivity.name()));

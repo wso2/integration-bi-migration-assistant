@@ -176,7 +176,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 JMS_QUEUE_GET_MESSAGE_ACTIVITY,
                 SLEEP,
                 GET_SHARED_VARIABLE,
-                SET_SHARED_VARIABLE;
+                SET_SHARED_VARIABLE,
+                ON_STARTUP;
 
                 public static ExplicitTransitionGroup.InlineActivity.InlineActivityType parse(String type) {
                     record LookUpData(String suffix,
@@ -206,9 +207,10 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                     new LookUpData("JMSQueueEventSource", JMS_QUEUE_EVENT_SOURCE),
                                     new LookUpData("JMSQueueSendActivity", JMS_QUEUE_SEND_ACTIVITY),
                                     new LookUpData("JMSQueueGetMessageActivity", JMS_QUEUE_GET_MESSAGE_ACTIVITY),
-                            new LookUpData("SleepActivity", SLEEP),
-                            new LookUpData("GetSharedVariableActivity", GET_SHARED_VARIABLE),
-                            new LookUpData("SetSharedVariableActivity", SET_SHARED_VARIABLE))
+                                    new LookUpData("SleepActivity", SLEEP),
+                                    new LookUpData("GetSharedVariableActivity", GET_SHARED_VARIABLE),
+                                    new LookUpData("SetSharedVariableActivity", SET_SHARED_VARIABLE),
+                                    new LookUpData("OnStartupEventSource", ON_STARTUP))
                             .filter(each -> type.endsWith(each.suffix)).findFirst()
                             .map(LookUpData::activityType).orElse(UNHANDLED);
                 }
@@ -559,6 +561,20 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 @Override
                 public InlineActivityType type() {
                     return InlineActivityType.HTTP_EVENT_SOURCE;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
+                }
+            }
+
+            record OnStartupEventSource(Element element, String name,
+                    InputBinding inputBinding) implements ExplicitTransitionGroup.InlineActivity {
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.ON_STARTUP;
                 }
 
                 @Override
