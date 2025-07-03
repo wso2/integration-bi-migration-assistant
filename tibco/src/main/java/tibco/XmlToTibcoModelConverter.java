@@ -344,8 +344,7 @@ public final class XmlToTibcoModelConverter {
             logger.fine("Done parsing inline activity: " + name);
             return result;
         } catch (Exception ex) {
-            logger.warning("Failed to parse inline activity: " + name + ". " + ex.getMessage());
-                    logger.severe("Exception while parsing inline activity: " + name + ". " + ex.getMessage());
+            logger.severe("Exception while parsing inline activity: " + name + ". " + ex.getMessage());
             return new InlineActivity.UnhandledInlineActivity(element, name,
                     "Unhandled activity type", null);
         }
