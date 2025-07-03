@@ -204,11 +204,12 @@ function SQL_Direct(Context cx) returns error? {
 
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
-    string var2 = (var1/**/<statement>/*).toString();
-    sql:ParameterizedQuery var3 = `${var2}`;
+    string var2 = (var1/**/<statement>/*).toString().trim();
+    sql:ParameterizedQuery var3 = ``;
+    var3.strings = [var2];
     xml var4;
     if var2.startsWith("SELECT") {
-        stream<map<anydata>, error?> var5 = JDBCConnection->query(var3);
+        stream<record {|anydata...;|}, error?> var5 = JDBCConnection->query(var3);
         xml var6 = xml ``;
         check from var each in var5
             do {

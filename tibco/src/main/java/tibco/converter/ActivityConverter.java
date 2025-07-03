@@ -73,7 +73,6 @@ import java.util.stream.Collectors;
 
 import javax.xml.parsers.ParserConfigurationException;
 
-import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static common.BallerinaModel.TypeDesc.BuiltinType.DECIMAL;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static common.BallerinaModel.TypeDesc.BuiltinType.INT;
@@ -386,11 +385,12 @@ final class ActivityConverter {
             ActivityContext cx, VariableReference input, InlineActivity.JDBC jdbc) {
         List<Statement> body = new ArrayList<>();
         VarDeclStatment statement = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                exprFrom("(%s/**/<statement>/*).toString()".formatted(input.varName())));
+                exprFrom("(%s/**/<statement>/*).toString().trim()".formatted(input.varName())));
         body.add(statement);
         VarDeclStatment query = new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
-                cx.getAnnonVarName(), exprFrom("`${%s}`".formatted(statement.ref())));
+                cx.getAnnonVarName(), exprFrom("``"));
         body.add(query);
+        body.add(common.ConversionUtils.stmtFrom("%s.strings = [%s];".formatted(query.ref(), statement.ref())));
         VariableReference client = cx.dbClient(jdbc.connection());
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName());
         body.add(result);
@@ -1140,7 +1140,8 @@ final class ActivityConverter {
     private static @NotNull ActivityConverter.ActivityConversionResult finishSelectQuery(
                 ActivityContext cx, VariableReference dbClient, VariableReference query, List<Statement> body) {
             StreamTypeDesc streamTypeDesc = new StreamTypeDesc(
-                    new BallerinaModel.TypeDesc.MapTypeDesc(ANYDATA),
+                    // map<anydata> don't work due to some reason
+                    common.ConversionUtils.typeFrom("record{|anydata...;|}"),
                     UnionTypeDesc.of(ERROR, NIL));
             VarDeclStatment stream = new VarDeclStatment(
                     streamTypeDesc, cx.getAnnonVarName(),

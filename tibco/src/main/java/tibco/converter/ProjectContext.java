@@ -57,7 +57,6 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
 import static tibco.converter.Library.HTTP;
-import static tibco.converter.Library.JDBC;
 import static tibco.converter.Library.JSON_DATA;
 import static tibco.converter.Library.XML_DATA;
 
@@ -184,12 +183,13 @@ public class ProjectContext {
     }
 
     private void importLibraryIfNeededToUtility(Library library) {
-        conversionContext.ifPresent(cx -> {
-            if (library == JDBC) {
-                cx.javaDependencies().add(TibcoToBalConverter.JavaDependencies.JDBC);
-            }
-        });
         utilityFunctionImports.add(new BallerinaModel.Import(library.orgName, library.moduleName, Optional.empty()));
+    }
+
+    public void addJavaDependency(TibcoToBalConverter.JavaDependencies dependencies) {
+        conversionContext.ifPresent(cx -> {
+            cx.javaDependencies().add(dependencies);
+        });
     }
 
     String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
