@@ -21,7 +21,7 @@ function activityExtension(Context cx) returns error? {
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
     
-//WARNING: assuming single element
+// WARNING: assuming single element
 
     record {|
   string dob;

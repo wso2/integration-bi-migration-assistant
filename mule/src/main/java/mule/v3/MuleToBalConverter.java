@@ -51,6 +51,7 @@ import static common.BallerinaModel.Parameter;
 import static common.BallerinaModel.Resource;
 import static common.BallerinaModel.Service;
 import static common.BallerinaModel.Statement;
+import static common.BallerinaModel.Statement.Comment;
 import static common.BallerinaModel.TextDocument;
 import static common.BallerinaModel.TypeDesc;
 import static mule.v3.Constants.BAL_ANYDATA_TYPE;
@@ -349,9 +350,18 @@ public class MuleToBalConverter {
         String resourcePath = getBallerinaResourcePath(ctx, httpListener.resourcePath(), pathParams);
         String[] resourceMethodNames = httpListener.allowedMethods();
         String listenerRef = httpListener.configRef();
-        String muleBasePath = insertLeadingSlash(
-                ctx.projectCtx.getHttpListenerConfig(httpListener.configRef()).basePath());
-        String basePath = getBallerinaAbsolutePath(muleBasePath);
+        HTTPListenerConfig httpListenerConfig = ctx.projectCtx.getHttpListenerConfig(httpListener.configRef());
+
+        Comment comment = null;
+        String basePath;
+        if (httpListenerConfig == null) {
+            basePath = "/";
+            comment = new Comment("TODO: listener config ref '%s' not found. Using default base path '/'"
+                    .formatted(listenerRef));
+        } else {
+            String muleBasePath = insertLeadingSlash(httpListenerConfig.basePath());
+            basePath = getBallerinaAbsolutePath(muleBasePath);
+        }
 
         // Add services
         List<Parameter> queryPrams = new ArrayList<>();
@@ -403,7 +413,7 @@ public class MuleToBalConverter {
             throw new IllegalStateException();
         }
 
-        return new Service(basePath, listenerRef, resources);
+        return new Service(basePath, listenerRef, resources, comment);
     }
 
     private static String getInboundPropInitValue(Context ctx, List<String> pathParams) {

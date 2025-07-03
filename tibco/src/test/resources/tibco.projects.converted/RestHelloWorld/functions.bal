@@ -224,7 +224,7 @@ function SQL_Direct(Context cx) returns error? {
         xml var10 = xml `<root></root>`;
         var4 = var10;
     }
-    //WARNING: validate jdbc query result mapping
+    // WARNING: validate jdbc query result mapping
     addToContext(cx, "SQL-Direct", var4);
 }
 
@@ -430,7 +430,7 @@ function Render_JSON(Context cx) returns error? {
 </xsl:stylesheet>`, cx.variables);
     xml var2 = (var1/*);
     xmlns "http://www.tibco.com/namespaces/tnt/plugins/json" as ns;
-    //WARNING: assuming single element
+    // WARNING: assuming single element
     record {|
         string foo;
         string bar?;

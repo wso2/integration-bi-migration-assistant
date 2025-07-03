@@ -89,4 +89,12 @@ public class HttpListenerTest extends AbstractBlockTest {
         testMule3ToBal("http-listener/http_listener_inbound_properties.xml",
                 "http-listener/http_listener_inbound_properties.bal");
     }
+
+    // Negative Tests
+
+    @Test
+    public void testMissingListenerConfigReference() {
+        testMule3ToBal("http-listener/missing_listener_config_reference.xml",
+                "http-listener/missing_listener_config_reference.bal");
+    }
 }

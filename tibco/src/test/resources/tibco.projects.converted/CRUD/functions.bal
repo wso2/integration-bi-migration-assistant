@@ -93,7 +93,7 @@ function SQL_Direct(Context cx) returns error? {
         xml var10 = xml `<root></root>`;
         var4 = var10;
     }
-    //WARNING: validate jdbc query result mapping
+    // WARNING: validate jdbc query result mapping
     addToContext(cx, "SQL-Direct", var4);
 }
 
