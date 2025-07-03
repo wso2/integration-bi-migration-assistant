@@ -144,4 +144,16 @@ public class ActivityContext {
     public Resource.JMSSharedResource getJmsResource(String connectionReference) {
         return processContext.getJMSResource(connectionReference);
     }
+
+    public Optional<Resource.SharedVariable> getSharedVariableByRelativePath(String relativePath) {
+        return processContext.getSharedVariableByRelativePath(relativePath);
+    }
+
+    public String getSetSharedVariableFn() {
+        return processContext.getSetSharedVariableFn();
+    }
+
+    public String getGetSharedVariableFn() {
+        return processContext.getGetSharedVariableFn();
+    }
 }

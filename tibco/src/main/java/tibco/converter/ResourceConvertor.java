@@ -24,6 +24,7 @@ import common.BallerinaModel.Expression.CheckPanic;
 import common.BallerinaModel.Expression.NewExpression;
 import common.BallerinaModel.Expression.StringConstant;
 import common.BallerinaModel.ModuleVar;
+import tibco.TibcoToBalConverter;
 import tibco.model.Resource;
 import tibco.model.Resource.HTTPClientResource;
 import tibco.model.Resource.HTTPConnectionResource;
@@ -37,7 +38,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
-import static common.ConversionUtils.exprFrom;
 
 final class ResourceConvertor {
 
@@ -55,6 +55,25 @@ final class ResourceConvertor {
                 new ModuleVar(cx.getUtilityVarName(resource.name()), "jdbc:Client",
                         Optional.of(new CheckPanic(constructorCall)), false, false);
         cx.addResourceDeclaration(resource.name(), resourceVar, substitutions.values(), List.of(Library.JDBC));
+        cx.addJavaDependency(pickJavaSQLConnector(resource.dbUrl()));
+    }
+
+    private static TibcoToBalConverter.JavaDependencies pickJavaSQLConnector(String dbUrl) {
+        String url = dbUrl.trim();
+        if (url.startsWith("jdbc:h2:")) {
+            return TibcoToBalConverter.JavaDependencies.JDBC_H2;
+        } else if (url.startsWith("jdbc:mysql:")) {
+            return TibcoToBalConverter.JavaDependencies.JDBC_MYSQL;
+        } else if (url.startsWith("jdbc:postgresql:")) {
+            return TibcoToBalConverter.JavaDependencies.JDBC_POSTGRESQL;
+        } else if (url.startsWith("jdbc:oracle:")) {
+            return TibcoToBalConverter.JavaDependencies.JDBC_ORACLE;
+        } else if (url.startsWith("jdbc:mariadb:")) {
+            return TibcoToBalConverter.JavaDependencies.JDBC_MARIADB;
+        }
+        // Default to H2 for unknown JDBC URLs
+        TibcoToBalConverter.logger().warning("Unknown JDBC URL format: " + url + ". Defaulting to H2 connector.");
+        return TibcoToBalConverter.JavaDependencies.JDBC_H2;
     }
 
     public static void convertHttpConnectionResource(ProjectContext cx, HTTPConnectionResource resource) {
@@ -92,11 +111,12 @@ final class ResourceConvertor {
 
     public static void convertJDBCSharedResource(ProjectContext cx, Resource.JDBCSharedResource resource) {
 
-        NewExpression constructorCall = new NewExpression(List.of(exprFrom("\"" + resource.location() + "\"")));
+        NewExpression constructorCall = new NewExpression(List.of(new StringConstant(resource.location())));
         ModuleVar resourceVar =
                 new ModuleVar(cx.getUtilityVarName(resource.name()), "jdbc:Client",
                         Optional.of(new CheckPanic(constructorCall)), false, false);
         cx.addResourceDeclaration(resource.name(), resourceVar, List.of(), List.of(Library.JDBC));
+        cx.addJavaDependency(pickJavaSQLConnector(resource.location()));
     }
 
     private record SubstitutionResult(boolean hasInterpolations, String result) {

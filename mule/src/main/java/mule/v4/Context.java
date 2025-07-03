@@ -18,6 +18,7 @@
 package mule.v4;
 
 import mule.v4.dataweave.converter.DWConversionStats;
+import mule.v4.model.MuleModel.DbConfig;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,9 +31,6 @@ import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
-import static mule.v4.model.MuleModel.DbMSQLConfig;
-import static mule.v4.model.MuleModel.DbOracleConfig;
-import static mule.v4.model.MuleModel.DbTemplateQuery;
 import static mule.v4.model.MuleModel.HTTPListenerConfig;
 import static mule.v4.model.MuleModel.HTTPRequestConfig;
 import static mule.v4.model.MuleModel.MuleRecord;
@@ -83,9 +81,7 @@ public class Context {
         // Shared configs
         List<HashMap<String, HTTPListenerConfig>> httpListenerConfigMaps = new ArrayList<>();
         List<HashMap<String, HTTPRequestConfig>> httpRequestConfigMaps = new ArrayList<>();
-        List<HashMap<String, DbMSQLConfig>> dbMySQLConfigMaps = new ArrayList<>();
-        List<HashMap<String, DbOracleConfig>> dbOracleConfigMaps = new ArrayList<>();
-        List<HashMap<String, DbTemplateQuery>> dbTemplateQueryMaps = new ArrayList<>();
+        List<HashMap<String, DbConfig>> dbConfigMaps = new ArrayList<>();
         List<HashMap<String, ModuleVar>> configurableVarMaps = new ArrayList<>();
 
         public HTTPListenerConfig getHttpListenerConfig(String key) {
@@ -121,9 +117,7 @@ public class Context {
     public static class GlobalConfigs {
         public final HashMap<String, HTTPListenerConfig> httpListenerConfigs = new LinkedHashMap<>();
         public final HashMap<String, HTTPRequestConfig> httpRequestConfigs = new LinkedHashMap<>();
-        public final HashMap<String, DbMSQLConfig> dbMySQLConfigs = new LinkedHashMap<>();
-        public final HashMap<String, DbOracleConfig> dbOracleConfigs = new LinkedHashMap<>();
-        public final HashMap<String, DbTemplateQuery> dbTemplateQueries = new LinkedHashMap<>();
+        public final HashMap<String, DbConfig> dbConfigs = new LinkedHashMap<>();
         public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
         public final List<MuleRecord> globalExceptionStrategies = new ArrayList<>();
         public final List<UnsupportedBlock> unsupportedBlocks = new ArrayList<>();
@@ -131,9 +125,7 @@ public class Context {
         GlobalConfigs(ProjectContext projCtx) {
             projCtx.httpListenerConfigMaps.add(httpListenerConfigs);
             projCtx.httpRequestConfigMaps.add(httpRequestConfigs);
-            projCtx.dbMySQLConfigMaps.add(dbMySQLConfigs);
-            projCtx.dbOracleConfigMaps.add(dbOracleConfigs);
-            projCtx.dbTemplateQueryMaps.add(dbTemplateQueries);
+            projCtx.dbConfigMaps.add(dbConfigs);
             projCtx.configurableVarMaps.add(configurableVars);
         }
     }

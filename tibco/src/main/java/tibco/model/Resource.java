@@ -83,4 +83,12 @@ public interface Resource {
                 Optional<String> clientID, boolean autoGenClientID) {
         }
     }
+
+    record SharedVariable(String name, boolean persistent, String initialValue, boolean isShared, String relativePath)
+            implements Resource {
+        @Override
+        public Collection<SubstitutionBinding> substitutionBindings() {
+            return List.of();
+        }
+    }
 }

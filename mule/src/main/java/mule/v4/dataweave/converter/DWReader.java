@@ -122,6 +122,7 @@ public class DWReader {
                     context.setMimeType(((InputPayloadElement) child).mimeType());
                     break;
                 default:
+                    // TODO: add this to unsupported blocks in report?
                     statementList.add(new BallerinaStatement(
                             ConversionUtils.wrapElementInUnsupportedBlockComment(child.toString())));
                     break;

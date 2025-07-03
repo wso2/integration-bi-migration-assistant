@@ -43,6 +43,7 @@
 - `com.tibco.plugin.jms.JMSQueueSendActivity`
 - `com.tibco.plugin.jms.JMSQueueGetMessageActivity`
 - `com.tibco.pe.core.WriteToLogActivity`
+- `com.tibco.plugin.timer.NullActivity`
 
 ## Sample conversion projects
 

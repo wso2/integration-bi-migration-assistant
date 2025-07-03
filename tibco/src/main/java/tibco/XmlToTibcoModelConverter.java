@@ -189,8 +189,8 @@ public final class XmlToTibcoModelConverter {
         return new Resource.SubstitutionBinding(template, propName);
     }
 
-    public static tibco.model.Process parseProcess(Element root) {
-        return parseProcessInner(new ParseContext(), root);
+    public static tibco.model.Process parseProcess(ParseContext cx, Element root) {
+        return parseProcessInner(cx, root);
     }
 
     private static @NotNull Process parseProcessInner(ParseContext cx, Element root) {
@@ -317,6 +317,8 @@ public final class XmlToTibcoModelConverter {
             case JMS_QUEUE_SEND_ACTIVITY -> parseJMSQueueSendActivity(element, name, inputBinding);
             case JMS_QUEUE_GET_MESSAGE_ACTIVITY -> parseJMSQueueGetMessageActivity(element, name, inputBinding);
             case SLEEP -> new InlineActivity.Sleep(element, name, inputBinding);
+            case GET_SHARED_VARIABLE -> parseGetSharedVariable(name, inputBinding, element);
+            case SET_SHARED_VARIABLE -> parseSetSharedVariable(name, inputBinding, element);
         };
     }
 
@@ -528,6 +530,20 @@ public final class XmlToTibcoModelConverter {
             Flow.Activity.InputBinding inputBinding,
             Element element) {
         return new InlineActivity.MapperActivity(element, name, inputBinding);
+    }
+
+    private static InlineActivity.GetSharedVariable parseGetSharedVariable(String name,
+            Flow.Activity.InputBinding inputBinding,
+            Element element) {
+        String variableConfig = getInlineActivityConfigValue(element, "variableConfig");
+        return new InlineActivity.GetSharedVariable(element, name, inputBinding, variableConfig);
+    }
+
+    private static InlineActivity.SetSharedVariable parseSetSharedVariable(String name,
+            Flow.Activity.InputBinding inputBinding,
+            Element element) {
+        String variableConfig = getInlineActivityConfigValue(element, "variableConfig");
+        return new InlineActivity.SetSharedVariable(element, name, inputBinding, variableConfig);
     }
 
     private static Flow.Activity.InputBinding.CompleteBinding parseInlineActivityInputBinding(
@@ -1742,5 +1758,40 @@ public final class XmlToTibcoModelConverter {
         String jmsPriority = getFirstChildWithTag(configurableHeaders, "JMSPriority").getTextContent();
 
         return new InlineActivity.JMSActivityBase.ConfigurableHeaders(jmsDeliveryMode, jmsExpiration, jmsPriority);
+    }
+
+    public static Resource.SharedVariable parseSharedVariable(ParseContext cx, Element root, String relativePath) {
+        return parseSharedVariable(cx, root, false, relativePath);
+    }
+
+    public static Resource.SharedVariable parseJobSharedVariable(ParseContext cx, Element root, String relativePath) {
+        return parseSharedVariable(cx, root, true, relativePath);
+    }
+
+    private static Resource.SharedVariable parseSharedVariable(ParseContext cx, Element root, boolean isShared,
+            String relativePath) {
+        String name = getFirstChildWithTag(root, "name").getTextContent();
+        Element config = getFirstChildWithTag(root, "config");
+        boolean persistent = tryGetFirstChildWithTag(config, "persistent")
+                .map(Element::getTextContent)
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+        String initialValue = tryGetFirstChildWithTag(config, "initialValue")
+                .map(Element::getTextContent).orElse("");
+        if (!initialValue.equals("byRef")) {
+            logger.severe(
+                    "initialValue for sharedVariable '" + name + "' is not byRef. Using empty string as placeholder.");
+            initialValue = "<root/>";
+            return new Resource.SharedVariable(name, persistent, initialValue, isShared, relativePath);
+        }
+        String initialValueRef = getFirstChildWithTag(config, "initialValueRef").getTextContent();
+        try {
+            initialValue = cx.getFileContent(initialValueRef);
+        } catch (java.io.IOException e) {
+            logger.severe("Failed to read initial value for sharedVariable '" + name + "' from '" + initialValueRef
+                    + "': " + e.getMessage());
+            initialValue = "<root/>";
+        }
+        return new Resource.SharedVariable(name, persistent, initialValue, isShared, relativePath);
     }
 }

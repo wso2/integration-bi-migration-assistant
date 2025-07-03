@@ -17,16 +17,16 @@ public type Context record {|
 public type Record record {
 };
 
-mysql:Client MySQL_Configuration = check new ("localhost", "root", "admin123", "test_db", 3306);
+mysql:Client mySql_Config = check new ("localhost", "root", "admin123", "test_db", 3306);
 public listener http:Listener config = new (8081);
 
-service /mule3 on config {
-    resource function get .(http:Request request) returns http:Response|error {
+service /mule4 on config {
+    resource function get db(http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new}};
 
         // database operation
         sql:ParameterizedQuery dbQuery0 = `SELECT * FROM users;`;
-        stream<Record, sql:Error?> dbStream0 = MySQL_Configuration->query(dbQuery0);
+        stream<Record, sql:Error?> dbStream0 = mySql_Config->query(dbQuery0);
         Record[] dbSelect0 = check from Record _iterator_ in dbStream0
             select _iterator_;
         ctx.payload = dbSelect0;

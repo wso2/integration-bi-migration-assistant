@@ -7,7 +7,7 @@ function JMG_Get(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     jms:Connection var1 = check new (initialContextFactory = "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl = "tcp://localhost:61616");
     jms:Session var2 = check var1->createSession();
-    //WARNING: using default destination configuration
+    // WARNING: using default destination configuration
     jms:MessageConsumer var3 = check var2.createConsumer(destination = {
         'type: jms:QUEUE,
         name: "Default queue"
@@ -59,7 +59,7 @@ function JMS_Send(Context cx) returns error? {
 </xsl:stylesheet>`, cx.variables);
     jms:Connection var2 = check new (initialContextFactory = "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl = "tcp://localhost:61617", username = "userName", password = "password");
     jms:Session var3 = check var2->createSession();
-    //WARNING: using default destination configuration
+    // WARNING: using default destination configuration
     jms:MessageProducer var4 = check var3.createProducer();
     string var5 = (var1/**/<Body>/*).toString().trim();
     jms:TextMessage var6 = {content: var5};
@@ -155,10 +155,6 @@ function start_Main_process(Context cx) returns () {
     return scope0ScopeFn(cx);
 }
 
-function initContext(map<xml> initVariables = {}) returns Context {
-    return {variables: initVariables, result: xml `<root/>`};
-}
-
 function addToContext(Context context, string varName, xml value) {
     xml children = value/*;
     xml transformed = xml `<root>${children}</root>`;
@@ -172,4 +168,15 @@ function getFromContext(Context context, string varName) returns xml {
         return xml `<root/>`;
     }
     return value;
+}
+
+function initContext(map<xml> initVariables = {},
+        map<SharedVariableContext> jobSharedVariables = {})
+            returns Context {
+    map<SharedVariableContext> sharedVariables = {};
+
+    foreach var key in jobSharedVariables.keys() {
+        sharedVariables[key] = jobSharedVariables.get(key);
+    }
+    return {variables: initVariables, result: xml `<root/>`, sharedVariables};
 }

@@ -1360,6 +1360,55 @@ service /mule3 on config {
 
 ```
 
+- ### Missing Listener Config Reference
+
+**Input (missing_listener_config_reference.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <!--    <http:listener-config name="config" host="0.0.0.0" port="8081" basePath="/mule3" doc:name="HTTP Listener Configuration"/>-->
+    <flow name="demoFlow">
+        <http:listener config-ref="config" path="/demo" allowedMethods="GET" doc:name="HTTP"/>
+        <logger message="xxx: logger invoked" level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>
+
+```
+**Output (missing_listener_config_reference.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type InboundProperties record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    InboundProperties inboundProperties;
+|};
+
+// TODO: listener config ref 'config' not found. Using default base path '/'
+service / on config {
+    resource function get demo(http:Request request) returns http:Response|error {
+        Context ctx = {inboundProperties: {request, response: new}};
+        log:printInfo("xxx: logger invoked");
+
+        ctx.inboundProperties.response.setPayload(ctx.payload);
+        return ctx.inboundProperties.response;
+    }
+}
+
+```
+
 - ### Query Params
 
 **Input (query_params.xml):**

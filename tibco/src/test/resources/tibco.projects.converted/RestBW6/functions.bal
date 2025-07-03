@@ -13,7 +13,7 @@ function activityExtension(Context cx) returns error? {
         </tns:TestResponse>
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
-    //WARNING: assuming single element
+    // WARNING: assuming single element
     record {|
         string response;
     |} var2 = check xmldata:parseAsType(var1);
@@ -40,7 +40,7 @@ function activityExtension_2(Context cx) returns error? {
         </tns1:ResponseActivityInput>
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
-    //FIXME ignoring headers others than content type
+    // FIXME ignoring headers others than content type
     string var2 = (var1/**/<Content\-Type>/*).toString();
     string var3 = (var1/**/<asciiContent>/*).toString();
     xml var4 = (var1/**/<Headers>/*);
@@ -107,10 +107,6 @@ function tryBindToTestRequest(xml|json input) returns TestRequest|error {
     return input is xml ? xmldata:parseAsType(input) : jsondata:parseAsType(input);
 }
 
-function initContext(map<xml> initVariables = {}) returns Context {
-    return {variables: initVariables, result: xml `<root/>`};
-}
-
 function parseHeaders(xml headers) returns map<string> {
     map<string> headerMap = {};
     foreach xml header in headers {
@@ -138,6 +134,17 @@ function getFromContext(Context context, string varName) returns xml {
         return xml `<root/>`;
     }
     return value;
+}
+
+function initContext(map<xml> initVariables = {},
+        map<SharedVariableContext> jobSharedVariables = {})
+            returns Context {
+    map<SharedVariableContext> sharedVariables = {};
+
+    foreach var key in jobSharedVariables.keys() {
+        sharedVariables[key] = jobSharedVariables.get(key);
+    }
+    return {variables: initVariables, result: xml `<root/>`, sharedVariables};
 }
 
 function responseFromContext(Context cx) returns http:Response {

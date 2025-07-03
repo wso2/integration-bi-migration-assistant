@@ -28,9 +28,9 @@ public enum MuleXMLTag {
     HTTP_LISTENER_CONFIG("http:listener-config", 4),
     HTTP_LISTENER_CONNECTION("http:listener-connection", 1),
     HTTP_REQUEST_CONFIG("http:request-config", 5),
-    DB_MYSQL_CONFIG("db:mysql-config", 4),
-    DB_ORACLE_CONFIG("db:oracle-config", 4),
-    DB_TEMPLATE_QUERY("db:template-query", 3),
+    DB_CONFIG("db:config", 1),
+    DB_MY_SQL_CONNECTION("db:my-sql-connection", 3),
+    DB_ORACLE_CONNECTION("db:oracle-connection", 3),
 
     // Flow Control
     CHOICE("choice", 3),
@@ -78,9 +78,8 @@ public enum MuleXMLTag {
     DB_SELECT("db:select", 2),
     DB_UPDATE("db:update", 2),
     DB_DELETE("db:delete", 2),
-    DB_PARAMETERIZED_QUERY("db:parameterized-query", 3),
-    DB_DYNAMIC_QUERY("db:dynamic-query", 3),
-    DB_TEMPLATE_QUERY_REF("db:template-query-ref", 3),
+    DB_SQL("db:sql", 3),
+    DB_INPUT_PARAMETERS("db:input-parameters", 2),
 
     // Dataweave
     DW_SET_VARIABLE("dw:set-variable", 2),

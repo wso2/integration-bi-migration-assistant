@@ -45,7 +45,8 @@ public class ProjectConverter {
             Set<Resource.HTTPClientResource> httpClientResources,
             Set<Resource.HTTPSharedResource> httpSharedResources,
             Set<Resource.JDBCSharedResource> jdbcSharedResource,
-            Set<Resource.JMSSharedResource> jmsSharedResource
+            Set<Resource.JMSSharedResource> jmsSharedResource,
+            Set<Resource.SharedVariable> sharedVariables
     ) {
 
     }
@@ -139,6 +140,9 @@ public class ProjectConverter {
         }
         for (Resource.JMSSharedResource resource : projectResources.jmsSharedResource) {
             cx.addJMSResource(resource);
+        }
+        for (Resource.SharedVariable resource : projectResources.sharedVariables) {
+            cx.addSharedVariable(resource);
         }
     }
 

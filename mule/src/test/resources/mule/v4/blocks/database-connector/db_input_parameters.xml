@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="config" doc:name="HTTP Listener config" doc:id="c5d6e266-c387-4836-ab08-36aa28f37907" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <db:config name="mySql_Config" doc:name="Database Config" doc:id="7a100611-706e-41b9-9567-7853a11271a2" >
+        <db:my-sql-connection host="localhost" port="3306" user="root" password="admin123" database="test_db" />
+    </db:config>
+    <flow name="demoFlow" doc:id="1d088811-dee1-455d-a909-529d3c54662f" >
+        <http:listener doc:name="Listener" doc:id="758aa0e3-bd7e-43ab-8c4f-ed2dbde66aac" config-ref="config" path="/db" allowedMethods="GET"/>
+        <db:select doc:name="Select" doc:id="5ac75c6d-de93-49aa-b7e9-5eaae0b94d4f" config-ref="mySql_Config" queryTimeout="34">
+            <db:sql><![CDATA[SELECT * FROM users WHERE id = :id AND name = :name;]]></db:sql>
+            <db:input-parameters><![CDATA[
+        		#[{
+            		'id': vars.userId,
+            		'name': vars.userName
+        		}]
+    		]]></db:input-parameters>
+        </db:select>
+    </flow>
+</mule>
