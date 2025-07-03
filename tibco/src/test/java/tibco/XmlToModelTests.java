@@ -45,7 +45,8 @@ public class XmlToModelTests {
                 </ns0:httpSharedResource>
                 """;
         Resource.HTTPSharedResource resource =
-                XmlToTibcoModelConverter.parseHTTPSharedResource("test", TestUtils.stringToElement(xmlText));
+                XmlToTibcoModelConverter.parseHTTPSharedResource("test", TestUtils.stringToElement(xmlText))
+                        .orElseThrow();
         assertEquals(resource.name(), "test");
         assertEquals(resource.host(), "localhost");
         assertEquals(resource.port(), 9090);
