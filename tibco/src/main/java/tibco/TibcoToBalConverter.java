@@ -146,12 +146,24 @@ public class TibcoToBalConverter {
 
             for (String s : getFilesWithExtension(projectPath, "sharedvariable")) {
                 String relativePath = "/" + Paths.get(projectPath).relativize(Paths.get(s)).toString();
-                variables.add(XmlToTibcoModelConverter.parseSharedVariable(cx, parseXmlFile(s), relativePath));
+                Optional<Resource.SharedVariable> var = XmlToTibcoModelConverter.parseSharedVariable(cx,
+                        parseXmlFile(s), relativePath);
+                if (var.isPresent()) {
+                    variables.add(var.get());
+                } else {
+                    logger().warning("Failed to parse sharedvariable: " + s);
+                }
             }
 
             for (String s : getFilesWithExtension(projectPath, "jobsharedvariable")) {
                 String relativePath = "/" + Paths.get(projectPath).relativize(Paths.get(s)).toString();
-                variables.add(XmlToTibcoModelConverter.parseJobSharedVariable(cx, parseXmlFile(s), relativePath));
+                Optional<Resource.SharedVariable> var = XmlToTibcoModelConverter.parseJobSharedVariable(cx,
+                        parseXmlFile(s), relativePath);
+                if (var.isPresent()) {
+                    variables.add(var.get());
+                } else {
+                    logger().warning("Failed to parse jobsharedvariable: " + s);
+                }
             }
 
             return variables;
@@ -172,7 +184,13 @@ public class TibcoToBalConverter {
                 Element element = parseXmlFile(file);
                 Path filePath = Path.of(file);
                 String fileName = filePath.getFileName().toString();
-                result.add(XmlToTibcoModelConverter.parseHTTPSharedResource(fileName, element));
+                Optional<Resource.HTTPSharedResource> resource = XmlToTibcoModelConverter
+                        .parseHTTPSharedResource(fileName, element);
+                if (resource.isPresent()) {
+                    result.add(resource.get());
+                } else {
+                    logger().warning("Failed to parse HTTPSharedResource: " + file);
+                }
             }
             return result;
         }
@@ -188,7 +206,13 @@ public class TibcoToBalConverter {
                 Element element = parseXmlFile(file);
                 Path filePath = Path.of(file);
                 String fileName = filePath.getFileName().toString();
-                result.add(XmlToTibcoModelConverter.parseJMSSharedResource(fileName, element));
+                Optional<Resource.JMSSharedResource> resource = XmlToTibcoModelConverter
+                        .parseJMSSharedResource(fileName, element);
+                if (resource.isPresent()) {
+                    result.add(resource.get());
+                } else {
+                    logger().warning("Failed to parse JMSSharedResource: " + file);
+                }
             }
             return result;
         }
@@ -198,15 +222,18 @@ public class TibcoToBalConverter {
         Set<E> parse(String projectPath) throws IOException, ParserConfigurationException, SAXException;
 
         record SimpleParsingUnit<E>(FileFinder fileFinder,
-                                    Function<Element, E> parsingFn) implements ParsingUnit<E> {
-
+                Function<Element, Optional<E>> parsingFn) implements ParsingUnit<E> {
             @Override
             public Set<E> parse(String projectPath) throws IOException, ParserConfigurationException, SAXException {
                 Set<E> elements = new HashSet<>();
                 for (String s : fileFinder.findFiles(projectPath)) {
                     Element element = parseXmlFile(s);
-                    E parsedElement = parsingFn.apply(element);
-                    elements.add(parsedElement);
+                    Optional<E> parsedElement = parsingFn.apply(element);
+                    if (parsedElement.isPresent()) {
+                        elements.add(parsedElement.get());
+                    } else {
+                        logger().warning("Failed to parse resource: " + s);
+                    }
                 }
                 return elements;
             }
