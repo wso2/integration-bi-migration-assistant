@@ -18,16 +18,21 @@
 
 package tibco;
 
+import tibco.model.NameSpace;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.List;
 
 public class ParseContext {
 
     private long nextAnonProcessIndex = 0;
     private long nextAnonXSLTIndex = 0;
     private final String projectPath;
+    public Collection<NameSpace> nameSpaces = List.of();
 
     public ParseContext(String projectPath) {
         this.projectPath = projectPath;
