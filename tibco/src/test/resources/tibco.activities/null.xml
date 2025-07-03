@@ -1,0 +1,6 @@
+<pd:activity name="Null" xmlns:pd="http://xmlns.tibco.com/bw/process/2003">
+    <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+    <pd:resourceType>ae.activities.null</pd:resourceType>
+    <config />
+    <pd:inputBindings />
+</pd:activity>
