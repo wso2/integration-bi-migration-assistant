@@ -23,6 +23,18 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static mule.v3.MuleMigrationExecutor.logger;
+import static mule.v3.report.MigrationReportWriter.AVG_CASE_COMP_TIME_NEW;
+import static mule.v3.report.MigrationReportWriter.AVG_CASE_COMP_TIME_REPEATED;
+import static mule.v3.report.MigrationReportWriter.AVG_CASE_DW_EXPR_TIME;
+import static mule.v3.report.MigrationReportWriter.AVG_CASE_INSPECTION_TIME;
+import static mule.v3.report.MigrationReportWriter.BEST_CASE_COMP_TIME_NEW;
+import static mule.v3.report.MigrationReportWriter.BEST_CASE_COMP_TIME_REPEATED;
+import static mule.v3.report.MigrationReportWriter.BEST_CASE_INSPECTION_TIME;
+import static mule.v3.report.MigrationReportWriter.BEST_DW_EXPR_TIME;
+import static mule.v3.report.MigrationReportWriter.WORST_CASE_COMP_TIME_NEW;
+import static mule.v3.report.MigrationReportWriter.WORST_CASE_COMP_TIME_REPEATED;
+import static mule.v3.report.MigrationReportWriter.WORST_CASE_DW_EXPR_TIME;
+import static mule.v3.report.MigrationReportWriter.WORST_CASE_INSPECTION_TIME;
 
 /**
  * Utility class to generate and write an aggregate migration report.
@@ -124,6 +136,12 @@ public class AggregateReportWriter {
                 totalWorstCaseDays / 5.0,                        // %.1f - worst case weeks
                 projectSummaries.size(),                         // %d - project count again
                 avgCoverage,                                     // %.0f - avg coverage again
+                BEST_CASE_COMP_TIME_NEW, BEST_CASE_COMP_TIME_REPEATED * 8, BEST_DW_EXPR_TIME * 8 * 60,
+                BEST_CASE_INSPECTION_TIME * 8 * 60,
+                AVG_CASE_COMP_TIME_NEW, AVG_CASE_COMP_TIME_REPEATED * 8, AVG_CASE_DW_EXPR_TIME * 8,
+                AVG_CASE_INSPECTION_TIME * 8 * 60,
+                WORST_CASE_COMP_TIME_NEW, WORST_CASE_COMP_TIME_REPEATED * 8, WORST_CASE_DW_EXPR_TIME * 8,
+                WORST_CASE_INSPECTION_TIME * 8 * 60,
                 generateProjectCards(projectSummaries, convertedProjectsDir),  // %s - project cards
                 // html
                 generateFailedElementsRows(projectSummaries)      // %s - failed elements rows html
@@ -256,12 +274,18 @@ public class AggregateReportWriter {
             String elementType = entry.getKey();
             var projectCounts = entry.getValue();
             int totalFrequency = projectCounts.values().stream().mapToInt(Integer::intValue).sum();
-            String affectedProjects = String.join(", ", projectCounts.keySet());
+
+            // Generate HTML list for affected projects
+            StringBuilder projectsList = new StringBuilder("<ul style=\"margin: 0; padding-left: 20px;\">");
+            for (String projectName : projectCounts.keySet()) {
+                projectsList.append("<li>").append(projectName).append("</li>");
+            }
+            projectsList.append("</ul>");
 
             html.append("        <tr>\n");
             html.append("          <td>").append(elementType).append("</td>\n");
             html.append("          <td>").append(totalFrequency).append("</td>\n");
-            html.append("          <td>").append(affectedProjects).append("</td>\n");
+            html.append("          <td>").append(projectsList).append("</td>\n");
             html.append("        </tr>\n");
         }
 

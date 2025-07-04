@@ -449,27 +449,33 @@ public class MigrationReportTemplate {
                       </tr>
                     </table>
                     <div class="estimation-notes">
-                      <p><strong>Note:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
+                      <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
                       <ul>
                         <li>Best case scenario:
                           <ul>
-                            <li>%s day per each unsupported element type for analysis, implementation, and testing</li>
-                            <li>%s minutes per each unsupported dataweave expression for translation and validation</li>
+                            <li>%s day per each new unsupported element code line for analysis, implementation, and testing</li>
+                            <li>%s hour per each repeated unsupported element code line for implementation</li>
+                            <li>%s minutes per each unsupported dataweave code line for translation</li>
+                            <li>%s minutes per each converted code line for inspection and verification</li>
                             <li>Assumes minimal complexity and straightforward implementations</li>
                           </ul>
                         </li>
                         <li>Average case scenario:
                           <ul>
-                            <li>%s days per each unsupported element type for analysis, implementation, and testing</li>
-                            <li>%s hour per each unsupported dataweave expression including edge cases</li>
-                            <li>Includes time for code review and integration testing</li>
+                            <li>%s days per each new unsupported element code line for analysis, implementation, and testing</li>
+                            <li>%s hour per each repeated unsupported element code line for implementation</li>
+                            <li>%s hour per each unsupported dataweave code line for translation</li>
+                            <li>%s minutes per each converted code line for inspection and verification</li>
+                            <li>Assumes medium complexity with moderate implementation challenges</li>
                           </ul>
                         </li>
                         <li>Worst case scenario:
                           <ul>
-                            <li>%s days per each unsupported element type due to complex dependencies and edge cases</li>
-                            <li>%s hours per each unsupported dataweave expression with complex transformations</li>
-                            <li>Accounts for additional requirements, debugging, and performance optimization</li>
+                            <li>%s days per each new unsupported element code line for analysis, implementation, and testing</li>
+                            <li>%s hour per each repeated unsupported element code line for implementation</li>
+                            <li>%s hours per each unsupported dataweave code line for translation</li>
+                            <li>%s minutes per each converted code line for inspection and verification</li>
+                            <li>Assumes high complexity with significant implementation challenges</li>
                           </ul>
                         </li>
                       </ul>
