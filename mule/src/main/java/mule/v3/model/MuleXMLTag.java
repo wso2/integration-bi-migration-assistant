@@ -98,7 +98,7 @@ public enum MuleXMLTag {
     SET_PROPERTY("set-property", 1),
     SMTP_OUTBOUND_ENDPOINT("smtp:outbound-endpoint", 4),
 
-    UNSUPPORTED_TAG("unsupported-tag", 1000);
+    UNSUPPORTED_TAG("unsupported-tag", 5);
 
     private final String tag;
     private final int weight;

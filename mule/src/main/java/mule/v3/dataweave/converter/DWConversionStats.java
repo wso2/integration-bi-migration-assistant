@@ -15,7 +15,6 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
 package mule.v3.dataweave.converter;
 
 import java.util.ArrayList;
@@ -33,6 +32,14 @@ public class DWConversionStats {
         if (isConverted) {
             converted.merge(construct, 1, Integer::sum);
         }
+    }
+
+    public int getTotalEncounteredCount() {
+        return encountered.values().stream().mapToInt(i -> i).sum();
+    }
+
+    public int getConvertedCount() {
+        return converted.values().stream().mapToInt(i -> i).sum();
     }
 
     public int getTotalWeight() {

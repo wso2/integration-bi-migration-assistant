@@ -320,6 +320,7 @@ public class MuleMigrationExecutor {
         try {
             birTextDocument = convertXMLFileToBir(ctx, muleXMLNavigator, xmlFile.getPath(), balFileName);
         } catch (Exception e) {
+            assert false;
             logger().severe(String.format("Error converting the file to ballerina intermediate representation: %s%n%s",
                     xmlFile.getName(), e.getMessage()));
         }
