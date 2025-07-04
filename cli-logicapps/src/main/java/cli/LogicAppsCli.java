@@ -18,6 +18,7 @@
 package cli;
 
 import baltool.logicapps.codegenerator.LogicAppsMigrationExecutor;
+import baltool.logicapps.codegenerator.VerboseLogger;
 
 import java.nio.file.Path;
 import java.util.logging.Logger;
@@ -33,6 +34,7 @@ public class LogicAppsCli {
             System.exit(1);
         }
 
-        LogicAppsMigrationExecutor.migrateLogicAppToBallerina(Path.of(args[0]), "", Path.of(args[1]));
+        LogicAppsMigrationExecutor.migrateLogicAppToBallerina(Path.of(args[0]), "", Path.of(args[1]),
+                false, false, new VerboseLogger(false));
     }
 }

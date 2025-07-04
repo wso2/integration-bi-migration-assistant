@@ -10,23 +10,22 @@ def balToolVersion = "${logicAppsVersion}"
 def ballerinaVersion = "${ballerinaLangVersion}"
 
 group 'com.wso2'
-version '0.1.0-SNAPSHOT'
+version '0.1.0'
 
 def libJarPath = "../../../../build/libs/logicapps-migration-assistant-${project.version}.jar"
 
 dependencies {
     // Dev dependencies
-    implementation group: 'info.picocli', name: 'picocli', version: "${picocliVersion}"
-    implementation group: 'org.jetbrains', name: 'annotations', version: "${jetbrainsAnnotationsVersion}"
-    testImplementation group: 'org.testng', name: 'testng', version: "${testngVersion}"
-    spotbugs group: 'com.github.spotbugs', name: 'spotbugs', version: "${spotbugsVersion}"
+    implementation "info.picocli:picocli:${picocliVersion}"
+    implementation "org.jetbrains:annotations:${jetbrainsAnnotationsVersion}"
+    testImplementation "org.testng:testng:${testngVersion}"
+    spotbugs "com.github.spotbugs:spotbugs:${spotbugsVersion}"
 
     // LogicApps specific dependencies
     implementation "com.google.code.gson:gson:${gsonVersion}"
     implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
     implementation "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
     implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
-    implementation "org.ballerinalang:toml-parser:${ballerinaLangVersion}"
 }
 
 checkstyle {
@@ -75,16 +74,23 @@ task updateTomlFile {
     }
 }
 
+// Task to copy dependencies to a lib directory
+task copyDependencies(type: Copy) {
+    from configurations.runtimeClasspath
+    into "${buildDir}/libs/lib"
+}
+
 // Default jar task - we'll keep it for backward compatibility
 jar {
-    dependsOn ':common:jar'
+    dependsOn copyDependencies
     manifest {
         attributes(
-                'Main-Class': 'cli.Main'
+                'Main-Class': 'cli.Main',
+                'Class-Path': configurations.runtimeClasspath.files.collect { "lib/${it.name}" }.join(' ')
         )
     }
     from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+        sourceSets.main.output
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveFileName = 'integration-bi-migration-assistant.jar'
@@ -92,17 +98,15 @@ jar {
 
 // Create a separate JAR for LogicApp migrations
 task logicAppsJar(type: Jar) {
-    dependsOn ':common:jar'
+    dependsOn copyDependencies
     manifest {
         attributes(
-                'Main-Class': 'cli.LogicAppsCli'
+                'Main-Class': 'cli.LogicAppsCli',
+                'Class-Path': configurations.runtimeClasspath.files.collect { "lib/${it.name}" }.join(' ')
         )
     }
     from {
         sourceSets.main.output
-    }
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveBaseName = 'logicapps-migration-assistant'

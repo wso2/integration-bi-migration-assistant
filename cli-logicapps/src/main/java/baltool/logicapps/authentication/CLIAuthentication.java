@@ -1,5 +1,6 @@
 package baltool.logicapps.authentication;
 
+import baltool.logicapps.codegenerator.VerboseLogger;
 import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -8,7 +9,6 @@ import com.sun.net.httpserver.HttpServer;
 import java.awt.Desktop;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.URI;
@@ -28,17 +28,19 @@ import java.util.concurrent.TimeUnit;
 
 import static baltool.logicapps.Constants.AUTHENTICATION_TIMEOUT_SECONDS;
 import static baltool.logicapps.Constants.AUTH_CLIENT_ID;
+import static baltool.logicapps.Constants.DEV_AUTH_CLIENT_ID;
 import static baltool.logicapps.Constants.AUTH_ORG;
+import static baltool.logicapps.Constants.DEV_AUTH_ORG;
 import static baltool.logicapps.Constants.AUTH_REDIRECT_URL;
+import static baltool.logicapps.Constants.DEV_AUTH_REDIRECT_URL;
 import static baltool.logicapps.Constants.BALLERINA_USER_HOME_NAME;
 import static baltool.logicapps.Constants.CONFIG_FILE_PATH;
 
 public class CLIAuthentication {
-    private static final PrintStream errStream = System.err;
-    private static final PrintStream outStream = System.out;
     private static final String USER_HOME = System.getProperty("user.home");
+    public static final boolean BALLERINA_DEV_UPDATE = Boolean.parseBoolean(
+            System.getenv("BALLERINA_DEV_UPDATE"));
 
-    // Instance variables for the authentication flow
     private HttpServer server;
     private CountDownLatch callbackReceived;
     private String authorizationCode;
@@ -51,15 +53,15 @@ public class CLIAuthentication {
      * @return Valid access token
      * @throws Exception If authentication fails or network issues occur
      */
-    public static String getValidAccessToken() throws Exception {
-        String existingToken = loadTokenFromConfig("accessToken");
+    public static String getValidAccessToken(VerboseLogger logger) throws Exception {
+        String existingToken = loadTokenFromConfig("accessToken", logger);
         if (existingToken != null) {
-            if (isTokenValid(existingToken)) {
+            if (isTokenValid(existingToken, logger)) {
                 return existingToken;
             } else {
-                String refreshToken = loadTokenFromConfig("refreshToken");
+                String refreshToken = loadTokenFromConfig("refreshToken", logger);
                 if (refreshToken != null) {
-                    String newAccessToken = refreshAccessToken(refreshToken);
+                    String newAccessToken = refreshAccessToken(refreshToken, logger);
                     if (newAccessToken != null) {
                         return newAccessToken;
                     }
@@ -67,8 +69,8 @@ public class CLIAuthentication {
             }
         }
 
-        outStream.println("Performing new authentication...");
-        return performFullAuthentication();
+        logger.printInfo("Performing new authentication");
+        return performFullAuthentication(logger);
     }
 
     /**
@@ -77,11 +79,11 @@ public class CLIAuthentication {
      * @return Access token if successful, null otherwise
      * @throws Exception If authentication fails or network issues occur
      */
-    private static String performFullAuthentication() throws Exception {
+    private static String performFullAuthentication(VerboseLogger logger) throws Exception {
         CLIAuthentication authInstance = new CLIAuthentication();
-        String authCode = authInstance.authenticate();
+        String authCode = authInstance.authenticate(logger);
         if (authCode != null) {
-            return exchangeCodeForTokens(authCode);
+            return exchangeCodeForTokens(authCode, logger);
         }
         return null;
     }
@@ -92,14 +94,14 @@ public class CLIAuthentication {
      * @param refreshToken The refresh token to use for obtaining a new access token
      * @return New access token if successful, null otherwise
      */
-    private static String refreshAccessToken(String refreshToken) {
+    private static String refreshAccessToken(String refreshToken, VerboseLogger logger) {
         try {
-            String tokenUrl = String.format("https://api.asgardeo.io/t/%s/oauth2/token", AUTH_ORG);
+            String tokenUrl = String.format("https://api.asgardeo.io/t/%s/oauth2/token", getAuthOrg());
 
             String requestBody = String.format(
                     "grant_type=refresh_token&refresh_token=%s&client_id=%s",
                     URLEncoder.encode(refreshToken, StandardCharsets.UTF_8),
-                    URLEncoder.encode(AUTH_CLIENT_ID, StandardCharsets.UTF_8)
+                    URLEncoder.encode(getAuthClientID(), StandardCharsets.UTF_8)
             );
 
             HttpClient client = HttpClient.newBuilder()
@@ -119,35 +121,35 @@ public class CLIAuthentication {
             if (response.statusCode() == 200) {
                 String responseBody = response.body();
 
-                String newAccessToken = extractTokenFromResponse(responseBody, "access_token");
-                String newRefreshToken = extractTokenFromResponse(responseBody, "refresh_token");
+                String newAccessToken = extractTokenFromResponse(responseBody, "access_token", logger);
+                String newRefreshToken = extractTokenFromResponse(responseBody, "refresh_token", logger);
 
                 if (newAccessToken != null) {
-                    saveTokenToConfig("accessToken", newAccessToken);
+                    saveTokenToConfig("accessToken", newAccessToken, logger);
                     // Update refresh token if a new one is provided
                     if (newRefreshToken != null) {
-                        saveTokenToConfig("refreshToken", newRefreshToken);
+                        saveTokenToConfig("refreshToken", newRefreshToken, logger);
                     }
                     return newAccessToken;
                 } else {
                     return null;
                 }
             } else {
-                errStream.println("Token refresh failed with status: " + response.statusCode());
+                logger.printError("Token refresh failed with status: " + response.statusCode());
                 if (response.body() != null) {
-                    errStream.println("Error response: " + response.body());
+                    logger.printError("Error response: " + response.body());
                 }
                 return null;
             }
         } catch (IOException e) {
-            errStream.println("Network error while refreshing token: " + e.getMessage());
+            logger.printError("Network error while refreshing token: " + e.getMessage());
             return null;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            errStream.println("Token refresh interrupted");
+            logger.printError("Token refresh interrupted");
             return null;
         } catch (Exception e) {
-            errStream.println("Error refreshing token: " + e.getMessage());
+            logger.printError("Error refreshing token: " + e.getMessage());
             return null;
         }
     }
@@ -159,14 +161,14 @@ public class CLIAuthentication {
      * @return Access token if successful, null otherwise
      * @throws Exception If network issues occur or response parsing fails
      */
-    private static String exchangeCodeForTokens(String authCode) throws Exception {
-        String tokenUrl = String.format("https://api.asgardeo.io/t/%s/oauth2/token", AUTH_ORG);
+    private static String exchangeCodeForTokens(String authCode, VerboseLogger logger) throws Exception {
+        String tokenUrl = String.format("https://api.asgardeo.io/t/%s/oauth2/token", getAuthOrg());
 
         String requestBody = String.format(
                 "grant_type=authorization_code&code=%s&redirect_uri=%s&client_id=%s",
                 URLEncoder.encode(authCode, StandardCharsets.UTF_8),
-                URLEncoder.encode(AUTH_REDIRECT_URL, StandardCharsets.UTF_8),
-                URLEncoder.encode(AUTH_CLIENT_ID, StandardCharsets.UTF_8)
+                URLEncoder.encode(getAuthRedirectURL(), StandardCharsets.UTF_8),
+                URLEncoder.encode(getAuthClientID(), StandardCharsets.UTF_8)
         );
 
         // Create HTTP client with timeout
@@ -188,16 +190,16 @@ public class CLIAuthentication {
 
         if (response.statusCode() == 200) {
             String responseBody = response.body();
-            outStream.println("Authentication successful!");
+            logger.printInfo("Authentication successful");
 
             // Parse the response to extract tokens
-            String accessToken = extractTokenFromResponse(responseBody, "access_token");
-            String refreshToken = extractTokenFromResponse(responseBody, "refresh_token");
+            String accessToken = extractTokenFromResponse(responseBody, "access_token", logger);
+            String refreshToken = extractTokenFromResponse(responseBody, "refresh_token", logger);
 
             if (accessToken != null) {
-                saveTokenToConfig("accessToken", accessToken);
+                saveTokenToConfig("accessToken", accessToken, logger);
                 if (refreshToken != null) {
-                    saveTokenToConfig("refreshToken", refreshToken);
+                    saveTokenToConfig("refreshToken", refreshToken, logger);
                 }
                 return accessToken;
             } else {
@@ -219,7 +221,7 @@ public class CLIAuthentication {
      * @param tokenType    The type of token to extract (e.g., "access_token", "refresh_token")
      * @return The extracted token or null if not found
      */
-    private static String extractTokenFromResponse(String responseBody, String tokenType) {
+    private static String extractTokenFromResponse(String responseBody, String tokenType, VerboseLogger logger) {
         try {
             String searchPattern = "\"" + tokenType + "\":\"";
             int startIndex = responseBody.indexOf(searchPattern);
@@ -231,7 +233,7 @@ public class CLIAuthentication {
                 }
             }
         } catch (Exception e) {
-            errStream.println("Error extracting " + tokenType + " from response: " + e.getMessage());
+            logger.printError("Error extracting " + tokenType + " from response: " + e.getMessage());
         }
         return null;
     }
@@ -242,16 +244,16 @@ public class CLIAuthentication {
      * @param accessToken The access token to validate
      * @return true if the token is valid, false otherwise
      */
-    private static boolean isTokenValid(String accessToken) {
+    private static boolean isTokenValid(String accessToken, VerboseLogger logger) {
         try {
             // Use the introspection endpoint to validate the token
-            String introspectUrl = String.format("https://api.asgardeo.io/t/%s/oauth2/introspect", AUTH_ORG);
+            String introspectUrl = String.format("https://api.asgardeo.io/t/%s/oauth2/introspect", getAuthOrg());
 
             String requestBody = String.format(
                     "redirect_uri=%s&token=%s&client_id=%s",
-                    URLEncoder.encode(AUTH_REDIRECT_URL, StandardCharsets.UTF_8),
+                    URLEncoder.encode(getAuthRedirectURL(), StandardCharsets.UTF_8),
                     URLEncoder.encode(accessToken, StandardCharsets.UTF_8),
-                    URLEncoder.encode(AUTH_CLIENT_ID, StandardCharsets.UTF_8)
+                    URLEncoder.encode(getAuthClientID(), StandardCharsets.UTF_8)
             );
 
             HttpClient client = HttpClient.newBuilder()
@@ -280,7 +282,7 @@ public class CLIAuthentication {
                 return false;
             }
         } catch (Exception e) {
-            errStream.println("Error validating access token: " + e.getMessage());
+            logger.printError("Error validating access token: " + e.getMessage());
             return false;
         }
     }
@@ -300,7 +302,7 @@ public class CLIAuthentication {
      * @param tokenKey The key of the token to load (e.g., "accessToken", "refreshToken")
      * @return The token value if found, null otherwise
      */
-    private static String loadTokenFromConfig(String tokenKey) {
+    private static String loadTokenFromConfig(String tokenKey, VerboseLogger logger) {
         try {
             Path filePath = getConfigFilePath();
             if (Files.exists(filePath)) {
@@ -317,7 +319,7 @@ public class CLIAuthentication {
                 }
             }
         } catch (IOException e) {
-            errStream.println("Error reading config file: " + e.getMessage());
+            logger.printError("Error reading config file: " + e.getMessage());
         }
         return null;
     }
@@ -328,7 +330,7 @@ public class CLIAuthentication {
      * @param tokenKey   The key for the token (e.g., "accessToken", "refreshToken")
      * @param tokenValue The value of the token to save
      */
-    private static void saveTokenToConfig(String tokenKey, String tokenValue) {
+    private static void saveTokenToConfig(String tokenKey, String tokenValue, VerboseLogger logger) {
         try {
             Path filePath = getConfigFilePath();
             String content = "";
@@ -366,7 +368,7 @@ public class CLIAuthentication {
 
             Files.writeString(filePath, content, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            errStream.println("Error saving " + tokenKey + " to config file: " + e.getMessage());
+            logger.printError("Error saving " + tokenKey + " to config file: " + e.getMessage());
         }
     }
 
@@ -376,13 +378,13 @@ public class CLIAuthentication {
      * @return Authorization code if successful
      * @throws Exception If authentication fails or network issues occur
      */
-    private String authenticate() throws Exception {
+    private String authenticate(VerboseLogger logger) throws Exception {
         int port = findAvailablePort();
         String callbackUri = "http://localhost:" + port + "/callback";
         String state = generateState(callbackUri);
         startServer(port);
         try {
-            openBrowser(state);
+            openBrowser(state, logger);
             boolean received = callbackReceived.await(AUTHENTICATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             if (!received) {
                 throw new RuntimeException("Authentication timed out");
@@ -430,20 +432,20 @@ public class CLIAuthentication {
      * @param state The state parameter to include in the URL
      * @throws Exception If an error occurs while opening the browser
      */
-    private void openBrowser(String state) throws Exception {
+    private void openBrowser(String state, VerboseLogger logger) throws Exception {
         String authUrl = String.format(
                 "https://api.asgardeo.io/t/%s/oauth2/authorize?response_type=code&redirect_uri=%s&client_id=%s&" +
                         "scope=openid%%20email&state=%s",
-                AUTH_ORG, AUTH_REDIRECT_URL, AUTH_CLIENT_ID, state
+                getAuthOrg(), getAuthRedirectURL(), getAuthClientID(), state
         );
 
-        outStream.println("Opening browser for authentication...");
-        outStream.println("If browser doesn't open automatically, visit: " + authUrl);
+        logger.printInfo("Opening browser for authentication...");
+        logger.printInfo("If browser doesn't open automatically, visit: " + authUrl);
 
         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
             Desktop.getDesktop().browse(new URI(authUrl));
         } else {
-            outStream.println("Please open the above URL in your browser manually.");
+            logger.printInfo("Please open the above URL in your browser manually.");
         }
     }
 
@@ -461,6 +463,18 @@ public class CLIAuthentication {
         String state = URLEncoder.encode(base64Encoded, StandardCharsets.UTF_8);
 
         return state;
+    }
+
+    private static String getAuthClientID() {
+        return BALLERINA_DEV_UPDATE ? DEV_AUTH_CLIENT_ID : AUTH_CLIENT_ID;
+    }
+
+    private static String getAuthOrg() {
+        return BALLERINA_DEV_UPDATE ? DEV_AUTH_ORG : AUTH_ORG;
+    }
+
+    private static String getAuthRedirectURL() {
+        return BALLERINA_DEV_UPDATE ? DEV_AUTH_REDIRECT_URL : AUTH_REDIRECT_URL;
     }
 
     /**

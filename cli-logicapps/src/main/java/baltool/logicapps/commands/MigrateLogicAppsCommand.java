@@ -17,8 +17,8 @@
  */
 package baltool.logicapps.commands;
 
-import baltool.logicapps.Constants;
 import baltool.logicapps.codegenerator.LogicAppsMigrationExecutor;
+import baltool.logicapps.codegenerator.VerboseLogger;
 import io.ballerina.cli.BLauncherCmd;
 import picocli.CommandLine;
 
@@ -39,51 +39,99 @@ import static baltool.logicapps.Constants.CMD_NAME;
 public class MigrateLogicAppsCommand implements BLauncherCmd {
 
     private final PrintStream errStream;
+    private final PrintStream outStream;
     private static final String USAGE = "bal migrate-logicapps <source-logicapp-file> " +
-            "[-a|--add-on <additional-instructions>] [-o|--out <output-directory>] [-n|--name <project-name>]";
+            "[-v|--verbose] [-o|--out <output-directory>] [-m|--multi-root]";
 
     public MigrateLogicAppsCommand() {
         errStream = System.err;
+        outStream = System.out;
     }
 
     @CommandLine.Parameters(description = "Source LogicApp `.json` file path",
             arity = "0..1")
     private String sourcePath;
 
-    @CommandLine.Option(names = { "--add-on", "-a" },
-            description = "Additional instructions for the migration process")
-    private String additionalInstructions;
+    @CommandLine.Option(names = {"--verbose", "-v"}, description = "Enable verbose output", defaultValue = "false")
+    private boolean verbose;
 
     @CommandLine.Option(names = { "--out", "-o" }, description = "Output directory path")
     private String outputPath;
 
-    @CommandLine.Option(names = { "--name", "-n" }, description = "Project name for the generated Ballerina project")
-    private String projectName;
+    @CommandLine.Option(names = {"--multi-root", "-m"},
+            description = "Treat each child directory as a separate project and convert all of them",
+            defaultValue = "false")
+    private boolean multiRoot;
 
     @Override
     public void execute() {
-        if (sourcePath == null) {
-            errStream.println("Error: LogicApp json file path is required.");
-            onInvalidInput();
-        }
-        if (additionalInstructions == null) {
-            additionalInstructions = "";
-        }
+        try {
+            if (verbose) {
+                outStream.println("Starting Logic Apps Migration Tool");
+                outStream.println("Command line arguments:");
+                outStream.println("  Source path: " + (sourcePath != null ? sourcePath : "Not provided"));
+                outStream.println("  Output path: " + (outputPath != null ? outputPath : "Default (source directory)"));
+                outStream.println("  Multi-root mode: " + multiRoot);
+                outStream.println("  Verbose mode: " + verbose);
+                outStream.println();
+            }
 
-        Path logicAppFilePath = Path.of(sourcePath);
-        if (outputPath != null && projectName != null) {
-            LogicAppsMigrationExecutor.migrateLogicAppToBallerina(logicAppFilePath, additionalInstructions,
-                    Path.of(outputPath), projectName);
-        } else if (outputPath != null) {
-            LogicAppsMigrationExecutor.migrateLogicAppToBallerina(logicAppFilePath, additionalInstructions,
-                    Path.of(outputPath));
-        } else {
-            LogicAppsMigrationExecutor.migrateLogicAppToBallerina(logicAppFilePath, additionalInstructions);
+            if (sourcePath == null) {
+                errStream.println("Error: LogicApp json file path is required.");
+                if (verbose) {
+                    errStream.println("DEBUG: sourcePath parameter was null");
+                }
+                onInvalidInput();
+                return;
+            }
+
+            if (verbose) {
+                outStream.println("Validating input parameters");
+                outStream.println("  Checking if source path exists: " + sourcePath);
+            }
+
+            // Temporary disable the additional instructions feature
+            String additionalInstructions = "";
+
+            Path logicAppFilePath = Path.of(sourcePath);
+
+            if (verbose) {
+                outStream.println("  Resolved source path: " + logicAppFilePath.toAbsolutePath());
+                outStream.println();
+            }
+
+            if (outputPath != null) {
+                Path outputDir = Path.of(outputPath);
+                LogicAppsMigrationExecutor.migrateLogicAppToBallerina(logicAppFilePath, additionalInstructions,
+                        outputDir, verbose, multiRoot, new VerboseLogger(verbose));
+            } else {
+                LogicAppsMigrationExecutor.migrateLogicAppToBallerina(logicAppFilePath, additionalInstructions, verbose,
+                        multiRoot, new VerboseLogger(verbose));
+            }
+        } catch (Exception e) {
+            errStream.println("Error during command execution: " + e.getMessage());
+            if (verbose) {
+                errStream.println();
+                errStream.println("=".repeat(60));
+                errStream.println("DETAILED ERROR INFORMATION:");
+                errStream.println("=".repeat(60));
+                errStream.println("Exception type: " + e.getClass().getSimpleName());
+                errStream.println("Error message: " + e.getMessage());
+                errStream.println();
+                errStream.println("Stack trace:");
+                e.printStackTrace(errStream);
+                errStream.println("=".repeat(60));
+            }
+            System.exit(1);
         }
     }
 
     private void onInvalidInput() {
         errStream.println("Usage: " + USAGE);
+        if (verbose) {
+            errStream.println();
+            errStream.println("DEBUG: Invalid input detected, terminating with exit code 1");
+        }
         System.exit(1);
     }
 
@@ -104,6 +152,8 @@ public class MigrateLogicAppsCommand implements BLauncherCmd {
                 "project\n");
         stringBuilder.append("  --name, -n              Specify the project name for the generated Ballerina " +
                 "project\n");
+        stringBuilder.append("  --verbose, -v           Enable detailed logging output\n");
+        stringBuilder.append("  --multi-root, -m        Process multiple logic app files concurrently\n");
     }
 
     @Override
@@ -112,11 +162,13 @@ public class MigrateLogicAppsCommand implements BLauncherCmd {
         stringBuilder.append("Examples:\n");
         stringBuilder.append("  bal migrate-logicapps /path/to/logicapp-json-file\n");
         stringBuilder.append("  bal migrate-logicapps /path/to/logicapp-json-file --out /path/to/output\n");
+        stringBuilder.append("  bal migrate-logicapps /path/to/logicapp-json-file --verbose\n");
         stringBuilder.append("  bal migrate-logicapps /path/to/logicapp-json-file --add-on additional-instructions\n");
         stringBuilder.append("  bal migrate-logicapps /path/to/logicapp-json-file --add-on additional-instructions " +
                 "--out /path/to/output\n");
         stringBuilder.append("  bal migrate-logicapps /path/to/logicapp-json-file --out /path/to/output --name " +
                 "my-logic-app-project\n");
+        stringBuilder.append("  bal migrate-logicapps /path/to/directory --multi-root --verbose\n");
     }
 
     @Override
