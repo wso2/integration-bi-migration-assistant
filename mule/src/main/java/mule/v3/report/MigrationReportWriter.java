@@ -31,9 +31,15 @@ import static mule.v3.MuleMigrationExecutor.logger;
 
 public class MigrationReportWriter {
 
-    public static final double BEST_CASE_COMP_TIME = 1;
-    public static final double AVG_CASE_COMP_TIME = 2;
-    public static final double WORST_CASE_COMP_TIME = 3;
+    // For a new element
+    public static final double BEST_CASE_COMP_TIME_NEW = 1;
+    public static final double AVG_CASE_COMP_TIME_NEW = 2;
+    public static final double WORST_CASE_COMP_TIME_NEW = 3;
+
+    // For a repeated element
+    public static final double BEST_CASE_COMP_TIME_REPEATED = 0.125; // 1 hour
+    public static final double AVG_CASE_COMP_TIME_REPEATED = 0.25; // 2 hours
+    public static final double WORST_CASE_COMP_TIME_REPEATED = 0.5; // 4 hours
 
     public static final double BEST_DW_EXPR_TIME = 0.0625; // 30min
     public static final double AVG_CASE_DW_EXPR_TIME = 0.125; // 1 hour
@@ -115,9 +121,9 @@ public class MigrationReportWriter {
                 pms.bestCaseDays(), (int) Math.ceil(pms.bestCaseDays() / 5.0),
                 pms.averageCaseDays(), (int) Math.ceil(pms.averageCaseDays() / 5.0),
                 pms.worstCaseDays(), (int) Math.ceil(pms.worstCaseDays() / 5.0),
-                BEST_CASE_COMP_TIME, BEST_DW_EXPR_TIME * 8 * 60,
-                AVG_CASE_COMP_TIME, AVG_CASE_DW_EXPR_TIME * 8,
-                WORST_CASE_COMP_TIME, WORST_CASE_DW_EXPR_TIME * 8,
+                BEST_CASE_COMP_TIME_NEW, BEST_DW_EXPR_TIME * 8 * 60,
+                AVG_CASE_COMP_TIME_NEW, AVG_CASE_DW_EXPR_TIME * 8,
+                WORST_CASE_COMP_TIME_NEW, WORST_CASE_DW_EXPR_TIME * 8,
                 // Content sections
                 unsupportedElementsTable,
                 unsupportedBlocksHtml,
@@ -160,13 +166,12 @@ public class MigrationReportWriter {
                                                                      Path balPackageDir,
                                                                      boolean dryRun,
                                                                      Context.MigrationMetrics metrics) {
-        int unsupportedElementCount = countUnsupportedElements(metrics.failedXMLTags);
         int failedDWExprCount = countUnsupportedDWExpressions(metrics.dwConversionStats);
 
         // Calculate implementation times
-        double bestCaseDays = calculateBestCaseEstimate(unsupportedElementCount, failedDWExprCount);
-        double avgCaseDays = calculateAverageCaseEstimate(unsupportedElementCount, failedDWExprCount);
-        double worstCaseDays = calculateWorstCaseEstimate(unsupportedElementCount, failedDWExprCount);
+        double bestCaseDays = calculateBestCaseEstimate(metrics.failedXMLTags, failedDWExprCount);
+        double avgCaseDays = calculateAverageCaseEstimate(metrics.failedXMLTags, failedDWExprCount);
+        double worstCaseDays = calculateWorstCaseEstimate(metrics.failedXMLTags, failedDWExprCount);
 
         int migrationCoverage = calculateMigrationCoverage(metrics);
         Path reportFilePath = balPackageDir.resolve(MIGRATION_REPORT_NAME);
@@ -252,20 +257,24 @@ public class MigrationReportWriter {
         return "Unknown";
     }
 
-    private static double calculateBestCaseEstimate(int elements, int dwExpressions) {
-        return elements * BEST_CASE_COMP_TIME + dwExpressions * BEST_DW_EXPR_TIME;
+    private static double calculateBestCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags, int dwExpressions) {
+        double repeatedElementTime = failedXMLTags.values().stream().filter(x -> x > 1).mapToInt(x -> x - 1)
+                .mapToDouble(integer -> (integer - 1) * BEST_CASE_COMP_TIME_REPEATED).sum();
+        return failedXMLTags.size() * BEST_CASE_COMP_TIME_NEW + repeatedElementTime + dwExpressions * BEST_DW_EXPR_TIME;
     }
 
-    private static double calculateAverageCaseEstimate(int elements, int dwExpressions) {
-        return elements * AVG_CASE_COMP_TIME + dwExpressions * AVG_CASE_DW_EXPR_TIME;
+    private static double calculateAverageCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags, int dwExpressions) {
+        double repeatedElementTime = failedXMLTags.values().stream().filter(x -> x > 1).mapToInt(x -> x - 1)
+                .mapToDouble(integer -> (integer - 1) * AVG_CASE_COMP_TIME_REPEATED).sum();
+        return failedXMLTags.size() * AVG_CASE_COMP_TIME_NEW + repeatedElementTime +
+                dwExpressions * AVG_CASE_DW_EXPR_TIME;
     }
 
-    private static double calculateWorstCaseEstimate(int elements, int dwExpressions) {
-        return elements * WORST_CASE_COMP_TIME + dwExpressions * WORST_CASE_DW_EXPR_TIME;
-    }
-
-    private static int countUnsupportedElements(LinkedHashMap<String, Integer> failedTags) {
-        return failedTags.values().stream().mapToInt(integer -> integer).sum();
+    private static double calculateWorstCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags, int dwExpressions) {
+        double repeatedElementTime = failedXMLTags.values().stream().filter(x -> x > 1).mapToInt(x -> x - 1)
+                .mapToDouble(integer -> (integer - 1) * WORST_CASE_COMP_TIME_REPEATED).sum();
+        return failedXMLTags.size() * WORST_CASE_COMP_TIME_NEW + repeatedElementTime +
+                dwExpressions * WORST_CASE_DW_EXPR_TIME;
     }
 
     private static int countUnsupportedDWExpressions(DWConversionStats dwStats) {
