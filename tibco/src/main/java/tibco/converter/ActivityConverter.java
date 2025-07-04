@@ -73,7 +73,7 @@ import java.util.stream.Collectors;
 
 import javax.xml.parsers.ParserConfigurationException;
 
-import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
+import static common.BallerinaModel.TypeDesc.BuiltinType.DECIMAL;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static common.BallerinaModel.TypeDesc.BuiltinType.INT;
 import static common.BallerinaModel.TypeDesc.BuiltinType.JSON;
@@ -199,11 +199,43 @@ final class ActivityConverter {
                         convertJMSQueueSendActivity(cx, result, jmsQueueSendActivity);
                 case InlineActivity.JMSQueueGetMessageActivity jmsQueueGetMessageActivity ->
                         convertJMSQueueGetActivity(cx, result, jmsQueueGetMessageActivity);
+                case InlineActivity.Sleep sleep -> convertSleep(cx, result, sleep);
+                case InlineActivity.GetSharedVariable getSharedVariable ->
+                        convertGetSharedVariable(cx, result, getSharedVariable);
+                case InlineActivity.SetSharedVariable setSharedVariable ->
+                        convertSetSharedVariable(cx, result, setSharedVariable);
             };
             body.addAll(conversion.body());
             body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
             return body;
         }
+
+    private static ActivityConversionResult convertSetSharedVariable(
+            ActivityContext cx, VariableReference input, InlineActivity.SetSharedVariable setSharedVariable) {
+        String setSharedVariableFn = cx.processContext.getSetSharedVariableFn();
+        Resource.SharedVariable sharedVariable =
+                cx.getSharedVariableByRelativePath(setSharedVariable.variableConfig())
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Shared variable not found for: " + setSharedVariable.name()));
+        List<Statement> body = List.of(new CallStatement(
+                new FunctionCall(setSharedVariableFn,
+                        List.of(cx.contextVarRef(), new StringConstant(sharedVariable.name()), input))));
+        return new ActivityConversionResult(input, body);
+    }
+
+    private static ActivityConversionResult convertGetSharedVariable(
+            ActivityContext cx, VariableReference input, InlineActivity.GetSharedVariable getSharedVariable) {
+        String getSharedVariableFn = cx.processContext.getGetSharedVariableFn();
+        Resource.SharedVariable sharedVariable =
+                cx.getSharedVariableByRelativePath(getSharedVariable.variableConfig())
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Shared variable not found for: " + getSharedVariable.name()));
+        VarDeclStatment value = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new FunctionCall(getSharedVariableFn,
+                        List.of(cx.contextVarRef(), new StringConstant(sharedVariable.name()))));
+        return new ActivityConversionResult(value.ref(), List.of(value));
+
+    }
 
     private static ActivityConversionResult convertJMSQueueGetActivity(
             ActivityContext cx, VariableReference input,
@@ -329,15 +361,36 @@ final class ActivityConverter {
         return new ActivityConversionResult(jmsOutput.ref(), List.of(jmsOutput));
     }
 
+    private static ActivityConversionResult convertSleep(
+            ActivityContext cx, VariableReference input, InlineActivity.Sleep sleep) {
+        List<Statement> body = new ArrayList<>();
+
+        // Extract the interval value from the input XML
+        VarDeclStatment intervalInMillisec = new VarDeclStatment(DECIMAL, cx.getAnnonVarName(),
+                new Check(new FunctionCall("decimal:fromString", List.of(
+                        exprFrom("(%s/**/<IntervalInMillisec>/*).toString().trim()"
+                                .formatted(input.varName()))))));
+        body.add(intervalInMillisec);
+
+        // Call runtime:sleep with the interval converted to seconds
+        cx.addLibraryImport(Library.RUNTIME);
+        body.add(new CallStatement(new FunctionCall("runtime:sleep", List.of(
+                exprFrom("%s / 1000".formatted(intervalInMillisec.ref()))))));
+        VarDeclStatment empty = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+        body.add(empty);
+        return new ActivityConversionResult(empty.ref(), body);
+    }
+
     private static ActivityConversionResult convertJDBC(
             ActivityContext cx, VariableReference input, InlineActivity.JDBC jdbc) {
         List<Statement> body = new ArrayList<>();
         VarDeclStatment statement = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                exprFrom("(%s/**/<statement>/*).toString()".formatted(input.varName())));
+                exprFrom("(%s/**/<statement>/*).toString().trim()".formatted(input.varName())));
         body.add(statement);
         VarDeclStatment query = new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
-                cx.getAnnonVarName(), exprFrom("`${%s}`".formatted(statement.ref())));
+                cx.getAnnonVarName(), exprFrom("``"));
         body.add(query);
+        body.add(common.ConversionUtils.stmtFrom("%s.strings = [%s];".formatted(query.ref(), statement.ref())));
         VariableReference client = cx.dbClient(jdbc.connection());
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName());
         body.add(result);
@@ -1087,7 +1140,8 @@ final class ActivityConverter {
     private static @NotNull ActivityConverter.ActivityConversionResult finishSelectQuery(
                 ActivityContext cx, VariableReference dbClient, VariableReference query, List<Statement> body) {
             StreamTypeDesc streamTypeDesc = new StreamTypeDesc(
-                    new BallerinaModel.TypeDesc.MapTypeDesc(ANYDATA),
+                    // map<anydata> don't work due to some reason
+                    common.ConversionUtils.typeFrom("record{|anydata...;|}"),
                     UnionTypeDesc.of(ERROR, NIL));
             VarDeclStatment stream = new VarDeclStatment(
                     streamTypeDesc, cx.getAnnonVarName(),

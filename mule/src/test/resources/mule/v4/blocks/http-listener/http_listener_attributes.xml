@@ -12,7 +12,9 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
     <flow name="demoFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c" >
         <http:listener doc:name="Listener" doc:id="2d80f8b6-ba81-46e0-91b7-516a8e4fdb67" config-ref="config" path="/attribute_test/{country}/v1" allowedMethods="GET"/>
         <set-variable value="#[attributes.queryParams]" doc:name="Set Query Params Variable" doc:id="18c52daa-b688-4927-a50a-be5bdff893ef" variableName="queryParams"/>
+        <set-variable value="#[attributes['queryParams']]" doc:name="Set Query Params2 Variable" doc:id="18c52daa-b688-4927-a50a-be5bdff893ef" variableName="queryParams2"/>
         <set-variable value="#[attributes.queryParams.city]" doc:name="Set City Variable" doc:id="0a4e42a3-6eff-47cc-a93e-bb839feb261e" variableName="city"/>
+        <set-variable value="#[attributes['queryParams'].city]" doc:name="Set City2 Variable" doc:id="0a4e42a3-6eff-47cc-a93e-bb839feb261e" variableName="city2"/>
         <set-variable value="#[attributes.uriParams]" doc:name="Set Uri Params Variable" doc:id="0fbdf860-e2be-4f8d-8cc0-018b20915110" variableName="uriParams"/>
         <set-variable value="#[attributes.uriParams.country]" doc:name="Set Country Variable" doc:id="e5af65e9-2cba-49b3-b242-39d68cbd0670" variableName="country"/>
         <set-variable value="#[attributes.unsupportedAttribute]" doc:name="Set Unsupported Attribute Variable" doc:id="2e9f9576-af2c-4441-b22b-36b57f45f2f3" variableName="unsupportedAttribute"/>

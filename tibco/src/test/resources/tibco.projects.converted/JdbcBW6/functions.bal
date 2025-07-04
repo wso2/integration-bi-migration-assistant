@@ -12,7 +12,7 @@ function activityExtension(Context cx) returns error? {
     string lastName = (var1/<lastName>/*).toString().trim();
     string age = (var1/<age>/*).toString().trim();
     sql:ParameterizedQuery var2 = `select * from table where firstName like ${firstName} and lastName like ${lastName} and age < ${age}`;
-    stream<map<anydata>, error?> var3 = dbConnection->query(var2);
+    stream<record {|anydata...;|}, error?> var3 = dbConnection->query(var2);
     xml var4 = xml ``;
     check from var each in var3
         do {
@@ -72,10 +72,6 @@ function tryBindToTestRequest(xml|json input) returns TestRequest|error {
     return input is xml ? xmldata:parseAsType(input) : jsondata:parseAsType(input);
 }
 
-function initContext(map<xml> initVariables = {}) returns Context {
-    return {variables: initVariables, result: xml `<root/>`};
-}
-
 function addToContext(Context context, string varName, xml value) {
     xml children = value/*;
     xml transformed = xml `<root>${children}</root>`;
@@ -89,6 +85,17 @@ function getFromContext(Context context, string varName) returns xml {
         return xml `<root/>`;
     }
     return value;
+}
+
+function initContext(map<xml> initVariables = {},
+        map<SharedVariableContext> jobSharedVariables = {})
+            returns Context {
+    map<SharedVariableContext> sharedVariables = {};
+
+    foreach var key in jobSharedVariables.keys() {
+        sharedVariables[key] = jobSharedVariables.get(key);
+    }
+    return {variables: initVariables, result: xml `<root/>`, sharedVariables};
 }
 
 function responseFromContext(Context cx) returns http:Response {

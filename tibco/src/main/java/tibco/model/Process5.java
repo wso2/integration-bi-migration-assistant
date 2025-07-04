@@ -173,7 +173,10 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 MAPPER,
                 JMS_QUEUE_EVENT_SOURCE,
                 JMS_QUEUE_SEND_ACTIVITY,
-                JMS_QUEUE_GET_MESSAGE_ACTIVITY;
+                JMS_QUEUE_GET_MESSAGE_ACTIVITY,
+                SLEEP,
+                GET_SHARED_VARIABLE,
+                SET_SHARED_VARIABLE;
 
                 public static ExplicitTransitionGroup.InlineActivity.InlineActivityType parse(String type) {
                     record LookUpData(String suffix,
@@ -203,7 +206,9 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                     new LookUpData("JMSQueueEventSource", JMS_QUEUE_EVENT_SOURCE),
                                     new LookUpData("JMSQueueSendActivity", JMS_QUEUE_SEND_ACTIVITY),
                                     new LookUpData("JMSQueueGetMessageActivity", JMS_QUEUE_GET_MESSAGE_ACTIVITY),
-                                    new LookUpData("WriteToLogActivity", WRITE_LOG))
+                            new LookUpData("SleepActivity", SLEEP),
+                            new LookUpData("GetSharedVariableActivity", GET_SHARED_VARIABLE),
+                            new LookUpData("SetSharedVariableActivity", SET_SHARED_VARIABLE))
                             .filter(each -> type.endsWith(each.suffix)).findFirst()
                             .map(LookUpData::activityType).orElse(UNHANDLED);
                 }
@@ -642,6 +647,56 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 @Override
                 public boolean hasInputBinding() {
                     return inputBinding != null;
+                }
+            }
+
+            record Sleep(Element element, String name, InputBinding inputBinding)
+                    implements ExplicitTransitionGroup.InlineActivity {
+
+                public Sleep {
+                    assert inputBinding != null;
+                }
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.SLEEP;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return true;
+                }
+            }
+
+            record GetSharedVariable(Element element, String name, InputBinding inputBinding,
+                    String variableConfig) implements ExplicitTransitionGroup.InlineActivity {
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.GET_SHARED_VARIABLE;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
+                }
+            }
+
+            record SetSharedVariable(Element element, String name, InputBinding inputBinding,
+                    String variableConfig) implements ExplicitTransitionGroup.InlineActivity {
+
+                public SetSharedVariable {
+                    assert inputBinding != null;
+                }
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.SET_SHARED_VARIABLE;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return true;
                 }
             }
 

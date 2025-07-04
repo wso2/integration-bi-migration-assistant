@@ -17,7 +17,7 @@ function ErrorLog(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
-     <xsl:template name="Transform9" match="/">
+     <xsl:template name="Transform17" match="/">
         <ActivityInput>
                     
     <message>
@@ -44,7 +44,7 @@ function HTTP_Receiver(Context cx) returns error? {
 function InvokeProcess(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="HTTP-Receiver"/>     <xsl:template name="Transform1" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="HTTP-Receiver"/>     <xsl:template name="Transform9" match="/">
         <InvokeProcessInput>
                     
     <options>
@@ -66,7 +66,7 @@ function InvokeProcess(Context cx) returns error? {
 function Log(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform4" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform12" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
                     
     <message>
@@ -87,7 +87,7 @@ function Log(Context cx) returns error? {
 function Mapper(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="runAllTests"/>     <xsl:template name="Transform0" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="runAllTests"/>     <xsl:template name="Transform8" match="/">
         <failedTestsCount>
                     
     <xsl:value-of select="count($runAllTests/root/ns:test-suites-results-msg/test-suites-results/ns3:test-suites-results//ns3:test-failure)" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
@@ -103,7 +103,7 @@ function Mapper(Context cx) returns error? {
 function Parse(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Render"/>     <xsl:template name="Transform6" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Render"/>     <xsl:template name="Transform14" match="/">
         <xmlString>
                     
     <xsl:value-of select="$Render/root/xmlString" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
@@ -123,7 +123,7 @@ function Read_file(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
-     <xsl:template name="Transform3" match="/">
+     <xsl:template name="Transform11" match="/">
         <ReadActivityInputClass>
                     
     <fileName>
@@ -149,7 +149,7 @@ function Read_file(Context cx) returns error? {
 function Render(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform5" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform13" match="/">
         <xsl:copy-of select="$Mapper" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
 
     </xsl:template>
@@ -163,7 +163,7 @@ function SOAPRequestReply(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
-     <xsl:template name="Transform7" match="/">
+     <xsl:template name="Transform15" match="/">
         <inputMessage>
                     
     <message>
@@ -191,7 +191,7 @@ function SQL_Direct(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
-     <xsl:template name="Transform8" match="/">
+     <xsl:template name="Transform16" match="/">
         <jdbcGeneralActivityInput>
                         
     <statement>
@@ -204,11 +204,12 @@ function SQL_Direct(Context cx) returns error? {
 
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
-    string var2 = (var1/**/<statement>/*).toString();
-    sql:ParameterizedQuery var3 = `${var2}`;
+    string var2 = (var1/**/<statement>/*).toString().trim();
+    sql:ParameterizedQuery var3 = ``;
+    var3.strings = [var2];
     xml var4;
     if var2.startsWith("SELECT") {
-        stream<map<anydata>, error?> var5 = JDBCConnection->query(var3);
+        stream<record {|anydata...;|}, error?> var5 = JDBCConnection->query(var3);
         xml var6 = xml ``;
         check from var each in var5
             do {
@@ -223,14 +224,14 @@ function SQL_Direct(Context cx) returns error? {
         xml var10 = xml `<root></root>`;
         var4 = var10;
     }
-    //WARNING: validate jdbc query result mapping
+    // WARNING: validate jdbc query result mapping
     addToContext(cx, "SQL-Direct", var4);
 }
 
 function Write_File(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform2" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform10" match="/">
         <ns0:WriteActivityInputTextClass xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/file">
                     
     <fileName>
@@ -429,7 +430,7 @@ function Render_JSON(Context cx) returns error? {
 </xsl:stylesheet>`, cx.variables);
     xml var2 = (var1/*);
     xmlns "http://www.tibco.com/namespaces/tnt/plugins/json" as ns;
-    //WARNING: assuming single element
+    // WARNING: assuming single element
     record {|
         string foo;
         string bar?;
@@ -562,10 +563,6 @@ function toXML(map<anydata> data) returns error|xml {
     return xmldata:toXml(data);
 }
 
-function initContext(map<xml> initVariables = {}) returns Context {
-    return {variables: initVariables, result: xml `<root/>`};
-}
-
 function renderJSONAsXML(json value, string? namespace, string typeName) returns xml|error {
     anydata body;
     if (value is map<json>) {
@@ -673,6 +670,17 @@ function getFromContext(Context context, string varName) returns xml {
         return xml `<root/>`;
     }
     return value;
+}
+
+function initContext(map<xml> initVariables = {},
+        map<SharedVariableContext> jobSharedVariables = {})
+            returns Context {
+    map<SharedVariableContext> sharedVariables = {};
+
+    foreach var key in jobSharedVariables.keys() {
+        sharedVariables[key] = jobSharedVariables.get(key);
+    }
+    return {variables: initVariables, result: xml `<root/>`, sharedVariables};
 }
 
 function renderJsonAsFooXML(xml value) returns xml|error {

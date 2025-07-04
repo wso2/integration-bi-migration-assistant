@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BWSharedResource xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx3="http://www.nicosommi.com/labs/rest/Schema.xsd" xmlns:pfx2="http://www.tibco.com/schemas/BW-REST/REST/Schema.xsd" xmlns:pfx="http://www.hp.com/labs/rest/RESTTypes">
+    <import namespace="http://www.hp.com/labs/rest/RESTTypes" schemaLocation="/REST/Resources/Schemas/RESTTypes.xsd"/>
+    <import namespace="http://www.nicosommi.com/labs/rest/Schema.xsd" schemaLocation="/REST/Resources/Schemas/UtilityTypes.xsd"/>
+    <name>sharedVariable</name>
+    <resourceType>ae.shared.jobSharedVariable</resourceType>
+    <config xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <initialValue>byRef</initialValue>
+        <initialValueRef>/Resources/Data/sharedData.xml</initialValueRef>
+    </config>
+</BWSharedResource>

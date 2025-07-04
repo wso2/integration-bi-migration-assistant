@@ -1,19 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-      xmlns:spring="http://www.springframework.org/schema/beans"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
-    <http:listener-config name="config" host="localhost" port="8081" basePath="/mule3" doc:name="HTTP Listener Configuration"/>
-    <db:oracle-config name="Oracle_Configuration" doc:name="Oracle Configuration" host="localhost" password="admin123" port="3306" user="root" instance="test_db"/>
-    <flow name="demoFlow">
-        <http:listener config-ref="config" path="/demo" allowedMethods="GET" doc:name="HTTP"/>
-        <logger message="xxx: logger invoked" level="INFO" doc:name="Logger"/>
-        <db:select config-ref="Oracle_Configuration" doc:name="Database">
-            <db:parameterized-query><![CDATA[SELECT * FROM users;]]></db:parameterized-query>
+    <http:listener-config name="config" doc:name="HTTP Listener config" doc:id="f08109f3-5046-439c-a3e9-8e8dcd212005" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <db:config name="oracle_config" doc:name="Database Config" doc:id="26c3cfa7-455f-4760-9df6-8f2a490040a3" >
+        <db:oracle-connection host="localhost" user="root" password="admin123" instance="test_db" port="1522"/>
+    </db:config>
+    <db:config name="oracle_config2" doc:name="Database Config" doc:id="69fb2643-c12f-49cd-9ca1-6c7011e219a2" >
+        <db:oracle-connection host="#['localhost']" port="#[6063]" user="admin" password="nimda" serviceName="#['service_name']" />
+    </db:config>
+    <flow name="demoFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c" >
+        <http:listener doc:name="Listener" doc:id="e5afb263-e428-44f3-adbb-be5f251b9621" config-ref="config" path="/db" allowedMethods="GET"/>
+        <db:select doc:name="Select" doc:id="b946197c-a423-45ab-b8e4-0abb79a0e2b1" config-ref="oracle_config">
+            <db:sql ><![CDATA[SELECT * FROM users;]]></db:sql>
+        </db:select>
+        <db:select doc:name="Select" doc:id="34a84d9b-1de8-4b21-9ece-36c20522ae0d" config-ref="oracle_config2">
+            <db:sql ><![CDATA[SELECT * FROM persons;]]></db:sql>
         </db:select>
     </flow>
 </mule>

@@ -6,13 +6,14 @@ public listener http:Listener MainConnection_sharedhttp = new (9090, {host: "loc
 
 service on MainConnection_sharedhttp {
     resource function 'default [string... path](xml input) returns xml {
+        map<SharedVariableContext> jobSharedVariables = {};
         xml inputVal = xml `<root>
     <item>
         ${input}
     </item>
 </root>`;
         map<xml> paramXML = {post: inputVal};
-        Context cx = initContext(paramXML);
+        Context cx = initContext(paramXML, jobSharedVariables);
         start_Processes_Main_process(cx);
         xml response = cx.result;
         return response;
@@ -21,13 +22,14 @@ service on MainConnection_sharedhttp {
 
 service on BarConnection_sharedhttp {
     resource function 'default [string... path](xml input) returns xml {
+        map<SharedVariableContext> jobSharedVariables = {};
         xml inputVal = xml `<root>
     <item>
         ${input}
     </item>
 </root>`;
         map<xml> paramXML = {post: inputVal};
-        Context cx = initContext(paramXML);
+        Context cx = initContext(paramXML, jobSharedVariables);
         start_Processes_Bar_process(cx);
         xml response = cx.result;
         return response;
@@ -36,13 +38,14 @@ service on BarConnection_sharedhttp {
 
 service on FooConnection_sharedhttp {
     resource function 'default [string... path](xml input) returns xml {
+        map<SharedVariableContext> jobSharedVariables = {};
         xml inputVal = xml `<root>
     <item>
         ${input}
     </item>
 </root>`;
         map<xml> paramXML = {post: inputVal};
-        Context cx = initContext(paramXML);
+        Context cx = initContext(paramXML, jobSharedVariables);
         start_Processes_Foo_process(cx);
         xml response = cx.result;
         return response;

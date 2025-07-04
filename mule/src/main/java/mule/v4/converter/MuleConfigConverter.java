@@ -49,6 +49,7 @@ import static mule.v4.Constants.BAL_ERROR_TYPE;
 import static mule.v4.Constants.FUNC_NAME_ASYC_TEMPLATE;
 import static mule.v4.ConversionUtils.convertMuleExprToBal;
 import static mule.v4.ConversionUtils.convertMuleExprToBalStringLiteral;
+import static mule.v4.ConversionUtils.convertToUnsupportedTODO;
 import static mule.v4.ConversionUtils.genQueryParam;
 import static mule.v4.ConversionUtils.getBallerinaClientResourcePath;
 import static mule.v4.ConversionUtils.inferTypeFromBalExpr;
@@ -68,7 +69,6 @@ import static mule.v4.model.MuleModel.MuleRecord;
 import static mule.v4.model.MuleModel.ObjectToJson;
 import static mule.v4.model.MuleModel.ObjectToString;
 import static mule.v4.model.MuleModel.Payload;
-import static mule.v4.model.MuleModel.QueryType;
 import static mule.v4.model.MuleModel.ReferenceExceptionStrategy;
 import static mule.v4.model.MuleModel.RemoveVariable;
 import static mule.v4.model.MuleModel.SetSessionVariable;
@@ -225,7 +225,12 @@ public class MuleConfigConverter {
     }
 
     private static List<Statement> convertRemoveVariable(Context ctx, RemoveVariable removeVariable) {
-        String varName = ConversionUtils.convertToBalIdentifier(removeVariable.variableName());
+        String variableName = removeVariable.variableName();
+        if (variableName.startsWith("#[vars.") && variableName.endsWith("]")) {
+            variableName = variableName.substring(7, variableName.length() - 1);
+        }
+
+        String varName = ConversionUtils.convertToBalIdentifier(variableName);
         Statement stmt;
         if (removeVariable.kind() == Kind.REMOVE_VARIABLE && ctx.projectCtx.flowVars.containsKey(varName)) {
             stmt = stmtFrom(String.format("%s.%s = %s;", Constants.FLOW_VARS_FIELD_ACCESS, varName, "()"));
@@ -233,7 +238,8 @@ public class MuleConfigConverter {
                 ctx.projectCtx.sessionVars.containsKey(varName)) {
             stmt = stmtFrom(String.format("%s.%s = %s;", Constants.SESSION_VARS_FIELD_ACCESS, varName, "()"));
         } else {
-            throw new IllegalStateException();
+            // Removing undeclared variable in mule won't give error, so we just ignore it here
+            return Collections.emptyList();
         }
         return List.of(stmt);
     }
@@ -448,14 +454,17 @@ public class MuleConfigConverter {
         List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n\n// database operation\n"));
         String dbQueryVarName = Constants.VAR_DB_QUERY_TEMPLATE.formatted(ctx.projectCtx.counters.dbQueryVarCount++);
-        stmts.add(stmtFrom("%s %s = %s;".formatted(Constants.SQL_PARAMETERIZED_QUERY_TYPE,
-                dbQueryVarName, database.queryType() == QueryType.TEMPLATE_QUERY_REF ? database.query()
-                        : String.format("`%s`", database.query()))));
+        stmts.add(stmtFrom("%s %s = %s;".formatted(Constants.SQL_PARAMETERIZED_QUERY_TYPE, dbQueryVarName,
+                "`%s`".formatted(database.query()))));
 
         String dbStreamVarName = Constants.VAR_DB_STREAM_TEMPLATE.formatted(ctx.projectCtx.counters.dbStreamVarCount++);
         stmts.add(stmtFrom("%s %s= %s->query(%s);"
                 .formatted(Constants.DB_QUERY_DEFAULT_TEMPLATE.formatted(streamConstraintType),
                         dbStreamVarName, database.configRef(), dbQueryVarName)));
+
+        if (!database.unsupportedBlocks().isEmpty()) {
+            stmts.add(stmtFrom(convertToUnsupportedTODO(ctx, database.unsupportedBlocks())));
+        }
 
         if (database.kind() == Kind.DB_SELECT) {
             String dbSelectVarName = Constants.VAR_DB_SELECT_TEMPLATE
@@ -513,8 +522,7 @@ public class MuleConfigConverter {
     }
 
     private static List<Statement> convertUnsupportedBlock(Context ctx, UnsupportedBlock unsupportedBlock) {
-        ctx.migrationMetrics.failedBlocks.add(unsupportedBlock.xmlBlock());
-        String comment = ConversionUtils.wrapElementInUnsupportedBlockComment(unsupportedBlock.xmlBlock());
+        String comment = ConversionUtils.convertToUnsupportedTODO(ctx, unsupportedBlock);
         // TODO: comment is not a statement. Find a better way to handle this
         // This works for now because we concatenate and create a body block `{ stmts }`
         // before parsing.

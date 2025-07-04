@@ -24,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.NameSpace;
 import tibco.model.Process;
+import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.Variable;
 
@@ -373,5 +374,17 @@ public class ProcessContext implements ContextWithFile {
 
     public String getParseHeadersFn() {
         return projectContext.getParseHeadersFn();
+    }
+
+    public Optional<Resource.SharedVariable> getSharedVariableByRelativePath(String relativePath) {
+        return projectContext.getSharedVariableByRelativePath(relativePath);
+    }
+
+    public String getSetSharedVariableFn() {
+        return projectContext.getSetSharedVariableFn();
+    }
+
+    public String getGetSharedVariableFn() {
+        return projectContext.getGetSharedVariableFn();
     }
 }

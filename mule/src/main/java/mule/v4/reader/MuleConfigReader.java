@@ -20,6 +20,8 @@ package mule.v4.reader;
 import mule.v4.Constants;
 import mule.v4.Context;
 import mule.v4.ConversionUtils;
+import mule.v4.model.MuleModel.DbConfig;
+import mule.v4.model.MuleModel.DbConnection;
 import mule.v4.model.MuleXMLTag;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Element;
@@ -38,10 +40,8 @@ import static mule.v4.model.MuleModel.CatchExceptionStrategy;
 import static mule.v4.model.MuleModel.Choice;
 import static mule.v4.model.MuleModel.ChoiceExceptionStrategy;
 import static mule.v4.model.MuleModel.Database;
-import static mule.v4.model.MuleModel.DbInParam;
-import static mule.v4.model.MuleModel.DbMSQLConfig;
-import static mule.v4.model.MuleModel.DbOracleConfig;
-import static mule.v4.model.MuleModel.DbTemplateQuery;
+import static mule.v4.model.MuleModel.DbMySqlConnection;
+import static mule.v4.model.MuleModel.DbOracleConnection;
 import static mule.v4.model.MuleModel.Enricher;
 import static mule.v4.model.MuleModel.ExpressionComponent;
 import static mule.v4.model.MuleModel.Flow;
@@ -58,7 +58,6 @@ import static mule.v4.model.MuleModel.MuleRecord;
 import static mule.v4.model.MuleModel.ObjectToJson;
 import static mule.v4.model.MuleModel.ObjectToString;
 import static mule.v4.model.MuleModel.Payload;
-import static mule.v4.model.MuleModel.QueryType;
 import static mule.v4.model.MuleModel.ReferenceExceptionStrategy;
 import static mule.v4.model.MuleModel.RemoveVariable;
 import static mule.v4.model.MuleModel.SetPayloadElement;
@@ -69,11 +68,12 @@ import static mule.v4.model.MuleModel.SetVariableElement;
 import static mule.v4.model.MuleModel.SubFlow;
 import static mule.v4.model.MuleModel.TransformMessage;
 import static mule.v4.model.MuleModel.TransformMessageElement;
-import static mule.v4.model.MuleModel.Type;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
 import static mule.v4.model.MuleModel.VMInboundEndpoint;
 import static mule.v4.model.MuleModel.VMOutboundEndpoint;
 import static mule.v4.model.MuleModel.WhenInChoice;
+import static mule.v4.model.MuleXMLTag.DB_MY_SQL_CONNECTION;
+import static mule.v4.model.MuleXMLTag.DB_ORACLE_CONNECTION;
 import static mule.v4.model.MuleXMLTag.HTTP_LISTENER_CONNECTION;
 
 public class MuleConfigReader {
@@ -107,15 +107,11 @@ public class MuleConfigReader {
         } else if (MuleXMLTag.HTTP_REQUEST_CONFIG.tag().equals(elementTagName)) {
             HTTPRequestConfig httpRequestConfig = readHttpRequestConfig(ctx, muleElement);
             ctx.currentFileCtx.configs.httpRequestConfigs.put(httpRequestConfig.name(), httpRequestConfig);
-        } else if (MuleXMLTag.DB_MYSQL_CONFIG.tag().equals(elementTagName)) {
-            DbMSQLConfig dbMSQLConfig = readDbMySQLConfig(ctx, muleElement);
-            ctx.currentFileCtx.configs.dbMySQLConfigs.put(dbMSQLConfig.name(), dbMSQLConfig);
-        } else if (MuleXMLTag.DB_ORACLE_CONFIG.tag().equals(elementTagName)) {
-            DbOracleConfig dbOracleConfig = readDbOracleConfig(ctx, muleElement);
-            ctx.currentFileCtx.configs.dbOracleConfigs.put(dbOracleConfig.name(), dbOracleConfig);
-        } else if (MuleXMLTag.DB_TEMPLATE_QUERY.tag().equals(elementTagName)) {
-            DbTemplateQuery dbTemplateQuery = readDbTemplateQuery(ctx, muleElement);
-            ctx.currentFileCtx.configs.dbTemplateQueries.put(dbTemplateQuery.name(), dbTemplateQuery);
+        } else if (MuleXMLTag.DB_CONFIG.tag().equals(elementTagName)) {
+            DbConfig dbConfig = readDbConfig(ctx, muleElement);
+            if (dbConfig != null) {
+                ctx.currentFileCtx.configs.dbConfigs.put(dbConfig.name(), dbConfig);
+            }
         } else if (MuleXMLTag.CATCH_EXCEPTION_STRATEGY.tag().equals(elementTagName)) {
             CatchExceptionStrategy catchExceptionStrategy = readCatchExceptionStrategy(ctx, muleElement);
             ctx.currentFileCtx.configs.globalExceptionStrategies.add(catchExceptionStrategy);
@@ -492,19 +488,22 @@ public class MuleConfigReader {
         Element element = muleElement.getElement();
         String configRef = element.getAttribute("config-ref");
 
-        QueryType queryType = null;
         String query = null;
-
+        List<UnsupportedBlock> unsupportedBlocks = new ArrayList<>();
         while (muleElement.peekChild() != null) {
             MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
-            assert queryType == null;
-
-            queryType = getQueryType(child.getElement().getTagName());
-            query = readQuery(ctx, child, queryType);
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals(MuleXMLTag.DB_SQL.tag())) {
+                query = childElement.getTextContent();
+            } else {
+                // e.g db:input-parameters
+                UnsupportedBlock unsupportedBlock = readUnsupportedBlock(ctx, child);
+                unsupportedBlocks.add(unsupportedBlock);
+            }
         }
 
-        if (queryType == null) {
-            throw new IllegalStateException("No valid query found in the database block");
+        if (query == null) {
+            throw new IllegalStateException("No query found in the database block");
         }
 
         MuleXMLTag muleXMLTag = MuleXMLTag.fromTag(element.getTagName());
@@ -516,37 +515,7 @@ public class MuleConfigReader {
             default -> throw new UnsupportedOperationException();
         };
 
-        return new Database(kind, configRef, queryType, query);
-    }
-
-    private static QueryType getQueryType(String tagName) {
-        MuleXMLTag muleXMLTag = MuleXMLTag.fromTag(tagName);
-        return switch (muleXMLTag) {
-            case MuleXMLTag.DB_PARAMETERIZED_QUERY -> QueryType.PARAMETERIZED_QUERY;
-            case MuleXMLTag.DB_DYNAMIC_QUERY -> QueryType.DYNAMIC_QUERY;
-            case MuleXMLTag.DB_TEMPLATE_QUERY_REF -> QueryType.TEMPLATE_QUERY_REF;
-            default -> throw new IllegalStateException("Invalid query type");
-        };
-    }
-
-    private static String readQuery(Context ctx, MuleXMLNavigator.MuleElement muleElement, QueryType queryType) {
-        return switch (queryType) {
-            case PARAMETERIZED_QUERY -> readDbParameterizedQuery(ctx, muleElement);
-            case DYNAMIC_QUERY -> readDbDynamicQuery(ctx, muleElement);
-            case TEMPLATE_QUERY_REF -> readDbTemplateQueryRef(ctx, muleElement);
-        };
-    }
-
-    private static String readDbParameterizedQuery(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
-        return muleElement.getElement().getTextContent();
-    }
-
-    private static String readDbDynamicQuery(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
-        return muleElement.getElement().getTextContent();
-    }
-
-    private static String readDbTemplateQueryRef(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
-        return muleElement.getElement().getAttribute("name");
+        return new Database(kind, configRef, query, unsupportedBlocks);
     }
 
     private static UnsupportedBlock readUnsupportedBlock(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
@@ -588,64 +557,51 @@ public class MuleConfigReader {
         return new HTTPRequestConfig(configName, host, port, protocol);
     }
 
-    private static DbMSQLConfig readDbMySQLConfig(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static DbConfig readDbConfig(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
         Element element = muleElement.getElement();
-        ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_MYSQL));
-        ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_MYSQL_DRIVER, Optional.of("_")));
         String name = element.getAttribute("name");
-        String host = element.getAttribute("host");
-        String port = element.getAttribute("port");
-        String user = element.getAttribute("user");
-        String password = element.getAttribute("password");
-        String database = element.getAttribute("database");
-        return new DbMSQLConfig(name, host, port, user, password, database);
-    }
 
-    private static DbOracleConfig readDbOracleConfig(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
-        Element element = muleElement.getElement();
-        ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_ORACLEDB));
-        ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_ORACLEDB_DRIVER, Optional.of("_")));
-        String name = element.getAttribute("name");
-        String host = element.getAttribute("host");
-        String port = element.getAttribute("port");
-        String user = element.getAttribute("user");
-        String password = element.getAttribute("password");
-        String instance = element.getAttribute("instance");
-        return new DbOracleConfig(name, host, port, user, password, instance);
-    }
-
-    private static DbTemplateQuery readDbTemplateQuery(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
-        String name = muleElement.getElement().getAttribute("name");
-        String query = null;
-        List<DbInParam> dbInParams = new ArrayList<>();
-
-        while (muleElement.peekChild() != null) {
+        DbConnection connection;
+        if (muleElement.peekChild() != null) {
             MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
             Element childElement = child.getElement();
-
-            if (childElement.getTagName().equals("db:parameterized-query")) {
-                query = readDbParameterizedQuery(ctx, child);
-            } else if (childElement.getTagName().equals("db:in-param")) {
-                DbInParam dbInParam = readDbInParam(ctx, child);
-                dbInParams.add(dbInParam);
+            if (childElement.getTagName().equals(DB_MY_SQL_CONNECTION.tag())) {
+                connection = readDbMySqlConnection(ctx, childElement, name);
+                return new DbConfig(name, connection);
+            } else if (childElement.getTagName().equals(DB_ORACLE_CONNECTION.tag())) {
+                connection = readDbOracleConnection(ctx, childElement, name);
+                return new DbConfig(name, connection);
             } else {
-                throw new UnsupportedOperationException();
+                UnsupportedBlock unsupportedBlock = readUnsupportedBlock(ctx, child);
+                ctx.currentFileCtx.configs.unsupportedBlocks.add(unsupportedBlock);
+                return null;
             }
         }
-
-        if (query == null) {
-            throw new IllegalStateException("No query found in the db:template-query block");
-        }
-        return new DbTemplateQuery(name, query, dbInParams);
+        // invalid syntax
+        return null;
     }
 
-    private static DbInParam readDbInParam(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
-        Element element = muleElement.getElement();
-        String name = element.getAttribute("name");
-        String type = element.getAttribute("type");
-        Type ty = Type.from(type);
-        String defaultValue = element.getAttribute("defaultValue");
-        return new DbInParam(name, ty, defaultValue);
+    private static DbMySqlConnection readDbMySqlConnection(Context ctx, Element childElement, String name) {
+        ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_MYSQL));
+        ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_MYSQL_DRIVER, Optional.of("_")));
+        String host = childElement.getAttribute("host");
+        String port = childElement.getAttribute("port");
+        String user = childElement.getAttribute("user");
+        String password = childElement.getAttribute("password");
+        String database = childElement.getAttribute("database");
+        return new DbMySqlConnection(name, host, port, user, password, database);
+    }
+
+    private static DbOracleConnection readDbOracleConnection(Context ctx, Element childElement, String name) {
+        ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_ORACLEDB)); // TODO
+        ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_ORACLEDB_DRIVER, Optional.of("_")));
+        String host = childElement.getAttribute("host");
+        String port = childElement.getAttribute("port");
+        String user = childElement.getAttribute("user");
+        String password = childElement.getAttribute("password");
+        String instance = childElement.getAttribute("instance");
+        String serviceName = childElement.getAttribute("serviceName");
+        return new DbOracleConnection(name, host, port, user, password, instance, serviceName);
     }
 
     private static TransformMessage readTransformMessage(Context ctx, MuleXMLNavigator.MuleElement muleElement) {

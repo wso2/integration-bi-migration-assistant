@@ -61,4 +61,3 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.BALLERINA_BOT_TOKEN }}
         run: |
           ./gradlew clean logicAppsRelease
-

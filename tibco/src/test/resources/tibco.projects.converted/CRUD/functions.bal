@@ -73,11 +73,12 @@ function SQL_Direct(Context cx) returns error? {
 
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
-    string var2 = (var1/**/<statement>/*).toString();
-    sql:ParameterizedQuery var3 = `${var2}`;
+    string var2 = (var1/**/<statement>/*).toString().trim();
+    sql:ParameterizedQuery var3 = ``;
+    var3.strings = [var2];
     xml var4;
     if var2.startsWith("SELECT") {
-        stream<map<anydata>, error?> var5 = JDBCConnection->query(var3);
+        stream<record {|anydata...;|}, error?> var5 = JDBCConnection->query(var3);
         xml var6 = xml ``;
         check from var each in var5
             do {
@@ -92,7 +93,7 @@ function SQL_Direct(Context cx) returns error? {
         xml var10 = xml `<root></root>`;
         var4 = var10;
     }
-    //WARNING: validate jdbc query result mapping
+    // WARNING: validate jdbc query result mapping
     addToContext(cx, "SQL-Direct", var4);
 }
 
@@ -122,13 +123,20 @@ function toXML(map<anydata> data) returns error|xml {
     return xmldata:toXml(data);
 }
 
-function initContext(map<xml> initVariables = {}) returns Context {
-    return {variables: initVariables, result: xml `<root/>`};
-}
-
 function addToContext(Context context, string varName, xml value) {
     xml children = value/*;
     xml transformed = xml `<root>${children}</root>`;
     context.variables[varName] = transformed;
     context.result = value;
+}
+
+function initContext(map<xml> initVariables = {},
+        map<SharedVariableContext> jobSharedVariables = {})
+            returns Context {
+    map<SharedVariableContext> sharedVariables = {};
+
+    foreach var key in jobSharedVariables.keys() {
+        sharedVariables[key] = jobSharedVariables.get(key);
+    }
+    return {variables: initVariables, result: xml `<root/>`, sharedVariables};
 }

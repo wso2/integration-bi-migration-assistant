@@ -17,6 +17,7 @@
  */
 package mule.v4.model;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -223,36 +224,36 @@ public record MuleModel() {
         }
     }
 
-    // TODO: typo - MySQL
-    public record DbMSQLConfig(Kind kind, String name, String host, String port, String user, String password,
-                               String database) implements MuleRecord {
-        public DbMSQLConfig(String name, String host, String port, String user, String password, String database) {
-            this(Kind.DB_MYSQL_CONFIG, name, host, port, user, password, database);
+    public record DbConfig(Kind kind, String name, DbConnection dbConnection) implements MuleRecord {
+        public DbConfig(String name, DbConnection dbConnection) {
+            this(Kind.DB_CONFIG, name, dbConnection);
         }
     }
 
-    public record DbOracleConfig(Kind kind, String name, String host, String port, String user, String password,
-                               String instance) implements MuleRecord {
-        public DbOracleConfig(String name, String host, String port, String user, String password, String instance) {
-            this(Kind.DB_ORACLE_CONFIG, name, host, port, user, password, instance);
+    public interface DbConnection extends MuleRecord {
+    }
+
+    public record DbMySqlConnection(Kind kind, String name, String host, String port, String user, String password,
+                                    String database) implements DbConnection {
+        public DbMySqlConnection(String name, String host, String port, String user, String password, String database) {
+            this(Kind.DB_MYSQL_CONNECTION, name, host, port, user, password, database);
         }
     }
 
-    public record DbTemplateQuery(Kind kind, String name, String parameterizedQuery,
-                                  List<DbInParam> dbInParams) implements MuleRecord {
-        public DbTemplateQuery(String name, String parameterizedQuery, List<DbInParam> dbInParams) {
-            this(Kind.DB_TEMPLATE_QUERY, name, parameterizedQuery, dbInParams);
-        }
-    }
-
-    public record DbInParam(Kind kind, String name, Type type, String defaultValue) implements MuleRecord {
-        public DbInParam(String name, Type type, String defaultValue) {
-            this(Kind.DB_IN_PARAM, name, type, defaultValue);
+    public record DbOracleConnection(Kind kind, String name, String host, String port, String user, String password,
+                                     String instance, String serviceName) implements DbConnection {
+        public DbOracleConnection(String name, String host, String port, String user, String password, String instance,
+                                  String serviceName) {
+            this(Kind.DB_ORACLE_CONNECTION, name, host, port, user, password, instance, serviceName);
         }
     }
 
     // Database Connector
-    public record Database(Kind kind, String configRef, QueryType queryType, String query) implements MuleRecord {
+    public record Database(Kind kind, String configRef, String query, List<UnsupportedBlock> unsupportedBlocks)
+            implements MuleRecord {
+        public Database(Kind kind, String configRef, String query) {
+            this(kind, configRef, query, Collections.emptyList());
+        }
     }
 
     // Misc
@@ -279,14 +280,13 @@ public record MuleModel() {
         WHEN_IN_CHOICE,
         HTTP_LISTENER_CONFIG,
         HTTP_REQUEST_CONFIG,
-        DB_MYSQL_CONFIG,
-        DB_ORACLE_CONFIG,
-        DB_TEMPLATE_QUERY,
+        DB_CONFIG,
+        DB_MYSQL_CONNECTION,
+        DB_ORACLE_CONNECTION,
         DB_INSERT,
         DB_SELECT,
         DB_UPDATE,
         DB_DELETE,
-        DB_IN_PARAM,
         SET_VARIABLE,
         SET_SESSION_VARIABLE,
         REMOVE_VARIABLE,
@@ -319,11 +319,5 @@ public record MuleModel() {
                 throw new IllegalArgumentException("Illegal type: " + type, e);
             }
         }
-    }
-
-    public enum QueryType {
-        PARAMETERIZED_QUERY,
-        DYNAMIC_QUERY,
-        TEMPLATE_QUERY_REF
     }
 }
