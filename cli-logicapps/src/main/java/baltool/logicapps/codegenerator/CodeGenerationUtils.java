@@ -112,6 +112,7 @@ public class CodeGenerationUtils {
             String executionPlan = CodeGenerationUtils.generateLogicAppExecutionPlan(copilotAccessToken, sourceFiles,
                     fileAttachmentContents, packageName, additionalInstructions, logger, fileName);
             String generatedPrompt = constructMigrateUserPrompt(additionalInstructions, executionPlan);
+            logger.printVerboseInfo(fileName, "Generated prompt for code generation: " + generatedPrompt);
             logger.printInfo(fileName, "✓ Execution plan generated");
 
             // Step 2: Generate code

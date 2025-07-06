@@ -156,13 +156,15 @@ public class VerboseLogger {
      * @param stackTrace the stack trace elements to print
      */
     public void printStackTrace(StackTraceElement[] stackTrace) {
-        if (fileName != null) {
-            err.println("ERROR [FILENAME: " + fileName + "]");
-        } else {
-            err.println("ERROR");
-        }
-        for (StackTraceElement stackTraceElement : stackTrace) {
-            err.println("   " + stackTraceElement);
+        if (isVerboseEnabled) {
+            if (fileName != null) {
+                err.println("ERROR [FILENAME: " + fileName + "]");
+            } else {
+                err.println("ERROR");
+            }
+            for (StackTraceElement stackTraceElement : stackTrace) {
+                err.println("   " + stackTraceElement);
+            }
         }
     }
 
