@@ -826,7 +826,7 @@ public class CodeGenerationUtils {
      * @return Configured HttpClient instance
      */
     private static HttpClient getHttpClient() {
-        return HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(300)).build();
+        return HttpClient.newHttpClient();
     }
 
     /**

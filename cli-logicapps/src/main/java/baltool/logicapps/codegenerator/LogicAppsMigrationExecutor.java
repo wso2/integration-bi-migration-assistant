@@ -202,7 +202,7 @@ public class LogicAppsMigrationExecutor {
                 loggerFactory.addProcess(fileName, TOTAL_STEPS);
                 CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
                     try {
-                        String projectName = fileName.replace(".json", "");
+                        String projectName = fileName.replace(".json", BALLERINA_PROJECT_SUFFIX);
                         Path individualProjectDir = projectRootDir.resolve(projectName);
 
                         processSingleLogicApp(logicAppFile, additionalInstructions, individualProjectDir,
