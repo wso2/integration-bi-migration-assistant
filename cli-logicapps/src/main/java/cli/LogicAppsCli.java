@@ -23,14 +23,19 @@ import baltool.logicapps.codegenerator.VerboseLogger;
 import java.nio.file.Path;
 import java.util.logging.Logger;
 
+/**
+ * CLI for Logic Apps migration to Ballerina.
+ * This class serves as the entry point for the Logic Apps migration assistant.
+ */
 public class LogicAppsCli {
 
     private static final Logger logger = Logger.getLogger(LogicAppsCli.class.getName());
 
+    // For testing jar
     public static void main(String[] args) {
         if (args.length != 1 && args.length != 3) {
             logger.severe("Usage: java -jar logicapps-migration-assistant.jar <source-file> " +
-                    "[-a|--add-on <additional-instructions>] [-o|--out <output-directory>] [-n|--name <project-name>]");
+                    "[-o|--out <output-directory>] [-v|--verbose] [-m|--multi-root]");
             System.exit(1);
         }
 

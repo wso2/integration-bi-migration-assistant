@@ -1,3 +1,20 @@
+/*
+ *  Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+ *
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
 package baltool.logicapps.codegenerator;
 
 import baltool.logicapps.authentication.CLIAuthentication;
@@ -23,14 +40,10 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
 
 import static baltool.logicapps.Constants.BALLERINA_TOML_FILE;
@@ -39,35 +52,26 @@ import static baltool.logicapps.Constants.DEFAULT_ORG_NAME;
 import static baltool.logicapps.Constants.DEFAULT_PROJECT_VERSION;
 import static baltool.logicapps.Constants.FILE_PATH;
 
+/**
+ * This class is responsible for executing the migration of Logic Apps to Ballerina projects.
+ * It handles both single and multi-root migrations, manages progress tracking, and generates
+ * the necessary Ballerina project structure.
+ */
 public class LogicAppsMigrationExecutor {
-    private static final ReentrantLock progressLock = new ReentrantLock();
-    private static final ConcurrentHashMap<String, ProgressTracker> progressMap = new ConcurrentHashMap<>();
-    private static final AtomicInteger completedFiles = new AtomicInteger(0);
-    private static int totalFiles = 0;
-    private static int lastDisplayLines = 0;
+    private static final String BALLERINA_PROJECT_SUFFIX = "_ballerina";
+    private static final int TOTAL_STEPS = 3;
 
-    // Testing
-    public static void main(String[] args) {
-        // Arguments
-        Path logicAppFilePath = Paths.get("/Users/nipunal/wso2/logic-apps", "ChckinV5ExpndTimeChiledWF.json");
-        String additionalInstructions = "";
-//        Path projectRootDir = Paths.get("/Users/nipunal/wso2/logic-apps/logicapps-migration-sample-1");
-        boolean verbose = true;
-        boolean multiRoot = false;
-
-//        LogicAppsMigrationExecutor.migrateLogicAppToBallerina(logicAppFilePath, additionalInstructions,
-//                projectRootDir, verbose, multiRoot, new VerboseLogger(verbose));
-        LogicAppsMigrationExecutor.migrateLogicAppToBallerina(logicAppFilePath, additionalInstructions,
-                verbose, multiRoot, new VerboseLogger(verbose));
-    }
+    private static int errorFiles = 0;
 
     /**
-     * Migrates a Logic App JSON file to a Ballerina project.
+     * Migrates a Logic App JSON file or a directory to a Ballerina project/s with specified output directory.
      *
      * @param logicAppFilePath        the path to the Logic App JSON file or directory containing multiple files.
      * @param additionalInstructions  additional instructions for the migration process.
+     * @param targetDir               the target directory for the generated Ballerina project.
      * @param verbose                 whether to enable verbose logging.
-     * @param multiRoot              whether to process multiple logic app files concurrently.
+     * @param multiRoot               whether to process multiple logic app files concurrently.
+     * @param logger                  logger instance for logging messages.
      */
     public static void migrateLogicAppToBallerina(Path logicAppFilePath, String additionalInstructions,
                                                   Path targetDir, boolean verbose, boolean multiRoot,
@@ -75,9 +79,6 @@ public class LogicAppsMigrationExecutor {
         try {
             logger.printVerboseInfo("Starting migration with specified output directory: " +
                     targetDir.toString());
-
-            String projectName = logicAppFilePath.getFileName().toString().replace(".json", "_ballerina");
-            Path projectRootDir = targetDir.resolve(projectName);
 
             logger.printVerboseInfo("Obtaining access token");
             String copilotAccessToken = getAccessToken(logger);
@@ -89,30 +90,32 @@ public class LogicAppsMigrationExecutor {
 
             if (multiRoot && Files.isDirectory(logicAppFilePath)) {
                 logger.printVerboseInfo("Multi-root mode enabled, processing directory: " + logicAppFilePath);
-                processMultipleLogicApps(logicAppFilePath, additionalInstructions, projectRootDir,
+                processMultipleLogicApps(logicAppFilePath, additionalInstructions, targetDir,
                         copilotAccessToken, verbose, logger);
             } else {
+                String fileName = logicAppFilePath.getFileName().toString();
+                VerboseLoggerFactory loggerFactory = VerboseLoggerFactory.getInstance(verbose);
+                loggerFactory.addProcess(fileName, TOTAL_STEPS);
                 logger.printVerboseInfo("Single file mode, processing: " + logicAppFilePath);
-                processSingleLogicApp(logicAppFilePath, additionalInstructions, projectRootDir, copilotAccessToken,
-                        false, new VerboseLogger(verbose, logicAppFilePath.getFileName().toString(),
-                                new ProgressBar(3, logicAppFilePath.getFileName().toString())));
+                processSingleLogicApp(logicAppFilePath, additionalInstructions, targetDir, copilotAccessToken,
+                        false, loggerFactory, fileName);
+                loggerFactory.setProgressBarActive(false);
             }
-        } catch (IOException e) {
-            logger.printError("Error during migration process: " + e.getMessage());
-            logger.printVerboseError("Stack trace: \n" + Arrays.toString(e.getStackTrace()));
         } catch (Exception e) {
-            logger.printError("Unexpected error during migration process: " + e.getMessage());
-            logger.printVerboseError("Stack trace: \n" + Arrays.toString(e.getStackTrace()));
+            logger.printError("Error during migration process: " + e.getMessage());
+            logger.printStackTrace(e.getStackTrace());
         }
     }
 
     /**
-     * Migrates a Logic App JSON file to a Ballerina project.
+     * Migrates a Logic App JSON file or a directory to a Ballerina project/s with the provided Logic App file directory as the
+     * target directory.
      *
      * @param logicAppFilePath        the path to the Logic App JSON file or directory containing multiple files.
      * @param additionalInstructions  additional instructions for the migration process.
      * @param verbose                 whether to enable verbose logging.
-     * @param multiRoot              whether to process multiple logic app files concurrently.
+     * @param multiRoot               whether to process multiple logic app files concurrently.
+     * @param logger                  logger instance for logging messages.
      */
     public static void migrateLogicAppToBallerina(Path logicAppFilePath, String additionalInstructions,
                                                   boolean verbose, boolean multiRoot, VerboseLogger logger) {
@@ -127,35 +130,42 @@ public class LogicAppsMigrationExecutor {
             }
             logger.printVerboseInfo("Access token obtained successfully");
 
-            String projectName = logicAppFilePath.getFileName().toString().replace(".json", "_ballerina");
-            logger.printVerboseInfo("Project name derived from file: " + projectName);
-            Path projectBasePath = Files.isDirectory(logicAppFilePath) ? logicAppFilePath :
+            Path targetDir = Files.isDirectory(logicAppFilePath) ? logicAppFilePath :
                     logicAppFilePath.getParent();
-            Path projectRootDir = projectBasePath.resolve(projectName);
-            logger.printVerboseInfo("Project root directory: " + projectRootDir.toAbsolutePath());
+            logger.printVerboseInfo("Project root directory: " + targetDir.toAbsolutePath());
 
             if (multiRoot && Files.isDirectory(logicAppFilePath)) {
                 logger.printVerboseInfo("Multi-root mode enabled, processing directory: " + logicAppFilePath);
-                processMultipleLogicApps(logicAppFilePath, additionalInstructions, projectRootDir,
+                processMultipleLogicApps(logicAppFilePath, additionalInstructions, targetDir,
                         copilotAccessToken, verbose, logger);
             } else {
+                String fileName = logicAppFilePath.getFileName().toString();
+                VerboseLoggerFactory loggerFactory = VerboseLoggerFactory.getInstance(verbose);
+                loggerFactory.addProcess(fileName, TOTAL_STEPS);
                 logger.printVerboseInfo("Single file mode, processing: " + logicAppFilePath);
-                processSingleLogicApp(logicAppFilePath, additionalInstructions, projectRootDir, copilotAccessToken,
-                         false, new VerboseLogger(verbose, logicAppFilePath.getFileName().toString(),
-                                new ProgressBar(3, logicAppFilePath.getFileName().toString())));
+                processSingleLogicApp(logicAppFilePath, additionalInstructions, targetDir, copilotAccessToken,
+                        false, loggerFactory, fileName);
+                loggerFactory.setProgressBarActive(false);
             }
         } catch (IOException e) {
             logger.printError("Error during migration process: " + e.getMessage());
-            logger.printVerboseError("Stack trace: ");
-            logger.printVerboseError("Stack trace: \n" + Arrays.toString(e.getStackTrace()));
+            logger.printStackTrace(e.getStackTrace());
         } catch (Exception e) {
             logger.printError("Unexpected error during migration process: " + e.getMessage());
-            logger.printVerboseError("Stack trace: \n" + Arrays.toString(e.getStackTrace()));
+            logger.printStackTrace(e.getStackTrace());
         }
     }
 
     /**
-     * Processes multiple logic app files concurrently with proper progress tracking.
+     * Processes multiple Logic App files in a directory concurrently.
+     *
+     * @param logicAppDirectory      the directory containing Logic App JSON files.
+     * @param additionalInstructions additional instructions for the migration process.
+     * @param projectRootDir         the root directory for the generated Ballerina projects.
+     * @param copilotAccessToken     the access token for Copilot authentication.
+     * @param verbose                whether to enable verbose logging.
+     * @param logger                 logger instance for logging messages.
+     * @throws IOException if an I/O error occurs while processing files.
      */
     private static void processMultipleLogicApps(Path logicAppDirectory, String additionalInstructions,
                                                  Path projectRootDir, String copilotAccessToken, boolean verbose,
@@ -178,23 +188,8 @@ public class LogicAppsMigrationExecutor {
             logger.printError("No JSON files found in directory: " + logicAppDirectory);
             return;
         }
-
-        totalFiles = logicAppFiles.size();
-        logger.printInfo("Found " + totalFiles + " logic app files to process");
-
-        // Initialize progress tracking
-        progressMap.clear();
-        completedFiles.set(0);
-
-        logger.printVerboseInfo("Initializing progress tracking for " + totalFiles + " files...");
-        for (Path logicAppFile : logicAppFiles) {
-            String fileName = logicAppFile.getFileName().toString();
-            progressMap.put(fileName, new ProgressTracker(fileName));
-            logger.printVerboseInfo("Registered: " + fileName + "for progress tracking");
-        }
-
-        logger.printVerboseInfo("Starting progress display thread...");
-        Thread progressDisplayThread = startProgressDisplayThread(logger);
+        int totalFiles = logicAppFiles.size();
+        VerboseLoggerFactory loggerFactory = VerboseLoggerFactory.getInstance(verbose);
 
         int threadPoolSize = Math.min(logicAppFiles.size(), Runtime.getRuntime().availableProcessors());
         logger.printVerboseInfo("Available processors: " + Runtime.getRuntime().availableProcessors());
@@ -203,32 +198,29 @@ public class LogicAppsMigrationExecutor {
         try {
             List<CompletableFuture<Void>> futures = new ArrayList<>();
             for (Path logicAppFile : logicAppFiles) {
+                String fileName = logicAppFile.getFileName().toString();
+                loggerFactory.addProcess(fileName, TOTAL_STEPS);
                 CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
                     try {
-                        String fileName = logicAppFile.getFileName().toString();
                         String projectName = fileName.replace(".json", "");
                         Path individualProjectDir = projectRootDir.resolve(projectName);
 
-                        updateFileProgress(fileName, 1, "Generating execution plan");
-
                         processSingleLogicApp(logicAppFile, additionalInstructions, individualProjectDir,
-                                copilotAccessToken, true,
-                                new VerboseLogger(verbose, fileName, new ProgressBar(3, fileName)));
+                                copilotAccessToken, true, loggerFactory, fileName);
 
-                        markFileCompleted(fileName);
                     } catch (Exception e) {
-                        String fileName = logicAppFile.getFileName().toString();
+                        errorFiles++;
                         String errorMsg = e.getMessage() != null ? e.getMessage() : "Unknown error";
-                        markFileFailed(fileName, errorMsg);
+                        loggerFactory.finishProgress(fileName, false, errorMsg);
 
                         if (verbose) {
                             synchronized (logger.getErrorPrintStream()) {
                                 logger.printError("[THREAD-" + Thread.currentThread().getId() + "] ERROR processing "
                                         + fileName + ":");
-                                logger.printError("  Stack trace: \n" + Arrays.toString(e.getStackTrace()));
+                                logger.printStackTrace(e.getStackTrace());
                             }
                         } else {
-                            logger.printError("\nError processing " + logicAppFile + ": " + errorMsg);
+                            logger.printError("Processing " + logicAppFile + ": " + errorMsg);
                         }
                     }
                 }, executorService);
@@ -247,25 +239,9 @@ public class LogicAppsMigrationExecutor {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-
-            logger.printVerboseInfo("All tasks completed");
-
         } finally {
-            // Stop progress display
-            if (progressDisplayThread.isAlive()) {
-                logger.printVerboseInfo("Stopping progress display thread...");
-                progressDisplayThread.interrupt();
-                try {
-                    progressDisplayThread.join(1000); // Wait up to 1 second
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-
-            // Clear the progress display area
-            if (lastDisplayLines > 0) {
-                logger.getPrintStream().printf("\033[%dA", lastDisplayLines); // Move cursor up
-                logger.getPrintStream().print("\033[J"); // Clear from cursor to end of screen
+            if (loggerFactory.isProgressBarActive()) {
+                loggerFactory.setProgressBarActive(false);
             }
 
             // Shutdown the executor service
@@ -283,221 +259,75 @@ public class LogicAppsMigrationExecutor {
             logger.printVerboseInfo("Thread pool shutdown completed");
         }
 
-        // Final status of each process
-        displayFinalProgressFresh(logger);
-
         // Final summary
-        logger.printInfo("\nMigration Summary:");
+        logger.printInfo("Migration Summary:");
         logger.printInfo("Total files: " + totalFiles);
-        logger.printInfo("Completed: " + completedFiles.get());
-        logger.printInfo("Failed: " + (totalFiles - completedFiles.get()));
+        logger.printInfo("Completed: " + (totalFiles - errorFiles));
+        logger.printInfo("Failed: " + errorFiles);
     }
 
     /**
-     * Starts a background thread to display progress for all files.
+     * Processes a single Logic App file and generates the corresponding Ballerina project.
+     *
+     * @param logicAppFilePath        the path to the Logic App JSON file.
+     * @param additionalInstructions  additional instructions for the migration process.
+     * @param targetDir               the target directory for the generated Ballerina project.
+     * @param copilotAccessToken      the access token for Copilot authentication.
+     * @param isMultiThreaded         whether this is being called in multi-threaded mode.
+     * @param logger                  logger instance for logging messages.
+     * @param fileName                the name of the file being processed, used for logging.
      */
-    private static Thread startProgressDisplayThread(VerboseLogger logger) {
-        Thread progressThread = new Thread(() -> {
-            try {
-                while (!Thread.currentThread().isInterrupted()) {
-                    displayOverallProgress(logger);
-                    Thread.sleep(500); // Update every 500ms
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        });
-        progressThread.setDaemon(true);
-        progressThread.start();
-        return progressThread;
-    }
-
-    /**
-     * Displays the final progress state without any cursor manipulation - fresh display.
-     */
-    private static void displayFinalProgressFresh(VerboseLogger logger) {
-        progressLock.lock();
+    private static void processSingleLogicApp(Path logicAppFilePath, String additionalInstructions, Path targetDir,
+                                              String copilotAccessToken, boolean isMultiThreaded,
+                                              VerboseLoggerFactory logger, String fileName) {
         try {
-            logger.printInfo("File Results:");
-            logger.printInfo("-".repeat(80));
-            if (!progressMap.isEmpty()) {
-                progressMap.entrySet().stream().sorted(Map.Entry.comparingByKey())
-                        .forEach(entry -> logger.getPrintStream().printf(entry.getValue().getDisplayString() + "\n"));
-            } else {
-                logger.printInfo("No results available");
-            }
-            logger.printInfo("-".repeat(80));
-            logger.printInfo("");
-            logger.getPrintStream().flush();
-        } finally {
-            progressLock.unlock();
-        }
-    }
-
-    private static void displayOverallProgress(VerboseLogger logger) {
-        progressLock.lock();
-        try {
-            // Move cursor up to overwrite previous display
-            if (lastDisplayLines > 0) {
-                logger.getPrintStream().printf("\033[%dA", lastDisplayLines); // Move cursor up
-                logger.getPrintStream().print("\033[J"); // Clear from cursor to end of screen
-            }
-
-            int linesCount = 0;
-
-            // Overall progress
-            int completed = completedFiles.get();
-            String overallBar = createProgressBar(completed, totalFiles);
-            logger.getPrintStream().printf("Overall Progress: [%d/%d] %s%n", completed, totalFiles, overallBar);
-            linesCount++;
-
-            logger.printInfo(""); // Empty line
-            linesCount++;
-
-            // Individual file progress
-            logger.printInfo("Code generation Progress:");
-            linesCount++;
-
-            List<ProgressTracker> sortedTrackers = progressMap.values().stream()
-                    .sorted((a, b) -> a.fileName.compareTo(b.fileName))
-                    .toList();
-
-            for (ProgressTracker tracker : sortedTrackers) {
-                logger.printInfo(tracker.getDisplayString());
-                linesCount++;
-            }
-
-            lastDisplayLines = linesCount;
-            logger.getPrintStream().flush();
-        } finally {
-            progressLock.unlock();
-        }
-    }
-
-    /**
-     * Updates progress for a specific file.
-     */
-    private static void updateFileProgress(String fileName, int step, String message) {
-        ProgressTracker tracker = progressMap.get(fileName);
-        if (tracker != null) {
-            tracker.updateProgress(step, message);
-        }
-    }
-
-    /**
-     * Marks a file as failed.
-     */
-    private static void markFileFailed(String fileName, String errorMessage) {
-        ProgressTracker tracker = progressMap.get(fileName);
-        if (tracker != null) {
-            tracker.updateProgress(0, "Failed: " + errorMessage);
-        }
-    }
-
-    /**
-     * Marks a file as completed.
-     */
-    private static void markFileCompleted(String fileName) {
-        ProgressTracker tracker = progressMap.get(fileName);
-        if (tracker != null) {
-            tracker.markCompleted();
-            completedFiles.incrementAndGet();
-        }
-    }
-
-    /**
-     * Processes a single logic app file with progress callbacks for multi-threaded mode.
-     */
-    private static void processSingleLogicApp(Path logicAppFilePath, String additionalInstructions,
-                                              Path projectRootDir, String copilotAccessToken, boolean isMultiThreaded,
-                                              VerboseLogger logger) {
-        try {
-            String fileName = logicAppFilePath.getFileName().toString();
-
             if (!isMultiThreaded) {
-                logger.printVerboseInfo("SINGLE FILE PROCESSING MODE");
+                logger.printVerboseInfo(fileName, "SINGLE FILE PROCESSING MODE");
             }
-            logger.printVerboseInfo("Processing file: " + logicAppFilePath.toAbsolutePath());
+            logger.printVerboseInfo(fileName, "Processing file: " + logicAppFilePath.toAbsolutePath());
             if (!Files.exists(logicAppFilePath)) {
                 throw new IOException("Logic App file does not exist: " + logicAppFilePath);
             }
             if (!Files.isReadable(logicAppFilePath)) {
                 throw new IOException("Logic App file is not readable: " + logicAppFilePath);
             }
-            logger.printVerboseInfo("File validation successful");
-            logger.printVerboseInfo("File size: " + Files.size(logicAppFilePath) + " bytes");
+            logger.printVerboseInfo(fileName, "File validation successful");
+            logger.printVerboseInfo(fileName, "File size: " + Files.size(logicAppFilePath) + " bytes");
 
-            String packageName = URLEncoder.encode(projectRootDir.getFileName().toString(),
-                    StandardCharsets.UTF_8).replace("-", "_");
-            logger.printVerboseInfo("Package name: " + packageName);
+            String projectName = logicAppFilePath.getFileName().toString().replace(".json", BALLERINA_PROJECT_SUFFIX);
+            String packageName = URLEncoder.encode(projectName, StandardCharsets.UTF_8).replace("-", "_");
+            logger.printVerboseInfo(fileName, "Package name: " + packageName);
 
             ModuleDescriptor moduleDescriptor = getModuleDescriptor(packageName);
 
             JsonArray generatedSourceFiles = CodeGenerationUtils.generateCodeForLogicApp(copilotAccessToken,
-                    logicAppFilePath, packageName, additionalInstructions, moduleDescriptor,
-                    isMultiThreaded ? (step, message) -> updateFileProgress(fileName, step, message) : null, logger);
-            logger.printVerboseInfo("Code generation completed. Generated " + generatedSourceFiles.size() +
-                    " source files");
-
-            if (isMultiThreaded) {
-                updateFileProgress(fileName, 3, "Writing files");
-            }
+                    logicAppFilePath, packageName, additionalInstructions, moduleDescriptor, logger, fileName);
+            logger.printVerboseInfo(fileName, "Code generation completed. Generated " +
+                    generatedSourceFiles.size() + " source files");
 
             if (!generatedSourceFiles.isEmpty()) {
-                createProjectFromGeneratedSource(generatedSourceFiles, moduleDescriptor, projectRootDir, logger);
-                logger.printVerboseInfo("Ballerina Project created successfully");
+                Path projectDir = targetDir.resolve(projectName);
+                createProjectFromGeneratedSource(generatedSourceFiles, moduleDescriptor, projectDir, logger,
+                        fileName);
+                logger.finishProgress(fileName, true, "Completed");
             } else {
-                logger.printVerboseWarn("No source files were generated");
+                logger.printVerboseWarn(fileName, "No source files were generated");
             }
-        } catch (IOException e) {
-            String errorMsg = "IO error processing logic app file " + logicAppFilePath + ": " + e.getMessage();
-            logger.printError(errorMsg);
-            logger.printVerboseError("Stack trace: \n" + Arrays.toString(e.getStackTrace()));
-            throw new RuntimeException(e);
         } catch (Exception e) {
-            String errorMsg = "Unexpected error processing logic app file " + logicAppFilePath + ": " + e.getMessage();
-            logger.printError(errorMsg);
-            logger.printVerboseError("Stack trace: \n" + Arrays.toString(e.getStackTrace()));
+            logger.finishProgress(fileName, false, e.getMessage());
+            logger.printError(fileName, e.getMessage());
+            logger.printStackTrace(fileName, e.getStackTrace());
             throw new RuntimeException(e);
         }
     }
 
     /**
-     * Creates a mini progress bar for individual file tracking.
+     * Creates a ModuleDescriptor for the given package name.
+     *
+     * @param packageName the name of the package.
+     * @return a ModuleDescriptor for the specified package.
+     * @throws UnsupportedEncodingException if the package name cannot be encoded.
      */
-    private static String createMiniProgressBar(int current, int total) {
-        int barLength = 10;
-        int filled = (int) ((double) current / total * barLength);
-
-        StringBuilder bar = new StringBuilder("[");
-        for (int i = 0; i < barLength; i++) {
-            bar.append(i < filled ? "█" : "░");
-        }
-        bar.append("]");
-
-        return bar.toString();
-    }
-
-    /**
-     * Creates a standard progress bar.
-     */
-    private static String createProgressBar(int completed, int total) {
-        if (total == 0) {
-            return "[██████████████████████]";
-        }
-
-        int barLength = 20;
-        int filledLength = (int) ((double) completed / total * barLength);
-
-        StringBuilder bar = new StringBuilder("[");
-        for (int i = 0; i < barLength; i++) {
-            bar.append(i < filledLength ? "█" : "░");
-        }
-        bar.append("]");
-
-        return bar.toString();
-    }
-
     private static ModuleDescriptor getModuleDescriptor(String packageName) throws UnsupportedEncodingException {
         ModuleName moduleName = ModuleName.from(PackageName.from(packageName));
         PackageDescriptor packageDescriptor = PackageDescriptor.from(PackageOrg.from(DEFAULT_ORG_NAME),
@@ -505,6 +335,12 @@ public class LogicAppsMigrationExecutor {
         return ModuleDescriptor.from(moduleName, packageDescriptor);
     }
 
+    /**
+     * Retrieves a valid access token for Copilot authentication.
+     *
+     * @param logger the logger instance for logging messages.
+     * @return a valid access token, or null if retrieval fails.
+     */
     private static String getAccessToken(VerboseLogger logger) {
         try {
             logger.printVerboseInfo("Attempting to retrieve access token via CLI authentication");
@@ -518,13 +354,19 @@ public class LogicAppsMigrationExecutor {
         }
     }
 
-    private static String getCurrentDirectory() {
-        String currentDir = System.getProperty("user.dir");
-        return currentDir;
-    }
-
+    /**
+     * Creates a Ballerina project from the generated source files.
+     *
+     * @param sourceFiles      the generated source files as a JsonArray.
+     * @param moduleDescriptor the ModuleDescriptor for the Ballerina project.
+     * @param projectDir       the directory where the Ballerina project will be created.
+     * @param logger           logger instance for logging messages.
+     * @param fileName         the name of the file being processed, used for logging.
+     * @throws IOException if an I/O error occurs while creating files or directories.
+     */
     private static void createProjectFromGeneratedSource(JsonArray sourceFiles, ModuleDescriptor moduleDescriptor,
-                                                         Path projectDir, VerboseLogger logger) throws IOException {
+                                                         Path projectDir, VerboseLoggerFactory logger, String fileName)
+            throws IOException {
         Files.createDirectories(projectDir);
 
         for (JsonElement sourceFile : sourceFiles) {
@@ -537,7 +379,7 @@ public class LogicAppsMigrationExecutor {
             try (FileWriter fileWriter = new FileWriter(file, StandardCharsets.UTF_8)) {
                 fileWriter.write(content);
             }
-            logger.printVerboseInfo(filePath + "file written successfully");
+            logger.printVerboseInfo(fileName, filePath + "file written successfully");
         }
 
         Path ballerinaTomlPath = projectDir.resolve(BALLERINA_TOML_FILE);
@@ -556,43 +398,7 @@ public class LogicAppsMigrationExecutor {
         try (FileWriter fileWriter = new FileWriter(balTomlFile, StandardCharsets.UTF_8)) {
             fileWriter.write(tomlContent);
         }
-        logger.printVerboseInfo(ballerinaTomlPath + "file written successfully");
-        logger.printInfo("Ballerina project created successfully at: " + projectDir.toAbsolutePath());
-    }
-
-    // Inner class to track progress for each file
-    private static class ProgressTracker {
-        private final String fileName;
-        private volatile int currentStep = 0;
-        private volatile String currentMessage = "";
-        private volatile boolean completed = false;
-        private static final int TOTAL_STEPS = 3;
-
-        public ProgressTracker(String fileName) {
-            this.fileName = fileName;
-        }
-
-        public void updateProgress(int step, String message) {
-            this.currentStep = step;
-            this.currentMessage = message;
-        }
-
-        public void markCompleted() {
-            this.completed = true;
-            this.currentStep = TOTAL_STEPS;
-            this.currentMessage = "Completed";
-        }
-
-        public String getDisplayString() {
-            if (completed) {
-                return String.format("%-30s ✓ %s", fileName, currentMessage);
-            } else if (currentStep == 0) {
-                return String.format("%-30s ✗ %s", fileName, currentMessage);
-            } else {
-                String progressBar = createMiniProgressBar(currentStep - 1, TOTAL_STEPS);
-                String stepInfo = String.format("[%d/%d]", currentStep, TOTAL_STEPS);
-                return String.format("%-30s %s %s %s", fileName, progressBar, stepInfo, currentMessage);
-            }
-        }
+        logger.printVerboseInfo(fileName, ballerinaTomlPath + "file written successfully");
+        logger.printInfo(fileName, "Ballerina project created successfully at: " + projectDir.toAbsolutePath());
     }
 }

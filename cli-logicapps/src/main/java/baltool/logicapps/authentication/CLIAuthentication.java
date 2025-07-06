@@ -1,3 +1,20 @@
+/*
+ *  Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+ *
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
 package baltool.logicapps.authentication;
 
 import baltool.logicapps.codegenerator.VerboseLogger;
@@ -36,8 +53,11 @@ import static baltool.logicapps.Constants.DEV_AUTH_REDIRECT_URL;
 import static baltool.logicapps.Constants.BALLERINA_USER_HOME_NAME;
 import static baltool.logicapps.Constants.CONFIG_FILE_PATH;
 
+/**
+ * Handles CLI authentication for the Ballerina LogicApps migration tool.
+ * This class manages the OAuth flow to obtain access and refresh tokens.
+ */
 public class CLIAuthentication {
-    private static final String USER_HOME = System.getProperty("user.home");
     public static final boolean BALLERINA_DEV_UPDATE = Boolean.parseBoolean(
             System.getenv("BALLERINA_DEV_UPDATE"));
 
@@ -48,9 +68,10 @@ public class CLIAuthentication {
     private String error;
 
     /**
-     * Retrieves a valid access token, refreshing it if necessary.
+     * Retrieves a valid access token, either from the config file or by performing authentication.
      *
-     * @return Valid access token
+     * @param logger Logger to log messages during the process
+     * @return Valid access token if available, otherwise performs authentication
      * @throws Exception If authentication fails or network issues occur
      */
     public static String getValidAccessToken(VerboseLogger logger) throws Exception {
@@ -74,10 +95,11 @@ public class CLIAuthentication {
     }
 
     /**
-     * Performs full authentication flow to obtain access token.
+     * Performs full authentication by opening a browser for user login and exchanging the authorization code for tokens.
      *
+     * @param logger Logger to log messages during the process
      * @return Access token if successful, null otherwise
-     * @throws Exception If authentication fails or network issues occur
+     * @throws Exception If network issues occur or response parsing fails
      */
     private static String performFullAuthentication(VerboseLogger logger) throws Exception {
         CLIAuthentication authInstance = new CLIAuthentication();
@@ -89,9 +111,10 @@ public class CLIAuthentication {
     }
 
     /**
-     * Refreshes the access token using the refresh token.
+     * Refreshes the access token using the provided refresh token.
      *
      * @param refreshToken The refresh token to use for obtaining a new access token
+     * @param logger Logger to log messages during the process
      * @return New access token if successful, null otherwise
      */
     private static String refreshAccessToken(String refreshToken, VerboseLogger logger) {
@@ -158,6 +181,7 @@ public class CLIAuthentication {
      * Exchanges the authorization code for access and refresh tokens.
      *
      * @param authCode The authorization code received from the OAuth server
+     * @param logger Logger to log messages during the process
      * @return Access token if successful, null otherwise
      * @throws Exception If network issues occur or response parsing fails
      */
@@ -242,6 +266,7 @@ public class CLIAuthentication {
      * Validates the access token by checking its status via the introspection endpoint.
      *
      * @param accessToken The access token to validate
+     * @param logger Logger to log messages during the process
      * @return true if the token is valid, false otherwise
      */
     private static boolean isTokenValid(String accessToken, VerboseLogger logger) {
@@ -293,13 +318,15 @@ public class CLIAuthentication {
      * @return Path to the config file
      */
     private static Path getConfigFilePath() {
-        return Paths.get(USER_HOME, BALLERINA_USER_HOME_NAME, CONFIG_FILE_PATH);
+        String userHome = System.getProperty("user.home");
+        return Paths.get(userHome, BALLERINA_USER_HOME_NAME, CONFIG_FILE_PATH);
     }
 
     /**
      * Loads a specific token from the config file.
      *
      * @param tokenKey The key of the token to load (e.g., "accessToken", "refreshToken")
+     * @param logger Logger to log messages during the process
      * @return The token value if found, null otherwise
      */
     private static String loadTokenFromConfig(String tokenKey, VerboseLogger logger) {
@@ -325,17 +352,17 @@ public class CLIAuthentication {
     }
 
     /**
-     * Saves a token to the configuration file.
+     * Saves a token to the configuration file, updating it if it already exists.
      *
-     * @param tokenKey   The key for the token (e.g., "accessToken", "refreshToken")
+     * @param tokenKey   The key of the token to save (e.g., "accessToken", "refreshToken")
      * @param tokenValue The value of the token to save
+     * @param logger Logger to log messages during the process
      */
     private static void saveTokenToConfig(String tokenKey, String tokenValue, VerboseLogger logger) {
         try {
             Path filePath = getConfigFilePath();
             String content = "";
 
-            // Read existing content if file exists
             if (Files.exists(filePath)) {
                 content = Files.readString(filePath, StandardCharsets.UTF_8);
             }
@@ -343,7 +370,6 @@ public class CLIAuthentication {
             String tokenLine = tokenKey + "=\"" + tokenValue + "\"";
             String searchPattern = tokenKey + "=\"";
 
-            // Check if the token already exists in the file
             int startIndex = content.indexOf(searchPattern);
             if (startIndex != -1) {
                 int lineStart = content.lastIndexOf('\n', startIndex) + 1;
@@ -373,10 +399,11 @@ public class CLIAuthentication {
     }
 
     /**
-     * Starts the authentication process and returns the authorization code.
+     * Initiates the OAuth authentication process by opening a browser and waiting for the callback.
      *
-     * @return Authorization code if successful
-     * @throws Exception If authentication fails or network issues occur
+     * @param logger Logger to log messages during the process
+     * @return The authorization code received from the OAuth server
+     * @throws Exception If an error occurs during authentication
      */
     private String authenticate(VerboseLogger logger) throws Exception {
         int port = findAvailablePort();
@@ -401,7 +428,7 @@ public class CLIAuthentication {
     }
 
     /**
-     * Finds an available port on the local machine.
+     * Finds an available port on the local machine for the HTTP server.
      *
      * @return An available port number
      * @throws IOException If an error occurs while creating the server socket
@@ -430,6 +457,7 @@ public class CLIAuthentication {
      * Opens the default web browser to the authentication URL.
      *
      * @param state The state parameter to include in the URL
+     * @param logger Logger to log messages during the process
      * @throws Exception If an error occurs while opening the browser
      */
     private void openBrowser(String state, VerboseLogger logger) throws Exception {
@@ -465,14 +493,29 @@ public class CLIAuthentication {
         return state;
     }
 
+    /**
+     * Retrieves the OAuth client ID, organization, and redirect URL based on the environment.
+     *
+     * @return The respective values for client ID, organization, and redirect URL
+     */
     private static String getAuthClientID() {
         return BALLERINA_DEV_UPDATE ? DEV_AUTH_CLIENT_ID : AUTH_CLIENT_ID;
     }
 
+    /**
+     * Retrieves the organization name for the OAuth flow based on the environment.
+     *
+     * @return The organization name for the OAuth flow
+     */
     private static String getAuthOrg() {
         return BALLERINA_DEV_UPDATE ? DEV_AUTH_ORG : AUTH_ORG;
     }
 
+    /**
+     * Retrieves the redirect URL for the OAuth flow based on the environment.
+     *
+     * @return The redirect URL for the OAuth flow
+     */
     private static String getAuthRedirectURL() {
         return BALLERINA_DEV_UPDATE ? DEV_AUTH_REDIRECT_URL : AUTH_REDIRECT_URL;
     }

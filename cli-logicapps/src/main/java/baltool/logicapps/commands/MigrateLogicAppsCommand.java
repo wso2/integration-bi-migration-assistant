@@ -147,10 +147,7 @@ public class MigrateLogicAppsCommand implements BLauncherCmd {
         stringBuilder.append("as input and generates equivalent Ballerina code" +
                 " that can be opened in Ballerina Integrator.\n\n");
         stringBuilder.append("Optional flags:\n");
-        stringBuilder.append("  --add-on, -a            Additional instructions for the migration process\n");
         stringBuilder.append("  --out, -o               Specify the output directory for the generated Ballerina " +
-                "project\n");
-        stringBuilder.append("  --name, -n              Specify the project name for the generated Ballerina " +
                 "project\n");
         stringBuilder.append("  --verbose, -v           Enable detailed logging output\n");
         stringBuilder.append("  --multi-root, -m        Process multiple logic app files concurrently\n");
@@ -168,7 +165,7 @@ public class MigrateLogicAppsCommand implements BLauncherCmd {
                 "--out /path/to/output\n");
         stringBuilder.append("  bal migrate-logicapps /path/to/logicapp-json-file --out /path/to/output --name " +
                 "my-logic-app-project\n");
-        stringBuilder.append("  bal migrate-logicapps /path/to/directory --multi-root --verbose\n");
+        stringBuilder.append("  bal migrate-logicapps /path/to/directory --out /path/to/output --multi-root\n");
     }
 
     @Override
