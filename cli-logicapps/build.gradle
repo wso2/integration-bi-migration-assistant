@@ -10,7 +10,7 @@ def balToolVersion = "${logicAppsVersion}"
 def ballerinaVersion = "${ballerinaLangVersion}"
 
 group 'com.wso2'
-version '0.1.0'
+version "${logicAppsVersion}"
 
 def libJarPath = "../../../../build/libs/logicapps-migration-assistant-${project.version}.jar"
 

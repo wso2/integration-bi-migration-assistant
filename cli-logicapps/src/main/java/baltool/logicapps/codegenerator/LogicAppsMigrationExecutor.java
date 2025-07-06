@@ -108,8 +108,8 @@ public class LogicAppsMigrationExecutor {
     }
 
     /**
-     * Migrates a Logic App JSON file or a directory to a Ballerina project/s with the provided Logic App file directory as the
-     * target directory.
+     * Migrates a Logic App JSON file or a directory to a Ballerina project/s with the provided Logic App file
+     * directory as the target directory.
      *
      * @param logicAppFilePath        the path to the Logic App JSON file or directory containing multiple files.
      * @param additionalInstructions  additional instructions for the migration process.

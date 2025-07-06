@@ -95,7 +95,8 @@ public class CLIAuthentication {
     }
 
     /**
-     * Performs full authentication by opening a browser for user login and exchanging the authorization code for tokens.
+     * Performs full authentication by opening a browser for user login and exchanging the authorization code for
+     * tokens.
      *
      * @param logger Logger to log messages during the process
      * @return Access token if successful, null otherwise
