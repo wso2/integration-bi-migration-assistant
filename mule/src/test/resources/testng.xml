@@ -22,6 +22,7 @@
             <!--        <class name="mule.v4.blocks.SessionVariableTest"/>-->
             <class name="mule.v4.blocks.ChoiceTest"/>
             <class name="mule.v4.blocks.DatabaseConnectorTest"/>
+            <class name="mule.v4.blocks.HttpRequestTest"/>
         </classes>
     </test>
 </suite>
