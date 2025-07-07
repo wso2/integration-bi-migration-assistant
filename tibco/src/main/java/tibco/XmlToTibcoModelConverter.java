@@ -199,6 +199,10 @@ public final class XmlToTibcoModelConverter {
             name = tryGetFirstChildWithTag(root, "name").map(Node::getTextContent)
                     .orElseGet(cx::getNextAnonymousProcessName);
         }
+        Collection<NameSpace> nameSpaces = getNamespaces(root).entrySet().stream()
+                .map(each -> new NameSpace(each.getKey(), each.getValue()))
+                .toList();
+        cx.nameSpaces = nameSpaces;
         Collection<Type> types = null;
         ProcessInfo processInfo = null;
         Collection<PartnerLink> partnerLinks = null;
@@ -271,9 +275,6 @@ public final class XmlToTibcoModelConverter {
             }
         }
         transitionGroup = transitionGroup.resolve();
-        Collection<NameSpace> nameSpaces = getNamespaces(root).entrySet().stream()
-                .map(each -> new NameSpace(each.getKey(), each.getValue()))
-                .toList();
         if (transitionGroup.isEmpty()) {
             return new Process6(name, nameSpaces, types, processInfo, processInterface,
                     processTemplateConfigurations, partnerLinks, variables, scope);
@@ -319,6 +320,7 @@ public final class XmlToTibcoModelConverter {
             case SLEEP -> new InlineActivity.Sleep(element, name, inputBinding);
             case GET_SHARED_VARIABLE -> parseGetSharedVariable(name, inputBinding, element);
             case SET_SHARED_VARIABLE -> parseSetSharedVariable(name, inputBinding, element);
+            case FILE_EVENT_SOURCE -> parseFileEventSource(name, inputBinding, element);
         };
     }
 
@@ -564,15 +566,35 @@ public final class XmlToTibcoModelConverter {
     private static Flow.Activity.Expression.@NotNull XSLT parseXSLTTag(ParseContext cx, Element element) {
         String content = ElementIterable.of(element).stream().map(ConversionUtils::elementToString)
                 .collect(Collectors.joining());
+
+        StringBuilder namespaceDeclarations = new StringBuilder();
+        // Track prefixes to avoid redeclaration
+        Set<String> declaredPrefixes = new java.util.HashSet<>();
+        // Always add xsl first
+        namespaceDeclarations.append("xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"");
+        declaredPrefixes.add("xsl");
+        record NamespaceData(String prefix, String uri) {
+        }
+        cx.nameSpaces.stream()
+                .filter(each -> each.prefix().isPresent())
+                .map(each -> new NamespaceData(each.prefix().get(), each.uri()))
+                .filter(each -> !declaredPrefixes.contains(each.prefix()))
+                .forEach(each -> {
+                    namespaceDeclarations.append(" xmlns:").append(each.prefix()).append("=\"")
+                            .append(each.uri())
+                            .append("\"");
+                    declaredPrefixes.add(each.prefix());
+                });
+
         String xslt = """
                 <?xml version="1.0" encoding="UTF-8"?>
-                <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
+                <xsl:stylesheet %s version="2.0">
                      <xsl:template name="%s" match="/">
                         %s
                     </xsl:template>
                 </xsl:stylesheet>
                 """
-                .formatted(cx.getAnonymousXSLTName(), content);
+                .formatted(namespaceDeclarations.toString(), cx.getAnonymousXSLTName(), content);
         return new Flow.Activity.Expression.XSLT(xslt);
     }
 
@@ -1793,5 +1815,46 @@ public final class XmlToTibcoModelConverter {
             initialValue = "<root/>";
         }
         return new Resource.SharedVariable(name, persistent, initialValue, isShared, relativePath);
+    }
+
+    private static InlineActivity.FileEventSource parseFileEventSource(String name,
+            Flow.Activity.InputBinding inputBinding, Element element) {
+        // Parse the required boolean fields with default false if missing
+        boolean createEvent = tryGetInlineActivityConfigValue(element, "createEvent")
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+        boolean modifyEvent = tryGetInlineActivityConfigValue(element, "modifyEvent")
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+        boolean deleteEvent = tryGetInlineActivityConfigValue(element, "deleteEvent")
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+        boolean excludeContent = tryGetInlineActivityConfigValue(element, "excludeContent")
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+
+        // Parse fileName - required field
+        String fileName = tryGetInlineActivityConfigValue(element, "fileName")
+                .orElseThrow(() -> new ParserException("fileName is required for FileEventSource", element));
+
+        // Log warnings for ignored fields
+        if (tryGetInlineActivityConfigValue(element, "mode").isPresent()) {
+            logger.warning("Ignoring 'mode' field in FileEventSource configuration");
+        }
+        if (tryGetInlineActivityConfigValue(element, "encoding").isPresent()) {
+            logger.warning("Ignoring 'encoding' field in FileEventSource configuration");
+        }
+        if (tryGetInlineActivityConfigValue(element, "sortby").isPresent()) {
+            logger.warning("Ignoring 'sortby' field in FileEventSource configuration");
+        }
+        if (tryGetInlineActivityConfigValue(element, "sortorder").isPresent()) {
+            logger.warning("Ignoring 'sortorder' field in FileEventSource configuration");
+        }
+        if (tryGetInlineActivityConfigValue(element, "pollInterval").isPresent()) {
+            logger.warning("Ignoring 'pollInterval' field in FileEventSource configuration");
+        }
+
+        return new InlineActivity.FileEventSource(element, name, inputBinding, createEvent, modifyEvent, deleteEvent,
+                excludeContent, fileName);
     }
 }

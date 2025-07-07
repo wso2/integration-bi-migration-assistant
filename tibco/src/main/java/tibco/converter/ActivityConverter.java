@@ -149,9 +149,7 @@ final class ActivityConverter {
         private static @NotNull List<Statement> convertInlineActivity(
                 ActivityContext cx, InlineActivity inlineActivity) {
             List<Statement> body = new ArrayList<>();
-            BallerinaModel.Expression startingValue =
-                    inlineActivity instanceof InlineActivity.JMSQueueEventSource ? getFromContext(cx, "jms") :
-                            defaultEmptyXml();
+            BallerinaModel.Expression startingValue = getStartingValue(cx, inlineActivity);
             VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), startingValue);
             body.add(inputDecl);
             VariableReference result;
@@ -166,6 +164,8 @@ final class ActivityConverter {
             ActivityConversionResult conversion = switch (inlineActivity) {
                 case InlineActivity.HttpEventSource ignored ->
                         emptyExtensionConversion(cx, result);
+                case InlineActivity.FileEventSource fileEventSource ->
+                        convertFileEventSource(cx, result, fileEventSource);
                 case InlineActivity.MapperActivity ignored ->
                         emptyExtensionConversion(cx, result);
                 case InlineActivity.UnhandledInlineActivity unhandledInlineActivity ->
@@ -209,6 +209,29 @@ final class ActivityConverter {
             body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
             return body;
         }
+
+    private static BallerinaModel.@NotNull Expression getStartingValue(ActivityContext cx,
+                                                                       InlineActivity inlineActivity) {
+        return switch (inlineActivity) {
+            case InlineActivity.JMSQueueEventSource ignored -> getFromContext(cx, "jms");
+            case InlineActivity.FileEventSource ignored -> getFromContext(cx, "file");
+            default -> defaultEmptyXml();
+        };
+    }
+
+    private static ActivityConversionResult convertFileEventSource(ActivityContext cx, VariableReference input,
+                                                                   InlineActivity.FileEventSource fileEventSource) {
+        XMLTemplate fileTemplate = new XMLTemplate(
+                """
+                        <root>
+                            <EventSourceOutputNoContentClass xmlns="http://www.tibco.com/namespaces/tnt/plugins/file">
+                                 ${%s}
+                            </EventSourceOutputNoContentClass>
+                        </root>
+                        """.formatted(input));
+        VarDeclStatment output = new VarDeclStatment(XML, cx.getAnnonVarName(), fileTemplate);
+        return new ActivityConversionResult(output.ref(), List.of(output));
+    }
 
     private static ActivityConversionResult convertSetSharedVariable(
             ActivityContext cx, VariableReference input, InlineActivity.SetSharedVariable setSharedVariable) {
