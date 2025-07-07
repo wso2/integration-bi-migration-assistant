@@ -382,6 +382,7 @@ public final class XmlToTibcoModelConverter {
             case JMS_QUEUE_EVENT_SOURCE -> parseJMSQueueEventSource(element, name, inputBinding);
             case JMS_QUEUE_SEND_ACTIVITY -> parseJMSQueueSendActivity(element, name, inputBinding);
             case JMS_QUEUE_GET_MESSAGE_ACTIVITY -> parseJMSQueueGetMessageActivity(element, name, inputBinding);
+            case JMS_TOPIC_PUBLISH_ACTIVITY -> parseJMSTopicPublishActivity(element, name, inputBinding);
             case SLEEP -> new InlineActivity.Sleep(element, name, inputBinding);
             case GET_SHARED_VARIABLE -> parseGetSharedVariable(name, inputBinding, element);
             case SET_SHARED_VARIABLE -> parseSetSharedVariable(name, inputBinding, element);
@@ -1820,6 +1821,11 @@ public final class XmlToTibcoModelConverter {
     private static InlineActivity.JMSQueueGetMessageActivity parseJMSQueueGetMessageActivity(Element element, String name,
                                                                                               Flow.Activity.InputBinding inputBinding) {
         return new InlineActivity.JMSQueueGetMessageActivity(parseJMSActivityInner(element, name, inputBinding));
+    }
+
+    private static InlineActivity.JMSTopicPublishActivity parseJMSTopicPublishActivity(Element element, String name,
+            Flow.Activity.InputBinding inputBinding) {
+        return new InlineActivity.JMSTopicPublishActivity(parseJMSActivityInner(element, name, inputBinding));
     }
 
     private static InlineActivity.JMSActivityBase parseJMSActivityInner(Element element, String name,
