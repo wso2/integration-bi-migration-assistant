@@ -59,7 +59,7 @@ This will create a new Ballerina package in the root directory of directory cont
 $ bal migrate-tibco path/to/process-file --out path/to/output-dir
 ```
 
-This will create a new Ballerina package at `path/to/bal-file`. If the output path already exists tool will simply overwrite any file as needed without 
+This will create a new Ballerina package at `path/to/bal-file`. If the output path already exists tool will simply overwrite any file as needed without
 purging the directory.
 
 ### Preserve process structure during conversion
@@ -170,3 +170,4 @@ function unhandled(map<xml> context) returns xml|error {
 - `com.tibco.plugin.jms.JMSQueueEventSource`
 - `com.tibco.plugin.jms.JMSQueueSendActivity`
 - `com.tibco.plugin.jms.JMSQueueGetMessageActivity`
+- `com.tibco.plugin.jms.JMSTopicPublishActivity`

@@ -174,6 +174,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 JMS_QUEUE_EVENT_SOURCE,
                 JMS_QUEUE_SEND_ACTIVITY,
                 JMS_QUEUE_GET_MESSAGE_ACTIVITY,
+                JMS_TOPIC_PUBLISH_ACTIVITY,
                 SLEEP,
                 GET_SHARED_VARIABLE,
                 SET_SHARED_VARIABLE,
@@ -208,6 +209,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                     new LookUpData("JMSQueueEventSource", JMS_QUEUE_EVENT_SOURCE),
                                     new LookUpData("JMSQueueSendActivity", JMS_QUEUE_SEND_ACTIVITY),
                                     new LookUpData("JMSQueueGetMessageActivity", JMS_QUEUE_GET_MESSAGE_ACTIVITY),
+                                    new LookUpData("JMSTopicPublishActivity", JMS_TOPIC_PUBLISH_ACTIVITY),
                                     new LookUpData("SleepActivity", SLEEP),
                                     new LookUpData("GetSharedVariableActivity", GET_SHARED_VARIABLE),
                                     new LookUpData("SetSharedVariableActivity", SET_SHARED_VARIABLE),
@@ -676,6 +678,27 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 @Override
                 public InlineActivityType type() {
                     return InlineActivityType.JMS_QUEUE_GET_MESSAGE_ACTIVITY;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
+                }
+            }
+
+            record JMSTopicPublishActivity(Element element, String name, InputBinding inputBinding,
+                    String permittedMessageType, JMSActivityBase.SessionAttributes sessionAttributes,
+                    JMSActivityBase.ConfigurableHeaders configurableHeaders, String connectionReference)
+                    implements ExplicitTransitionGroup.InlineActivity {
+
+                public JMSTopicPublishActivity(JMSActivityBase base) {
+                    this(base.element, base.name, base.inputBinding, base.permittedMessageType,
+                        base.sessionAttributes, base.configurableHeaders, base.connectionReference);
+                }
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.JMS_TOPIC_PUBLISH_ACTIVITY;
                 }
 
                 @Override

@@ -133,6 +133,37 @@ function Sleep(Context cx) returns error? {
     addToContext(cx, "Sleep", var3);
 }
 
+function Topic_Send(Context cx) returns error? {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/timer" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" version="2.0"><xsl:param name="JMS-Get"/>     <xsl:template name="Transform4" match="/">
+        <ns1:ActivityInput xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms">
+                    
+    <Body>
+                            
+        <xsl:value-of select="$JMS-Get/root/ns1:ActivityOutput/Body" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                        
+    </Body>
+                
+</ns1:ActivityInput>
+
+    </xsl:template>
+</xsl:stylesheet>`, cx.variables);
+    jms:Connection var2 = check new (initialContextFactory = "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl = "tcp://localhost:61616");
+    jms:Session var3 = check var2->createSession();
+    // WARNING: using default destination configuration
+    jms:MessageProducer var4 = check var3.createProducer(destination = {
+        'type: jms:TOPIC,
+        name: "TOPIC"
+    }
+);
+    string var5 = (var1/**/<Body>/*).toString().trim();
+    jms:TextMessage var6 = {content: var5};
+    check var4->send(var6);
+    xml var7 = xml `<root></root>`;
+    addToContext(cx, "Topic-Send", var7);
+}
+
 function scope0ActivityRunner(Context cx) returns error? {
     check JMS_Queue_Receiver(cx);
     check Log(cx);

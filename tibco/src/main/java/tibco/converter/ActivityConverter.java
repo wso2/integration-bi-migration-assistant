@@ -199,6 +199,8 @@ final class ActivityConverter {
                         convertJMSQueueSendActivity(cx, result, jmsQueueSendActivity);
                 case InlineActivity.JMSQueueGetMessageActivity jmsQueueGetMessageActivity ->
                         convertJMSQueueGetActivity(cx, result, jmsQueueGetMessageActivity);
+                case InlineActivity.JMSTopicPublishActivity jmsTopicPublishActivity ->
+                        convertJMSTopicPublishActivity(cx, result, jmsTopicPublishActivity);
                 case InlineActivity.Sleep sleep -> convertSleep(cx, result, sleep);
                 case InlineActivity.GetSharedVariable getSharedVariable ->
                         convertGetSharedVariable(cx, result, getSharedVariable);
@@ -328,6 +330,42 @@ final class ActivityConverter {
 
         VarDeclStatment msg = new VarDeclStatment(ConversionUtils.Constants.JMS_TEXT_MESSAGE, cx.getAnnonVarName(),
                 exprFrom("{ content: %s }".formatted(contentString.ref())));
+        body.add(msg);
+
+        body.add(new CallStatement(new Check(new RemoteMethodCallAction(producer.ref(), "send", List.of(msg.ref())))));
+        VarDeclStatment emptyResult = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+        body.add(emptyResult);
+        return new ActivityConversionResult(emptyResult.ref(), body);
+}
+
+private static ActivityConversionResult convertJMSTopicPublishActivity(
+                ActivityContext cx, VariableReference input,
+                InlineActivity.JMSTopicPublishActivity jmsTopicPublishActivity) {
+        cx.addLibraryImport(Library.JMS);
+        List<Statement> body = new ArrayList<>();
+        JMSConnectionData jmsConnectionData = JMSConnectionData.from(cx,
+                        cx.getJmsResource(jmsTopicPublishActivity.connectionReference()));
+        body.add(jmsConnectionData.connection);
+        body.add(jmsConnectionData.session);
+        body.add(new Comment("WARNING: using default destination configuration"));
+        VarDeclStatment producer = new VarDeclStatment(ConversionUtils.Constants.JMS_MESSAGE_PRODUCER,
+                        cx.getAnnonVarName(),
+                        new Check(new MethodCall(jmsConnectionData.session().ref(), "createProducer", List.of(
+                                        exprFrom("""
+                                                        destination = {
+                                                            'type: jms:TOPIC,
+                                                            name: "%s"
+                                                        }
+                                                        """.formatted(
+                                                        jmsTopicPublishActivity.sessionAttributes().destination()))))));
+        body.add(producer);
+
+        VarDeclStatment contentString = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                        exprFrom("(%s/**/<Body>/*).toString().trim()".formatted(input.varName())));
+        body.add(contentString);
+
+        VarDeclStatment msg = new VarDeclStatment(ConversionUtils.Constants.JMS_TEXT_MESSAGE, cx.getAnnonVarName(),
+                        exprFrom("{ content: %s }".formatted(contentString.ref())));
         body.add(msg);
 
         body.add(new CallStatement(new Check(new RemoteMethodCallAction(producer.ref(), "send", List.of(msg.ref())))));
