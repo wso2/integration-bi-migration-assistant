@@ -9,9 +9,9 @@ service / on httpConfig {
         mainconfigSub_Flow(ctx);
         commonConfig1Flow(ctx);
         commonConfig2Sub_Flow(ctx);
-        // TODO: DataWeave script not found in path: projects/demo_project_classic/src/main/resources/dwlFiles/values.dwl
-        json inlineVar = check _dwMethod0_(ctx.payload.toJson());
-        // TODO: DataWeave script not found in path: projects/demo_project_classic/src/main/resources/dwlFiles/values_unsupport.dwl
+        json scriptVar = check _dwMethod0_(ctx.payload.toJson());
+        json inlineVar = check _dwMethod1_(ctx.payload.toJson());
+        xml _dwOutput_ = _dwMethod2_(ctx.payload.toJson());
         ctx.payload = _dwOutput_;
         log:printInfo("xxx: end of the logger reached");
 
