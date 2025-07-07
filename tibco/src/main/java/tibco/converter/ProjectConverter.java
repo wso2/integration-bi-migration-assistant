@@ -33,9 +33,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 public class ProjectConverter {
 
@@ -100,18 +100,29 @@ public class ProjectConverter {
 
     private static ProcessResult convertServices(ProjectContext cx, Process5 process,
                                                  ProjectResources projectResources) {
-        BallerinaModel.Service startService =
-                ProcessConverter.convertStartActivityService(cx.getProcessContext(process),
-                        process.transitionGroup());
+        List<BallerinaModel.Service> startService;
+        Optional<BallerinaModel.Function> mainFn;
+        if (isLifecycleProcess(process)) {
+            startService = List.of();
+            mainFn = Optional.of(ProcessConverter.createMainFunction(cx.getProcessContext(process), process));
+        } else {
+            startService =
+                    List.of(ProcessConverter.convertStartActivityService(cx.getProcessContext(process),
+                            process.transitionGroup()));
+            mainFn = Optional.empty();
+        }
         ProcessConverter.addProcessClient(cx.getProcessContext(process), process.transitionGroup(),
                 projectResources.httpSharedResources);
-        return new ProcessResult(process, new ProcessConverter.TypeConversionResult(
-                Stream.of(startService).toList()));
+        return new ProcessResult(process, new ProcessConverter.TypeConversionResult(startService, mainFn));
+    }
+
+    private static boolean isLifecycleProcess(Process5 process) {
+        return process.transitionGroup()
+                .startActivity() instanceof Process5.ExplicitTransitionGroup.InlineActivity.OnStartupEventSource;
     }
 
     private static ProcessResult convertServices(ProjectContext cx, Process6 process) {
-        return new ProcessResult(process,
-                ProcessConverter.convertTypes(cx.getProcessContext(process), process));
+        return new ProcessResult(process, ProcessConverter.convertTypes(cx.getProcessContext(process), process));
     }
 
     private static void accumSchemas(Process6 process, Collection<Type.Schema> accum) {
