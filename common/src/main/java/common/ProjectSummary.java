@@ -18,6 +18,9 @@
 
 package common;
 
+import java.util.Collection;
+import java.util.Map;
+
 /**
  * Record to hold project summary data for combined reporting.
  *
@@ -27,13 +30,16 @@ package common;
  * @param activityEstimation             The activity estimation data
  * @param successfulConversionPercentage The percentage of successful
  *                                       conversions
+ * @param unhandledActivities            Map of unhandled activity types to
+ *                                       their elements
  */
 public record ProjectSummary(
         String projectName,
         String projectPath,
         String reportPath,
         ActivityEstimation activityEstimation,
-        double successfulConversionPercentage) {
+        double successfulConversionPercentage,
+        Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledActivities) {
     /**
      * Record to hold activity count and time estimation data.
      *
@@ -87,6 +93,6 @@ public record ProjectSummary(
      * @return The number of unique unhandled element types
      */
     public int getUniqueUnhandledElementCount() {
-        return activityEstimation.unhandledActivityCount();
+        return unhandledActivities != null ? unhandledActivities.size() : 0;
     }
 }

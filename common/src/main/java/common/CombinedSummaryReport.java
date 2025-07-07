@@ -21,6 +21,9 @@ package common;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Collection;
+import java.util.ArrayList;
+import java.util.Collections;
 
 /**
  * A class to generate combined summary reports that link to individual project reports.
@@ -40,17 +43,17 @@ public class CombinedSummaryReport {
                 margin: 0;
                 padding: 20px;
             }
-            
+
             .container {
                 max-width: 1200px;
                 margin: 0 auto;
             }
-            
+
             h1, h2 {
                 text-align: center;
                 color: #333;
             }
-            
+
             /* Container styling */
             .summary-container {
                 background-color: #fff;
@@ -60,11 +63,11 @@ public class CombinedSummaryReport {
                 margin: 25px 0;
                 transition: box-shadow 0.3s;
             }
-            
+
             .summary-container:hover {
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
             }
-            
+
             .summary-container h2 {
                 margin-top: 0;
                 color: #4682B4;
@@ -72,7 +75,7 @@ public class CombinedSummaryReport {
                 padding-bottom: 10px;
                 margin-bottom: 20px;
             }
-            
+
             /* Centered title with subtle border */
             .container > h1 {
                 color: #4682B4;
@@ -84,7 +87,7 @@ public class CombinedSummaryReport {
                 position: relative;
                 border-bottom: 1px solid rgba(70, 130, 180, 0.2);
             }
-            
+
             .container > h1::after {
                 content: "";
                 position: absolute;
@@ -95,7 +98,7 @@ public class CombinedSummaryReport {
                 height: 3px;
                 background-color: rgba(70, 130, 180, 0.8);
             }
-            
+
             /* Metrics styling */
             .metrics {
                 display: flex;
@@ -104,7 +107,7 @@ public class CombinedSummaryReport {
                 margin: 25px 0;
                 justify-content: space-around;
             }
-            
+
             .metric {
                 display: flex;
                 flex-direction: column;
@@ -115,39 +118,39 @@ public class CombinedSummaryReport {
                 min-width: 150px;
                 transition: transform 0.2s, box-shadow 0.2s;
             }
-            
+
             .metric:hover {
                 transform: translateY(-3px);
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             }
-            
+
             .metric-value {
                 font-weight: bold;
                 font-size: 1.8em;
                 color: #4682B4;
                 margin-bottom: 5px;
             }
-            
+
             .metric-label {
                 font-size: 0.9em;
                 color: #666;
                 text-align: center;
             }
-            
+
             /* Project card metrics adjustments */
             .project-card .metrics {
                 margin-top: 10px;
                 justify-content: flex-start;
             }
-            
+
             .project-card .metric-value {
                 font-size: 1.4em;
             }
-            
+
             .project-card .metric-label {
                 font-size: 0.9em;
             }
-            
+
             .project-card .metric {
                 display: flex;
                 flex-direction: row;
@@ -155,19 +158,19 @@ public class CombinedSummaryReport {
                 width: 100%;
                 gap: 20px;
             }
-            
+
             .project-card .metric-left {
                 flex: 1;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
             }
-            
+
             .project-card .metric-right {
                 flex: 1;
                 padding-top: 10px;
             }
-            
+
             .project-card .metric .coverage-indicator {
                 width: 80%;
                 height: 6px;
@@ -177,32 +180,32 @@ public class CombinedSummaryReport {
                 box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
                 margin-top: 8px;
             }
-            
+
             .project-card .metric .coverage-bar {
                 height: 100%;
                 border-radius: 3px;
                 transition: width 0.5s ease-in-out;
             }
-            
+
             .project-card .metric .coverage-breakdown {
                 font-size: 0.85em;
                 color: #666;
             }
-            
+
             .project-card .metric .coverage-breakdown div {
                 display: flex;
                 justify-content: space-between;
                 margin-bottom: 4px;
             }
-            
+
             .project-card .metric .coverage-breakdown .breakdown-label {
                 margin-right: 8px;
             }
-            
+
             .project-card .metric .coverage-breakdown .breakdown-value {
                 font-weight: 600;
             }
-            
+
             /* Project cards */
             .project-card {
                 background-color: #fff;
@@ -216,32 +219,32 @@ public class CombinedSummaryReport {
                 transition: transform 0.2s, box-shadow 0.2s;
                 align-items: center;
             }
-            
+
             .project-card:hover {
                 transform: translateY(-2px);
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
             }
-            
+
             .project-header {
                 display: flex;
                 align-items: center;
                 margin-bottom: 15px;
                 gap: 12px;
             }
-            
+
             .project-name {
                 font-size: 1.2em;
                 font-weight: 600;
                 margin-right: 10px;
             }
-            
+
             .project-link {
                 color: #4682B4;
                 text-decoration: none;
                 position: relative;
                 padding-bottom: 2px;
             }
-            
+
             .project-link:after {
                 content: '';
                 position: absolute;
@@ -252,28 +255,28 @@ public class CombinedSummaryReport {
                 background-color: #4682B4;
                 transition: width 0.3s;
             }
-            
+
             .project-link:hover:after {
                 width: 100%;
             }
-            
+
             .project-details {
                 display: flex;
                 flex-direction: column;
                 gap: 15px;
             }
-            
+
             .project-metrics {
                 display: flex;
                 align-items: flex-start;
                 gap: 20px;
             }
-            
+
             /* Project coverage indicators */
             .project-coverage {
                 margin-top: 10px;
             }
-            
+
             .coverage-indicator {
                 width: 100%;
                 height: 12px;
@@ -282,20 +285,20 @@ public class CombinedSummaryReport {
                 overflow: hidden;
                 box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
             }
-            
+
             .coverage-bar {
                 height: 100%;
                 border-radius: 6px;
                 transition: width 0.5s ease-in-out;
             }
-            
+
             /* Project left column styling */
             .project-left {
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
             }
-            
+
             /* Time estimates styling */
             .time-estimates {
                 display: grid;
@@ -310,12 +313,12 @@ public class CombinedSummaryReport {
                 position: relative;
                 transition: transform 0.2s, box-shadow 0.2s;
             }
-            
+
             .time-estimates:hover {
                 transform: translateY(-3px);
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             }
-            
+
             .time-estimates::before {
                 content: "Manual Work Estimation";
                 position: absolute;
@@ -327,19 +330,19 @@ public class CombinedSummaryReport {
                 font-size: 0.9em;
                 color: #666;
             }
-            
+
             .time-estimate {
                 display: flex;
                 flex-direction: column;
                 align-items: center;
             }
-            
+
             .time-label {
                 font-size: 0.8em;
                 color: #666;
                 margin-bottom: 5px;
             }
-            
+
             .time-value {
                 font-weight: bold;
                 color: #4682B4;
@@ -347,25 +350,25 @@ public class CombinedSummaryReport {
                 flex-direction: column;
                 align-items: center;
             }
-            
+
             .time-days {
                 font-size: 1.1em;
             }
-            
+
             .time-weeks {
                 font-size: 0.75em;
                 color: #777;
                 margin-top: 2px;
             }
-            
+
             .time-best {
                 color: #4CAF50;
             }
-            
+
             .time-worst {
                 color: #FF5722;
             }
-            
+
             /* Status badges */
             .status-badge {
                 padding: 6px 12px;
@@ -377,25 +380,25 @@ public class CombinedSummaryReport {
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
                 display: inline-block;
             }
-            
+
             .status-high {
                 background-color: #e8f5e9;
                 color: #2e7d32;
                 border: 1px solid rgba(46, 125, 50, 0.2);
             }
-            
+
             .status-medium {
                 background-color: #fff8e1;
                 color: #f57c00;
                 border: 1px solid rgba(245, 124, 0, 0.2);
             }
-            
+
             .status-low {
                 background-color: #ffebee;
                 color: #c62828;
                 border: 1px solid rgba(198, 40, 40, 0.2);
             }
-            
+
             /* Estimation notes */
             .estimation-notes {
                 margin-top: 25px;
@@ -405,47 +408,47 @@ public class CombinedSummaryReport {
                 border-left: 4px solid #4682B4;
                 box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             }
-            
+
             .estimation-notes p {
                 margin-top: 0;
             }
-            
+
             .estimation-notes ul {
                 margin: 15px 0 5px 25px;
                 padding-left: 0;
             }
-            
+
             .estimation-notes li {
                 margin-bottom: 8px;
                 line-height: 1.4;
             }
-            
+
             /* Table styling */
             table {
                 width: 100%;
                 border-collapse: collapse;
                 margin: 20px 0;
             }
-            
+
             th, td {
                 border: 1px solid #ddd;
                 padding: 12px;
                 text-align: left;
             }
-            
+
             th {
                 background-color: #4682B4;
                 color: white;
             }
-            
+
             tr:nth-child(even) {
                 background-color: #f2f2f2;
             }
-            
+
             tr:hover {
                 background-color: #ddd;
             }
-            
+
             /* Footer */
             footer {
                 text-align: center;
@@ -453,27 +456,27 @@ public class CombinedSummaryReport {
                 font-size: 0.9em;
                 color: #666;
             }
-            
+
             /* Overview specific styles */
             .overview-metrics {
                 flex-direction: column;
                 align-items: center;
                 width: 100%;
             }
-            
+
             .overview-metric {
                 width: 100%;
                 box-sizing: border-box;
                 padding: 15px 20px;
             }
-            
+
             .overview-metric:nth-child(2) {
                 display: flex;
                 flex-direction: row;
                 align-items: flex-start;
                 gap: 20px;
             }
-            
+
             .overview-indicator {
                 width: 80%;
                 height: 6px;
@@ -483,24 +486,24 @@ public class CombinedSummaryReport {
                 box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
                 margin-top: 8px;
             }
-            
+
             .breakdown-row {
                 display: flex;
                 justify-content: space-between;
                 margin-bottom: 4px;
             }
-            
+
             .time-estimates-container {
                 display: flex;
                 justify-content: center;
                 margin: 20px 0;
             }
-            
+
             .overview-time-estimates {
                 width: 100%;
                 box-sizing: border-box;
             }
-            
+
             /* Responsive design */
             @media (max-width: 768px) {
                 .metrics {
@@ -508,15 +511,15 @@ public class CombinedSummaryReport {
                     align-items: center;
                     gap: 15px;
                 }
-            
+
                 .metric {
                     width: 80%;
                 }
-            
+
                 .project-card {
                     grid-template-columns: 1fr;
                 }
-            
+
                 .time-estimates {
                     margin-top: 15px;
                 }
@@ -588,7 +591,7 @@ public class CombinedSummaryReport {
                                 bar.style.width = width + '%';
                                 bar.style.backgroundColor = color;
                             });
-                
+
                             const toolSupportTable = document.querySelector('#toolSupportSection table');
                             if (toolSupportTable.rows.length <= 1) {
                                 toolSupportTable.style.display = 'none';
@@ -652,7 +655,7 @@ public class CombinedSummaryReport {
                             </div>
                         </div>
                     </div>
-                
+
                     <div class="time-estimates-container">
                         <div class="time-estimates overview-time-estimates">
                 """
@@ -706,7 +709,7 @@ public class CombinedSummaryReport {
                                             </div>
                                 </div>
                             </div>
-                        
+
                             <div class="estimation-notes">
                                 <p><strong>Note:</strong></p>
                                 <ul>
@@ -715,7 +718,7 @@ public class CombinedSummaryReport {
                                     <li>Time estimates shown above represents manual work required to complete migration for all projects combined</li>
                                 </ul>
                             </div>
-                        
+
                             <div class="estimation-notes">
                                 <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
                                 <ul>
@@ -774,7 +777,7 @@ public class CombinedSummaryReport {
                                     </div>
                                     <span class="status-badge %s">%s</span>
                                 </div>
-                    
+
                                 <div class="project-details">
                                     <div class="project-metrics">
                                         <div class="metric">
@@ -805,7 +808,7 @@ public class CombinedSummaryReport {
                                     </div>
                                 </div>
                             </div>
-                    
+
                             <div class="time-estimates">
                                 <div class="time-estimate best-case">
                                     <div class="time-label">Best Case</div>
@@ -862,31 +865,92 @@ public class CombinedSummaryReport {
         Map<String, List<String>> projectsAffected = new HashMap<>();
 
         for (ProjectSummary project : projectSummaries) {
-            // This would need to be implemented based on how unsupported elements are tracked
-            // For now, we'll create a placeholder section
+            for (Map.Entry<String, Collection<AnalysisReport.UnhandledElement>> entry : project
+                    .unhandledActivities() == null
+                            ? Collections.<String, Collection<AnalysisReport.UnhandledElement>>emptyMap().entrySet()
+                            : project.unhandledActivities().entrySet()) {
+                String elementType = entry.getKey();
+                int frequency = entry.getValue().size();
+                // Update frequency count
+                allUnsupportedTypes.merge(elementType, frequency, Integer::sum);
+                // Track which projects are affected
+                projectsAffected.computeIfAbsent(elementType, k -> new ArrayList<>())
+                        .add(project.projectName());
+            }
         }
 
-        html.append("""
-                <div class="summary-container">
-                    <h2>Currently Unsupported Elements</h2>
-                    <div id="toolSupportSection">
-                        <table>
-                            <tr>
-                                <th>Element Type</th>
-                                <th>Frequency</th>
-                                <th>Projects Affected</th>
-                            </tr>
-                
-                        </table>
-                        <p class="empty-message" id="toolSupportEmpty"
-                           style="display: none; text-align: center; padding: 20px; color: #666;">
-                            No unsupported elements found
-                        </p>
-                        <div class="estimation-notes">
-                            <p><strong>Note:</strong> These elements are expected to be supported in future versions of the migration tool.</p>
-                        </div>
-                    </div>
-                </div>
-                """);
+        if (allUnsupportedTypes.isEmpty()) {
+            html.append(
+                    """
+                            <div class="summary-container">
+                                <h2>Currently Unsupported Elements</h2>
+                                <div id="toolSupportSection">
+                                    <p class="empty-message" style="text-align: center; padding: 20px; color: #666;">
+                                        No unsupported elements found
+                                    </p>
+                                    <div class="estimation-notes">
+                                        <p><strong>Note:</strong> All elements in the analyzed projects are currently supported by the migration tool.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            """);
+        } else {
+            html.append("""
+                    <div class="summary-container">
+                        <h2>Currently Unsupported Elements</h2>
+                        <div id="toolSupportSection">
+                            <table>
+                                <tr>
+                                    <th>Element Type</th>
+                                    <th>Frequency</th>
+                                    <th>Projects Affected</th>
+                                </tr>
+                    """);
+
+            // Sort by frequency (descending) and then by element type
+            allUnsupportedTypes.entrySet().stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed()
+                            .thenComparing(Map.Entry.comparingByKey()))
+                    .forEach(entry -> {
+                        String elementType = entry.getKey();
+                        int frequency = entry.getValue();
+                        List<String> affectedProjects = projectsAffected.get(elementType);
+                        String projectsList = String.join(", ", affectedProjects);
+
+                        html.append(String.format("""
+                                <tr>
+                                    <td>%s</td>
+                                    <td>%d</td>
+                                    <td>%s</td>
+                                </tr>
+                                """, escapeHtml(elementType), frequency, escapeHtml(projectsList)));
+                    });
+
+            html.append(
+                    """
+                                    </table>
+                                    <div class="estimation-notes">
+                                        <p><strong>Note:</strong> These elements are expected to be supported in future versions of the migration tool.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            """);
+        }
+    }
+
+    /**
+     * Escape special HTML characters in a string.
+     *
+     * @param input The input string to escape
+     * @return The escaped string
+     */
+    private String escapeHtml(String input) {
+        if (input == null) {
+            return "";
+        }
+
+        return input.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
     }
 }

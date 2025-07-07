@@ -202,7 +202,8 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
                 projectPath,
                 reportPath,
                 activityEstimation,
-                conversionPercentage
+                conversionPercentage,
+                unhandledElementsMap
         );
     }
 }
