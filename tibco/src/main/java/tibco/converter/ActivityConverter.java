@@ -182,6 +182,8 @@ final class ActivityConverter {
                         convertXmlRenderActivity(cx, result, xmlRenderActivity);
                 case InlineActivity.XMLParseActivity xmlParseActivity ->
                         convertXmlParseActivity(cx, result, xmlParseActivity);
+                case InlineActivity.XMLTransformActivity xmlTransformActivity ->
+                        convertXmlTransformActivity(cx, result, xmlTransformActivity);
                 case InlineActivity.SOAPSendReceive soapSendReceive ->
                         convertSoapSendReceive(cx, result, soapSendReceive);
                 case InlineActivity.SOAPSendReply soapSendReply -> convertSoapSendReply(cx, result, soapSendReply);
@@ -771,6 +773,24 @@ final class ActivityConverter {
     private static ActivityConversionResult convertXmlRenderActivity(
             ActivityContext cx, VariableReference input, InlineActivity.XMLRenderActivity xmlRenderActivity) {
         return finishXmlRenderActivity(cx, input, "xmlString");
+    }
+
+    private static ActivityConversionResult convertXmlTransformActivity(
+            ActivityContext cx, VariableReference input, InlineActivity.XMLTransformActivity xmlTransformActivity) {
+        List<Statement> body = new ArrayList<>();
+        String xsltContent = xmlTransformActivity.stylesheetPath();
+        if (xsltContent.startsWith("FIXME: failed to find xslt file at ")) {
+            body.add(new Comment(xsltContent));
+            return new ActivityConversionResult(input, body);
+        } else {
+            cx.addLibraryImport(Library.XSLT);
+            VarDeclStatment transformResult = new VarDeclStatment(XML, cx.getAnnonVarName(), new Check(
+                    new FunctionCall(XSLTConstants.XSLT_TRANSFORM_FUNCTION,
+                            List.of(input, new XMLTemplate(xsltContent),
+                                    cx.contextVarRef()))));
+            body.add(transformResult);
+            return new ActivityConversionResult(transformResult.ref(), body);
+        }
     }
 
     private static @NotNull ActivityConversionResult finishXmlRenderActivity(ActivityContext cx,

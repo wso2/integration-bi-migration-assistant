@@ -162,6 +162,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 FILE_READ,
                 XML_RENDER_ACTIVITY,
                 XML_PARSE_ACTIVITY,
+                XML_TRANSFORM_ACTIVITY,
                 SOAP_SEND_RECEIVE,
                 SOAP_SEND_REPLY,
                 LOOP_GROUP,
@@ -193,7 +194,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                     new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
                                     new LookUpData("XMLRendererActivity", XML_RENDER_ACTIVITY),
                                     new LookUpData("XMLParseActivity", XML_PARSE_ACTIVITY),
-                                    new LookUpData("LoopGroup", LOOP_GROUP),
+                            new LookUpData("XMLTransformActivity", XML_TRANSFORM_ACTIVITY),
+                                            new LookUpData("LoopGroup", LOOP_GROUP),
                                     new LookUpData("WriteToLogActivity", WRITE_LOG),
                                     new LookUpData("CatchActivity", CATCH),
                                     new LookUpData("FileReadActivity", FILE_READ),
@@ -400,6 +402,25 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 @Override
                 public InlineActivityType type() {
                     return InlineActivityType.XML_RENDER_ACTIVITY;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return true;
+                }
+            }
+
+            record XMLTransformActivity(Element element, String name,
+                    InputBinding inputBinding, String stylesheetPath)
+                    implements ExplicitTransitionGroup.InlineActivity {
+
+                public XMLTransformActivity {
+                    assert inputBinding != null;
+                }
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.XML_TRANSFORM_ACTIVITY;
                 }
 
                 @Override

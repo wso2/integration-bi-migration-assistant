@@ -370,6 +370,7 @@ public final class XmlToTibcoModelConverter {
             case FILE_READ -> parseFileRead(element, name, inputBinding);
             case XML_RENDER_ACTIVITY -> parseXmlRenderActivity(element, name, inputBinding);
             case XML_PARSE_ACTIVITY -> parseXmlParseActivity(element, name, inputBinding);
+            case XML_TRANSFORM_ACTIVITY -> parseXmlTransformActivity(cx, element, name, inputBinding);
             case SOAP_SEND_RECEIVE -> parseSoapSendReceive(element, name, inputBinding);
             case SOAP_SEND_REPLY -> new InlineActivity.SOAPSendReply(element, name, inputBinding);
             case LOOP_GROUP -> parseLoopGroup(cx, element, name, inputBinding);
@@ -555,6 +556,19 @@ public final class XmlToTibcoModelConverter {
             throw new ParserException("Unsupported renderAsText value: " + renderAsText, element);
         }
         return new XMLRenderActivity(element, name, inputBinding);
+    }
+
+    private static InlineActivity.XMLTransformActivity parseXmlTransformActivity(
+            ParseContext cx, Element element, String name, Flow.Activity.InputBinding inputBinding) {
+        String stylesheetPath = getInlineActivityConfigValue(element, "stylesheet");
+        String xsltContent;
+        try {
+            xsltContent = cx.getFileContent(stylesheetPath);
+        } catch (Exception e) {
+            xsltContent = "FIXME: failed to find xslt file at " + stylesheetPath;
+            logger.warning("Failed to read XSLT file at " + stylesheetPath + ": " + e.getMessage());
+        }
+        return new InlineActivity.XMLTransformActivity(element, name, inputBinding, xsltContent);
     }
 
     private static InlineActivity.FileWrite parseFileWrite(
