@@ -26,7 +26,6 @@ import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import org.jetbrains.annotations.NotNull;
 import tibco.TibcoToBalConverter;
 import tibco.XmlToTibcoModelConverter;
-import tibco.converter.TibcoConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.Process;
 import tibco.model.Process5;

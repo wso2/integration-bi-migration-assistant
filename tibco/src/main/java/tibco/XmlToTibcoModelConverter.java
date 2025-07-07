@@ -558,6 +558,7 @@ public final class XmlToTibcoModelConverter {
         return new XMLRenderActivity(element, name, inputBinding);
     }
 
+    @NotNull
     private static InlineActivity.XMLTransformActivity parseXmlTransformActivity(
             ParseContext cx, Element element, String name, Flow.Activity.InputBinding inputBinding) {
         String stylesheetPath = getInlineActivityConfigValue(element, "stylesheet");

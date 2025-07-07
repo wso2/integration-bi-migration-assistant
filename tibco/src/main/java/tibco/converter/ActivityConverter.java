@@ -69,8 +69,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.xml.parsers.ParserConfigurationException;
 
@@ -778,6 +778,7 @@ final class ActivityConverter {
         return finishXmlRenderActivity(cx, input, "xmlString");
     }
 
+    @NotNull
     private static ActivityConversionResult convertXmlTransformActivity(
             ActivityContext cx, VariableReference input, InlineActivity.XMLTransformActivity xmlTransformActivity) {
         List<Statement> body = new ArrayList<>();

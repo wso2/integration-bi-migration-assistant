@@ -27,7 +27,6 @@ import tibco.model.Process;
 import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.Variable;
-import tibco.converter.TibcoConverter;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -37,8 +36,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import static common.BallerinaModel.Expression;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
