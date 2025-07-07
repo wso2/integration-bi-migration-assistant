@@ -75,6 +75,7 @@ import static mule.v4.model.MuleModel.WhenInChoice;
 import static mule.v4.model.MuleXMLTag.DB_MY_SQL_CONNECTION;
 import static mule.v4.model.MuleXMLTag.DB_ORACLE_CONNECTION;
 import static mule.v4.model.MuleXMLTag.HTTP_LISTENER_CONNECTION;
+import static mule.v4.model.MuleXMLTag.HTTP_REQUEST_CONNECTION;
 
 public class MuleConfigReader {
 
@@ -424,14 +425,19 @@ public class MuleConfigReader {
     private static HttpRequest readHttpRequest(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
         Element element = muleElement.getElement();
         String configRef = element.getAttribute("config-ref");
-        HTTPRequestConfig httpRequestConfig = ctx.projectCtx.getHttpRequestConfig(configRef);;
-        String host = httpRequestConfig.host();
-        String port = httpRequestConfig.port();
-        String url = String.format("%s:%s", host, port);
+        String url = element.getAttribute("url");
 
-        String protocol = httpRequestConfig.protocol();
-        if (!protocol.isEmpty()) {
-            url = protocol.toLowerCase() + "://" + url;
+        // Note: url overrides host and port
+        if (url.isEmpty()) {
+            HTTPRequestConfig httpRequestConfig = ctx.projectCtx.getHttpRequestConfig(configRef);
+            String host = httpRequestConfig.host();
+            String port = httpRequestConfig.port();
+            url = String.format("%s:%s", host, port);
+
+            String protocol = httpRequestConfig.protocol();
+            if (!protocol.isEmpty()) {
+                url = protocol.toLowerCase() + "://" + url;
+            }
         }
 
         String method = element.getAttribute("method").toLowerCase();
@@ -551,9 +557,21 @@ public class MuleConfigReader {
         Element element = muleElement.getElement();
         ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP));
         String configName = element.getAttribute("name");
-        String host = element.getAttribute("host");
-        String port = element.getAttribute("port");
-        String protocol = element.getAttribute("protocol");
+
+        // For Mule 4.x, host, port, protocol are within a nested http:request-connection element
+        String host = "";
+        String port = "";
+        String protocol = "";
+
+        while (muleElement.peekChild() != null) {
+            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals(HTTP_REQUEST_CONNECTION.tag())) {
+                host = childElement.getAttribute("host");
+                port = childElement.getAttribute("port");
+                protocol = childElement.getAttribute("protocol");
+            }
+        }
         return new HTTPRequestConfig(configName, host, port, protocol);
     }
 

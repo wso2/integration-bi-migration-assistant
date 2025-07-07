@@ -274,7 +274,8 @@ public class MigrationReportWriter {
         return failedXMLTags.size() * BEST_CASE_COMP_TIME_NEW + repeatedElementTime + dwExpressions * BEST_DW_EXPR_TIME;
     }
 
-    private static double calculateAverageCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags, int dwExpressions) {
+    private static double calculateAverageCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags,
+                                                       int dwExpressions) {
         double repeatedElementTime = failedXMLTags.values().stream().filter(x -> x > 1).mapToInt(x -> x - 1)
                 .mapToDouble(integer -> (integer - 1) * AVG_CASE_COMP_TIME_REPEATED).sum();
         return failedXMLTags.size() * AVG_CASE_COMP_TIME_NEW + repeatedElementTime +

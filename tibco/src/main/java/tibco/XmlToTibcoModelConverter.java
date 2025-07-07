@@ -76,22 +76,35 @@ public final class XmlToTibcoModelConverter {
     private XmlToTibcoModelConverter() {
     }
 
-    public static Resource.JDBCSharedResource parseSharedJDBCResource(Element root) {
-        String name = getFirstChildWithTag(root, "name").getTextContent();
-        Element configuration = getFirstChildWithTag(root, "config");
-        String location = getFirstChildWithTag(configuration, "location").getTextContent();
-        return new Resource.JDBCSharedResource(name, location);
+    public static Optional<Resource.JDBCSharedResource> parseSharedJDBCResource(Element root) {
+        logger.fine("Start parsing JDBCSharedResource");
+        try {
+            String name = getFirstChildWithTag(root, "name").getTextContent();
+            Element configuration = getFirstChildWithTag(root, "config");
+            String location = getFirstChildWithTag(configuration, "location").getTextContent();
+            logger.fine("Done parsing JDBCSharedResource: " + name);
+            return Optional.of(new Resource.JDBCSharedResource(name, location));
+        } catch (Exception ex) {
+            logger.warning("Failed to parse JDBCSharedResource: " + ex.getMessage());
+            return Optional.empty();
+        }
     }
 
-    public static Resource.JMSSharedResource parseJMSSharedResource(String fileName, Element root) {
-        String name = getFirstChildWithTag(root, "name").getTextContent();
-        Element config = getFirstChildWithTag(root, "config");
-
-        var namingEnvironment = parseJMSNamingEnvironment(config);
-        var connectionAttributes = parseJMSConnectionAttributes(config);
-        java.util.Map<String, String> jndiProperties = parseJMSJNDIProperties(config);
-
-        return new Resource.JMSSharedResource(name, fileName, namingEnvironment, connectionAttributes, jndiProperties);
+    public static Optional<Resource.JMSSharedResource> parseJMSSharedResource(String fileName, Element root) {
+        logger.fine("Start parsing JMSSharedResource");
+        try {
+            String name = getFirstChildWithTag(root, "name").getTextContent();
+            Element config = getFirstChildWithTag(root, "config");
+            var namingEnvironment = parseJMSNamingEnvironment(config);
+            var connectionAttributes = parseJMSConnectionAttributes(config);
+            java.util.Map<String, String> jndiProperties = parseJMSJNDIProperties(config);
+            logger.fine("Done parsing JMSSharedResource: " + name);
+            return Optional.of(new Resource.JMSSharedResource(name, fileName, namingEnvironment, connectionAttributes,
+                    jndiProperties));
+        } catch (Exception ex) {
+            logger.warning("Failed to parse JMSSharedResource: " + ex.getMessage());
+            return Optional.empty();
+        }
     }
 
     private static Resource.JMSSharedResource.NamingEnvironment parseJMSNamingEnvironment(Element config) {
@@ -139,48 +152,77 @@ public final class XmlToTibcoModelConverter {
         return jndiProperties;
     }
 
-    public static Resource.JDBCResource parseJDBCResource(Element root) {
-        String name = root.getAttribute("name");
-        Element configuration = getFirstChildWithTag(root, "configuration");
-        String username = configuration.getAttribute("username");
-        String password = configuration.getAttribute("password");
-        Element connectionConfig = getFirstChildWithTag(configuration, "connectionConfig");
-        String jdbcDriver = connectionConfig.getAttribute("jdbcDriver");
-        String dbUrl = connectionConfig.getAttribute("dbURL");
-        Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(connectionConfig,
-                "substitutionBindings")
-                .map(XmlToTibcoModelConverter::parseSubstitutionBinding).toList();
-        return new Resource.JDBCResource(name, username, password, jdbcDriver, dbUrl,
-                substitutionBindings);
+    public static Optional<Resource.JDBCResource> parseJDBCResource(Element root) {
+        logger.fine("Start parsing JDBCResource");
+        try {
+            String name = root.getAttribute("name");
+            Element configuration = getFirstChildWithTag(root, "configuration");
+            String username = configuration.getAttribute("username");
+            String password = configuration.getAttribute("password");
+            Element connectionConfig = getFirstChildWithTag(configuration, "connectionConfig");
+            String jdbcDriver = connectionConfig.getAttribute("jdbcDriver");
+            String dbUrl = connectionConfig.getAttribute("dbURL");
+            Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(connectionConfig,
+                    "substitutionBindings")
+                    .map(XmlToTibcoModelConverter::parseSubstitutionBinding).toList();
+            logger.fine("Done parsing JDBCResource: " + name);
+            return Optional.of(new Resource.JDBCResource(name, username, password, jdbcDriver, dbUrl,
+                    substitutionBindings));
+        } catch (Exception ex) {
+            logger.warning("Failed to parse JDBCResource: " + ex.getMessage());
+            return Optional.empty();
+        }
     }
 
-    public static Resource.HTTPConnectionResource parseHTTPConnectionResource(Element root) {
-        String name = root.getAttribute("name");
-        Element configuration = getFirstChildWithTag(root, "configuration");
-        String svcRegServiceName = configuration.getAttribute("svcRegServiceName");
-        Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(configuration,
-                "substitutionBindings")
-                .map(XmlToTibcoModelConverter::parseSubstitutionBinding).toList();
-        return new Resource.HTTPConnectionResource(name, svcRegServiceName, substitutionBindings);
+    public static Optional<Resource.HTTPConnectionResource> parseHTTPConnectionResource(Element root) {
+        logger.fine("Start parsing HTTPConnectionResource");
+        try {
+            String name = root.getAttribute("name");
+            Element configuration = getFirstChildWithTag(root, "configuration");
+            String svcRegServiceName = configuration.getAttribute("svcRegServiceName");
+            Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(configuration,
+                    "substitutionBindings")
+                    .map(XmlToTibcoModelConverter::parseSubstitutionBinding).toList();
+            logger.fine("Done parsing HTTPConnectionResource: " + name);
+            return Optional.of(new Resource.HTTPConnectionResource(name, svcRegServiceName, substitutionBindings));
+        } catch (Exception ex) {
+            logger.warning("Failed to parse HTTPConnectionResource: " + ex.getMessage());
+            return Optional.empty();
+        }
     }
 
-    public static Resource.HTTPSharedResource parseHTTPSharedResource(String name, Element root) {
-        Element config = getFirstChildWithTag(root, "config");
-        String host = getFirstChildWithTag(config, "Host").getTextContent();
-        int port = Integer.parseInt(getFirstChildWithTag(config, "Port").getTextContent());
-        return new Resource.HTTPSharedResource(name, host, port);
+    public static Optional<Resource.HTTPSharedResource> parseHTTPSharedResource(String name, Element root) {
+        logger.fine("Start parsing HTTPSharedResource");
+        try {
+            Element config = getFirstChildWithTag(root, "config");
+            String host = getFirstChildWithTag(config, "Host").getTextContent();
+            int port = Integer.parseInt(getFirstChildWithTag(config, "Port").getTextContent());
+            logger.fine("Done parsing HTTPSharedResource: " + name);
+            return Optional.of(new Resource.HTTPSharedResource(name, host, port));
+        } catch (Exception ex) {
+            logger.warning("Failed to parse HTTPSharedResource: " + ex.getMessage());
+            return Optional.empty();
+        }
     }
 
-    public static Resource.HTTPClientResource parseHTTPClientResource(Element root) {
-        String name = root.getAttribute("name");
-        Element configuration = getFirstChildWithTag(root, "configuration");
-        Element tcpDetails = getFirstChildWithTag(configuration, "tcpDetails");
-        Optional<Integer> port = tcpDetails.hasAttribute("port") ? Optional.of(expectIntAttribute(tcpDetails, "port"))
-                : Optional.empty();
-        Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(tcpDetails,
-                "substitutionBindings")
-                .map(XmlToTibcoModelConverter::parseSubstitutionBinding).toList();
-        return new Resource.HTTPClientResource(name, port, substitutionBindings);
+    public static Optional<Resource.HTTPClientResource> parseHTTPClientResource(Element root) {
+        logger.fine("Start parsing HTTPClientResource");
+        try {
+            String name = root.getAttribute("name");
+            Element configuration = getFirstChildWithTag(root, "configuration");
+            Element tcpDetails = getFirstChildWithTag(configuration, "tcpDetails");
+            Optional<Integer> port = tcpDetails.hasAttribute("port")
+                    ? Optional.of(expectIntAttribute(tcpDetails, "port"))
+                    : Optional.empty();
+            Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(tcpDetails,
+                    "substitutionBindings")
+                    .map(XmlToTibcoModelConverter::parseSubstitutionBinding).toList();
+            logger.fine("Done parsing HTTPClientResource: " + name);
+            return Optional.of(new Resource.HTTPClientResource(name, port, substitutionBindings));
+        } catch (Exception ex) {
+            logger.warning("Failed to parse HTTPClientResource: " + ex.getMessage());
+            return Optional.empty();
+        }
     }
 
     private static Resource.SubstitutionBinding parseSubstitutionBinding(Element element) {
@@ -190,7 +232,16 @@ public final class XmlToTibcoModelConverter {
     }
 
     public static tibco.model.Process parseProcess(ParseContext cx, Element root) {
-        return parseProcessInner(cx, root);
+        String processName = root.hasAttribute("name") ? root.getAttribute("name") : "<unknown>";
+        logger.fine("Start parsing process: " + processName);
+        try {
+            tibco.model.Process result = parseProcessInner(cx, root);
+            logger.fine("Done parsing process: " + processName);
+            return result;
+        } catch (Exception ex) {
+            logger.severe("Exception while parsing process: " + processName + ". " + ex.getMessage());
+            throw ex;
+        }
     }
 
     private static @NotNull Process parseProcessInner(ParseContext cx, Element root) {
@@ -199,6 +250,10 @@ public final class XmlToTibcoModelConverter {
             name = tryGetFirstChildWithTag(root, "name").map(Node::getTextContent)
                     .orElseGet(cx::getNextAnonymousProcessName);
         }
+        Collection<NameSpace> nameSpaces = getNamespaces(root).entrySet().stream()
+                .map(each -> new NameSpace(each.getKey(), each.getValue()))
+                .toList();
+        cx.nameSpaces = nameSpaces;
         Collection<Type> types = null;
         ProcessInfo processInfo = null;
         Collection<PartnerLink> partnerLinks = null;
@@ -271,9 +326,6 @@ public final class XmlToTibcoModelConverter {
             }
         }
         transitionGroup = transitionGroup.resolve();
-        Collection<NameSpace> nameSpaces = getNamespaces(root).entrySet().stream()
-                .map(each -> new NameSpace(each.getKey(), each.getValue()))
-                .toList();
         if (transitionGroup.isEmpty()) {
             return new Process6(name, nameSpaces, types, processInfo, processInterface,
                     processTemplateConfigurations, partnerLinks, variables, scope);
@@ -286,6 +338,20 @@ public final class XmlToTibcoModelConverter {
     }
 
     static InlineActivity parseInlineActivity(ParseContext cx, Element element) {
+        String name = element.getAttribute("name");
+        logger.fine("Start parsing inline activity: " + name);
+        try {
+            InlineActivity result = parseInlineActivityInner(cx, element);
+            logger.fine("Done parsing inline activity: " + name);
+            return result;
+        } catch (Exception ex) {
+            logger.severe("Exception while parsing inline activity: " + name + ". " + ex.getMessage());
+            return new InlineActivity.UnhandledInlineActivity(element, name,
+                    "Unhandled activity type", null);
+        }
+    }
+
+    private static @NotNull InlineActivity parseInlineActivityInner(ParseContext cx, Element element) {
         Flow.Activity.InputBinding inputBinding = parseInlineActivityInputBinding(cx,
                 getFirstChildWithTag(element, "inputBindings"));
         String name = element.getAttribute("name");
@@ -319,6 +385,8 @@ public final class XmlToTibcoModelConverter {
             case SLEEP -> new InlineActivity.Sleep(element, name, inputBinding);
             case GET_SHARED_VARIABLE -> parseGetSharedVariable(name, inputBinding, element);
             case SET_SHARED_VARIABLE -> parseSetSharedVariable(name, inputBinding, element);
+            case FILE_EVENT_SOURCE -> parseFileEventSource(name, inputBinding, element);
+            case ON_STARTUP -> new InlineActivity.OnStartupEventSource(element, name, inputBinding);
         };
     }
 
@@ -564,15 +632,35 @@ public final class XmlToTibcoModelConverter {
     private static Flow.Activity.Expression.@NotNull XSLT parseXSLTTag(ParseContext cx, Element element) {
         String content = ElementIterable.of(element).stream().map(ConversionUtils::elementToString)
                 .collect(Collectors.joining());
+
+        StringBuilder namespaceDeclarations = new StringBuilder();
+        // Track prefixes to avoid redeclaration
+        Set<String> declaredPrefixes = new java.util.HashSet<>();
+        // Always add xsl first
+        namespaceDeclarations.append("xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"");
+        declaredPrefixes.add("xsl");
+        record NamespaceData(String prefix, String uri) {
+        }
+        cx.nameSpaces.stream()
+                .filter(each -> each.prefix().isPresent())
+                .map(each -> new NamespaceData(each.prefix().get(), each.uri()))
+                .filter(each -> !declaredPrefixes.contains(each.prefix()))
+                .forEach(each -> {
+                    namespaceDeclarations.append(" xmlns:").append(each.prefix()).append("=\"")
+                            .append(each.uri())
+                            .append("\"");
+                    declaredPrefixes.add(each.prefix());
+                });
+
         String xslt = """
                 <?xml version="1.0" encoding="UTF-8"?>
-                <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com" version="2.0">
+                <xsl:stylesheet %s version="2.0">
                      <xsl:template name="%s" match="/">
                         %s
                     </xsl:template>
                 </xsl:stylesheet>
                 """
-                .formatted(cx.getAnonymousXSLTName(), content);
+                .formatted(namespaceDeclarations.toString(), cx.getAnonymousXSLTName(), content);
         return new Flow.Activity.Expression.XSLT(xslt);
     }
 
@@ -641,7 +729,7 @@ public final class XmlToTibcoModelConverter {
                 }
                 links = parseLinks(element);
             } else {
-                activities.add(tryParseActivity(cx, element));
+                activities.add(parseActivity(cx, element));
             }
         }
         if (links == null) {
@@ -653,15 +741,21 @@ public final class XmlToTibcoModelConverter {
         return new Flow(name, links, activities);
     }
 
-    private static Flow.Activity tryParseActivity(ParseContext cx, Element element) {
+    public static Flow.Activity parseActivity(ParseContext cx, Element element) {
+        String tag = getTagNameWithoutNameSpace(element);
+        String name = element.hasAttribute("name") ? element.getAttribute("name") : tag;
+        logger.fine("Start parsing activity: " + name);
         try {
-            return parseActivity(cx, element);
+            Flow.Activity result = parseActivityInner(cx, element);
+            logger.fine("Done parsing activity: " + name);
+            return result;
         } catch (Exception ex) {
+            logger.severe("Exception while parsing activity: " + name + ". " + ex.getMessage());
             return parseUnhandledActivity(element, ex.getMessage());
         }
     }
 
-    public static Flow.Activity parseActivity(ParseContext cx, Element element) {
+    private static Flow.Activity parseActivityInner(ParseContext cx, Element element) {
         String tag = getTagNameWithoutNameSpace(element);
         return switch (tag) {
             case "extensionActivity" -> parseExtensionActivity(element);
@@ -1414,7 +1508,7 @@ public final class XmlToTibcoModelConverter {
         for (Element child : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
-                case "schema" -> members.add(parseSchema(child));
+                case "schema" -> XmlToTibcoModelConverter.parseSchema(child).ifPresent(members::add);
                 case "definitions" -> tryParseWSDLDefinition(child).ifPresent(members::add);
                 default -> throw new ParserException("Unsupported types member tag: " + tag, element);
             }
@@ -1422,27 +1516,32 @@ public final class XmlToTibcoModelConverter {
         return members;
     }
 
-    static Type.Schema parseSchema(Element element) {
-        Map<String, Type.Schema.SchemaXsdType> complexTypes = new HashMap<>();
-        Map<String, String> aliases = new HashMap<>();
-        for (Element child : ElementIterable.of(element)) {
-            String tag = getTagNameWithoutNameSpace(child);
-            String name = child.getAttribute("name");
-            if (tag.equals("complexType")) {
-                complexTypes.put(name, new Type.Schema.SchemaXsdType(name, parseComplexType(child)));
-            } else if (tag.equals("element")) {
-                String type = ConversionUtils.stripNamespace(child.getAttribute("type"));
-                aliases.put(name, type);
+    static Optional<Type.Schema> parseSchema(Element element) {
+        try {
+            Map<String, Type.Schema.SchemaXsdType> complexTypes = new HashMap<>();
+            Map<String, String> aliases = new HashMap<>();
+            for (Element child : ElementIterable.of(element)) {
+                String tag = getTagNameWithoutNameSpace(child);
+                String name = child.getAttribute("name");
+                if (tag.equals("complexType")) {
+                    complexTypes.put(name, new Type.Schema.SchemaXsdType(name, parseComplexType(child)));
+                } else if (tag.equals("element")) {
+                    String type = ConversionUtils.stripNamespace(child.getAttribute("type"));
+                    aliases.put(name, type);
+                }
             }
-        }
-        for (var each : aliases.entrySet()) {
-            String type = each.getValue();
-            String name = each.getKey();
-            if (complexTypes.containsKey(type)) {
-                complexTypes.put(name, new Type.Schema.SchemaXsdType(name, complexTypes.get(type).type()));
+            for (var each : aliases.entrySet()) {
+                String type = each.getValue();
+                String name = each.getKey();
+                if (complexTypes.containsKey(type)) {
+                    complexTypes.put(name, new Type.Schema.SchemaXsdType(name, complexTypes.get(type).type()));
+                }
             }
+            return Optional.of(new Type.Schema(element, complexTypes.values()));
+        } catch (Exception ex) {
+            logger.warning("Failed to parse schema: " + ex.getMessage());
+            return Optional.empty();
         }
-        return new Type.Schema(element, complexTypes.values());
     }
 
     private static NameSpace parseImport(Element each) {
@@ -1760,38 +1859,90 @@ public final class XmlToTibcoModelConverter {
         return new InlineActivity.JMSActivityBase.ConfigurableHeaders(jmsDeliveryMode, jmsExpiration, jmsPriority);
     }
 
-    public static Resource.SharedVariable parseSharedVariable(ParseContext cx, Element root, String relativePath) {
+    public static Optional<Resource.SharedVariable> parseSharedVariable(ParseContext cx, Element root,
+            String relativePath) {
         return parseSharedVariable(cx, root, false, relativePath);
     }
 
-    public static Resource.SharedVariable parseJobSharedVariable(ParseContext cx, Element root, String relativePath) {
+    public static Optional<Resource.SharedVariable> parseJobSharedVariable(ParseContext cx, Element root,
+            String relativePath) {
         return parseSharedVariable(cx, root, true, relativePath);
     }
 
-    private static Resource.SharedVariable parseSharedVariable(ParseContext cx, Element root, boolean isShared,
-            String relativePath) {
-        String name = getFirstChildWithTag(root, "name").getTextContent();
-        Element config = getFirstChildWithTag(root, "config");
-        boolean persistent = tryGetFirstChildWithTag(config, "persistent")
-                .map(Element::getTextContent)
+    private static Optional<Resource.SharedVariable> parseSharedVariable(ParseContext cx, Element root,
+            boolean isShared, String relativePath) {
+        logger.fine("Start parsing SharedVariable");
+        try {
+            String name = getFirstChildWithTag(root, "name").getTextContent();
+            Element config = getFirstChildWithTag(root, "config");
+            boolean persistent = tryGetFirstChildWithTag(config, "persistent")
+                    .map(Element::getTextContent)
+                    .map(Boolean::parseBoolean)
+                    .orElse(false);
+            String initialValue = tryGetFirstChildWithTag(config, "initialValue")
+                    .map(Element::getTextContent).orElse("");
+            if (!initialValue.equals("byRef")) {
+                logger.severe(
+                        "initialValue for sharedVariable '" + name
+                                + "' is not byRef. Using empty string as placeholder.");
+                initialValue = "<root/>";
+                logger.fine("Done parsing SharedVariable: " + name);
+                return Optional.of(new Resource.SharedVariable(name, persistent, initialValue, isShared, relativePath));
+            }
+            String initialValueRef = getFirstChildWithTag(config, "initialValueRef").getTextContent();
+            try {
+                initialValue = cx.getFileContent(initialValueRef);
+            } catch (java.io.IOException e) {
+                logger.severe("Failed to read initial value for sharedVariable '" + name + "' from '" + initialValueRef
+                        + "': " + e.getMessage());
+                initialValue = "<root/>";
+            }
+            logger.fine("Done parsing SharedVariable: " + name);
+            return Optional.of(new Resource.SharedVariable(name, persistent, initialValue, isShared, relativePath));
+        } catch (Exception ex) {
+            logger.warning("Failed to parse SharedVariable: " + ex.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private static InlineActivity.FileEventSource parseFileEventSource(String name,
+            Flow.Activity.InputBinding inputBinding, Element element) {
+        // Parse the required boolean fields with default false if missing
+        boolean createEvent = tryGetInlineActivityConfigValue(element, "createEvent")
                 .map(Boolean::parseBoolean)
                 .orElse(false);
-        String initialValue = tryGetFirstChildWithTag(config, "initialValue")
-                .map(Element::getTextContent).orElse("");
-        if (!initialValue.equals("byRef")) {
-            logger.severe(
-                    "initialValue for sharedVariable '" + name + "' is not byRef. Using empty string as placeholder.");
-            initialValue = "<root/>";
-            return new Resource.SharedVariable(name, persistent, initialValue, isShared, relativePath);
+        boolean modifyEvent = tryGetInlineActivityConfigValue(element, "modifyEvent")
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+        boolean deleteEvent = tryGetInlineActivityConfigValue(element, "deleteEvent")
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+        boolean excludeContent = tryGetInlineActivityConfigValue(element, "excludeContent")
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+
+        // Parse fileName - required field
+        String fileName = tryGetInlineActivityConfigValue(element, "fileName")
+                .orElseThrow(() -> new ParserException("fileName is required for FileEventSource", element));
+
+        // Log warnings for ignored fields
+        if (tryGetInlineActivityConfigValue(element, "mode").isPresent()) {
+            logger.warning("Ignoring 'mode' field in FileEventSource configuration");
         }
-        String initialValueRef = getFirstChildWithTag(config, "initialValueRef").getTextContent();
-        try {
-            initialValue = cx.getFileContent(initialValueRef);
-        } catch (java.io.IOException e) {
-            logger.severe("Failed to read initial value for sharedVariable '" + name + "' from '" + initialValueRef
-                    + "': " + e.getMessage());
-            initialValue = "<root/>";
+        if (tryGetInlineActivityConfigValue(element, "encoding").isPresent()) {
+            logger.warning("Ignoring 'encoding' field in FileEventSource configuration");
         }
-        return new Resource.SharedVariable(name, persistent, initialValue, isShared, relativePath);
+        if (tryGetInlineActivityConfigValue(element, "sortby").isPresent()) {
+            logger.warning("Ignoring 'sortby' field in FileEventSource configuration");
+        }
+        if (tryGetInlineActivityConfigValue(element, "sortorder").isPresent()) {
+            logger.warning("Ignoring 'sortorder' field in FileEventSource configuration");
+        }
+        if (tryGetInlineActivityConfigValue(element, "pollInterval").isPresent()) {
+            logger.warning("Ignoring 'pollInterval' field in FileEventSource configuration");
+        }
+
+        return new InlineActivity.FileEventSource(element, name, inputBinding, createEvent, modifyEvent, deleteEvent,
+                excludeContent, fileName);
     }
 }

@@ -9,10 +9,10 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
     <http:request-config name="http_request_config" doc:name="HTTP Request configuration" doc:id="1e0d78e1-e5fb-44a9-9b18-b86c0d151be6" >
-        <http:request-connection host="jsonplaceholder.typicode.com" port="80" />
+        <http:request-connection host="jsonplaceholder.typicode.com" port="80" protocol="HTTPS"/>
     </http:request-config>
     <flow name="demoFlow" doc:id="1d088811-dee1-455d-a909-529d3c54662f" >
-        <http:request method="GET" doc:name="Request" doc:id="b91d51d7-5c26-40a3-8ec5-66426b32989e" config-ref="http_request_config" path="/posts/latest"/>
+        <http:request method="GET" doc:name="Request" doc:id="b91d51d7-5c26-40a3-8ec5-66426b32989e" config-ref="http_request_config" url="https://jsonplaceholder.typicode.com/todos/1"/>
         <logger level="INFO" doc:name="Logger" doc:id="d0390e1c-7a02-44af-87b0-41f9834a6158" message="Received from external API: #[payload]"/>
     </flow>
 </mule>

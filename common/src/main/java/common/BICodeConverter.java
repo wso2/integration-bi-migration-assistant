@@ -62,14 +62,15 @@ public final class BICodeConverter {
         BallerinaModel.TextDocument configs = fixImports(mergeWithExistingIfNeeded(configs(module), module));
         BallerinaModel.TextDocument connections = fixImports(mergeWithExistingIfNeeded(connections(module), module));
         BallerinaModel.TextDocument types = fixImports(mergeWithExistingIfNeeded(types(module), module));
-        BallerinaModel.TextDocument functions = fixImports(mergeWithExistingIfNeeded(functions(module), module));
+        Stream<BallerinaModel.TextDocument> functionDocs = functions(module)
+                .map(doc -> fixImports(mergeWithExistingIfNeeded(doc, module)));
         Stream<BallerinaModel.TextDocument> comments =
                 extractDocComments(module).isEmpty() ? Stream.empty() :
                         Stream.of(fixImports(mergeWithExistingIfNeeded(comments(module), module)));
         List<BallerinaModel.TextDocument> docs =
                 Stream.concat(Stream.concat(
-                                        Stream.of(main, configs, connections, types, functions),
-                                        skipped),
+                        Stream.concat(Stream.of(main, configs, connections, types), functionDocs),
+                                                skipped),
                                 comments)
                         .toList();
         return new BallerinaModel.Module(module.name(), docs);
@@ -111,11 +112,32 @@ public final class BICodeConverter {
                 List.of(), List.of(), List.of(), List.of(), intrinsics, List.of());
     }
 
-    private BallerinaModel.TextDocument functions(BallerinaModel.Module module) {
-        List<BallerinaModel.Function> functions = extractFunctions(module);
+    private Stream<BallerinaModel.TextDocument> functions(BallerinaModel.Module module) {
+        List<BallerinaModel.Function> allFunctions = extractFunctions(module);
         List<String> intrinsics = extractFunctionIntrinsics(module);
-        return new BallerinaModel.TextDocument("functions.bal", List.of(), List.of(), List.of(),
-                List.of(), List.of(), functions, List.of(), intrinsics, List.of());
+
+        // Find the main function, if any
+        Optional<BallerinaModel.Function> mainFunction = allFunctions.stream()
+                .filter(func -> "main".equals(func.functionName()))
+                .findFirst();
+        // All other functions (including helpers) go to functions.bal
+        List<BallerinaModel.Function> regularFunctions = allFunctions.stream()
+                .filter(func -> !"main".equals(func.functionName()))
+                .toList();
+
+        Stream<BallerinaModel.TextDocument> regularStream = regularFunctions.isEmpty() ? Stream.empty() :
+                Stream.of(new BallerinaModel.TextDocument("functions.bal",
+                        List.of(), List.of(), List.of(), List.of(), List.of(), regularFunctions,
+                        List.of(), intrinsics, List.of()));
+
+        Stream<BallerinaModel.TextDocument> mainStream = mainFunction
+                .map(fn -> new BallerinaModel.TextDocument("automations.bal",
+                        List.of(), List.of(), List.of(), List.of(), List.of(), List.of(fn),
+                        List.of(), List.of(), List.of()))
+                .map(Stream::of)
+                .orElseGet(Stream::empty);
+
+        return Stream.concat(regularStream, mainStream);
     }
 
     private BallerinaModel.TextDocument fixImports(BallerinaModel.TextDocument doc) {
@@ -148,6 +170,7 @@ public final class BICodeConverter {
             case "java.jdbc", "jdbc" -> List.of(new BallerinaModel.Import("ballerinax", "java.jdbc"));
             case "java.jms", "jms" -> List.of(new BallerinaModel.Import("ballerinax", "java.jms"));
             case "io" -> List.of(new BallerinaModel.Import("ballerina", "io"));
+            case "file" -> List.of(new BallerinaModel.Import("ballerina", "file"));
             case "log" -> List.of(new BallerinaModel.Import("ballerina", "log"));
             case "soap11" -> List.of(new BallerinaModel.Import("ballerina", "soap.soap11"));
             case "sql" -> List.of(new BallerinaModel.Import("ballerina", "sql"));
