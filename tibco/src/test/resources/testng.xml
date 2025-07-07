@@ -4,7 +4,7 @@
         <classes>
             <class name="tibco.converter.TibcoProjectConversionTest"/>
             <class name="tibco.converter.ActivityConversionTest"/>
-            <class name="tibco.XmlToModelTests"/>
+            <class name="tibco.parser.XmlToModelTests"/>
         </classes>
     </test>
 </suite>

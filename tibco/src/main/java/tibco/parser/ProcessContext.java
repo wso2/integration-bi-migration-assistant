@@ -16,39 +16,57 @@
  *  under the License.
  */
 
-package tibco;
+package tibco.parser;
 
 import tibco.model.NameSpace;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 
-public class ParseContext {
+public class ProcessContext implements Context {
 
-    private long nextAnonProcessIndex = 0;
     private long nextAnonXSLTIndex = 0;
-    private final String projectPath;
+    private final ProjectContext projectContext;
+    private final Path filePath;
+    private final String fileName;
     public Collection<NameSpace> nameSpaces = List.of();
 
-    public ParseContext(String projectPath) {
-        this.projectPath = projectPath;
+    public ProcessContext(ProjectContext projectContext, String filePath) {
+        this.projectContext = projectContext;
+        this.filePath = Path.of(filePath);
+        this.fileName = getFileName(this.filePath);
     }
 
+    private static String getFileName(Path filePath) {
+        return filePath.getFileName().toString();
+    }
+
+    @Override
     public String getNextAnonymousProcessName() {
-        return "AnonymousProcess" + nextAnonProcessIndex++;
+        return projectContext.getNextAnonymousProcessName();
     }
 
+    @Override
     public String getAnonymousXSLTName() {
         return "Transform" + nextAnonXSLTIndex++;
     }
 
-    public String getFileContent(String relativePath) throws IOException {
-        Path fullPath = Paths.get(projectPath, relativePath);
-        return Files.readString(fullPath);
+    @Override
+    public String getAnonUnhandledActivityName() {
+        return projectContext.getAnonUnhandledActivityName();
     }
 
+    public TypeContext typeContext() {
+        return new TypeContext(projectContext);
+    }
+
+    public String fileName() {
+        return this.fileName;
+    }
+
+    public String getFileContent(String relativePath) throws IOException {
+        return projectContext.getFileContent(relativePath);
+    }
 }
