@@ -281,7 +281,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             ANYDATA("anydata"),
             BOOLEAN("boolean"),
             BYTE("byte"),
-                    DECIMAL("decimal"),
+            DECIMAL("decimal"),
             FLOAT("float"),
             ERROR("error"),
             INT("int"),

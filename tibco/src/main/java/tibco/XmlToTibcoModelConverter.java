@@ -1798,6 +1798,7 @@ public final class XmlToTibcoModelConverter {
                         NameSpaceValue.from(portTypeName)));
     }
 
+    @NotNull
     public static String getTagNameWithoutNameSpace(Element element) {
         String tagName = element.getTagName();
         return getTagNameWithoutNameSpace(tagName);
