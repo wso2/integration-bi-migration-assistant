@@ -89,7 +89,8 @@ public final class XmlToTibcoModelParser {
         }
     }
 
-    public static Optional<Resource.JMSSharedResource> parseJMSSharedResource(ResourceContext cx, String fileName, Element root) {
+    public static Optional<Resource.JMSSharedResource> parseJMSSharedResource(ResourceContext cx, String fileName,
+            Element root) {
         logger.fine("Start parsing JMSSharedResource");
         try {
             String name = getFirstChildWithTag(root, "name").getTextContent();
@@ -111,7 +112,8 @@ public final class XmlToTibcoModelParser {
         boolean useJNDI = Boolean.parseBoolean(getFirstChildWithTag(namingEnvElement, "UseJNDI").getTextContent());
         String providerURL = getFirstChildWithTag(namingEnvElement, "ProviderURL").getTextContent();
         String namingURL = getFirstChildWithTag(namingEnvElement, "NamingURL").getTextContent();
-        String namingInitialContextFactory = getFirstChildWithTag(namingEnvElement, "NamingInitialContextFactory").getTextContent();
+        String namingInitialContextFactory = getFirstChildWithTag(namingEnvElement, "NamingInitialContextFactory")
+                .getTextContent();
         String topicFactoryName = getFirstChildWithTag(namingEnvElement, "TopicFactoryName").getTextContent();
         String queueFactoryName = getFirstChildWithTag(namingEnvElement, "QueueFactoryName").getTextContent();
         String namingPrincipal = getFirstChildWithTag(namingEnvElement, "NamingPrincipal").getTextContent();
@@ -132,7 +134,8 @@ public final class XmlToTibcoModelParser {
         Optional<String> clientID = tryGetFirstChildWithTag(connAttrsElement, "clientID")
                 .map(Element::getTextContent)
                 .filter(s -> !s.isBlank());
-        boolean autoGenClientID = Boolean.parseBoolean(getFirstChildWithTag(connAttrsElement, "autoGenClientID").getTextContent());
+        boolean autoGenClientID = Boolean
+                .parseBoolean(getFirstChildWithTag(connAttrsElement, "autoGenClientID").getTextContent());
 
         return new Resource.JMSSharedResource.ConnectionAttributes(username, password, clientID, autoGenClientID);
     }
@@ -173,7 +176,8 @@ public final class XmlToTibcoModelParser {
         }
     }
 
-    public static Optional<Resource.HTTPConnectionResource> parseHTTPConnectionResource(ResourceContext cx, Element root) {
+    public static Optional<Resource.HTTPConnectionResource> parseHTTPConnectionResource(ResourceContext cx,
+            Element root) {
         logger.fine("Start parsing HTTPConnectionResource");
         try {
             String name = root.getAttribute("name");
@@ -190,7 +194,8 @@ public final class XmlToTibcoModelParser {
         }
     }
 
-    public static Optional<Resource.HTTPSharedResource> parseHTTPSharedResource(ResourceContext cx, String name, Element root) {
+    public static Optional<Resource.HTTPSharedResource> parseHTTPSharedResource(ResourceContext cx, String name,
+            Element root) {
         logger.fine("Start parsing HTTPSharedResource");
         try {
             Element config = getFirstChildWithTag(root, "config");
@@ -410,7 +415,6 @@ public final class XmlToTibcoModelParser {
                 cx.fileName());
     }
 
-
     private static InlineActivity.JSONParser parseJSONParserActivity(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
         return new InlineActivity.JSONParser(element, name, inputBinding, getJSONActivityTarget(element),
@@ -440,7 +444,7 @@ public final class XmlToTibcoModelParser {
         String maxOccursAttrib = element.getAttribute("maxOccurs");
         Optional<Integer> maxOccurs =
                 maxOccursAttrib.isBlank() || maxOccursAttrib.equals("unbounded") ? Optional.empty()
-                : Optional.of(Integer.parseInt(maxOccursAttrib));
+                        : Optional.of(Integer.parseInt(maxOccursAttrib));
 
         return new XSD.Element(name, type, minOccurs, maxOccurs);
     }
@@ -455,14 +459,14 @@ public final class XmlToTibcoModelParser {
     }
 
     private static InlineActivity.SOAPSendReceive parseSoapSendReceive(ProcessContext cx, Element element, String name,
-                    Flow.Activity.InputBinding inputBinding) {
+            Flow.Activity.InputBinding inputBinding) {
         String endpointURL = getInlineActivityConfigValue(element, "endpointURL");
         Optional<String> soapAction = tryGetInlineActivityConfigValue(element, "soapAction");
         return new InlineActivity.SOAPSendReceive(element, name, inputBinding, soapAction, endpointURL, cx.fileName());
     }
 
     private static @NotNull LoopGroup parseLoopGroup(ProcessContext cx, Element element, String name,
-                    Flow.Activity.InputBinding inputBinding) {
+            Flow.Activity.InputBinding inputBinding) {
         SourceExpression overExpr = parseSourceExpression(getInlineActivityConfigValue(element, "over"));
         Optional<String> iterationElementSlot = tryGetInlineActivityConfigValue(element, "iterationElementSlot");
         Optional<String> indexSlot = tryGetInlineActivityConfigValue(element, "indexSlot");
@@ -616,20 +620,20 @@ public final class XmlToTibcoModelParser {
     }
 
     private static InlineActivity.MapperActivity parseMapperActivity(ProcessContext cx, String name,
-                    Flow.Activity.InputBinding inputBinding,
+            Flow.Activity.InputBinding inputBinding,
             Element element) {
         return new InlineActivity.MapperActivity(element, name, inputBinding, cx.fileName());
     }
 
     private static InlineActivity.GetSharedVariable parseGetSharedVariable(ProcessContext cx, String name,
-                    Flow.Activity.InputBinding inputBinding,
+            Flow.Activity.InputBinding inputBinding,
             Element element) {
         String variableConfig = getInlineActivityConfigValue(element, "variableConfig");
         return new InlineActivity.GetSharedVariable(element, name, inputBinding, variableConfig, cx.fileName());
     }
 
     private static InlineActivity.SetSharedVariable parseSetSharedVariable(ProcessContext cx, String name,
-                    Flow.Activity.InputBinding inputBinding,
+            Flow.Activity.InputBinding inputBinding,
             Element element) {
         String variableConfig = getInlineActivityConfigValue(element, "variableConfig");
         return new InlineActivity.SetSharedVariable(element, name, inputBinding, variableConfig, cx.fileName());
@@ -661,6 +665,7 @@ public final class XmlToTibcoModelParser {
         namespaceDeclarations.append("xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"");
         declaredPrefixes.add("xsl");
         record NamespaceData(String prefix, String uri) {
+
         }
         cx.nameSpaces.stream()
                 .filter(each -> each.prefix().isPresent())
@@ -1524,7 +1529,7 @@ public final class XmlToTibcoModelParser {
         return new ProcessInfo(callable, modifiers, scalable, singleton, stateless, type);
     }
 
-    private static Collection<Type> parseTypes(Context cx,Element element) {
+    private static Collection<Type> parseTypes(Context cx, Element element) {
         List<Type> members = new ArrayList<>();
         for (Element child : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(child);
@@ -1828,18 +1833,18 @@ public final class XmlToTibcoModelParser {
 
     }
 
-    private static InlineActivity.JMSQueueEventSource parseJMSQueueEventSource(ProcessContext cx, Element element, String name,
-                                                                               Flow.Activity.InputBinding inputBinding) {
+    private static InlineActivity.JMSQueueEventSource parseJMSQueueEventSource(
+            ProcessContext cx, Element element, String name, Flow.Activity.InputBinding inputBinding) {
         return new InlineActivity.JMSQueueEventSource(parseJMSActivityInner(cx, element, name, inputBinding));
     }
 
-    private static InlineActivity.JMSQueueSendActivity parseJMSQueueSendActivity(ProcessContext cx, Element element, String name,
-                                                                                 Flow.Activity.InputBinding inputBinding) {
+    private static InlineActivity.JMSQueueSendActivity parseJMSQueueSendActivity(
+            ProcessContext cx, Element element, String name, Flow.Activity.InputBinding inputBinding) {
         return new InlineActivity.JMSQueueSendActivity(parseJMSActivityInner(cx, element, name, inputBinding));
     }
 
-    private static InlineActivity.JMSQueueGetMessageActivity parseJMSQueueGetMessageActivity(ProcessContext cx, Element element, String name,
-                                                                                              Flow.Activity.InputBinding inputBinding) {
+    private static InlineActivity.JMSQueueGetMessageActivity parseJMSQueueGetMessageActivity(
+            ProcessContext cx, Element element, String name, Flow.Activity.InputBinding inputBinding) {
         return new InlineActivity.JMSQueueGetMessageActivity(parseJMSActivityInner(cx, element, name, inputBinding));
     }
 
@@ -1849,7 +1854,7 @@ public final class XmlToTibcoModelParser {
     }
 
     private static InlineActivity.JMSActivityBase parseJMSActivityInner(ProcessContext cx, Element element, String name,
-                                                                         Flow.Activity.InputBinding inputBinding) {
+            Flow.Activity.InputBinding inputBinding) {
         Element config = getFirstChildWithTag(element, "config");
 
         String permittedMessageType = getFirstChildWithTag(config, "PermittedMessageType").getTextContent();
@@ -1932,7 +1937,8 @@ public final class XmlToTibcoModelParser {
     }
 
     private static InlineActivity.FileEventSource parseFileEventSource(ProcessContext cx, String name,
-            Flow.Activity.InputBinding inputBinding, Element element) {
+            Flow.Activity.InputBinding inputBinding,
+            Element element) {
         // Parse the required boolean fields with default false if missing
         boolean createEvent = tryGetInlineActivityConfigValue(element, "createEvent")
                 .map(Boolean::parseBoolean)

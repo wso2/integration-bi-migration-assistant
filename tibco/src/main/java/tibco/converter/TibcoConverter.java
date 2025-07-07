@@ -100,7 +100,8 @@ public class TibcoConverter {
                             try {
                                 writeAnalysisReport(projectOutputPath, report);
                             } catch (IOException e) {
-                                logger().log(Level.SEVERE, "Error creating individual analysis report for project: " + childName, e);
+                                logger().log(Level.SEVERE,
+                                        "Error creating individual analysis report for project: " + childName, e);
                             }
                             
                             // Create project summary
@@ -217,9 +218,11 @@ public class TibcoConverter {
         logger().info("Created analysis report at: " + reportFilePath);
     }
 
-    private static void writeCombinedSummaryReport(Path targetDir, List<ProjectSummary> projectSummaries) throws IOException {
+    private static void writeCombinedSummaryReport(Path targetDir, List<ProjectSummary> projectSummaries)
+            throws IOException {
         Path reportFilePath = targetDir.resolve("combined_summary_report.html");
-        CombinedSummaryReport combinedReport = new CombinedSummaryReport("Combined Migration Assessment", projectSummaries);
+        CombinedSummaryReport combinedReport = new CombinedSummaryReport("Combined Migration Assessment",
+                projectSummaries);
         String htmlContent = combinedReport.toHTML();
         Files.writeString(reportFilePath, htmlContent);
         logger().info("Created combined summary report at: " + reportFilePath);

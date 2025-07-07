@@ -24,14 +24,15 @@ import java.util.List;
  * A class to generate combined summary reports that link to individual project reports.
  */
 public class CombinedSummaryReport {
+
     private final String reportTitle;
     private final List<ProjectSummary> projectSummaries;
 
     /**
      * Create a new combined summary report.
      *
-     * @param reportTitle        The title of the combined report
-     * @param projectSummaries   List of project summaries to include in the report
+     * @param reportTitle      The title of the combined report
+     * @param projectSummaries List of project summaries to include in the report
      */
     public CombinedSummaryReport(String reportTitle, List<ProjectSummary> projectSummaries) {
         this.reportTitle = reportTitle;
@@ -180,10 +181,10 @@ public class CombinedSummaryReport {
                     """.formatted(
                     project.projectName(),
                     project.activityEstimation().totalActivityCount(),
-                            project.activityEstimation().unhandledActivityCount(),
+                    project.activityEstimation().unhandledActivityCount(),
                     project.successfulConversionPercentage(),
                     project.activityEstimation().timeEstimation().bestCaseDays(),
-                            project.activityEstimation().timeEstimation().worstCaseDays(),
+                    project.activityEstimation().timeEstimation().worstCaseDays(),
                     project.reportPath()
             ));
         }

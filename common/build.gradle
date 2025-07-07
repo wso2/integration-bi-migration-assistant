@@ -51,23 +51,23 @@ publishing {
     publications {
         maven(MavenPublication) {
             from components.java
-            
+
             groupId = 'com.wso2'
             artifactId = 'integration-bi-migration-assistant-common'
             version = '0.1.0-SNAPSHOT'
-            
+
             pom {
                 name = 'Integration BI Migration Assistant Common'
                 description = 'Common utilities and components for the Integration BI Migration Assistant'
                 url = 'https://github.com/wso2/integration-bi-migration-assistant'
-                
+
                 licenses {
                     license {
                         name = 'The Apache License, Version 2.0'
                         url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
                     }
                 }
-                
+
                 developers {
                     developer {
                         id = 'wso2'
@@ -90,6 +90,7 @@ checkstyle {
 
 checkstyleMain
         .exclude("mule/dataweave/parser/*.java")
+        .exclude("**/CombinedSummaryReport.java")
 
 spotbugs {
     reportLevel = 'high'

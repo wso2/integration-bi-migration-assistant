@@ -20,6 +20,13 @@ package common;
 
 /**
  * Record to hold project summary data for combined reporting.
+ *
+ * @param projectName                    The name of the project
+ * @param projectPath                    The path to the project
+ * @param reportPath                     The path to the report
+ * @param activityEstimation             The activity estimation data
+ * @param successfulConversionPercentage The percentage of successful
+ *                                       conversions
  */
 public record ProjectSummary(
         String projectName,
@@ -29,6 +36,10 @@ public record ProjectSummary(
         double successfulConversionPercentage) {
     /**
      * Record to hold activity count and time estimation data.
+     *
+     * @param totalActivityCount     The total number of activities
+     * @param unhandledActivityCount The number of unhandled activities
+     * @param timeEstimation         The time estimation data
      */
     public record ActivityEstimation(
             int totalActivityCount,
@@ -38,6 +49,10 @@ public record ProjectSummary(
 
     /**
      * Record to hold time estimation data.
+     *
+     * @param bestCaseDays    The best case scenario in days
+     * @param averageCaseDays The average case scenario in days
+     * @param worstCaseDays   The worst case scenario in days
      */
     public record TimeEstimation(
             int bestCaseDays,
