@@ -416,7 +416,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record XMLTransformActivity(Element element, String name,
-                                        InputBinding inputBinding, String styleSheet)
+                                        InputBinding inputBinding, String styleSheet, String fileName)
                     implements ExplicitTransitionGroup.InlineActivity {
 
                 public XMLTransformActivity {
@@ -715,13 +715,16 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record JMSTopicPublishActivity(Element element, String name, InputBinding inputBinding,
-                    String permittedMessageType, JMSActivityBase.SessionAttributes sessionAttributes,
-                    JMSActivityBase.ConfigurableHeaders configurableHeaders, String connectionReference, String fileName)
+                                           String permittedMessageType,
+                                           JMSActivityBase.SessionAttributes sessionAttributes,
+                                           JMSActivityBase.ConfigurableHeaders configurableHeaders,
+                                           String connectionReference,
+                                           String fileName)
                     implements ExplicitTransitionGroup.InlineActivity {
 
                 public JMSTopicPublishActivity(JMSActivityBase base) {
                     this(base.element, base.name, base.inputBinding, base.permittedMessageType,
-                        base.sessionAttributes, base.configurableHeaders, base.connectionReference, base.fileName);
+                            base.sessionAttributes, base.configurableHeaders, base.connectionReference, base.fileName);
                 }
 
                 @Override

@@ -579,7 +579,7 @@ public final class XmlToTibcoModelParser {
             xsltContent = "FIXME: failed to find xslt file at " + stylesheetPath;
             logger.warning("Failed to read XSLT file at " + stylesheetPath + ": " + e.getMessage());
         }
-        return new InlineActivity.XMLTransformActivity(element, name, inputBinding, xsltContent);
+        return new InlineActivity.XMLTransformActivity(element, name, inputBinding, xsltContent, cx.fileName());
     }
 
     private static InlineActivity.FileWrite parseFileWrite(
@@ -1848,8 +1848,8 @@ public final class XmlToTibcoModelParser {
         return new InlineActivity.JMSQueueGetMessageActivity(parseJMSActivityInner(cx, element, name, inputBinding));
     }
 
-    private static InlineActivity.JMSTopicPublishActivity parseJMSTopicPublishActivity(ProcessContext cx, Element element, String name,
-            Flow.Activity.InputBinding inputBinding) {
+    private static InlineActivity.JMSTopicPublishActivity parseJMSTopicPublishActivity(
+            ProcessContext cx, Element element, String name, Flow.Activity.InputBinding inputBinding) {
         return new InlineActivity.JMSTopicPublishActivity(parseJMSActivityInner(cx, element, name, inputBinding));
     }
 
