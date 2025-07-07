@@ -109,11 +109,32 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
         // Create a map of unhandled elements grouped by their kind
         Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
 
-        // Calculate time estimates based on unique unhandled activity types
-        int uniqueUnhandledTypes = unhandledElementsMap.size();
-        int bestCaseDays = uniqueUnhandledTypes * TimeEstimationConstants.BEST_CASE_ACTIVITY_TIME;
-        int averageCaseDays = uniqueUnhandledTypes * TimeEstimationConstants.AVERAGE_CASE_ACTIVITY_TIME;
-        int worstCaseDays = uniqueUnhandledTypes * TimeEstimationConstants.WORST_CASE_ACTIVITY_TIME;
+        // Calculate time estimates based on the estimation scenarios:
+        // - New unsupported activities: 1.0 day (best), 2.0 days (avg), 3.0 days
+        // (worst)
+        // - Repeated unsupported activities: 1.0 hour (best), 2.0 hours (avg), 4.0
+        // hours (worst)
+        double bestCaseDays = 0.0;
+        double averageCaseDays = 0.0;
+        double worstCaseDays = 0.0;
+
+        for (Collection<AnalysisReport.UnhandledElement> elements : unhandledElementsMap.values()) {
+            int count = elements.size();
+            if (count > 0) {
+                // First instance (new activity) gets full day estimate
+                bestCaseDays += 1.0;
+                averageCaseDays += 2.0;
+                worstCaseDays += 3.0;
+
+                // Additional instances (repeated activities) get hour estimates
+                if (count > 1) {
+                    int repeatedCount = count - 1;
+                    bestCaseDays += repeatedCount * (1.0 / 8.0); // 1 hour = 1/8 day
+                    averageCaseDays += repeatedCount * (2.0 / 8.0); // 2 hours = 2/8 day
+                    worstCaseDays += repeatedCount * (4.0 / 8.0); // 4 hours = 4/8 day
+                }
+            }
+        }
 
         // Create and use a generic AnalysisReport
         AnalysisReport report = new AnalysisReport(
@@ -122,9 +143,9 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
                 unhandledActivityCount,
                 "Activity",
                 unhandledElementsMap,
-                bestCaseDays,
-                averageCaseDays,
-                worstCaseDays
+                (int) Math.ceil(bestCaseDays),
+                (int) Math.ceil(averageCaseDays),
+                (int) Math.ceil(worstCaseDays)
         );
 
         return report.toHTML();
@@ -143,16 +164,36 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
                 - (totalActivityCount > 0 ?
                 (double) unhandledActivityCount / totalActivityCount * 100.0 : 0.0);
 
-        // Calculate time estimation based on unique unhandled activity types
+        // Calculate time estimation based on the estimation scenarios:
+        // - New unsupported activities: 1.0 day (best), 2.0 days (avg), 3.0 days
+        // (worst)
+        // - Repeated unsupported activities: 1.0 hour (best), 2.0 hours (avg), 4.0
+        // hours (worst)
         Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
-        int uniqueUnhandledTypes = unhandledElementsMap.size();
+        double bestCaseDays = 0.0;
+        double averageCaseDays = 0.0;
+        double worstCaseDays = 0.0;
 
-        int bestCaseDays = uniqueUnhandledTypes * TimeEstimationConstants.BEST_CASE_ACTIVITY_TIME;
-        int averageCaseDays = uniqueUnhandledTypes * TimeEstimationConstants.AVERAGE_CASE_ACTIVITY_TIME;
-        int worstCaseDays = uniqueUnhandledTypes * TimeEstimationConstants.WORST_CASE_ACTIVITY_TIME;
+        for (Collection<AnalysisReport.UnhandledElement> elements : unhandledElementsMap.values()) {
+            int count = elements.size();
+            if (count > 0) {
+                // First instance (new activity) gets full day estimate
+                bestCaseDays += 1.0;
+                averageCaseDays += 2.0;
+                worstCaseDays += 3.0;
+
+                // Additional instances (repeated activities) get hour estimates
+                if (count > 1) {
+                    int repeatedCount = count - 1;
+                    bestCaseDays += repeatedCount * (1.0 / 8.0); // 1 hour = 1/8 day
+                    averageCaseDays += repeatedCount * (2.0 / 8.0); // 2 hours = 2/8 day
+                    worstCaseDays += repeatedCount * (4.0 / 8.0); // 4 hours = 4/8 day
+                }
+            }
+        }
 
         ProjectSummary.TimeEstimation timeEstimation = new ProjectSummary.TimeEstimation(
-                bestCaseDays, averageCaseDays, worstCaseDays
+                (int) Math.ceil(bestCaseDays), (int) Math.ceil(averageCaseDays), (int) Math.ceil(worstCaseDays)
         );
         ProjectSummary.ActivityEstimation activityEstimation = new ProjectSummary.ActivityEstimation(
                 totalActivityCount, unhandledActivityCount, timeEstimation);

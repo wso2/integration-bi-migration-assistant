@@ -91,6 +91,7 @@ checkstyle {
 checkstyleMain
         .exclude("mule/dataweave/parser/*.java")
         .exclude("**/CombinedSummaryReport.java")
+        .exclude("**/AnalysisReport.java")
 
 spotbugs {
     reportLevel = 'high'

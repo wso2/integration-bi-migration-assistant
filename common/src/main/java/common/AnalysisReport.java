@@ -23,12 +23,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-
-
 /**
  * A generic analysis report that can be used for different types of integrations.
  */
 public class AnalysisReport {
+
     private final String reportTitle;
     private final int totalElementCount;
     private final int unhandledElementCount;
@@ -37,6 +36,323 @@ public class AnalysisReport {
     private final int bestCaseDays;
     private final int averageCaseDays;
     private final int worstCaseDays;
+
+    // CSS styles as a constant to avoid format specifier issues
+    private static final String CSS_STYLES = """
+            /* Base styles */
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f9;
+                color: #333;
+                margin: 0;
+                padding: 20px;
+            }
+            
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+            
+            h1, h2, h3 {
+                color: #333;
+            }
+            
+            h1 {
+                text-align: center;
+                color: #4682B4;
+                font-size: 2.5em;
+                font-weight: 300;
+                margin: 15px auto 40px;
+                padding: 0 0 15px;
+                max-width: 600px;
+                position: relative;
+                border-bottom: 1px solid rgba(70, 130, 180, 0.2);
+            }
+            
+            h1::after {
+                content: "";
+                position: absolute;
+                bottom: -1px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 100px;
+                height: 3px;
+                background-color: rgba(70, 130, 180, 0.8);
+            }
+            
+            .summary-container h2 {
+                margin-top: 0;
+                color: #4682B4;
+                border-bottom: 2px solid #f0f0f0;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+                text-align: center;
+                font-size: 1.5em;
+            }
+            
+            h3 {
+                color: #4682B4;
+                border-bottom: 2px solid #f0f0f0;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+            }
+            
+            /* Summary container styling */
+            .summary-container {
+                background-color: #fff;
+                padding: 25px;
+                border-radius: 10px;
+                box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+                margin: 25px 0;
+                transition: box-shadow 0.3s;
+            }
+            
+            .summary-container:hover {
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+            }
+            
+            /* Coverage indicator */
+            .coverage-indicator {
+                width: 100%;
+                height: 12px;
+                background-color: #f0f0f0;
+                border-radius: 6px;
+                overflow: hidden;
+                box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+                margin: 10px 0 20px 0;
+            }
+            
+            .coverage-bar {
+                height: 100%;
+                border-radius: 6px;
+                transition: width 0.5s ease-in-out;
+            }
+            
+            /* Table styling */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+            }
+            
+            th, td {
+                border: 1px solid #ddd;
+                padding: 12px;
+                text-align: left;
+            }
+            
+            th {
+                background-color: #4682B4;
+                color: white;
+            }
+            
+            tr:nth-child(even) {
+                background-color: #f2f2f2;
+            }
+            
+            tr:hover {
+                background-color: #ddd;
+            }
+            
+            /* Estimation notes */
+            .estimation-notes {
+                margin-top: 25px;
+                padding: 20px;
+                background-color: #f8f9fa;
+                border-radius: 8px;
+                border-left: 4px solid #4682B4;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            }
+            
+            .estimation-notes p {
+                margin-top: 0;
+            }
+            
+            .estimation-notes ul {
+                margin: 15px 0 5px 25px;
+                padding-left: 0;
+            }
+            
+            .estimation-notes li {
+                margin-bottom: 8px;
+                line-height: 1.4;
+            }
+            
+            /* Code blocks styling */
+            .unsupported-blocks {
+                padding: 10px;
+            }
+            
+            .block-item {
+                background-color: #f8f9fa;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                margin-bottom: 15px;
+                overflow: hidden;
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            
+            .block-item:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+            }
+            
+            .block-header {
+                background-color: #4682B4;
+                color: white;
+                padding: 10px;
+                display: flex;
+                justify-content: space-between;
+            }
+            
+            .block-code {
+                margin: 0;
+                padding: 15px;
+                background-color: #fff;
+                overflow-x: auto;
+                font-family: monospace;
+                white-space: pre-wrap;
+            }
+            
+            .block-number {
+                font-weight: bold;
+            }
+            
+            .block-type {
+                font-family: monospace;
+            }
+            
+            /* Status badges */
+            .status-badge {
+                padding: 6px 12px;
+                border-radius: 20px;
+                font-size: 0.75em;
+                font-weight: 600;
+                letter-spacing: 0.3px;
+                text-transform: uppercase;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                display: inline-block;
+                margin-left: 15px;
+            }
+            
+            .status-high {
+                background-color: #e8f5e9;
+                color: #2e7d32;
+                border: 1px solid rgba(46, 125, 50, 0.2);
+            }
+            
+            .status-medium {
+                background-color: #fff8e1;
+                color: #f57c00;
+                border: 1px solid rgba(245, 124, 0, 0.2);
+            }
+            
+            .status-low {
+                background-color: #ffebee;
+                color: #c62828;
+                border: 1px solid rgba(198, 40, 40, 0.2);
+            }
+            
+            /* Footer */
+            footer {
+                text-align: center;
+                margin-top: 20px;
+                font-size: 0.9em;
+                color: #666;
+            }
+            
+            /* Code in tables */
+            table code {
+                background-color: #f0f0f0;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-family: monospace;
+                font-size: 0.9em;
+            }
+            
+            /* Metric styling with box shape and hover effects */
+            .metric {
+                width: 100%;
+                box-sizing: border-box;
+                padding: 15px 20px;
+                display: flex;
+                flex-direction: row;
+                align-items: flex-start;
+                gap: 20px;
+                background-color: #f8f9fa;
+                border-radius: 8px;
+                transition: transform 0.2s, box-shadow 0.2s;
+                margin-bottom: 15px;
+                border: 1px solid #eaeaea;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            }
+            
+            .metric:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            }
+            
+            .metric-value {
+                font-weight: bold;
+                font-size: 1.8em;
+                color: #4682B4;
+                margin-bottom: 5px;
+            }
+            
+            .metric-label {
+                font-size: 0.9em;
+                color: #666;
+                text-align: center;
+            }
+            
+            .metric-left {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .metric-right {
+                flex: 1;
+                padding-top: 10px;
+            }
+            
+            /* Time estimation table styling */
+            .time-best {
+                color: #4CAF50;
+                font-weight: 600;
+            }
+            
+            .time-avg {
+                color: #4682B4;
+                font-weight: 600;
+            }
+            
+            .time-worst {
+                color: #FF5722;
+                font-weight: 600;
+            }
+            
+            .drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
+            .drawer.open { max-height: 500px; }
+            .empty-message { text-align: center; padding: 20px; color: #666; }
+            
+            /* Coverage bar with data attributes */
+            .coverage-bar[data-width] {
+                height: 100%;
+                border-radius: 6px;
+                transition: width 0.5s ease-in-out;
+            }
+            
+            /* Utility classes for visibility */
+            .hidden {
+                display: none;
+            }
+            
+            .visible {
+                display: block;
+            }
+            """;
 
     /**
      * Create a new generic analysis report.
@@ -49,8 +365,9 @@ public class AnalysisReport {
      *                              representations as value
      */
     public AnalysisReport(String reportTitle, int totalElementCount, int unhandledElementCount, String elementType,
-            Map<String, Collection<UnhandledElement>> unhandledElements, int bestCaseDays, int averageCaseDays,
-            int worstCaseDays) {
+                          Map<String, Collection<UnhandledElement>> unhandledElements, int bestCaseDays,
+                          int averageCaseDays,
+                          int worstCaseDays) {
         assert totalElementCount >= unhandledElementCount;
         this.reportTitle = reportTitle;
         this.totalElementCount = totalElementCount;
@@ -63,9 +380,8 @@ public class AnalysisReport {
     }
 
     /**
-     * Calculate frequencies of different element types from the unhandled elements map.
-     * Each key represents a unique kind of element, and the size of the collection for each key
-     * represents the number of instances of that kind.
+     * Calculate frequencies of different element types from the unhandled elements map. Each key represents a unique
+     * kind of element, and the size of the collection for each key represents the number of instances of that kind.
      *
      * @return A map with activity types as keys and their frequencies as values
      */
@@ -97,79 +413,83 @@ public class AnalysisReport {
                 <html>
                 <head>
                     <title>%s</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; }
-                        table { width: 100%%; border-collapse: collapse; margin: 20px 0; }
-                        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-                        th { background-color: #4682B4; color: white; }
-                        tr:nth-child(even) { background-color: #e0f0ff; }
-                        tr:hover { background-color: #b0d4f1; }
-                        h1 { text-align: center; }
-                        footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #666; }
-                        .drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
-                        .drawer.open { max-height: 500px; }
-                        .summary-container { background-color: #fff; padding: 20px; border-radius: 8px;
-                            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); margin: 20px 0; }
-                        .blue-table th { background-color: #4682B4; color: white; }
-                        .blue-table tr:nth-child(even) { background-color: #e0f0ff; }
-                        .blue-table tr:hover { background-color: #b0d4f1; }
-                        .estimation-notes { margin-top: 20px; padding: 15px; background-color: #f8f9fa;
-                            border-radius: 5px; }
-                        .estimation-notes ul { margin: 10px 0 0 20px; }
-                        .estimation-notes li { margin-bottom: 5px; }
-                        .unsupported-blocks { padding: 10px; }
-                        .block-item {
-                            background-color: #f8f9fa;
-                            border: 1px solid #ddd;
-                            border-radius: 5px;
-                            margin-bottom: 15px;
-                            overflow: hidden;
-                        }
-                        .block-header {
-                            background-color: #4682B4;
-                            color: white;
-                            padding: 10px;
-                            display: flex;
-                            justify-content: space-between;
-                        }
-                        .block-code {
-                            margin: 0;
-                            padding: 15px;
-                            background-color: #fff;
-                            overflow-x: auto;
-                            font-family: monospace;
-                            white-space: pre-wrap;
-                        }
-                        .block-number { font-weight: bold; }
-                        .block-type { font-size: 0.8em; color: #ddd; font-style: italic; font-weight: normal; }
-                        .file-name { font-family: monospace; }
-                        code {
-                            background-color: #f0f0f0;
-                            padding: 2px 6px;
-                            border-radius: 4px;
-                            font-family: monospace;
-                            font-size: 0.9em;
-                        }
-                    </style>
+                    <style>%s</style>
                 </head>
                 <body>
-                    <h1>%s</h1>
-                """.formatted(reportTitle, reportTitle));
+                    <div class="container">
+                        <h1>%s</h1>
+                """.formatted(reportTitle, CSS_STYLES, reportTitle));
 
         // Calculate automated migration coverage percentage
         double coveragePercentage = 100 - calculatePercentage(unhandledElementCount, totalElementCount);
-        html.append("""
-                    <h3>Automated Migration Coverage: %.0f%%</h3>
 
+        // Determine status badge based on coverage
+        String statusClass = coveragePercentage >= 90 ? "status-high"
+                : coveragePercentage >= 70 ? "status-medium" : "status-low";
+        String statusText = coveragePercentage >= 90 ? "High Coverage"
+                : coveragePercentage >= 70 ? "Medium Coverage" : "Low Coverage";
+
+        html.append("""
                     <div class="summary-container">
-                        <h3>Implementation Time Estimation</h3>
-                        <table class="blue-table">
+                        <h2>Migration Coverage Overview</h2>
+                        <div class="metrics">
+                
+                          <!-- Overall Coverage -->
+                          <div class="metric">
+                            <div class="metric-left">
+                              <span class="metric-value">%.0f%%</span>
+                              <span class="metric-label">Overall Coverage</span>
+                              <div class="coverage-indicator">
+                                <div class="coverage-bar" data-width="%.0f" data-color="%s"></div>
+                              </div>
+                              <div>
+                                <span class="status-badge %s">%s</span>
+                              </div>
+                            </div>
+                            <div class="metric-right">
+                              <div class="coverage-breakdown">
+                                <div>
+                                  <span class="breakdown-label">Total %s(s):</span>
+                                  <span class="breakdown-value">%d</span>
+                                </div>
+                                <div>
+                                  <span class="breakdown-label">Migratable %s(s):</span>
+                                  <span class="breakdown-value">%d</span>
+                                </div>
+                                <div>
+                                  <span class="breakdown-label">Non-migratable %s(s):</span>
+                                  <span class="breakdown-value">%d</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                    </div>
+                """
+                .formatted(
+                        coveragePercentage,
+                        coveragePercentage,
+                        coveragePercentage >= 90 ? "#4CAF50" : coveragePercentage >= 70 ? "#FF9800" : "#F44336",
+                        statusClass,
+                        statusText,
+                        elementType.toLowerCase(),
+                        totalElementCount,
+                        elementType.toLowerCase(),
+                        totalElementCount - unhandledElementCount,
+                        elementType.toLowerCase(),
+                        unhandledElementCount));
+
+        // Manual Work Estimation section
+        html.append("""
+                    <div class="summary-container">
+                        <h2>Manual Work Estimation</h2>
+                        <table>
                             <tr>
                                 <th>Scenario</th>
-                                <th>Days</th>
+                                <th>Working Days</th>
                                 <th>Weeks (approx.)</th>
                             </tr>
-                """.formatted(coveragePercentage));
+                """);
 
         // Use the passed-in time estimates
         int bestCaseWeeks = (int) Math.ceil(bestCaseDays / 5.0);
@@ -179,18 +499,18 @@ public class AnalysisReport {
         html.append("""
                             <tr>
                                 <td>Best Case</td>
-                                <td>%s</td>
-                                <td>%s</td>
+                                <td class="time-best">%s</td>
+                                <td class="time-best">%s</td>
                             </tr>
                             <tr>
                                 <td>Average Case</td>
-                                <td>%s</td>
-                                <td>%s</td>
+                                <td class="time-avg">%s</td>
+                                <td class="time-avg">%s</td>
                             </tr>
                             <tr>
                                 <td>Worst Case</td>
-                                <td>%s</td>
-                                <td>%s</td>
+                                <td class="time-worst">%s</td>
+                                <td class="time-worst">%s</td>
                             </tr>
                         </table>
                 """.formatted(
@@ -202,33 +522,47 @@ public class AnalysisReport {
         // Estimation notes
         html.append("""
                         <div class="estimation-notes">
-                            <p><strong>Note:</strong></p>
+                            <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
                             <ul>
-                                <li>Best Case: %s per unsupported %s for analysis, implementation and testing</li>
-                                <li>Average Case: %s per unsupported %s for analysis, implementation and testing</li>
-                                <li>Worst Case: %s per unsupported %s for analysis, implementation and testing</li>
-                                <li>Total distinct unsupported %s(s): %d</li>
+                                <li>Best case scenario:
+                                  <ul>
+                                    <li>1.0 day per each new unsupported %s for analysis, implementation, and testing</li>
+                                    <li>1.0 hour per each repeated unsupported %s for implementation</li>
+                                    <li>Assumes minimal complexity and straightforward implementations</li>
+                                  </ul>
+                                </li>
+                                <li>Average case scenario:
+                                  <ul>
+                                    <li>2.0 days per each new unsupported %s for analysis, implementation, and testing</li>
+                                    <li>2.0 hour per each repeated unsupported %s for implementation</li>
+                                    <li>Assumes medium complexity with moderate implementation challenges</li>
+                                  </ul>
+                                </li>
+                                <li>Worst case scenario:
+                                  <ul>
+                                    <li>3.0 days per each new unsupported %s for analysis, implementation, and testing</li>
+                                    <li>4.0 hour per each repeated unsupported %s for implementation</li>
+                                    <li>Assumes high complexity with significant implementation challenges</li>
+                                  </ul>
+                                </li>
                             </ul>
                         </div>
                     </div>
                 """.formatted(
-                toDays(bestCaseDays), elementType.toLowerCase(),
-                toDays(averageCaseDays), elementType.toLowerCase(),
-                toDays(worstCaseDays), elementType.toLowerCase(),
-                elementType.toLowerCase(), unhandledElementCount
+                elementType.toLowerCase(), elementType.toLowerCase(),
+                elementType.toLowerCase(), elementType.toLowerCase(),
+                elementType.toLowerCase(), elementType.toLowerCase()
         ));
 
         // Unsupported elements frequency table
         if (!typeFrequencyMap.isEmpty()) {
             html.append("""
                     <div class="summary-container">
-                        <h3>%s(s) Awaiting tool support</h3>
-                        <table class="blue-table">
-                            <tr>
-                                <th>%s Type</th>
-                                <th>Frequency</th>
-                            </tr>
-                    """.formatted(elementType, elementType));
+                        <h2>Currently Unsupported Activities</h2>
+                        <div id="toolSupportSection">
+                            <table>
+                                <tr><th>Activity name</th><th>Frequency</th></tr>
+                    """);
 
             // Add all elements by type
             typeFrequencyMap.entrySet().stream()
@@ -242,41 +576,61 @@ public class AnalysisReport {
 
             html.append("""
                             </table>
+                            <p class="empty-message hidden" id="toolSupportEmpty">
+                                No unsupported activities found
+                            </p>
                             <div class="estimation-notes">
-                                <p><strong>Note:</strong> These %s(s) will be supported in future versions of the
-                                migration tool.</p>
+                                <p><strong>Note:</strong> These activities are expected to be supported in future versions of the migration tool.</p>
                             </div>
                         </div>
-                    """.formatted(elementType.toLowerCase()));
-
-            // Unsupported elements section
-            html.append("""
-                    <div class="summary-container">
-                        <h3>Unsupported %s(s)</h3>
-                        <div class="unsupported-blocks">
-                    """.formatted(elementType));
-
-            for (Map.Entry<String, Collection<UnhandledElement>> entry : unhandledElements.entrySet()) {
-                for (var each : entry.getValue()) {
-                    appendElement(html, entry.getKey(), each.name().orElse("UnhandledElement"), each.code(),
-                            each.fileName());
-                }
-            }
-
-            html.append("""
-                            </div>
-                        </div>
+                    </div>
                     """);
+        } else {
+            // No unsupported elements
+            html.append(
+                    """
+                                                                                                                                                                                                                    <div class="summary-container">
+                                                                                                                                                                                                                        <h2>Currently Unsupported Activities</h2>
+                                                                                                                                                                                                                        <div id="toolSupportSection">
+                                                                                                                                                                                                                                                                                                                                                                                                                                <table class="hidden">
+                                                                                                                                                                                                                        <tr><th>Activity name</th><th>Frequency</th></tr>
+                                                                                                                                                                                                                            </table>
+                                                                                                                                                                                                                            <p class="empty-message visible" id="toolSupportEmpty">
+                                                                                                                                                                                                                                No unsupported activities found
+                                                                                                                                                                                                                            </p>
+                                                                                                                                                                                                                            <div class="estimation-notes hidden">
+                                                                                                                                                                                                                                <p><strong>Note:</strong> These activities are expected to be supported in future versions of the migration tool.</p>
+                                                                                                                                                                                                                            </div>
+                                                                                                                                                                                                                        </div>
+                                                                                                                                                                                                                    </div>
+                            """);
         }
 
         // Footer with date
         html.append("""
-                    <footer>
-                        <p>Report generated on: <span id="datetime"></span></p>
-                    </footer>
+                    <footer><p>Report generated on: <span id="datetime"></span></p></footer>
                     <script>
-                        document.getElementById("datetime").innerHTML = new Date().toLocaleString();
+                      document.addEventListener('DOMContentLoaded', function() {
+                          // Set coverage bar styles from data attributes
+                          const coverageBars = document.querySelectorAll('.coverage-bar[data-width]');
+                          coverageBars.forEach(function(bar) {
+                              const width = bar.getAttribute('data-width');
+                              const color = bar.getAttribute('data-color');
+                              bar.style.width = width + '%%';
+                              bar.style.backgroundColor = color;
+                          });
+                
+                          // Check Currently Unsupported Elements
+                          const toolSupportTable = document.querySelector('#toolSupportSection table');
+                          if (toolSupportTable.rows.length <= 1) {
+                              toolSupportTable.classList.add('hidden');
+                              document.getElementById('toolSupportEmpty').classList.remove('hidden');
+                              document.getElementById('toolSupportEmpty').classList.add('visible');
+                              document.querySelector('#toolSupportSection .estimation-notes').classList.add('hidden');
+                          }
+                      });
                     </script>
+                    <script>document.getElementById("datetime").innerHTML = new Date().toLocaleString();</script>
                 </body>
                 </html>
                 """);

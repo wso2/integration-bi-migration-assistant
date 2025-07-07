@@ -19,6 +19,8 @@
 package common;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * A class to generate combined summary reports that link to individual project reports.
@@ -27,6 +29,499 @@ public class CombinedSummaryReport {
 
     private final String reportTitle;
     private final List<ProjectSummary> projectSummaries;
+
+    // CSS styles as a constant to avoid format specifier issues
+    private static final String CSS_STYLES = """
+            /* Base styles */
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f9;
+                color: #333;
+                margin: 0;
+                padding: 20px;
+            }
+            
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+            
+            h1, h2 {
+                text-align: center;
+                color: #333;
+            }
+            
+            /* Container styling */
+            .summary-container {
+                background-color: #fff;
+                padding: 25px;
+                border-radius: 10px;
+                box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+                margin: 25px 0;
+                transition: box-shadow 0.3s;
+            }
+            
+            .summary-container:hover {
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+            }
+            
+            .summary-container h2 {
+                margin-top: 0;
+                color: #4682B4;
+                border-bottom: 2px solid #f0f0f0;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+            }
+            
+            /* Centered title with subtle border */
+            .container > h1 {
+                color: #4682B4;
+                font-size: 2.5em;
+                font-weight: 300;
+                margin: 15px auto 40px;
+                padding: 0 0 15px;
+                max-width: 600px;
+                position: relative;
+                border-bottom: 1px solid rgba(70, 130, 180, 0.2);
+            }
+            
+            .container > h1::after {
+                content: "";
+                position: absolute;
+                bottom: -1px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 100px;
+                height: 3px;
+                background-color: rgba(70, 130, 180, 0.8);
+            }
+            
+            /* Metrics styling */
+            .metrics {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+                margin: 25px 0;
+                justify-content: space-around;
+            }
+            
+            .metric {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                background-color: #f8f9fa;
+                padding: 15px 25px;
+                border-radius: 8px;
+                min-width: 150px;
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            
+            .metric:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            }
+            
+            .metric-value {
+                font-weight: bold;
+                font-size: 1.8em;
+                color: #4682B4;
+                margin-bottom: 5px;
+            }
+            
+            .metric-label {
+                font-size: 0.9em;
+                color: #666;
+                text-align: center;
+            }
+            
+            /* Project card metrics adjustments */
+            .project-card .metrics {
+                margin-top: 10px;
+                justify-content: flex-start;
+            }
+            
+            .project-card .metric-value {
+                font-size: 1.4em;
+            }
+            
+            .project-card .metric-label {
+                font-size: 0.9em;
+            }
+            
+            .project-card .metric {
+                display: flex;
+                flex-direction: row;
+                align-items: flex-start;
+                width: 100%;
+                gap: 20px;
+            }
+            
+            .project-card .metric-left {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .project-card .metric-right {
+                flex: 1;
+                padding-top: 10px;
+            }
+            
+            .project-card .metric .coverage-indicator {
+                width: 80%;
+                height: 6px;
+                background-color: #f0f0f0;
+                border-radius: 3px;
+                overflow: hidden;
+                box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+                margin-top: 8px;
+            }
+            
+            .project-card .metric .coverage-bar {
+                height: 100%;
+                border-radius: 3px;
+                transition: width 0.5s ease-in-out;
+            }
+            
+            .project-card .metric .coverage-breakdown {
+                font-size: 0.85em;
+                color: #666;
+            }
+            
+            .project-card .metric .coverage-breakdown div {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 4px;
+            }
+            
+            .project-card .metric .coverage-breakdown .breakdown-label {
+                margin-right: 8px;
+            }
+            
+            .project-card .metric .coverage-breakdown .breakdown-value {
+                font-weight: 600;
+            }
+            
+            /* Project cards */
+            .project-card {
+                background-color: #fff;
+                border-radius: 10px;
+                box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+                margin: 20px 0;
+                padding: 20px;
+                display: grid;
+                grid-template-columns: 3fr 2fr;
+                gap: 15px;
+                transition: transform 0.2s, box-shadow 0.2s;
+                align-items: center;
+            }
+            
+            .project-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+            }
+            
+            .project-header {
+                display: flex;
+                align-items: center;
+                margin-bottom: 15px;
+                gap: 12px;
+            }
+            
+            .project-name {
+                font-size: 1.2em;
+                font-weight: 600;
+                margin-right: 10px;
+            }
+            
+            .project-link {
+                color: #4682B4;
+                text-decoration: none;
+                position: relative;
+                padding-bottom: 2px;
+            }
+            
+            .project-link:after {
+                content: '';
+                position: absolute;
+                width: 0;
+                height: 2px;
+                bottom: 0;
+                left: 0;
+                background-color: #4682B4;
+                transition: width 0.3s;
+            }
+            
+            .project-link:hover:after {
+                width: 100%;
+            }
+            
+            .project-details {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .project-metrics {
+                display: flex;
+                align-items: flex-start;
+                gap: 20px;
+            }
+            
+            /* Project coverage indicators */
+            .project-coverage {
+                margin-top: 10px;
+            }
+            
+            .coverage-indicator {
+                width: 100%;
+                height: 12px;
+                background-color: #f0f0f0;
+                border-radius: 6px;
+                overflow: hidden;
+                box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+            
+            .coverage-bar {
+                height: 100%;
+                border-radius: 6px;
+                transition: width 0.5s ease-in-out;
+            }
+            
+            /* Project left column styling */
+            .project-left {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+            
+            /* Time estimates styling */
+            .time-estimates {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+                background-color: #f8f9fa;
+                border-radius: 8px;
+                padding: 15px;
+                padding-top: 30px;
+                height: fit-content;
+                justify-self: center;
+                position: relative;
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            
+            .time-estimates:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            }
+            
+            .time-estimates::before {
+                content: "Manual Work Estimation";
+                position: absolute;
+                top: 8px;
+                left: 0;
+                width: 100%;
+                text-align: center;
+                font-weight: normal;
+                font-size: 0.9em;
+                color: #666;
+            }
+            
+            .time-estimate {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .time-label {
+                font-size: 0.8em;
+                color: #666;
+                margin-bottom: 5px;
+            }
+            
+            .time-value {
+                font-weight: bold;
+                color: #4682B4;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .time-days {
+                font-size: 1.1em;
+            }
+            
+            .time-weeks {
+                font-size: 0.75em;
+                color: #777;
+                margin-top: 2px;
+            }
+            
+            .time-best {
+                color: #4CAF50;
+            }
+            
+            .time-worst {
+                color: #FF5722;
+            }
+            
+            /* Status badges */
+            .status-badge {
+                padding: 6px 12px;
+                border-radius: 20px;
+                font-size: 0.75em;
+                font-weight: 600;
+                letter-spacing: 0.3px;
+                text-transform: uppercase;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                display: inline-block;
+            }
+            
+            .status-high {
+                background-color: #e8f5e9;
+                color: #2e7d32;
+                border: 1px solid rgba(46, 125, 50, 0.2);
+            }
+            
+            .status-medium {
+                background-color: #fff8e1;
+                color: #f57c00;
+                border: 1px solid rgba(245, 124, 0, 0.2);
+            }
+            
+            .status-low {
+                background-color: #ffebee;
+                color: #c62828;
+                border: 1px solid rgba(198, 40, 40, 0.2);
+            }
+            
+            /* Estimation notes */
+            .estimation-notes {
+                margin-top: 25px;
+                padding: 20px;
+                background-color: #f8f9fa;
+                border-radius: 8px;
+                border-left: 4px solid #4682B4;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            }
+            
+            .estimation-notes p {
+                margin-top: 0;
+            }
+            
+            .estimation-notes ul {
+                margin: 15px 0 5px 25px;
+                padding-left: 0;
+            }
+            
+            .estimation-notes li {
+                margin-bottom: 8px;
+                line-height: 1.4;
+            }
+            
+            /* Table styling */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+            }
+            
+            th, td {
+                border: 1px solid #ddd;
+                padding: 12px;
+                text-align: left;
+            }
+            
+            th {
+                background-color: #4682B4;
+                color: white;
+            }
+            
+            tr:nth-child(even) {
+                background-color: #f2f2f2;
+            }
+            
+            tr:hover {
+                background-color: #ddd;
+            }
+            
+            /* Footer */
+            footer {
+                text-align: center;
+                margin-top: 20px;
+                font-size: 0.9em;
+                color: #666;
+            }
+            
+            /* Overview specific styles */
+            .overview-metrics {
+                flex-direction: column;
+                align-items: center;
+                width: 100%;
+            }
+            
+            .overview-metric {
+                width: 100%;
+                box-sizing: border-box;
+                padding: 15px 20px;
+            }
+            
+            .overview-metric:nth-child(2) {
+                display: flex;
+                flex-direction: row;
+                align-items: flex-start;
+                gap: 20px;
+            }
+            
+            .overview-indicator {
+                width: 80%;
+                height: 6px;
+                background-color: #f0f0f0;
+                border-radius: 3px;
+                overflow: hidden;
+                box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+                margin-top: 8px;
+            }
+            
+            .breakdown-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 4px;
+            }
+            
+            .time-estimates-container {
+                display: flex;
+                justify-content: center;
+                margin: 20px 0;
+            }
+            
+            .overview-time-estimates {
+                width: 100%;
+                box-sizing: border-box;
+            }
+            
+            /* Responsive design */
+            @media (max-width: 768px) {
+                .metrics {
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 15px;
+                }
+            
+                .metric {
+                    width: 80%;
+                }
+            
+                .project-card {
+                    grid-template-columns: 1fr;
+                }
+            
+                .time-estimates {
+                    margin-top: 15px;
+                }
+            }
+            """;
 
     /**
      * Create a new combined summary report.
@@ -53,46 +548,25 @@ public class CombinedSummaryReport {
                 <html>
                 <head>
                     <title>%s</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; }
-                        table { width: 100%%; border-collapse: collapse; margin: 20px 0; }
-                        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-                        th { background-color: #4682B4; color: white; }
-                        tr:nth-child(even) { background-color: #e0f0ff; }
-                        tr:hover { background-color: #b0d4f1; }
-                        h1 { text-align: center; color: #4682B4; }
-                        h2 { color: #4682B4; }
-                        footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #666; }
-                        .summary-container { background-color: #fff; padding: 20px; border-radius: 8px;
-                            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); margin: 20px 0; }
-                        .blue-table th { background-color: #4682B4; color: white; }
-                        .blue-table tr:nth-child(even) { background-color: #e0f0ff; }
-                        .blue-table tr:hover { background-color: #b0d4f1; }
-                        .project-link { color: #4682B4; text-decoration: none; font-weight: bold; }
-                        .project-link:hover { text-decoration: underline; }
-                        .overall-stats { background-color: #f0f8ff; padding: 15px; border-radius: 5px;
-                            border-left: 4px solid #4682B4; margin: 20px 0; }
-                        .stat-value { font-size: 1.2em; font-weight: bold; color: #4682B4; }
-                        .center-text { text-align: center; }
-                        .no-projects { text-align: center; color: #666; font-style: italic; }
-                    </style>
+                    <style>%s</style>
                 </head>
                 <body>
-                    <h1>%s</h1>
-                """.formatted(reportTitle, reportTitle));
+                    <div class="container">
+                        <h1>%s</h1>
+                """.formatted(reportTitle, CSS_STYLES, reportTitle));
 
         if (projectSummaries.isEmpty()) {
             html.append("""
                     <div class="summary-container">
-                        <div class="no-projects">No projects found for analysis.</div>
+                        <div class="no-projects" style="text-align: center; color: #666; font-style: italic;">No projects found for analysis.</div>
                     </div>
                     """);
         } else {
             // Overall statistics
             appendOverallStatistics(html);
 
-            // Project summaries table
-            appendProjectSummariesTable(html);
+            // Project summaries
+            appendProjectSummaries(html);
 
             // Overall time estimation
             appendOverallTimeEstimation(html);
@@ -100,12 +574,30 @@ public class CombinedSummaryReport {
 
         // Footer with date
         html.append("""
+                    </div>
                     <footer>
-                        <p>Combined Summary Report generated on: <span id="datetime"></span></p>
+                        <p>Report generated on: <span id="datetime"></span></p>
                     </footer>
                     <script>
-                        document.getElementById("datetime").innerHTML = new Date().toLocaleString();
+                        document.addEventListener('DOMContentLoaded', function() {
+                            // Set coverage bar styles from data attributes
+                            const coverageBars = document.querySelectorAll('.coverage-bar[data-width]');
+                            coverageBars.forEach(function(bar) {
+                                const width = bar.getAttribute('data-width');
+                                const color = bar.getAttribute('data-color');
+                                bar.style.width = width + '%';
+                                bar.style.backgroundColor = color;
+                            });
+                
+                            const toolSupportTable = document.querySelector('#toolSupportSection table');
+                            if (toolSupportTable.rows.length <= 1) {
+                                toolSupportTable.style.display = 'none';
+                                document.getElementById('toolSupportEmpty').style.display = 'block';
+                                document.querySelector('#toolSupportSection .estimation-notes').style.display = 'none';
+                            }
+                        });
                     </script>
+                    <script>document.getElementById("datetime").innerHTML = new Date().toLocaleString();</script>
                 </body>
                 </html>
                 """);
@@ -115,10 +607,10 @@ public class CombinedSummaryReport {
 
     private void appendOverallStatistics(StringBuilder html) {
         int totalProjects = projectSummaries.size();
-        int totalElements = projectSummaries.stream()
+        int totalActivities = projectSummaries.stream()
                 .mapToInt(p -> p.activityEstimation().totalActivityCount())
                 .sum();
-        int totalUnhandledElements = projectSummaries.stream()
+        int totalUnhandledActivities = projectSummaries.stream()
                 .mapToInt(p -> p.activityEstimation().unhandledActivityCount())
                 .sum();
         double averageConversionPercentage = projectSummaries.stream()
@@ -127,75 +619,54 @@ public class CombinedSummaryReport {
                 .orElse(0.0);
 
         html.append("""
-                <div class="overall-stats">
-                    <h2>Overall Statistics</h2>
-                    <div style="display: flex; justify-content: space-around; text-align: center;">
-                        <div>
-                            <div class="stat-value">%d</div>
-                            <div>Projects Analyzed</div>
-                        </div>
-                        <div>
-                            <div class="stat-value">%d</div>
-                            <div>Total Elements</div>
-                        </div>
-                        <div>
-                            <div class="stat-value">%d</div>
-                            <div>Unhandled Elements</div>
-                        </div>
-                        <div>
-                            <div class="stat-value">%.1f%%</div>
-                            <div>Average Conversion</div>
-                        </div>
-                    </div>
-                </div>
-                """.formatted(totalProjects, totalElements, totalUnhandledElements, averageConversionPercentage));
-    }
-
-    private void appendProjectSummariesTable(StringBuilder html) {
-        html.append("""
                 <div class="summary-container">
-                    <h2>Project Summaries</h2>
-                    <table class="blue-table">
-                        <tr>
-                            <th>Project Name</th>
-                            <th>Total Elements</th>
-                            <th>Unhandled Elements</th>
-                            <th>Conversion Success Rate</th>
-                            <th>Time Estimation (Days)</th>
-                            <th>Detailed Report</th>
-                        </tr>
-                """);
-
-        for (ProjectSummary project : projectSummaries) {
-            html.append("""
-                            <tr>
-                                <td><strong>%s</strong></td>
-                                <td class="center-text">%d</td>
-                                <td class="center-text">%d</td>
-                                <td class="center-text">%.1f%%</td>
-                                <td class="center-text">%d - %d</td>
-                                <td class="center-text">
-                                    <a href="%s" class="project-link">View Report</a>
-                                </td>
-                            </tr>
-                    """.formatted(
-                    project.projectName(),
-                    project.activityEstimation().totalActivityCount(),
-                    project.activityEstimation().unhandledActivityCount(),
-                    project.successfulConversionPercentage(),
-                    project.activityEstimation().timeEstimation().bestCaseDays(),
-                    project.activityEstimation().timeEstimation().worstCaseDays(),
-                    project.reportPath()
-            ));
-        }
-
-        html.append("""
-                        </table>
+                    <h2>Overview</h2>
+                                        <div class="metrics overview-metrics">
+                        <div class="metric overview-metric">
+                            <span class="metric-value">%d</span>
+                            <span class="metric-label">Projects Analyzed</span>
+                        </div>
+                        <div class="metric overview-metric">
+                            <div class="metric-left">
+                                <span class="metric-value">%.0f%%</span>
+                                <span class="metric-label">Average Automated Migration Coverage</span>
+                                <div class="coverage-indicator overview-indicator">
+                                    <div class="coverage-bar" data-width="%.0f" data-color="%s"></div>
+                                </div>
+                            </div>
+                            <div class="metric-right">
+                                <div class="coverage-breakdown">
+                                    <div class="breakdown-row">
+                                        <span class="breakdown-label">Total Activities:</span>
+                                        <span class="breakdown-value">%d</span>
+                                    </div>
+                                    <div class="breakdown-row">
+                                        <span class="breakdown-label">Migratable Activities:</span>
+                                        <span class="breakdown-value">%d</span>
+                                    </div>
+                                    <div class="breakdown-row">
+                                        <span class="breakdown-label">Non-migratable Activities:</span>
+                                        <span class="breakdown-value">%d</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                """);
-    }
+                
+                    <div class="time-estimates-container">
+                        <div class="time-estimates overview-time-estimates">
+                """
+                .formatted(
+                        totalProjects,
+                        averageConversionPercentage,
+                        averageConversionPercentage,
+                        averageConversionPercentage >= 90 ? "#4CAF50"
+                                : averageConversionPercentage >= 70 ? "#FF9800" : "#F44336",
+                        totalActivities,
+                        totalActivities - totalUnhandledActivities,
+                        totalUnhandledActivities));
 
-    private void appendOverallTimeEstimation(StringBuilder html) {
+        // Calculate total time estimates
         int totalBestCaseDays = projectSummaries.stream()
                 .mapToInt(p -> p.activityEstimation().timeEstimation().bestCaseDays())
                 .sum();
@@ -210,59 +681,212 @@ public class CombinedSummaryReport {
         int totalAverageCaseWeeks = (int) Math.ceil(totalAverageCaseDays / 5.0);
         int totalWorstCaseWeeks = (int) Math.ceil(totalWorstCaseDays / 5.0);
 
+        html.append(
+                """
+                                            <div class="time-estimate best-case">
+                                                <div class="time-label">Best Case</div>
+                                                <div class="time-value time-best">
+                                                    <span class="time-days">%dd</span>
+                                                    <span class="time-weeks">(~%dw)</span>
+                                                </div>
+                                            </div>
+                                            <div class="time-estimate avg-case">
+                                                <div class="time-label">Average Case</div>
+                                                <div class="time-value time-avg">
+                                                    <span class="time-days">%dd</span>
+                                                    <span class="time-weeks">(~%dw)</span>
+                                                </div>
+                                            </div>
+                                            <div class="time-estimate worst-case">
+                                                <div class="time-label">Worst Case</div>
+                                                <div class="time-value time-worst">
+                                                    <span class="time-days">%dd</span>
+                                                    <span class="time-weeks">(~%dw)</span>
+                                                </div>
+                                            </div>
+                                </div>
+                            </div>
+                        
+                            <div class="estimation-notes">
+                                <p><strong>Note:</strong></p>
+                                <ul>
+                                    <li>%d TIBCO BW projects analyzed for migration to Ballerina</li>
+                                    <li>%.0f%% average automated conversion rate across all projects</li>
+                                    <li>Time estimates shown above represents manual work required to complete migration for all projects combined</li>
+                                </ul>
+                            </div>
+                        
+                            <div class="estimation-notes">
+                                <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
+                                <ul>
+                                    <li>Best case scenario:
+                                      <ul>
+                                        <li>1.0 day per each new unsupported activity for analysis, implementation, and testing</li>
+                                        <li>1.0 hour per each repeated unsupported activity for implementation</li>
+                                        <li>Assumes minimal complexity and straightforward implementations</li>
+                                      </ul>
+                                    </li>
+                                    <li>Average case scenario:
+                                      <ul>
+                                        <li>2.0 days per each new unsupported activity for analysis, implementation, and testing</li>
+                                        <li>2.0 hour per each repeated unsupported activity for implementation</li>
+                                        <li>Assumes medium complexity with moderate implementation challenges</li>
+                                      </ul>
+                                    </li>
+                                    <li>Worst case scenario:
+                                      <ul>
+                                        <li>3.0 days per each new unsupported activity for analysis, implementation, and testing</li>
+                                        <li>4.0 hour per each repeated unsupported activity for implementation</li>
+                                        <li>Assumes high complexity with significant implementation challenges</li>
+                                      </ul>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        """
+                        .formatted(
+                                totalBestCaseDays, totalBestCaseWeeks,
+                                totalAverageCaseDays, totalAverageCaseWeeks,
+                                totalWorstCaseDays, totalWorstCaseWeeks,
+                                totalProjects,
+                                averageConversionPercentage));
+    }
+
+    private void appendProjectSummaries(StringBuilder html) {
+        html.append("""
+                <div class="projects-container">
+                """);
+
+        for (ProjectSummary project : projectSummaries) {
+            // Determine status badge based on coverage
+            double coveragePercentage = project.successfulConversionPercentage();
+            String statusClass = coveragePercentage >= 90 ? "status-high" :
+                    coveragePercentage >= 70 ? "status-medium" : "status-low";
+            String statusText = coveragePercentage >= 90 ? "High Coverage" :
+                    coveragePercentage >= 70 ? "Medium Coverage" : "Low Coverage";
+
+            html.append("""
+                        <div class="project-card">
+                            <div class="project-left">
+                                <div class="project-header">
+                                    <div class="project-name">
+                                        <a href="%s" class="project-link">%s</a>
+                                    </div>
+                                    <span class="status-badge %s">%s</span>
+                                </div>
+                    
+                                <div class="project-details">
+                                    <div class="project-metrics">
+                                        <div class="metric">
+                                            <div class="metric-left">
+                                                <span class="metric-value">%.0f%%</span>
+                                                <span class="metric-label">Automated Coverage</span>
+                                                <div class="coverage-indicator">
+                                                    <div class="coverage-bar" style="width: %.0f%%; background-color: %s;"></div>
+                                                </div>
+                                            </div>
+                                            <div class="metric-right">
+                                                <div class="coverage-breakdown">
+                                                    <div>
+                                                        <span class="breakdown-label">Total Activities:</span>
+                                                        <span class="breakdown-value">%d</span>
+                                                    </div>
+                                                    <div>
+                                                        <span class="breakdown-label">Migratable Activities:</span>
+                                                        <span class="breakdown-value">%d</span>
+                                                    </div>
+                                                    <div>
+                                                        <span class="breakdown-label">Non-migratable Activities:</span>
+                                                        <span class="breakdown-value">%d</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                    
+                            <div class="time-estimates">
+                                <div class="time-estimate best-case">
+                                    <div class="time-label">Best Case</div>
+                                    <div class="time-value time-best">
+                                        <span class="time-days">%dd</span>
+                                        <span class="time-weeks">(~%dw)</span>
+                                    </div>
+                                </div>
+                                <div class="time-estimate avg-case">
+                                    <div class="time-label">Average Case</div>
+                                    <div class="time-value time-avg">
+                                        <span class="time-days">%dd</span>
+                                        <span class="time-weeks">(~%dw)</span>
+                                    </div>
+                                </div>
+                                <div class="time-estimate worst-case">
+                                    <div class="time-label">Worst Case</div>
+                                    <div class="time-value time-worst">
+                                        <span class="time-days">%dd</span>
+                                        <span class="time-weeks">(~%dw)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    """.formatted(
+                    project.reportPath(),
+                    project.projectName(),
+                    statusClass,
+                    statusText,
+                    coveragePercentage,
+                    coveragePercentage,
+                    coveragePercentage >= 90 ? "#4CAF50" : coveragePercentage >= 70 ? "#FF9800" : "#F44336",
+                    project.activityEstimation().totalActivityCount(),
+                    project.activityEstimation().totalActivityCount() -
+                            project.activityEstimation().unhandledActivityCount(),
+                    project.activityEstimation().unhandledActivityCount(),
+                    project.activityEstimation().timeEstimation().bestCaseDays(),
+                    (int) Math.ceil(project.activityEstimation().timeEstimation().bestCaseDays() / 5.0),
+                    project.activityEstimation().timeEstimation().averageCaseDays(),
+                    (int) Math.ceil(project.activityEstimation().timeEstimation().averageCaseDays() / 5.0),
+                    project.activityEstimation().timeEstimation().worstCaseDays(),
+                    (int) Math.ceil(project.activityEstimation().timeEstimation().worstCaseDays() / 5.0)
+            ));
+        }
+
+        html.append("""
+                </div>
+                """);
+    }
+
+    private void appendOverallTimeEstimation(StringBuilder html) {
+        // Collect all unique unsupported element types across all projects
+        Map<String, Integer> allUnsupportedTypes = new HashMap<>();
+        Map<String, List<String>> projectsAffected = new HashMap<>();
+
+        for (ProjectSummary project : projectSummaries) {
+            // This would need to be implemented based on how unsupported elements are tracked
+            // For now, we'll create a placeholder section
+        }
+
         html.append("""
                 <div class="summary-container">
-                    <h2>Overall Time Estimation</h2>
-                    <table class="blue-table">
-                        <tr>
-                            <th>Scenario</th>
-                            <th>Total Days</th>
-                            <th>Total Weeks (approx.)</th>
-                        </tr>
-                        <tr>
-                            <td>Best Case</td>
-                            <td class="center-text">%s</td>
-                            <td class="center-text">%s</td>
-                        </tr>
-                        <tr>
-                            <td>Average Case</td>
-                            <td class="center-text">%s</td>
-                            <td class="center-text">%s</td>
-                        </tr>
-                        <tr>
-                            <td>Worst Case</td>
-                            <td class="center-text">%s</td>
-                            <td class="center-text">%s</td>
-                        </tr>
-                    </table>
-                    <div style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
-                        <p><strong>Note:</strong> Time estimates are cumulative across all projects and assume sequential development.</p>
+                    <h2>Currently Unsupported Elements</h2>
+                    <div id="toolSupportSection">
+                        <table>
+                            <tr>
+                                <th>Element Type</th>
+                                <th>Frequency</th>
+                                <th>Projects Affected</th>
+                            </tr>
+                
+                        </table>
+                        <p class="empty-message" id="toolSupportEmpty"
+                           style="display: none; text-align: center; padding: 20px; color: #666;">
+                            No unsupported elements found
+                        </p>
+                        <div class="estimation-notes">
+                            <p><strong>Note:</strong> These elements are expected to be supported in future versions of the migration tool.</p>
+                        </div>
                     </div>
                 </div>
-                """.formatted(
-                toDays(totalBestCaseDays), toWeeks(totalBestCaseWeeks),
-                toDays(totalAverageCaseDays), toWeeks(totalAverageCaseWeeks),
-                toDays(totalWorstCaseDays), toWeeks(totalWorstCaseWeeks)
-        ));
-    }
-
-    /**
-     * Format a number as a day string with correct singular/plural form.
-     *
-     * @param number The number of days
-     * @return A string with the number and "day" or "days"
-     */
-    private String toDays(int number) {
-        return number + " " + (number == 1 ? "day" : "days");
-    }
-
-    /**
-     * Format a number as a week string with correct singular/plural form.
-     *
-     * @param number The number of weeks
-     * @return A string with the number and "week" or "weeks"
-     */
-    private String toWeeks(int number) {
-        return number + " " + (number == 1 ? "week" : "weeks");
+                """);
     }
 }
