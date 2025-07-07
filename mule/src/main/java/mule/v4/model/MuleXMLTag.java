@@ -25,9 +25,10 @@ import java.util.stream.Collectors;
 public enum MuleXMLTag {
 
     // Global Elements
-    HTTP_LISTENER_CONFIG("http:listener-config", 4),
-    HTTP_LISTENER_CONNECTION("http:listener-connection", 1),
-    HTTP_REQUEST_CONFIG("http:request-config", 5),
+    HTTP_LISTENER_CONFIG("http:listener-config", 3),
+    HTTP_LISTENER_CONNECTION("http:listener-connection", 2),
+    HTTP_REQUEST_CONFIG("http:request-config", 3),
+    HTTP_REQUEST_CONNECTION("http:request-connection", 2),
     DB_CONFIG("db:config", 1),
     DB_MY_SQL_CONNECTION("db:my-sql-connection", 3),
     DB_ORACLE_CONNECTION("db:oracle-connection", 3),
