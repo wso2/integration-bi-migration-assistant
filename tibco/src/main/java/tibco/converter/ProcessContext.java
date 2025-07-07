@@ -27,6 +27,7 @@ import tibco.model.Process;
 import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.Variable;
+import tibco.converter.TibcoConverter;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -37,6 +38,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+import java.util.logging.Logger;
 
 import static common.BallerinaModel.Expression;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
@@ -47,6 +49,7 @@ import static common.ConversionUtils.exprFrom;
 import static tibco.converter.ConversionUtils.baseName;
 
 public class ProcessContext implements ContextWithFile {
+    private static final Logger logger = TibcoConverter.logger();
 
     private final Set<BallerinaModel.Import> imports = new HashSet<>();
     private BallerinaModel.Listener.HTTPListener defaultListener = null;
@@ -223,7 +226,9 @@ public class ProcessContext implements ContextWithFile {
     BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {
         String resourceRef = propertyVariableToResourceMap.get(sharedResourcePropertyName);
         if (resourceRef == null) {
-            throw new RuntimeException("No shared resource found for " + sharedResourcePropertyName);
+            logger.severe(
+                    "No shared resource found for " + sharedResourcePropertyName + ". Returning placeholder client.");
+            return new BallerinaModel.Expression.VariableReference("placeholder_client");
         }
         return projectContext.dbClient(resourceRef);
     }

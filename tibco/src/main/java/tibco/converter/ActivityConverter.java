@@ -70,6 +70,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.logging.Logger;
 
 import javax.xml.parsers.ParserConfigurationException;
 
@@ -86,6 +87,7 @@ import static common.ConversionUtils.typeFrom;
 import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 
 final class ActivityConverter {
+    private static final Logger logger = TibcoConverter.logger();
 
     private static final TransformPipeline xsltTransformer = createXsltTransformer();
 
@@ -485,7 +487,8 @@ final class ActivityConverter {
         try {
             cx.addXSDSchemaToConversion(jsonParser.targetType().toSchema());
         } catch (ParserConfigurationException e) {
-            throw new RuntimeException(e);
+            logger.severe("Error converting Element to String: " + e.getMessage()
+                        + ". Continuing with conversion.");
         }
         body.add(stmtFrom("xmlns \"http://www.tibco.com/namespaces/tnt/plugins/json\" as ns;"));
         return finishConvertJsonParser(cx, input, targetTypeName, "ActivityOutputClass", body);

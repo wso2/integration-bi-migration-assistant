@@ -26,8 +26,10 @@ import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import org.jetbrains.annotations.NotNull;
 import tibco.TibcoToBalConverter;
 import tibco.XmlToTibcoModelConverter;
+import tibco.converter.TibcoConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.Process;
+import tibco.model.Process5;
 import tibco.model.Resource;
 import tibco.model.Type;
 
@@ -80,7 +82,7 @@ public class ProjectContext {
     private int annonVarCount = 0;
 
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
-    private static final Logger logger = ProjectConverter.logger();
+    private static final Logger logger = TibcoConverter.logger();
     private final Optional<TibcoToBalConverter.ProjectConversionContext> conversionContext;
     private final Map<String, String> generatedResources = new HashMap<>();
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
@@ -376,7 +378,12 @@ public class ProjectContext {
         String extractedFileName = ConversionUtils.extractFileName(fileName);
         Resource.JMSSharedResource resource = jmsResourceMap.get(extractedFileName);
         if (resource == null) {
-            throw new RuntimeException("JMS shared resource not found for file: " + fileName);
+            logger.severe("JMS shared resource not found for file: " + fileName + ". Returning placeholder resource.");
+            return new Resource.JMSSharedResource("placeholder_" + extractedFileName, "placeholder",
+                    new Resource.JMSSharedResource.NamingEnvironment(false, "", "", "", "", "", "", ""),
+                    new Resource.JMSSharedResource.ConnectionAttributes(Optional.empty(), Optional.empty(),
+                            Optional.empty(), false),
+                    Map.of());
         }
         return resource;
     }
@@ -433,7 +440,8 @@ public class ProjectContext {
     public String getConfigVarName(String varName) {
         var varDecl = utilityVars.get(varName);
         if (varDecl == null) {
-            throw new RuntimeException("Failed to find configurable variable for " + varName);
+            logger.severe("Failed to find configurable variable for " + varName + ". Returning placeholder name.");
+            return "placeholder_" + varName;
         }
         return varDecl.name();
     }
@@ -446,7 +454,11 @@ public class ProjectContext {
     private Process getProcess(String processName) {
         return processContextMap.keySet().stream().filter(proc -> proc.name().equals(processName))
                 .findAny()
-                .orElseThrow(() -> new IndexOutOfBoundsException("failed to find process" + processName));
+                .orElseGet(() -> {
+                    logger.severe("Failed to find process: " + processName + ". Returning placeholder process.");
+                    return new Process5("placeholder_" + processName, List.of(),
+                            new Process5.ExplicitTransitionGroup());
+                });
     }
 
     public String getAnonName() {
@@ -489,7 +501,9 @@ public class ProjectContext {
     public BallerinaModel.Expression.VariableReference dbClient(String sharedResourcePropertyName) {
         String varName = generatedResources.get(sharedResourcePropertyName);
         if (varName == null) {
-            throw new RuntimeException("Failed to find db client for " + sharedResourcePropertyName);
+            logger.severe(
+                    "Failed to find db client for " + sharedResourcePropertyName + ". Returning placeholder client.");
+            return new BallerinaModel.Expression.VariableReference("placeholder_db_client");
         }
         return new BallerinaModel.Expression.VariableReference(varName);
     }
@@ -497,7 +511,8 @@ public class ProjectContext {
     public VariableReference httpListener(String name) {
         String varName = generatedResources.get(name);
         if (varName == null) {
-            throw new RuntimeException("Failed to find listener for " + name);
+            logger.severe("Failed to find listener for " + name + ". Returning placeholder listener.");
+            return new BallerinaModel.Expression.VariableReference("placeholder_listener");
         }
         return new BallerinaModel.Expression.VariableReference(varName);
     }
