@@ -69,6 +69,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -86,6 +87,7 @@ import static common.ConversionUtils.typeFrom;
 import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 
 final class ActivityConverter {
+    private static final Logger logger = TibcoConverter.logger();
 
     private static final TransformPipeline xsltTransformer = createXsltTransformer();
 
@@ -182,6 +184,8 @@ final class ActivityConverter {
                         convertXmlRenderActivity(cx, result, xmlRenderActivity);
                 case InlineActivity.XMLParseActivity xmlParseActivity ->
                         convertXmlParseActivity(cx, result, xmlParseActivity);
+                case InlineActivity.XMLTransformActivity xmlTransformActivity ->
+                        convertXmlTransformActivity(cx, result, xmlTransformActivity);
                 case InlineActivity.SOAPSendReceive soapSendReceive ->
                         convertSoapSendReceive(cx, result, soapSendReceive);
                 case InlineActivity.SOAPSendReply soapSendReply -> convertSoapSendReply(cx, result, soapSendReply);
@@ -521,7 +525,8 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
         try {
             cx.addXSDSchemaToConversion(jsonParser.targetType().toSchema());
         } catch (ParserConfigurationException e) {
-            throw new RuntimeException(e);
+            logger.severe("Error converting Element to String: " + e.getMessage()
+                        + ". Continuing with conversion.");
         }
         body.add(stmtFrom("xmlns \"http://www.tibco.com/namespaces/tnt/plugins/json\" as ns;"));
         return finishConvertJsonParser(cx, input, targetTypeName, "ActivityOutputClass", body);
@@ -809,6 +814,25 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
     private static ActivityConversionResult convertXmlRenderActivity(
             ActivityContext cx, VariableReference input, InlineActivity.XMLRenderActivity xmlRenderActivity) {
         return finishXmlRenderActivity(cx, input, "xmlString");
+    }
+
+    @NotNull
+    private static ActivityConversionResult convertXmlTransformActivity(
+            ActivityContext cx, VariableReference input, InlineActivity.XMLTransformActivity xmlTransformActivity) {
+        List<Statement> body = new ArrayList<>();
+        String xsltContent = xsltTransformer.apply(cx, xmlTransformActivity.styleSheet());
+        if (xsltContent.startsWith("FIXME: failed to find xslt file at ")) {
+            body.add(new Comment(xsltContent));
+            return new ActivityConversionResult(input, body);
+        } else {
+            cx.addLibraryImport(Library.XSLT);
+            VarDeclStatment transformResult = new VarDeclStatment(XML, cx.getAnnonVarName(), new Check(
+                    new FunctionCall(XSLTConstants.XSLT_TRANSFORM_FUNCTION,
+                            List.of(input, new XMLTemplate(xsltContent),
+                                    cx.contextVarRef()))));
+            body.add(transformResult);
+            return new ActivityConversionResult(transformResult.ref(), body);
+        }
     }
 
     private static @NotNull ActivityConversionResult finishXmlRenderActivity(ActivityContext cx,
