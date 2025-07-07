@@ -177,7 +177,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 SLEEP,
                 GET_SHARED_VARIABLE,
                 SET_SHARED_VARIABLE,
-                FILE_EVENT_SOURCE;
+                FILE_EVENT_SOURCE,
+                ON_STARTUP;
 
                 public static ExplicitTransitionGroup.InlineActivity.InlineActivityType parse(String type) {
                     record LookUpData(String suffix,
@@ -210,7 +211,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                     new LookUpData("SleepActivity", SLEEP),
                                     new LookUpData("GetSharedVariableActivity", GET_SHARED_VARIABLE),
                                     new LookUpData("SetSharedVariableActivity", SET_SHARED_VARIABLE),
-                                    new LookUpData("FileEventSource", FILE_EVENT_SOURCE))
+                                    new LookUpData("FileEventSource", FILE_EVENT_SOURCE),
+                                    new LookUpData("OnStartupEventSource", ON_STARTUP))
                             .filter(each -> type.endsWith(each.suffix)).findFirst()
                             .map(LookUpData::activityType).orElse(UNHANDLED);
                 }
@@ -577,6 +579,20 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 @Override
                 public InlineActivityType type() {
                     return InlineActivityType.FILE_EVENT_SOURCE;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
+                }
+            }
+
+            record OnStartupEventSource(Element element, String name,
+                    InputBinding inputBinding) implements ExplicitTransitionGroup.InlineActivity {
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.ON_STARTUP;
                 }
 
                 @Override

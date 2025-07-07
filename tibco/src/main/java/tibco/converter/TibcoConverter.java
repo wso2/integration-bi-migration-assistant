@@ -172,7 +172,7 @@ public class TibcoConverter {
                 name = "%s"
                 version = "%s"
                 distribution = "%s"
-                
+
                 [build-options]
                 observabilityIncluded = true""".formatted(org, name, version, distribution));
         for (var each : cx.javaDependencies()) {
@@ -196,6 +196,26 @@ public class TibcoConverter {
     }
 
     public static Logger createVerboseLogger(String name) {
-        return Logger.getLogger(name);
+        Logger verboseLogger = Logger.getLogger(name);
+        verboseLogger.setUseParentHandlers(false); // Avoid duplicate logs
+
+        // Remove existing handlers
+        for (java.util.logging.Handler handler : verboseLogger.getHandlers()) {
+            verboseLogger.removeHandler(handler);
+        }
+
+        java.util.logging.ConsoleHandler handler = new java.util.logging.ConsoleHandler() {
+            @Override
+            protected synchronized void setOutputStream(java.io.OutputStream out) throws SecurityException {
+                super.setOutputStream(System.out);
+            }
+        };
+        handler.setLevel(Level.ALL);
+        handler.setFormatter(new java.util.logging.SimpleFormatter());
+
+        verboseLogger.addHandler(handler);
+        verboseLogger.setLevel(Level.ALL);
+
+        return verboseLogger;
     }
 }
