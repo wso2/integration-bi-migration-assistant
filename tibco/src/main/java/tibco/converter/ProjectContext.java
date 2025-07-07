@@ -175,7 +175,8 @@ public class ProjectContext {
                                         new BallerinaModel.TypeDesc.TypeReference("SharedVariableContext"))))));
     }
 
-    private BallerinaModel.TypeDesc.TypeReference getOrCreateUtilityTypeDef(String typeName,
+    @NotNull
+    public BallerinaModel.TypeDesc.TypeReference getOrCreateUtilityTypeDef(String typeName,
             BallerinaModel.TypeDesc typeDesc) {
         return utilityTypeDefs.computeIfAbsent(typeName,
                 name -> new BallerinaModel.ModuleTypeDef(name, typeDesc))
