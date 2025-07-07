@@ -198,3 +198,4 @@ function unhandled(map<xml> context) returns xml|error {
 - `com.tibco.plugin.jms.JMSQueueSendActivity`
 - `com.tibco.plugin.jms.JMSQueueGetMessageActivity`
 - `com.tibco.plugin.jms.JMSTopicPublishActivity`
+- `com.tibco.pe.core.GenerateErrorActivity`

@@ -218,6 +218,7 @@ final class ActivityConverter {
             case InlineActivity.OnStartupEventSource ignored -> emptyExtensionConversion(cx, result);
             case InlineActivity.ListFilesActivity listFilesActivity ->
                     convertListFilesActivity(cx, result, listFilesActivity);
+            case InlineActivity.GenerateError generateError -> convertGenerateError(cx, result, generateError);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
@@ -490,6 +491,30 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
         VarDeclStatment empty = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
         body.add(empty);
         return new ActivityConversionResult(empty.ref(), body);
+    }
+
+    private static ActivityConversionResult convertGenerateError(
+            ActivityContext cx, VariableReference input, InlineActivity.GenerateError generateError) {
+        List<Statement> body = new ArrayList<>();
+        cx.addLibraryImport(Library.RUNTIME);
+        VarDeclStatment stackTrace = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                new MethodCall(new FunctionCall("runtime:getStackTrace", List.of()), "toString", List.of()));
+        body.add(stackTrace);
+
+        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate(
+                        """
+                                <ns:ErrorReport xmlns:ns="http://www.tibco.com/pe/EngineTypes">
+                                    <StackTrace>${stackTrace}</StackTrace>
+                                    ${%s/*}
+                                </ns:ErrorReport>""".formatted(
+                                input)));
+        body.add(result);
+
+        // Add the result to context with $_error key only
+        body.add(addToContext(cx, result.ref(), "$_error"));
+
+        return new ActivityConversionResult(result.ref(), body);
     }
 
     private static ActivityConversionResult convertJDBC(

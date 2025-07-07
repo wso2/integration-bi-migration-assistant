@@ -1,0 +1,19 @@
+<pd:activity name="Generate Error" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivitySchema">
+    <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+    <pd:resourceType>ae.activities.throw</pd:resourceType>
+    <config>
+        <faultName>error</faultName>
+    </config>
+    <pd:inputBindings>
+        <xsl:variable name="code" select="'code'" />
+        <xsl:variable name="msg" select="'msg'" />
+        <ns:ActivityInput>
+            <message>
+                <xsl:value-of select="$msg" />
+            </message>
+            <messageCode>
+                <xsl:value-of select="$code" />
+            </messageCode>
+        </ns:ActivityInput>
+    </pd:inputBindings>
+</pd:activity>

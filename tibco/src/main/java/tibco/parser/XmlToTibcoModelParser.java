@@ -406,6 +406,7 @@ public final class XmlToTibcoModelParser {
             case FILE_EVENT_SOURCE -> parseFileEventSource(cx, name, inputBinding, element);
             case ON_STARTUP -> new InlineActivity.OnStartupEventSource(element, name, inputBinding, cx.fileName());
             case LIST_FILES -> parseListFilesActivity(cx, element, name, inputBinding);
+            case GENERATE_ERROR -> new InlineActivity.GenerateError(element, name, inputBinding, cx.fileName());
         };
     }
 
