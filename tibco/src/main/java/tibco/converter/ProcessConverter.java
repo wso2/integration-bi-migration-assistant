@@ -105,7 +105,8 @@ public class ProcessConverter {
         }
 
         return new BallerinaModel.Service("\"" + ConversionUtils.sanitizes(fileEventSource.name()) + "\"",
-                List.of(listener.varName()), Optional.empty(), List.of(), List.of(), List.of(), remoteMethods);
+                List.of(listener.varName()), Optional.empty(), List.of(), List.of(), List.of(), remoteMethods,
+                Optional.empty());
     }
 
     private static BallerinaModel.Remote createFileEventCallBack(ProcessContext cx, String event) {
