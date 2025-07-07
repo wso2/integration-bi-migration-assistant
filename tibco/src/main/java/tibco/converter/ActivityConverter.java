@@ -778,7 +778,7 @@ final class ActivityConverter {
     private static ActivityConversionResult convertXmlTransformActivity(
             ActivityContext cx, VariableReference input, InlineActivity.XMLTransformActivity xmlTransformActivity) {
         List<Statement> body = new ArrayList<>();
-        String xsltContent = xmlTransformActivity.stylesheetPath();
+        String xsltContent = xsltTransformer.apply(cx, xmlTransformActivity.styleSheet());
         if (xsltContent.startsWith("FIXME: failed to find xslt file at ")) {
             body.add(new Comment(xsltContent));
             return new ActivityConversionResult(input, body);

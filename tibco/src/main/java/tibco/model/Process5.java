@@ -411,7 +411,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record XMLTransformActivity(Element element, String name,
-                    InputBinding inputBinding, String stylesheetPath)
+                                        InputBinding inputBinding, String styleSheet)
                     implements ExplicitTransitionGroup.InlineActivity {
 
                 public XMLTransformActivity {
