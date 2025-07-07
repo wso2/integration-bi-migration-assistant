@@ -521,7 +521,8 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
             ActivityContext cx, VariableReference input, InlineActivity.JSONParser jsonParser) {
         List<Statement> body = new ArrayList<>();
 
-        String targetTypeName = jsonParser.targetType().type().name();
+        String targetTypeName = jsonParser.targetType().type().name()
+                        .orElseThrow(() -> new IllegalStateException("JSON parser target type must have a name"));
         try {
             cx.addXSDSchemaToConversion(jsonParser.targetType().toSchema());
         } catch (ParserConfigurationException e) {

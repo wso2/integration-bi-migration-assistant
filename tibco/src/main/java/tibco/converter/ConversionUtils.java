@@ -41,6 +41,7 @@ import javax.xml.transform.stream.StreamResult;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static common.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
+import static common.BallerinaModel.TypeDesc.BuiltinType.BYTE;
 import static common.BallerinaModel.TypeDesc.BuiltinType.BuiltinType;
 import static common.BallerinaModel.TypeDesc.BuiltinType.DECIMAL;
 import static common.BallerinaModel.TypeDesc.BuiltinType.FLOAT;
@@ -324,11 +325,29 @@ public final class ConversionUtils {
     }
 
     private static BallerinaModel.TypeDesc complexTypeToTD(XSD.XSDType.ComplexType complexType) {
-        List<RecordTypeDesc.RecordField> fields = complexType.body().elements().stream()
-                .map(each ->
-                        new RecordTypeDesc.RecordField(each.name(), toTypeDesc(each.type()),
-                                each.minOccur().map(minOccurs -> minOccurs == 0).orElse(false))).toList();
-        return new RecordTypeDesc(fields);
+        return switch (complexType.body()) {
+            case XSD.XSDType.ComplexType.ComplexTypeBody.Sequence sequence ->
+                new RecordTypeDesc(sequence.elements().stream()
+                        .map(each -> {
+                            String elementName = each.name().orElseThrow(
+                                    () -> new IllegalStateException(
+                                            "XSD element must have a name to create record field"));
+                            return new RecordTypeDesc.RecordField(elementName, toTypeDesc(each.type()),
+                                    each.minOccur().map(minOccurs -> minOccurs == 0).orElse(false));
+                        }).toList());
+            case XSD.XSDType.ComplexType.ComplexTypeBody.Choice choice ->
+                BallerinaModel.TypeDesc.UnionTypeDesc.of(choice.elements().stream()
+                        .map(each -> {
+                            String elementName = each.name().orElseThrow(
+                                    () -> new IllegalStateException(
+                                            "XSD element must have a name to create union type"));
+                            return new RecordTypeDesc(List.of(
+                                    new RecordTypeDesc.RecordField(elementName,
+                                            toTypeDesc(each.type()),
+                                            each.minOccur().map(minOccurs -> minOccurs == 0)
+                                                    .orElse(false))));
+                        }).toArray(BallerinaModel.TypeDesc[]::new));
+        };
     }
 
     private static BallerinaModel.TypeDesc basicTypeToTD(XSD.XSDType.BasicXSDType basicXSDType) {
@@ -338,6 +357,8 @@ public final class ConversionUtils {
             case DECIMAL -> DECIMAL;
             case FLOAT, DOUBLE -> FLOAT;
             case BOOLEAN -> BOOLEAN;
+            case BASE64BINARY -> new BallerinaModel.TypeDesc.ArrayTypeDesc(BYTE);
+            case ANYDATA, ANYTYPE -> ANYDATA;
         };
     }
 
