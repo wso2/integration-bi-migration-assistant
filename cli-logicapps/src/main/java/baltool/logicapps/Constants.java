@@ -29,9 +29,10 @@ public class Constants {
     public static final String AUTH_ORG = "ballerinacopilot";
     public static final String DEV_AUTH_REDIRECT_URL = "https://98c70105-822c-4359-8579-4da58f0ab4b7." +
             "e1-us-east-azure.choreoapps.dev";
-    public static final String AUTH_REDIRECT_URL = "<AUTH_REDIRECT_URL>";
+    public static final String AUTH_REDIRECT_URL = "https://98c70105-822c-4359-8579-4da58f0ab4b7." +
+            "e1-us-east-azure.choreoapps.dev";
     public static final String DEV_AUTH_CLIENT_ID = "XpQ6lphi7kjKkWzumYyqqNf7CjIa";
-    public static final String AUTH_CLIENT_ID = "<AUTH_CLIENT_ID>";
+    public static final String AUTH_CLIENT_ID = "9rKng8hSZd0VkeA45Lt4LOfCp9Aa";
     public static final String CONFIG_FILE_PATH = "migrate-logicapps.config";
     public static final int AUTHENTICATION_TIMEOUT_SECONDS = 180;
     public static final String DEV_COPILOT_BACKEND_URL = "https://e95488c8-8511-4882-967f-ec3ae2a0f86f-dev." +

@@ -25,7 +25,7 @@ $ bal migrate-logicapps <source-project-directory-or-file> [-o|--out <output-dir
     - For a project directory input, the new Ballerina package is created inside the source project directory.
     - For a single JSON file, the new Ballerina package is created in the same directory as the source file.
 - **-v or --verbose** - *Optional*. Enable verbose output during conversion.
-- **-m or --multi-root** - *Optional*. Treat each child directory as a separate project and convert all of them. The source must be a directory containing multiple MuleSoft projects.
+- **-m or --multi-root** - *Optional*. Treat each child directory as a separate project and convert all of them. The source must be a directory containing multiple LogicApp JSON files.
 
 ### Project Structure Requirements
 
