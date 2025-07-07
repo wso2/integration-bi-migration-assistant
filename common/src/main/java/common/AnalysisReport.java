@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+
+
 /**
  * A generic analysis report that can be used for different types of integrations.
  */
@@ -32,10 +34,9 @@ public class AnalysisReport {
     private final int unhandledElementCount;
     private final String elementType;
     private final Map<String, Collection<UnhandledElement>> unhandledElements;
-
-    private static final int BEST_CASE_ACTIVITY_TIME = 1;
-    private static final int WORST_CASE_ACTIVITY_TIME = 3;
-    private static final double N_WORKING_DAYS = 5.0;
+    private final int bestCaseDays;
+    private final int averageCaseDays;
+    private final int worstCaseDays;
 
     /**
      * Create a new generic analysis report.
@@ -48,13 +49,17 @@ public class AnalysisReport {
      *                              representations as value
      */
     public AnalysisReport(String reportTitle, int totalElementCount, int unhandledElementCount, String elementType,
-                          Map<String, Collection<UnhandledElement>> unhandledElements) {
+            Map<String, Collection<UnhandledElement>> unhandledElements, int bestCaseDays, int averageCaseDays,
+            int worstCaseDays) {
         assert totalElementCount >= unhandledElementCount;
         this.reportTitle = reportTitle;
         this.totalElementCount = totalElementCount;
         this.unhandledElementCount = unhandledElementCount;
         this.elementType = elementType;
         this.unhandledElements = unhandledElements;
+        this.bestCaseDays = bestCaseDays;
+        this.averageCaseDays = averageCaseDays;
+        this.worstCaseDays = worstCaseDays;
     }
 
     /**
@@ -155,7 +160,7 @@ public class AnalysisReport {
         double coveragePercentage = 100 - calculatePercentage(unhandledElementCount, totalElementCount);
         html.append("""
                     <h3>Automated Migration Coverage: %.0f%%</h3>
-                
+
                     <div class="summary-container">
                         <h3>Implementation Time Estimation</h3>
                         <table class="blue-table">
@@ -166,16 +171,10 @@ public class AnalysisReport {
                             </tr>
                 """.formatted(coveragePercentage));
 
-        // Calculate time estimates based on unique type counts
-        int uniqueTypeCount = typeFrequencyMap.size();
-        int bestCaseEstimate = uniqueTypeCount * BEST_CASE_ACTIVITY_TIME;
-        int avgCaseEstimate = uniqueTypeCount * ((BEST_CASE_ACTIVITY_TIME + WORST_CASE_ACTIVITY_TIME) / 2);
-        int worstCaseEstimate = uniqueTypeCount * WORST_CASE_ACTIVITY_TIME;
-
-        // Extract week estimates to separate variables and round up to nearest whole number
-        int bestCaseWeeks = (int) Math.ceil(bestCaseEstimate / N_WORKING_DAYS);
-        int avgCaseWeeks = (int) Math.ceil(avgCaseEstimate / N_WORKING_DAYS);
-        int worstCaseWeeks = (int) Math.ceil(worstCaseEstimate / N_WORKING_DAYS);
+        // Use the passed-in time estimates
+        int bestCaseWeeks = (int) Math.ceil(bestCaseDays / 5.0);
+        int avgCaseWeeks = (int) Math.ceil(averageCaseDays / 5.0);
+        int worstCaseWeeks = (int) Math.ceil(worstCaseDays / 5.0);
 
         html.append("""
                             <tr>
@@ -195,9 +194,9 @@ public class AnalysisReport {
                             </tr>
                         </table>
                 """.formatted(
-                toDays(bestCaseEstimate), toWeeks(bestCaseWeeks),
-                toDays(avgCaseEstimate), toWeeks(avgCaseWeeks),
-                toDays(worstCaseEstimate), toWeeks(worstCaseWeeks)
+                toDays(bestCaseDays), toWeeks(bestCaseWeeks),
+                toDays(averageCaseDays), toWeeks(avgCaseWeeks),
+                toDays(worstCaseDays), toWeeks(worstCaseWeeks)
         ));
 
         // Estimation notes
@@ -213,10 +212,10 @@ public class AnalysisReport {
                         </div>
                     </div>
                 """.formatted(
-                toDays(BEST_CASE_ACTIVITY_TIME), elementType.toLowerCase(),
-                toDays((BEST_CASE_ACTIVITY_TIME + WORST_CASE_ACTIVITY_TIME) / 2), elementType.toLowerCase(),
-                toDays(WORST_CASE_ACTIVITY_TIME), elementType.toLowerCase(),
-                elementType.toLowerCase(), uniqueTypeCount
+                toDays(bestCaseDays), elementType.toLowerCase(),
+                toDays(averageCaseDays), elementType.toLowerCase(),
+                toDays(worstCaseDays), elementType.toLowerCase(),
+                elementType.toLowerCase(), unhandledElementCount
         ));
 
         // Unsupported elements frequency table

@@ -19,6 +19,7 @@
 package tibco.analyzer;
 
 import common.AnalysisReport;
+import common.ProjectSummary;
 import org.w3c.dom.Element;
 import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
 import tibco.converter.ConversionUtils;
@@ -42,7 +43,7 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
 
     sealed interface UnhandledActivityElement {
         Element element();
-        
+
         String fileName();
 
         record NamedUnhandledActivityElement(String name, String type,
@@ -108,15 +109,59 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
         // Create a map of unhandled elements grouped by their kind
         Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
 
+        // Calculate time estimates based on unique unhandled activity types
+        int uniqueUnhandledTypes = unhandledElementsMap.size();
+        int bestCaseDays = uniqueUnhandledTypes * TimeEstimationConstants.BEST_CASE_ACTIVITY_TIME;
+        int averageCaseDays = uniqueUnhandledTypes * TimeEstimationConstants.AVERAGE_CASE_ACTIVITY_TIME;
+        int worstCaseDays = uniqueUnhandledTypes * TimeEstimationConstants.WORST_CASE_ACTIVITY_TIME;
+
         // Create and use a generic AnalysisReport
         AnalysisReport report = new AnalysisReport(
                 REPORT_TITLE,
                 totalActivityCount,
                 unhandledActivityCount,
                 "Activity",
-                unhandledElementsMap
+                unhandledElementsMap,
+                bestCaseDays,
+                averageCaseDays,
+                worstCaseDays
         );
 
         return report.toHTML();
+    }
+
+    /**
+     * Creates a ProjectSummary from this TibcoAnalysisReport.
+     *
+     * @param projectName   The name of the project
+     * @param projectPath   The path to the project
+     * @param reportPath    The path to the individual report file
+     * @return A ProjectSummary instance
+     */
+    public ProjectSummary toProjectSummary(String projectName, String projectPath, String reportPath) {
+        double conversionPercentage = 100.0
+                - (totalActivityCount > 0 ?
+                (double) unhandledActivityCount / totalActivityCount * 100.0 : 0.0);
+
+        // Calculate time estimation based on unique unhandled activity types
+        Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
+        int uniqueUnhandledTypes = unhandledElementsMap.size();
+
+        int bestCaseDays = uniqueUnhandledTypes * TimeEstimationConstants.BEST_CASE_ACTIVITY_TIME;
+        int averageCaseDays = uniqueUnhandledTypes * TimeEstimationConstants.AVERAGE_CASE_ACTIVITY_TIME;
+        int worstCaseDays = uniqueUnhandledTypes * TimeEstimationConstants.WORST_CASE_ACTIVITY_TIME;
+
+        ProjectSummary.TimeEstimation timeEstimation = new ProjectSummary.TimeEstimation(
+                bestCaseDays, averageCaseDays, worstCaseDays
+        );
+        ProjectSummary.ActivityEstimation activityEstimation = new ProjectSummary.ActivityEstimation(
+                totalActivityCount, unhandledActivityCount, timeEstimation);
+        return new ProjectSummary(
+                projectName,
+                projectPath,
+                reportPath,
+                activityEstimation,
+                conversionPercentage
+        );
     }
 }

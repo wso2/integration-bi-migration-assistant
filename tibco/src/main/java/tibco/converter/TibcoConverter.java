@@ -21,6 +21,8 @@ package tibco.converter;
 import common.BICodeConverter;
 import common.BallerinaModel;
 import common.CodeGenerator;
+import common.CombinedSummaryReport;
+import common.ProjectSummary;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.TibcoAnalysisReport;
@@ -29,6 +31,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -71,11 +74,12 @@ public class TibcoConverter {
 
     private static void migrateTibcoMultiRoot(Path inputPath, String outputPath, boolean preserverStructure,
             boolean verbose, boolean dryRun) {
-        TibcoAnalysisReport combinedReport;
+        List<ProjectSummary> projectSummaries = new ArrayList<>();
+        
         try {
-            combinedReport = Files.list(inputPath)
+            Files.list(inputPath)
                     .filter(Files::isDirectory)
-                    .map(childDir -> {
+                    .forEach(childDir -> {
                         String childName = childDir.getFileName().toString();
                         String childOutputPath;
                         if (outputPath != null) {
@@ -84,23 +88,43 @@ public class TibcoConverter {
                             childOutputPath = childDir + "_converted";
                         }
                         logger().info("Converting project: " + childDir);
-                        return migrateTibcoInner(childDir.toString(), childOutputPath,
+                        
+                        Optional<MigrationResult> result = migrateTibcoInner(childDir.toString(), childOutputPath,
                                 preserverStructure, verbose, dryRun);
-                    })
-                    .flatMap(Optional::stream)
-                    .map(MigrationResult::report)
-                    .reduce(TibcoAnalysisReport.empty(), TibcoAnalysisReport::combine);
+                        
+                        if (result.isPresent()) {
+                            TibcoAnalysisReport report = result.get().report();
+                            
+                            // Create individual report for this project
+                            Path projectOutputPath = Paths.get(childOutputPath);
+                            try {
+                                writeAnalysisReport(projectOutputPath, report);
+                            } catch (IOException e) {
+                                logger().log(Level.SEVERE, "Error creating individual analysis report for project: " + childName, e);
+                            }
+                            
+                            // Create project summary
+                            String reportRelativePath = childName + "_converted/report.html";
+                            ProjectSummary projectSummary = report.toProjectSummary(
+                                    childName, 
+                                    childDir.toString(), 
+                                    reportRelativePath
+                            );
+                            projectSummaries.add(projectSummary);
+                        }
+                    });
         } catch (IOException e) {
             logger().severe("Error reading directory: " + inputPath);
             System.exit(1);
             return;
         }
 
-        Path reportOutputPath = outputPath != null ? Paths.get(outputPath) : inputPath;
+        // Create combined summary report
+        Path summaryOutputPath = outputPath != null ? Paths.get(outputPath) : inputPath;
         try {
-            writeAnalysisReport(reportOutputPath, combinedReport);
+            writeCombinedSummaryReport(summaryOutputPath, projectSummaries);
         } catch (IOException e) {
-            logger().log(Level.SEVERE, "Error creating combined analysis report", e);
+            logger().log(Level.SEVERE, "Error creating combined summary report", e);
         }
     }
 
@@ -191,6 +215,14 @@ public class TibcoConverter {
         String htmlContent = report.toHTML();
         Files.writeString(reportFilePath, htmlContent);
         logger().info("Created analysis report at: " + reportFilePath);
+    }
+
+    private static void writeCombinedSummaryReport(Path targetDir, List<ProjectSummary> projectSummaries) throws IOException {
+        Path reportFilePath = targetDir.resolve("combined_summary_report.html");
+        CombinedSummaryReport combinedReport = new CombinedSummaryReport("Combined Migration Assessment", projectSummaries);
+        String htmlContent = combinedReport.toHTML();
+        Files.writeString(reportFilePath, htmlContent);
+        logger().info("Created combined summary report at: " + reportFilePath);
     }
 
     private static void writeTextDocument(BallerinaModel.TextDocument textDocument, Path targetDir) throws IOException {
