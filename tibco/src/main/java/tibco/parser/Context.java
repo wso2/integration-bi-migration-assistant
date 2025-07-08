@@ -18,6 +18,8 @@
 
 package tibco.parser;
 
+import org.w3c.dom.Element;
+
 public interface Context {
 
     String getNextAnonymousProcessName();
@@ -25,4 +27,23 @@ public interface Context {
     String getAnonymousXSLTName();
 
     String getAnonUnhandledActivityName();
+
+    void registerUnhandledActivity(Element element, String name, String type);
+
+    void registerPartiallySupportedActivity(Element element, String name, String type);
+
+    void registerUnsupportedResource(Element element, String name);
+
+    void registerPartiallySupportedResource(Element element, String name);
+
+    void registerUnsupportedTransition(Element element);
+
+    void registerUnsupportedSchema(Element element);
+
+    void registerPartiallySupportedSchema(Element element);
+
+    void registerUnsupportedWSDLDefinition(Element element);
+
+    void registerPartiallySupportedWSDLDefinition(Element element);
+
 }
