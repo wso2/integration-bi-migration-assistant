@@ -453,6 +453,14 @@ public class ProcessConverter {
         TypeConversionResult(Collection<BallerinaModel.Service> service) {
             this(service, Optional.empty());
         }
+
+        public static TypeConversionResult empty() {
+            return new TypeConversionResult(List.of(), Optional.empty());
+        }
+
+        public boolean isEmpty() {
+            return service.isEmpty() && mainFn.isEmpty();
+        }
     }
 
     private static BallerinaModel.Function generateExplicitTransitionBlockStartFunction(

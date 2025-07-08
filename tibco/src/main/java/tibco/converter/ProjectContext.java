@@ -488,6 +488,11 @@ public class ProjectContext {
         return schemas;
     }
 
+    public void registerServiceGenerationError(Process process, Exception e) {
+        logger.severe("Failed to generate service for process: " + process.name() + ". Error: " + e.getMessage());
+        logger.severe("Please check the process definition and ensure it is supported.");
+    }
+
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
 
         FunctionData {
