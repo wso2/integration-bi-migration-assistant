@@ -91,7 +91,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                              ExplicitTransitionGroup.NestedGroup.LoopGroup.SourceExpression over,
                              Optional<String> elementSlot, Optional<String> indexSlot,
                              Optional<String> activityOutputName, boolean accumulateOutput,
-                    ExplicitTransitionGroup body, String fileName)
+                             ExplicitTransitionGroup body, String fileName)
                     implements ExplicitTransitionGroup.NestedGroup {
 
                 public LoopGroup {

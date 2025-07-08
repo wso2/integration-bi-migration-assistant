@@ -29,7 +29,7 @@ public enum Intrinsics {
                         }
                         return absPath.substring(index + 1, absPath.length());
                     }
-                    
+
                     function filesInPath(string path, boolean allowDir) returns FileData[]|error {
                         string basePath = path;
                         string? pattern = ();

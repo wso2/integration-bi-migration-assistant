@@ -149,116 +149,106 @@ final class ActivityConverter {
         };
     }
 
-        private static @NotNull List<Statement> convertInlineActivity(
-                ActivityContext cx, InlineActivity inlineActivity) {
-            List<Statement> body = new ArrayList<>();
-            BallerinaModel.Expression startingValue = getStartingValue(cx, inlineActivity);
-            VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), startingValue);
-            body.add(inputDecl);
-            VariableReference result;
-            if (inlineActivity.hasInputBinding()) {
-                List<VarDeclStatment> inputBindings = convertInputBindings(cx, inputDecl.ref(),
-                        List.of(inlineActivity.inputBinding()));
-                body.addAll(inputBindings);
-                result = new VariableReference(inputBindings.getLast().varName());
-            } else {
-                result = inputDecl.ref();
-            }
-            ActivityConversionResult conversion = switch (inlineActivity) {
-                case InlineActivity.HttpEventSource ignored ->
-                        emptyExtensionConversion(cx, result);
-                case InlineActivity.FileEventSource fileEventSource ->
-                        convertFileEventSource(cx, result, fileEventSource);
-                case InlineActivity.MapperActivity ignored ->
-                        emptyExtensionConversion(cx, result);
-                case InlineActivity.UnhandledInlineActivity unhandledInlineActivity ->
-                        convertUnhandledActivity(cx, result, unhandledInlineActivity);
-                case InlineActivity.AssignActivity assignActivity -> convertAssignActivity(cx, result, assignActivity);
-                case InlineActivity.NullActivity ignored ->
-                        emptyExtensionConversion(cx, result);
-                case InlineActivity.HTTPResponse httpResponse -> convertHttpResponse(cx, result, httpResponse);
-                case InlineActivity.WriteLog writeLog -> convertWriteLogActivity(cx, result, writeLog);
-                case InlineActivity.CallProcess callProcess -> convertCallProcess(cx, result, callProcess);
-                case InlineActivity.FileWrite fileWrite -> convertFileWrite(cx, result, fileWrite);
-                case InlineActivity.FileRead fileRead -> convertFileRead(cx, result, fileRead);
-                case InlineActivity.XMLRenderActivity xmlRenderActivity ->
-                        convertXmlRenderActivity(cx, result, xmlRenderActivity);
-                case InlineActivity.XMLParseActivity xmlParseActivity ->
-                        convertXmlParseActivity(cx, result, xmlParseActivity);
-                case InlineActivity.XMLTransformActivity xmlTransformActivity ->
-                        convertXmlTransformActivity(cx, result, xmlTransformActivity);
-                case InlineActivity.SOAPSendReceive soapSendReceive ->
-                        convertSoapSendReceive(cx, result, soapSendReceive);
-                case InlineActivity.SOAPSendReply soapSendReply -> convertSoapSendReply(cx, result, soapSendReply);
-                case Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup loopGroup ->
-                        convertLoopGroup(cx, result, loopGroup);
-                case InlineActivity.REST rest -> convertREST(cx, result, rest);
-                case InlineActivity.Catch ignored ->
-                        emptyExtensionConversion(cx, result);
-                case InlineActivity.JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
-                case InlineActivity.JSONRender jsonRender -> convertJsonRender(cx, result, jsonRender);
-                case InlineActivity.JDBC jdbc -> convertJDBC(cx, result, jdbc);
-                case InlineActivity.JMSQueueEventSource jmsEventSource ->
-                        convertJMSEventSource(cx, result, jmsEventSource);
-                case InlineActivity.JMSQueueSendActivity jmsQueueSendActivity ->
-                        convertJMSQueueSendActivity(cx, result, jmsQueueSendActivity);
-                case InlineActivity.JMSQueueGetMessageActivity jmsQueueGetMessageActivity ->
-                        convertJMSQueueGetActivity(cx, result, jmsQueueGetMessageActivity);
-                case InlineActivity.JMSTopicPublishActivity jmsTopicPublishActivity ->
-                        convertJMSTopicPublishActivity(cx, result, jmsTopicPublishActivity);
-                case InlineActivity.Sleep sleep -> convertSleep(cx, result, sleep);
-                case InlineActivity.GetSharedVariable getSharedVariable ->
-                        convertGetSharedVariable(cx, result, getSharedVariable);
-                case InlineActivity.SetSharedVariable setSharedVariable ->
-                        convertSetSharedVariable(cx, result, setSharedVariable);
-                    case InlineActivity.OnStartupEventSource ignored ->
-                            emptyExtensionConversion(cx, result);
-                    case InlineActivity.ListFilesActivity listFilesActivity ->
-                            convertListFilesActivity(cx, result, listFilesActivity);
-            };
-            body.addAll(conversion.body());
-            body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
-            return body;
+    private static @NotNull List<Statement> convertInlineActivity(ActivityContext cx, InlineActivity inlineActivity) {
+        List<Statement> body = new ArrayList<>();
+        BallerinaModel.Expression startingValue = getStartingValue(cx, inlineActivity);
+        VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), startingValue);
+        body.add(inputDecl);
+        VariableReference result;
+        if (inlineActivity.hasInputBinding()) {
+            List<VarDeclStatment> inputBindings = convertInputBindings(cx, inputDecl.ref(),
+                    List.of(inlineActivity.inputBinding()));
+            body.addAll(inputBindings);
+            result = new VariableReference(inputBindings.getLast().varName());
+        } else {
+            result = inputDecl.ref();
         }
+        ActivityConversionResult conversion = switch (inlineActivity) {
+            case InlineActivity.HttpEventSource ignored -> emptyExtensionConversion(cx, result);
+            case InlineActivity.FileEventSource fileEventSource -> convertFileEventSource(cx, result, fileEventSource);
+            case InlineActivity.MapperActivity ignored -> emptyExtensionConversion(cx, result);
+            case InlineActivity.UnhandledInlineActivity unhandledInlineActivity ->
+                    convertUnhandledActivity(cx, result, unhandledInlineActivity);
+            case InlineActivity.AssignActivity assignActivity -> convertAssignActivity(cx, result, assignActivity);
+            case InlineActivity.NullActivity ignored -> emptyExtensionConversion(cx, result);
+            case InlineActivity.HTTPResponse httpResponse -> convertHttpResponse(cx, result, httpResponse);
+            case InlineActivity.WriteLog writeLog -> convertWriteLogActivity(cx, result, writeLog);
+            case InlineActivity.CallProcess callProcess -> convertCallProcess(cx, result, callProcess);
+            case InlineActivity.FileWrite fileWrite -> convertFileWrite(cx, result, fileWrite);
+            case InlineActivity.FileRead fileRead -> convertFileRead(cx, result, fileRead);
+            case InlineActivity.XMLRenderActivity xmlRenderActivity ->
+                    convertXmlRenderActivity(cx, result, xmlRenderActivity);
+            case InlineActivity.XMLParseActivity xmlParseActivity ->
+                    convertXmlParseActivity(cx, result, xmlParseActivity);
+            case InlineActivity.XMLTransformActivity xmlTransformActivity ->
+                    convertXmlTransformActivity(cx, result, xmlTransformActivity);
+            case InlineActivity.SOAPSendReceive soapSendReceive -> convertSoapSendReceive(cx, result, soapSendReceive);
+            case InlineActivity.SOAPSendReply soapSendReply -> convertSoapSendReply(cx, result, soapSendReply);
+            case Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup loopGroup ->
+                    convertLoopGroup(cx, result, loopGroup);
+            case InlineActivity.REST rest -> convertREST(cx, result, rest);
+            case InlineActivity.Catch ignored -> emptyExtensionConversion(cx, result);
+            case InlineActivity.JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
+            case InlineActivity.JSONRender jsonRender -> convertJsonRender(cx, result, jsonRender);
+            case InlineActivity.JDBC jdbc -> convertJDBC(cx, result, jdbc);
+            case InlineActivity.JMSQueueEventSource jmsEventSource -> convertJMSEventSource(cx, result, jmsEventSource);
+            case InlineActivity.JMSQueueSendActivity jmsQueueSendActivity ->
+                    convertJMSQueueSendActivity(cx, result, jmsQueueSendActivity);
+            case InlineActivity.JMSQueueGetMessageActivity jmsQueueGetMessageActivity ->
+                    convertJMSQueueGetActivity(cx, result, jmsQueueGetMessageActivity);
+            case InlineActivity.JMSTopicPublishActivity jmsTopicPublishActivity ->
+                    convertJMSTopicPublishActivity(cx, result, jmsTopicPublishActivity);
+            case InlineActivity.Sleep sleep -> convertSleep(cx, result, sleep);
+            case InlineActivity.GetSharedVariable getSharedVariable ->
+                    convertGetSharedVariable(cx, result, getSharedVariable);
+            case InlineActivity.SetSharedVariable setSharedVariable ->
+                    convertSetSharedVariable(cx, result, setSharedVariable);
+            case InlineActivity.OnStartupEventSource ignored -> emptyExtensionConversion(cx, result);
+            case InlineActivity.ListFilesActivity listFilesActivity ->
+                    convertListFilesActivity(cx, result, listFilesActivity);
+        };
+        body.addAll(conversion.body());
+        body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
+        return body;
+    }
 
-        private static ActivityConversionResult convertListFilesActivity(
-                        ActivityContext cx, VariableReference input,
-                        InlineActivity.ListFilesActivity listFilesActivity) {
-                List<Statement> body = new ArrayList<>();
-                TibcoToBalConverter.logger()
-                                .warning("ListFilesActivity: only fileName and fullName are supported in output.");
-                body.add(new Comment("WARNING: Only fileName and fullName are supported in ListFilesActivity output."));
-                VarDeclStatment fileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                                exprFrom("(%s/**/<fileName>/*).toString().trim()".formatted(input.varName())));
-                body.add(fileName);
-                String filesInPath = cx.getFilesInPathFunction();
-                BallerinaModel.TypeDesc.TypeReference fileDataTy = ConversionUtils.Constants.FILE_DATA;
-                VarDeclStatment files = new VarDeclStatment(new BallerinaModel.TypeDesc.ArrayTypeDesc(fileDataTy),
-                                cx.getAnnonVarName(),
-                                new Check(new FunctionCall(filesInPath, List.of(fileName.ref(),
-                                                new BallerinaModel.Expression.BooleanConstant(
-                                                        listFilesActivity.mode() == FILES_AND_DIRECTORIES)))));
-                body.add(files);
-                VarDeclStatment resultBody = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(""));
-                body.add(resultBody);
-                body.add(common.ConversionUtils.stmtFrom("""
-                                foreach %s file in %s {
-                                    %s += xml `<fileInfo>
-                                                    <fileName>${file.fileName}</fileName>
-                                                    <fullName>${file.fullName}</fullName>
-                                               </fileInfo>`;
-                                }
-                                """.formatted(fileDataTy, files.ref(), resultBody.ref())));
-                VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                                new XMLTemplate("""
-                <root>
-                    <ListFilesActivityOutput xmlns="http://www.tibco.com/namespaces/tnt/plugins/file">
-                        <files>${%s}</files>
-                    </ListFilesActivityOutput>
-                </root>""".formatted(resultBody.ref())));
-                body.add(result);
-                return new ActivityConversionResult(result.ref(), body);
-        }
+    private static ActivityConversionResult convertListFilesActivity(
+            ActivityContext cx, VariableReference input, InlineActivity.ListFilesActivity listFilesActivity) {
+        List<Statement> body = new ArrayList<>();
+        TibcoToBalConverter.logger()
+                .warning("ListFilesActivity: only fileName and fullName are supported in output.");
+        body.add(new Comment("WARNING: Only fileName and fullName are supported in ListFilesActivity output."));
+        VarDeclStatment fileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<fileName>/*).toString().trim()".formatted(input.varName())));
+        body.add(fileName);
+        String filesInPath = cx.getFilesInPathFunction();
+        BallerinaModel.TypeDesc.TypeReference fileDataTy = ConversionUtils.Constants.FILE_DATA;
+        VarDeclStatment files = new VarDeclStatment(new BallerinaModel.TypeDesc.ArrayTypeDesc(fileDataTy),
+                cx.getAnnonVarName(),
+                new Check(new FunctionCall(filesInPath, List.of(fileName.ref(),
+                        new BallerinaModel.Expression.BooleanConstant(
+                                listFilesActivity.mode() == FILES_AND_DIRECTORIES)))));
+        body.add(files);
+        VarDeclStatment resultBody = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(""));
+        body.add(resultBody);
+        body.add(common.ConversionUtils.stmtFrom("""
+                foreach %s file in %s {
+                    %s += xml `<fileInfo>
+                                    <fileName>${file.fileName}</fileName>
+                                    <fullName>${file.fullName}</fullName>
+                               </fileInfo>`;
+                }
+                """.formatted(fileDataTy, files.ref(), resultBody.ref())));
+        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("""
+                        <root>
+                            <ListFilesActivityOutput xmlns="http://www.tibco.com/namespaces/tnt/plugins/file">
+                                <files>${%s}</files>
+                            </ListFilesActivityOutput>
+                        </root>""".formatted(resultBody.ref())));
+        body.add(result);
+        return new ActivityConversionResult(result.ref(), body);
+    }
 
     private static BallerinaModel.@NotNull Expression getStartingValue(ActivityContext cx,
                                                                        InlineActivity inlineActivity) {

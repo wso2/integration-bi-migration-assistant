@@ -283,7 +283,7 @@ public final class ConversionUtils {
                                 new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("headers",
                                         new BallerinaModel.TypeDesc.MapTypeDesc(STRING))));
 
-        public static final BallerinaModel.TypeDesc.TypeReference FILE_DATA =
+        static final BallerinaModel.TypeDesc.TypeReference FILE_DATA =
                 new BallerinaModel.TypeDesc.TypeReference("FileData");
     }
 
