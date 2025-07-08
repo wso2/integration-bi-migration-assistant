@@ -165,4 +165,8 @@ public class ActivityContext {
     public String getFilesInPathFunction() {
         return processContext.getFilesInPathFunction();
     }
+
+    public void registerActivityConversionFailure(tibco.model.Scope.Flow.Activity activity, Exception e) {
+        processContext.registerActivityConversionFailure(activity, e);
+    }
 }

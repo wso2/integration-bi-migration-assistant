@@ -349,6 +349,18 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getAnalysisResult(process);
     }
 
+    public void registerTransitionPredicateError(Scope.Flow.Activity.ActivityWithSources activity, Exception e) {
+        projectContext.registerTransitionPredicateError(activity, e);
+    }
+
+    public void registerControlFlowFunctionGenerationError(Process process, Exception e) {
+        projectContext.registerControlFlowFunctionGenerationError(process, e);
+    }
+
+    public void registerControlFlowFunctionGenerationError(Scope scope, Exception ex) {
+        projectContext.registerControlFlowFunctionGenerationError(scope, ex);
+    }
+
     static final class DefaultClientDetails {
         final BallerinaModel.ModuleVar varDecl;
         final String method;
@@ -405,5 +417,9 @@ public class ProcessContext implements ContextWithFile {
 
     public String getFilesInPathFunction() {
         return projectContext.getFilesInPathFunction();
+    }
+
+    public void registerActivityConversionFailure(tibco.model.Scope.Flow.Activity activity, Exception e) {
+        projectContext.registerActivityConversionFailure(activity, e);
     }
 }

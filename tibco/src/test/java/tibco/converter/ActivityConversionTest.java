@@ -69,7 +69,7 @@ public class ActivityConversionTest {
         Scope.Flow.Activity activity = XmlToTibcoModelParser.parseActivity(getProcessContextForElement(activityElement),
                 activityElement).get();
         ProcessContext cx = getProcessContext(activity);
-        BallerinaModel.Function result = ActivityConverter.convertActivity(cx, activity);
+        BallerinaModel.Function result = ActivityConverter.convertActivity(cx, activity).get();
         String actual = toString(result);
         if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
             bless(expectedFunction, actual);
