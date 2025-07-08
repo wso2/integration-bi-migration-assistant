@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static common.BallerinaModel.BlockFunctionBody;
-import static common.BallerinaModel.Expression;
+import static common.BallerinaModel.Expression.BallerinaExpression;
 import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.ModuleTypeDef;
@@ -54,11 +54,13 @@ import static mule.v4.ConversionUtils.genQueryParam;
 import static mule.v4.ConversionUtils.getBallerinaClientResourcePath;
 import static mule.v4.ConversionUtils.inferTypeFromBalExpr;
 import static mule.v4.model.MuleModel.Async;
-import static mule.v4.model.MuleModel.CatchExceptionStrategy;
 import static mule.v4.model.MuleModel.Choice;
-import static mule.v4.model.MuleModel.ChoiceExceptionStrategy;
 import static mule.v4.model.MuleModel.Database;
 import static mule.v4.model.MuleModel.Enricher;
+import static mule.v4.model.MuleModel.ErrorHandler;
+import static mule.v4.model.MuleModel.ErrorHandlerRecord;
+import static mule.v4.model.MuleModel.OnErrorContinue;
+import static mule.v4.model.MuleModel.OnErrorPropagate;
 import static mule.v4.model.MuleModel.ExpressionComponent;
 import static mule.v4.model.MuleModel.FlowReference;
 import static mule.v4.model.MuleModel.HttpRequest;
@@ -69,7 +71,6 @@ import static mule.v4.model.MuleModel.MuleRecord;
 import static mule.v4.model.MuleModel.ObjectToJson;
 import static mule.v4.model.MuleModel.ObjectToString;
 import static mule.v4.model.MuleModel.Payload;
-import static mule.v4.model.MuleModel.ReferenceExceptionStrategy;
 import static mule.v4.model.MuleModel.RemoveVariable;
 import static mule.v4.model.MuleModel.SetSessionVariable;
 import static mule.v4.model.MuleModel.SetVariable;
@@ -105,7 +106,79 @@ public class MuleConfigConverter {
         return workers;
     }
 
-    public static List<Statement> convertMuleBlocks(Context ctx, List<MuleRecord> muleRecords) {
+    public static List<Statement> convertErrorHandlerRecords(Context ctx, List<ErrorHandlerRecord> errHandlerRecords) {
+        if (errHandlerRecords.isEmpty()) {
+            return Collections.emptyList();
+        } else if (errHandlerRecords.size() == 1) {
+            return convertMuleBlock(ctx, errHandlerRecords.getFirst());
+        }
+
+        ErrorHandlerRecord firstErrRec = errHandlerRecords.getFirst();
+        BallerinaExpression ifCondition = getErrorHandlerRecCondition(ctx, firstErrRec);
+        List<Statement> ifBody = convertMuleBlock(ctx, firstErrRec);
+
+        List<ElseIfClause> elseIfClauses = new ArrayList<>();
+        for (int i = 1; i < errHandlerRecords.size() - 1; i++) {
+            ErrorHandlerRecord errRec = errHandlerRecords.get(i);
+            List<Statement> elseIfBody = convertMuleBlock(ctx, errRec);
+            BallerinaExpression condition = getErrorHandlerRecCondition(ctx, errRec);
+            ElseIfClause elseIfClause = new ElseIfClause(condition, elseIfBody);
+            elseIfClauses.add(elseIfClause);
+        }
+
+        List<Statement> elseBody = new ArrayList<>();
+        ErrorHandlerRecord lastErrRec = errHandlerRecords.getLast();
+        List<Statement> body = convertMuleBlock(ctx, lastErrRec);
+        if (lastErrRec.type().isEmpty() && lastErrRec.when().isEmpty()) {
+            elseBody = body;
+        } else {
+            BallerinaExpression condition = getErrorHandlerRecCondition(ctx, lastErrRec);
+            ElseIfClause elseIfClause = new ElseIfClause(condition, body);
+            elseIfClauses.add(elseIfClause);
+        }
+
+        IfElseStatement ifElseStmt = new IfElseStatement(ifCondition, ifBody, elseIfClauses, elseBody);
+
+        List<Statement> statementList = new ArrayList<>();
+        statementList.add(stmtFrom("\n// TODO: if conditions may require some manual adjustments\n"));
+        statementList.add(ifElseStmt);
+        return statementList;
+    }
+
+    private static BallerinaExpression getErrorHandlerRecCondition(Context ctx, ErrorHandlerRecord errRec) {
+        StringBuilder conditionExpr = new StringBuilder();
+        if (!errRec.type().isEmpty()) {
+            conditionExpr.append(Constants.ON_FAIL_ERROR_VAR_REF).append(" is ")
+                    .append("\"").append(errRec.type()).append("\"");
+        }
+        if (!errRec.when().isEmpty()) {
+            if (!conditionExpr.isEmpty()) {
+                conditionExpr.append(" && ");
+            }
+            conditionExpr.append("%s.message() ==".formatted(Constants.ON_FAIL_ERROR_VAR_REF))
+                    .append(parseAsBalString(errRec.when()));
+        }
+
+        return exprFrom(conditionExpr.toString());
+    }
+
+    private static String parseAsBalString(String input) {
+        if (input == null) {
+            return "null";
+        }
+
+        return "\"" + input
+                .replace("\\", "\\\\")     // Escape backslashes first
+                .replace("\"", "\\\"")     // Escape double quotes
+                .replace("\n", "\\n")      // Escape newlines
+                .replace("\r", "\\r")      // Escape carriage returns
+                .replace("\t", "\\t")      // Escape tabs
+                .replace("\b", "\\b")      // Escape backspace
+                .replace("\f", "\\f")      // Escape form feed
+                + "\"";
+    }
+
+    public static <T extends MuleRecord> List<Statement> convertMuleBlocks(Context ctx, List<T> muleRecords) {
         List<Statement> statements = new ArrayList<>();
         for (MuleRecord mr : muleRecords) {
             List<Statement> stmts = convertMuleBlock(ctx, mr);
@@ -144,14 +217,14 @@ public class MuleConfigConverter {
             case ObjectToString objectToString -> {
                 return convertObjectToString(ctx, objectToString);
             }
-            case CatchExceptionStrategy catchExpStr -> {
-                return convertCatchExceptionStrategy(ctx, catchExpStr);
+            case ErrorHandler errorHandler -> {
+                return convertErrorHandler(ctx, errorHandler);
             }
-            case ChoiceExceptionStrategy choiceExpStr -> {
-                return convertChoiceExceptionStrategy(ctx, choiceExpStr);
+            case OnErrorContinue onErrorContinue -> {
+                return convertOnErrorContinue(ctx, onErrorContinue);
             }
-            case ReferenceExceptionStrategy refExpStr -> {
-                return convertReferenceExceptionStrategy(ctx, refExpStr);
+            case OnErrorPropagate onErrorPropagate -> {
+                return convertOnErrorPropagate(ctx, onErrorPropagate);
             }
             case ExpressionComponent ec -> {
                 return convertExprComponent(ctx, ec);
@@ -316,73 +389,6 @@ public class MuleConfigConverter {
         return stmts;
     }
 
-    private static List<Statement> convertCatchExceptionStrategy(Context ctx, CatchExceptionStrategy catchExpStr) {
-        List<Statement> onFailBody = getCatchExceptionBody(ctx, catchExpStr);
-        OnFailClause onFailClause = new OnFailClause(onFailBody);
-        DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
-        return List.of(doStatement);
-    }
-
-    public static List<Statement> getCatchExceptionBody(Context ctx, CatchExceptionStrategy catchExceptionStrategy) {
-        return convertMuleBlocks(ctx, catchExceptionStrategy.catchBlocks());
-    }
-
-    private static List<Statement> convertChoiceExceptionStrategy(Context ctx, ChoiceExceptionStrategy choiceExpStr) {
-        List<Statement> onFailBody = getChoiceExceptionBody(ctx, choiceExpStr);
-        TypeBindingPattern typeBindingPattern = new TypeBindingPattern(BAL_ERROR_TYPE,
-                Constants.ON_FAIL_ERROR_VAR_REF);
-        OnFailClause onFailClause = new OnFailClause(onFailBody, typeBindingPattern);
-        DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
-        return List.of(doStatement);
-    }
-
-    public static List<Statement> getChoiceExceptionBody(Context ctx, ChoiceExceptionStrategy choiceExceptionStrategy) {
-        List<CatchExceptionStrategy> catchExceptionStrategies = choiceExceptionStrategy.catchExceptionStrategyList();
-        assert !catchExceptionStrategies.isEmpty();
-
-        CatchExceptionStrategy firstCatch = catchExceptionStrategies.getFirst();
-        Expression.BallerinaExpression ifCondition = exprFrom(convertMuleExprToBal(ctx, firstCatch.when()));
-        List<Statement> ifBody = convertMuleBlocks(ctx, firstCatch.catchBlocks());
-
-        List<ElseIfClause> elseIfClauses = new ArrayList<>();
-        for (int i = 1; i < catchExceptionStrategies.size() - 1; i++) {
-            CatchExceptionStrategy catchExpStrgy = catchExceptionStrategies.get(i);
-            List<Statement> elseIfBody = convertMuleBlocks(ctx, catchExpStrgy.catchBlocks());
-            ElseIfClause elseIfClause = new ElseIfClause(exprFrom(convertMuleExprToBal(ctx, catchExpStrgy.when())),
-                    elseIfBody);
-            elseIfClauses.add(elseIfClause);
-        }
-
-        List<Statement> elseBody;
-        if (catchExceptionStrategies.size() > 1) {
-            CatchExceptionStrategy lastCatch = catchExceptionStrategies.getLast();
-            elseBody = convertMuleBlocks(ctx, lastCatch.catchBlocks());
-        } else {
-            elseBody = Collections.emptyList();
-        }
-
-        IfElseStatement ifElseStmt = new IfElseStatement(ifCondition, ifBody, elseIfClauses, elseBody);
-
-        List<Statement> statementList = new ArrayList<>();
-        statementList.add(stmtFrom("\n// TODO: if conditions may require some manual adjustments\n"));
-        statementList.add(ifElseStmt);
-
-        return statementList;
-    }
-
-    private static List<Statement> convertReferenceExceptionStrategy(Context ctx,
-                                                                     ReferenceExceptionStrategy refExpStr) {
-        String refName = refExpStr.refName();
-        String funcRef = ConversionUtils.convertToBalIdentifier(refName);
-        BallerinaStatement funcCallStmt = stmtFrom(String.format("%s(%s, %s);", funcRef, Constants.CONTEXT_REFERENCE,
-                Constants.ON_FAIL_ERROR_VAR_REF));
-        List<Statement> onFailBody = Collections.singletonList(funcCallStmt);
-        TypeBindingPattern typeBindingPattern = new TypeBindingPattern(BAL_ERROR_TYPE, Constants.ON_FAIL_ERROR_VAR_REF);
-        OnFailClause onFailClause = new OnFailClause(onFailBody, typeBindingPattern);
-        DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
-        return List.of(doStatement);
-    }
-
     private static List<Statement> convertExprComponent(Context ctx, ExpressionComponent ec) {
         String convertedExpr = convertMuleExprToBal(ctx, String.format("#[%s]", ec.exprCompContent()));
         ConversionUtils.processExprCompContent(ctx, convertedExpr);
@@ -527,5 +533,69 @@ public class MuleConfigConverter {
         // This works for now because we concatenate and create a body block `{ stmts }`
         // before parsing.
         return List.of(stmtFrom(comment));
+    }
+
+    // Mule 4.x Error Handling Converters
+    private static List<Statement> convertErrorHandler(Context ctx, ErrorHandler errorHandler) {
+        List<Statement> onFailBody;
+        if (errorHandler.ref().isEmpty()) {
+            onFailBody = convertErrorHandlerRecords(ctx, errorHandler.errorHandlers());
+        } else {
+            // A reference function is provided. We create a function call statement
+            String refName = errorHandler.ref();
+            String funcRef = ConversionUtils.convertToBalIdentifier(refName);
+            BallerinaStatement funcCallStmt = stmtFrom(String.format("%s(%s, %s);", funcRef,
+                    Constants.CONTEXT_REFERENCE, Constants.ON_FAIL_ERROR_VAR_REF));
+            onFailBody = Collections.singletonList(funcCallStmt);
+        }
+
+        TypeBindingPattern typeBindingPattern = new TypeBindingPattern(BAL_ERROR_TYPE, Constants.ON_FAIL_ERROR_VAR_REF);
+        OnFailClause onFailClause = new OnFailClause(onFailBody, typeBindingPattern);
+        DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
+        return List.of(doStatement);
+    }
+
+    private static List<Statement> convertOnErrorContinue(Context ctx, OnErrorContinue onErrorContinue) {
+        List<Statement> stmts = new ArrayList<>();
+        stmts.add(stmtFrom("\n// on-error-continue\n"));
+
+        if (onErrorContinue.logException().equals("true")) {
+            stmts.add(stmtFrom("log:printError(\"Message: \" + %s.message());"
+                    .formatted(Constants.ON_FAIL_ERROR_VAR_REF)));
+            stmts.add(stmtFrom("log:printError(\"Trace: \" + %s.stackTrace().toString());"
+                    .formatted(Constants.ON_FAIL_ERROR_VAR_REF)));
+            stmts.add(stmtFrom("\n\n"));
+        }
+
+        List<Statement> errorBlocks = convertMuleBlocks(ctx, onErrorContinue.errorBlocks());
+        stmts.addAll(errorBlocks);
+
+        return stmts;
+    }
+
+    private static List<Statement> convertOnErrorPropagate(Context ctx, OnErrorPropagate onErrorPropagate) {
+        List<Statement> stmts = new ArrayList<>();
+        stmts.add(stmtFrom("\n// on-error-propagate\n"));
+
+        if (onErrorPropagate.logException().equals("true")) {
+            stmts.add(stmtFrom("log:printError(\"Message: \" + %s.message());"
+                    .formatted(Constants.ON_FAIL_ERROR_VAR_REF)));
+            stmts.add(stmtFrom("log:printError(\"Trace: \" + %s.stackTrace().toString());"
+                    .formatted(Constants.ON_FAIL_ERROR_VAR_REF)));
+            stmts.add(stmtFrom("\n\n"));
+        }
+
+        List<Statement> errorBlocks = convertMuleBlocks(ctx, onErrorPropagate.errorBlocks());
+        stmts.addAll(errorBlocks);
+
+        if (ctx.projectCtx.inboundProperties.containsKey(Constants.HTTP_RESPONSE_REF)) {
+            stmts.add(stmtFrom("%s.%s.statusCode = 500;".formatted(Constants.INBOUND_PROPERTIES_FIELD_ACCESS,
+                    Constants.HTTP_RESPONSE_REF)));
+        } else {
+            // Add a panic statement to propagate the error
+            stmts.add(stmtFrom("panic " + Constants.ON_FAIL_ERROR_VAR_REF + ";"));
+        }
+
+        return stmts;
     }
 }

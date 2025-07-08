@@ -19,17 +19,17 @@ package mule.v4.blocks;
 
 import org.testng.annotations.Test;
 
-public class CatchExceptionStrategyTest extends AbstractBlockTest {
+public class OnErrorContinueTest extends AbstractBlockTest {
 
     @Test
-    public void testBasicCatchExceptionStrategy() {
-        testMule3ToBal("catch-exception-strategy/basic_catch_exception_strategy.xml",
-                "catch-exception-strategy/basic_catch_exception_strategy.bal");
+    public void testBasicOnErrorContinue() {
+        testMule3ToBal("on-error-continue/basic_on_error_continue.xml",
+                "on-error-continue/basic_on_error_continue.bal");
     }
 
     @Test
-    public void testCatchExceptionWithHttpListenerSource() {
-        testMule3ToBal("catch-exception-strategy/catch_exception_with_http_listener_source.xml",
-                "catch-exception-strategy/catch_exception_with_http_listener_source.bal");
+    public void testOnErrorContinueWithHttpListenerSource() {
+        testMule3ToBal("on-error-continue/on_error_continue_with_http_listener_source.xml",
+                "on-error-continue/on_error_continue_with_http_listener_source.bal");
     }
 }

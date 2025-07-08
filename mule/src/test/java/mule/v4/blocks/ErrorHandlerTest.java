@@ -19,17 +19,22 @@ package mule.v4.blocks;
 
 import org.testng.annotations.Test;
 
-public class ChoiceExceptionStrategyTest extends AbstractBlockTest {
+public class ErrorHandlerTest extends AbstractBlockTest {
 
     @Test
-    public void testBasicChoiceExceptionStrategy() {
-        testMule3ToBal("choice-exception-strategy/basic_choice_exception_strategy.xml",
-                "choice-exception-strategy/basic_choice_exception_strategy.bal");
+    public void testBasicErrorHandler() {
+        testMule3ToBal("error-handler/basic_error_handler.xml", "error-handler/basic_error_handler.bal");
     }
 
     @Test
-    public void testChoiceExceptionWithHttpListenerSource() {
-        testMule3ToBal("choice-exception-strategy/choice_exception_with_http_listener_source.xml",
-                "choice-exception-strategy/choice_exception_with_http_listener_source.bal");
+    public void testErrorHandlerWithHttpListenerSource() {
+        testMule3ToBal("error-handler/error_handler_with_http_listener_source.xml",
+                "error-handler/error_handler_with_http_listener_source.bal");
+    }
+
+    @Test
+    public void testErrorHandlerWithConditions() {
+        testMule3ToBal("error-handler/error_handler_with_conditions.xml",
+                "error-handler/error_handler_with_conditions.bal");
     }
 }
