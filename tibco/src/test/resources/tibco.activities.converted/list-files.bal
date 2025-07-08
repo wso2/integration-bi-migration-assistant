@@ -11,11 +11,17 @@ function List Files Test(Context cx) returns error? {
 
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
+    
+// WARNING: Only fileName and fullName are supported in ListFilesActivity output.
+
     string var2 = (var1/**/<fileName>/*).toString().trim();
     FileData[] var3 = check filesInPath(var2, false);
     xml var4 = xml``;
     foreach FileData file in var3 {
-    var4 += xml `<fileInfo><fileName>${file.fileName}</fileName></fileInfo>`;
+    var4 += xml `<fileInfo>
+                    <fileName>${file.fileName}</fileName>
+                    <fullName>${file.fullName}</fullName>
+               </fileInfo>`;
 }
 
     xml var5 = xml`<root>

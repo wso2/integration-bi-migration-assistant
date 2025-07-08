@@ -85,6 +85,7 @@ import static common.ConversionUtils.exprFrom;
 import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
 import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
+import static tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.ListFilesActivity.Mode.FILES_AND_DIRECTORIES;
 
 final class ActivityConverter {
     private static final Logger logger = TibcoConverter.logger();
@@ -224,6 +225,9 @@ final class ActivityConverter {
                         ActivityContext cx, VariableReference input,
                         InlineActivity.ListFilesActivity listFilesActivity) {
                 List<Statement> body = new ArrayList<>();
+                TibcoToBalConverter.logger()
+                                .warning("ListFilesActivity: only fileName and fullName are supported in output.");
+                body.add(new Comment("WARNING: Only fileName and fullName are supported in ListFilesActivity output."));
                 VarDeclStatment fileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
                                 exprFrom("(%s/**/<fileName>/*).toString().trim()".formatted(input.varName())));
                 body.add(fileName);
@@ -232,15 +236,17 @@ final class ActivityConverter {
                 VarDeclStatment files = new VarDeclStatment(new BallerinaModel.TypeDesc.ArrayTypeDesc(fileDataTy),
                                 cx.getAnnonVarName(),
                                 new Check(new FunctionCall(filesInPath, List.of(fileName.ref(),
-                                                new BallerinaModel.Expression.BooleanConstant(listFilesActivity
-                                                                .mode() == InlineActivity.ListFilesActivity.Mode.FILES_AND_DIRECTORIES)))));
+                                                new BallerinaModel.Expression.BooleanConstant(
+                                                        listFilesActivity.mode() == FILES_AND_DIRECTORIES)))));
                 body.add(files);
-                // TODO: warn saying we only support filenames
                 VarDeclStatment resultBody = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(""));
                 body.add(resultBody);
                 body.add(common.ConversionUtils.stmtFrom("""
                                 foreach %s file in %s {
-                                    %s += xml `<fileInfo><fileName>${file.fileName}</fileName></fileInfo>`;
+                                    %s += xml `<fileInfo>
+                                                    <fileName>${file.fileName}</fileName>
+                                                    <fullName>${file.fullName}</fullName>
+                                               </fileInfo>`;
                                 }
                                 """.formatted(fileDataTy, files.ref(), resultBody.ref())));
                 VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),

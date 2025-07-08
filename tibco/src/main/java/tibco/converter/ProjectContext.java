@@ -624,6 +624,10 @@ public class ProjectContext {
 
     public String getFilesInPathFunction() {
         utilityIntrinsics.add(Intrinsics.GET_FILES_IN_PATH);
+        utilityTypeDefs.put("FileData", new BallerinaModel.ModuleTypeDef("FileData",
+                new BallerinaModel.TypeDesc.RecordTypeDesc(List.of(
+                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("fileName", STRING),
+                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("fullName", STRING)))));
         importLibraryIfNeededToUtility(Library.FILE);
         importLibraryIfNeededToUtility(Library.IO);
         importLibraryIfNeededToUtility(Library.REGEX);

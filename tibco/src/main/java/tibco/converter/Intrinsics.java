@@ -22,10 +22,6 @@ public enum Intrinsics {
     GET_FILES_IN_PATH(
             "filesInPath",
             """
-                    type FileData record {|
-                        string fileName;
-                    |};
-                    
                     function getFileName(string absPath) returns string {
                         int? index = absPath.lastIndexOf("/");
                         if index == () {
@@ -58,9 +54,9 @@ public enum Intrinsics {
                             }
                             string fileName = getFileName(entry.absPath);
                             if pattern == () {
-                                result.push({fileName: fileName});
+                                result.push({fileName: fileName, fullName: entry.absPath});
                             } else if regex:matches(fileName, pattern) {
-                                result.push({fileName: fileName});
+                                result.push({fileName: fileName, fullName: entry.absPath});
                             }
                         }
                         return result;
