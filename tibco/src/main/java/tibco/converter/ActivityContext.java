@@ -161,4 +161,8 @@ public class ActivityContext {
     public Optional<NameSpace> getNameSpaceByUri(String uri) {
         return processContext.getNameSpaceByUri(uri);
     }
+
+    public String getFilesInPathFunction() {
+        return processContext.getFilesInPathFunction();
+    }
 }

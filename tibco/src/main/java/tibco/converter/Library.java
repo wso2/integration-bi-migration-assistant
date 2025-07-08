@@ -27,6 +27,7 @@ enum Library {
     JDBC("ballerinax", "java.jdbc"),
     RUNTIME("ballerina", "lang.runtime"),
     IO("ballerina", "io"),
+    REGEX("ballerina", "regex"),
     LOG("ballerina", "log"),
     FILE("ballerina", "file"),
     SOAP("ballerina", "soap.soap11"),

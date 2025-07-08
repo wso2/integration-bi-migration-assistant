@@ -212,10 +212,46 @@ final class ActivityConverter {
                         convertSetSharedVariable(cx, result, setSharedVariable);
                     case InlineActivity.OnStartupEventSource ignored ->
                             emptyExtensionConversion(cx, result);
+                    case InlineActivity.ListFilesActivity listFilesActivity ->
+                            convertListFilesActivity(cx, result, listFilesActivity);
             };
             body.addAll(conversion.body());
             body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
             return body;
+        }
+
+        private static ActivityConversionResult convertListFilesActivity(
+                        ActivityContext cx, VariableReference input,
+                        InlineActivity.ListFilesActivity listFilesActivity) {
+                List<Statement> body = new ArrayList<>();
+                VarDeclStatment fileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                                exprFrom("(%s/**/<fileName>/*).toString().trim()".formatted(input.varName())));
+                body.add(fileName);
+                String filesInPath = cx.getFilesInPathFunction();
+                BallerinaModel.TypeDesc.TypeReference fileDataTy = ConversionUtils.Constants.FILE_DATA;
+                VarDeclStatment files = new VarDeclStatment(new BallerinaModel.TypeDesc.ArrayTypeDesc(fileDataTy),
+                                cx.getAnnonVarName(),
+                                new Check(new FunctionCall(filesInPath, List.of(fileName.ref(),
+                                                new BallerinaModel.Expression.BooleanConstant(listFilesActivity
+                                                                .mode() == InlineActivity.ListFilesActivity.Mode.FILES_AND_DIRECTORIES)))));
+                body.add(files);
+                // TODO: warn saying we only support filenames
+                VarDeclStatment resultBody = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(""));
+                body.add(resultBody);
+                body.add(common.ConversionUtils.stmtFrom("""
+                                foreach %s file in %s {
+                                    %s += xml `<fileInfo><fileName>${file.fileName}</fileName></fileInfo>`;
+                                }
+                                """.formatted(fileDataTy, files.ref(), resultBody.ref())));
+                VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                                new XMLTemplate("""
+                <root>
+                    <ListFilesActivityOutput xmlns="http://www.tibco.com/namespaces/tnt/plugins/file">
+                        <files>${%s}</files>
+                    </ListFilesActivityOutput>
+                </root>""".formatted(resultBody.ref())));
+                body.add(result);
+                return new ActivityConversionResult(result.ref(), body);
         }
 
     private static BallerinaModel.@NotNull Expression getStartingValue(ActivityContext cx,

@@ -171,6 +171,7 @@ public final class BICodeConverter {
             case "java.jms", "jms" -> List.of(new BallerinaModel.Import("ballerinax", "java.jms"));
             case "io" -> List.of(new BallerinaModel.Import("ballerina", "io"));
             case "file" -> List.of(new BallerinaModel.Import("ballerina", "file"));
+            case "regex" -> List.of(new BallerinaModel.Import("ballerina", "regex"));
             case "log" -> List.of(new BallerinaModel.Import("ballerina", "log"));
             case "soap11" -> List.of(new BallerinaModel.Import("ballerina", "soap.soap11"));
             case "sql" -> List.of(new BallerinaModel.Import("ballerina", "sql"));

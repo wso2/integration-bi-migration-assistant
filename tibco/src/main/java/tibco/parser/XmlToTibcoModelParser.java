@@ -394,6 +394,7 @@ public final class XmlToTibcoModelParser {
             case SET_SHARED_VARIABLE -> parseSetSharedVariable(cx, name, inputBinding, element);
             case FILE_EVENT_SOURCE -> parseFileEventSource(cx, name, inputBinding, element);
             case ON_STARTUP -> new InlineActivity.OnStartupEventSource(element, name, inputBinding, cx.fileName());
+            case LIST_FILES -> parseListFilesActivity(cx, element, name, inputBinding);
         };
     }
 
@@ -1976,5 +1977,11 @@ public final class XmlToTibcoModelParser {
 
         return new InlineActivity.FileEventSource(element, name, inputBinding, createEvent, modifyEvent, deleteEvent,
                 excludeContent, fileName);
+    }
+
+    private static InlineActivity.ListFilesActivity parseListFilesActivity(ProcessContext cx, Element element,
+            String name, Flow.Activity.InputBinding inputBinding) {
+        var mode = InlineActivity.ListFilesActivity.Mode.from(getInlineActivityConfigValue(element, "mode"));
+        return new InlineActivity.ListFilesActivity(element, name, inputBinding, mode, cx.fileName());
     }
 }

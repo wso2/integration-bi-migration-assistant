@@ -622,6 +622,14 @@ public class ProjectContext {
         return Intrinsics.GET_SHARED_VARIABLE.name;
     }
 
+    public String getFilesInPathFunction() {
+        utilityIntrinsics.add(Intrinsics.GET_FILES_IN_PATH);
+        importLibraryIfNeededToUtility(Library.FILE);
+        importLibraryIfNeededToUtility(Library.IO);
+        importLibraryIfNeededToUtility(Library.REGEX);
+        return Intrinsics.GET_FILES_IN_PATH.name;
+    }
+
     private static class ContextWrapperForTypeFile implements ContextWithFile {
 
         final Set<BallerinaModel.Import> imports = new HashSet<>();
