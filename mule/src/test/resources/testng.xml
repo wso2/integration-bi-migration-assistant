@@ -23,6 +23,7 @@
             <class name="mule.v4.blocks.ChoiceTest"/>
             <class name="mule.v4.blocks.DatabaseConnectorTest"/>
             <class name="mule.v4.blocks.HttpRequestTest"/>
+            <class name="mule.v4.blocks.AsyncTest"/>
         </classes>
     </test>
 </suite>
