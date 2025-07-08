@@ -1,0 +1,12 @@
+<pd:activity xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/file" name="List Files Test">
+    <pd:type>com.tibco.plugin.file.ListFilesActivity</pd:type>
+    <pd:resourceType>ae.activities.ListFilesActivity</pd:resourceType>
+    <config>
+        <mode>only-files</mode>
+    </config>
+    <pd:inputBindings>
+        <ns1:ListFilesActivityConfig>
+            <fileName>test/path/*.txt</fileName>
+        </ns1:ListFilesActivityConfig>
+    </pd:inputBindings>
+</pd:activity>

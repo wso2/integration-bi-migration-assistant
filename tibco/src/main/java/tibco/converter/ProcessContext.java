@@ -402,4 +402,8 @@ public class ProcessContext implements ContextWithFile {
                 .filter(ns -> ns.uri().equals(uri))
                 .findFirst();
     }
+
+    public String getFilesInPathFunction() {
+        return projectContext.getFilesInPathFunction();
+    }
 }

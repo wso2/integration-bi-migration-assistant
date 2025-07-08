@@ -96,6 +96,19 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     public sealed interface TypeDesc {
 
+        record ArrayTypeDesc(TypeDesc elementType, Optional<Long> size) implements TypeDesc {
+
+            public ArrayTypeDesc(TypeDesc elementType) {
+                this(elementType, Optional.empty());
+            }
+
+            @Override
+            @NotNull
+            public String toString() {
+                return elementType + size.map(s -> "[" + s + "]").orElse("[]");
+            }
+        }
+
         record IntersectionTypeDesc(Collection<? extends TypeDesc> members) implements TypeDesc {
 
             public static IntersectionTypeDesc of(TypeDesc... members) {
@@ -584,6 +597,16 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                 public String toString() {
                     return key + ": " + value;
                 }
+            }
+        }
+
+
+        record BooleanConstant(boolean value) implements Expression, TypeDesc {
+
+            @Override
+            @NotNull
+            public String toString() {
+                return value ? "true" : "false";
             }
         }
 

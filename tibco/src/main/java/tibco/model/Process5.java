@@ -91,7 +91,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                              ExplicitTransitionGroup.NestedGroup.LoopGroup.SourceExpression over,
                              Optional<String> elementSlot, Optional<String> indexSlot,
                              Optional<String> activityOutputName, boolean accumulateOutput,
-                             ExplicitTransitionGroup body, String fileName) 
+                             ExplicitTransitionGroup body, String fileName)
                     implements ExplicitTransitionGroup.NestedGroup {
 
                 public LoopGroup {
@@ -181,7 +181,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 GET_SHARED_VARIABLE,
                 SET_SHARED_VARIABLE,
                 FILE_EVENT_SOURCE,
-                ON_STARTUP;
+                ON_STARTUP,
+                LIST_FILES;
 
                 public static ExplicitTransitionGroup.InlineActivity.InlineActivityType parse(String type) {
                     record LookUpData(String suffix,
@@ -217,7 +218,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                     new LookUpData("GetSharedVariableActivity", GET_SHARED_VARIABLE),
                                     new LookUpData("SetSharedVariableActivity", SET_SHARED_VARIABLE),
                                     new LookUpData("FileEventSource", FILE_EVENT_SOURCE),
-                                    new LookUpData("OnStartupEventSource", ON_STARTUP))
+                            new LookUpData("OnStartupEventSource", ON_STARTUP),
+                            new LookUpData("ListFilesActivity", LIST_FILES))
                             .filter(each -> type.endsWith(each.suffix)).findFirst()
                             .map(LookUpData::activityType).orElse(UNHANDLED);
                 }
@@ -378,7 +380,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record XMLParseActivity(Element element, String name,
-                                    InputBinding inputBinding, String fileName) 
+                    InputBinding inputBinding, String fileName)
                     implements ExplicitTransitionGroup.InlineActivity {
 
                 public XMLParseActivity {
@@ -397,7 +399,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record XMLRenderActivity(Element element, String name,
-                                     InputBinding inputBinding, String fileName) 
+                    InputBinding inputBinding, String fileName)
                     implements ExplicitTransitionGroup.InlineActivity {
 
                 public XMLRenderActivity {
@@ -435,7 +437,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record SOAPSendReply(Element element, String name,
-                                 InputBinding inputBinding, String fileName) 
+                    InputBinding inputBinding, String fileName)
                     implements ExplicitTransitionGroup.InlineActivity {
 
                 public SOAPSendReply {
@@ -553,7 +555,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record MapperActivity(Element element, String name,
-                                  InputBinding inputBinding, String fileName) 
+                    InputBinding inputBinding, String fileName)
                     implements ExplicitTransitionGroup.InlineActivity {
 
                 public MapperActivity {
@@ -572,7 +574,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record AssignActivity(Element element, String name, String variableName,
-                                  InputBinding inputBinding, String fileName) 
+                    InputBinding inputBinding, String fileName)
                     implements ExplicitTransitionGroup.InlineActivity {
 
                 @Override
@@ -587,7 +589,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record HttpEventSource(Element element, String name, String sharedChannel,
-                                   InputBinding inputBinding, String fileName) 
+                    InputBinding inputBinding, String fileName)
                     implements ExplicitTransitionGroup.InlineActivity {
 
                 @Override
@@ -795,6 +797,33 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 @Override
                 public boolean hasInputBinding() {
                     return true;
+                }
+            }
+
+            record ListFilesActivity(Element element, String name, InputBinding inputBinding, Mode mode,
+                    String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
+                public enum Mode {
+                    FILES_AND_DIRECTORIES,
+                    ONLY_FILES;
+
+                    public static Mode from(String s) {
+                        return switch (s) {
+                            case "files-and-directories" -> FILES_AND_DIRECTORIES;
+                            case "only-files" -> ONLY_FILES;
+                            default -> throw new IllegalArgumentException("Unknown ListFilesActivity mode: " + s);
+                        };
+                    }
+                }
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.LIST_FILES;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
                 }
             }
 
