@@ -736,4 +736,9 @@ public class ProjectContext {
                     List.of(), List.of(), List.of(), List.of(), typeIntrinsics, nodes);
         }
     }
+
+    public void registerResourceConversionFailure(Resource resource) {
+        logger.severe("failed to convert resource: " + resource.name()
+                + ". Please check the resource definition and ensure it is supported.");
+    }
 }
