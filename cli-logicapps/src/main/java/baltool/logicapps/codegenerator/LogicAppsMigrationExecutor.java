@@ -61,7 +61,7 @@ public class LogicAppsMigrationExecutor {
     private static final String BALLERINA_PROJECT_SUFFIX = "_ballerina";
     private static final int TOTAL_STEPS = 3;
 
-    private static int errorFiles = 0;
+    private static AtomicInteger errorFiles = new AtomicInteger(0);
 
     /**
      * Migrates a Logic App JSON file or a directory to a Ballerina project/s with specified output directory.
