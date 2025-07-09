@@ -44,6 +44,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static baltool.logicapps.Constants.BALLERINA_TOML_FILE;
@@ -211,7 +212,7 @@ public class LogicAppsMigrationExecutor {
                                 copilotAccessToken, true, loggerFactory, fileName);
 
                     } catch (Exception e) {
-                        errorFiles++;
+                        errorFiles.incrementAndGet();
                         String errorMsg = e.getMessage() != null ? e.getMessage() : "Unknown error";
                         loggerFactory.finishProgress(fileName, false, errorMsg);
 
@@ -264,7 +265,7 @@ public class LogicAppsMigrationExecutor {
         // Final summary
         logger.printInfo("Migration Summary:");
         logger.printInfo("Total files: " + totalFiles);
-        logger.printInfo("Completed: " + (totalFiles - errorFiles));
+        logger.printInfo("Completed: " + (totalFiles - errorFiles.get()));
         logger.printInfo("Failed: " + errorFiles);
     }
 
