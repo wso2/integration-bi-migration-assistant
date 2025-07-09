@@ -24,10 +24,12 @@ import org.testng.annotations.Test;
  *
  * @since 1.0.2
  */
-public class MiscTest extends AbstractBlockTest {
+public class PropertyAccessTest extends AbstractBlockTest {
 
     @Test
     public void testExternalPropertyAccess() {
-        testMule3ToBal("misc/external_property_access_in_message.xml", "misc/external_property_access_in_message.bal");
+        // TODO: New in mule 4. Implement p('http.port') support for Dataweave.
+        testMule3ToBal("property-access/external_property_access_in_message.xml",
+                "property-access/external_property_access_in_message.bal");
     }
 }
