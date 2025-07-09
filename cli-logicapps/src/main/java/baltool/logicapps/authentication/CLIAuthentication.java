@@ -645,7 +645,7 @@ public class CLIAuthentication {
                 <body>
                     <div class="container">
                         <div class="title">Ballerina LogicApps Migration Tool Authentication</div>
-                        <div class="success-title">Success!</div>
+                        <div class="success-title">Success</div>
                         <div class="message">Authorization was successful.</div>
                         <div class="instructions">You can now close this window and return to your terminal.</div>
                     </div>

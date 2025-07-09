@@ -1,6 +1,6 @@
 ## Tool Overview
-The `migrate-logicapps` tool enables the conversion of [Azure LogicApps](https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-overview) applications into Ballerina packages compatible with the [WSO2 Ballerina Integrator](https://wso2.com/integrator/ballerina-integrator).
-It accepts either a project directory which contains multiple LogicApp JSON files or a single LogicApp JSON file as input and produces an equivalent Ballerina Integrator application.
+The `migrate-logicapps` tool enables the conversion of [Azure Logic Apps](https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-overview) applications into Ballerina packages compatible with the [WSO2 Ballerina Integrator](https://wso2.com/integrator/ballerina-integrator).
+It accepts either a project directory which contains multiple Logic App JSON files or a single Logic App JSON file as input and produces an equivalent Ballerina Integrator application.
 
 ## Installation
 
@@ -19,8 +19,8 @@ $ bal migrate-logicapps <source-project-directory-or-file> [-o|--out <output-dir
 
 ### Parameters
 
-- **source-project-directory-or-file** - *Required*. The path to the directory which contains multiple LogicApp JSON files 
-  or a single LogicApp JSON file to be migrated.
+- **source-project-directory-or-file** - *Required*. The path to the directory which contains multiple Logic App JSON files 
+  or a single Logic App JSON file to be migrated.
 - **-o or --out** - *Optional*. The directory where the new Ballerina package will be created. If not provided,
     - For a project directory input, the new Ballerina package is created inside the source project directory.
     - For a single JSON file, the new Ballerina package is created in the same directory as the source file.
@@ -29,17 +29,17 @@ $ bal migrate-logicapps <source-project-directory-or-file> [-o|--out <output-dir
 
 ### Project Structure Requirements
 
-When using a project directory (which contains multiple LogicApp JSON files) as input, the tool will look for JSON files in this location by default.
+When using a project directory (which contains multiple Logic App JSON files) as input, the tool will look for JSON files in this location by default.
 Make sure your project follows this structure.
 
-* NOTE - Do not include any other JSON files other than the LogicApps JSON files.
+* NOTE - Do not include any other JSON files other than the Logic Apps JSON files.
 
 ### Examples
 
 #### Convert a LogicApp JSON file
 
 ```bash
-$ bal migrate-logicapps /path/to/logicapp-control-flow.json
+$ bal migrate-logicapps /path/to/logic-app-control-flow.json
 ```
 
 This will create a Ballerina package in the same directory as the input JSON file.
@@ -47,42 +47,42 @@ This will create a Ballerina package in the same directory as the input JSON fil
 #### Convert a LogicApp JSON file with a Custom Output Location
 
 ```bash
-$ bal migrate-logicapps /path/to/logicapp-control-flow.json --out /path/to/output-dir
+$ bal migrate-logicapps /path/to/logic-app-control-flow.json --out /path/to/output-dir
 ```
 
 This will create a Ballerina package at `/path/to/output-dir`.
 
-#### Convert a LogicApp JSON file with Verbose Output
+#### Convert a Logic App JSON file with Verbose Output
 
 ```bash
-$ bal migrate-logicapps /path/to/logicapp-control-flow.json --verbose
+$ bal migrate-logicapps /path/to/logic-app-control-flow.json --verbose
 ```
 
-This will convert the LogicApp with detailed logging during the conversion process.
+This will convert the Logic App with detailed logging during the conversion process.
 
-#### Convert multiple LogicApp files with Default Output Location
+#### Convert multiple Logic App files with Default Output Location
 
 ```bash
-$ bal migrate-logicapps /path/to/logicapps-file-directory --multi-root
+$ bal migrate-logicapps /path/to/logic-apps-file-directory --multi-root
 ```
 
-This will create multiple Ballerina packages inside `/path/to/logicapps-file-directory` directory for each LogicApp file.
+This will create multiple Ballerina packages inside `/path/to/logic-apps-file-directory` directory for each Logic App file.
 
-#### Convert multiple LogicApp files with a Custom Output Location
+#### Convert multiple Logic App files with a Custom Output Location
 
 ```bash
-$ bal migrate-logicapps /path/to/logicapps-file-directory --out /path/to/output-dir --multi-root
+$ bal migrate-logicapps /path/to/logic-apps-file-directory --out /path/to/output-dir --multi-root
 ```
 
-This will create multiple Ballerina packages at `/path/to/output-dir` for each LogicApp file.
+This will create multiple Ballerina packages at `/path/to/output-dir` for each Logic App file.
 
 ## Output
-- For a LogicApp file directory input: Multiple Ballerina package are created for each LogicApp file with the same name 
+- For a Logic App file directory input: Multiple Ballerina package are created for each Logic App file with the same name 
   as the JSON file, appended with a `_ballerina` suffix.
     - For example,  if the JSON file name is `my_control_flow`, the
       output ballerina package name will be `my_control_flow_ballerina`.
 
-- For a LogicApp JSON file input: A new Ballerina package is created with the same name as the JSON file, appended
+- For a Logic App JSON file input: A new Ballerina package is created with the same name as the JSON file, appended
   with a `_ballerina` suffix.
 
 ## Supported Features

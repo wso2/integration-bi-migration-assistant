@@ -93,7 +93,7 @@ public class MigrateLogicAppsCommand implements BLauncherCmd {
             // Temporary disable the additional instructions feature
             String additionalInstructions = "";
 
-            Path logicAppFilePath = Path.of(sourcePath);
+            Path logicAppFilePath = Path.of(sourcePath).toAbsolutePath();
 
             if (verbose) {
                 outStream.println("  Resolved source path: " + logicAppFilePath.toAbsolutePath());
@@ -101,7 +101,7 @@ public class MigrateLogicAppsCommand implements BLauncherCmd {
             }
 
             if (outputPath != null) {
-                Path outputDir = Path.of(outputPath);
+                Path outputDir = Path.of(outputPath).toAbsolutePath();
                 LogicAppsMigrationExecutor.migrateLogicAppToBallerina(logicAppFilePath, additionalInstructions,
                         outputDir, verbose, multiRoot, new VerboseLogger(verbose));
             } else {

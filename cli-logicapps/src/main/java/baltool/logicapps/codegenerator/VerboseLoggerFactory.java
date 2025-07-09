@@ -190,7 +190,7 @@ public class VerboseLoggerFactory {
     public void printProgressDisplay() {
         printStream.println("Code generation progress:");
         for (ProgressBar progressBar : progressBars.values()) {
-            printStream.println(progressBar.getCurrentProgressBar());
+            printStream.println("   " + progressBar.getCurrentProgressBar());
         }
     }
 

@@ -50,7 +50,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -60,6 +65,7 @@ import static baltool.logicapps.Constants.CONTENT;
 import static baltool.logicapps.Constants.COPILOT_BACKEND_URL;
 import static baltool.logicapps.Constants.DEV_COPILOT_BACKEND_URL;
 import static baltool.logicapps.Constants.FILE_PATH;
+import static baltool.logicapps.Constants.MAXIMUM_RETRY_COUNT;
 import static baltool.logicapps.Constants.TRIPLE_BACKTICK;
 import static baltool.logicapps.Constants.TRIPLE_BACKTICK_BALLERINA;
 
@@ -112,7 +118,6 @@ public class CodeGenerationUtils {
             String executionPlan = CodeGenerationUtils.generateLogicAppExecutionPlan(copilotAccessToken, sourceFiles,
                     fileAttachmentContents, packageName, additionalInstructions, logger, fileName);
             String generatedPrompt = constructMigrateUserPrompt(additionalInstructions, executionPlan);
-            logger.printVerboseInfo(fileName, "Generated prompt for code generation: " + generatedPrompt);
             logger.printInfo(fileName, "✓ Execution plan generated");
 
             // Step 2: Generate code
@@ -120,8 +125,6 @@ public class CodeGenerationUtils {
             GeneratedCode generatedCode = generateCode(copilotAccessToken, sourceFiles, fileAttachmentContents,
                     packageName, generatedPrompt, logger, fileName);
             logger.printVerboseInfo(fileName, "Generated files count: " + generatedCode.codeMap.size());
-            updateSourceFilesWithGeneratedContent(sourceFiles, generatedCode.codeMap);
-            logger.printVerboseInfo(fileName, "Source files updated with generated content");
             logger.printInfo(fileName, "✓ Code generation completed");
 
             // Step 3: Repair code
@@ -129,8 +132,6 @@ public class CodeGenerationUtils {
             GeneratedCode repairedCode = repairCode(copilotAccessToken, sourceFiles, fileAttachmentContents,
                     packageName, generatedPrompt, moduleDescriptor, generatedCode, logger, fileName);
             logger.printVerboseInfo(fileName, "Repaired files count: " + repairedCode.codeMap.size());
-            updateSourceFilesWithGeneratedContent(sourceFiles, repairedCode.codeMap);
-            logger.printVerboseInfo(fileName, "Source files updated with repaired content");
             logger.printInfo(fileName, "✓ Code repair completed");
 
             return sourceFiles;
@@ -175,6 +176,7 @@ public class CodeGenerationUtils {
                                                        String additionalInstructions, VerboseLoggerFactory logger,
                                                        String fileName)
             throws URISyntaxException, IOException, InterruptedException {
+        URI uri = new URI(getCopilotBackendURL() + "/logicapps/executionplan");
 
         logger.printVerboseInfo(fileName, "Preparing execution plan generation payload");
         JsonObject executionPlanGenerationPayload = constructExecPlanGenerationPayload(additionalInstructions,
@@ -182,17 +184,10 @@ public class CodeGenerationUtils {
         logger.printVerboseInfo(fileName, "Payload size: " +
                 executionPlanGenerationPayload.toString().length() + " characters");
 
-        URI uri = new URI(getCopilotBackendURL() + "/logicapps/executionplan");
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(uri)
-                .header("Content-Type", "application/json")
-                .header("Authorization", "Bearer " + copilotAccessToken)
-                .POST(HttpRequest.BodyPublishers.ofString(executionPlanGenerationPayload.toString()))
-                .build();
-
         logger.printVerboseInfo(fileName, "Sending HTTP request to get LogicApp execution plan");
         long startTime = System.currentTimeMillis();
-        HttpResponse<String> response = getHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = sendRequestAsync(uri, executionPlanGenerationPayload, copilotAccessToken,
+                logger, fileName);
         long duration = System.currentTimeMillis() - startTime;
 
         logger.printVerboseInfo(fileName, "HTTP response received");
@@ -242,11 +237,15 @@ public class CodeGenerationUtils {
         HttpRequest codeGenerationRequest = HttpRequest.newBuilder()
                 .uri(uri)
                 .header("Authorization", "Bearer " + copilotAccessToken)
-                .POST(HttpRequest.BodyPublishers.ofString(codeGenerationPayload.toString())).build();
+                .POST(HttpRequest.BodyPublishers.ofString(codeGenerationPayload.toString()))
+                .timeout(Duration.ofMinutes(8))
+                .build();
 
         logger.printVerboseInfo(fileName, "Sending HTTP request to get generated code");
         HttpResponse<Stream<String>> response = getHttpClient().send(codeGenerationRequest,
                 HttpResponse.BodyHandlers.ofLines());
+        logger.printVerboseInfo(fileName, "Code generation response received");
+        logger.printVerboseInfo(fileName, "Response status: " + response.statusCode());
 
         if (response.statusCode() >= 300) {
             String errorMsg = "Code generation failed with status: " + response.statusCode();
@@ -256,7 +255,9 @@ public class CodeGenerationUtils {
 
         logger.printVerboseInfo(fileName, "Processing streamed response for code generation");
 
-        return extractGeneratedCode(response.body(), logger, fileName);
+        GeneratedCode generatedCode = extractGeneratedCode(response.body(), logger, fileName);
+        updateSourceFilesWithGeneratedContent(sourceFiles, generatedCode.codeMap, logger, fileName);
+        return generatedCode;
     }
 
     /**
@@ -268,7 +269,7 @@ public class CodeGenerationUtils {
      * @param packageName Name of the Ballerina package
      * @param generatedPrompt The prompt used for code generation
      * @param moduleDescriptor Module descriptor for the Ballerina project
-     * @param generatedCodeMap Map of generated code
+     * @param generatedCode Map of generated code
      * @param logger Logger for verbose output
      * @param fileName Name of the file being processed
      *
@@ -277,13 +278,25 @@ public class CodeGenerationUtils {
     private static GeneratedCode repairCode(String copilotAccessToken, JsonArray sourceFiles,
                                             JsonArray fileAttachmentContents, String packageName,
                                             String generatedPrompt, ModuleDescriptor moduleDescriptor,
-                                            GeneratedCode generatedCodeMap, VerboseLoggerFactory logger,
+                                            GeneratedCode generatedCode, VerboseLoggerFactory logger,
                                             String fileName)
             throws IOException, URISyntaxException, InterruptedException {
 
         logger.printVerboseInfo(fileName, "Starting code repair process...");
-        return repairIfDiagnosticsExist(copilotAccessToken, sourceFiles, fileAttachmentContents, packageName,
-                generatedPrompt, moduleDescriptor, generatedCodeMap, logger, fileName);
+        GeneratedCode repairedCode = generatedCode;
+        for (int iteration = 0; iteration < MAXIMUM_RETRY_COUNT; iteration++) {
+            logger.printVerboseInfo(fileName, "Iteration " + (iteration + 1) + " of code repair");
+            GeneratedCode repairedCodeIteration = repairIfDiagnosticsExist(copilotAccessToken, sourceFiles, fileAttachmentContents,
+                    packageName, generatedPrompt, moduleDescriptor, generatedCode, logger, fileName);
+            if (repairedCodeIteration == null) {
+                logger.printVerboseInfo(fileName, "No code generated in iteration " + (iteration + 1));
+                break;
+            } else {
+                repairedCode = repairedCodeIteration;
+                logger.printVerboseInfo(fileName, "Code repaired successfully in iteration " + (iteration + 1));
+            }
+        }
+        return repairedCode;
     }
 
     /**
@@ -314,7 +327,7 @@ public class CodeGenerationUtils {
 
         if (diagnostics.isEmpty()) {
             logger.printVerboseInfo(fileName, "No diagnostics found - code repair not needed");
-            return generatedCode;
+            return null;
         }
 
         logger.printVerboseInfo(fileName, "Proceeding with code repair");
@@ -324,19 +337,10 @@ public class CodeGenerationUtils {
         JsonObject diagnosticRequest = getDiagnosticsRequest(convertedDiagnostics, generatedCode);
         logger.printVerboseInfo(fileName, "Diagnostic request prepared");
 
-        String repairResponse = repairCode(copilotAccessToken, sourceFiles, fileAttachmentContents,
+        GeneratedCode repairedCode = getRepairedCodeFromStream(copilotAccessToken, sourceFiles, fileAttachmentContents,
                 packageName, generatedPrompt, generatedCode, diagnosticRequest, logger, fileName);
-
-        if (hasBallerinaCodeSnippet(repairResponse)) {
-            Map<String, String> repairedCodeMap = extractGeneratedCodeFromResponse(repairResponse);
-            logger.printVerboseInfo(fileName, "Repaired code extracted: " + repairedCodeMap.size() + " files");
-            return new GeneratedCode(repairedCodeMap, generatedCode.functions);
-        } else {
-            logger.printVerboseError(fileName, "No Ballerina code snippets found in repair response - " +
-                    "using original code");
-        }
-
-        return generatedCode;
+        updateSourceFilesWithGeneratedContent(sourceFiles, repairedCode.codeMap, logger, fileName);
+        return repairedCode;
     }
 
     /**
@@ -354,11 +358,12 @@ public class CodeGenerationUtils {
      *
      * @return The repaired code as a String
      */
-    private static String repairCode(String copilotAccessToken, JsonArray sourceFiles,
+    private static GeneratedCode getRepairedCode(String copilotAccessToken, JsonArray sourceFiles,
                                      JsonArray fileAttachmentContents, String packageName, String generatedPrompt,
                                      GeneratedCode generatedCodeMap, JsonObject diagnosticsRequest,
                                      VerboseLoggerFactory logger, String fileName)
             throws URISyntaxException, IOException, InterruptedException {
+        URI uri = new URI(getCopilotBackendURL() + "/code/repair");
 
         logger.printVerboseInfo(fileName, "Preparing code repair payload...");
         JsonObject codeReparationPayload = constructCodeReparationPayload(generatedPrompt, sourceFiles,
@@ -366,16 +371,10 @@ public class CodeGenerationUtils {
         logger.printVerboseInfo(fileName, "Repair payload size: " +
                 codeReparationPayload.toString().length() + " characters");
 
-        URI uri = new URI(getCopilotBackendURL() + "/code/repair");
-        HttpRequest codeReparationRequest = HttpRequest.newBuilder()
-                .uri(uri)
-                .header("Authorization", "Bearer " + copilotAccessToken)
-                .POST(HttpRequest.BodyPublishers.ofString(codeReparationPayload.toString())).build();
-
         logger.printVerboseInfo(fileName, "Sending HTTP request to get the repaired code");
         long startTime = System.currentTimeMillis();
-        HttpResponse<String> response = getHttpClient().send(codeReparationRequest,
-                HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = sendRequestAsync(uri, codeReparationPayload, copilotAccessToken, logger,
+                fileName);
         long duration = System.currentTimeMillis() - startTime;
 
         logger.printVerboseInfo(fileName, "Code repair response received");
@@ -392,7 +391,50 @@ public class CodeGenerationUtils {
         JsonObject responseJson = JsonParser.parseString(response.body()).getAsJsonObject();
         String repairResponse = responseJson.getAsJsonPrimitive("repairResponse").getAsString();
         logger.printVerboseInfo(fileName, "Repair response extracted successfully");
-        return repairResponse;
+
+        GeneratedCode repairedCode = new GeneratedCode(extractGeneratedCodeFromResponse(repairResponse),
+                generatedCodeMap.functions);
+        updateSourceFilesWithGeneratedContent(sourceFiles, repairedCode.codeMap, logger, fileName);
+        return repairedCode;
+    }
+
+    /**
+      * Repairs the code using the Copilot service.
+      *
+      * @param copilotAccessToken Access token for Copilot service
+      * @param sourceFiles Array of source files to include in code repair
+      * @param fileAttachmentContents Array of file attachment contents
+      * @param packageName Name of the Ballerina package
+      * @param generatedPrompt The prompt used for code generation
+      * @param generatedCode Map of generated code
+      * @param diagnosticsRequest Request object containing diagnostics information
+      * @param logger Logger for verbose output
+      * @param fileName Name of the file being processed
+      *
+      * @return The repaired code as a String
+      */
+    private static GeneratedCode getRepairedCodeFromStream(String copilotAccessToken, JsonArray sourceFiles,
+                                     JsonArray fileAttachmentContents, String packageName, String generatedPrompt,
+                                     GeneratedCode generatedCode, JsonObject diagnosticsRequest,
+                                     VerboseLoggerFactory logger, String fileName)
+            throws URISyntaxException, IOException, InterruptedException {
+        URI uri = new URI(getCopilotBackendURL() + "/code/repair?isStream=true");
+
+        logger.printVerboseInfo(fileName, "Preparing code repair payload");
+        JsonObject codeReparationPayload = constructCodeReparationPayload(generatedPrompt, sourceFiles,
+                fileAttachmentContents, packageName, generatedCode.functions, diagnosticsRequest);
+        logger.printVerboseInfo(fileName, "Repair payload size: " +
+                codeReparationPayload.toString().length() + " characters");
+
+        logger.printVerboseInfo(fileName, "Sending HTTP request to get the repaired code");
+        HttpResponse<Stream<String>> response = sendStreamRequestAsync(uri, codeReparationPayload, copilotAccessToken, logger,
+                fileName);
+        logger.printVerboseInfo(fileName, "Code repair response received");
+        logger.printVerboseInfo(fileName, "Response status: " + response.statusCode());
+
+        logger.printVerboseInfo(fileName, "Processing streamed response for code reparation");
+
+        return extractGeneratedCode(response.body(), logger, fileName);
     }
 
     /**
@@ -667,16 +709,19 @@ public class CodeGenerationUtils {
      * @param generatedCodeMap Map containing the generated code content
      */
     private static void updateSourceFilesWithGeneratedContent(JsonArray sourceFiles,
-                                                              Map<String, String> generatedCodeMap) {
-        for (String fileName: generatedCodeMap.keySet()) {
+                                                              Map<String, String> generatedCodeMap,
+                                                              VerboseLoggerFactory logger, String fileName) {
+        for (String sourceFileName: generatedCodeMap.keySet()) {
             for (JsonElement sourceFile: sourceFiles) {
                 JsonObject sourceFileObj = sourceFile.getAsJsonObject();
-                if (sourceFileObj.get(FILE_PATH).getAsString().endsWith(fileName)) {
-                    sourceFileObj.addProperty(CONTENT, generatedCodeMap.get(fileName));
+                if (sourceFileObj.get(FILE_PATH).getAsString().endsWith(sourceFileName)) {
+                    sourceFileObj.addProperty(CONTENT, generatedCodeMap.get(sourceFileName));
                     break;
                 }
             }
         }
+        logger.printVerboseInfo(fileName, "Source files updated with generated content: " +
+                generatedCodeMap.size() + " files");
     }
 
     /**
@@ -826,7 +871,83 @@ public class CodeGenerationUtils {
      * @return Configured HttpClient instance
      */
     private static HttpClient getHttpClient() {
-        return HttpClient.newHttpClient();
+        return HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMinutes(5))
+                .executor(Executors.newCachedThreadPool())
+                .build();
+    }
+
+    private static HttpResponse<Stream<String>> sendStreamRequestAsync(URI uri, JsonObject payload, String accessToken, VerboseLoggerFactory logger,
+                                                 String fileName) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(uri)
+                .header("Authorization", "Bearer " + accessToken)
+                .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
+                .timeout(Duration.ofMinutes(8))
+                .build();
+
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+        CompletableFuture<HttpResponse<Stream<String>>> future = getHttpClient().sendAsync(
+                request, HttpResponse.BodyHandlers.ofLines());
+
+        HttpResponse<Stream<String>> response;
+        try {
+            long startTime = System.currentTimeMillis();
+            response = future.get(5, TimeUnit.MINUTES);
+            long duration = System.currentTimeMillis() - startTime;
+
+            logger.printVerboseInfo(fileName, "Response time: " + duration + "ms");
+            logger.printVerboseInfo(fileName, "Response status: " + response.statusCode());
+        } catch (TimeoutException e) {
+            future.cancel(true);
+            logger.printVerboseError(fileName, "Request timed out after 5 minutes");
+            throw new IOException("Request timed out", e);
+        } catch (ExecutionException e) {
+            logger.printVerboseError(fileName, "Request failed: " + e.getCause().getMessage());
+            throw new IOException("Request failed", e.getCause());
+        } finally {
+            scheduler.shutdown();
+        }
+
+        return response;
+    }
+
+    private static HttpResponse<String> sendRequestAsync(URI uri, JsonObject payload, String accessToken, VerboseLoggerFactory logger,
+                                    String fileName) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(uri)
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + accessToken)
+                .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
+                .timeout(Duration.ofMinutes(5))
+                .build();
+
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+        CompletableFuture<HttpResponse<String>> future = getHttpClient().sendAsync(
+                request, HttpResponse.BodyHandlers.ofString());
+
+        HttpResponse<String> response;
+        try {
+            long startTime = System.currentTimeMillis();
+            response = future.get(5, TimeUnit.MINUTES);
+            long duration = System.currentTimeMillis() - startTime;
+
+            logger.printVerboseInfo(fileName, "Response time: " + duration + "ms");
+            logger.printVerboseInfo(fileName, "Response status: " + response.statusCode());
+        } catch (TimeoutException e) {
+            future.cancel(true);
+            logger.printVerboseError(fileName, "Request timed out after 5 minutes");
+            throw new IOException("Request timed out", e);
+        } catch (ExecutionException e) {
+            logger.printVerboseError(fileName, "Request failed: " + e.getCause().getMessage());
+            throw new IOException("Request failed", e.getCause());
+        } finally {
+            scheduler.shutdown();
+        }
+
+        return response;
     }
 
     /**

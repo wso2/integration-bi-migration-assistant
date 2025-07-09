@@ -35,8 +35,9 @@ public class Constants {
     public static final String AUTH_CLIENT_ID = "9rKng8hSZd0VkeA45Lt4LOfCp9Aa";
     public static final String CONFIG_FILE_PATH = "migrate-logicapps.config";
     public static final int AUTHENTICATION_TIMEOUT_SECONDS = 180;
-    public static final String DEV_COPILOT_BACKEND_URL = "https://e95488c8-8511-4882-967f-ec3ae2a0f86f-dev." +
-            "e1-us-east-azure.choreoapis.dev/ballerina-copilot/ballerina-copilot-api-byo/v2.0";
+    public static final String DEV_COPILOT_BACKEND_URL = "http://localhost:9094/ai";
+    //    public static final String DEV_COPILOT_BACKEND_URL = "https://e95488c8-8511-4882-967f-ec3ae2a0f86f-dev." +
+//            "e1-us-east-azure.choreoapis.dev/ballerina-copilot/ballerina-copilot-api-byo/v2.0";
     public static final String COPILOT_BACKEND_URL = "https://dev-tools.wso2.com/ballerina-copilot/v2.0";
     public static final String BALLERINA_USER_HOME_NAME = ".ballerina";
     public static final String FILE_PATH = "filePath";
@@ -46,4 +47,5 @@ public class Constants {
     public static final String DEFAULT_PROJECT_VERSION = "0.1.0";
     public static final String TRIPLE_BACKTICK_BALLERINA = "```ballerina";
     public static final String TRIPLE_BACKTICK = "```";
+    public static final int MAXIMUM_RETRY_COUNT = 3;
 }

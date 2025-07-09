@@ -101,6 +101,7 @@ public class LogicAppsMigrationExecutor {
                         false, loggerFactory, fileName);
                 loggerFactory.setProgressBarActive(false);
             }
+            System.exit(0);
         } catch (Exception e) {
             logger.printError("Error during migration process: " + e.getMessage());
             logger.printStackTrace(e.getStackTrace());
@@ -147,6 +148,7 @@ public class LogicAppsMigrationExecutor {
                         false, loggerFactory, fileName);
                 loggerFactory.setProgressBarActive(false);
             }
+            System.exit(0);
         } catch (IOException e) {
             logger.printError("Error during migration process: " + e.getMessage());
             logger.printStackTrace(e.getStackTrace());
@@ -398,7 +400,7 @@ public class LogicAppsMigrationExecutor {
         try (FileWriter fileWriter = new FileWriter(balTomlFile, StandardCharsets.UTF_8)) {
             fileWriter.write(tomlContent);
         }
-        logger.printVerboseInfo(fileName, ballerinaTomlPath + "file written successfully");
+        logger.printVerboseInfo(fileName, BALLERINA_TOML_FILE + " file written successfully");
         logger.printInfo(fileName, "Ballerina project created successfully at: " + projectDir.toAbsolutePath());
     }
 }
