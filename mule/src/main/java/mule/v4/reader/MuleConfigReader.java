@@ -123,6 +123,8 @@ public class MuleConfigReader {
         } else if (MuleXMLTag.VM_CONFIG.tag().equals(elementTagName)) {
             VMConfig vmConfig = readVmConfig(ctx, muleElement);
             // TODO: Revisit how we can use this
+        } else if (MuleXMLTag.CONFIGURATION_PROPERTIES.tag().equals(elementTagName)) {
+            // Ignore as we automatically add all .yaml and .properties to config.toml
         } else {
             UnsupportedBlock unsupportedBlock = readUnsupportedBlock(ctx, muleElement);
             ctx.currentFileCtx.configs.unsupportedBlocks.add(unsupportedBlock);
