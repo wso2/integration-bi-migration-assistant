@@ -252,6 +252,8 @@ public final class ConversionUtils {
         static final String CONTEXT_VAR_NAME = "context";
         static final String CONTEXT_INPUT_NAME = "$input";
 
+        static final BallerinaModel.TypeDesc.TypeReference FILE_EVENT =
+                new BallerinaModel.TypeDesc.TypeReference("file:FileEvent");
         static final BallerinaModel.TypeDesc.TypeReference JMS_MESSAGE_TYPE =
                 new BallerinaModel.TypeDesc.TypeReference("jms:Message");
         static final BallerinaModel.TypeDesc.TypeReference JMS_CONNECTION =
@@ -281,6 +283,8 @@ public final class ConversionUtils {
                                 new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("headers",
                                         new BallerinaModel.TypeDesc.MapTypeDesc(STRING))));
 
+        static final BallerinaModel.TypeDesc.TypeReference FILE_DATA =
+                new BallerinaModel.TypeDesc.TypeReference("FileData");
     }
 
     public static BallerinaModel.TypeDesc.FunctionTypeDesc processFunctionType(ProcessContext cx) {

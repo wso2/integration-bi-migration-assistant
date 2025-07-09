@@ -59,20 +59,17 @@ import static common.ConversionUtils.exprFrom;
 import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
 import static mule.v4.Constants.BAL_ANYDATA_TYPE;
-import static mule.v4.Constants.BAL_ERROR_TYPE;
 import static mule.v4.ConversionUtils.getAttrVal;
 import static mule.v4.ConversionUtils.getAttrValInt;
 import static mule.v4.ConversionUtils.getBallerinaAbsolutePath;
 import static mule.v4.ConversionUtils.getBallerinaResourcePath;
 import static mule.v4.ConversionUtils.insertLeadingSlash;
+import static mule.v4.converter.MuleConfigConverter.convertErrorHandlerRecords;
 import static mule.v4.converter.MuleConfigConverter.convertTopLevelMuleBlocks;
-import static mule.v4.converter.MuleConfigConverter.getCatchExceptionBody;
-import static mule.v4.converter.MuleConfigConverter.getChoiceExceptionBody;
-import static mule.v4.model.MuleModel.CatchExceptionStrategy;
-import static mule.v4.model.MuleModel.ChoiceExceptionStrategy;
 import static mule.v4.model.MuleModel.DbConnection;
 import static mule.v4.model.MuleModel.DbMySqlConnection;
 import static mule.v4.model.MuleModel.DbOracleConnection;
+import static mule.v4.model.MuleModel.ErrorHandler;
 import static mule.v4.model.MuleModel.Flow;
 import static mule.v4.model.MuleModel.HTTPListenerConfig;
 import static mule.v4.model.MuleModel.HttpListener;
@@ -80,7 +77,7 @@ import static mule.v4.model.MuleModel.Kind;
 import static mule.v4.model.MuleModel.MuleRecord;
 import static mule.v4.model.MuleModel.SubFlow;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
-import static mule.v4.model.MuleModel.VMInboundEndpoint;
+import static mule.v4.model.MuleModel.VMListener;
 import static mule.v4.reader.MuleConfigReader.readMuleConfigFromRoot;
 
 public class MuleToBalConverter {
@@ -143,8 +140,8 @@ public class MuleToBalConverter {
             }
 
             MuleRecord src = source.get();
-            if (src.kind() == Kind.VM_INBOUND_ENDPOINT) {
-                genVMInboundEndpointSource(ctx, flow, (VMInboundEndpoint) src, functions);
+            if (src.kind() == Kind.VM_LISTENER) {
+                genVMListenerSource(ctx, flow, (VMListener) src, functions);
             } else {
                 assert src.kind() == Kind.HTTP_LISTENER;
                 genHttpSource(ctx, flow, (HttpListener) src, services, functions);
@@ -159,8 +156,8 @@ public class MuleToBalConverter {
         functions.addAll(ctx.currentFileCtx.balConstructs.functions);
 
         // Create functions for global exception strategies
-        for (MuleRecord exceptionStrategy : ctx.currentFileCtx.configs.globalExceptionStrategies) {
-            genBalFuncForGlobalExceptionStrategy(ctx, exceptionStrategy, functions);
+        for (ErrorHandler errorHandler : ctx.currentFileCtx.configs.globalErrorHandlers) {
+            genBalFuncForGlobalErrorHandler(ctx, errorHandler, functions);
         }
 
         // Add global listeners
@@ -223,17 +220,15 @@ public class MuleToBalConverter {
                 typeDefs, orderedModuleVars, listeners, services, functions.stream().toList(), comments);
     }
 
-    private static void genVMInboundEndpointSource(Context ctx, Flow flow, VMInboundEndpoint vmInboundEndpoint,
-                                                   Set<Function> functions) {
-        String path = vmInboundEndpoint.path();
-        String funcName = ctx.projectCtx.vmPathToBalFuncMap.get(path);
+    private static void genVMListenerSource(Context ctx, Flow flow, VMListener vmListener, Set<Function> functions) {
+        // TODO: Consider config ref usage
+        String queueName = vmListener.queueName();
+        String funcName = ctx.projectCtx.vmQueueNameToBalFuncMap.get(queueName);
         if (funcName == null) {
             funcName = ConversionUtils.convertToBalIdentifier(flow.name());
-            ctx.projectCtx.vmPathToBalFuncMap.put(path, funcName);
-            genBalFunc(ctx, functions, funcName, flow.flowBlocks());
-        } else {
-            genBalFunc(ctx, functions, funcName, flow.flowBlocks());
+            ctx.projectCtx.vmQueueNameToBalFuncMap.put(queueName, funcName);
         }
+        genBalFunc(ctx, functions, funcName, flow.flowBlocks());
     }
 
     private static void genHttpSource(Context ctx, Flow flow, HttpListener src, List<Service> services,
@@ -300,24 +295,16 @@ public class MuleToBalConverter {
         return contextTypeDefns;
     }
 
-    private static void genBalFuncForGlobalExceptionStrategy(Context ctx, MuleRecord muleRecord,
-                                                             Set<Function> functions) {
-        List<Statement> body;
-        String name;
-        if (muleRecord instanceof CatchExceptionStrategy catchExceptionStrategy) {
-            name = catchExceptionStrategy.name();
-            body = getCatchExceptionBody(ctx, catchExceptionStrategy);
-        } else if (muleRecord instanceof ChoiceExceptionStrategy choiceExceptionStrategy) {
-            name = choiceExceptionStrategy.name();
-            body = getChoiceExceptionBody(ctx, choiceExceptionStrategy);
-        } else {
-            throw new UnsupportedOperationException("exception strategy not supported");
-        }
-
+    private static void genBalFuncForGlobalErrorHandler(Context ctx, ErrorHandler errorHandler,
+                                                        Set<Function> functions) {
+        String name = errorHandler.name();
         String methodName = ConversionUtils.convertToBalIdentifier(name);
+
         List<Parameter> parameters = new ArrayList<>();
         parameters.add(Constants.CONTEXT_FUNC_PARAM);
-        parameters.add(new Parameter("e", BAL_ERROR_TYPE));
+        parameters.add(new Parameter("e", Constants.BAL_ERROR_TYPE));
+
+        List<Statement> body = convertErrorHandlerRecords(ctx, errorHandler.errorHandlers());
         Function function = Function.publicFunction(methodName, parameters.stream().toList(), body);
         functions.add(function);
     }

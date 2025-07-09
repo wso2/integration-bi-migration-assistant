@@ -91,7 +91,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                              ExplicitTransitionGroup.NestedGroup.LoopGroup.SourceExpression over,
                              Optional<String> elementSlot, Optional<String> indexSlot,
                              Optional<String> activityOutputName, boolean accumulateOutput,
-                             ExplicitTransitionGroup body) implements ExplicitTransitionGroup.NestedGroup {
+                             ExplicitTransitionGroup body, String fileName)
+                    implements ExplicitTransitionGroup.NestedGroup {
 
                 public LoopGroup {
                     assert !accumulateOutput || activityOutputName.isPresent();
@@ -162,6 +163,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 FILE_READ,
                 XML_RENDER_ACTIVITY,
                 XML_PARSE_ACTIVITY,
+                XML_TRANSFORM_ACTIVITY,
                 SOAP_SEND_RECEIVE,
                 SOAP_SEND_REPLY,
                 LOOP_GROUP,
@@ -174,9 +176,13 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 JMS_QUEUE_EVENT_SOURCE,
                 JMS_QUEUE_SEND_ACTIVITY,
                 JMS_QUEUE_GET_MESSAGE_ACTIVITY,
+                JMS_TOPIC_PUBLISH_ACTIVITY,
                 SLEEP,
                 GET_SHARED_VARIABLE,
-                SET_SHARED_VARIABLE;
+                SET_SHARED_VARIABLE,
+                FILE_EVENT_SOURCE,
+                ON_STARTUP,
+                LIST_FILES;
 
                 public static ExplicitTransitionGroup.InlineActivity.InlineActivityType parse(String type) {
                     record LookUpData(String suffix,
@@ -191,6 +197,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                     new LookUpData("HTTPResponseActivity", HTTP_RESPONSE),
                                     new LookUpData("XMLRendererActivity", XML_RENDER_ACTIVITY),
                                     new LookUpData("XMLParseActivity", XML_PARSE_ACTIVITY),
+                                    new LookUpData("XMLTransformActivity", XML_TRANSFORM_ACTIVITY),
                                     new LookUpData("LoopGroup", LOOP_GROUP),
                                     new LookUpData("WriteToLogActivity", WRITE_LOG),
                                     new LookUpData("CatchActivity", CATCH),
@@ -206,16 +213,20 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                     new LookUpData("JMSQueueEventSource", JMS_QUEUE_EVENT_SOURCE),
                                     new LookUpData("JMSQueueSendActivity", JMS_QUEUE_SEND_ACTIVITY),
                                     new LookUpData("JMSQueueGetMessageActivity", JMS_QUEUE_GET_MESSAGE_ACTIVITY),
-                            new LookUpData("SleepActivity", SLEEP),
-                            new LookUpData("GetSharedVariableActivity", GET_SHARED_VARIABLE),
-                            new LookUpData("SetSharedVariableActivity", SET_SHARED_VARIABLE))
+                                    new LookUpData("JMSTopicPublishActivity", JMS_TOPIC_PUBLISH_ACTIVITY),
+                                    new LookUpData("SleepActivity", SLEEP),
+                                    new LookUpData("GetSharedVariableActivity", GET_SHARED_VARIABLE),
+                                    new LookUpData("SetSharedVariableActivity", SET_SHARED_VARIABLE),
+                                    new LookUpData("FileEventSource", FILE_EVENT_SOURCE),
+                            new LookUpData("OnStartupEventSource", ON_STARTUP),
+                            new LookUpData("ListFilesActivity", LIST_FILES))
                             .filter(each -> type.endsWith(each.suffix)).findFirst()
                             .map(LookUpData::activityType).orElse(UNHANDLED);
                 }
             }
 
             record JDBC(Element element, String name, InputBinding inputBinding,
-                        String connection) implements ExplicitTransitionGroup.InlineActivity {
+                        String connection, String fileName) implements ExplicitTransitionGroup.InlineActivity {
 
                 public JDBC {
                     assert inputBinding != null;
@@ -233,7 +244,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record JSONRender(Element element, String name, InputBinding inputBinding,
-                              XSD targetType) implements ExplicitTransitionGroup.InlineActivity {
+                              XSD targetType, String fileName) implements ExplicitTransitionGroup.InlineActivity {
 
                 public JSONRender {
                     assert inputBinding != null;
@@ -251,7 +262,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record JSONParser(Element element, String name, InputBinding inputBinding,
-                              XSD targetType) implements ExplicitTransitionGroup.InlineActivity {
+                              XSD targetType, String fileName) implements ExplicitTransitionGroup.InlineActivity {
 
                 public JSONParser {
                     assert inputBinding != null;
@@ -270,8 +281,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
 
             record REST(Element element, String name, InputBinding inputBinding,
                         ExplicitTransitionGroup.InlineActivity.REST.Method method,
-                        ExplicitTransitionGroup.InlineActivity.REST.ResponseType responseType, String url) implements
-                    ExplicitTransitionGroup.InlineActivity {
+                    ExplicitTransitionGroup.InlineActivity.REST.ResponseType responseType, String url,
+                    String fileName) implements ExplicitTransitionGroup.InlineActivity {
 
                 public enum ResponseType {
                     JSON,
@@ -315,7 +326,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record CallProcess(Element element, String name, InputBinding inputBinding,
-                               String processName) implements ExplicitTransitionGroup.InlineActivity {
+                               String processName, String fileName) implements ExplicitTransitionGroup.InlineActivity {
 
                 public CallProcess {
                     assert inputBinding != null;
@@ -333,7 +344,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record FileRead(Element element, String name, InputBinding inputBinding,
-                            String encoding) implements ExplicitTransitionGroup.InlineActivity {
+                            String encoding, String fileName) implements ExplicitTransitionGroup.InlineActivity {
 
                 public FileRead {
                     assert inputBinding != null;
@@ -351,7 +362,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record FileWrite(Element element, String name, InputBinding inputBinding, String encoding,
-                             boolean append) implements ExplicitTransitionGroup.InlineActivity {
+                             boolean append, String fileName) implements ExplicitTransitionGroup.InlineActivity {
 
                 public FileWrite {
                     assert inputBinding != null;
@@ -369,7 +380,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record XMLParseActivity(Element element, String name,
-                                    InputBinding inputBinding) implements ExplicitTransitionGroup.InlineActivity {
+                    InputBinding inputBinding, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
 
                 public XMLParseActivity {
                     assert inputBinding != null;
@@ -387,7 +399,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record XMLRenderActivity(Element element, String name,
-                                     InputBinding inputBinding) implements ExplicitTransitionGroup.InlineActivity {
+                    InputBinding inputBinding, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
 
                 public XMLRenderActivity {
                     assert inputBinding != null;
@@ -404,8 +417,28 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 }
             }
 
+            record XMLTransformActivity(Element element, String name,
+                                        InputBinding inputBinding, String styleSheet, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
+
+                public XMLTransformActivity {
+                    assert inputBinding != null;
+                }
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.XML_TRANSFORM_ACTIVITY;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return true;
+                }
+            }
+
             record SOAPSendReply(Element element, String name,
-                                 InputBinding inputBinding) implements ExplicitTransitionGroup.InlineActivity {
+                    InputBinding inputBinding, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
 
                 public SOAPSendReply {
                     assert inputBinding != null;
@@ -423,7 +456,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record SOAPSendReceive(Element element, String name, InputBinding inputBinding,
-                                   Optional<String> soapAction, String endpointURL) implements
+                                   Optional<String> soapAction, String endpointURL, String fileName) implements
                     ExplicitTransitionGroup.InlineActivity {
 
                 @Override
@@ -442,7 +475,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record Catch(Element element, String name,
-                         InputBinding inputBinding) implements ExplicitTransitionGroup.InlineActivity,
+                         InputBinding inputBinding, String fileName) implements ExplicitTransitionGroup.InlineActivity,
                     ExplicitTransitionGroup.InlineActivity.ErrorHandlerInlineActivity {
 
                 @Override
@@ -456,7 +489,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 }
             }
 
-            record WriteLog(Element element, String name, InputBinding inputBinding) implements
+            record WriteLog(Element element, String name, InputBinding inputBinding, String fileName) implements
                     ExplicitTransitionGroup.InlineActivity {
 
                 public WriteLog {
@@ -474,7 +507,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 }
             }
 
-            record HTTPResponse(Element element, String name, InputBinding inputBinding) implements
+            record HTTPResponse(Element element, String name, InputBinding inputBinding, String fileName) implements
                     ExplicitTransitionGroup.InlineActivity {
 
                 public HTTPResponse {
@@ -492,7 +525,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 }
             }
 
-            record NullActivity(Element element, String name, InputBinding inputBinding) implements
+            record NullActivity(Element element, String name, InputBinding inputBinding, String fileName) implements
                     ExplicitTransitionGroup.InlineActivity {
 
                 @Override
@@ -507,7 +540,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record UnhandledInlineActivity(Element element, String name, String activityType,
-                                           InputBinding inputBinding) implements
+                                           InputBinding inputBinding, String fileName) implements
                     ExplicitTransitionGroup.InlineActivity {
 
                 @Override
@@ -522,7 +555,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record MapperActivity(Element element, String name,
-                                  InputBinding inputBinding) implements ExplicitTransitionGroup.InlineActivity {
+                    InputBinding inputBinding, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
 
                 public MapperActivity {
                     assert inputBinding != null;
@@ -540,7 +574,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record AssignActivity(Element element, String name, String variableName,
-                                  InputBinding inputBinding) implements ExplicitTransitionGroup.InlineActivity {
+                    InputBinding inputBinding, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
 
                 @Override
                 public InlineActivityType type() {
@@ -554,7 +589,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record HttpEventSource(Element element, String name, String sharedChannel,
-                                   InputBinding inputBinding) implements ExplicitTransitionGroup.InlineActivity {
+                    InputBinding inputBinding, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
 
                 @Override
                 public InlineActivityType type() {
@@ -567,10 +603,40 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 }
             }
 
+            record FileEventSource(Element element, String name, InputBinding inputBinding,
+                                   boolean createEvent, boolean modifyEvent, boolean deleteEvent,
+                                   boolean excludeContent, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.FILE_EVENT_SOURCE;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
+                }
+            }
+
+            record OnStartupEventSource(Element element, String name,
+                    InputBinding inputBinding, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.ON_STARTUP;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
+                }
+            }
+
             record JMSActivityBase(Element element, String name, InputBinding inputBinding,
                                    String permittedMessageType, SessionAttributes sessionAttributes,
                                    ConfigurableHeaders configurableHeaders,
-                                   String connectionReference) {
+                    String connectionReference, String fileName) {
 
                 public record SessionAttributes(boolean transacted, int acknowledgeMode, int maxSessions,
                                                 String destination) {
@@ -587,11 +653,11 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             record JMSQueueEventSource(Element element, String name, InputBinding inputBinding,
                                        String permittedMessageType, JMSActivityBase.SessionAttributes sessionAttributes,
                                        JMSActivityBase.ConfigurableHeaders configurableHeaders,
-                                       String connectionReference) implements ExplicitTransitionGroup.InlineActivity {
+                    String connectionReference, String fileName) implements ExplicitTransitionGroup.InlineActivity {
 
                 public JMSQueueEventSource(JMSActivityBase base) {
                     this(base.element, base.name, base.inputBinding, base.permittedMessageType,
-                            base.sessionAttributes, base.configurableHeaders, base.connectionReference);
+                            base.sessionAttributes, base.configurableHeaders, base.connectionReference, base.fileName);
                 }
 
                 @Override
@@ -609,11 +675,11 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                         String permittedMessageType,
                                         JMSActivityBase.SessionAttributes sessionAttributes,
                                         JMSActivityBase.ConfigurableHeaders configurableHeaders,
-                                        String connectionReference) implements ExplicitTransitionGroup.InlineActivity {
+                    String connectionReference, String fileName) implements ExplicitTransitionGroup.InlineActivity {
 
                 public JMSQueueSendActivity(JMSActivityBase base) {
                     this(base.element, base.name, base.inputBinding, base.permittedMessageType,
-                            base.sessionAttributes, base.configurableHeaders, base.connectionReference);
+                            base.sessionAttributes, base.configurableHeaders, base.connectionReference, base.fileName);
                 }
 
                 @Override
@@ -631,12 +697,12 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                               String permittedMessageType,
                                               JMSActivityBase.SessionAttributes sessionAttributes,
                                               JMSActivityBase.ConfigurableHeaders configurableHeaders,
-                                              String connectionReference)
+                    String connectionReference, String fileName)
                     implements ExplicitTransitionGroup.InlineActivity {
 
                 public JMSQueueGetMessageActivity(JMSActivityBase base) {
                     this(base.element, base.name, base.inputBinding, base.permittedMessageType,
-                            base.sessionAttributes, base.configurableHeaders, base.connectionReference);
+                            base.sessionAttributes, base.configurableHeaders, base.connectionReference, base.fileName);
                 }
 
                 @Override
@@ -650,7 +716,36 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 }
             }
 
-            record Sleep(Element element, String name, InputBinding inputBinding)
+            record JMSTopicPublishActivity(Element element, String name, InputBinding inputBinding,
+                                           String permittedMessageType,
+                                           JMSActivityBase.SessionAttributes sessionAttributes,
+                                           JMSActivityBase.ConfigurableHeaders configurableHeaders,
+                                           String connectionReference,
+                                           String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
+
+                public JMSTopicPublishActivity(JMSActivityBase base) {
+                    this(base.element, base.name, base.inputBinding, base.permittedMessageType,
+                            base.sessionAttributes, base.configurableHeaders, base.connectionReference, base.fileName);
+                }
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.JMS_TOPIC_PUBLISH_ACTIVITY;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
+                }
+
+                @Override
+                public String fileName() {
+                    return fileName;
+                }
+            }
+
+            record Sleep(Element element, String name, InputBinding inputBinding, String fileName)
                     implements ExplicitTransitionGroup.InlineActivity {
 
                 public Sleep {
@@ -666,10 +761,15 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 public boolean hasInputBinding() {
                     return true;
                 }
+
+                @Override
+                public String fileName() {
+                    return fileName;
+                }
             }
 
             record GetSharedVariable(Element element, String name, InputBinding inputBinding,
-                    String variableConfig) implements ExplicitTransitionGroup.InlineActivity {
+                    String variableConfig, String fileName) implements ExplicitTransitionGroup.InlineActivity {
 
                 @Override
                 public InlineActivityType type() {
@@ -683,7 +783,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record SetSharedVariable(Element element, String name, InputBinding inputBinding,
-                    String variableConfig) implements ExplicitTransitionGroup.InlineActivity {
+                    String variableConfig, String fileName) implements ExplicitTransitionGroup.InlineActivity {
 
                 public SetSharedVariable {
                     assert inputBinding != null;
@@ -697,6 +797,33 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 @Override
                 public boolean hasInputBinding() {
                     return true;
+                }
+            }
+
+            record ListFilesActivity(Element element, String name, InputBinding inputBinding, Mode mode,
+                    String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
+                public enum Mode {
+                    FILES_AND_DIRECTORIES,
+                    ONLY_FILES;
+
+                    public static Mode from(String s) {
+                        return switch (s) {
+                            case "files-and-directories" -> FILES_AND_DIRECTORIES;
+                            case "only-files" -> ONLY_FILES;
+                            default -> throw new IllegalArgumentException("Unknown ListFilesActivity mode: " + s);
+                        };
+                    }
+                }
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.LIST_FILES;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
                 }
             }
 

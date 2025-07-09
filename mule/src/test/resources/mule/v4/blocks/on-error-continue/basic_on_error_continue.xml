@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <flow name="demoFlow" doc:id="9673c565-4e92-468d-92fa-417064ccc5c4" >
+        <set-payload value="#[1/0]" doc:name="Cause Error (Divide by Zero)" doc:id="b2647e2e-af69-49ce-a30d-254e505d9e90" />
+        <logger level="INFO" doc:name="Logger" doc:id="bd022374-be6b-49cf-82d9-4355a55a91cb" message="xxx: log after exception" />
+        <error-handler >
+            <on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="11e861b2-f2a4-4f60-b4ca-6a8e3e81bbcc" >
+                <logger level="INFO" doc:name="Logger" doc:id="822ae64f-26f3-448d-a0d2-c0d7830085bd" message="xxx: error handled in on-error-continue"/>
+                <set-payload value="#['Default value: Error occurred but we handled it.']" doc:name="Set Payload" doc:id="6aa1bb7f-bf42-4fa1-9e39-caf5dcc1e25f" />
+            </on-error-continue>
+        </error-handler>
+    </flow>
+</mule>

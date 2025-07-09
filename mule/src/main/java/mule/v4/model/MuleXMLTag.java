@@ -25,12 +25,15 @@ import java.util.stream.Collectors;
 public enum MuleXMLTag {
 
     // Global Elements
-    HTTP_LISTENER_CONFIG("http:listener-config", 4),
-    HTTP_LISTENER_CONNECTION("http:listener-connection", 1),
-    HTTP_REQUEST_CONFIG("http:request-config", 5),
+    HTTP_LISTENER_CONFIG("http:listener-config", 3),
+    HTTP_LISTENER_CONNECTION("http:listener-connection", 2),
+    HTTP_REQUEST_CONFIG("http:request-config", 3),
+    HTTP_REQUEST_CONNECTION("http:request-connection", 2),
     DB_CONFIG("db:config", 1),
     DB_MY_SQL_CONNECTION("db:my-sql-connection", 3),
     DB_ORACLE_CONNECTION("db:oracle-connection", 3),
+    VM_CONFIG("vm:config", 1),
+    CONFIGURATION_PROPERTIES("configuration-properties", 1),
 
     // Flow Control
     CHOICE("choice", 3),
@@ -59,9 +62,9 @@ public enum MuleXMLTag {
     OBJECT_TO_STRING("object-to-string-transformer", 2),
 
     // Error Handling
-    CATCH_EXCEPTION_STRATEGY("catch-exception-strategy", 2),
-    CHOICE_EXCEPTION_STRATEGY("choice-exception-strategy", 4),
-    REFERENCE_EXCEPTION_STRATEGY("exception-strategy", 3),
+    ERROR_HANDLER("error-handler", 2),
+    ON_ERROR_CONTINUE("on-error-continue", 2),
+    ON_ERROR_PROPAGATE("on-error-propagate", 2),
 
     // HTTP Module
     HTTP_LISTENER("http:listener", 5),
@@ -70,8 +73,11 @@ public enum MuleXMLTag {
     HTTP_QUERY_PARAM("http:query-param", 2),
 
     // VM connector
-    VM_INBOUND_ENDPOINT("vm:inbound-endpoint", 5),
-    VM_OUTBOUND_ENDPOINT("vm:outbound-endpoint", 5),
+    VM_LISTENER("vm:listener", 5),
+    VM_PUBLISH("vm:publish", 5),
+    VM_CONSUME("vm:consume", 5),
+    VM_QUEUES("vm:queues", 1),
+    VM_QUEUE("vm:queue", 1),
 
     // Database Connector
     DB_INSERT("db:insert", 2),

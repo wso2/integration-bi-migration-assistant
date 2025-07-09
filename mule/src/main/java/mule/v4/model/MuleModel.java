@@ -31,17 +31,27 @@ public record MuleModel() {
         }
     }
 
-    public record VMInboundEndpoint(Kind kind, String path, String exchangePattern)
+    public record VMQueue(String queueName, String queueType) {
+    }
+
+    public record VMListener(Kind kind, String configRef, String queueName)
             implements MuleRecord {
-        public VMInboundEndpoint(String path, String exchangePattern) {
-            this(Kind.VM_INBOUND_ENDPOINT, path, exchangePattern);
+        public VMListener(String configRef, String queueName) {
+            this(Kind.VM_LISTENER, configRef, queueName);
         }
     }
 
-    public record VMOutboundEndpoint(Kind kind, String path, String exchangePattern)
+    public record VMPublish(Kind kind, String configRef, String queueName)
             implements MuleRecord {
-        public VMOutboundEndpoint(String path, String exchangePattern) {
-            this(Kind.VM_OUTBOUND_ENDPOINT, path, exchangePattern);
+        public VMPublish(String configRef, String queueName) {
+            this(Kind.VM_PUBLISH, configRef, queueName);
+        }
+    }
+
+    public record VMConsume(Kind kind, String configRef, String queueName)
+            implements MuleRecord {
+        public VMConsume(String configRef, String queueName) {
+            this(Kind.VM_CONSUME, configRef, queueName);
         }
     }
 
@@ -105,12 +115,6 @@ public record MuleModel() {
     public record FlowReference(Kind kind, String flowName) implements MuleRecord {
         public FlowReference(String flowName) {
             this(Kind.FLOW_REFERENCE, flowName);
-        }
-    }
-
-    public record ReferenceExceptionStrategy(Kind kind, String refName) implements MuleRecord {
-        public ReferenceExceptionStrategy(String flowName) {
-            this(Kind.REFERENCE_EXCEPTION_STRATEGY, flowName);
         }
     }
 
@@ -195,17 +199,34 @@ public record MuleModel() {
     }
 
     // Error handling
-    public record CatchExceptionStrategy(Kind kind, List<MuleRecord> catchBlocks, String when, String name)
+    public record ErrorHandler(Kind kind, String name, String ref, List<ErrorHandlerRecord> errorHandlers)
             implements MuleRecord {
-        public CatchExceptionStrategy(List<MuleRecord> catchBlocks, String when, String name) {
-            this(Kind.CATCH_EXCEPTION_STRATEGY, catchBlocks, when, name);
+        public ErrorHandler(String name, String ref, List<ErrorHandlerRecord> errorHandlers) {
+            this(Kind.ERROR_HANDLER, name, ref, errorHandlers);
         }
     }
 
-    public record ChoiceExceptionStrategy(Kind kind, List<CatchExceptionStrategy> catchExceptionStrategyList,
-                                          String name) implements MuleRecord {
-        public ChoiceExceptionStrategy(List<CatchExceptionStrategy> catchExceptionStrategyList, String name) {
-            this(Kind.CHOICE_EXCEPTION_STRATEGY, catchExceptionStrategyList, name);
+    public interface ErrorHandlerRecord extends MuleRecord {
+        String type();
+
+        String when();
+
+        List<MuleRecord> errorBlocks();
+    }
+
+    public record OnErrorContinue(Kind kind, List<MuleRecord> errorBlocks, String type, String when,
+                                  String enableNotifications, String logException) implements ErrorHandlerRecord {
+        public OnErrorContinue(List<MuleRecord> errorBlocks, String type, String when,
+                               String enableNotifications, String logException) {
+            this(Kind.ON_ERROR_CONTINUE, errorBlocks, type, when, enableNotifications, logException);
+        }
+    }
+
+    public record OnErrorPropagate(Kind kind, List<MuleRecord> errorBlocks, String type, String when,
+                                   String enableNotifications, String logException) implements ErrorHandlerRecord {
+        public OnErrorPropagate(List<MuleRecord> errorBlocks, String type, String when,
+                                String enableNotifications, String logException) {
+            this(Kind.ON_ERROR_PROPAGATE, errorBlocks, type, when, enableNotifications, logException);
         }
     }
 
@@ -221,6 +242,12 @@ public record MuleModel() {
                                     String protocol) implements MuleRecord {
         public HTTPRequestConfig(String name, String host, String port, String protocol) {
             this(Kind.HTTP_REQUEST_CONFIG, name, host, port, protocol);
+        }
+    }
+
+    public record VMConfig(Kind kind, String name, List<VMQueue> queues) implements MuleRecord {
+        public VMConfig(String name, List<VMQueue> queues) {
+            this(Kind.VM_CONFIG, name, queues);
         }
     }
 
@@ -269,8 +296,10 @@ public record MuleModel() {
 
     public enum Kind {
         HTTP_LISTENER,
-        VM_INBOUND_ENDPOINT,
-        VM_OUTBOUND_ENDPOINT,
+        VM_CONFIG,
+        VM_LISTENER,
+        VM_PUBLISH,
+        VM_CONSUME,
         LOGGER,
         EXPRESSION_COMPONENT,
         PAYLOAD,
@@ -302,9 +331,9 @@ public record MuleModel() {
         SUB_FLOW,
         ASYNC,
         MESSAGE_ENRICHER,
-        CATCH_EXCEPTION_STRATEGY,
-        CHOICE_EXCEPTION_STRATEGY,
-        REFERENCE_EXCEPTION_STRATEGY,
+        ERROR_HANDLER,
+        ON_ERROR_CONTINUE,
+        ON_ERROR_PROPAGATE,
         UNSUPPORTED_BLOCK
     }
 

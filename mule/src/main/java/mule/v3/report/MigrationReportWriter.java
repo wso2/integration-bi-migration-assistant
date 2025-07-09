@@ -31,13 +31,23 @@ import static mule.v3.MuleMigrationExecutor.logger;
 
 public class MigrationReportWriter {
 
-    public static final double BEST_CASE_COMP_TIME = 1;
-    public static final double AVG_CASE_COMP_TIME = 2;
-    public static final double WORST_CASE_COMP_TIME = 3;
+    // For a new element
+    public static final double BEST_CASE_COMP_TIME_NEW = 1;
+    public static final double AVG_CASE_COMP_TIME_NEW = 2;
+    public static final double WORST_CASE_COMP_TIME_NEW = 3;
+
+    // For a repeated element
+    public static final double BEST_CASE_COMP_TIME_REPEATED = 0.125; // 1 hour
+    public static final double AVG_CASE_COMP_TIME_REPEATED = 0.25; // 2 hours
+    public static final double WORST_CASE_COMP_TIME_REPEATED = 0.5; // 4 hours
 
     public static final double BEST_DW_EXPR_TIME = 0.0625; // 30min
     public static final double AVG_CASE_DW_EXPR_TIME = 0.125; // 1 hour
     public static final double WORST_CASE_DW_EXPR_TIME = 0.25; // 2 hours
+
+    public static final double BEST_CASE_INSPECTION_TIME = 0.125 / 30; // 2 min
+    public static final double AVG_CASE_INSPECTION_TIME = 0.125 / 12; // 5 min
+    public static final double WORST_CASE_INSPECTION_TIME = 0.125 / 6; // 10 min
 
     public static final String MIGRATION_REPORT_NAME = "migration_report.html";
     public static final String MIGRATION_SUMMARY_TITLE = "Migration Summary";
@@ -60,23 +70,106 @@ public class MigrationReportWriter {
         String unsupportedBlocksHtml = generateUnsupportedBlocksHtml(pms.failedBlocks());
         String dataweaveExpressionsHtml = generateDataweaveExpressionsHtml(pms.dwConversionStats());
 
+        // XML Elements metrics
+        int totalXmlElements = calculateTotalXmlElements(pms);
+        int migratableXmlElements = calculateMigratableXmlElements(pms);
+        int nonMigratableXmlElements = totalXmlElements - migratableXmlElements;
+
+        // Calculate element coverage and DataWeave coverage
+        int elementCoverage = calculateElementsCoverage(pms);
+        String elementCoverageColor = getCoverageColor(elementCoverage);
+
+        // DataWeave metrics
+        DWConversionStats dwStats = pms.dwConversionStats();
+        int totalDwConstructs = dwStats.getTotalEncounteredCount();
+        int migratableDwConstructs = dwStats.getConvertedCount();
+        int nonMigratableDwConstructs = totalDwConstructs - migratableDwConstructs;
+
+        int dataweaveCoverage = calculateDataweaveCoverage(pms);
+        String dataweaveCoverageColor = getCoverageColor(dataweaveCoverage);
+
+        // Format DataWeave coverage to display N/A when total is zero
+        String dataweaveDisplayValue = totalDwConstructs > 0 ? dataweaveCoverage + "%" : "N/A";
+        String dataweaveBarWidth = totalDwConstructs > 0 ? dataweaveCoverage + "%" : "0%";
+
+        // Calculate total items, migratable items, and non-migratable items
+        int totalItems = totalXmlElements + totalDwConstructs;
+        int migratableItems = migratableXmlElements + migratableDwConstructs;
+        int nonMigratableItems = nonMigratableXmlElements + nonMigratableDwConstructs;
+
+        // Calculate overall coverage metrics
+        int migrationCoverage = pms.migrationCoverage();
+        String coverageColor = getCoverageColor(migrationCoverage);
+        String coverageStatus = getCoverageStatus(migrationCoverage);
+        String badgeClass = getCoverageBadgeClass(migrationCoverage);
+
+        double bestCaseDays = pms.bestCaseDays() + totalItems * BEST_CASE_INSPECTION_TIME;
+        double avgCaseDays = pms.averageCaseDays() + totalItems * AVG_CASE_INSPECTION_TIME;
+        double worstCaseDays = pms.worstCaseDays() + totalItems * WORST_CASE_INSPECTION_TIME;
+
         return String.format(
                 MigrationReportTemplate.getHtmlTemplate(),
                 reportTitle,
+                pms.sourceProjectName(),
                 reportTitle,
-                pms.migrationCoverage(),
-                pms.bestCaseDays(), (int) Math.ceil(pms.bestCaseDays() / 5.0),
-                pms.averageCaseDays(), (int) Math.ceil(pms.averageCaseDays() / 5.0),
-                pms.worstCaseDays(), (int) Math.ceil(pms.worstCaseDays() / 5.0),
-                BEST_CASE_COMP_TIME, BEST_DW_EXPR_TIME,
-                AVG_CASE_COMP_TIME, AVG_CASE_DW_EXPR_TIME,
-                WORST_CASE_COMP_TIME, WORST_CASE_DW_EXPR_TIME,
-                pms.failedXMLTags().size(),
-                pms.failedDWExprCount(),
+                // Overall coverage section parameters
+                migrationCoverage,
+                migrationCoverage, coverageColor,
+                badgeClass, coverageStatus,
+                totalItems, migratableItems, nonMigratableItems,
+                // Elements coverage section parameters
+                elementCoverage,
+                elementCoverage, elementCoverageColor,
+                totalXmlElements, migratableXmlElements, nonMigratableXmlElements,
+                // DataWeave coverage section parameters
+                dataweaveDisplayValue,
+                dataweaveBarWidth, dataweaveCoverageColor,
+                totalDwConstructs, migratableDwConstructs, nonMigratableDwConstructs,
+                // Time estimation section parameters
+                bestCaseDays, (int) Math.ceil(bestCaseDays / 5.0),
+                avgCaseDays, (int) Math.ceil(avgCaseDays / 5.0),
+                worstCaseDays, (int) Math.ceil(worstCaseDays / 5.0),
+                BEST_CASE_COMP_TIME_NEW, BEST_CASE_COMP_TIME_REPEATED * 8, BEST_DW_EXPR_TIME * 8 * 60,
+                BEST_CASE_INSPECTION_TIME * 8 * 60,
+                AVG_CASE_COMP_TIME_NEW, AVG_CASE_COMP_TIME_REPEATED * 8, AVG_CASE_DW_EXPR_TIME * 8,
+                AVG_CASE_INSPECTION_TIME * 8 * 60,
+                WORST_CASE_COMP_TIME_NEW, WORST_CASE_COMP_TIME_REPEATED * 8, WORST_CASE_DW_EXPR_TIME * 8,
+                WORST_CASE_INSPECTION_TIME * 8 * 60,
+                // Content sections
                 unsupportedElementsTable,
                 unsupportedBlocksHtml,
                 dataweaveExpressionsHtml
         );
+    }
+
+    private static String getCoverageColor(int coverage) {
+        if (coverage >= 75) {
+            return "#4CAF50"; // Green for high coverage
+        } else if (coverage >= 50) {
+            return "#FFC107"; // Yellow/amber for medium coverage
+        } else {
+            return "#F44336"; // Red for low coverage
+        }
+    }
+
+    private static String getCoverageStatus(int coverage) {
+        if (coverage >= 75) {
+            return "High";
+        } else if (coverage >= 50) {
+            return "Medium";
+        } else {
+            return "Low";
+        }
+    }
+
+    private static String getCoverageBadgeClass(int coverage) {
+        if (coverage >= 75) {
+            return "status-high";
+        } else if (coverage >= 50) {
+            return "status-medium";
+        } else {
+            return "status-low";
+        }
     }
 
     public static ProjectMigrationSummary getProjectMigrationSummary(String sourceProjectName,
@@ -84,19 +177,18 @@ public class MigrationReportWriter {
                                                                      Path balPackageDir,
                                                                      boolean dryRun,
                                                                      Context.MigrationMetrics metrics) {
-        int distinctUnsupportedElementCount = countDistinctUnsupportedElements(metrics.failedXMLTags);
         int failedDWExprCount = countUnsupportedDWExpressions(metrics.dwConversionStats);
 
         // Calculate implementation times
-        double bestCaseDays = calculateBestCaseEstimate(distinctUnsupportedElementCount, failedDWExprCount);
-        double avgCaseDays = calculateAverageCaseEstimate(distinctUnsupportedElementCount, failedDWExprCount);
-        double worstCaseDays = calculateWorstCaseEstimate(distinctUnsupportedElementCount, failedDWExprCount);
+        double bestCaseDays = calculateBestCaseEstimate(metrics.failedXMLTags, failedDWExprCount);
+        double avgCaseDays = calculateAverageCaseEstimate(metrics.failedXMLTags, failedDWExprCount);
+        double worstCaseDays = calculateWorstCaseEstimate(metrics.failedXMLTags, failedDWExprCount);
 
         int migrationCoverage = calculateMigrationCoverage(metrics);
         Path reportFilePath = balPackageDir.resolve(MIGRATION_REPORT_NAME);
 
         return new ProjectMigrationSummary(sourceProjectName, balPackageName, reportFilePath, dryRun,
-                metrics.failedXMLTags, metrics.failedBlocks, metrics.dwConversionStats,
+                metrics.passedXMLTags, metrics.failedXMLTags, metrics.failedBlocks, metrics.dwConversionStats,
                 migrationCoverage, bestCaseDays, avgCaseDays, worstCaseDays,
                 metrics.failedXMLTags.size(), failedDWExprCount);
     }
@@ -139,11 +231,17 @@ public class MigrationReportWriter {
                     <pre class="block-code"><code>%s</code></pre>
                 </div>
                 """,
-                i + 1,
-                getBlockType(failedBlocks.get(i)),
-                failedBlocks.get(i)));
+                i + 1, getBlockType(failedBlocks.get(i)), escapeHtml(failedBlocks.get(i))));
         }
         return sb.toString();
+    }
+
+    private static String escapeHtml(String text) {
+        return text.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 
     private static String generateDataweaveExpressionsHtml(DWConversionStats dwStats) {
@@ -170,23 +268,52 @@ public class MigrationReportWriter {
         return "Unknown";
     }
 
-    private static double calculateBestCaseEstimate(int elements, int dwExpressions) {
-        return elements * BEST_CASE_COMP_TIME + dwExpressions * BEST_DW_EXPR_TIME;
+    private static double calculateBestCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags, int dwExpressions) {
+        double repeatedElementTime = failedXMLTags.values().stream().filter(x -> x > 1).mapToInt(x -> x - 1)
+                .mapToDouble(integer -> (integer - 1) * BEST_CASE_COMP_TIME_REPEATED).sum();
+        return failedXMLTags.size() * BEST_CASE_COMP_TIME_NEW + repeatedElementTime + dwExpressions * BEST_DW_EXPR_TIME;
     }
 
-    private static double calculateAverageCaseEstimate(int elements, int dwExpressions) {
-        return elements * AVG_CASE_COMP_TIME + dwExpressions * AVG_CASE_DW_EXPR_TIME;
+    private static double calculateAverageCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags,
+                                                       int dwExpressions) {
+        double repeatedElementTime = failedXMLTags.values().stream().filter(x -> x > 1).mapToInt(x -> x - 1)
+                .mapToDouble(integer -> (integer - 1) * AVG_CASE_COMP_TIME_REPEATED).sum();
+        return failedXMLTags.size() * AVG_CASE_COMP_TIME_NEW + repeatedElementTime +
+                dwExpressions * AVG_CASE_DW_EXPR_TIME;
     }
 
-    private static double calculateWorstCaseEstimate(int elements, int dwExpressions) {
-        return elements * WORST_CASE_COMP_TIME + dwExpressions * WORST_CASE_DW_EXPR_TIME;
-    }
-
-    private static int countDistinctUnsupportedElements(LinkedHashMap<String, Integer> failedTags) {
-        return failedTags.size();
+    private static double calculateWorstCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags, int dwExpressions) {
+        double repeatedElementTime = failedXMLTags.values().stream().filter(x -> x > 1).mapToInt(x -> x - 1)
+                .mapToDouble(integer -> (integer - 1) * WORST_CASE_COMP_TIME_REPEATED).sum();
+        return failedXMLTags.size() * WORST_CASE_COMP_TIME_NEW + repeatedElementTime +
+                dwExpressions * WORST_CASE_DW_EXPR_TIME;
     }
 
     private static int countUnsupportedDWExpressions(DWConversionStats dwStats) {
         return dwStats.getFailedDWExpressions().size();
+    }
+
+    private static int calculateElementsCoverage(ProjectMigrationSummary pms) {
+        int xmlPassedWeight = calculateTotalWeight(pms.passedXMLTags());
+        int xmlFailedWeight = calculateTotalWeight(pms.failedXMLTags());
+        int totalXmlWeight = xmlPassedWeight + xmlFailedWeight;
+        return totalXmlWeight > 0 ? (xmlPassedWeight * 100) / totalXmlWeight : 0;
+    }
+
+    private static int calculateDataweaveCoverage(ProjectMigrationSummary pms) {
+        DWConversionStats stats = pms.dwConversionStats();
+        int convertedWeight = stats.getConvertedWeight();
+        int totalWeight = stats.getTotalWeight();
+        return totalWeight > 0 ? (convertedWeight * 100) / totalWeight : 0;
+    }
+
+    private static int calculateTotalXmlElements(ProjectMigrationSummary pms) {
+        int passedCount = pms.passedXMLTags().values().stream().mapToInt(i -> i).sum();
+        int failedCount = pms.failedXMLTags().values().stream().mapToInt(i -> i).sum();
+        return passedCount + failedCount;
+    }
+
+    private static int calculateMigratableXmlElements(ProjectMigrationSummary pms) {
+        return pms.passedXMLTags().values().stream().mapToInt(i -> i).sum();
     }
 }

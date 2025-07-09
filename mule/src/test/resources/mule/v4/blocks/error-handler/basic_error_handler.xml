@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <flow name="demoFlow" doc:id="604393a2-20fb-418b-9672-84c2febf6be4" >
+        <set-payload value="#[1/0]" doc:name="Cause Error (Divide by Zero)" doc:id="2a4f136a-497a-4f72-aa9d-0bec782c6239" />
+        <logger level="INFO" doc:name="Logger" doc:id="c492fc94-6338-4ed3-8ca8-472c2f4f4ad6" message="xxx: log after exception"/>
+        <error-handler ref="my_error_handler" />
+    </flow>
+    <error-handler name="my_error_handler" doc:id="6a75f334-17ac-4c23-9856-32117be015d6" >
+        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="72999e22-2e4d-4371-b747-dc8ce627ea39">
+            <logger level="INFO" doc:name="Logger" doc:id="88085ccb-999a-46eb-b3eb-768502bf2eeb" message="Error handled in on-error-propagate" />
+            <set-payload value="#['Custom error message: Something went wrong.']" doc:name="Set Payload" doc:id="85a9ce5b-abb9-477a-859a-18a3ddf45ba8" />
+        </on-error-propagate>
+    </error-handler>
+</mule>
