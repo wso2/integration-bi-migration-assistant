@@ -79,7 +79,7 @@ public class AbstractBlockTest {
         }
     }
 
-    public static void testDataWeaveMule3ToBal(String sourceDwlPath, String targetBalPath) {
+    public static void testDataWeaveMule4ToBal(String sourceDwlPath, String targetBalPath) {
         try {
             String xmlTemplate = getXmlTemplate();
             String modifiedXml = xmlTemplate.replace("DW_PATH", sourceDwlPath);

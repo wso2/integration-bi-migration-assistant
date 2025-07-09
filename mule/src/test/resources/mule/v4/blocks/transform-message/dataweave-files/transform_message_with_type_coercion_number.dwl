@@ -1,4 +1,4 @@
-%dw 1.0
-%output application/json
+%dw 2.0
+output application/json
 ---
-"10" as :number
+"10" as Number
