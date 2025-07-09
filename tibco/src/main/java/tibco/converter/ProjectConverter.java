@@ -74,17 +74,19 @@ public class ProjectConverter {
                 .map(result -> convertBody(result, result.process(), cx)).toList();
         schemas.addAll(cx.getXSDSchemas());
         SyntaxTree typeSyntaxTree = convertTypes(cx, schemas);
-        // Generate combined report from both parser and converter contexts
-        // TODO: parser context should have a method to get the report
         TibcoAnalysisReport parserReport = new TibcoAnalysisReport(
                 parserContext.getTotalActivityCount(),
                 parserContext.getUnhandledActivities().size(),
-                parserContext.getUnhandledActivities());
+                parserContext.getUnhandledActivities(),
+                parserContext.getPartiallySupportedActivities().size(),
+                parserContext.getPartiallySupportedActivities());
 
         TibcoAnalysisReport converterReport = new TibcoAnalysisReport(
                 0, // We get the total activity count from the parser context
                 cx.getUnhandledActivities().size(),
-                cx.getUnhandledActivities());
+                cx.getUnhandledActivities(),
+                cx.getPartiallySupportedActivities().size(),
+                cx.getPartiallySupportedActivities());
 
         TibcoAnalysisReport combinedReport = TibcoAnalysisReport.combine(parserReport, converterReport);
 

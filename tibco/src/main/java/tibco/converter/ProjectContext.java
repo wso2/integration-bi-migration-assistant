@@ -30,6 +30,8 @@ import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.TibcoAnalysisReport;
 import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
 import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.UnNamedUnhandledActivityElement;
+import tibco.analyzer.TibcoAnalysisReport.PartiallySupportedActivityElement.NamedPartiallySupportedActivityElement;
+import tibco.analyzer.TibcoAnalysisReport.PartiallySupportedActivityElement.UnNamedPartiallySupportedActivityElement;
 import tibco.model.Process;
 import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
@@ -99,6 +101,7 @@ public class ProjectContext {
     private ContextTypeNames contextTypeNames = null;
     private final Set<Resource.SharedVariable> sharedVariables = new HashSet<>();
     private final Set<TibcoAnalysisReport.UnhandledActivityElement> unhandledActivities = new HashSet<>();
+    private final Set<TibcoAnalysisReport.PartiallySupportedActivityElement> partiallySupportedActivities = new HashSet<>();
 
     ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
                    Map<Process, AnalysisResult> analysisResult) {
@@ -531,7 +534,18 @@ public class ProjectContext {
     }
 
     public void registerPartiallySupportedActivity(tibco.model.Scope.Flow.Activity activity) {
-        logger.warning("Partially supported activity: " + activity);
+        String fileName = activity.fileName();
+        String name;
+        if (activity instanceof InlineActivity inlineActivity) {
+            name = inlineActivity.name();
+            String type = inlineActivity.type().name();
+            Element element = inlineActivity.element();
+            partiallySupportedActivities.add(new NamedPartiallySupportedActivityElement(name, type, element, fileName));
+        } else {
+            name = "<unnamed>";
+            partiallySupportedActivities.add(new UnNamedPartiallySupportedActivityElement(activity.element(), fileName));
+        }
+        logger.warning("Partially supported activity: " + name);
     }
 
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
@@ -790,5 +804,9 @@ public class ProjectContext {
 
     public Set<TibcoAnalysisReport.UnhandledActivityElement> getUnhandledActivities() {
         return new HashSet<>(unhandledActivities);
+    }
+
+    public Set<TibcoAnalysisReport.PartiallySupportedActivityElement> getPartiallySupportedActivities() {
+        return new HashSet<>(partiallySupportedActivities);
     }
 }

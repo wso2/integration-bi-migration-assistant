@@ -33,6 +33,8 @@ public class AnalysisReport {
     private final int unhandledElementCount;
     private final String elementType;
     private final Map<String, Collection<UnhandledElement>> unhandledElements;
+    private final int partiallySupportedElementCount;
+    private final Map<String, Collection<UnhandledElement>> partiallySupportedElements;
     private final int bestCaseDays;
     private final int averageCaseDays;
     private final int worstCaseDays;
@@ -363,17 +365,22 @@ public class AnalysisReport {
      * @param elementType           The type of elements being analyzed (e.g., "Activity", "Component")
      * @param unhandledElements     Map containing unhandled elements with their type as key and collection of string
      *                              representations as value
+     * @param partiallySupportedElementCount Count of partially supported elements
+     * @param partiallySupportedElements Map containing partially supported elements with their type as key and collection of string
+     *                              representations as value
      */
     public AnalysisReport(String reportTitle, int totalElementCount, int unhandledElementCount, String elementType,
-                          Map<String, Collection<UnhandledElement>> unhandledElements, int bestCaseDays,
-                          int averageCaseDays,
-                          int worstCaseDays) {
+                          Map<String, Collection<UnhandledElement>> unhandledElements, int partiallySupportedElementCount,
+                          Map<String, Collection<UnhandledElement>> partiallySupportedElements, int bestCaseDays,
+                          int averageCaseDays, int worstCaseDays) {
         assert totalElementCount >= unhandledElementCount;
         this.reportTitle = reportTitle;
         this.totalElementCount = totalElementCount;
         this.unhandledElementCount = unhandledElementCount;
         this.elementType = elementType;
         this.unhandledElements = unhandledElements;
+        this.partiallySupportedElementCount = partiallySupportedElementCount;
+        this.partiallySupportedElements = partiallySupportedElements;
         this.bestCaseDays = bestCaseDays;
         this.averageCaseDays = averageCaseDays;
         this.worstCaseDays = worstCaseDays;
@@ -606,6 +613,63 @@ public class AnalysisReport {
                             """);
         }
 
+        // Calculate frequencies for partially supported elements
+        Map<String, Integer> partiallySupportedFrequencyMap = new HashMap<>();
+        for (Map.Entry<String, Collection<UnhandledElement>> entry : partiallySupportedElements.entrySet()) {
+            partiallySupportedFrequencyMap.put(entry.getKey(), entry.getValue().size());
+        }
+
+        // Partially supported elements frequency table
+        if (!partiallySupportedFrequencyMap.isEmpty()) {
+            html.append("""
+                    <div class="summary-container">
+                        <h2>Activities that may require manual changes</h2>
+                        <div id="partiallySupportedSection">
+                            <table>
+                                <tr><th>Activity name</th><th>Frequency</th></tr>
+                    """);
+
+            // Add all elements by type
+            partiallySupportedFrequencyMap.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())  // Sort by type name
+                    .forEach(entry -> html.append("""
+                                    <tr>
+                                        <td><code>%s</code></td>
+                                        <td>%d</td>
+                                    </tr>
+                            """.formatted(entry.getKey(), entry.getValue())));
+
+            html.append("""
+                            </table>
+                            <p class="empty-message hidden" id="partiallySupportedEmpty">
+                                No partially supported activities found
+                            </p>
+                            <div class="estimation-notes">
+                                <p><strong>Note:</strong> These activities are converted but may require manual review or adjustments.</p>
+                            </div>
+                        </div>
+                    </div>
+                    """);
+        } else {
+            // No partially supported elements
+            html.append("""
+                    <div class="summary-container">
+                        <h2>Activities that may require manual changes</h2>
+                        <div id="partiallySupportedSection">
+                            <table class="hidden">
+                                <tr><th>Activity name</th><th>Frequency</th></tr>
+                            </table>
+                            <p class="empty-message visible" id="partiallySupportedEmpty">
+                                No partially supported activities found
+                            </p>
+                            <div class="estimation-notes hidden">
+                                <p><strong>Note:</strong> These activities are converted but may require manual review or adjustments.</p>
+                            </div>
+                        </div>
+                    </div>
+                    """);
+        }
+
         // Footer with date
         html.append("""
                     <footer><p>Report generated on: <span id="datetime"></span></p></footer>
@@ -627,6 +691,15 @@ public class AnalysisReport {
                               document.getElementById('toolSupportEmpty').classList.remove('hidden');
                               document.getElementById('toolSupportEmpty').classList.add('visible');
                               document.querySelector('#toolSupportSection .estimation-notes').classList.add('hidden');
+                          }
+                
+                          // Check Partially Supported Elements
+                          const partiallySupportedTable = document.querySelector('#partiallySupportedSection table');
+                          if (partiallySupportedTable.rows.length <= 1) {
+                              partiallySupportedTable.classList.add('hidden');
+                              document.getElementById('partiallySupportedEmpty').classList.remove('hidden');
+                              document.getElementById('partiallySupportedEmpty').classList.add('visible');
+                              document.querySelector('#partiallySupportedSection .estimation-notes').classList.add('hidden');
                           }
                       });
                     </script>

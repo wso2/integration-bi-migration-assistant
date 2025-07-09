@@ -33,12 +33,15 @@ import java.util.Map;
 import java.util.Optional;
 
 public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityCount,
-                                  Collection<UnhandledActivityElement> unhandledActivityElements) {
+                                  Collection<UnhandledActivityElement> unhandledActivityElements,
+                                  int partiallySupportedActivityCount,
+                                  Collection<PartiallySupportedActivityElement> partiallySupportedActivityElements) {
     private static final String REPORT_TITLE = "Migration Assessment";
 
     public TibcoAnalysisReport {
         assert totalActivityCount >= unhandledActivityCount;
         unhandledActivityElements = Collections.unmodifiableCollection(unhandledActivityElements);
+        partiallySupportedActivityElements = Collections.unmodifiableCollection(partiallySupportedActivityElements);
     }
 
     public sealed interface UnhandledActivityElement {
@@ -49,10 +52,53 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
         record NamedUnhandledActivityElement(String name, String type,
                                              Element element, String fileName) implements UnhandledActivityElement {
 
+            @Override
+            public boolean equals(Object obj) {
+                if (!(obj instanceof UnhandledActivityElement other)) {
+                    return false;
+                }
+                return other.element().equals(this.element);
+            }
         }
 
         record UnNamedUnhandledActivityElement(Element element, String fileName) implements UnhandledActivityElement {
 
+            @Override
+            public boolean equals(Object obj) {
+                if (!(obj instanceof UnhandledActivityElement other)) {
+                    return false;
+                }
+                return other.element().equals(this.element);
+            }
+        }
+    }
+
+    public sealed interface PartiallySupportedActivityElement {
+        Element element();
+
+        String fileName();
+
+        record NamedPartiallySupportedActivityElement(String name, String type,
+                                                     Element element, String fileName) implements PartiallySupportedActivityElement {
+
+            @Override
+            public boolean equals(Object obj) {
+                if (!(obj instanceof PartiallySupportedActivityElement other)) {
+                    return false;
+                }
+                return other.element().equals(this.element);
+            }
+        }
+
+        record UnNamedPartiallySupportedActivityElement(Element element, String fileName) implements PartiallySupportedActivityElement {
+
+            @Override
+            public boolean equals(Object obj) {
+                if (!(obj instanceof PartiallySupportedActivityElement other)) {
+                    return false;
+                }
+                return other.element().equals(this.element);
+            }
         }
     }
 
@@ -86,17 +132,53 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
         return unhandledElementsMap;
     }
 
+    /**
+     * Creates a map of partially supported activity elements using their kind as keys.
+     * - For named activities, they are grouped by type
+     * - For unnamed activities, each one gets a unique key "unnamed-activity-#" as they are treated as unique
+     *
+     * @return A map with activity kinds as keys and collections of string representations as values
+     */
+    private Map<String, Collection<AnalysisReport.UnhandledElement>> createPartiallySupportedElementsMap() {
+        Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap = new HashMap<>();
+        for (PartiallySupportedActivityElement partiallySupportedActivityElement : partiallySupportedActivityElements) {
+            String code = ConversionUtils.elementToString(partiallySupportedActivityElement.element());
+            String fileName = partiallySupportedActivityElement.fileName();
+            switch (partiallySupportedActivityElement) {
+                case PartiallySupportedActivityElement.NamedPartiallySupportedActivityElement namedElement -> {
+                    String type = namedElement.type();
+                    String name = namedElement.name();
+                    partiallySupportedElementsMap
+                            .computeIfAbsent(type, k -> new HashSet<>())
+                            .add(new AnalysisReport.UnhandledElement(code, Optional.of(name), fileName));
+                }
+                case PartiallySupportedActivityElement.UnNamedPartiallySupportedActivityElement ignored -> {
+                    String uniqueKey = "unnamed-activity-" + partiallySupportedElementsMap.size();
+                    partiallySupportedElementsMap.put(uniqueKey, List.of(
+                            new AnalysisReport.UnhandledElement(code, Optional.empty(), fileName)));
+                }
+            }
+        }
+        return partiallySupportedElementsMap;
+    }
+
     public static TibcoAnalysisReport combine(TibcoAnalysisReport report1, TibcoAnalysisReport report2) {
         Collection<UnhandledActivityElement> unhandledActivities = new HashSet<>(report1.unhandledActivityElements());
         unhandledActivities.addAll(report2.unhandledActivityElements());
+        
+        Collection<PartiallySupportedActivityElement> partiallySupportedActivities = new HashSet<>(report1.partiallySupportedActivityElements());
+        partiallySupportedActivities.addAll(report2.partiallySupportedActivityElements());
+        
         return new TibcoAnalysisReport(
                 report1.totalActivityCount() + report2.totalActivityCount(),
                 unhandledActivities.size(),
-                unhandledActivities);
+                unhandledActivities,
+                partiallySupportedActivities.size(),
+                partiallySupportedActivities);
     }
 
     public static TibcoAnalysisReport empty() {
-        return new TibcoAnalysisReport(0, 0, Collections.emptyList());
+        return new TibcoAnalysisReport(0, 0, Collections.emptyList(), 0, Collections.emptyList());
     }
 
     /**
@@ -136,6 +218,9 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
             }
         }
 
+        // Create maps for partially supported activities
+        Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap = createPartiallySupportedElementsMap();
+
         // Create and use a generic AnalysisReport
         AnalysisReport report = new AnalysisReport(
                 REPORT_TITLE,
@@ -143,6 +228,8 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
                 unhandledActivityCount,
                 "Activity",
                 unhandledElementsMap,
+                partiallySupportedActivityCount,
+                partiallySupportedElementsMap,
                 (int) Math.ceil(bestCaseDays),
                 (int) Math.ceil(averageCaseDays),
                 (int) Math.ceil(worstCaseDays)
@@ -197,13 +284,17 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
         );
         ProjectSummary.ActivityEstimation activityEstimation = new ProjectSummary.ActivityEstimation(
                 totalActivityCount, unhandledActivityCount, timeEstimation);
+        
+        Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap = createPartiallySupportedElementsMap();
+        
         return new ProjectSummary(
                 projectName,
                 projectPath,
                 reportPath,
                 activityEstimation,
                 conversionPercentage,
-                unhandledElementsMap
+                unhandledElementsMap,
+                partiallySupportedElementsMap
         );
     }
 }

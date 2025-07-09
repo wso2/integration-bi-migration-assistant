@@ -52,10 +52,10 @@ public class CombinedSummaryReportTest {
 
         ProjectSummary summary1 = new ProjectSummary(
                 "Project1", "/path/to/project1", "report1.html",
-                activityEstimation1, 70.0, unhandledActivities1);
+                        activityEstimation1, 70.0, unhandledActivities1, new HashMap<>());
         ProjectSummary summary2 = new ProjectSummary(
                 "Project2", "/path/to/project2", "report2.html",
-                activityEstimation2, 80.0, unhandledActivities2);
+                        activityEstimation2, 80.0, unhandledActivities2, new HashMap<>());
 
         // Create combined summary report
         CombinedSummaryReport combinedReport = new CombinedSummaryReport(
@@ -84,10 +84,10 @@ public class CombinedSummaryReportTest {
 
         ProjectSummary summary1 = new ProjectSummary(
                 "Project1", "/path/to/project1", "report1.html",
-                activityEstimation1, 100.0, new HashMap<>());
+                        activityEstimation1, 100.0, new HashMap<>(), new HashMap<>());
         ProjectSummary summary2 = new ProjectSummary(
                 "Project2", "/path/to/project2", "report2.html",
-                activityEstimation2, 100.0, new HashMap<>());
+                        activityEstimation2, 100.0, new HashMap<>(), new HashMap<>());
 
         // Create combined summary report
         CombinedSummaryReport combinedReport = new CombinedSummaryReport(

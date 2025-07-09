@@ -32,6 +32,8 @@ import java.util.Map;
  *                                       conversions
  * @param unhandledActivities            Map of unhandled activity types to
  *                                       their elements
+ * @param partiallySupportedActivities   Map of partially supported activity types to
+ *                                       their elements
  */
 public record ProjectSummary(
         String projectName,
@@ -39,7 +41,8 @@ public record ProjectSummary(
         String reportPath,
         ActivityEstimation activityEstimation,
         double successfulConversionPercentage,
-        Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledActivities) {
+        Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledActivities,
+        Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedActivities) {
     /**
      * Record to hold activity count and time estimation data.
      *
