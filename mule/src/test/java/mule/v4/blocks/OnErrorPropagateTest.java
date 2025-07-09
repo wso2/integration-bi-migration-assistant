@@ -19,17 +19,17 @@ package mule.v4.blocks;
 
 import org.testng.annotations.Test;
 
-public class ReferenceExceptionStrategyTest extends AbstractBlockTest {
+public class OnErrorPropagateTest extends AbstractBlockTest {
 
     @Test
-    public void testBasicRefernceExceptionStrategy() {
-        testMule3ToBal("reference-exception-strategy/basic_reference_exception_strategy.xml",
-                "reference-exception-strategy/basic_reference_exception_strategy.bal");
+    public void testBasicOnErrorPropagate() {
+        testMule3ToBal("on-error-propagate/basic_on_error_propagate.xml",
+                "on-error-propagate/basic_on_error_propagate.bal");
     }
 
     @Test
-    public void testReferenceExceptionWithHttpListenerSource() {
-        testMule3ToBal("reference-exception-strategy/reference_exception_with_http_listener_source.xml",
-                "reference-exception-strategy/reference_exception_with_http_listener_source.bal");
+    public void testBasicOnErrorPropagateWithHttpListenerSource() {
+        testMule3ToBal("on-error-propagate/on_error_propagate_with_http_listener_source.xml",
+                "on-error-propagate/on_error_propagate_with_http_listener_source.bal");
     }
 }

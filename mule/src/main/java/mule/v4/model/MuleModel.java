@@ -108,12 +108,6 @@ public record MuleModel() {
         }
     }
 
-    public record ReferenceExceptionStrategy(Kind kind, String refName) implements MuleRecord {
-        public ReferenceExceptionStrategy(String flowName) {
-            this(Kind.REFERENCE_EXCEPTION_STRATEGY, flowName);
-        }
-    }
-
     public record HttpRequest(Kind kind, String configRef, String method, String url, String path,
                               Map<String, String> queryParams) implements MuleRecord {
         public HttpRequest(String configRef, String method, String url, String path, Map<String, String> queryParams) {
@@ -195,17 +189,34 @@ public record MuleModel() {
     }
 
     // Error handling
-    public record CatchExceptionStrategy(Kind kind, List<MuleRecord> catchBlocks, String when, String name)
+    public record ErrorHandler(Kind kind, String name, String ref, List<ErrorHandlerRecord> errorHandlers)
             implements MuleRecord {
-        public CatchExceptionStrategy(List<MuleRecord> catchBlocks, String when, String name) {
-            this(Kind.CATCH_EXCEPTION_STRATEGY, catchBlocks, when, name);
+        public ErrorHandler(String name, String ref, List<ErrorHandlerRecord> errorHandlers) {
+            this(Kind.ERROR_HANDLER, name, ref, errorHandlers);
         }
     }
 
-    public record ChoiceExceptionStrategy(Kind kind, List<CatchExceptionStrategy> catchExceptionStrategyList,
-                                          String name) implements MuleRecord {
-        public ChoiceExceptionStrategy(List<CatchExceptionStrategy> catchExceptionStrategyList, String name) {
-            this(Kind.CHOICE_EXCEPTION_STRATEGY, catchExceptionStrategyList, name);
+    public interface ErrorHandlerRecord extends MuleRecord {
+        String type();
+
+        String when();
+
+        List<MuleRecord> errorBlocks();
+    }
+
+    public record OnErrorContinue(Kind kind, List<MuleRecord> errorBlocks, String type, String when,
+                                  String enableNotifications, String logException) implements ErrorHandlerRecord {
+        public OnErrorContinue(List<MuleRecord> errorBlocks, String type, String when,
+                               String enableNotifications, String logException) {
+            this(Kind.ON_ERROR_CONTINUE, errorBlocks, type, when, enableNotifications, logException);
+        }
+    }
+
+    public record OnErrorPropagate(Kind kind, List<MuleRecord> errorBlocks, String type, String when,
+                                   String enableNotifications, String logException) implements ErrorHandlerRecord {
+        public OnErrorPropagate(List<MuleRecord> errorBlocks, String type, String when,
+                                String enableNotifications, String logException) {
+            this(Kind.ON_ERROR_PROPAGATE, errorBlocks, type, when, enableNotifications, logException);
         }
     }
 
@@ -302,9 +313,9 @@ public record MuleModel() {
         SUB_FLOW,
         ASYNC,
         MESSAGE_ENRICHER,
-        CATCH_EXCEPTION_STRATEGY,
-        CHOICE_EXCEPTION_STRATEGY,
-        REFERENCE_EXCEPTION_STRATEGY,
+        ERROR_HANDLER,
+        ON_ERROR_CONTINUE,
+        ON_ERROR_PROPAGATE,
         UNSUPPORTED_BLOCK
     }
 

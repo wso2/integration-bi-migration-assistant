@@ -60,9 +60,9 @@ public enum MuleXMLTag {
     OBJECT_TO_STRING("object-to-string-transformer", 2),
 
     // Error Handling
-    CATCH_EXCEPTION_STRATEGY("catch-exception-strategy", 2),
-    CHOICE_EXCEPTION_STRATEGY("choice-exception-strategy", 4),
-    REFERENCE_EXCEPTION_STRATEGY("exception-strategy", 3),
+    ERROR_HANDLER("error-handler", 2),
+    ON_ERROR_CONTINUE("on-error-continue", 2),
+    ON_ERROR_PROPAGATE("on-error-propagate", 2),
 
     // HTTP Module
     HTTP_LISTENER("http:listener", 5),

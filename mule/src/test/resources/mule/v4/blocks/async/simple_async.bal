@@ -5,8 +5,6 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public listener http:Listener config = new (8081);
-
 public function demoFlow(Context ctx) {
 
     // set payload

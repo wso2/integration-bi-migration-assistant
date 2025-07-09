@@ -31,9 +31,9 @@ import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
+import static mule.v4.model.MuleModel.ErrorHandler;
 import static mule.v4.model.MuleModel.HTTPListenerConfig;
 import static mule.v4.model.MuleModel.HTTPRequestConfig;
-import static mule.v4.model.MuleModel.MuleRecord;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
 
 /**
@@ -119,7 +119,7 @@ public class Context {
         public final HashMap<String, HTTPRequestConfig> httpRequestConfigs = new LinkedHashMap<>();
         public final HashMap<String, DbConfig> dbConfigs = new LinkedHashMap<>();
         public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
-        public final List<MuleRecord> globalExceptionStrategies = new ArrayList<>();
+        public final List<ErrorHandler> globalErrorHandlers = new ArrayList<>();
         public final List<UnsupportedBlock> unsupportedBlocks = new ArrayList<>();
 
         GlobalConfigs(ProjectContext projCtx) {

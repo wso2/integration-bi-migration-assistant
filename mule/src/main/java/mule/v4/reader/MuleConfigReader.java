@@ -36,13 +36,15 @@ import java.util.Optional;
 import static common.BallerinaModel.Import;
 import static mule.v4.ConversionUtils.getAllowedMethods;
 import static mule.v4.model.MuleModel.Async;
-import static mule.v4.model.MuleModel.CatchExceptionStrategy;
 import static mule.v4.model.MuleModel.Choice;
-import static mule.v4.model.MuleModel.ChoiceExceptionStrategy;
 import static mule.v4.model.MuleModel.Database;
 import static mule.v4.model.MuleModel.DbMySqlConnection;
 import static mule.v4.model.MuleModel.DbOracleConnection;
 import static mule.v4.model.MuleModel.Enricher;
+import static mule.v4.model.MuleModel.ErrorHandler;
+import static mule.v4.model.MuleModel.ErrorHandlerRecord;
+import static mule.v4.model.MuleModel.OnErrorContinue;
+import static mule.v4.model.MuleModel.OnErrorPropagate;
 import static mule.v4.model.MuleModel.ExpressionComponent;
 import static mule.v4.model.MuleModel.Flow;
 import static mule.v4.model.MuleModel.FlowReference;
@@ -58,7 +60,6 @@ import static mule.v4.model.MuleModel.MuleRecord;
 import static mule.v4.model.MuleModel.ObjectToJson;
 import static mule.v4.model.MuleModel.ObjectToString;
 import static mule.v4.model.MuleModel.Payload;
-import static mule.v4.model.MuleModel.ReferenceExceptionStrategy;
 import static mule.v4.model.MuleModel.RemoveVariable;
 import static mule.v4.model.MuleModel.SetPayloadElement;
 import static mule.v4.model.MuleModel.SetSessionVariable;
@@ -113,12 +114,9 @@ public class MuleConfigReader {
             if (dbConfig != null) {
                 ctx.currentFileCtx.configs.dbConfigs.put(dbConfig.name(), dbConfig);
             }
-        } else if (MuleXMLTag.CATCH_EXCEPTION_STRATEGY.tag().equals(elementTagName)) {
-            CatchExceptionStrategy catchExceptionStrategy = readCatchExceptionStrategy(ctx, muleElement);
-            ctx.currentFileCtx.configs.globalExceptionStrategies.add(catchExceptionStrategy);
-        } else if (MuleXMLTag.CHOICE_EXCEPTION_STRATEGY.tag().equals(elementTagName)) {
-            ChoiceExceptionStrategy choiceExceptionStrategy = readChoiceExceptionStrategy(ctx, muleElement);
-            ctx.currentFileCtx.configs.globalExceptionStrategies.add(choiceExceptionStrategy);
+        } else if (MuleXMLTag.ERROR_HANDLER.tag().equals(elementTagName)) {
+            ErrorHandler errorHandler = readErrorHandler(ctx, muleElement);
+            ctx.currentFileCtx.configs.globalErrorHandlers.add(errorHandler);
         } else {
             UnsupportedBlock unsupportedBlock = readUnsupportedBlock(ctx, muleElement);
             ctx.currentFileCtx.configs.unsupportedBlocks.add(unsupportedBlock);
@@ -186,14 +184,14 @@ public class MuleConfigReader {
             case MuleXMLTag.ASYNC -> {
                 return readAsync(ctx, muleElement);
             }
-            case MuleXMLTag.CATCH_EXCEPTION_STRATEGY -> {
-                return readCatchExceptionStrategy(ctx, muleElement);
+            case MuleXMLTag.ERROR_HANDLER -> {
+                return readErrorHandler(ctx, muleElement);
             }
-            case MuleXMLTag.CHOICE_EXCEPTION_STRATEGY -> {
-                return readChoiceExceptionStrategy(ctx, muleElement);
+            case MuleXMLTag.ON_ERROR_CONTINUE -> {
+                return readOnErrorContinue(ctx, muleElement);
             }
-            case MuleXMLTag.REFERENCE_EXCEPTION_STRATEGY -> {
-                return readReferenceExceptionStrategy(ctx, muleElement);
+            case MuleXMLTag.ON_ERROR_PROPAGATE -> {
+                return readOnErrorPropagate(ctx, muleElement);
             }
             case MuleXMLTag.VM_OUTBOUND_ENDPOINT -> {
                 return readVMOutboundEndpoint(ctx, muleElement);
@@ -372,44 +370,52 @@ public class MuleConfigReader {
     }
 
     // Error handling
-    private static CatchExceptionStrategy readCatchExceptionStrategy(Context ctx,
-                                                                     MuleXMLNavigator.MuleElement muleElement) {
+    private static ErrorHandler readErrorHandler(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
         Element element = muleElement.getElement();
         String name = element.getAttribute("name");
+        String ref = element.getAttribute("ref");
+
+        List<ErrorHandlerRecord> errorHandlers = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            ErrorHandlerRecord muleRec = (ErrorHandlerRecord) readBlock(ctx, child);
+            errorHandlers.add(muleRec);
+        }
+        return new ErrorHandler(name, ref, errorHandlers);
+    }
+
+    private static OnErrorContinue readOnErrorContinue(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String type = element.getAttribute("type");
         String when = element.getAttribute("when");
+        String enableNotifications = element.getAttribute("enableNotifications");
+        String logException = element.getAttribute("logException");
 
-        List<MuleRecord> catchBlocks = new ArrayList<>();
+        List<MuleRecord> errorBlocks = new ArrayList<>();
         while (muleElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement muleChild = muleElement.consumeChild();
-            MuleRecord muleRec = readBlock(ctx, muleChild);
-            catchBlocks.add(muleRec);
+            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            MuleRecord muleRec = readBlock(ctx, child);
+            errorBlocks.add(muleRec);
         }
 
-        return new CatchExceptionStrategy(catchBlocks, when, name);
+        return new OnErrorContinue(errorBlocks, type, when, enableNotifications, logException);
     }
 
-    private static ChoiceExceptionStrategy readChoiceExceptionStrategy(Context ctx,
-                                                                       MuleXMLNavigator.MuleElement muleElement) {
+    private static OnErrorPropagate readOnErrorPropagate(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
         Element element = muleElement.getElement();
-        String name = element.getAttribute("name");
+        String type = element.getAttribute("type");
+        String when = element.getAttribute("when");
+        String enableNotifications = element.getAttribute("enableNotifications");
+        String logException = element.getAttribute("logException");
 
-        List<CatchExceptionStrategy> catchExceptionStrategyList = new ArrayList<>();
+        List<MuleRecord> errorBlocks = new ArrayList<>();
         while (muleElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement muleChild = muleElement.consumeChild();
-            assert muleChild.getElement().getTagName().equals(MuleXMLTag.CATCH_EXCEPTION_STRATEGY.tag());
-            // TODO: only catch-exp-strategy is supported for now
-            CatchExceptionStrategy catchExceptionStrategy = readCatchExceptionStrategy(ctx, muleChild);
-            catchExceptionStrategyList.add(catchExceptionStrategy);
+            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            MuleRecord muleRec = readBlock(ctx, child);
+            errorBlocks.add(muleRec);
         }
 
-        return new ChoiceExceptionStrategy(catchExceptionStrategyList, name);
-    }
-
-    private static ReferenceExceptionStrategy readReferenceExceptionStrategy(Context ctx,
-                                                                             MuleXMLNavigator.MuleElement muleElement) {
-        Element element = muleElement.getElement();
-        String refName = element.getAttribute("ref");
-        return new ReferenceExceptionStrategy(refName);
+        return new OnErrorPropagate(errorBlocks, type, when, enableNotifications, logException);
     }
 
     // HTTP Module
