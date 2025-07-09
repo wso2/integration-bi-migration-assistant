@@ -250,7 +250,8 @@ public class TibcoConverter {
         logger().info("Created combined summary report at: " + reportFilePath);
     }
 
-    private static void writeTextDocument(SerializingContext serializingContext, BallerinaModel.TextDocument textDocument, Path targetDir) throws IOException {
+    private static void writeTextDocument(SerializingContext serializingContext,
+                                          BallerinaModel.TextDocument textDocument, Path targetDir) throws IOException {
         String fileName = textDocument.documentName();
         SyntaxTree st = new CodeGenerator(textDocument).generateSyntaxTree();
         String source = st.toSourceCode();
@@ -265,7 +266,8 @@ public class TibcoConverter {
     }
 
 
-    private static void appendASTToFile(SerializingContext serializingContext, Path targetDir, String fileName, SyntaxTree st) throws IOException {
+    private static void appendASTToFile(SerializingContext serializingContext, Path targetDir, String fileName,
+                                        SyntaxTree st) throws IOException {
         Path filePath = Path.of(targetDir + "/" + fileName);
         String newContent = st.toSourceCode();
         int lineCount = newContent.split("\r?\n").length;

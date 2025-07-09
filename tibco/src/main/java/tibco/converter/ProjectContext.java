@@ -27,11 +27,12 @@ import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
-import tibco.analyzer.TibcoAnalysisReport;
-import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
-import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.UnNamedUnhandledActivityElement;
+import tibco.analyzer.TibcoAnalysisReport.PartiallySupportedActivityElement;
 import tibco.analyzer.TibcoAnalysisReport.PartiallySupportedActivityElement.NamedPartiallySupportedActivityElement;
 import tibco.analyzer.TibcoAnalysisReport.PartiallySupportedActivityElement.UnNamedPartiallySupportedActivityElement;
+import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement;
+import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
+import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.UnNamedUnhandledActivityElement;
 import tibco.model.Process;
 import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
@@ -100,8 +101,8 @@ public class ProjectContext {
     private Collection<Type.Schema> schemas = new ArrayList<>();
     private ContextTypeNames contextTypeNames = null;
     private final Set<Resource.SharedVariable> sharedVariables = new HashSet<>();
-    private final Set<TibcoAnalysisReport.UnhandledActivityElement> unhandledActivities = new HashSet<>();
-    private final Set<TibcoAnalysisReport.PartiallySupportedActivityElement> partiallySupportedActivities = new HashSet<>();
+    private final Set<UnhandledActivityElement> unhandledActivities = new HashSet<>();
+    private final Set<PartiallySupportedActivityElement> partiallySupportedActivities = new HashSet<>();
 
     ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
                    Map<Process, AnalysisResult> analysisResult) {
@@ -543,7 +544,8 @@ public class ProjectContext {
             partiallySupportedActivities.add(new NamedPartiallySupportedActivityElement(name, type, element, fileName));
         } else {
             name = "<unnamed>";
-            partiallySupportedActivities.add(new UnNamedPartiallySupportedActivityElement(activity.element(), fileName));
+            partiallySupportedActivities.add(
+                    new UnNamedPartiallySupportedActivityElement(activity.element(), fileName));
         }
         logger.warning("Partially supported activity: " + name);
     }
@@ -802,11 +804,11 @@ public class ProjectContext {
                 + ". Please check the resource definition and ensure it is supported.");
     }
 
-    public Set<TibcoAnalysisReport.UnhandledActivityElement> getUnhandledActivities() {
+    public Set<UnhandledActivityElement> getUnhandledActivities() {
         return new HashSet<>(unhandledActivities);
     }
 
-    public Set<TibcoAnalysisReport.PartiallySupportedActivityElement> getPartiallySupportedActivities() {
+    public Set<PartiallySupportedActivityElement> getPartiallySupportedActivities() {
         return new HashSet<>(partiallySupportedActivities);
     }
 }

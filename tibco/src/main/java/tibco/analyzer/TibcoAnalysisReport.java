@@ -74,6 +74,11 @@ public final class TibcoAnalysisReport {
                 }
                 return other.element().equals(this.element);
             }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(element);
+            }
         }
 
         record UnNamedUnhandledActivityElement(Element element, String fileName) implements UnhandledActivityElement {
@@ -84,6 +89,11 @@ public final class TibcoAnalysisReport {
                     return false;
                 }
                 return other.element().equals(this.element);
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(element);
             }
         }
     }
@@ -357,8 +367,12 @@ public final class TibcoAnalysisReport {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj == this) return true;
-        if (obj == null || obj.getClass() != this.getClass()) return false;
+        if (obj == this) {
+            return true;
+        }
+        if (obj == null || obj.getClass() != this.getClass()) {
+            return false;
+        }
         var that = (TibcoAnalysisReport) obj;
         return this.totalActivityCount == that.totalActivityCount &&
                 this.unhandledActivityCount == that.unhandledActivityCount &&

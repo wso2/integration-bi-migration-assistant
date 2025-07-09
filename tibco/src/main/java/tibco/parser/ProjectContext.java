@@ -18,13 +18,14 @@
 
 package tibco.parser;
 
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.TibcoAnalysisReport;
-import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
-import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.UnNamedUnhandledActivityElement;
 import tibco.analyzer.TibcoAnalysisReport.PartiallySupportedActivityElement.NamedPartiallySupportedActivityElement;
 import tibco.analyzer.TibcoAnalysisReport.PartiallySupportedActivityElement.UnNamedPartiallySupportedActivityElement;
+import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
+import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.UnNamedUnhandledActivityElement;
 import tibco.converter.ConversionUtils;
 import tibco.converter.TibcoConverter;
 
@@ -43,9 +44,9 @@ public final class ProjectContext implements Context {
     private final String projectPath;
     private final TibcoToBalConverter.ProjectConversionContext conversionContext;
     private final Set<TibcoAnalysisReport.UnhandledActivityElement> unhandledActivities = new HashSet<>();
-    private final Set<TibcoAnalysisReport.PartiallySupportedActivityElement> partiallySupportedActivities = new HashSet<>();
+    private final Set<TibcoAnalysisReport.PartiallySupportedActivityElement> partiallySupportedActivities =
+            new HashSet<>();
     private final Set<Element> uniqueActivityElements = new HashSet<>();
-    // TODO: this needs to be updated
     private int totalActivityCount = 0;
 
     public ProjectContext(TibcoToBalConverter.ProjectConversionContext cx, String projectPath) {
@@ -178,10 +179,12 @@ public final class ProjectContext implements Context {
         }
     }
 
+    @NotNull
     public Set<TibcoAnalysisReport.UnhandledActivityElement> getUnhandledActivities() {
         return new HashSet<>(unhandledActivities);
     }
 
+    @NotNull
     public Set<TibcoAnalysisReport.PartiallySupportedActivityElement> getPartiallySupportedActivities() {
         return new HashSet<>(partiallySupportedActivities);
     }
