@@ -76,7 +76,7 @@ import static mule.v4.model.MuleModel.SetSessionVariable;
 import static mule.v4.model.MuleModel.SetVariable;
 import static mule.v4.model.MuleModel.TransformMessage;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
-import static mule.v4.model.MuleModel.VMOutboundEndpoint;
+import static mule.v4.model.MuleModel.VMPublish;
 import static mule.v4.model.MuleModel.WhenInChoice;
 
 public class MuleConfigConverter {
@@ -241,8 +241,8 @@ public class MuleConfigConverter {
             case Async async -> {
                 return convertAsync(ctx, async);
             }
-            case VMOutboundEndpoint vmEndPoint -> {
-                return convertVMOutboundEndpoint(ctx, vmEndPoint);
+            case VMPublish vmPublish -> {
+                return convertVMPublish(ctx, vmPublish);
             }
             case TransformMessage transformMessage -> {
                 return convertTransformMessage(ctx, transformMessage);
@@ -497,24 +497,24 @@ public class MuleConfigConverter {
         return stmts;
     }
 
-    private static List<Statement> convertVMOutboundEndpoint(Context ctx, VMOutboundEndpoint vmEndPoint) {
-        String path = vmEndPoint.path();
-        String funcName = ctx.projectCtx.vmPathToBalFuncMap.get(path);
+    private static List<Statement> convertVMPublish(Context ctx, VMPublish vmPublish) {
+        String queueName = vmPublish.queueName();
+        String funcName = ctx.projectCtx.vmQueueNameToBalFuncMap.get(queueName);
         if (funcName == null) {
             funcName = String.format(Constants.FUNC_NAME_VM_RECEIVE_TEMPLATE,
                     ctx.projectCtx.counters.vmReceiveFuncCount++);
-            ctx.projectCtx.vmPathToBalFuncMap.put(path, funcName);
+            ctx.projectCtx.vmQueueNameToBalFuncMap.put(queueName, funcName);
         }
 
         List<Statement> namedWorkerBody = new ArrayList<>(4);
-        namedWorkerBody.add(stmtFrom("\n// VM Inbound Endpoint\n"));
+        namedWorkerBody.add(stmtFrom("\n// VM Listener\n"));
         namedWorkerBody.add(stmtFrom("anydata receivedPayload = <- function;"));
         namedWorkerBody.add(stmtFrom("ctx.payload = receivedPayload;"));
         namedWorkerBody.add(stmtFrom(String.format("%s(ctx);", funcName)));
 
         List<Statement> stmts = new ArrayList<>(3);
         stmts.add(new NamedWorkerDecl("W", Optional.of(typeFrom("error?")), namedWorkerBody));
-        stmts.add(stmtFrom("\n\n// VM Outbound Endpoint\n"));
+        stmts.add(stmtFrom("\n\n// VM Publish\n"));
         stmts.add(stmtFrom(String.format("%s.payload -> W;", Constants.CONTEXT_REFERENCE)));
         return stmts;
     }

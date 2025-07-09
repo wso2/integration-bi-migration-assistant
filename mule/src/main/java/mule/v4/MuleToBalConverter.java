@@ -77,7 +77,7 @@ import static mule.v4.model.MuleModel.Kind;
 import static mule.v4.model.MuleModel.MuleRecord;
 import static mule.v4.model.MuleModel.SubFlow;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
-import static mule.v4.model.MuleModel.VMInboundEndpoint;
+import static mule.v4.model.MuleModel.VMListener;
 import static mule.v4.reader.MuleConfigReader.readMuleConfigFromRoot;
 
 public class MuleToBalConverter {
@@ -140,8 +140,8 @@ public class MuleToBalConverter {
             }
 
             MuleRecord src = source.get();
-            if (src.kind() == Kind.VM_INBOUND_ENDPOINT) {
-                genVMInboundEndpointSource(ctx, flow, (VMInboundEndpoint) src, functions);
+            if (src.kind() == Kind.VM_LISTENER) {
+                genVMListenerSource(ctx, flow, (VMListener) src, functions);
             } else {
                 assert src.kind() == Kind.HTTP_LISTENER;
                 genHttpSource(ctx, flow, (HttpListener) src, services, functions);
@@ -220,17 +220,15 @@ public class MuleToBalConverter {
                 typeDefs, orderedModuleVars, listeners, services, functions.stream().toList(), comments);
     }
 
-    private static void genVMInboundEndpointSource(Context ctx, Flow flow, VMInboundEndpoint vmInboundEndpoint,
-                                                   Set<Function> functions) {
-        String path = vmInboundEndpoint.path();
-        String funcName = ctx.projectCtx.vmPathToBalFuncMap.get(path);
+    private static void genVMListenerSource(Context ctx, Flow flow, VMListener vmListener, Set<Function> functions) {
+        // TODO: Consider config ref usage
+        String queueName = vmListener.queueName();
+        String funcName = ctx.projectCtx.vmQueueNameToBalFuncMap.get(queueName);
         if (funcName == null) {
             funcName = ConversionUtils.convertToBalIdentifier(flow.name());
-            ctx.projectCtx.vmPathToBalFuncMap.put(path, funcName);
-            genBalFunc(ctx, functions, funcName, flow.flowBlocks());
-        } else {
-            genBalFunc(ctx, functions, funcName, flow.flowBlocks());
+            ctx.projectCtx.vmQueueNameToBalFuncMap.put(queueName, funcName);
         }
+        genBalFunc(ctx, functions, funcName, flow.flowBlocks());
     }
 
     private static void genHttpSource(Context ctx, Flow flow, HttpListener src, List<Service> services,

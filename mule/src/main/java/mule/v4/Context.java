@@ -76,7 +76,7 @@ public class Context {
         public final LinkedHashMap<String, String> flowVars = new LinkedHashMap<>();
         public final LinkedHashMap<String, String> sessionVars = new LinkedHashMap<>();
         public final LinkedHashMap<String, String> inboundProperties = new LinkedHashMap<>();
-        public final HashMap<String, String> vmPathToBalFuncMap = new LinkedHashMap<>();
+        public final HashMap<String, String> vmQueueNameToBalFuncMap = new LinkedHashMap<>();
 
         // Shared configs
         List<HashMap<String, HTTPListenerConfig>> httpListenerConfigMaps = new ArrayList<>();
