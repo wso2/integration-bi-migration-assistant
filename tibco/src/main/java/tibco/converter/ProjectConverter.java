@@ -55,7 +55,7 @@ public class ProjectConverter {
     public static ConversionResult convertProject(
             TibcoToBalConverter.ProjectConversionContext conversionContext,
             Map<Process, AnalysisResult> analysisResult, Collection<Process> processes, Collection<Type.Schema> types,
-            ProjectResources projectResources, TibcoAnalysisReport report) {
+            ProjectResources projectResources, tibco.parser.ProjectContext parserContext) {
         ProjectContext cx = new ProjectContext(conversionContext, analysisResult);
         convertResources(cx, projectResources);
 
@@ -74,7 +74,21 @@ public class ProjectConverter {
                 .map(result -> convertBody(result, result.process(), cx)).toList();
         schemas.addAll(cx.getXSDSchemas());
         SyntaxTree typeSyntaxTree = convertTypes(cx, schemas);
-        return new ConversionResult(cx.serialize(textDocuments), typeSyntaxTree, report);
+        // Generate combined report from both parser and converter contexts
+        // TODO: parser context should have a method to get the report
+        TibcoAnalysisReport parserReport = new TibcoAnalysisReport(
+                parserContext.getTotalActivityCount(),
+                parserContext.getUnhandledActivities().size(),
+                parserContext.getUnhandledActivities());
+
+        TibcoAnalysisReport converterReport = new TibcoAnalysisReport(
+                0, // We get the total activity count from the parser context
+                cx.getUnhandledActivities().size(),
+                cx.getUnhandledActivities());
+
+        TibcoAnalysisReport combinedReport = TibcoAnalysisReport.combine(parserReport, converterReport);
+
+        return new ConversionResult(cx.serialize(textDocuments), typeSyntaxTree, combinedReport);
     }
 
     private static BallerinaModel.TextDocument convertBody(ProcessResult result, Process process,

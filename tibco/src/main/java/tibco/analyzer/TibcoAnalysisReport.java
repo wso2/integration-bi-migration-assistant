@@ -41,7 +41,7 @@ public record TibcoAnalysisReport(int totalActivityCount, int unhandledActivityC
         unhandledActivityElements = Collections.unmodifiableCollection(unhandledActivityElements);
     }
 
-    sealed interface UnhandledActivityElement {
+    public sealed interface UnhandledActivityElement {
         Element element();
 
         String fileName();

@@ -42,8 +42,8 @@ public class TypeContext implements Context {
     }
 
     @Override
-    public void registerUnhandledActivity(org.w3c.dom.Element element, String name, String type) {
-        projectContext.registerUnhandledActivity(element, name, type);
+    public void registerUnhandledActivity(org.w3c.dom.Element element, String name, String type, String fileName) {
+        projectContext.registerUnhandledActivity(element, name, type, fileName);
     }
 
     @Override
@@ -84,5 +84,10 @@ public class TypeContext implements Context {
     @Override
     public void registerPartiallySupportedWSDLDefinition(org.w3c.dom.Element element) {
         projectContext.registerPartiallySupportedWSDLDefinition(element);
+    }
+
+    @Override
+    public void incrementActivityCount(org.w3c.dom.Element element) {
+        projectContext.incrementActivityCount(element);
     }
 }

@@ -123,7 +123,7 @@ final class ActivityConverter {
                     cx.registerPartiallySupportedActivity(activity);
             }
         } catch (Exception e) {
-            cx.registerActivityConversionFailure(activity, e);
+            cx.registerUnhandledActivity(activity, e);
             List<Activity.Source> sources = activity instanceof Activity.ActivityWithSources activityWithSources
                     ? activityWithSources.sources()
                     : List.of();

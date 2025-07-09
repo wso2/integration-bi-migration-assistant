@@ -26,8 +26,6 @@ import tibco.analyzer.DefaultAnalysisPass;
 import tibco.analyzer.LoggingAnalysisPass;
 import tibco.analyzer.ModelAnalyser;
 import tibco.analyzer.ProjectAnalysisContext;
-import tibco.analyzer.ReportGenerationPass;
-import tibco.analyzer.TibcoAnalysisReport;
 import tibco.converter.ConversionResult;
 import tibco.converter.ProjectConverter;
 import tibco.converter.TibcoConverter;
@@ -96,40 +94,30 @@ public class TibcoToBalConverter {
         }
         ModelAnalyser analyser = new ModelAnalyser(List.of(
                 new DefaultAnalysisPass(),
-                new LoggingAnalysisPass(),
-                new ReportGenerationPass()));
+                new LoggingAnalysisPass()));
         Map<tibco.model.Process, AnalysisResult> analysisResult =
                 analyser.analyseProject(new ProjectAnalysisContext(), processes, types);
-        TibcoAnalysisReport report = analysisResult.values().stream()
-                .map(AnalysisResult::getReport)
-                .flatMap(Optional::stream)
-                .reduce(TibcoAnalysisReport.empty(), TibcoAnalysisReport::combine);
-        if (cx.dryRun()) {
-            return new ConversionResult(null, null, report);
-        }
+        
         return ProjectConverter.convertProject(cx, analysisResult, processes, types,
                 new ProjectConverter.ProjectResources(jdbcResources,
                         httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource,
                         jmsSharedResource, sharedVariables),
-                report);
+                pcx);
     }
 
-    private static final ParsingUnit<Process> PROCESS_PARSING_UNIT = new ParsingUnit<>() {
-        @Override
-        public Set<Process> parse(ProjectContext pcx) throws IOException, ParserConfigurationException, SAXException {
-            Set<Process> elements = new HashSet<>();
-            for (String s : getBwpFiles(pcx.projectPath())) {
-                Element element = parseXmlFile(s);
-                Optional<Process> parsedElement = XmlToTibcoModelParser.parseProcess(new ProcessContext(pcx, s),
-                        element);
-                if (parsedElement.isPresent()) {
-                    elements.add(parsedElement.get());
-                } else {
-                    logger().warning("Failed to parse process: " + s);
-                }
+    private static final ParsingUnit<Process> PROCESS_PARSING_UNIT = pcx -> {
+        Set<Process> elements = new HashSet<>();
+        for (String s : getBwpFiles(pcx.projectPath())) {
+            Element element = parseXmlFile(s);
+            Optional<Process> parsedElement = XmlToTibcoModelParser.parseProcess(new ProcessContext(pcx, s),
+                    element);
+            if (parsedElement.isPresent()) {
+                elements.add(parsedElement.get());
+            } else {
+                logger().warning("Failed to parse process: " + s);
             }
-            return elements;
         }
+        return elements;
     };
 private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
         new ParsingUnit.SimpleParsingUnit<>(

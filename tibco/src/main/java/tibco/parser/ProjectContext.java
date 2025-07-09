@@ -18,7 +18,11 @@
 
 package tibco.parser;
 
+import org.w3c.dom.Element;
 import tibco.TibcoToBalConverter;
+import tibco.analyzer.TibcoAnalysisReport;
+import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
+import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.UnNamedUnhandledActivityElement;
 import tibco.converter.ConversionUtils;
 import tibco.converter.TibcoConverter;
 
@@ -26,6 +30,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
+import java.util.Set;
 
 public final class ProjectContext implements Context {
 
@@ -34,6 +40,10 @@ public final class ProjectContext implements Context {
     private long nextUnhandledActivityIndex = 0;
     private final String projectPath;
     private final TibcoToBalConverter.ProjectConversionContext conversionContext;
+    private final Set<TibcoAnalysisReport.UnhandledActivityElement> unhandledActivities = new HashSet<>();
+    private final Set<Element> uniqueActivityElements = new HashSet<>();
+    // TODO: this needs to be updated
+    private int totalActivityCount = 0;
 
     public ProjectContext(TibcoToBalConverter.ProjectConversionContext cx, String projectPath) {
         assert cx != null : "Project conversion context cannot be null";
@@ -66,7 +76,13 @@ public final class ProjectContext implements Context {
     }
 
     @Override
-    public void registerUnhandledActivity(org.w3c.dom.Element element, String name, String type) {
+    public void registerUnhandledActivity(org.w3c.dom.Element element, String name, String type, String fileName) {
+        if (name != null && !name.isEmpty() && type != null && !type.isEmpty()) {
+            unhandledActivities.add(new NamedUnhandledActivityElement(name, type, element, fileName));
+        } else {
+            unhandledActivities.add(new UnNamedUnhandledActivityElement(element, fileName));
+        }
+
         StringBuilder sb = new StringBuilder("[UNHANDLED ACTIVITY]");
         if (name != null && !name.isEmpty()) {
             sb.append(" name='").append(name).append("'");
@@ -144,5 +160,20 @@ public final class ProjectContext implements Context {
         StringBuilder sb = new StringBuilder("[PARTIALLY SUPPORTED WSDL DEFINITION]");
         sb.append(" element=").append(ConversionUtils.elementToString(element));
         TibcoConverter.logger().warning(sb.toString());
+    }
+
+    @Override
+    public void incrementActivityCount(org.w3c.dom.Element element) {
+        if (uniqueActivityElements.add(element)) {
+            totalActivityCount++;
+        }
+    }
+
+    public Set<TibcoAnalysisReport.UnhandledActivityElement> getUnhandledActivities() {
+        return new HashSet<>(unhandledActivities);
+    }
+
+    public int getTotalActivityCount() {
+        return totalActivityCount;
     }
 }

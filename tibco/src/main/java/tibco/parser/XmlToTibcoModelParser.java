@@ -347,6 +347,7 @@ public final class XmlToTibcoModelParser {
     }
 
     private static InlineActivity parseInlineActivity(ProcessContext cx, Element element) {
+        cx.incrementActivityCount(element);
         String name = element.getAttribute("name");
         logger.fine("Start parsing inline activity: " + name);
         try {
@@ -355,7 +356,7 @@ public final class XmlToTibcoModelParser {
             return result;
         } catch (Exception ex) {
             String type = tryGetFirstChildWithTag(element, "type").map(Node::getTextContent).orElse("");
-            cx.registerUnhandledActivity(element, name, type);
+            cx.registerUnhandledActivity(element, name, type, cx.fileName());
             logger.severe("Exception while parsing inline activity: " + name + ". " + ex.getMessage());
             return new InlineActivity.UnhandledInlineActivity(element, name,
                     "Unhandled activity type", null, cx.fileName());
@@ -373,8 +374,11 @@ public final class XmlToTibcoModelParser {
             case ASSIGN -> parseAssignActivity(cx, name, inputBinding, element);
             case HTTP_EVENT_SOURCE -> parseHttpEventSource(cx, name, inputBinding, element);
             case HTTP_RESPONSE -> new InlineActivity.HTTPResponse(element, name, inputBinding, cx.fileName());
-            case UNHANDLED ->
-                new InlineActivity.UnhandledInlineActivity(element, name, typeString, inputBinding, cx.fileName());
+            case UNHANDLED -> {
+                cx.registerUnhandledActivity(element, name, typeString, cx.fileName());
+                yield new InlineActivity.UnhandledInlineActivity(element, name, typeString, inputBinding,
+                        cx.fileName());
+            }
             case NULL -> new InlineActivity.NullActivity(element, name, inputBinding, cx.fileName());
             case WRITE_LOG -> new InlineActivity.WriteLog(element, name, inputBinding, cx.fileName());
             case CALL_PROCESS -> parseCallProcess(cx, element, name, inputBinding);
@@ -771,6 +775,7 @@ public final class XmlToTibcoModelParser {
     }
 
     public static Optional<Flow.Activity> parseActivity(ProcessContext cx, Element element) {
+        cx.incrementActivityCount(element);
         String tag = getTagNameWithoutNameSpace(element);
         String name = element.hasAttribute("name") ? element.getAttribute("name") : tag;
         logger.fine("Start parsing activity: " + name);
@@ -790,7 +795,7 @@ public final class XmlToTibcoModelParser {
             Flow.Activity result = parseActivityInner(cx, element);
             return result;
         } catch (Exception ex) {
-            cx.registerUnhandledActivity(element, name, getTagNameWithoutNameSpace(element));
+            cx.registerUnhandledActivity(element, name, getTagNameWithoutNameSpace(element), cx.fileName());
             logger.severe("Exception while parsing activity: " + name + ". " + ex.getMessage());
             return parseUnhandledActivity(cx, element, ex.getMessage());
         }

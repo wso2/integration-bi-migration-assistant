@@ -24,10 +24,15 @@ import common.BallerinaModel.Statement.Return;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import org.jetbrains.annotations.NotNull;
+import org.w3c.dom.Element;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
+import tibco.analyzer.TibcoAnalysisReport;
+import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
+import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.UnNamedUnhandledActivityElement;
 import tibco.model.Process;
 import tibco.model.Process5;
+import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
 import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.Type;
@@ -93,6 +98,7 @@ public class ProjectContext {
     private Collection<Type.Schema> schemas = new ArrayList<>();
     private ContextTypeNames contextTypeNames = null;
     private final Set<Resource.SharedVariable> sharedVariables = new HashSet<>();
+    private final Set<TibcoAnalysisReport.UnhandledActivityElement> unhandledActivities = new HashSet<>();
 
     ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
                    Map<Process, AnalysisResult> analysisResult) {
@@ -494,10 +500,19 @@ public class ProjectContext {
         logger.severe("Please check the process definition and ensure it is supported.");
     }
 
-    public void registerActivityConversionFailure(tibco.model.Scope.Flow.Activity activity, Exception e) {
-        logger.severe("Failed to convert activity: " + (activity != null ? activity.toString() : "<null>") + ". Error: "
-                + e.getMessage());
-        logger.severe("Please check the activity definition and ensure it is supported.");
+    public void registerUnhandledActivity(tibco.model.Scope.Flow.Activity activity, Exception e) {
+        String fileName = activity.fileName();
+        String name;
+        if (activity instanceof InlineActivity inlineActivity) {
+            name = inlineActivity.name();
+            String type = inlineActivity.type().name();
+            Element element = inlineActivity.element();
+            unhandledActivities.add(new NamedUnhandledActivityElement(name, type, element, fileName));
+        } else {
+            name = "<unnamed>";
+            unhandledActivities.add(new UnNamedUnhandledActivityElement(activity.element(), fileName));
+        }
+        logger.severe("Failed to convert activity: " + name + ". Error: " + e.getMessage());
     }
 
     public void registerTransitionPredicateError(Scope.Flow.Activity.ActivityWithSources activity, Exception e) {
@@ -771,5 +786,9 @@ public class ProjectContext {
     public void registerResourceConversionFailure(Resource resource) {
         logger.severe("failed to convert resource: " + resource.name()
                 + ". Please check the resource definition and ensure it is supported.");
+    }
+
+    public Set<TibcoAnalysisReport.UnhandledActivityElement> getUnhandledActivities() {
+        return new HashSet<>(unhandledActivities);
     }
 }
