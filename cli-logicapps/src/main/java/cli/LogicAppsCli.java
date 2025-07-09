@@ -41,7 +41,7 @@ public class LogicAppsCli {
 
         Path sourceFile = Path.of(args[0]);
         // Default to empty path if not provided
-        Path outputDirectory = args.length > 1 ? Path.of(args[1]) : Path.of(""); // Default to empty path if not provided
+        Path outputDirectory = args.length > 1 ? Path.of(args[1]) : Path.of("");
 
         LogicAppsMigrationExecutor.migrateLogicAppToBallerina(sourceFile, "", outputDirectory,
                 false, false, new VerboseLogger(false));
