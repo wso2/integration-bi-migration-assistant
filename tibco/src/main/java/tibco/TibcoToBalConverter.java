@@ -77,7 +77,7 @@ public class TibcoToBalConverter {
         Set<Resource.JDBCSharedResource> jdbcSharedResource;
         Set<Resource.JMSSharedResource> jmsSharedResource;
         Set<Resource.SharedVariable> sharedVariables;
-        ProjectContext pcx = new ProjectContext(projectPath);
+        ProjectContext pcx = new ProjectContext(cx, projectPath);
         try {
             processes = PROCESS_PARSING_UNIT.parse(pcx);
             types = XSD_PARSING_UNIT.parse(pcx);
@@ -120,8 +120,13 @@ public class TibcoToBalConverter {
             Set<Process> elements = new HashSet<>();
             for (String s : getBwpFiles(pcx.projectPath())) {
                 Element element = parseXmlFile(s);
-                Process parsedElement = XmlToTibcoModelParser.parseProcess(new ProcessContext(pcx, s), element);
-                elements.add(parsedElement);
+                Optional<Process> parsedElement = XmlToTibcoModelParser.parseProcess(new ProcessContext(pcx, s),
+                        element);
+                if (parsedElement.isPresent()) {
+                    elements.add(parsedElement.get());
+                } else {
+                    logger().warning("Failed to parse process: " + s);
+                }
             }
             return elements;
         }

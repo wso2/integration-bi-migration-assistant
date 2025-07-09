@@ -29,6 +29,7 @@ import tibco.analyzer.AnalysisResult;
 import tibco.model.Process;
 import tibco.model.Process5;
 import tibco.model.Resource;
+import tibco.model.Scope;
 import tibco.model.Type;
 import tibco.parser.XmlToTibcoModelParser;
 
@@ -488,6 +489,36 @@ public class ProjectContext {
         return schemas;
     }
 
+    public void registerServiceGenerationError(Process process, Exception e) {
+        logger.severe("Failed to generate service for process: " + process.name() + ". Error: " + e.getMessage());
+        logger.severe("Please check the process definition and ensure it is supported.");
+    }
+
+    public void registerActivityConversionFailure(tibco.model.Scope.Flow.Activity activity, Exception e) {
+        logger.severe("Failed to convert activity: " + (activity != null ? activity.toString() : "<null>") + ". Error: "
+                + e.getMessage());
+        logger.severe("Please check the activity definition and ensure it is supported.");
+    }
+
+    public void registerTransitionPredicateError(Scope.Flow.Activity.ActivityWithSources activity, Exception e) {
+        logger.severe("Failed to convert transition predicate for activity: "
+                + (activity != null ? activity.toString() : "<null>") + ". Error: " + e.getMessage());
+    }
+
+    public void registerControlFlowFunctionGenerationError(Process process, Exception e) {
+        logger.severe("Failed to generate control flow function for process: " + process.name() + ". Error: "
+                + e.getMessage());
+    }
+
+    public void registerControlFlowFunctionGenerationError(Scope scope, Exception ex) {
+        logger.severe("Failed to generate control flow function for scope: " + scope.name() + ". Error: "
+                + ex.getMessage());
+    }
+
+    public void registerPartiallySupportedActivity(tibco.model.Scope.Flow.Activity activity) {
+        logger.warning("Partially supported activity: " + activity);
+    }
+
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
 
         FunctionData {
@@ -735,5 +766,10 @@ public class ProjectContext {
             return new BallerinaModel.TextDocument("types.bal", this.imports.stream().toList(), typeDefs, List.of(),
                     List.of(), List.of(), List.of(), List.of(), typeIntrinsics, nodes);
         }
+    }
+
+    public void registerResourceConversionFailure(Resource resource) {
+        logger.severe("failed to convert resource: " + resource.name()
+                + ". Please check the resource definition and ensure it is supported.");
     }
 }

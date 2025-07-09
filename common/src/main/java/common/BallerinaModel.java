@@ -854,6 +854,9 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         record Comment(String comment) implements Statement {
 
             public Comment {
+                if (comment == null) {
+                    comment = "";
+                }
                 comment = comment.trim();
             }
 

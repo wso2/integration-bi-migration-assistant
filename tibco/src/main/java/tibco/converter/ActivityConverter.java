@@ -104,15 +104,26 @@ final class ActivityConverter {
         return xsltTransformer;
     }
 
-    public static BallerinaModel.Function convertActivity(ProcessContext cx, Activity activity) {
-        return convertActivity(new ActivityContext(cx, activity), activity);
+    public static Optional<BallerinaModel.Function> convertActivity(ProcessContext cx, Activity activity) {
+        try {
+            return Optional.of(convertActivity(new ActivityContext(cx, activity), activity));
+        } catch (Exception e) {
+            logger.severe("Cascading activity conversion failure for activity: " + activity.toString());
+            return Optional.empty();
+        }
     }
 
     private static BallerinaModel.Function convertActivity(ActivityContext cx, Activity activity) {
         List<Statement> body;
         try {
             body = tryConvertActivityBody(cx, activity);
+            // Register as partially supported if any comments are present
+            boolean hasComment = body.stream().anyMatch(stmt -> stmt instanceof Comment);
+            if (hasComment) {
+                    cx.registerPartiallySupportedActivity(activity);
+            }
         } catch (Exception e) {
+            cx.registerActivityConversionFailure(activity, e);
             List<Activity.Source> sources = activity instanceof Activity.ActivityWithSources activityWithSources
                     ? activityWithSources.sources()
                     : List.of();
@@ -123,7 +134,7 @@ final class ActivityConverter {
             UnhandledActivity unhandledActivity = new UnhandledActivity(
                     "Failed to codegen activity due to %s".formatted(e.getMessage()),
                     sources, targets, activity.element(), activity.fileName());
-            body = tryConvertActivityBody(cx, unhandledActivity);
+            body = convertUnhandledActivity(cx, unhandledActivity);
         }
         BallerinaModel.TypeDesc.FunctionTypeDesc activityFnType = ConversionUtils.activityFnType(cx.processContext);
         return new BallerinaModel.Function(cx.functionName(), activityFnType.parameters(), activityFnType.returnType(),
@@ -1513,15 +1524,6 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
 
     private record ActivityConversionResult(VariableReference result, List<Statement> body) {
 
-    }
-
-    static final class TibcoFileConfigConstants {
-        private TibcoFileConfigConstants() {
-
-        }
-
-        public static final String TEXT_CONTENT_FIELD_NAME = "textContent";
-        public static final String FILE_NAME_FIELD_NAME = "fileName";
     }
 
     static final class XSLTConstants {

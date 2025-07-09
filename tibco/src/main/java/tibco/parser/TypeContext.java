@@ -40,4 +40,49 @@ public class TypeContext implements Context {
     public String getAnonUnhandledActivityName() {
         return projectContext.getAnonUnhandledActivityName();
     }
+
+    @Override
+    public void registerUnhandledActivity(org.w3c.dom.Element element, String name, String type) {
+        projectContext.registerUnhandledActivity(element, name, type);
+    }
+
+    @Override
+    public void registerPartiallySupportedActivity(org.w3c.dom.Element element, String name, String type) {
+        projectContext.registerPartiallySupportedActivity(element, name, type);
+    }
+
+    @Override
+    public void registerUnsupportedResource(org.w3c.dom.Element element, String name) {
+        projectContext.registerUnsupportedResource(element, name);
+    }
+
+    @Override
+    public void registerPartiallySupportedResource(org.w3c.dom.Element element, String name) {
+        projectContext.registerPartiallySupportedResource(element, name);
+    }
+
+    @Override
+    public void registerUnsupportedTransition(org.w3c.dom.Element element) {
+        projectContext.registerUnsupportedTransition(element);
+    }
+
+    @Override
+    public void registerUnsupportedSchema(org.w3c.dom.Element element) {
+        projectContext.registerUnsupportedSchema(element);
+    }
+
+    @Override
+    public void registerPartiallySupportedSchema(org.w3c.dom.Element element) {
+        projectContext.registerPartiallySupportedSchema(element);
+    }
+
+    @Override
+    public void registerUnsupportedWSDLDefinition(org.w3c.dom.Element element) {
+        projectContext.registerUnsupportedWSDLDefinition(element);
+    }
+
+    @Override
+    public void registerPartiallySupportedWSDLDefinition(org.w3c.dom.Element element) {
+        projectContext.registerPartiallySupportedWSDLDefinition(element);
+    }
 }

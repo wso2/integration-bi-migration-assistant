@@ -67,9 +67,9 @@ public class ActivityConversionTest {
             ParserConfigurationException, SAXException {
         Element activityElement = stringToElement(fileContent(activityPath));
         Scope.Flow.Activity activity = XmlToTibcoModelParser.parseActivity(getProcessContextForElement(activityElement),
-                activityElement);
+                activityElement).get();
         ProcessContext cx = getProcessContext(activity);
-        BallerinaModel.Function result = ActivityConverter.convertActivity(cx, activity);
+        BallerinaModel.Function result = ActivityConverter.convertActivity(cx, activity).get();
         String actual = toString(result);
         if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
             bless(expectedFunction, actual);
@@ -87,7 +87,9 @@ public class ActivityConversionTest {
     }
 
     private static tibco.parser.ProcessContext getProcessContextForElement(Element element) {
-        tibco.parser.ProjectContext projectContext = new tibco.parser.ProjectContext("test-project");
+        TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext(true, false,
+                List.of());
+        tibco.parser.ProjectContext projectContext = new tibco.parser.ProjectContext(cx, "test-project");
         return new tibco.parser.ProcessContext(projectContext, "test-activity.xml");
     }
 

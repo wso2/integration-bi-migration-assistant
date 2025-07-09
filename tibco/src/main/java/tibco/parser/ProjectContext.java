@@ -18,19 +18,27 @@
 
 package tibco.parser;
 
+import tibco.TibcoToBalConverter;
+import tibco.converter.ConversionUtils;
+import tibco.converter.TibcoConverter;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
 public final class ProjectContext implements Context {
 
     private long nextAnonProcessIndex = 0;
     private long nextAnonXSLTIndex = 0;
     private long nextUnhandledActivityIndex = 0;
     private final String projectPath;
+    private final TibcoToBalConverter.ProjectConversionContext conversionContext;
 
-    public ProjectContext(String projectPath) {
+    public ProjectContext(TibcoToBalConverter.ProjectConversionContext cx, String projectPath) {
+        assert cx != null : "Project conversion context cannot be null";
         this.projectPath = projectPath;
+        conversionContext = cx;
     }
 
     @Override
@@ -55,5 +63,86 @@ public final class ProjectContext implements Context {
 
     public String projectPath() {
         return projectPath;
+    }
+
+    @Override
+    public void registerUnhandledActivity(org.w3c.dom.Element element, String name, String type) {
+        StringBuilder sb = new StringBuilder("[UNHANDLED ACTIVITY]");
+        if (name != null && !name.isEmpty()) {
+            sb.append(" name='").append(name).append("'");
+        }
+        if (type != null && !type.isEmpty()) {
+            sb.append(" type='").append(type).append("'");
+        }
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().severe(sb.toString());
+    }
+
+    @Override
+    public void registerPartiallySupportedActivity(org.w3c.dom.Element element, String name, String type) {
+        StringBuilder sb = new StringBuilder("[PARTIALLY SUPPORTED ACTIVITY]");
+        if (name != null && !name.isEmpty()) {
+            sb.append(" name='").append(name).append("'");
+        }
+        if (type != null && !type.isEmpty()) {
+            sb.append(" type='").append(type).append("'");
+        }
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().warning(sb.toString());
+    }
+
+    @Override
+    public void registerUnsupportedResource(org.w3c.dom.Element element, String name) {
+        StringBuilder sb = new StringBuilder("[UNSUPPORTED RESOURCE]");
+        if (name != null && !name.isEmpty()) {
+            sb.append(" name='").append(name).append("'");
+        }
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().severe(sb.toString());
+    }
+
+    @Override
+    public void registerPartiallySupportedResource(org.w3c.dom.Element element, String name) {
+        StringBuilder sb = new StringBuilder("[PARTIALLY SUPPORTED RESOURCE]");
+        if (name != null && !name.isEmpty()) {
+            sb.append(" name='").append(name).append("'");
+        }
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().warning(sb.toString());
+    }
+
+    @Override
+    public void registerUnsupportedTransition(org.w3c.dom.Element element) {
+        StringBuilder sb = new StringBuilder("[UNSUPPORTED TRANSITION]");
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().severe(sb.toString());
+    }
+
+    @Override
+    public void registerUnsupportedSchema(org.w3c.dom.Element element) {
+        StringBuilder sb = new StringBuilder("[UNSUPPORTED SCHEMA]");
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().severe(sb.toString());
+    }
+
+    @Override
+    public void registerPartiallySupportedSchema(org.w3c.dom.Element element) {
+        StringBuilder sb = new StringBuilder("[PARTIALLY SUPPORTED SCHEMA]");
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().warning(sb.toString());
+    }
+
+    @Override
+    public void registerUnsupportedWSDLDefinition(org.w3c.dom.Element element) {
+        StringBuilder sb = new StringBuilder("[UNSUPPORTED WSDL DEFINITION]");
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().severe(sb.toString());
+    }
+
+    @Override
+    public void registerPartiallySupportedWSDLDefinition(org.w3c.dom.Element element) {
+        StringBuilder sb = new StringBuilder("[PARTIALLY SUPPORTED WSDL DEFINITION]");
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().warning(sb.toString());
     }
 }
