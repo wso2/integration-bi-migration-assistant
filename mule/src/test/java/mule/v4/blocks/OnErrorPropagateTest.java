@@ -23,13 +23,13 @@ public class OnErrorPropagateTest extends AbstractBlockTest {
 
     @Test
     public void testBasicOnErrorPropagate() {
-        testMule3ToBal("on-error-propagate/basic_on_error_propagate.xml",
+        testMule4ToBal("on-error-propagate/basic_on_error_propagate.xml",
                 "on-error-propagate/basic_on_error_propagate.bal");
     }
 
     @Test
     public void testBasicOnErrorPropagateWithHttpListenerSource() {
-        testMule3ToBal("on-error-propagate/on_error_propagate_with_http_listener_source.xml",
+        testMule4ToBal("on-error-propagate/on_error_propagate_with_http_listener_source.xml",
                 "on-error-propagate/on_error_propagate_with_http_listener_source.bal");
     }
 }

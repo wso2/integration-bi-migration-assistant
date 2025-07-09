@@ -65,7 +65,7 @@ public class ConversionUtils {
                         return "[string " + pathParamName + "]";
                     }
                     if (s.startsWith("#[") && s.endsWith("]")) {
-                        // Handle MEL in url. e.g. /users/#[flowVars.userId]
+                        // Handle MEL in url. e.g. /users/#[vars.userId]
                         String balExpr = convertMELToBal(ctx, s, false);
                         return "[" + balExpr + "]";
                     }
@@ -99,7 +99,7 @@ public class ConversionUtils {
         List<String> list = Arrays.stream(basePath.split("/")).filter(s -> !s.isEmpty())
                 .map(s -> {
                     if (s.startsWith("#[") && s.endsWith("]")) {
-                        // Handle MEL in url. e.g. /users/#[flowVars.userId]
+                        // Handle MEL in url. e.g. /users/#[vars.userId]
                         String balExpr = convertMELToBal(ctx, s, false);
                         return "[" + balExpr + "]";
                     }
@@ -117,7 +117,7 @@ public class ConversionUtils {
     }
 
     private static void processStatement(Context ctx, String statement) {
-        String regex = "ctx\\.(sessionVars|flowVars)\\.(\\w+)\\s*=\\s*(.*)";
+        String regex = "ctx\\.(vars)\\.(\\w+)\\s*=\\s*(.*)";
         Pattern pattern = Pattern.compile(regex);
 
         Matcher matcher = pattern.matcher(statement);
@@ -126,12 +126,9 @@ public class ConversionUtils {
             String varName = matcher.group(2);
             String varValue = matcher.group(3);
 
-            if ("sessionVars".equals(varCategory) && !ctx.projectCtx.sessionVars.containsKey(varName)) {
+            if ("vars".equals(varCategory) && !ctx.projectCtx.vars.containsKey(varName)) {
                 String inferredType = inferTypeFromBalExpr(varValue);
-                ctx.projectCtx.sessionVars.put(varName, inferredType);
-            } else if ("flowVars".equals(varCategory) && !ctx.projectCtx.flowVars.containsKey(varName)) {
-                String inferredType = inferTypeFromBalExpr(varValue);
-                ctx.projectCtx.flowVars.put(varName, inferredType);
+                ctx.projectCtx.vars.put(varName, inferredType);
             }
         }
     }
@@ -350,10 +347,10 @@ public class ConversionUtils {
 
     public static String inferTypeFromBalExpr(String balExpr) {
         switch (balExpr) {
-            case "ctx.inboundProperties.uriParams" -> {
+            case Constants.ATTRIBUTES_FIELD_ACCESS + ".uriParams" -> {
                 return "map<string>";
             }
-            case "ctx.inboundProperties.request.getQueryParams()" -> {
+            case Constants.ATTRIBUTES_FIELD_ACCESS + ".request.getQueryParams()" -> {
                 return "map<string[]>";
             }
             case "true", "false" -> {
@@ -369,9 +366,9 @@ public class ConversionUtils {
             return "int";
         } else if (balExpr.matches("-?\\d+\\.\\d+")) {
             return "decimal";
-        } else if (balExpr.startsWith("ctx.inboundProperties.request.getQueryParamValue(")) {
+        } else if (balExpr.startsWith(Constants.ATTRIBUTES_FIELD_ACCESS + ".request.getQueryParamValue(")) {
             return "string";
-        } else if (balExpr.startsWith("ctx.inboundProperties.uriParams.get(")) {
+        } else if (balExpr.startsWith(Constants.ATTRIBUTES_FIELD_ACCESS + ".uriParams.get(")) {
             return "string";
         } else {
             return "anydata";

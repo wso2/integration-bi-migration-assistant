@@ -40,7 +40,7 @@ public class AbstractBlockTest {
      */
     private static final boolean UPDATE_ASSERTS = false;
 
-    public static void testMule3ToBal(String sourcePath, String targetPath) {
+    public static void testMule4ToBal(String sourcePath, String targetPath) {
         testMuleToBal(MULE_V4_DIR, sourcePath, targetPath);
     }
 
@@ -85,7 +85,7 @@ public class AbstractBlockTest {
             String modifiedXml = xmlTemplate.replace("DW_PATH", sourceDwlPath);
             Path tempXmlFile = Files.createTempFile("TEMP_XML", ".xml");
             Files.writeString(tempXmlFile, modifiedXml, StandardOpenOption.TRUNCATE_EXISTING);
-            testMule3ToBal(tempXmlFile.toString(), targetBalPath);
+            testMule4ToBal(tempXmlFile.toString(), targetBalPath);
             Files.deleteIfExists(tempXmlFile);
         } catch (IOException e) {
             throw new RuntimeException("Error creating temporary Mule XML file", e);

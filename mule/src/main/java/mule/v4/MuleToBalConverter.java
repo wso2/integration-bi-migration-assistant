@@ -233,9 +233,9 @@ public class MuleToBalConverter {
 
     private static void genHttpSource(Context ctx, Flow flow, HttpListener src, List<Service> services,
                                       Set<Function> functions) {
-        ctx.projectCtx.inboundProperties.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_TYPE);
-        ctx.projectCtx.inboundProperties.put(Constants.HTTP_RESPONSE_REF, Constants.HTTP_RESPONSE_TYPE);
-        ctx.projectCtx.inboundProperties.put(Constants.URI_PARAMS_REF, "map<string>");
+        ctx.projectCtx.attributes.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_TYPE);
+        ctx.projectCtx.attributes.put(Constants.HTTP_RESPONSE_REF, Constants.HTTP_RESPONSE_TYPE);
+        ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
 
         // Create a service from the flow
         Service service = genBalService(ctx, src, flow.flowBlocks(), functions);
@@ -248,46 +248,35 @@ public class MuleToBalConverter {
         List<RecordField> contextRecFields = new ArrayList<>();
         contextRecFields.add(new RecordField(Constants.PAYLOAD_REF, BAL_ANYDATA_TYPE, exprFrom("()")));
 
-        if (!ctx.projectCtx.flowVars.isEmpty()) {
-            contextRecFields.add(new RecordField(Constants.FLOW_VARS_REF, typeFrom(Constants.FLOW_VARS_TYPE),
+        if (!ctx.projectCtx.vars.isEmpty()) {
+            contextRecFields.add(new RecordField(Constants.VARS_REF, typeFrom(Constants.VARS_TYPE),
                     exprFrom("{}")));
-            List<RecordField> flowVarRecFields = new ArrayList<>();
-            for (Map.Entry<String, String> entry : ctx.projectCtx.flowVars.entrySet()) {
-                flowVarRecFields.add(new RecordField(entry.getKey(), typeFrom(entry.getValue()), true));
+            List<RecordField> varRecFields = new ArrayList<>();
+            for (Map.Entry<String, String> entry : ctx.projectCtx.vars.entrySet()) {
+                varRecFields.add(new RecordField(entry.getKey(), typeFrom(entry.getValue()), true));
             }
 
-            RecordTypeDesc flowVarsRecord = RecordTypeDesc.closedRecord(flowVarRecFields);
-            contextTypeDefns.add(new ModuleTypeDef(Constants.FLOW_VARS_TYPE, flowVarsRecord));
+            RecordTypeDesc varsRecord = RecordTypeDesc.closedRecord(varRecFields);
+            contextTypeDefns.add(new ModuleTypeDef(Constants.VARS_TYPE, varsRecord));
         }
 
-        if (!ctx.projectCtx.sessionVars.isEmpty()) {
-            contextRecFields.add(new RecordField(Constants.SESSION_VARS_REF, typeFrom(Constants.SESSION_VARS_TYPE),
-                    exprFrom("{}")));
-            List<RecordField> sessionVarRecFields = new ArrayList<>();
-            for (Map.Entry<String, String> entry : ctx.projectCtx.sessionVars.entrySet()) {
-                sessionVarRecFields.add(new RecordField(entry.getKey(), typeFrom(entry.getValue()), true));
-            }
-            RecordTypeDesc sessionVarsRecord = RecordTypeDesc.closedRecord(sessionVarRecFields);
-            contextTypeDefns.add(new ModuleTypeDef(Constants.SESSION_VARS_TYPE, sessionVarsRecord));
-        }
-
-        if (!ctx.projectCtx.inboundProperties.isEmpty()) {
-            contextRecFields.add(new RecordField("inboundProperties", typeFrom(Constants.INBOUND_PROPERTIES_TYPE),
+        if (!ctx.projectCtx.attributes.isEmpty()) {
+            contextRecFields.add(new RecordField(Constants.ATTRIBUTES_REF, typeFrom(Constants.ATTRIBUTES_TYPE),
                     false));
-            List<RecordField> inboundPropRecordFields = new ArrayList<>();
-            for (Map.Entry<String, String> entry : ctx.projectCtx.inboundProperties.entrySet()) {
+            List<RecordField> attributesRecordFields = new ArrayList<>();
+            for (Map.Entry<String, String> entry : ctx.projectCtx.attributes.entrySet()) {
                 String name = entry.getKey();
                 String type = entry.getValue();
-                RecordField inboundPropField;
+                RecordField attributesField;
                 if (type.startsWith("map<") && type.endsWith(">")) {
-                    inboundPropField = new RecordField(name, typeFrom(type), exprFrom("{}"));
+                    attributesField = new RecordField(name, typeFrom(type), exprFrom("{}"));
                 } else {
-                    inboundPropField = new RecordField(name, typeFrom(type), false);
+                    attributesField = new RecordField(name, typeFrom(type), false);
                 }
-                inboundPropRecordFields.add(inboundPropField);
+                attributesRecordFields.add(attributesField);
             }
-            RecordTypeDesc inboundPropertiesRecord = RecordTypeDesc.closedRecord(inboundPropRecordFields);
-            contextTypeDefns.add(new ModuleTypeDef(Constants.INBOUND_PROPERTIES_TYPE, inboundPropertiesRecord));
+            RecordTypeDesc attributesRecord = RecordTypeDesc.closedRecord(attributesRecordFields);
+            contextTypeDefns.add(new ModuleTypeDef(Constants.ATTRIBUTES_TYPE, attributesRecord));
         }
 
         RecordTypeDesc contextRecord = RecordTypeDesc.closedRecord(contextRecFields);
@@ -351,17 +340,17 @@ public class MuleToBalConverter {
         queryPrams.add(new Parameter(Constants.HTTP_REQUEST_REF, typeFrom(Constants.HTTP_REQUEST_TYPE)));
 
         List<Statement> bodyStmts = new ArrayList<>();
-        String inboundPropInitValue = getInboundPropInitValue(ctx, pathParams);
+        String attributesInitValue = getAttributesInitValue(ctx, pathParams);
         bodyStmts.add(stmtFrom("Context %s = {%s: %s};".formatted(Constants.CONTEXT_REFERENCE,
-                Constants.INBOUND_PROPERTIES_REF, inboundPropInitValue)));
+                Constants.ATTRIBUTES_REF, attributesInitValue)));
 
         List<Statement> bodyCoreStmts = convertTopLevelMuleBlocks(ctx, flowBlocks);
         bodyStmts.addAll(bodyCoreStmts);
 
         // Add return statement
-        bodyStmts.add(stmtFrom("\n\n%s.%s.setPayload(%s.payload);".formatted(Constants.INBOUND_PROPERTIES_FIELD_ACCESS,
+        bodyStmts.add(stmtFrom("\n\n%s.%s.setPayload(%s.payload);".formatted(Constants.ATTRIBUTES_FIELD_ACCESS,
                         Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
-        bodyStmts.add(stmtFrom("return %s.%s;".formatted(Constants.INBOUND_PROPERTIES_FIELD_ACCESS,
+        bodyStmts.add(stmtFrom("return %s.%s;".formatted(Constants.ATTRIBUTES_FIELD_ACCESS,
                 Constants.HTTP_RESPONSE_REF)));
 
         // Add service resources
@@ -399,17 +388,17 @@ public class MuleToBalConverter {
         return new Service(basePath, listenerRef, resources);
     }
 
-    private static String getInboundPropInitValue(Context ctx, List<String> pathParams) {
-        Map<String, String> inboundPropMap = new LinkedHashMap<>();
-        for (Map.Entry<String, String> entry : ctx.projectCtx.inboundProperties.entrySet()) {
+    private static String getAttributesInitValue(Context ctx, List<String> pathParams) {
+        Map<String, String> attributesPropMap = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : ctx.projectCtx.attributes.entrySet()) {
             switch (entry.getKey()) {
                 case Constants.HTTP_REQUEST_REF ->
-                        inboundPropMap.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_REF);
-                case Constants.HTTP_RESPONSE_REF -> inboundPropMap.put(Constants.HTTP_RESPONSE_REF, "new");
+                        attributesPropMap.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_REF);
+                case Constants.HTTP_RESPONSE_REF -> attributesPropMap.put(Constants.HTTP_RESPONSE_REF, "new");
                 case Constants.URI_PARAMS_REF -> {
                     if (!pathParams.isEmpty()) {
                         String pathParamValue = String.join(",", pathParams);
-                        inboundPropMap.put(Constants.URI_PARAMS_REF, "{%s}".formatted(pathParamValue));
+                        attributesPropMap.put(Constants.URI_PARAMS_REF, "{%s}".formatted(pathParamValue));
                     }
                 }
                 default -> throw new IllegalStateException();
@@ -417,7 +406,7 @@ public class MuleToBalConverter {
         }
 
         List<String> fields = new ArrayList<>();
-        inboundPropMap.forEach((key, value) -> {
+        attributesPropMap.forEach((key, value) -> {
             if (key.equals(value)) {
                 fields.add(key);
             } else {

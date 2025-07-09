@@ -24,44 +24,44 @@ public class HttpListenerTest extends AbstractBlockTest {
 
     @Test
     public void testBasicHttpListener() {
-        testMule3ToBal("http-listener/basic_http_listener.xml", "http-listener/basic_http_listener.bal");
+        testMule4ToBal("http-listener/basic_http_listener.xml", "http-listener/basic_http_listener.bal");
     }
 
     @Test
     public void testEmptyAbsolutePath() {
-        testMule3ToBal("http-listener/empty_absolute_path.xml", "http-listener/empty_absolute_path.bal");
+        testMule4ToBal("http-listener/empty_absolute_path.xml", "http-listener/empty_absolute_path.bal");
     }
 
     @Test
     public void testEmptyResourcePath() {
-        testMule3ToBal("http-listener/empty_resource_path.xml", "http-listener/empty_resource_path.bal");
+        testMule4ToBal("http-listener/empty_resource_path.xml", "http-listener/empty_resource_path.bal");
     }
 
     @Test
     public void testEmptyAbsoluteAndResourcePaths() {
-        testMule3ToBal("http-listener/empty_absolute_and_resource_paths.xml",
+        testMule4ToBal("http-listener/empty_absolute_and_resource_paths.xml",
                 "http-listener/empty_absolute_and_resource_paths.bal");
     }
 
     @Test
     public void testSpecialCharactersInResourcePath() {
-        testMule3ToBal("http-listener/special_characters_in_resource_path.xml",
+        testMule4ToBal("http-listener/special_characters_in_resource_path.xml",
                 "http-listener/special_characters_in_resource_path.bal");
     }
 
     @Test
     public void testResourceUriParams() {
-        testMule3ToBal("http-listener/resource_uri_params.xml", "http-listener/resource_uri_params.bal");
+        testMule4ToBal("http-listener/resource_uri_params.xml", "http-listener/resource_uri_params.bal");
     }
 
     @Test
     public void testQueryParams() {
-        testMule3ToBal("http-listener/query_params.xml", "http-listener/query_params.bal");
+        testMule4ToBal("http-listener/query_params.xml", "http-listener/query_params.bal");
     }
 
     @Test(dataProvider = "httpMethodsTestData")
     public void testAllowedResourceMethods(String inputFile, String outputFile) {
-        testMule3ToBal(inputFile, outputFile);
+        testMule4ToBal(inputFile, outputFile);
     }
 
     @DataProvider(name = "httpMethodsTestData")
@@ -80,12 +80,12 @@ public class HttpListenerTest extends AbstractBlockTest {
 
     @Test
     public void testListenerWithLocalhost() {
-        testMule3ToBal("http-listener/http_listener_with_localhost.xml",
+        testMule4ToBal("http-listener/http_listener_with_localhost.xml",
                 "http-listener/http_listener_with_localhost.bal");
     }
 
     @Test
     public void testListenerAttributes() {
-        testMule3ToBal("http-listener/http_listener_attributes.xml", "http-listener/http_listener_attributes.bal");
+        testMule4ToBal("http-listener/http_listener_attributes.xml", "http-listener/http_listener_attributes.bal");
     }
 }

@@ -54,7 +54,6 @@ public enum MuleXMLTag {
 
     // Transformers
     SET_VARIABLE("set-variable", 1),
-    SET_SESSION_VARIABLE("set-session-variable", 1),
     REMOVE_VARIABLE("remove-variable", 1),
     REMOVE_SESSION_VARIABLE("remove-session-variable", 1),
     SET_PAYLOAD("set-payload", 3),

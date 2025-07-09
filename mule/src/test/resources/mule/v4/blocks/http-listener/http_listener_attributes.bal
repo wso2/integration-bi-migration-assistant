@@ -1,6 +1,6 @@
 import ballerina/http;
 
-public type FlowVars record {|
+public type Vars record {|
     map<string[]> queryParams?;
     map<string[]> queryParams2?;
     string city?;
@@ -12,7 +12,7 @@ public type FlowVars record {|
     anydata httpMethod?;
 |};
 
-public type InboundProperties record {|
+public type Attributes record {|
     http:Request request;
     http:Response response;
     map<string> uriParams = {};
@@ -20,26 +20,26 @@ public type InboundProperties record {|
 
 public type Context record {|
     anydata payload = ();
-    FlowVars flowVars = {};
-    InboundProperties inboundProperties;
+    Vars vars = {};
+    Attributes attributes;
 |};
 
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
     resource function get attribute_test/[string country]/v1(http:Request request) returns http:Response|error {
-        Context ctx = {inboundProperties: {request, response: new, uriParams: {country}}};
-        ctx.flowVars.queryParams = ctx.inboundProperties.request.getQueryParams();
-        ctx.flowVars.queryParams2 = ctx.inboundProperties.request.getQueryParams();
-        ctx.flowVars.city = ctx.inboundProperties.request.getQueryParamValue("city");
-        ctx.flowVars.city2 = ctx.inboundProperties.request.getQueryParamValue("city");
-        ctx.flowVars.uriParams = ctx.inboundProperties.uriParams;
-        ctx.flowVars.country = ctx.inboundProperties.uriParams.get("country");
-        ctx.flowVars.unsupportedAttribute = ctx.inboundProperties["unsupportedAttribute"];
-        ctx.flowVars.unsupportedAttributeAccess = ctx.inboundProperties["unsupportedAttribute"].city;
-        ctx.flowVars.httpMethod = ctx.inboundProperties.request.method;
+        Context ctx = {attributes: {request, response: new, uriParams: {country}}};
+        ctx.vars.queryParams = ctx.attributes.request.getQueryParams();
+        ctx.vars.queryParams2 = ctx.attributes.request.getQueryParams();
+        ctx.vars.city = ctx.attributes.request.getQueryParamValue("city");
+        ctx.vars.city2 = ctx.attributes.request.getQueryParamValue("city");
+        ctx.vars.uriParams = ctx.attributes.uriParams;
+        ctx.vars.country = ctx.attributes.uriParams.get("country");
+        ctx.vars.unsupportedAttribute = ctx.attributes["unsupportedAttribute"];
+        ctx.vars.unsupportedAttributeAccess = ctx.attributes["unsupportedAttribute"].city;
+        ctx.vars.httpMethod = ctx.attributes.request.method;
 
-        ctx.inboundProperties.response.setPayload(ctx.payload);
-        return ctx.inboundProperties.response;
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
     }
 }

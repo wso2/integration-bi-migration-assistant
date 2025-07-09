@@ -23,18 +23,18 @@ public class ErrorHandlerTest extends AbstractBlockTest {
 
     @Test
     public void testBasicErrorHandler() {
-        testMule3ToBal("error-handler/basic_error_handler.xml", "error-handler/basic_error_handler.bal");
+        testMule4ToBal("error-handler/basic_error_handler.xml", "error-handler/basic_error_handler.bal");
     }
 
     @Test
     public void testErrorHandlerWithHttpListenerSource() {
-        testMule3ToBal("error-handler/error_handler_with_http_listener_source.xml",
+        testMule4ToBal("error-handler/error_handler_with_http_listener_source.xml",
                 "error-handler/error_handler_with_http_listener_source.bal");
     }
 
     @Test
     public void testErrorHandlerWithConditions() {
-        testMule3ToBal("error-handler/error_handler_with_conditions.xml",
+        testMule4ToBal("error-handler/error_handler_with_conditions.xml",
                 "error-handler/error_handler_with_conditions.bal");
     }
 }

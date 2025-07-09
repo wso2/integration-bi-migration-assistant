@@ -346,8 +346,8 @@ public class MuleMigrationExecutor {
         // TODO: consider multi-flow-multi-context scenario
         List<ModuleTypeDef> contextTypeDefns = createContextTypeDefns(ctx);
         List<Import> contextImports = new ArrayList<>(1);
-        if (!ctx.projectCtx.inboundProperties.isEmpty()) {
-            // TODO: at the moment only http provides inbound properties
+        if (!ctx.projectCtx.attributes.isEmpty()) {
+            // TODO: at the moment only http provides 'attributes'
             contextImports.add(Constants.HTTP_MODULE_IMPORT);
         }
 

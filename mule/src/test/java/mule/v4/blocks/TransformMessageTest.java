@@ -24,19 +24,19 @@ public class TransformMessageTest extends AbstractBlockTest {
 
     @Test
     public void testTransformMessageWithSimpleValue() {
-        testMule3ToBal("transform-message/transform_message_with_simple_value.xml",
+        testMule4ToBal("transform-message/transform_message_with_simple_value.xml",
                 "transform-message/transform_message_with_simple_value.bal");
     }
 
     @Test
     public void testTransformMessageWithComponents() {
-        testMule3ToBal("transform-message/transform_message_with_components.xml",
+        testMule4ToBal("transform-message/transform_message_with_components.xml",
                 "transform-message/transform_message_with_components.bal");
     }
 
     @Test
     public void testTransformMessageWithUnsupportedComponents() {
-        testMule3ToBal("transform-message/transform_message_with_unsupported_components.xml",
+        testMule4ToBal("transform-message/transform_message_with_unsupported_components.xml",
                 "transform-message/transform_message_with_unsupported_components.bal");
     }
 

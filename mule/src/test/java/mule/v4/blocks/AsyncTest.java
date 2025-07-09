@@ -23,6 +23,6 @@ public class AsyncTest extends AbstractBlockTest {
 
     @Test
     public void testSimpleAsync() {
-        testMule3ToBal("async/simple_async.xml", "async/simple_async.bal");
+        testMule4ToBal("async/simple_async.xml", "async/simple_async.bal");
     }
 }

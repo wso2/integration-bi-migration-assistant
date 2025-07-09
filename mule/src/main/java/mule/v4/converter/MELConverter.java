@@ -195,8 +195,7 @@ public class MELConverter {
         }
 
         String varName = ConversionUtils.convertToBalIdentifier(varNameToken.toString());
-        // TODO: MULE4 - change 'flowVars' to 'vars'
-        result.append(Constants.CONTEXT_REFERENCE).append(".").append("flowVars").append(".").append(varName);
+        result.append(Constants.VARS_FIELD_ACCESS).append(".").append(varName);
         if (addToStringCalls) {
             result.append(".toString()");
         }
@@ -302,7 +301,7 @@ public class MELConverter {
 
     private static String convertAttributeAccess(String attributeKey, String paramName) {
         StringBuilder resultantStr = new StringBuilder();
-        resultantStr.append("ctx.inboundProperties"); // TODO: MULE4 - Rename to ctx.attributes
+        resultantStr.append(Constants.ATTRIBUTES_FIELD_ACCESS);
         switch (attributeKey) {
             case "uriParams" -> {
                 resultantStr.append(".uriParams");
@@ -348,9 +347,8 @@ public class MELConverter {
                 case "payload", "message.payload" -> "ctx.payload";
                 case "message" -> "ctx";
                 case "null" -> "()";
-                case "flowVars" -> "ctx.flowVars";
-                case "sessionVars" -> "ctx.sessionVars";
-                case "message.inboundProperties", "inboundProperties" -> "ctx.inboundProperties";
+                case "flowVars", "sessionVars" -> Constants.VARS_FIELD_ACCESS;
+                case "message.inboundProperties", "inboundProperties" -> Constants.ATTRIBUTES_FIELD_ACCESS;
                 default -> str;
             };
         }

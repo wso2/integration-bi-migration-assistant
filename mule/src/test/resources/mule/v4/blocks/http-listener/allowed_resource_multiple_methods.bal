@@ -1,7 +1,7 @@
 import ballerina/http;
 import ballerina/log;
 
-public type InboundProperties record {|
+public type Attributes record {|
     http:Request request;
     http:Response response;
     map<string> uriParams = {};
@@ -9,7 +9,7 @@ public type InboundProperties record {|
 
 public type Context record {|
     anydata payload = ();
-    InboundProperties inboundProperties;
+    Attributes attributes;
 |};
 
 public listener http:Listener config = new (8081);
@@ -29,9 +29,9 @@ service /mule4 on config {
 }
 
 public function invokeEndPoint0(http:Request request) returns http:Response|error {
-    Context ctx = {inboundProperties: {request, response: new}};
+    Context ctx = {attributes: {request, response: new}};
     log:printInfo("xxx: logger invoked");
 
-    ctx.inboundProperties.response.setPayload(ctx.payload);
-    return ctx.inboundProperties.response;
+    ctx.attributes.response.setPayload(ctx.payload);
+    return ctx.attributes.response;
 }
