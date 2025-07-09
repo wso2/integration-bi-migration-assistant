@@ -117,9 +117,10 @@ final class ActivityConverter {
         List<Statement> body;
         try {
             body = tryConvertActivityBody(cx, activity);
-            // Register as partially supported if any comments are present
+            boolean isUnhandled = activity instanceof UnhandledActivity ||
+                    activity instanceof InlineActivity.UnhandledInlineActivity;
             boolean hasComment = body.stream().anyMatch(stmt -> stmt instanceof Comment);
-            if (hasComment) {
+            if (!isUnhandled && hasComment) {
                     cx.registerPartiallySupportedActivity(activity);
             }
         } catch (Exception e) {
