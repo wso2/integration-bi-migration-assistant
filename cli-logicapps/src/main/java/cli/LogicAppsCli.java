@@ -33,13 +33,16 @@ public class LogicAppsCli {
 
     // For testing jar
     public static void main(String[] args) {
-        if (args.length != 1 && args.length != 3) {
+        if (args.length < 1 || args.length > 3) {
             logger.severe("Usage: java -jar logicapps-migration-assistant.jar <source-file> " +
                     "[-o|--out <output-directory>] [-v|--verbose] [-m|--multi-root]");
             System.exit(1);
         }
 
-        LogicAppsMigrationExecutor.migrateLogicAppToBallerina(Path.of(args[0]), "", Path.of(args[1]),
+        Path sourceFile = Path.of(args[0]);
+        Path outputDirectory = args.length > 1 ? Path.of(args[1]) : Path.of(""); // Default to empty path if not provided
+
+        LogicAppsMigrationExecutor.migrateLogicAppToBallerina(sourceFile, "", outputDirectory,
                 false, false, new VerboseLogger(false));
     }
 }
