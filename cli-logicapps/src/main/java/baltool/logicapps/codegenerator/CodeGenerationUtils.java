@@ -286,8 +286,9 @@ public class CodeGenerationUtils {
         GeneratedCode repairedCode = generatedCode;
         for (int iteration = 0; iteration < MAXIMUM_RETRY_COUNT; iteration++) {
             logger.printVerboseInfo(fileName, "Iteration " + (iteration + 1) + " of code repair");
-            GeneratedCode repairedCodeIteration = repairIfDiagnosticsExist(copilotAccessToken, sourceFiles, fileAttachmentContents,
-                    packageName, generatedPrompt, moduleDescriptor, generatedCode, logger, fileName);
+            GeneratedCode repairedCodeIteration = repairIfDiagnosticsExist(copilotAccessToken, sourceFiles,
+                    fileAttachmentContents, packageName, generatedPrompt, moduleDescriptor, generatedCode, logger,
+                    fileName);
             if (repairedCodeIteration == null) {
                 logger.printVerboseInfo(fileName, "No code generated in iteration " + (iteration + 1));
                 break;
@@ -427,8 +428,8 @@ public class CodeGenerationUtils {
                 codeReparationPayload.toString().length() + " characters");
 
         logger.printVerboseInfo(fileName, "Sending HTTP request to get the repaired code");
-        HttpResponse<Stream<String>> response = sendStreamRequestAsync(uri, codeReparationPayload, copilotAccessToken, logger,
-                fileName);
+        HttpResponse<Stream<String>> response = sendStreamRequestAsync(uri, codeReparationPayload, copilotAccessToken,
+                logger, fileName);
         logger.printVerboseInfo(fileName, "Code repair response received");
         logger.printVerboseInfo(fileName, "Response status: " + response.statusCode());
 
@@ -877,8 +878,9 @@ public class CodeGenerationUtils {
                 .build();
     }
 
-    private static HttpResponse<Stream<String>> sendStreamRequestAsync(URI uri, JsonObject payload, String accessToken, VerboseLoggerFactory logger,
-                                                 String fileName) throws IOException, InterruptedException {
+    private static HttpResponse<Stream<String>> sendStreamRequestAsync(URI uri, JsonObject payload, String accessToken,
+                                                                       VerboseLoggerFactory logger, String fileName)
+            throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(uri)
                 .header("Authorization", "Bearer " + accessToken)
@@ -913,8 +915,9 @@ public class CodeGenerationUtils {
         return response;
     }
 
-    private static HttpResponse<String> sendRequestAsync(URI uri, JsonObject payload, String accessToken, VerboseLoggerFactory logger,
-                                    String fileName) throws IOException, InterruptedException {
+    private static HttpResponse<String> sendRequestAsync(URI uri, JsonObject payload, String accessToken,
+                                                         VerboseLoggerFactory logger, String fileName)
+            throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(uri)
                 .header("Content-Type", "application/json")
