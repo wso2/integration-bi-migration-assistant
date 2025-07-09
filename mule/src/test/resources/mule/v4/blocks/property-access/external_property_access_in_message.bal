@@ -4,11 +4,11 @@ import ballerina/sql;
 import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
-public type FlowVars record {|
+public type Vars record {|
     anydata dbConnectionString?;
 |};
 
-public type InboundProperties record {|
+public type Attributes record {|
     http:Request request;
     http:Response response;
     map<string> uriParams = {};
@@ -16,8 +16,8 @@ public type InboundProperties record {|
 
 public type Context record {|
     anydata payload = ();
-    FlowVars flowVars = {};
-    InboundProperties inboundProperties;
+    Vars vars = {};
+    Attributes attributes;
 |};
 
 public type Record record {
@@ -34,8 +34,8 @@ public listener http:Listener listener_config = new (check int:fromString(http_p
 
 service /mule4 on listener_config {
     resource function get property_access(http:Request request) returns http:Response|error {
-        Context ctx = {inboundProperties: {request, response: new}};
-        ctx.flowVars.dbConnectionString = p("http.host") + +":" + +p("http.port");
+        Context ctx = {attributes: {request, response: new}};
+        ctx.vars.dbConnectionString = p("http.host") + +":" + +p("http.port");
         log:printInfo("App running on port: " + +p.toString() ("http.port"));
 
         // database operation
@@ -46,7 +46,7 @@ service /mule4 on listener_config {
         ctx.payload = dbSelect0;
         log:printInfo("Welcome, " + +p.toString() ("user.firstName") + +" " + +p.toString() ("user.lastName") + +". Your account balance is " + +p.toString() ("user.balance"));
 
-        ctx.inboundProperties.response.setPayload(ctx.payload);
-        return ctx.inboundProperties.response;
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
     }
 }

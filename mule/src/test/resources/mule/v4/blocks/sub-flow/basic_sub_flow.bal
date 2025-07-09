@@ -1,7 +1,7 @@
 import ballerina/http;
 import ballerina/log;
 
-public type InboundProperties record {|
+public type Attributes record {|
     http:Request request;
     http:Response response;
     map<string> uriParams = {};
@@ -9,20 +9,20 @@ public type InboundProperties record {|
 
 public type Context record {|
     anydata payload = ();
-    InboundProperties inboundProperties;
+    Attributes attributes;
 |};
 
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
     resource function get sub_flow(http:Request request) returns http:Response|error {
-        Context ctx = {inboundProperties: {request, response: new}};
+        Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked via http end point");
         demoSubFlow(ctx);
         log:printInfo("xxx: logger after flow reference invoked");
 
-        ctx.inboundProperties.response.setPayload(ctx.payload);
-        return ctx.inboundProperties.response;
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
     }
 }
 

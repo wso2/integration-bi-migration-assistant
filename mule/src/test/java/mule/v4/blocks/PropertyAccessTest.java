@@ -29,7 +29,7 @@ public class PropertyAccessTest extends AbstractBlockTest {
     @Test
     public void testExternalPropertyAccess() {
         // TODO: New in mule 4. Implement p('http.port') support for Dataweave.
-        testMule3ToBal("property-access/external_property_access_in_message.xml",
+        testMule4ToBal("property-access/external_property_access_in_message.xml",
                 "property-access/external_property_access_in_message.bal");
     }
 }

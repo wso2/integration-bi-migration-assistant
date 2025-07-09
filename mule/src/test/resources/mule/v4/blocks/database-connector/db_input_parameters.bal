@@ -3,7 +3,7 @@ import ballerina/sql;
 import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
-public type InboundProperties record {|
+public type Attributes record {|
     http:Request request;
     http:Response response;
     map<string> uriParams = {};
@@ -11,7 +11,7 @@ public type InboundProperties record {|
 
 public type Context record {|
     anydata payload = ();
-    InboundProperties inboundProperties;
+    Attributes attributes;
 |};
 
 public type Record record {
@@ -22,7 +22,7 @@ public listener http:Listener config = new (8081);
 
 service /mule4 on config {
     resource function get db(http:Request request) returns http:Response|error {
-        Context ctx = {inboundProperties: {request, response: new}};
+        Context ctx = {attributes: {request, response: new}};
 
         // database operation
         sql:ParameterizedQuery dbQuery0 = `SELECT * FROM users WHERE id = :id AND name = :name;`;
@@ -42,7 +42,7 @@ service /mule4 on config {
             select _iterator_;
         ctx.payload = dbSelect0;
 
-        ctx.inboundProperties.response.setPayload(ctx.payload);
-        return ctx.inboundProperties.response;
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
     }
 }

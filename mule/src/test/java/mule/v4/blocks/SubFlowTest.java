@@ -23,6 +23,6 @@ public class SubFlowTest extends AbstractBlockTest {
 
     @Test
     public void testBasicSubFlow() {
-        testMule3ToBal("sub-flow/basic_sub_flow.xml", "sub-flow/basic_sub_flow.bal");
+        testMule4ToBal("sub-flow/basic_sub_flow.xml", "sub-flow/basic_sub_flow.bal");
     }
 }

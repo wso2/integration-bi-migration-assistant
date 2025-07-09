@@ -23,24 +23,24 @@ public class HttpRequestTest extends AbstractBlockTest {
 
     @Test
     public void testBasicHttpRequest() {
-        testMule3ToBal("http-request/basic_http_request.xml", "http-request/basic_http_request.bal");
+        testMule4ToBal("http-request/basic_http_request.xml", "http-request/basic_http_request.bal");
     }
 
     @Test
     public void testHttpRequestWithPathHavingSpecialCharacters() {
-        testMule3ToBal("http-request/http_request_path_with_special_characters.xml",
+        testMule4ToBal("http-request/http_request_path_with_special_characters.xml",
                 "http-request/http_request_path_with_special_characters.bal");
     }
 
     @Test
     public void testHttpRequestWithHttpSource() {
-        testMule3ToBal("http-request/http_request_with_http_source.xml",
+        testMule4ToBal("http-request/http_request_with_http_source.xml",
                 "http-request/http_request_with_http_source.bal");
     }
 
     @Test
     public void testHttpRequestWithUrlProperty() {
-        testMule3ToBal("http-request/http_request_with_url_property.xml",
+        testMule4ToBal("http-request/http_request_with_url_property.xml",
                 "http-request/http_request_with_url_property.bal");
     }
 }

@@ -1,6 +1,6 @@
 import ballerina/http;
 
-public type InboundProperties record {|
+public type Attributes record {|
     http:Request request;
     http:Response response;
     map<string> uriParams = {};
@@ -8,14 +8,14 @@ public type InboundProperties record {|
 
 public type Context record {|
     anydata payload = ();
-    InboundProperties inboundProperties;
+    Attributes attributes;
 |};
 
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
     resource function get set_payload(http:Request request) returns http:Response|error {
-        Context ctx = {inboundProperties: {request, response: new}};
+        Context ctx = {attributes: {request, response: new}};
 
         // set payload
         string payload0 = "First payload";
@@ -29,7 +29,7 @@ service /mule4 on config {
         string payload2 = "Third payload";
         ctx.payload = payload2;
 
-        ctx.inboundProperties.response.setPayload(ctx.payload);
-        return ctx.inboundProperties.response;
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
     }
 }

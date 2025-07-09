@@ -23,13 +23,13 @@ public class OnErrorContinueTest extends AbstractBlockTest {
 
     @Test
     public void testBasicOnErrorContinue() {
-        testMule3ToBal("on-error-continue/basic_on_error_continue.xml",
+        testMule4ToBal("on-error-continue/basic_on_error_continue.xml",
                 "on-error-continue/basic_on_error_continue.bal");
     }
 
     @Test
     public void testOnErrorContinueWithHttpListenerSource() {
-        testMule3ToBal("on-error-continue/on_error_continue_with_http_listener_source.xml",
+        testMule4ToBal("on-error-continue/on_error_continue_with_http_listener_source.xml",
                 "on-error-continue/on_error_continue_with_http_listener_source.bal");
     }
 }

@@ -73,9 +73,8 @@ public class Context {
     public static class ProjectContext {
         public final Counters counters = new Counters();
 
-        public final LinkedHashMap<String, String> flowVars = new LinkedHashMap<>();
-        public final LinkedHashMap<String, String> sessionVars = new LinkedHashMap<>();
-        public final LinkedHashMap<String, String> inboundProperties = new LinkedHashMap<>();
+        public final LinkedHashMap<String, String> vars = new LinkedHashMap<>();
+        public final LinkedHashMap<String, String> attributes = new LinkedHashMap<>();
         public final HashMap<String, String> vmQueueNameToBalFuncMap = new LinkedHashMap<>();
 
         // Shared configs

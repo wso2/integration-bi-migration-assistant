@@ -72,7 +72,6 @@ import static mule.v4.model.MuleModel.ObjectToJson;
 import static mule.v4.model.MuleModel.ObjectToString;
 import static mule.v4.model.MuleModel.Payload;
 import static mule.v4.model.MuleModel.RemoveVariable;
-import static mule.v4.model.MuleModel.SetSessionVariable;
 import static mule.v4.model.MuleModel.SetVariable;
 import static mule.v4.model.MuleModel.TransformMessage;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
@@ -196,9 +195,6 @@ public class MuleConfigConverter {
             case SetVariable setVariable -> {
                 return convertSetVariable(ctx, setVariable);
             }
-            case SetSessionVariable setSessionVariable -> {
-                return convertSetSessionVariable(ctx, setSessionVariable);
-            }
             case RemoveVariable removeVariable -> {
                 return convertRemoveVariable(ctx, removeVariable);
             }
@@ -276,24 +272,11 @@ public class MuleConfigConverter {
         String balExpr = convertMuleExprToBal(ctx, setVariable.value());
         String type = inferTypeFromBalExpr(balExpr);
 
-        if (!ctx.projectCtx.flowVars.containsKey(varName)) {
-            ctx.projectCtx.flowVars.put(varName, type);
+        if (!ctx.projectCtx.vars.containsKey(varName)) {
+            ctx.projectCtx.vars.put(varName, type);
         }
 
-        var stmt = stmtFrom(String.format("%s.%s = %s;", Constants.FLOW_VARS_FIELD_ACCESS, varName, balExpr));
-        return List.of(stmt);
-    }
-
-    private static List<Statement> convertSetSessionVariable(Context ctx, SetSessionVariable setSessionVariable) {
-        String varName = ConversionUtils.convertToBalIdentifier(setSessionVariable.variableName());
-        String balExpr = convertMuleExprToBal(ctx, setSessionVariable.value());
-        String type = inferTypeFromBalExpr(balExpr);
-
-        if (!ctx.projectCtx.sessionVars.containsKey(varName)) {
-            ctx.projectCtx.sessionVars.put(varName, type);
-        }
-
-        var stmt = stmtFrom(String.format("%s.%s = %s;", Constants.SESSION_VARS_FIELD_ACCESS, varName, balExpr));
+        var stmt = stmtFrom(String.format("%s.%s = %s;", Constants.VARS_FIELD_ACCESS, varName, balExpr));
         return List.of(stmt);
     }
 
@@ -305,11 +288,8 @@ public class MuleConfigConverter {
 
         String varName = ConversionUtils.convertToBalIdentifier(variableName);
         Statement stmt;
-        if (removeVariable.kind() == Kind.REMOVE_VARIABLE && ctx.projectCtx.flowVars.containsKey(varName)) {
-            stmt = stmtFrom(String.format("%s.%s = %s;", Constants.FLOW_VARS_FIELD_ACCESS, varName, "()"));
-        } else if (removeVariable.kind() == Kind.REMOVE_SESSION_VARIABLE &&
-                ctx.projectCtx.sessionVars.containsKey(varName)) {
-            stmt = stmtFrom(String.format("%s.%s = %s;", Constants.SESSION_VARS_FIELD_ACCESS, varName, "()"));
+        if (removeVariable.kind() == Kind.REMOVE_VARIABLE && ctx.projectCtx.vars.containsKey(varName)) {
+            stmt = stmtFrom(String.format("%s.%s = %s;", Constants.VARS_FIELD_ACCESS, varName, "()"));
         } else {
             // Removing undeclared variable in mule won't give error, so we just ignore it here
             return Collections.emptyList();
@@ -400,15 +380,10 @@ public class MuleConfigConverter {
         String source = convertMuleExprToBal(ctx, enricher.source());
         String target = convertMuleExprToBal(ctx, enricher.target());
 
-        if (target.startsWith(Constants.FLOW_VARS_FIELD_ACCESS + ".")) {
-            String var = target.replace(Constants.FLOW_VARS_FIELD_ACCESS + ".", "");
-            if (!ctx.projectCtx.flowVars.containsKey(var)) {
-                ctx.projectCtx.flowVars.put(var, "string");
-            }
-        } else if (target.startsWith(Constants.SESSION_VARS_FIELD_ACCESS + ".")) {
-            String var = target.replace(Constants.SESSION_VARS_FIELD_ACCESS + ".", "");
-            if (!ctx.projectCtx.sessionVars.containsKey(var)) {
-                ctx.projectCtx.sessionVars.put(var, "string");
+        if (target.startsWith(Constants.VARS_FIELD_ACCESS + ".")) {
+            String var = target.replace(Constants.VARS_FIELD_ACCESS + ".", "");
+            if (!ctx.projectCtx.vars.containsKey(var)) {
+                ctx.projectCtx.vars.put(var, "string");
             }
         }
 
@@ -588,8 +563,8 @@ public class MuleConfigConverter {
         List<Statement> errorBlocks = convertMuleBlocks(ctx, onErrorPropagate.errorBlocks());
         stmts.addAll(errorBlocks);
 
-        if (ctx.projectCtx.inboundProperties.containsKey(Constants.HTTP_RESPONSE_REF)) {
-            stmts.add(stmtFrom("%s.%s.statusCode = 500;".formatted(Constants.INBOUND_PROPERTIES_FIELD_ACCESS,
+        if (ctx.projectCtx.attributes.containsKey(Constants.HTTP_RESPONSE_REF)) {
+            stmts.add(stmtFrom("%s.%s.statusCode = 500;".formatted(Constants.ATTRIBUTES_FIELD_ACCESS,
                     Constants.HTTP_RESPONSE_REF)));
         } else {
             // Add a panic statement to propagate the error

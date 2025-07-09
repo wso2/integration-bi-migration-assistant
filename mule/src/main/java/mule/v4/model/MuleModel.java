@@ -174,12 +174,6 @@ public record MuleModel() {
     public record RemoveVariable(Kind kind, String variableName) implements MuleRecord {
     }
 
-    public record SetSessionVariable(Kind kind, String variableName, String value) implements MuleRecord {
-        public SetSessionVariable(String variableName, String value) {
-            this(Kind.SET_SESSION_VARIABLE, variableName, value);
-        }
-    }
-
     public record Payload(Kind kind, String expr) implements MuleRecord {
         public Payload(String expr) {
             this(Kind.PAYLOAD, expr);
@@ -317,7 +311,6 @@ public record MuleModel() {
         DB_UPDATE,
         DB_DELETE,
         SET_VARIABLE,
-        SET_SESSION_VARIABLE,
         REMOVE_VARIABLE,
         REMOVE_SESSION_VARIABLE,
         OBJECT_TO_JSON,

@@ -45,20 +45,17 @@ public class Constants {
 
     // Context Type Def
     public static final String CONTEXT_RECORD_TYPE = "Context";
-    public static final String FLOW_VARS_TYPE = "FlowVars";
-    public static final String SESSION_VARS_TYPE = "SessionVars";
-    public static final String INBOUND_PROPERTIES_TYPE = "InboundProperties";
+    public static final String VARS_TYPE = "Vars";
+    public static final String ATTRIBUTES_TYPE = "Attributes";
     public static final String CONTEXT_REFERENCE = "ctx";
-    public static final String FLOW_VARS_REF = "flowVars";
-    public static final String SESSION_VARS_REF = "sessionVars";
-    public static final String INBOUND_PROPERTIES_REF = "inboundProperties";
+    public static final String VARS_REF = "vars";
+    public static final String ATTRIBUTES_REF = "attributes";
     public static final String HTTP_REQUEST_REF = "request";
     public static final String HTTP_RESPONSE_REF = "response";
     public static final String PAYLOAD_REF = "payload";
     public static final String URI_PARAMS_REF = "uriParams";
-    public static final String FLOW_VARS_FIELD_ACCESS = CONTEXT_REFERENCE + "." + FLOW_VARS_REF;
-    public static final String SESSION_VARS_FIELD_ACCESS = CONTEXT_REFERENCE + "." + SESSION_VARS_REF;
-    public static final String INBOUND_PROPERTIES_FIELD_ACCESS = CONTEXT_REFERENCE + "." + INBOUND_PROPERTIES_REF;
+    public static final String VARS_FIELD_ACCESS = CONTEXT_REFERENCE + "." + VARS_REF;
+    public static final String ATTRIBUTES_FIELD_ACCESS = CONTEXT_REFERENCE + "." + ATTRIBUTES_REF;
     public static final String PAYLOAD_FIELD_ACCESS = CONTEXT_REFERENCE + "." + PAYLOAD_REF;
 
     // Variable/Func Names

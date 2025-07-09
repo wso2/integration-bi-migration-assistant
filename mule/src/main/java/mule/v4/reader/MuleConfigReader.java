@@ -62,7 +62,6 @@ import static mule.v4.model.MuleModel.ObjectToString;
 import static mule.v4.model.MuleModel.Payload;
 import static mule.v4.model.MuleModel.RemoveVariable;
 import static mule.v4.model.MuleModel.SetPayloadElement;
-import static mule.v4.model.MuleModel.SetSessionVariable;
 import static mule.v4.model.MuleModel.SetSessionVariableElement;
 import static mule.v4.model.MuleModel.SetVariable;
 import static mule.v4.model.MuleModel.SetVariableElement;
@@ -152,9 +151,6 @@ public class MuleConfigReader {
             }
             case MuleXMLTag.SET_VARIABLE -> {
                 return readSetVariable(ctx, muleElement);
-            }
-            case MuleXMLTag.SET_SESSION_VARIABLE -> {
-                return readSetSessionVariable(ctx, muleElement);
             }
             case MuleXMLTag.REMOVE_VARIABLE -> {
                 return readRemoveVariable(ctx, muleElement);
@@ -351,13 +347,6 @@ public class MuleConfigReader {
         String varName = element.getAttribute("variableName");
         String val = element.getAttribute("value");
         return new SetVariable(varName, val);
-    }
-
-    private static SetSessionVariable readSetSessionVariable(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
-        Element element = muleElement.getElement();
-        String varName = element.getAttribute("variableName");
-        String val = element.getAttribute("value");
-        return new SetSessionVariable(varName, val);
     }
 
     private static RemoveVariable readRemoveVariable(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
