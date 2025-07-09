@@ -25,7 +25,7 @@ $ bal migrate-logicapps <source-project-directory-or-file> [-o|--out <output-dir
     - For a project directory input, the new Ballerina package is created inside the source project directory.
     - For a single JSON file, the new Ballerina package is created in the same directory as the source file.
 - **-v or --verbose** - *Optional*. Enable verbose output during conversion.
-- **-m or --multi-root** - *Optional*. Treat each child directory as a separate project and convert all of them. The source must be a directory containing multiple LogicApp JSON files.
+- **-m or --multi-root** - *Optional*. Treat each child directory as a separate project and convert all of them. The source must be a directory containing multiple Logic App JSON files.
 
 ### Project Structure Requirements
 
@@ -36,7 +36,7 @@ Make sure your project follows this structure.
 
 ### Examples
 
-#### Convert a LogicApp JSON file
+#### Convert a Logic App JSON file
 
 ```bash
 $ bal migrate-logicapps /path/to/logic-app-control-flow.json
@@ -44,7 +44,7 @@ $ bal migrate-logicapps /path/to/logic-app-control-flow.json
 
 This will create a Ballerina package in the same directory as the input JSON file.
 
-#### Convert a LogicApp JSON file with a Custom Output Location
+#### Convert a Logic App JSON file with a Custom Output Location
 
 ```bash
 $ bal migrate-logicapps /path/to/logic-app-control-flow.json --out /path/to/output-dir
