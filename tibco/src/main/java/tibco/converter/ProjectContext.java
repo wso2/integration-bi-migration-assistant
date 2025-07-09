@@ -515,6 +515,10 @@ public class ProjectContext {
                 + ex.getMessage());
     }
 
+    public void registerPartiallySupportedActivity(tibco.model.Scope.Flow.Activity activity) {
+        logger.warning("Partially supported activity: " + activity);
+    }
+
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
 
         FunctionData {

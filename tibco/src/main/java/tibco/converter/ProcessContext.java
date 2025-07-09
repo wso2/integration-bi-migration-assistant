@@ -361,6 +361,10 @@ public class ProcessContext implements ContextWithFile {
         projectContext.registerControlFlowFunctionGenerationError(scope, ex);
     }
 
+    public void registerPartiallySupportedActivity(tibco.model.Scope.Flow.Activity activity) {
+        projectContext.registerPartiallySupportedActivity(activity);
+    }
+
     static final class DefaultClientDetails {
         final BallerinaModel.ModuleVar varDecl;
         final String method;

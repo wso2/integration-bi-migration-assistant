@@ -117,6 +117,11 @@ final class ActivityConverter {
         List<Statement> body;
         try {
             body = tryConvertActivityBody(cx, activity);
+            // Register as partially supported if any comments are present
+            boolean hasComment = body.stream().anyMatch(stmt -> stmt instanceof Comment);
+            if (hasComment) {
+                    cx.registerPartiallySupportedActivity(activity);
+            }
         } catch (Exception e) {
             cx.registerActivityConversionFailure(activity, e);
             List<Activity.Source> sources = activity instanceof Activity.ActivityWithSources activityWithSources

@@ -57,6 +57,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -378,11 +379,31 @@ public class ProcessConverter {
                 })
                 .map(ExplicitTransitionGroup.InlineActivityWithBody::body)
                 .flatMap(each -> convertExplicitTransitionGroupInner(cx, each));
+        record FunctionGenerationData(BiFunction<ProcessContext, ExplicitTransitionGroup, BallerinaModel.Function> fn,
+                                      String functionName) {
+
+        }
         Stream<BallerinaModel.Function> functions = Stream.of(
-                generateExplicitTransitionBlockErrorFunction(cx, group),
-                generateExplicitTransitionBlockActivityFunction(cx, group),
-                generateExplicitTransitionBlockScopeFunction(cx, group));
+                        new FunctionGenerationData(ProcessConverter::generateExplicitTransitionBlockErrorFunction,
+                                "generateExplicitTransitionBlockErrorFunction"),
+                        new FunctionGenerationData(ProcessConverter::generateExplicitTransitionBlockActivityFunction,
+                                "generateExplicitTransitionBlockActivityFunction"),
+                        new FunctionGenerationData(ProcessConverter::generateExplicitTransitionBlockScopeFunction,
+                                "generateExplicitTransitionBlockScopeFunction"))
+                .map(data -> tryGenerateFunction(data.fn, cx, group, data.functionName))
+                .flatMap(Optional::stream);
         return Stream.concat(functions, childFunctions);
+    }
+
+private static Optional<BallerinaModel.Function> tryGenerateFunction(
+                BiFunction<ProcessContext, ExplicitTransitionGroup, BallerinaModel.Function> fn,
+                ProcessContext cx, ExplicitTransitionGroup group, String functionName) {
+        try {
+                return Optional.ofNullable(fn.apply(cx, group));
+        } catch (Exception e) {
+                TibcoConverter.logger().warning("Exception in " + functionName + ": " + e.getMessage());
+                return Optional.empty();
+        }
     }
 
     private static void addTransitionPredicates(ProcessContext cx, List<BallerinaModel.Function> accum) {
