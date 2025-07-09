@@ -599,21 +599,42 @@ public class AnalysisReport {
             // No unsupported elements
             html.append(
                     """
-                                                                                                                                                                                                                    <div class="summary-container">
-                                                                                                                                                                                                                        <h2>Currently Unsupported Activities</h2>
-                                                                                                                                                                                                                        <div id="toolSupportSection">
-                                                                                                                                                                                                                                                                                                                                                                                                                                <table class="hidden">
-                                                                                                                                                                                                                        <tr><th>Activity name</th><th>Frequency</th></tr>
-                                                                                                                                                                                                                            </table>
-                                                                                                                                                                                                                            <p class="empty-message visible" id="toolSupportEmpty">
-                                                                                                                                                                                                                                No unsupported activities found
-                                                                                                                                                                                                                            </p>
-                                                                                                                                                                                                                            <div class="estimation-notes hidden">
-                                                                                                                                                                                                                                <p><strong>Note:</strong> These activities are expected to be supported in future versions of the migration tool.</p>
-                                                                                                                                                                                                                            </div>
-                                                                                                                                                                                                                        </div>
-                                                                                                                                                                                                                    </div>
+                    <div class="summary-container">
+                        <h2>Currently Unsupported Activities</h2>
+                        <div id="toolSupportSection">
+                                                                                                                                                                                                                                <table class="hidden">
+                        <tr><th>Activity name</th><th>Frequency</th></tr>
+                            </table>
+                            <p class="empty-message visible" id="toolSupportEmpty">
+                                No unsupported activities found
+                            </p>
+                            <div class="estimation-notes hidden">
+                                <p><strong>Note:</strong> These activities are expected to be supported in future versions of the migration tool.</p>
+                            </div>
+                        </div>
+                    </div>
+                    """);
+        }
+        int blockCounter = 1;
+        boolean hasUnhandledBlocks = false;
+        StringBuilder blocksSection = new StringBuilder();
+        for (Map.Entry<String, Collection<UnhandledElement>> entry : unhandledElements.entrySet()) {
+            String kind = entry.getKey();
+            for (UnhandledElement elem : entry.getValue()) {
+                if (!hasUnhandledBlocks) {
+                    blocksSection.append("""
+                                <div class="summary-container unsupported-blocks">
+                                    <h2>Activities that required manual Conversion</h2>
                             """);
+                    hasUnhandledBlocks = true;
+                }
+                String blockName = "Block #" + blockCounter++;
+                appendElement(blocksSection, kind, blockName, elem.code(), elem.fileName());
+            }
+        }
+        if (hasUnhandledBlocks) {
+            blocksSection.append("</div>");
+            html.append(blocksSection);
         }
 
         // Calculate frequencies for partially supported elements
@@ -626,7 +647,7 @@ public class AnalysisReport {
         if (!partiallySupportedFrequencyMap.isEmpty()) {
             html.append("""
                     <div class="summary-container">
-                        <h2>Activities that may require manual changes</h2>
+                        <h2>Activities that need manual validation</h2>
                         <div id="partiallySupportedSection">
                             <table>
                                 <tr><th>Activity name</th><th>Frequency</th></tr>
