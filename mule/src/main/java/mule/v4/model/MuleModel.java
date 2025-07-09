@@ -31,17 +31,27 @@ public record MuleModel() {
         }
     }
 
-    public record VMInboundEndpoint(Kind kind, String path, String exchangePattern)
+    public record VMQueue(String queueName, String queueType) {
+    }
+
+    public record VMListener(Kind kind, String configRef, String queueName)
             implements MuleRecord {
-        public VMInboundEndpoint(String path, String exchangePattern) {
-            this(Kind.VM_INBOUND_ENDPOINT, path, exchangePattern);
+        public VMListener(String configRef, String queueName) {
+            this(Kind.VM_LISTENER, configRef, queueName);
         }
     }
 
-    public record VMOutboundEndpoint(Kind kind, String path, String exchangePattern)
+    public record VMPublish(Kind kind, String configRef, String queueName)
             implements MuleRecord {
-        public VMOutboundEndpoint(String path, String exchangePattern) {
-            this(Kind.VM_OUTBOUND_ENDPOINT, path, exchangePattern);
+        public VMPublish(String configRef, String queueName) {
+            this(Kind.VM_PUBLISH, configRef, queueName);
+        }
+    }
+
+    public record VMConsume(Kind kind, String configRef, String queueName)
+            implements MuleRecord {
+        public VMConsume(String configRef, String queueName) {
+            this(Kind.VM_CONSUME, configRef, queueName);
         }
     }
 
@@ -235,6 +245,12 @@ public record MuleModel() {
         }
     }
 
+    public record VMConfig(Kind kind, String name, List<VMQueue> queues) implements MuleRecord {
+        public VMConfig(String name, List<VMQueue> queues) {
+            this(Kind.VM_CONFIG, name, queues);
+        }
+    }
+
     public record DbConfig(Kind kind, String name, DbConnection dbConnection) implements MuleRecord {
         public DbConfig(String name, DbConnection dbConnection) {
             this(Kind.DB_CONFIG, name, dbConnection);
@@ -280,8 +296,10 @@ public record MuleModel() {
 
     public enum Kind {
         HTTP_LISTENER,
-        VM_INBOUND_ENDPOINT,
-        VM_OUTBOUND_ENDPOINT,
+        VM_CONFIG,
+        VM_LISTENER,
+        VM_PUBLISH,
+        VM_CONSUME,
         LOGGER,
         EXPRESSION_COMPONENT,
         PAYLOAD,

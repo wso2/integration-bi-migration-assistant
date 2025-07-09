@@ -27,6 +27,7 @@
             <class name="mule.v4.blocks.OnErrorContinueTest"/>
             <class name="mule.v4.blocks.OnErrorPropagateTest"/>
             <class name="mule.v4.blocks.ErrorHandlerTest"/>
+            <class name="mule.v4.blocks.VMConnectorTest"/>
         </classes>
     </test>
 </suite>

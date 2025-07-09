@@ -71,8 +71,12 @@ public enum MuleXMLTag {
     HTTP_QUERY_PARAM("http:query-param", 2),
 
     // VM connector
-    VM_INBOUND_ENDPOINT("vm:inbound-endpoint", 5),
-    VM_OUTBOUND_ENDPOINT("vm:outbound-endpoint", 5),
+    VM_CONFIG("vm:config", 1),
+    VM_LISTENER("vm:listener", 5),
+    VM_PUBLISH("vm:publish", 5),
+    VM_CONSUME("vm:consume", 5),
+    VM_QUEUES("vm:queues", 1),
+    VM_QUEUE("vm:queue", 1),
 
     // Database Connector
     DB_INSERT("db:insert", 2),

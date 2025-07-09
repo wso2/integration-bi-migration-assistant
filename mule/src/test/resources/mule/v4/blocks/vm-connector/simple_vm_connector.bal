@@ -4,22 +4,22 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function inboundVmFlow(Context ctx) {
+public function vmListenerFlow(Context ctx) {
     log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
 }
 
-public function outboundVmFlow(Context ctx) {
+public function vmPublishFlow(Context ctx) {
     worker W returns error? {
-        // VM Inbound Endpoint
+        // VM Listener
         anydata receivedPayload = <- function;
         ctx.payload = receivedPayload;
-        inboundVmFlow(ctx);
+        vmListenerFlow(ctx);
     }
 
     // set payload
-    string payload0 = "Hello World";
+    string payload0 = "Hello World!";
     ctx.payload = payload0;
 
-    // VM Outbound Endpoint
+    // VM Publish
     ctx.payload -> W;
 }
