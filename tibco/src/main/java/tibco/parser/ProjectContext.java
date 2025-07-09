@@ -1,0 +1,148 @@
+/*
+ *  Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+ *
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
+
+package tibco.parser;
+
+import tibco.TibcoToBalConverter;
+import tibco.converter.ConversionUtils;
+import tibco.converter.TibcoConverter;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+public final class ProjectContext implements Context {
+
+    private long nextAnonProcessIndex = 0;
+    private long nextAnonXSLTIndex = 0;
+    private long nextUnhandledActivityIndex = 0;
+    private final String projectPath;
+    private final TibcoToBalConverter.ProjectConversionContext conversionContext;
+
+    public ProjectContext(TibcoToBalConverter.ProjectConversionContext cx, String projectPath) {
+        assert cx != null : "Project conversion context cannot be null";
+        this.projectPath = projectPath;
+        conversionContext = cx;
+    }
+
+    @Override
+    public String getNextAnonymousProcessName() {
+        return "AnonymousProcess" + nextAnonProcessIndex++;
+    }
+
+    @Override
+    public String getAnonymousXSLTName() {
+        return "SharedTransform" + nextAnonXSLTIndex++;
+    }
+
+    @Override
+    public String getAnonUnhandledActivityName() {
+        return "unhandled" + nextUnhandledActivityIndex++;
+    }
+
+    public String getFileContent(String relativePath) throws IOException {
+        Path fullPath = Paths.get(projectPath, relativePath);
+        return Files.readString(fullPath);
+    }
+
+    public String projectPath() {
+        return projectPath;
+    }
+
+    @Override
+    public void registerUnhandledActivity(org.w3c.dom.Element element, String name, String type) {
+        StringBuilder sb = new StringBuilder("[UNHANDLED ACTIVITY]");
+        if (name != null && !name.isEmpty()) {
+            sb.append(" name='").append(name).append("'");
+        }
+        if (type != null && !type.isEmpty()) {
+            sb.append(" type='").append(type).append("'");
+        }
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().severe(sb.toString());
+    }
+
+    @Override
+    public void registerPartiallySupportedActivity(org.w3c.dom.Element element, String name, String type) {
+        StringBuilder sb = new StringBuilder("[PARTIALLY SUPPORTED ACTIVITY]");
+        if (name != null && !name.isEmpty()) {
+            sb.append(" name='").append(name).append("'");
+        }
+        if (type != null && !type.isEmpty()) {
+            sb.append(" type='").append(type).append("'");
+        }
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().warning(sb.toString());
+    }
+
+    @Override
+    public void registerUnsupportedResource(org.w3c.dom.Element element, String name) {
+        StringBuilder sb = new StringBuilder("[UNSUPPORTED RESOURCE]");
+        if (name != null && !name.isEmpty()) {
+            sb.append(" name='").append(name).append("'");
+        }
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().severe(sb.toString());
+    }
+
+    @Override
+    public void registerPartiallySupportedResource(org.w3c.dom.Element element, String name) {
+        StringBuilder sb = new StringBuilder("[PARTIALLY SUPPORTED RESOURCE]");
+        if (name != null && !name.isEmpty()) {
+            sb.append(" name='").append(name).append("'");
+        }
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().warning(sb.toString());
+    }
+
+    @Override
+    public void registerUnsupportedTransition(org.w3c.dom.Element element) {
+        StringBuilder sb = new StringBuilder("[UNSUPPORTED TRANSITION]");
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().severe(sb.toString());
+    }
+
+    @Override
+    public void registerUnsupportedSchema(org.w3c.dom.Element element) {
+        StringBuilder sb = new StringBuilder("[UNSUPPORTED SCHEMA]");
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().severe(sb.toString());
+    }
+
+    @Override
+    public void registerPartiallySupportedSchema(org.w3c.dom.Element element) {
+        StringBuilder sb = new StringBuilder("[PARTIALLY SUPPORTED SCHEMA]");
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().warning(sb.toString());
+    }
+
+    @Override
+    public void registerUnsupportedWSDLDefinition(org.w3c.dom.Element element) {
+        StringBuilder sb = new StringBuilder("[UNSUPPORTED WSDL DEFINITION]");
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().severe(sb.toString());
+    }
+
+    @Override
+    public void registerPartiallySupportedWSDLDefinition(org.w3c.dom.Element element) {
+        StringBuilder sb = new StringBuilder("[PARTIALLY SUPPORTED WSDL DEFINITION]");
+        sb.append(" element=").append(ConversionUtils.elementToString(element));
+        TibcoConverter.logger().warning(sb.toString());
+    }
+}

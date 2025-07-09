@@ -96,6 +96,19 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     public sealed interface TypeDesc {
 
+        record ArrayTypeDesc(TypeDesc elementType, Optional<Long> size) implements TypeDesc {
+
+            public ArrayTypeDesc(TypeDesc elementType) {
+                this(elementType, Optional.empty());
+            }
+
+            @Override
+            @NotNull
+            public String toString() {
+                return elementType + size.map(s -> "[" + s + "]").orElse("[]");
+            }
+        }
+
         record IntersectionTypeDesc(Collection<? extends TypeDesc> members) implements TypeDesc {
 
             public static IntersectionTypeDesc of(TypeDesc... members) {
@@ -364,7 +377,26 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
         enum ListenerType {
             HTTP,
-            JMS
+            JMS,
+            FILE
+        }
+
+        record FileListener(String name, String path, boolean recursive) implements Listener {
+
+            @Override
+            @NotNull
+            public String toString() {
+                return """
+                        public listener file:Listener %s = new (
+                            path = "%s",
+                            recursive = %s
+                        );""".formatted(name, path, recursive);
+            }
+
+            @Override
+            public ListenerType type() {
+                return ListenerType.FILE;
+            }
         }
 
         record HTTPListener(String name, String port, String host) implements Listener {
@@ -565,6 +597,16 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                 public String toString() {
                     return key + ": " + value;
                 }
+            }
+        }
+
+
+        record BooleanConstant(boolean value) implements Expression, TypeDesc {
+
+            @Override
+            @NotNull
+            public String toString() {
+                return value ? "true" : "false";
             }
         }
 
@@ -812,6 +854,9 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         record Comment(String comment) implements Statement {
 
             public Comment {
+                if (comment == null) {
+                    comment = "";
+                }
                 comment = comment.trim();
             }
 

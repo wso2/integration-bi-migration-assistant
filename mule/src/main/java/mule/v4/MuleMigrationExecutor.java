@@ -24,6 +24,7 @@ import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.v4.dataweave.converter.DWConversionStats;
 import mule.v4.reader.MuleXMLNavigator;
 import mule.v4.report.ProjectMigrationSummary;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -38,6 +39,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -54,7 +56,7 @@ import static mule.v4.report.MigrationReportWriter.genAndWriteMigrationReport;
 import static mule.v4.report.MigrationReportWriter.getProjectMigrationSummary;
 
 public class MuleMigrationExecutor {
-    public static final String MULE_DEFAULT_APP_DIR_NAME = "app";
+    public static final String MULE_DEFAULT_XML_CONFIGS_DIR_NAME = "mule";
     public static final String BAL_PROJECT_SUFFIX = "_ballerina";
     public static final String INTERNAL_TYPES_FILE_NAME = "internal_types.bal";
 
@@ -144,30 +146,37 @@ public class MuleMigrationExecutor {
         }
 
         File xmlConfigFile = inputXmlFilePath.toFile();
-        convertToBalProject(Collections.singletonList(xmlConfigFile), Collections.emptyList(), sourceDir, targetDir,
-                inputFileName, dryRun, keepStructure, false);
+        convertToBalProject(Collections.singletonList(xmlConfigFile), Collections.emptyList(), Collections.emptyList(),
+                sourceDir, targetDir, inputFileName, dryRun, keepStructure, false);
     }
 
     private static ProjectMigrationSummary convertMuleProject(String inputPathArg, String outputPathArg, boolean dryRun,
                                                               boolean keepStructure, boolean multiRoot) {
-        // Collect xml configs and property files
-        logger().info("Collecting XML configs and property files in Mule project...");
-        List<File> xmlFiles = new ArrayList<>();
-        List<File> propertyFiles = new ArrayList<>();
+        // Collect xml configs, yaml and property files
+        logger().info("Collecting XML configs, YAML, and property files in Mule project...");
         Path sourcePath = Path.of(inputPathArg);
-        Path muleAppDir = sourcePath.resolve("src").resolve("main").resolve(MULE_DEFAULT_APP_DIR_NAME);
-        collectXmlAndPropertyFiles(muleAppDir.toFile(), xmlFiles, propertyFiles);
-        logger().info("Found " + xmlFiles.size() + " XML files and " + propertyFiles.size() + " property files.");
+
+        List<File> xmlFiles = new ArrayList<>();
+        Path muleXmlConfigDir = sourcePath.resolve("src").resolve("main").resolve(MULE_DEFAULT_XML_CONFIGS_DIR_NAME);
+        collectXmlFiles(muleXmlConfigDir.toFile(), xmlFiles);
+
+        List<File> yamlFiles = new ArrayList<>();
+        List<File> propertyFiles = new ArrayList<>();
+        Path muleResourcesDir = sourcePath.resolve("src").resolve("main").resolve("resources");
+        collectYamlAndPropertyFiles(muleResourcesDir.toFile(), yamlFiles, propertyFiles);
+
+        logger().info("Found " + xmlFiles.size() + " .xml files, " + yamlFiles.size() + ".yaml files, and " +
+                propertyFiles.size() + " .properties files.");
 
         if (xmlFiles.isEmpty()) {
-            logger().severe("No XML files found in the directory: " + muleAppDir);
+            logger().severe("No XML files found in the directory: " + muleResourcesDir);
             System.exit(1);
         }
 
         String sourceProjectName = sourcePath.getFileName().toString();
         Path targetDir = outputPathArg != null ? Path.of(outputPathArg) : sourcePath;
-        return convertToBalProject(xmlFiles, propertyFiles, muleAppDir, targetDir, sourceProjectName, dryRun,
-                keepStructure, multiRoot);
+        return convertToBalProject(xmlFiles, yamlFiles, propertyFiles, muleResourcesDir, targetDir, sourceProjectName,
+                dryRun, keepStructure, multiRoot);
     }
 
     private static void convertMuleMultiProjects(String sourceProjectsDir, String outputPathArg, boolean dryRun,
@@ -198,7 +207,8 @@ public class MuleMigrationExecutor {
         printMultiRootCompletion(targetDir.resolve(AGGREGATE_MIGRATION_REPORT_NAME), dryRun);
     }
 
-    private static ProjectMigrationSummary convertToBalProject(List<File> xmlFiles, List<File> propertyFiles,
+    private static ProjectMigrationSummary convertToBalProject(List<File> xmlFiles,
+                                                               List<File> yamlFiles, List<File> propertyFiles,
                                                                Path muleAppDir, Path targetDir, String sourceName,
                                                                boolean dryRun, boolean keepStructure,
                                                                boolean multiRoot) {
@@ -245,7 +255,7 @@ public class MuleMigrationExecutor {
         // 3. Write project
         writeProjectArtifacts(balPackageName, balPackageDir);
         writeBirAsBalFiles(birTxtDocs, balPackageDir);
-        genAndWriteConfigTOMLFile(propertyFiles, balPackageDir);
+        genAndWriteConfigTOMLFile(yamlFiles, propertyFiles, balPackageDir);
 
         // 4. Print conversion percentages
         if (!multiRoot) {
@@ -346,12 +356,14 @@ public class MuleMigrationExecutor {
                 Collections.emptyList());
     }
 
-    private static void genAndWriteConfigTOMLFile(List<File> propertyFiles, Path targetFolderPath) {
-        logger().info("Generating Config.toml file from property files...");
+    private static void genAndWriteConfigTOMLFile(List<File> yamlFiles, List<File> propertyFiles,
+                                                  Path targetFolderPath) {
+        logger().info("Generating Config.toml file from .yaml and .properties files...");
         Path configPath = targetFolderPath.resolve("Config.toml");
         StringBuilder tomlContent = new StringBuilder();
 
         try {
+            // Process .properties files
             for (File propFile : propertyFiles) {
                 if (propFile.getName().equals("mule-deploy.properties")) {
                     // Skip mule-deploy.properties file
@@ -360,33 +372,84 @@ public class MuleMigrationExecutor {
 
                 // Add file name as comment
                 tomlContent.append("# Properties from ").append(propFile.getName()).append("\n");
+                processPropertiesFile(propFile, tomlContent);
+                tomlContent.append("\n");
+            }
 
-                try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(new FileInputStream(propFile), StandardCharsets.UTF_8))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        // Skip empty lines and comment lines
-                        if (line.trim().isEmpty() || line.trim().startsWith("#")) {
-                            continue;
-                        }
-
-                        // Split on first occurrence of =
-                        int equalsIndex = line.indexOf('=');
-                        if (equalsIndex > 0) {
-                            String key = line.substring(0, equalsIndex).trim();
-                            String convertedKey = key.replace('.', '_');
-                            String value = line.substring(equalsIndex + 1).trim();
-                            tomlContent.append(convertedKey).append(" = \"").append(value).append("\"\n");
-                        }
-                    }
-                    tomlContent.append("\n");
-                }
+            // Process .yaml files using SnakeYAML
+            for (File yamlFile : yamlFiles) {
+                tomlContent.append("# Properties from ").append(yamlFile.getName()).append("\n");
+                processYamlFile(yamlFile, tomlContent);
+                tomlContent.append("\n");
             }
 
             Files.writeString(configPath, tomlContent.toString(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             logger().severe("Error creating Config.toml: " + e.getMessage());
         }
+    }
+
+    static void processPropertiesFile(File propFile, StringBuilder tomlContent) throws IOException {
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(new FileInputStream(propFile), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.trim().isEmpty() || line.trim().startsWith("#")) {
+                    continue;
+                }
+
+                int equalsIndex = line.indexOf('=');
+                if (equalsIndex > 0) {
+                    String key = line.substring(0, equalsIndex).trim().replace('.', '_');
+                    String value = line.substring(equalsIndex + 1).trim();
+                    tomlContent.append(key).append(" = \"").append(escapeTomlValue(value)).append("\"\n");
+                }
+            }
+        }
+    }
+
+    static void processYamlFile(File yamlFile, StringBuilder tomlContent) {
+        try {
+            Yaml yaml = new Yaml();
+            try (FileInputStream inputStream = new FileInputStream(yamlFile)) {
+                Object data = yaml.load(inputStream);
+                if (data instanceof Map) {
+                    flattenYamlToToml((Map<String, Object>) data, "", tomlContent);
+                }
+            }
+        } catch (Exception e) {
+            logger().severe("Error processing YAML file " + yamlFile.getName() + ": " + e.getMessage());
+        }
+    }
+
+    static void flattenYamlToToml(Map<String, Object> map, String prefix, StringBuilder tomlContent) {
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            String key = entry.getKey().replace('-', '_');
+            String fullKey = prefix.isEmpty() ? key : prefix + "_" + key;
+            Object value = entry.getValue();
+
+            if (value instanceof Map) {
+                flattenYamlToToml((Map<String, Object>) value, fullKey, tomlContent);
+            } else if (value instanceof List<?> list) {
+                for (int i = 0; i < list.size(); i++) {
+                    Object listItem = list.get(i);
+                    if (listItem instanceof Map) {
+                        flattenYamlToToml((Map<String, Object>) listItem, fullKey + "_" + i, tomlContent);
+                    } else {
+                        String listKey = fullKey + "_" + i;
+                        String listValue = escapeTomlValue(String.valueOf(listItem));
+                        tomlContent.append(listKey).append(" = \"").append(listValue).append("\"\n");
+                    }
+                }
+            } else {
+                String tomlValue = escapeTomlValue(String.valueOf(value));
+                tomlContent.append(fullKey).append(" = \"").append(tomlValue).append("\"\n");
+            }
+        }
+    }
+
+    private static String escapeTomlValue(String value) {
+        return value.replace("\"", "\\\"").replace("\\", "\\\\");
     }
 
     private static void printDryRunCompletion(Path reportFilePath) {
@@ -422,14 +485,27 @@ public class MuleMigrationExecutor {
         OUT.println("________________________________________________________________");
     }
 
-    private static void collectXmlAndPropertyFiles(File folder, List<File> xmlFiles, List<File> propertiesFiles) {
+    private static void collectXmlFiles(File folder, List<File> xmlFiles) {
         File[] files = folder.listFiles();
         if (files != null) {
             for (File file : files) {
                 if (file.isDirectory()) {
-                    collectXmlAndPropertyFiles(file, xmlFiles, propertiesFiles);
+                    collectXmlFiles(file, xmlFiles);
                 } else if (file.getName().toLowerCase().endsWith(".xml")) {
                     xmlFiles.add(file);
+                }
+            }
+        }
+    }
+
+    private static void collectYamlAndPropertyFiles(File folder, List<File> yamlFiles, List<File> propertiesFiles) {
+        File[] files = folder.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    collectYamlAndPropertyFiles(file, yamlFiles, propertiesFiles);
+                } else if (file.getName().toLowerCase().endsWith(".yaml")) {
+                    yamlFiles.add(file);
                 } else if (file.getName().toLowerCase().endsWith(".properties")) {
                     propertiesFiles.add(file);
                 }

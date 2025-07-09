@@ -17,7 +17,8 @@ dependencies {
     // misc
     implementation group: 'org.antlr', name: 'antlr4', version: "${antlrVersion}"
     implementation group: 'info.picocli', name: 'picocli', version: "${picocliVersion}"
-    
+    implementation group: 'org.yaml', name: 'snakeyaml', version: "${snakeYamlVersion}"
+
     // Jackson dependencies
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${fasterXmlVersion}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: "${fasterXmlVersion}"

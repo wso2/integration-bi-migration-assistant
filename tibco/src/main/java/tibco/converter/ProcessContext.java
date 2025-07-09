@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static common.BallerinaModel.Expression;
@@ -47,6 +48,7 @@ import static common.ConversionUtils.exprFrom;
 import static tibco.converter.ConversionUtils.baseName;
 
 public class ProcessContext implements ContextWithFile {
+    private static final Logger logger = TibcoConverter.logger();
 
     private final Set<BallerinaModel.Import> imports = new HashSet<>();
     private BallerinaModel.Listener.HTTPListener defaultListener = null;
@@ -61,6 +63,7 @@ public class ProcessContext implements ContextWithFile {
     private DefaultClientDetails processClient;
     final Set<Scope> handledScopes = new HashSet<>();
     final Set<String> intrinsics = new HashSet<>();
+    private final Set<NameSpace> nameSpaces = new HashSet<>();
 
     ProcessContext(ProjectContext projectContext, Process process) {
         this.projectContext = projectContext;
@@ -177,12 +180,16 @@ public class ProcessContext implements ContextWithFile {
         if (nameSpace.prefix().isEmpty()) {
             return;
         }
+        if (nameSpaces.contains(nameSpace)) {
+            return; // already added
+        }
         String prefix = nameSpace.prefix().get();
         if (!prefix.chars().allMatch(Character::isLetterOrDigit)) {
             return;
         }
         String decl = "xmlns \"%s\" as %s;".formatted(nameSpace.uri(), prefix);
         intrinsics.add(decl);
+        nameSpaces.add(nameSpace);
     }
 
     ProjectContext.FunctionData getProcessStartFunction() {
@@ -218,7 +225,9 @@ public class ProcessContext implements ContextWithFile {
     BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {
         String resourceRef = propertyVariableToResourceMap.get(sharedResourcePropertyName);
         if (resourceRef == null) {
-            throw new RuntimeException("No shared resource found for " + sharedResourcePropertyName);
+            logger.severe(
+                    "No shared resource found for " + sharedResourcePropertyName + ". Returning placeholder client.");
+            return new BallerinaModel.Expression.VariableReference("placeholder_client");
         }
         return projectContext.dbClient(resourceRef);
     }
@@ -340,6 +349,22 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getAnalysisResult(process);
     }
 
+    public void registerTransitionPredicateError(Scope.Flow.Activity.ActivityWithSources activity, Exception e) {
+        projectContext.registerTransitionPredicateError(activity, e);
+    }
+
+    public void registerControlFlowFunctionGenerationError(Process process, Exception e) {
+        projectContext.registerControlFlowFunctionGenerationError(process, e);
+    }
+
+    public void registerControlFlowFunctionGenerationError(Scope scope, Exception ex) {
+        projectContext.registerControlFlowFunctionGenerationError(scope, ex);
+    }
+
+    public void registerPartiallySupportedActivity(tibco.model.Scope.Flow.Activity activity) {
+        projectContext.registerPartiallySupportedActivity(activity);
+    }
+
     static final class DefaultClientDetails {
         final BallerinaModel.ModuleVar varDecl;
         final String method;
@@ -386,5 +411,19 @@ public class ProcessContext implements ContextWithFile {
 
     public String getGetSharedVariableFn() {
         return projectContext.getGetSharedVariableFn();
+    }
+
+    public Optional<NameSpace> getNameSpaceByUri(String uri) {
+        return nameSpaces.stream()
+                .filter(ns -> ns.uri().equals(uri))
+                .findFirst();
+    }
+
+    public String getFilesInPathFunction() {
+        return projectContext.getFilesInPathFunction();
+    }
+
+    public void registerActivityConversionFailure(tibco.model.Scope.Flow.Activity activity, Exception e) {
+        projectContext.registerActivityConversionFailure(activity, e);
     }
 }

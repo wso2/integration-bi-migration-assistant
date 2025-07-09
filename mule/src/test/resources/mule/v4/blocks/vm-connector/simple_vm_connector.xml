@@ -1,18 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-      xmlns:spring="http://www.springframework.org/schema/beans"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
 http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
-http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
-    <flow name="outboundVmFlow">
-        <set-payload value="#['Hello World']" doc:name="Set Payload"/>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="path-xxx" doc:name="VM"/>
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <vm:config name="vm_config" doc:name="VM Config" doc:id="86002305-9a20-41b5-9fa7-366f22f6b150" >
+        <vm:queues >
+            <vm:queue queueName="path-xxx" />
+        </vm:queues>
+    </vm:config>
+    <flow name="vmPublishFlow" doc:id="fabf4ce6-4d19-4c08-a336-91ed5855cb89" >
+        <set-payload value="#['Hello World!']" doc:name="Set Payload" doc:id="78cb0334-d2f9-4c20-929d-fc0b9d9487d6" />
+        <vm:publish doc:name="Publish" doc:id="775463a5-2ebe-45e2-a404-6ca7dcff1a07" config-ref="vm_config" queueName="path-xxx"/>
     </flow>
-    <flow name="inboundVmFlow">
-        <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="path-xxx"/>
-        <logger message="Received a message: #[payload]" level="INFO" doc:name="Logger"/>
+    <flow name="vmListenerFlow" doc:id="818524a7-b63e-4503-bea9-0d9bfc3f01fe" >
+        <vm:listener queueName="path-xxx" doc:name="Listener" doc:id="0aa2e312-4f64-4cf0-b329-55be7fa92e57" config-ref="vm_config"/>
+        <logger level="INFO" doc:name="Logger" doc:id="28abd699-9ca3-4a74-8e80-ea47155a5403" message="Received a message: #[payload]"/>
     </flow>
 </mule>

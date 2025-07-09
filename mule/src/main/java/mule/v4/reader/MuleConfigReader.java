@@ -36,13 +36,15 @@ import java.util.Optional;
 import static common.BallerinaModel.Import;
 import static mule.v4.ConversionUtils.getAllowedMethods;
 import static mule.v4.model.MuleModel.Async;
-import static mule.v4.model.MuleModel.CatchExceptionStrategy;
 import static mule.v4.model.MuleModel.Choice;
-import static mule.v4.model.MuleModel.ChoiceExceptionStrategy;
 import static mule.v4.model.MuleModel.Database;
 import static mule.v4.model.MuleModel.DbMySqlConnection;
 import static mule.v4.model.MuleModel.DbOracleConnection;
 import static mule.v4.model.MuleModel.Enricher;
+import static mule.v4.model.MuleModel.ErrorHandler;
+import static mule.v4.model.MuleModel.ErrorHandlerRecord;
+import static mule.v4.model.MuleModel.OnErrorContinue;
+import static mule.v4.model.MuleModel.OnErrorPropagate;
 import static mule.v4.model.MuleModel.ExpressionComponent;
 import static mule.v4.model.MuleModel.Flow;
 import static mule.v4.model.MuleModel.FlowReference;
@@ -58,7 +60,6 @@ import static mule.v4.model.MuleModel.MuleRecord;
 import static mule.v4.model.MuleModel.ObjectToJson;
 import static mule.v4.model.MuleModel.ObjectToString;
 import static mule.v4.model.MuleModel.Payload;
-import static mule.v4.model.MuleModel.ReferenceExceptionStrategy;
 import static mule.v4.model.MuleModel.RemoveVariable;
 import static mule.v4.model.MuleModel.SetPayloadElement;
 import static mule.v4.model.MuleModel.SetSessionVariable;
@@ -69,12 +70,16 @@ import static mule.v4.model.MuleModel.SubFlow;
 import static mule.v4.model.MuleModel.TransformMessage;
 import static mule.v4.model.MuleModel.TransformMessageElement;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
-import static mule.v4.model.MuleModel.VMInboundEndpoint;
-import static mule.v4.model.MuleModel.VMOutboundEndpoint;
+import static mule.v4.model.MuleModel.VMConfig;
+import static mule.v4.model.MuleModel.VMConsume;
+import static mule.v4.model.MuleModel.VMListener;
+import static mule.v4.model.MuleModel.VMPublish;
+import static mule.v4.model.MuleModel.VMQueue;
 import static mule.v4.model.MuleModel.WhenInChoice;
 import static mule.v4.model.MuleXMLTag.DB_MY_SQL_CONNECTION;
 import static mule.v4.model.MuleXMLTag.DB_ORACLE_CONNECTION;
 import static mule.v4.model.MuleXMLTag.HTTP_LISTENER_CONNECTION;
+import static mule.v4.model.MuleXMLTag.HTTP_REQUEST_CONNECTION;
 
 public class MuleConfigReader {
 
@@ -112,12 +117,14 @@ public class MuleConfigReader {
             if (dbConfig != null) {
                 ctx.currentFileCtx.configs.dbConfigs.put(dbConfig.name(), dbConfig);
             }
-        } else if (MuleXMLTag.CATCH_EXCEPTION_STRATEGY.tag().equals(elementTagName)) {
-            CatchExceptionStrategy catchExceptionStrategy = readCatchExceptionStrategy(ctx, muleElement);
-            ctx.currentFileCtx.configs.globalExceptionStrategies.add(catchExceptionStrategy);
-        } else if (MuleXMLTag.CHOICE_EXCEPTION_STRATEGY.tag().equals(elementTagName)) {
-            ChoiceExceptionStrategy choiceExceptionStrategy = readChoiceExceptionStrategy(ctx, muleElement);
-            ctx.currentFileCtx.configs.globalExceptionStrategies.add(choiceExceptionStrategy);
+        } else if (MuleXMLTag.ERROR_HANDLER.tag().equals(elementTagName)) {
+            ErrorHandler errorHandler = readErrorHandler(ctx, muleElement);
+            ctx.currentFileCtx.configs.globalErrorHandlers.add(errorHandler);
+        } else if (MuleXMLTag.VM_CONFIG.tag().equals(elementTagName)) {
+            VMConfig vmConfig = readVmConfig(ctx, muleElement);
+            // TODO: Revisit how we can use this
+        } else if (MuleXMLTag.CONFIGURATION_PROPERTIES.tag().equals(elementTagName)) {
+            // Ignore as we automatically add all .yaml and .properties to config.toml
         } else {
             UnsupportedBlock unsupportedBlock = readUnsupportedBlock(ctx, muleElement);
             ctx.currentFileCtx.configs.unsupportedBlocks.add(unsupportedBlock);
@@ -132,8 +139,8 @@ public class MuleConfigReader {
                 return readHttpListener(ctx, muleElement);
             }
 
-            case MuleXMLTag.VM_INBOUND_ENDPOINT -> {
-                return readVMInboundEndpoint(ctx, muleElement);
+            case MuleXMLTag.VM_LISTENER -> {
+                return readVMListener(ctx, muleElement);
             }
 
             // Process Items
@@ -185,17 +192,20 @@ public class MuleConfigReader {
             case MuleXMLTag.ASYNC -> {
                 return readAsync(ctx, muleElement);
             }
-            case MuleXMLTag.CATCH_EXCEPTION_STRATEGY -> {
-                return readCatchExceptionStrategy(ctx, muleElement);
+            case MuleXMLTag.ERROR_HANDLER -> {
+                return readErrorHandler(ctx, muleElement);
             }
-            case MuleXMLTag.CHOICE_EXCEPTION_STRATEGY -> {
-                return readChoiceExceptionStrategy(ctx, muleElement);
+            case MuleXMLTag.ON_ERROR_CONTINUE -> {
+                return readOnErrorContinue(ctx, muleElement);
             }
-            case MuleXMLTag.REFERENCE_EXCEPTION_STRATEGY -> {
-                return readReferenceExceptionStrategy(ctx, muleElement);
+            case MuleXMLTag.ON_ERROR_PROPAGATE -> {
+                return readOnErrorPropagate(ctx, muleElement);
             }
-            case MuleXMLTag.VM_OUTBOUND_ENDPOINT -> {
-                return readVMOutboundEndpoint(ctx, muleElement);
+            case MuleXMLTag.VM_PUBLISH -> {
+                return readVMPublish(ctx, muleElement);
+            }
+            case MuleXMLTag.VM_CONSUME -> {
+                return readVMConsume(ctx, muleElement);
             }
             default -> {
                 return readUnsupportedBlock(ctx, muleElement);
@@ -270,7 +280,7 @@ public class MuleConfigReader {
             if (element.getTagName().equals(MuleXMLTag.HTTP_LISTENER.tag())) {
                 assert source == null;
                 source = readBlock(ctx, child);
-            } else if (element.getTagName().equals(MuleXMLTag.VM_INBOUND_ENDPOINT.tag())) {
+            } else if (element.getTagName().equals(MuleXMLTag.VM_LISTENER.tag())) {
                 assert source == null;
                 source = readBlock(ctx, child);
             } else {
@@ -371,44 +381,52 @@ public class MuleConfigReader {
     }
 
     // Error handling
-    private static CatchExceptionStrategy readCatchExceptionStrategy(Context ctx,
-                                                                     MuleXMLNavigator.MuleElement muleElement) {
+    private static ErrorHandler readErrorHandler(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
         Element element = muleElement.getElement();
         String name = element.getAttribute("name");
+        String ref = element.getAttribute("ref");
+
+        List<ErrorHandlerRecord> errorHandlers = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            ErrorHandlerRecord muleRec = (ErrorHandlerRecord) readBlock(ctx, child);
+            errorHandlers.add(muleRec);
+        }
+        return new ErrorHandler(name, ref, errorHandlers);
+    }
+
+    private static OnErrorContinue readOnErrorContinue(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String type = element.getAttribute("type");
         String when = element.getAttribute("when");
+        String enableNotifications = element.getAttribute("enableNotifications");
+        String logException = element.getAttribute("logException");
 
-        List<MuleRecord> catchBlocks = new ArrayList<>();
+        List<MuleRecord> errorBlocks = new ArrayList<>();
         while (muleElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement muleChild = muleElement.consumeChild();
-            MuleRecord muleRec = readBlock(ctx, muleChild);
-            catchBlocks.add(muleRec);
+            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            MuleRecord muleRec = readBlock(ctx, child);
+            errorBlocks.add(muleRec);
         }
 
-        return new CatchExceptionStrategy(catchBlocks, when, name);
+        return new OnErrorContinue(errorBlocks, type, when, enableNotifications, logException);
     }
 
-    private static ChoiceExceptionStrategy readChoiceExceptionStrategy(Context ctx,
-                                                                       MuleXMLNavigator.MuleElement muleElement) {
+    private static OnErrorPropagate readOnErrorPropagate(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
         Element element = muleElement.getElement();
-        String name = element.getAttribute("name");
+        String type = element.getAttribute("type");
+        String when = element.getAttribute("when");
+        String enableNotifications = element.getAttribute("enableNotifications");
+        String logException = element.getAttribute("logException");
 
-        List<CatchExceptionStrategy> catchExceptionStrategyList = new ArrayList<>();
+        List<MuleRecord> errorBlocks = new ArrayList<>();
         while (muleElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement muleChild = muleElement.consumeChild();
-            assert muleChild.getElement().getTagName().equals(MuleXMLTag.CATCH_EXCEPTION_STRATEGY.tag());
-            // TODO: only catch-exp-strategy is supported for now
-            CatchExceptionStrategy catchExceptionStrategy = readCatchExceptionStrategy(ctx, muleChild);
-            catchExceptionStrategyList.add(catchExceptionStrategy);
+            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            MuleRecord muleRec = readBlock(ctx, child);
+            errorBlocks.add(muleRec);
         }
 
-        return new ChoiceExceptionStrategy(catchExceptionStrategyList, name);
-    }
-
-    private static ReferenceExceptionStrategy readReferenceExceptionStrategy(Context ctx,
-                                                                             MuleXMLNavigator.MuleElement muleElement) {
-        Element element = muleElement.getElement();
-        String refName = element.getAttribute("ref");
-        return new ReferenceExceptionStrategy(refName);
+        return new OnErrorPropagate(errorBlocks, type, when, enableNotifications, logException);
     }
 
     // HTTP Module
@@ -424,14 +442,19 @@ public class MuleConfigReader {
     private static HttpRequest readHttpRequest(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
         Element element = muleElement.getElement();
         String configRef = element.getAttribute("config-ref");
-        HTTPRequestConfig httpRequestConfig = ctx.projectCtx.getHttpRequestConfig(configRef);;
-        String host = httpRequestConfig.host();
-        String port = httpRequestConfig.port();
-        String url = String.format("%s:%s", host, port);
+        String url = element.getAttribute("url");
 
-        String protocol = httpRequestConfig.protocol();
-        if (!protocol.isEmpty()) {
-            url = protocol.toLowerCase() + "://" + url;
+        // Note: url overrides host and port
+        if (url.isEmpty()) {
+            HTTPRequestConfig httpRequestConfig = ctx.projectCtx.getHttpRequestConfig(configRef);
+            String host = httpRequestConfig.host();
+            String port = httpRequestConfig.port();
+            url = String.format("%s:%s", host, port);
+
+            String protocol = httpRequestConfig.protocol();
+            if (!protocol.isEmpty()) {
+                url = protocol.toLowerCase() + "://" + url;
+            }
         }
 
         String method = element.getAttribute("method").toLowerCase();
@@ -469,18 +492,25 @@ public class MuleConfigReader {
     }
 
     // VM Connector
-    private static VMInboundEndpoint readVMInboundEndpoint(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static VMListener readVMListener(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
         Element element = muleElement.getElement();
-        String path = element.getAttribute("path");
-        String exchangePattern = element.getAttribute("exchange-pattern");
-        return new VMInboundEndpoint(path, exchangePattern);
+        String configRef = element.getAttribute("config-ref");
+        String queueName = element.getAttribute("queueName");
+        return new VMListener(configRef, queueName);
     }
 
-    private static VMOutboundEndpoint readVMOutboundEndpoint(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static VMPublish readVMPublish(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
         Element element = muleElement.getElement();
-        String path = element.getAttribute("path");
-        String exchangePattern = element.getAttribute("exchange-pattern");
-        return new VMOutboundEndpoint(path, exchangePattern);
+        String configRef = element.getAttribute("config-ref");
+        String queueName = element.getAttribute("queueName");
+        return new VMPublish(configRef, queueName);
+    }
+
+    private static VMConsume readVMConsume(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String configRef = element.getAttribute("config-ref");
+        String queueName = element.getAttribute("queueName");
+        return new VMConsume(configRef, queueName);
     }
 
     // Database Connector
@@ -551,10 +581,52 @@ public class MuleConfigReader {
         Element element = muleElement.getElement();
         ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP));
         String configName = element.getAttribute("name");
-        String host = element.getAttribute("host");
-        String port = element.getAttribute("port");
-        String protocol = element.getAttribute("protocol");
+
+        // For Mule 4.x, host, port, protocol are within a nested http:request-connection element
+        String host = "";
+        String port = "";
+        String protocol = "";
+
+        while (muleElement.peekChild() != null) {
+            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals(HTTP_REQUEST_CONNECTION.tag())) {
+                host = childElement.getAttribute("host");
+                port = childElement.getAttribute("port");
+                protocol = childElement.getAttribute("protocol");
+            }
+        }
         return new HTTPRequestConfig(configName, host, port, protocol);
+    }
+
+    private static VMConfig readVmConfig(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String name = element.getAttribute("name");
+
+        List<VMQueue> queues = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals(MuleXMLTag.VM_QUEUES.tag())) {
+                queues.addAll(readVmQueues(child));
+            }
+        }
+
+        return new VMConfig(name, queues);
+    }
+
+    private static List<VMQueue> readVmQueues(MuleXMLNavigator.MuleElement muleElement) {
+        List<VMQueue> queues = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals(MuleXMLTag.VM_QUEUE.tag())) {
+                String queueName = childElement.getAttribute("queueName");
+                String queueType = childElement.getAttribute("queueType");
+                queues.add(new VMQueue(queueName, queueType));
+            }
+        }
+        return queues;
     }
 
     private static DbConfig readDbConfig(Context ctx, MuleXMLNavigator.MuleElement muleElement) {

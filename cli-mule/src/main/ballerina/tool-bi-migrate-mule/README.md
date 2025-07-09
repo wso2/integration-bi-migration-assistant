@@ -108,12 +108,10 @@ $ bal migrate-tibco path/to/projects-directory --multi-root
 `--multi-root` will treat each child directory within `path/to/projects-directory` as a separate Mule project and convert all of them into Ballerina packages. `aggregate_migration_report.html` will be generated in the `projects-directory`, summarizing the migration results for all projects.
 
 ```bash
-$ bal migrate-tibco path/to/projects-directory --multi-root --dry-run
+$ bal migrate-tibco path/to/projects-directory --out path/to/reports-directory --multi-root --dry-run
 ```
 
 Additionally, you can use the `--dry-run` flag to run the parsing and analysis phases without generating Ballerina packages. This will generate individual analysis reports for each project found in the directory and an aggregated report `aggregate_migration_report.html` summarizing the migration results.
-
-
 
 ## Output
 - For a mule project directory input: A new Ballerina package is created with the same name as the input project
@@ -129,7 +127,6 @@ Additionally, you can use the `--dry-run` flag to run the parsing and analysis p
 - For a Standalone XML file input: A new Ballerina package is created with the same name as the XML file, appended
   with a `_ballerina` suffix. Inside that, a new `.bal` file will be created with the same name as the input file but
   with a `.bal` extension.
-
 
 ### Migration Summary
 

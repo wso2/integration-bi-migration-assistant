@@ -20,13 +20,12 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
-import tibco.ParseContext;
 import tibco.TibcoToBalConverter;
-import tibco.XmlToTibcoModelConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.TibcoAnalysisReport;
 import tibco.model.Method;
@@ -35,6 +34,7 @@ import tibco.model.Process;
 import tibco.model.Process5;
 import tibco.model.Scope;
 import tibco.model.XSD;
+import tibco.parser.XmlToTibcoModelParser;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -54,14 +54,22 @@ import static tibco.util.TestUtils.stringToElement;
 
 public class ActivityConversionTest {
 
-    @Test(groups = {"tibco", "converter"}, dataProvider = "activityTestCaseProvider")
+    @BeforeClass
+    public static void setUp() throws Exception {
+        // Initialize the logger for tests using reflection
+        java.lang.reflect.Field loggerField = TibcoConverter.class.getDeclaredField("logger");
+        loggerField.setAccessible(true);
+        loggerField.set(null, TibcoConverter.createDefaultLogger("test-logger"));
+    }
+
+    @Test(groups = { "tibco", "converter" }, dataProvider = "activityTestCaseProvider")
     public void testProjectConversion(Path activityPath, Path expectedFunction) throws IOException,
             ParserConfigurationException, SAXException {
         Element activityElement = stringToElement(fileContent(activityPath));
-        ParseContext parseContext = new ParseContext("");
-        Scope.Flow.Activity activity = XmlToTibcoModelConverter.parseActivity(parseContext, activityElement);
+        Scope.Flow.Activity activity = XmlToTibcoModelParser.parseActivity(getProcessContextForElement(activityElement),
+                activityElement).get();
         ProcessContext cx = getProcessContext(activity);
-        BallerinaModel.Function result = ActivityConverter.convertActivity(cx, activity);
+        BallerinaModel.Function result = ActivityConverter.convertActivity(cx, activity).get();
         String actual = toString(result);
         if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
             bless(expectedFunction, actual);
@@ -76,6 +84,13 @@ public class ActivityConversionTest {
         } catch (IOException e) {
             throw new RuntimeException("Failed to write expected function to " + expectedFunction, e);
         }
+    }
+
+    private static tibco.parser.ProcessContext getProcessContextForElement(Element element) {
+        TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext(true, false,
+                List.of());
+        tibco.parser.ProjectContext projectContext = new tibco.parser.ProjectContext(cx, "test-project");
+        return new tibco.parser.ProcessContext(projectContext, "test-activity.xml");
     }
 
     private static ProcessContext getProcessContext(Scope.Flow.Activity activity) {

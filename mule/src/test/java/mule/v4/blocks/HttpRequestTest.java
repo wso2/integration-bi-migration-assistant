@@ -37,4 +37,10 @@ public class HttpRequestTest extends AbstractBlockTest {
         testMule3ToBal("http-request/http_request_with_http_source.xml",
                 "http-request/http_request_with_http_source.bal");
     }
+
+    @Test
+    public void testHttpRequestWithUrlProperty() {
+        testMule3ToBal("http-request/http_request_with_url_property.xml",
+                "http-request/http_request_with_url_property.bal");
+    }
 }

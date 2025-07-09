@@ -25,11 +25,13 @@ import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import org.jetbrains.annotations.NotNull;
 import tibco.TibcoToBalConverter;
-import tibco.XmlToTibcoModelConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.Process;
+import tibco.model.Process5;
 import tibco.model.Resource;
+import tibco.model.Scope;
 import tibco.model.Type;
+import tibco.parser.XmlToTibcoModelParser;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -80,7 +82,7 @@ public class ProjectContext {
     private int annonVarCount = 0;
 
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
-    private static final Logger logger = ProjectConverter.logger();
+    private static final Logger logger = TibcoConverter.logger();
     private final Optional<TibcoToBalConverter.ProjectConversionContext> conversionContext;
     private final Map<String, String> generatedResources = new HashMap<>();
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
@@ -272,7 +274,7 @@ public class ProjectContext {
 
     BallerinaModel.TypeDesc getTypeByName(String name, ContextWithFile cx) {
         // TODO: how to handle names spaces
-        name = ConversionUtils.sanitizes(XmlToTibcoModelConverter.getTagNameWithoutNameSpace(name));
+        name = ConversionUtils.sanitizes(XmlToTibcoModelParser.getTagNameWithoutNameSpace(name));
         if (typeCx.moduleTypeDefs.containsKey(name)) {
             return new BallerinaModel.TypeDesc.TypeReference(name);
         }
@@ -376,7 +378,12 @@ public class ProjectContext {
         String extractedFileName = ConversionUtils.extractFileName(fileName);
         Resource.JMSSharedResource resource = jmsResourceMap.get(extractedFileName);
         if (resource == null) {
-            throw new RuntimeException("JMS shared resource not found for file: " + fileName);
+            logger.severe("JMS shared resource not found for file: " + fileName + ". Returning placeholder resource.");
+            return new Resource.JMSSharedResource("placeholder_" + extractedFileName, "placeholder",
+                    new Resource.JMSSharedResource.NamingEnvironment(false, "", "", "", "", "", "", ""),
+                    new Resource.JMSSharedResource.ConnectionAttributes(Optional.empty(), Optional.empty(),
+                            Optional.empty(), false),
+                    Map.of());
         }
         return resource;
     }
@@ -433,7 +440,8 @@ public class ProjectContext {
     public String getConfigVarName(String varName) {
         var varDecl = utilityVars.get(varName);
         if (varDecl == null) {
-            throw new RuntimeException("Failed to find configurable variable for " + varName);
+            logger.severe("Failed to find configurable variable for " + varName + ". Returning placeholder name.");
+            return "placeholder_" + varName;
         }
         return varDecl.name();
     }
@@ -446,7 +454,11 @@ public class ProjectContext {
     private Process getProcess(String processName) {
         return processContextMap.keySet().stream().filter(proc -> proc.name().equals(processName))
                 .findAny()
-                .orElseThrow(() -> new IndexOutOfBoundsException("failed to find process" + processName));
+                .orElseGet(() -> {
+                    logger.severe("Failed to find process: " + processName + ". Returning placeholder process.");
+                    return new Process5("placeholder_" + processName, List.of(),
+                            new Process5.ExplicitTransitionGroup());
+                });
     }
 
     public String getAnonName() {
@@ -477,6 +489,36 @@ public class ProjectContext {
         return schemas;
     }
 
+    public void registerServiceGenerationError(Process process, Exception e) {
+        logger.severe("Failed to generate service for process: " + process.name() + ". Error: " + e.getMessage());
+        logger.severe("Please check the process definition and ensure it is supported.");
+    }
+
+    public void registerActivityConversionFailure(tibco.model.Scope.Flow.Activity activity, Exception e) {
+        logger.severe("Failed to convert activity: " + (activity != null ? activity.toString() : "<null>") + ". Error: "
+                + e.getMessage());
+        logger.severe("Please check the activity definition and ensure it is supported.");
+    }
+
+    public void registerTransitionPredicateError(Scope.Flow.Activity.ActivityWithSources activity, Exception e) {
+        logger.severe("Failed to convert transition predicate for activity: "
+                + (activity != null ? activity.toString() : "<null>") + ". Error: " + e.getMessage());
+    }
+
+    public void registerControlFlowFunctionGenerationError(Process process, Exception e) {
+        logger.severe("Failed to generate control flow function for process: " + process.name() + ". Error: "
+                + e.getMessage());
+    }
+
+    public void registerControlFlowFunctionGenerationError(Scope scope, Exception ex) {
+        logger.severe("Failed to generate control flow function for scope: " + scope.name() + ". Error: "
+                + ex.getMessage());
+    }
+
+    public void registerPartiallySupportedActivity(tibco.model.Scope.Flow.Activity activity) {
+        logger.warning("Partially supported activity: " + activity);
+    }
+
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
 
         FunctionData {
@@ -489,7 +531,9 @@ public class ProjectContext {
     public BallerinaModel.Expression.VariableReference dbClient(String sharedResourcePropertyName) {
         String varName = generatedResources.get(sharedResourcePropertyName);
         if (varName == null) {
-            throw new RuntimeException("Failed to find db client for " + sharedResourcePropertyName);
+            logger.severe(
+                    "Failed to find db client for " + sharedResourcePropertyName + ". Returning placeholder client.");
+            return new BallerinaModel.Expression.VariableReference("placeholder_db_client");
         }
         return new BallerinaModel.Expression.VariableReference(varName);
     }
@@ -497,7 +541,8 @@ public class ProjectContext {
     public VariableReference httpListener(String name) {
         String varName = generatedResources.get(name);
         if (varName == null) {
-            throw new RuntimeException("Failed to find listener for " + name);
+            logger.severe("Failed to find listener for " + name + ". Returning placeholder listener.");
+            return new BallerinaModel.Expression.VariableReference("placeholder_listener");
         }
         return new BallerinaModel.Expression.VariableReference(varName);
     }
@@ -608,6 +653,18 @@ public class ProjectContext {
         return Intrinsics.GET_SHARED_VARIABLE.name;
     }
 
+    public String getFilesInPathFunction() {
+        utilityIntrinsics.add(Intrinsics.GET_FILES_IN_PATH);
+        utilityTypeDefs.put("FileData", new BallerinaModel.ModuleTypeDef("FileData",
+                new BallerinaModel.TypeDesc.RecordTypeDesc(List.of(
+                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("fileName", STRING),
+                        new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("fullName", STRING)))));
+        importLibraryIfNeededToUtility(Library.FILE);
+        importLibraryIfNeededToUtility(Library.IO);
+        importLibraryIfNeededToUtility(Library.REGEX);
+        return Intrinsics.GET_FILES_IN_PATH.name;
+    }
+
     private static class ContextWrapperForTypeFile implements ContextWithFile {
 
         final Set<BallerinaModel.Import> imports = new HashSet<>();
@@ -709,5 +766,10 @@ public class ProjectContext {
             return new BallerinaModel.TextDocument("types.bal", this.imports.stream().toList(), typeDefs, List.of(),
                     List.of(), List.of(), List.of(), List.of(), typeIntrinsics, nodes);
         }
+    }
+
+    public void registerResourceConversionFailure(Resource resource) {
+        logger.severe("failed to convert resource: " + resource.name()
+                + ". Please check the resource definition and ensure it is supported.");
     }
 }

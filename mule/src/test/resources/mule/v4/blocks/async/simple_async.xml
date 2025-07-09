@@ -1,15 +1,22 @@
-<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
-      xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
-      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
-    <flow name="mainFlow">
-        <set-payload value="Hello" />
-        <async>
-            <logger level="INFO" message="Doing something in background: #[payload]" />
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" doc:id="1e0d78e1-e5fb-44a9-9b18-b86c0d151be6" >
+        <http:request-connection host="jsonplaceholder.typicode.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="demoFlow" doc:id="1d088811-dee1-455d-a909-529d3c54662f" >
+        <set-payload value="#['John']" doc:name="Set Payload" doc:id="39f96c58-748d-48b4-a0e7-ad09c6ea78af" />
+        <async doc:name="Async" doc:id="077acc98-7b87-4ded-86b4-e3c6d09ed191" >
+            <set-payload value="#['Harry']" doc:name="Set Payload" doc:id="08788a6b-3204-4082-bb0e-6817b210dfd3" />
+            <logger level="INFO" doc:name="Logger" doc:id="5712b8c7-c7a1-42dd-84d8-b2bc561e7030" message="Payload updated to: #[payload]"/>
         </async>
-        <logger level="INFO" message="Main flow continues immediately." />
+        <logger level="INFO" doc:name="Logger" doc:id="d0390e1c-7a02-44af-87b0-41f9834a6158" message="Payload is '#[payload]'"/>
     </flow>
 </mule>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="listener_config" doc:name="HTTP Listener config" doc:id="73a0fa89-f2fe-48ca-a692-eb28f9809a9c" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="${http.port}" />
+    </http:listener-config>
+    <db:config name="db_config" doc:name="Database Config" doc:id="e8bc20de-c3ee-450e-a42a-4c8940636ea6" >
+        <db:my-sql-connection host="${db.host}" port="${db.port}" user="${db.user}" password="${db.password}" database="${db.database}" />
+    </db:config>
+    <configuration-properties doc:name="Configuration properties" doc:id="c366b738-c9b9-4915-9094-4c5e363c630f" file="config.yaml" />
+    <flow name="demoFlow" doc:id="4a79ef8b-6421-4704-9d8f-2c6c3817a45d" >
+        <http:listener doc:name="Listener" doc:id="6c4ca706-9983-47cd-9282-479ce0780c78" config-ref="listener_config" allowedMethods="GET" path="property_access"/>
+        <set-variable value="#[p('http.host') ++ ':' ++ p('http.port')]" doc:name="Set DB Connection String" doc:id="1d96e838-5365-4994-8283-5b1d1dbbfdf5" variableName="dbConnectionString"/>
+        <logger level="INFO" doc:name="Log App Running Port" doc:id="91bd5a2d-3cec-431f-89f4-9fea74eb5fe3" message="#['App running on port: ' ++ p('http.port')]"/>
+        <db:select doc:name="Select" doc:id="10c7026c-bfd7-4d41-8f95-c7a0df37c74f" config-ref="db_config">
+            <db:sql ><![CDATA[SELECT * FROM USERS;]]></db:sql>
+        </db:select>
+        <logger level="INFO" doc:name="Logger" doc:id="b33e3b7f-2ea2-4d11-8a95-2d9daa4fe4fc" message="#['Welcome, ' ++ p('user.firstName') ++ ' ' ++ p('user.lastName') ++ '. Your account balance is ' ++ p('user.balance')]"/>
+    </flow>
+</mule>
