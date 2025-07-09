@@ -49,16 +49,16 @@ public class AnalysisReport {
                 margin: 0;
                 padding: 20px;
             }
-            
+
             .container {
                 max-width: 1200px;
                 margin: 0 auto;
             }
-            
+
             h1, h2, h3 {
                 color: #333;
             }
-            
+
             h1 {
                 text-align: center;
                 color: #4682B4;
@@ -70,7 +70,7 @@ public class AnalysisReport {
                 position: relative;
                 border-bottom: 1px solid rgba(70, 130, 180, 0.2);
             }
-            
+
             h1::after {
                 content: "";
                 position: absolute;
@@ -81,7 +81,7 @@ public class AnalysisReport {
                 height: 3px;
                 background-color: rgba(70, 130, 180, 0.8);
             }
-            
+
             .summary-container h2 {
                 margin-top: 0;
                 color: #4682B4;
@@ -91,14 +91,14 @@ public class AnalysisReport {
                 text-align: center;
                 font-size: 1.5em;
             }
-            
+
             h3 {
                 color: #4682B4;
                 border-bottom: 2px solid #f0f0f0;
                 padding-bottom: 10px;
                 margin-bottom: 20px;
             }
-            
+
             /* Summary container styling */
             .summary-container {
                 background-color: #fff;
@@ -108,11 +108,11 @@ public class AnalysisReport {
                 margin: 25px 0;
                 transition: box-shadow 0.3s;
             }
-            
+
             .summary-container:hover {
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
             }
-            
+
             /* Coverage indicator */
             .coverage-indicator {
                 width: 100%;
@@ -123,39 +123,39 @@ public class AnalysisReport {
                 box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
                 margin: 10px 0 20px 0;
             }
-            
+
             .coverage-bar {
                 height: 100%;
                 border-radius: 6px;
                 transition: width 0.5s ease-in-out;
             }
-            
+
             /* Table styling */
             table {
                 width: 100%;
                 border-collapse: collapse;
                 margin: 20px 0;
             }
-            
+
             th, td {
                 border: 1px solid #ddd;
                 padding: 12px;
                 text-align: left;
             }
-            
+
             th {
                 background-color: #4682B4;
                 color: white;
             }
-            
+
             tr:nth-child(even) {
                 background-color: #f2f2f2;
             }
-            
+
             tr:hover {
                 background-color: #ddd;
             }
-            
+
             /* Estimation notes */
             .estimation-notes {
                 margin-top: 25px;
@@ -165,26 +165,26 @@ public class AnalysisReport {
                 border-left: 4px solid #4682B4;
                 box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             }
-            
+
             .estimation-notes p {
                 margin-top: 0;
             }
-            
+
             .estimation-notes ul {
                 margin: 15px 0 5px 25px;
                 padding-left: 0;
             }
-            
+
             .estimation-notes li {
                 margin-bottom: 8px;
                 line-height: 1.4;
             }
-            
+
             /* Code blocks styling */
             .unsupported-blocks {
                 padding: 10px;
             }
-            
+
             .block-item {
                 background-color: #f8f9fa;
                 border: 1px solid #ddd;
@@ -193,12 +193,12 @@ public class AnalysisReport {
                 overflow: hidden;
                 transition: transform 0.2s, box-shadow 0.2s;
             }
-            
+
             .block-item:hover {
                 transform: translateY(-2px);
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
             }
-            
+
             .block-header {
                 background-color: #4682B4;
                 color: white;
@@ -206,7 +206,7 @@ public class AnalysisReport {
                 display: flex;
                 justify-content: space-between;
             }
-            
+
             .block-code {
                 margin: 0;
                 padding: 15px;
@@ -215,15 +215,15 @@ public class AnalysisReport {
                 font-family: monospace;
                 white-space: pre-wrap;
             }
-            
+
             .block-number {
                 font-weight: bold;
             }
-            
+
             .block-type {
                 font-family: monospace;
             }
-            
+
             /* Status badges */
             .status-badge {
                 padding: 6px 12px;
@@ -236,25 +236,25 @@ public class AnalysisReport {
                 display: inline-block;
                 margin-left: 15px;
             }
-            
+
             .status-high {
                 background-color: #e8f5e9;
                 color: #2e7d32;
                 border: 1px solid rgba(46, 125, 50, 0.2);
             }
-            
+
             .status-medium {
                 background-color: #fff8e1;
                 color: #f57c00;
                 border: 1px solid rgba(245, 124, 0, 0.2);
             }
-            
+
             .status-low {
                 background-color: #ffebee;
                 color: #c62828;
                 border: 1px solid rgba(198, 40, 40, 0.2);
             }
-            
+
             /* Footer */
             footer {
                 text-align: center;
@@ -262,7 +262,7 @@ public class AnalysisReport {
                 font-size: 0.9em;
                 color: #666;
             }
-            
+
             /* Code in tables */
             table code {
                 background-color: #f0f0f0;
@@ -271,7 +271,7 @@ public class AnalysisReport {
                 font-family: monospace;
                 font-size: 0.9em;
             }
-            
+
             /* Metric styling with box shape and hover effects */
             .metric {
                 width: 100%;
@@ -288,69 +288,69 @@ public class AnalysisReport {
                 border: 1px solid #eaeaea;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             }
-            
+
             .metric:hover {
                 transform: translateY(-3px);
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             }
-            
+
             .metric-value {
                 font-weight: bold;
                 font-size: 1.8em;
                 color: #4682B4;
                 margin-bottom: 5px;
             }
-            
+
             .metric-label {
                 font-size: 0.9em;
                 color: #666;
                 text-align: center;
             }
-            
+
             .metric-left {
                 flex: 1;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
             }
-            
+
             .metric-right {
                 flex: 1;
                 padding-top: 10px;
             }
-            
+
             /* Time estimation table styling */
             .time-best {
                 color: #4CAF50;
                 font-weight: 600;
             }
-            
+
             .time-avg {
                 color: #4682B4;
                 font-weight: 600;
             }
-            
+
             .time-worst {
                 color: #FF5722;
                 font-weight: 600;
             }
-            
+
             .drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
             .drawer.open { max-height: 500px; }
             .empty-message { text-align: center; padding: 20px; color: #666; }
-            
+
             /* Coverage bar with data attributes */
             .coverage-bar[data-width] {
                 height: 100%;
                 border-radius: 6px;
                 transition: width 0.5s ease-in-out;
             }
-            
+
             /* Utility classes for visibility */
             .hidden {
                 display: none;
             }
-            
+
             .visible {
                 display: block;
             }
@@ -440,7 +440,7 @@ public class AnalysisReport {
                     <div class="summary-container">
                         <h2>Migration Coverage Overview</h2>
                         <div class="metrics">
-                
+
                           <!-- Overall Coverage -->
                           <div class="metric">
                             <div class="metric-left">
@@ -535,6 +535,7 @@ public class AnalysisReport {
                                   <ul>
                                     <li>1.0 day per each new unsupported %s for analysis, implementation, and testing</li>
                                     <li>1.0 hour per each repeated unsupported %s for implementation</li>
+                                    <li>2 minutes per each line of code generated</li>
                                     <li>Assumes minimal complexity and straightforward implementations</li>
                                   </ul>
                                 </li>
@@ -542,6 +543,7 @@ public class AnalysisReport {
                                   <ul>
                                     <li>2.0 days per each new unsupported %s for analysis, implementation, and testing</li>
                                     <li>2.0 hour per each repeated unsupported %s for implementation</li>
+                                    <li>5 minutes per each line of code generated</li>
                                     <li>Assumes medium complexity with moderate implementation challenges</li>
                                   </ul>
                                 </li>
@@ -549,6 +551,7 @@ public class AnalysisReport {
                                   <ul>
                                     <li>3.0 days per each new unsupported %s for analysis, implementation, and testing</li>
                                     <li>4.0 hour per each repeated unsupported %s for implementation</li>
+                                    <li>10 minutes per each line of code generated</li>
                                     <li>Assumes high complexity with significant implementation challenges</li>
                                   </ul>
                                 </li>
@@ -683,7 +686,7 @@ public class AnalysisReport {
                               bar.style.width = width + '%%';
                               bar.style.backgroundColor = color;
                           });
-                
+
                           // Check Currently Unsupported Elements
                           const toolSupportTable = document.querySelector('#toolSupportSection table');
                           if (toolSupportTable.rows.length <= 1) {
@@ -692,7 +695,7 @@ public class AnalysisReport {
                               document.getElementById('toolSupportEmpty').classList.add('visible');
                               document.querySelector('#toolSupportSection .estimation-notes').classList.add('hidden');
                           }
-                
+
                           // Check Partially Supported Elements
                           const partiallySupportedTable = document.querySelector('#partiallySupportedSection table');
                           if (partiallySupportedTable.rows.length <= 1) {

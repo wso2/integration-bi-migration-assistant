@@ -97,7 +97,7 @@ public class TibcoToBalConverter {
                 new LoggingAnalysisPass()));
         Map<tibco.model.Process, AnalysisResult> analysisResult =
                 analyser.analyseProject(new ProjectAnalysisContext(), processes, types);
-        
+
         return ProjectConverter.convertProject(cx, analysisResult, processes, types,
                 new ProjectConverter.ProjectResources(jdbcResources,
                         httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource,
