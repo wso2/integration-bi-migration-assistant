@@ -46,16 +46,19 @@ final class ResourceConvertor {
     }
 
     public static void convertJDBCResource(ProjectContext cx, JDBCResource resource) {
-        Map<String, ModuleVar> substitutions = convertSubstitutionBindings(cx, resource.substitutionBindings());
-        NewExpression constructorCall = new NewExpression(
-                Stream.of(resource.dbUrl(), resource.userName(), resource.password())
-                        .map(value -> toExpr(substitutions, value))
-                        .toList());
-        ModuleVar resourceVar =
-                new ModuleVar(cx.getUtilityVarName(resource.name()), "jdbc:Client",
-                        Optional.of(new CheckPanic(constructorCall)), false, false);
-        cx.addResourceDeclaration(resource.name(), resourceVar, substitutions.values(), List.of(Library.JDBC));
-        cx.addJavaDependency(pickJavaSQLConnector(resource.dbUrl()));
+        try {
+            Map<String, ModuleVar> substitutions = convertSubstitutionBindings(cx, resource.substitutionBindings());
+            NewExpression constructorCall = new NewExpression(
+                    Stream.of(resource.dbUrl(), resource.userName(), resource.password())
+                            .map(value -> toExpr(substitutions, value))
+                            .toList());
+            ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(resource.name()), "jdbc:Client",
+                    Optional.of(new CheckPanic(constructorCall)), false, false);
+            cx.addResourceDeclaration(resource.name(), resourceVar, substitutions.values(), List.of(Library.JDBC));
+            cx.addJavaDependency(pickJavaSQLConnector(resource.dbUrl()));
+        } catch (Exception e) {
+            cx.registerResourceConversionFailure(resource);
+        }
     }
 
     private static TibcoToBalConverter.JavaDependencies pickJavaSQLConnector(String dbUrl) {
@@ -80,16 +83,19 @@ final class ResourceConvertor {
     }
 
     public static void convertHttpClientResource(ProjectContext cx, HTTPClientResource resource) {
-        Map<String, ModuleVar> substitutions = convertSubstitutionBindings(cx, resource.substitutionBindings());
-        String hostName = hostName(resource);
-        if (resource.port().isPresent()) {
-            hostName = hostName + ":" + resource.port().get();
+        try {
+            Map<String, ModuleVar> substitutions = convertSubstitutionBindings(cx, resource.substitutionBindings());
+            String hostName = hostName(resource);
+            if (resource.port().isPresent()) {
+                hostName = hostName + ":" + resource.port().get();
+            }
+            NewExpression constructorCall = new NewExpression(List.of(toExpr(substitutions, hostName)));
+            ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(resource.name()), "http:Client",
+                    Optional.of(new CheckPanic(constructorCall)), false, false);
+            cx.addResourceDeclaration(resource.name(), resourceVar, substitutions.values(), List.of(Library.HTTP));
+        } catch (Exception e) {
+            cx.registerResourceConversionFailure(resource);
         }
-        NewExpression constructorCall = new NewExpression(List.of(toExpr(substitutions, hostName)));
-        ModuleVar resourceVar =
-                new ModuleVar(cx.getUtilityVarName(resource.name()), "http:Client",
-                        Optional.of(new CheckPanic(constructorCall)), false, false);
-        cx.addResourceDeclaration(resource.name(), resourceVar, substitutions.values(), List.of(Library.HTTP));
     }
 
     private static String hostName(HTTPClientResource resource) {
@@ -102,21 +108,26 @@ final class ResourceConvertor {
     }
 
     public static void convertHttpSharedResource(ProjectContext cx, Resource.HTTPSharedResource resource) {
-        String name = tibco.converter.ConversionUtils.sanitizes(resource.name());
-        BallerinaModel.Listener listener =
-                new BallerinaModel.Listener.HTTPListener(name,
-                Integer.toString(resource.port()), resource.host());
-        cx.addListnerDeclartion(resource.name(), listener, List.of(), List.of(Library.HTTP));
+        try {
+            String name = tibco.converter.ConversionUtils.sanitizes(resource.name());
+            BallerinaModel.Listener listener = new BallerinaModel.Listener.HTTPListener(name,
+                    Integer.toString(resource.port()), resource.host());
+            cx.addListnerDeclartion(resource.name(), listener, List.of(), List.of(Library.HTTP));
+        } catch (Exception e) {
+            cx.registerResourceConversionFailure(resource);
+        }
     }
 
     public static void convertJDBCSharedResource(ProjectContext cx, Resource.JDBCSharedResource resource) {
-
-        NewExpression constructorCall = new NewExpression(List.of(new StringConstant(resource.location())));
-        ModuleVar resourceVar =
-                new ModuleVar(cx.getUtilityVarName(resource.name()), "jdbc:Client",
-                        Optional.of(new CheckPanic(constructorCall)), false, false);
-        cx.addResourceDeclaration(resource.name(), resourceVar, List.of(), List.of(Library.JDBC));
-        cx.addJavaDependency(pickJavaSQLConnector(resource.location()));
+        try {
+            NewExpression constructorCall = new NewExpression(List.of(new StringConstant(resource.location())));
+            ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(resource.name()), "jdbc:Client",
+                    Optional.of(new CheckPanic(constructorCall)), false, false);
+            cx.addResourceDeclaration(resource.name(), resourceVar, List.of(), List.of(Library.JDBC));
+            cx.addJavaDependency(pickJavaSQLConnector(resource.location()));
+        } catch (Exception e) {
+            cx.registerResourceConversionFailure(resource);
+        }
     }
 
     private record SubstitutionResult(boolean hasInterpolations, String result) {

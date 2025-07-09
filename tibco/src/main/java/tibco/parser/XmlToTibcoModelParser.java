@@ -29,7 +29,6 @@ import tibco.model.Method;
 import tibco.model.NameSpace;
 import tibco.model.NameSpaceValue;
 import tibco.model.PartnerLink;
-import tibco.model.Process;
 import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
@@ -77,14 +76,15 @@ public final class XmlToTibcoModelParser {
 
     public static Optional<Resource.JDBCSharedResource> parseSharedJDBCResource(ResourceContext cx, Element root) {
         logger.fine("Start parsing JDBCSharedResource");
+        String name = "";
         try {
-            String name = getFirstChildWithTag(root, "name").getTextContent();
+            name = tryGetFirstChildWithTag(root, "name").map(org.w3c.dom.Element::getTextContent).orElse("");
             Element configuration = getFirstChildWithTag(root, "config");
             String location = getFirstChildWithTag(configuration, "location").getTextContent();
             logger.fine("Done parsing JDBCSharedResource: " + name);
             return Optional.of(new Resource.JDBCSharedResource(name, location));
         } catch (Exception ex) {
-            logger.warning("Failed to parse JDBCSharedResource: " + ex.getMessage());
+            cx.registerUnsupportedResource(root, name);
             return Optional.empty();
         }
     }
@@ -92,8 +92,9 @@ public final class XmlToTibcoModelParser {
     public static Optional<Resource.JMSSharedResource> parseJMSSharedResource(ResourceContext cx, String fileName,
             Element root) {
         logger.fine("Start parsing JMSSharedResource");
+        String name = "";
         try {
-            String name = getFirstChildWithTag(root, "name").getTextContent();
+            name = tryGetFirstChildWithTag(root, "name").map(org.w3c.dom.Element::getTextContent).orElse("");
             Element config = getFirstChildWithTag(root, "config");
             var namingEnvironment = parseJMSNamingEnvironment(config);
             var connectionAttributes = parseJMSConnectionAttributes(config);
@@ -102,7 +103,7 @@ public final class XmlToTibcoModelParser {
             return Optional.of(new Resource.JMSSharedResource(name, fileName, namingEnvironment, connectionAttributes,
                     jndiProperties));
         } catch (Exception ex) {
-            logger.warning("Failed to parse JMSSharedResource: " + ex.getMessage());
+            cx.registerUnsupportedResource(root, name);
             return Optional.empty();
         }
     }
@@ -156,8 +157,9 @@ public final class XmlToTibcoModelParser {
 
     public static Optional<Resource.JDBCResource> parseJDBCResource(ResourceContext cx, Element root) {
         logger.fine("Start parsing JDBCResource");
+        String name = "";
         try {
-            String name = root.getAttribute("name");
+            name = tryGetAttributeIgnoringNamespace(root, "name").orElse("");
             Element configuration = getFirstChildWithTag(root, "configuration");
             String username = configuration.getAttribute("username");
             String password = configuration.getAttribute("password");
@@ -171,7 +173,7 @@ public final class XmlToTibcoModelParser {
             return Optional.of(new Resource.JDBCResource(name, username, password, jdbcDriver, dbUrl,
                     substitutionBindings));
         } catch (Exception ex) {
-            logger.warning("Failed to parse JDBCResource: " + ex.getMessage());
+            cx.registerUnsupportedResource(root, name);
             return Optional.empty();
         }
     }
@@ -179,8 +181,9 @@ public final class XmlToTibcoModelParser {
     public static Optional<Resource.HTTPConnectionResource> parseHTTPConnectionResource(ResourceContext cx,
             Element root) {
         logger.fine("Start parsing HTTPConnectionResource");
+        String name = "";
         try {
-            String name = root.getAttribute("name");
+            name = tryGetAttributeIgnoringNamespace(root, "name").orElse("");
             Element configuration = getFirstChildWithTag(root, "configuration");
             String svcRegServiceName = configuration.getAttribute("svcRegServiceName");
             Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(configuration,
@@ -189,7 +192,7 @@ public final class XmlToTibcoModelParser {
             logger.fine("Done parsing HTTPConnectionResource: " + name);
             return Optional.of(new Resource.HTTPConnectionResource(name, svcRegServiceName, substitutionBindings));
         } catch (Exception ex) {
-            logger.warning("Failed to parse HTTPConnectionResource: " + ex.getMessage());
+            cx.registerUnsupportedResource(root, name);
             return Optional.empty();
         }
     }
@@ -197,22 +200,24 @@ public final class XmlToTibcoModelParser {
     public static Optional<Resource.HTTPSharedResource> parseHTTPSharedResource(ResourceContext cx, String name,
             Element root) {
         logger.fine("Start parsing HTTPSharedResource");
+        String localName = name != null ? name : "";
         try {
             Element config = getFirstChildWithTag(root, "config");
             String host = getFirstChildWithTag(config, "Host").getTextContent();
             int port = Integer.parseInt(getFirstChildWithTag(config, "Port").getTextContent());
-            logger.fine("Done parsing HTTPSharedResource: " + name);
-            return Optional.of(new Resource.HTTPSharedResource(name, host, port));
+            logger.fine("Done parsing HTTPSharedResource: " + localName);
+            return Optional.of(new Resource.HTTPSharedResource(localName, host, port));
         } catch (Exception ex) {
-            logger.warning("Failed to parse HTTPSharedResource: " + ex.getMessage());
+            cx.registerUnsupportedResource(root, localName);
             return Optional.empty();
         }
     }
 
     public static Optional<Resource.HTTPClientResource> parseHTTPClientResource(ResourceContext cx, Element root) {
         logger.fine("Start parsing HTTPClientResource");
+        String name = "";
         try {
-            String name = root.getAttribute("name");
+            name = tryGetAttributeIgnoringNamespace(root, "name").orElse("");
             Element configuration = getFirstChildWithTag(root, "configuration");
             Element tcpDetails = getFirstChildWithTag(configuration, "tcpDetails");
             Optional<Integer> port = tcpDetails.hasAttribute("port")
@@ -224,7 +229,7 @@ public final class XmlToTibcoModelParser {
             logger.fine("Done parsing HTTPClientResource: " + name);
             return Optional.of(new Resource.HTTPClientResource(name, port, substitutionBindings));
         } catch (Exception ex) {
-            logger.warning("Failed to parse HTTPClientResource: " + ex.getMessage());
+            cx.registerUnsupportedResource(root, name);
             return Optional.empty();
         }
     }
@@ -235,20 +240,20 @@ public final class XmlToTibcoModelParser {
         return new Resource.SubstitutionBinding(template, propName);
     }
 
-    public static tibco.model.Process parseProcess(ProcessContext cx, Element root) {
+    public static Optional<tibco.model.Process> parseProcess(ProcessContext cx, Element root) {
         String processName = root.hasAttribute("name") ? root.getAttribute("name") : "<unknown>";
         logger.fine("Start parsing process: " + processName);
         try {
             tibco.model.Process result = parseProcessInner(cx, root);
             logger.fine("Done parsing process: " + processName);
-            return result;
+            return Optional.of(result);
         } catch (Exception ex) {
             logger.severe("Exception while parsing process: " + processName + ". " + ex.getMessage());
-            throw ex;
+            return Optional.empty();
         }
     }
 
-    private static @NotNull Process parseProcessInner(ProcessContext cx, Element root) {
+    private static @NotNull tibco.model.Process parseProcessInner(ProcessContext cx, Element root) {
         String name = root.getAttribute("name");
         if (name.isBlank()) {
             name = tryGetFirstChildWithTag(root, "name").map(Node::getTextContent)
@@ -341,7 +346,7 @@ public final class XmlToTibcoModelParser {
         return parseXSLTTag(cx, element);
     }
 
-    static InlineActivity parseInlineActivity(ProcessContext cx, Element element) {
+    private static InlineActivity parseInlineActivity(ProcessContext cx, Element element) {
         String name = element.getAttribute("name");
         logger.fine("Start parsing inline activity: " + name);
         try {
@@ -349,6 +354,8 @@ public final class XmlToTibcoModelParser {
             logger.fine("Done parsing inline activity: " + name);
             return result;
         } catch (Exception ex) {
+            String type = tryGetFirstChildWithTag(element, "type").map(Node::getTextContent).orElse("");
+            cx.registerUnhandledActivity(element, name, type);
             logger.severe("Exception while parsing inline activity: " + name + ". " + ex.getMessage());
             return new InlineActivity.UnhandledInlineActivity(element, name,
                     "Unhandled activity type", null, cx.fileName());
@@ -540,8 +547,7 @@ public final class XmlToTibcoModelParser {
 
     private static InlineActivity.FileRead parseFileRead(
             ProcessContext cx, Element element, String name, Flow.Activity.InputBinding inputBinding) {
-        Element config = getFirstChildWithTag(element, "config");
-        String encoding = getFirstChildWithTag(config, "encoding").getTextContent();
+        String encoding = getInlineActivityConfigValue(element, "encoding");
         if (!encoding.equals("text")) {
             throw new ParserException("Unsupported encoding" + encoding, element);
         }
@@ -550,8 +556,7 @@ public final class XmlToTibcoModelParser {
 
     private static XMLParseActivity parseXmlParseActivity(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
-        Element config = getFirstChildWithTag(element, "config");
-        String inputStyle = getFirstChildWithTag(config, "inputStyle").getTextContent();
+        String inputStyle = getInlineActivityConfigValue(element, "inputStyle");
         if (!inputStyle.equalsIgnoreCase("text")) {
             throw new ParserException("Unsupported inputStyle value: " + inputStyle, element);
         }
@@ -560,9 +565,7 @@ public final class XmlToTibcoModelParser {
 
     private static XMLRenderActivity parseXmlRenderActivity(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
-        // TODO: extract this to a method
-        Element config = getFirstChildWithTag(element, "config");
-        String renderAsText = getFirstChildWithTag(config, "renderAsText").getTextContent();
+        String renderAsText = getInlineActivityConfigValue(element, "renderAsText");
         if (!renderAsText.equalsIgnoreCase("text")) {
             throw new ParserException("Unsupported renderAsText value: " + renderAsText, element);
         }
@@ -579,19 +582,18 @@ public final class XmlToTibcoModelParser {
         } catch (Exception e) {
             xsltContent = "FIXME: failed to find xslt file at " + stylesheetPath;
             logger.warning("Failed to read XSLT file at " + stylesheetPath + ": " + e.getMessage());
+            cx.registerPartiallySupportedActivity(element, name, "XMLTransformActivity");
         }
         return new InlineActivity.XMLTransformActivity(element, name, inputBinding, xsltContent, cx.fileName());
     }
 
     private static InlineActivity.FileWrite parseFileWrite(
             ProcessContext cx, Element element, String name, Flow.Activity.InputBinding inputBinding) {
-        Element config = getFirstChildWithTag(element, "config");
-        String encoding = getFirstChildWithTag(config, "encoding").getTextContent();
+        String encoding = getInlineActivityConfigValue(element, "encoding");
         if (!encoding.equals("text")) {
             throw new ParserException("Unsupported encoding" + encoding, element);
         }
-        boolean append = getFirstChildWithTag(config, "append").getTextContent()
-                .equalsIgnoreCase("true");
+        boolean append = getInlineActivityConfigValue(element, "append").equalsIgnoreCase("true");
         return new InlineActivity.FileWrite(element, name, inputBinding, encoding, append, cx.fileName());
     }
 
@@ -756,7 +758,7 @@ public final class XmlToTibcoModelParser {
                 }
                 links = parseLinks(element);
             } else {
-                activities.add(parseActivity(cx, element));
+                parseActivity(cx, element).ifPresent(activities::add);
             }
         }
         if (links == null) {
@@ -768,15 +770,27 @@ public final class XmlToTibcoModelParser {
         return new Flow(name, links, activities);
     }
 
-    public static Flow.Activity parseActivity(ProcessContext cx, Element element) {
+    public static Optional<Flow.Activity> parseActivity(ProcessContext cx, Element element) {
         String tag = getTagNameWithoutNameSpace(element);
         String name = element.hasAttribute("name") ? element.getAttribute("name") : tag;
         logger.fine("Start parsing activity: " + name);
         try {
-            Flow.Activity result = parseActivityInner(cx, element);
+            Flow.Activity result = parseActivityWithFallback(cx, element);
             logger.fine("Done parsing activity: " + name);
+            return Optional.of(result);
+        } catch (Exception ex) {
+            return Optional.empty();
+        }
+    }
+
+    private static Flow.Activity parseActivityWithFallback(ProcessContext cx, Element element) {
+        String tag = getTagNameWithoutNameSpace(element);
+        String name = element.hasAttribute("name") ? element.getAttribute("name") : tag;
+        try {
+            Flow.Activity result = parseActivityInner(cx, element);
             return result;
         } catch (Exception ex) {
+            cx.registerUnhandledActivity(element, name, getTagNameWithoutNameSpace(element));
             logger.severe("Exception while parsing activity: " + name + ". " + ex.getMessage());
             return parseUnhandledActivity(cx, element, ex.getMessage());
         }
@@ -874,7 +888,7 @@ public final class XmlToTibcoModelParser {
     private static Scope.Sequence parseSequence(ProcessContext cx, Element element) {
         String name = element.getAttribute("name");
         List<Flow.Activity> activities = ElementIterable.of(element).stream()
-                .map(e -> parseActivity(cx, e)).toList();
+                .map(e -> parseActivity(cx, e)).filter(Optional::isPresent).map(Optional::get).toList();
         return new Scope.Sequence(name, activities);
     }
 
@@ -1535,8 +1549,8 @@ public final class XmlToTibcoModelParser {
         for (Element child : ElementIterable.of(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
-                case "schema" -> XmlToTibcoModelParser.parseSchema(cx, child).ifPresent(members::add);
-                case "definitions" -> tryParseWSDLDefinition(child).ifPresent(members::add);
+                case "schema" -> parseSchema(cx, child).ifPresent(members::add);
+                case "definitions" -> tryParseWSDLDefinition(cx, child).ifPresent(members::add);
                 default -> throw new ParserException("Unsupported types member tag: " + tag, element);
             }
         }
@@ -1566,7 +1580,7 @@ public final class XmlToTibcoModelParser {
             }
             return Optional.of(new Type.Schema(element, complexTypes.values()));
         } catch (Exception ex) {
-            logger.warning("Failed to parse schema: " + ex.getMessage());
+            cx.registerUnsupportedSchema(element);
             return Optional.empty();
         }
     }
@@ -1575,10 +1589,11 @@ public final class XmlToTibcoModelParser {
         return new NameSpace(each.getAttribute("namespace"));
     }
 
-    private static Optional<Type.WSDLDefinition> tryParseWSDLDefinition(Element element) {
+    private static Optional<Type.WSDLDefinition> tryParseWSDLDefinition(Context cx, Element element) {
         try {
             return parseWSDLDefinition(element);
         } catch (Exception e) {
+            cx.registerUnsupportedWSDLDefinition(element);
             logger.warning(String.format(
                     "Failed to parse WSDL definition due to %s, resulting process may be missing services",
                     e.getMessage()));
@@ -1856,17 +1871,14 @@ public final class XmlToTibcoModelParser {
 
     private static InlineActivity.JMSActivityBase parseJMSActivityInner(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
-        Element config = getFirstChildWithTag(element, "config");
-
-        String permittedMessageType = getFirstChildWithTag(config, "PermittedMessageType").getTextContent();
+        String permittedMessageType = getInlineActivityConfigValue(element, "PermittedMessageType");
         if (!permittedMessageType.equals("Text")) {
             throw new UnsupportedOperationException("Unsupported permitted message type: " + permittedMessageType);
         }
+        Element config = getFirstChildWithTag(element, "config");
         InlineActivity.JMSActivityBase.SessionAttributes sessionAttributes = parseJMSSessionAttributes(config);
-        InlineActivity.JMSActivityBase.ConfigurableHeaders configurableHeaders = parseJMSConfigurableHeaders(
-                config);
-        String connectionReference = getFirstChildWithTag(config, "ConnectionReference").getTextContent();
-
+        InlineActivity.JMSActivityBase.ConfigurableHeaders configurableHeaders = parseJMSConfigurableHeaders(config);
+        String connectionReference = getInlineActivityConfigValue(element, "ConnectionReference");
         return new InlineActivity.JMSActivityBase(element, name, inputBinding, permittedMessageType,
                 sessionAttributes, configurableHeaders, connectionReference, cx.fileName());
     }
@@ -1917,6 +1929,7 @@ public final class XmlToTibcoModelParser {
                 logger.severe(
                         "initialValue for sharedVariable '" + name
                                 + "' is not byRef. Using empty string as placeholder.");
+                cx.registerPartiallySupportedResource(root, name);
                 initialValue = "<root/>";
                 logger.fine("Done parsing SharedVariable: " + name);
                 return Optional.of(new Resource.SharedVariable(name, persistent, initialValue, isShared, relativePath));
@@ -1927,12 +1940,13 @@ public final class XmlToTibcoModelParser {
             } catch (java.io.IOException e) {
                 logger.severe("Failed to read initial value for sharedVariable '" + name + "' from '" + initialValueRef
                         + "': " + e.getMessage());
+                cx.registerPartiallySupportedResource(root, name);
                 initialValue = "<root/>";
             }
             logger.fine("Done parsing SharedVariable: " + name);
             return Optional.of(new Resource.SharedVariable(name, persistent, initialValue, isShared, relativePath));
         } catch (Exception ex) {
-            logger.warning("Failed to parse SharedVariable: " + ex.getMessage());
+            cx.registerUnsupportedResource(root, relativePath);
             return Optional.empty();
         }
     }

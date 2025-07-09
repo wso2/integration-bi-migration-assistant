@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
 
 public class ProjectConverter {
@@ -61,6 +62,7 @@ public class ProjectConverter {
         List<ProcessResult> results =
                 processes.stream()
                         .map(process -> convertServices(cx, process, projectResources))
+                        .filter(Predicate.not(ProcessResult::isEmpty))
                         .toList();
         List<Type.Schema> schemas = new ArrayList<>(types);
         for (Process each : processes) {
@@ -86,16 +88,30 @@ public class ProjectConverter {
     }
 
     record ProcessResult(Process process, ProcessConverter.TypeConversionResult result) {
+        ProcessResult {
+            assert result != null : "Type conversion result cannot be null";
+            assert process != null : "Process cannot be null";
+        }
+        public static ProcessResult empty(Process process) {
+            return new ProcessResult(process, ProcessConverter.TypeConversionResult.empty());
+        }
 
+        public boolean isEmpty() {
+            return result.isEmpty();
+        }
     }
 
     private static ProcessResult convertServices(ProjectContext cx, Process process,
                                                  ProjectResources projectResources) {
-
-        return switch (process) {
-            case Process5 process5 -> convertServices(cx, process5, projectResources);
-            case Process6 process6 -> convertServices(cx, process6);
-        };
+        try {
+            return switch (process) {
+                case Process5 process5 -> convertServices(cx, process5, projectResources);
+                case Process6 process6 -> convertServices(cx, process6);
+            };
+        } catch (Exception e) {
+            cx.registerServiceGenerationError(process, e);
+            return ProcessResult.empty(process);
+        }
     }
 
     private static ProcessResult convertServices(ProjectContext cx, Process5 process,
