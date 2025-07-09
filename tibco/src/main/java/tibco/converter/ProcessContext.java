@@ -423,7 +423,7 @@ public class ProcessContext implements ContextWithFile {
         return projectContext.getFilesInPathFunction();
     }
 
-    public void registerActivityConversionFailure(tibco.model.Scope.Flow.Activity activity, Exception e) {
-        projectContext.registerActivityConversionFailure(activity, e);
+    public void registerUnhandledActivity(tibco.model.Scope.Flow.Activity activity, Exception e) {
+        projectContext.registerUnhandledActivity(activity, e);
     }
 }

@@ -166,8 +166,8 @@ public class ActivityContext {
         return processContext.getFilesInPathFunction();
     }
 
-    public void registerActivityConversionFailure(tibco.model.Scope.Flow.Activity activity, Exception e) {
-        processContext.registerActivityConversionFailure(activity, e);
+    public void registerUnhandledActivity(tibco.model.Scope.Flow.Activity activity, Exception e) {
+        processContext.registerUnhandledActivity(activity, e);
     }
 
     public void registerPartiallySupportedActivity(tibco.model.Scope.Flow.Activity activity) {

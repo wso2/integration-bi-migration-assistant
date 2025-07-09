@@ -28,7 +28,7 @@ public interface Context {
 
     String getAnonUnhandledActivityName();
 
-    void registerUnhandledActivity(Element element, String name, String type);
+    void registerUnhandledActivity(Element element, String name, String type, String fileName);
 
     void registerPartiallySupportedActivity(Element element, String name, String type);
 
@@ -46,4 +46,5 @@ public interface Context {
 
     void registerPartiallySupportedWSDLDefinition(Element element);
 
+    void incrementActivityCount(Element element);
 }

@@ -63,7 +63,7 @@ public class TibcoAnalysisReportTest {
                 "TestActivity3", "AnotherActivity", element3, "test3.xml"));
 
         // Create analysis report
-        TibcoAnalysisReport report = new TibcoAnalysisReport(10, 3, unhandledElements);
+        TibcoAnalysisReport report = new TibcoAnalysisReport(10, 3, unhandledElements, 0, new ArrayList<>());
 
         // Create project summary
         ProjectSummary summary = report.toProjectSummary("TestProject", "/path/to/project", "report.html");
@@ -96,7 +96,7 @@ public class TibcoAnalysisReportTest {
     @Test
     public void testToProjectSummaryWithNoUnhandledActivities() {
         // Create analysis report with no unhandled activities
-        TibcoAnalysisReport report = new TibcoAnalysisReport(5, 0, new ArrayList<>());
+        TibcoAnalysisReport report = new TibcoAnalysisReport(5, 0, new ArrayList<>(), 0, new ArrayList<>());
 
         // Create project summary
         ProjectSummary summary = report.toProjectSummary("TestProject", "/path/to/project", "report.html");
