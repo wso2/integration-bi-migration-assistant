@@ -998,10 +998,7 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
                         defaultEmptyXml());
                 body.add(init);
                 XsltTransformResult transformResult = xsltTransform(cx, init.ref(), xslt);
-                if (!transformResult.nonStandardFunctions().isEmpty()) {
-                    body.add(new Comment("WARNING: Non-standard XSLT functions detected: " +
-                        String.join(", ", transformResult.nonStandardFunctions())));
-                }
+                addNonStandardXsltWarning(transformResult.nonStandardFunctions(), body);
                 yield transformResult.expression();
             }
             case ValueSource.VarRef varRef -> getFromContext(cx, varRef.name());
@@ -1089,24 +1086,6 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
                         .orElseGet(ActivityConverter::defaultEmptyXml));
         body.add(inputDecl);
         InputBindingResult inputBindings = convertInputBindings(cx, inputDecl.ref(), activityExtension.inputBindings());
-        // REFACTOR:
-        // Check for non-standard functions in input bindings and add comments
-        List<String> allNonStandardFunctions = new ArrayList<>();
-        for (InputBinding binding : activityExtension.inputBindings()) {
-            if (binding instanceof InputBinding.CompleteBinding completeBinding) {
-                XsltTransformResult transformResult = xsltTransform(cx, inputDecl.ref(), completeBinding.xslt());
-                allNonStandardFunctions.addAll(transformResult.nonStandardFunctions());
-            } else if (binding instanceof InputBinding.PartialBindings partialBindings) {
-                for (Activity.Expression.XSLT xslt : partialBindings.xslt()) {
-                    XsltTransformResult transformResult = xsltTransform(cx, inputDecl.ref(), xslt);
-                    allNonStandardFunctions.addAll(transformResult.nonStandardFunctions());
-                }
-            }
-        }
-        if (!allNonStandardFunctions.isEmpty()) {
-            body.add(new Comment("WARNING: Non-standard XSLT functions detected: " +
-                String.join(", ", allNonStandardFunctions.stream().distinct().toList())));
-        }
         body.addAll(inputBindings.statements());
 
         VariableReference result = activityExtension.inputBindings().isEmpty() ? inputDecl.ref()
@@ -1435,10 +1414,7 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
                 throw new IllegalArgumentException("Only XSLT supported as Ext activity expression");
             }
             XsltTransformResult transformResult = xsltTransform(cx, result, xslt);
-            if (!transformResult.nonStandardFunctions().isEmpty()) {
-                body.add(new Comment("WARNING: Non-standard XSLT functions detected: " +
-                    String.join(", ", transformResult.nonStandardFunctions())));
-            }
+            addNonStandardXsltWarning(transformResult.nonStandardFunctions(), body);
             VarDeclStatment transformDecl =
                     new VarDeclStatment(XML, cx.getAnnonVarName(), transformResult.expression());
             body.add(transformDecl);
@@ -1499,17 +1475,14 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
     }
 
     private static InputBindingResult convertInputBindings(ActivityContext cx, VariableReference input,
-                                                      Collection<InputBinding> inputBindings) {
+                                                           Collection<InputBinding> inputBindings) {
         List<Statement> statements = new ArrayList<>();
         VariableReference last = input;
         for (InputBinding transform : inputBindings) {
             switch (transform) {
                 case InputBinding.CompleteBinding completeBinding -> {
                     XsltTransformResult transformResult = xsltTransform(cx, last, completeBinding.xslt());
-                    if (!transformResult.nonStandardFunctions().isEmpty()) {
-                        statements.add(new Comment("WARNING: Non-standard XSLT functions detected: " +
-                            String.join(", ", transformResult.nonStandardFunctions())));
-                    }
+                    addNonStandardXsltWarning(transformResult.nonStandardFunctions(), statements);
                     VarDeclStatment varDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
                             transformResult.expression());
                     statements.add(varDecl);
@@ -1536,10 +1509,7 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
             VarDeclStatment vds = new VarDeclStatment(XML, cx.getAnnonVarName(), transformResult.expression());
             xsltStatements.add(vds);
         }
-        if (!allNonStandardFunctions.isEmpty()) {
-            statements.add(new Comment("WARNING: Non-standard XSLT functions detected: " +
-                    String.join(", ", allNonStandardFunctions)));
-        }
+        addNonStandardXsltWarning(new ArrayList<>(allNonStandardFunctions), statements);
         statements.addAll(xsltStatements);
         String concat = xsltStatements.stream().map(VarDeclStatment::varName).collect(Collectors.joining(" + "));
         VarDeclStatment concatResult = new VarDeclStatment(XML, cx.getAnnonVarName(),
@@ -1549,6 +1519,7 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
         return new InputBindingResult(statements, resultRef);
     }
 
+    @NotNull
     private static XsltTransformResult xsltTransform(ActivityContext cx, VariableReference inputVariable,
                                                     Activity.Expression.XSLT xslt) {
         cx.addLibraryImport(Library.XSLT);
@@ -1564,6 +1535,7 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
         return new XsltTransformResult(expression, nonStandardFunctions);
     }
 
+    @NotNull
     static List<String> detectNonStandardFunctions(String xsltContent) {
         List<String> nonStandardFunctions = new ArrayList<>();
 
@@ -1579,6 +1551,13 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
         }
 
         return nonStandardFunctions;
+    }
+
+    private static void addNonStandardXsltWarning(List<String> nonStandardFunctions, List<Statement> body) {
+        if (!nonStandardFunctions.isEmpty()) {
+            body.add(new Comment("WARNING: Non-standard XSLT functions detected: " +
+                    String.join(", ", nonStandardFunctions.stream().distinct().toList())));
+        }
     }
 
     private static XMLTemplate defaultEmptyXml() {
@@ -1640,7 +1619,6 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
         }
     }
 
-    // Add this record at the top level so it is visible to all methods
     private record InputBindingResult(List<Statement> statements, VariableReference resultRef) {
     }
 }
