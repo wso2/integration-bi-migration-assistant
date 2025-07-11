@@ -696,6 +696,9 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
 
         record Check(Expression callExpr) implements Expression {
+            public Check {
+                assert !(callExpr instanceof Check) : "Redundant check";
+            }
 
             @Override
             public String toString() {

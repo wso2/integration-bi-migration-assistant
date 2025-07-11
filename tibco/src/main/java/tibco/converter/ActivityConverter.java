@@ -66,10 +66,14 @@ import tibco.xslt.TransformPipeline;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -168,10 +172,10 @@ final class ActivityConverter {
         body.add(inputDecl);
         VariableReference result;
         if (inlineActivity.hasInputBinding()) {
-            List<VarDeclStatment> inputBindings = convertInputBindings(cx, inputDecl.ref(),
+            InputBindingResult inputBindings = convertInputBindings(cx, inputDecl.ref(),
                     List.of(inlineActivity.inputBinding()));
-            body.addAll(inputBindings);
-            result = new VariableReference(inputBindings.getLast().varName());
+            body.addAll(inputBindings.statements());
+            result = inputBindings.resultRef();
         } else {
             result = inputDecl.ref();
         }
@@ -993,7 +997,12 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
                 VarDeclStatment init = new VarDeclStatment(expectedType, cx.getAnnonVarName(),
                         defaultEmptyXml());
                 body.add(init);
-                yield xsltTransform(cx, init.ref(), xslt);
+                XsltTransformResult transformResult = xsltTransform(cx, init.ref(), xslt);
+                if (!transformResult.nonStandardFunctions().isEmpty()) {
+                    body.add(new Comment("WARNING: Non-standard XSLT functions detected: " +
+                        String.join(", ", transformResult.nonStandardFunctions())));
+                }
+                yield transformResult.expression();
             }
             case ValueSource.VarRef varRef -> getFromContext(cx, varRef.name());
             case Activity.Expression.XPath xPath -> {
@@ -1017,14 +1026,13 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
         VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
         body.add(inputDecl);
         VariableReference input = inputDecl.ref();
-        List<VarDeclStatment> inputBindings = convertInputBindings(cx, input, throwActivity.inputBindings());
-        body.addAll(inputBindings);
-        // TODO: set the body correctly using result
+        InputBindingResult inputBindings = convertInputBindings(cx, input, throwActivity.inputBindings());
+        body.addAll(inputBindings.statements());
+        // TODO: set the body correctly using inputBindings.resultRef() if needed
         VarDeclStatment errorValue = new VarDeclStatment(ERROR, cx.getAnnonVarName(),
                 exprFrom("error(\"TODO: create error value\")"));
         body.add(errorValue);
         body.add(stmtFrom(String.format("panic %s;", errorValue.varName())));
-
         return body;
     }
 
@@ -1055,9 +1063,9 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
         body.add(inputDecl);
         VariableReference result = inputDecl.ref();
         if (!reply.inputBindings().isEmpty()) {
-            List<VarDeclStatment> inputBindings = convertInputBindings(cx, result, reply.inputBindings());
-            body.addAll(inputBindings);
-            result = inputBindings.getLast().ref();
+            InputBindingResult inputBindings = convertInputBindings(cx, result, reply.inputBindings());
+            body.addAll(inputBindings.statements());
+            result = inputBindings.resultRef();
         }
         body.add(new CallStatement(new FunctionCall(cx.getSetXMLResponseFn(), List.of(cx.contextVarRef(), result,
                 exprFrom("{}")))));
@@ -1080,12 +1088,30 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
                         .map(name -> (BallerinaModel.Expression) getFromContext(cx, name))
                         .orElseGet(ActivityConverter::defaultEmptyXml));
         body.add(inputDecl);
-        List<VarDeclStatment> inputBindings = convertInputBindings(cx, inputDecl.ref(),
-                activityExtension.inputBindings());
-        body.addAll(inputBindings);
+        InputBindingResult inputBindings = convertInputBindings(cx, inputDecl.ref(), activityExtension.inputBindings());
+        // REFACTOR:
+        // Check for non-standard functions in input bindings and add comments
+        List<String> allNonStandardFunctions = new ArrayList<>();
+        for (InputBinding binding : activityExtension.inputBindings()) {
+            if (binding instanceof InputBinding.CompleteBinding completeBinding) {
+                XsltTransformResult transformResult = xsltTransform(cx, inputDecl.ref(), completeBinding.xslt());
+                allNonStandardFunctions.addAll(transformResult.nonStandardFunctions());
+            } else if (binding instanceof InputBinding.PartialBindings partialBindings) {
+                for (Activity.Expression.XSLT xslt : partialBindings.xslt()) {
+                    XsltTransformResult transformResult = xsltTransform(cx, inputDecl.ref(), xslt);
+                    allNonStandardFunctions.addAll(transformResult.nonStandardFunctions());
+                }
+            }
+        }
+        if (!allNonStandardFunctions.isEmpty()) {
+            body.add(new Comment("WARNING: Non-standard XSLT functions detected: " +
+                String.join(", ", allNonStandardFunctions.stream().distinct().toList())));
+        }
+        body.addAll(inputBindings.statements());
 
-        VariableReference result = inputBindings.isEmpty() ? inputDecl.ref()
-                : new VariableReference(inputBindings.getLast().varName());
+        VariableReference result = activityExtension.inputBindings().isEmpty() ? inputDecl.ref()
+                : inputBindings.resultRef();
+        assert result != null;
 
         ActivityExtension.Config config = activityExtension.config();
         ActivityConversionResult conversion = switch (config) {
@@ -1357,9 +1383,9 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
         List<Statement> body = new ArrayList<>();
         VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
         body.add(inputDecl);
-        List<VarDeclStatment> inputBindings = convertInputBindings(cx, inputDecl.ref(), invoke.inputBindings());
-        body.addAll(inputBindings);
-        VariableReference input = inputBindings.isEmpty() ? inputDecl.ref() : inputBindings.getLast().ref();
+        InputBindingResult inputBindings = convertInputBindings(cx, inputDecl.ref(), invoke.inputBindings());
+        body.addAll(inputBindings.statements());
+        VariableReference input = inputBindings.resultRef();
 
         AnalysisResult ar = cx.processContext.getAnalysisResult();
         PartnerLink.Binding binding = ar.getBinding(invoke.partnerLink());
@@ -1408,16 +1434,21 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
             if (!(expression instanceof Activity.Expression.XSLT xslt)) {
                 throw new IllegalArgumentException("Only XSLT supported as Ext activity expression");
             }
-            VarDeclStatment transformDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                    xsltTransform(cx, result, xslt));
+            XsltTransformResult transformResult = xsltTransform(cx, result, xslt);
+            if (!transformResult.nonStandardFunctions().isEmpty()) {
+                body.add(new Comment("WARNING: Non-standard XSLT functions detected: " +
+                    String.join(", ", transformResult.nonStandardFunctions())));
+            }
+            VarDeclStatment transformDecl =
+                    new VarDeclStatment(XML, cx.getAnnonVarName(), transformResult.expression());
             body.add(transformDecl);
             result = transformDecl.ref();
         }
         if (!extActivity.inputBindings().isEmpty()) {
-            List<VarDeclStatment> inputBindings = convertInputBindings(cx, result,
+            InputBindingResult inputBindings = convertInputBindings(cx, result,
                     extActivity.inputBindings());
-            body.addAll(inputBindings);
-            result = new VariableReference(inputBindings.getLast().varName());
+            body.addAll(inputBindings.statements());
+            result = inputBindings.resultRef();
         }
         String namespaceFixFn = cx.getNamespaceFixFn();
         VarDeclStatment resultWithoutNamespaces = new VarDeclStatment(XML, cx.getAnnonVarName(),
@@ -1467,43 +1498,87 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
                                 List.of(convertToTypeFunctionCall))))))));
     }
 
-    private static List<VarDeclStatment> convertInputBindings(ActivityContext cx, VariableReference input,
-                                                              Collection<InputBinding> inputBindings) {
-        List<VarDeclStatment> varDelStatements = new ArrayList<>();
+    private static InputBindingResult convertInputBindings(ActivityContext cx, VariableReference input,
+                                                      Collection<InputBinding> inputBindings) {
+        List<Statement> statements = new ArrayList<>();
         VariableReference last = input;
         for (InputBinding transform : inputBindings) {
-            VarDeclStatment varDecl = switch (transform) {
-                case InputBinding.CompleteBinding completeBinding -> new VarDeclStatment(XML, cx.getAnnonVarName(),
-                        xsltTransform(cx, last, completeBinding.xslt()));
-                case InputBinding.PartialBindings partialBindings ->
-                        convertPartialInputBinding(cx, partialBindings, last, varDelStatements);
-            };
-            varDelStatements.add(varDecl);
-            last = varDecl.ref();
+            switch (transform) {
+                case InputBinding.CompleteBinding completeBinding -> {
+                    XsltTransformResult transformResult = xsltTransform(cx, last, completeBinding.xslt());
+                    if (!transformResult.nonStandardFunctions().isEmpty()) {
+                        statements.add(new Comment("WARNING: Non-standard XSLT functions detected: " +
+                            String.join(", ", transformResult.nonStandardFunctions())));
+                    }
+                    VarDeclStatment varDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                            transformResult.expression());
+                    statements.add(varDecl);
+                    last = varDecl.ref();
+                }
+                case InputBinding.PartialBindings partialBindings -> {
+                    InputBindingResult partialResult = convertPartialInputBinding(cx, partialBindings, last);
+                    statements.addAll(partialResult.statements());
+                    last = partialResult.resultRef();
+                }
+            }
         }
-        return varDelStatements;
+        return new InputBindingResult(statements, last);
     }
 
-    private static @NotNull VarDeclStatment convertPartialInputBinding(ActivityContext cx,
-                                                                       InputBinding.PartialBindings partialBindings,
-                                                                       VariableReference last,
-                                                                       List<VarDeclStatment> varDelStatements) {
-        List<VarDeclStatment> statements = partialBindings.xslt().stream()
-                .map(each -> xsltTransform(cx, last, each))
-                .map(each -> new VarDeclStatment(XML, cx.getAnnonVarName(), each)).toList();
-        varDelStatements.addAll(statements);
-        String concat = statements.stream().map(VarDeclStatment::varName).collect(Collectors.joining(" + "));
-        return new VarDeclStatment(XML, cx.getAnnonVarName(),
+    private static InputBindingResult convertPartialInputBinding(
+            ActivityContext cx, InputBinding.PartialBindings partialBindings, VariableReference last) {
+        List<Statement> statements = new ArrayList<>();
+        List<VarDeclStatment> xsltStatements = new ArrayList<>();
+        Set<String> allNonStandardFunctions = new HashSet<>();
+        for (Activity.Expression.XSLT each : partialBindings.xslt()) {
+            XsltTransformResult transformResult = xsltTransform(cx, last, each);
+            allNonStandardFunctions.addAll(transformResult.nonStandardFunctions());
+            VarDeclStatment vds = new VarDeclStatment(XML, cx.getAnnonVarName(), transformResult.expression());
+            xsltStatements.add(vds);
+        }
+        if (!allNonStandardFunctions.isEmpty()) {
+            statements.add(new Comment("WARNING: Non-standard XSLT functions detected: " +
+                    String.join(", ", allNonStandardFunctions)));
+        }
+        statements.addAll(xsltStatements);
+        String concat = xsltStatements.stream().map(VarDeclStatment::varName).collect(Collectors.joining(" + "));
+        VarDeclStatment concatResult = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new XMLTemplate("<root>${%s}</root>".formatted(concat)));
+        statements.add(concatResult);
+        VariableReference resultRef = xsltStatements.isEmpty() ? last : new VariableReference(concatResult.varName());
+        return new InputBindingResult(statements, resultRef);
     }
 
-    private static BallerinaModel.Expression xsltTransform(ActivityContext cx, VariableReference inputVariable,
-                                                           Activity.Expression.XSLT xslt) {
+    private static XsltTransformResult xsltTransform(ActivityContext cx, VariableReference inputVariable,
+                                                    Activity.Expression.XSLT xslt) {
         cx.addLibraryImport(Library.XSLT);
         String styleSheet = xsltTransformer.apply(cx, xslt.expression());
-        return new Check(new FunctionCall(XSLTConstants.XSLT_TRANSFORM_FUNCTION,
+
+        // Detect non-standard functions (Tibco-specific functions)
+        List<String> nonStandardFunctions = detectNonStandardFunctions(styleSheet);
+
+        BallerinaModel.Expression expression = new Check(new FunctionCall(XSLTConstants.XSLT_TRANSFORM_FUNCTION,
                 List.of(inputVariable, new XMLTemplate(styleSheet),
                         new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "variables"))));
+
+        return new XsltTransformResult(expression, nonStandardFunctions);
+    }
+
+    static List<String> detectNonStandardFunctions(String xsltContent) {
+        List<String> nonStandardFunctions = new ArrayList<>();
+
+        // Pattern to match Tibco-specific functions like tib:trim, tib:parse-dateTime, etc.
+        Pattern tibcoFunctionPattern = Pattern.compile("tib:[a-zA-Z-]+\\s*\\(");
+        Matcher matcher = tibcoFunctionPattern.matcher(xsltContent);
+
+        while (matcher.find()) {
+            String function = matcher.group().replaceAll("\\s*\\($", "");
+            if (!nonStandardFunctions.contains(function)) {
+                nonStandardFunctions.add(function);
+            }
+        }
+
+        return nonStandardFunctions;
     }
 
     private static XMLTemplate defaultEmptyXml() {
@@ -1524,6 +1599,10 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
     }
 
     private record ActivityConversionResult(VariableReference result, List<Statement> body) {
+
+    }
+
+    record XsltTransformResult(BallerinaModel.Expression expression, List<String> nonStandardFunctions) {
 
     }
 
@@ -1559,5 +1638,9 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
         private XMLDataConstants() {
 
         }
+    }
+
+    // Add this record at the top level so it is visible to all methods
+    private record InputBindingResult(List<Statement> statements, VariableReference resultRef) {
     }
 }
