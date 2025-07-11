@@ -141,16 +141,30 @@ This will treat each child directory within `path/to/projects-directory` as a se
 ### Unhandled activities
 
 - If the tool encounters any activity which it does not know how to convert it will generate a placeholder "unhandled" function with a comment containing the relevant part of the process file.
+  ```ballerina
+  function unhandled(map<xml> context) returns xml|error {
+      //FIXME: [ParseError] : Unknown activity
+      //<bpws:empty name="OnMessageStart" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions" tibex:constructor="onMessageStart" tibex:xpdlId="c266c167-7a80-40cc-9db2-60739386deeb" xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"/>
 
-```
-function unhandled(map<xml> context) returns xml|error {
-    //FIXME: [ParseError] : Unknown activity
-    //<bpws:empty name="OnMessageStart" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions" tibex:constructor="onMessageStart" tibex:xpdlId="c266c167-7a80-40cc-9db2-60739386deeb" xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"/>
+      //<bpws:empty name="OnMessageStart" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions" tibex:constructor="onMessageStart" tibex:xpdlId="c266c167-7a80-40cc-9db2-60739386deeb" xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"/>
+      return xml `<root></root>`;
+  }
+  ```
 
-    //<bpws:empty name="OnMessageStart" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions" tibex:constructor="onMessageStart" tibex:xpdlId="c266c167-7a80-40cc-9db2-60739386deeb" xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"/>
-    return xml `<root></root>`;
-}
-```
+### Partially supported activities
+- In case of activities that are only partially supported you will see a log message with the activity name.
+  ```
+  WARNING: Partially supported activity: JMS Send
+  ```
+
+- They will also be listed in the report under heading "Activities that need manual validation". For most typical use cases, you can use the converted source as is, but we highly encourage users to check the converted code. There will be comments explaining any limitations/assumptions the tool have made.
+  ```ballerina
+      // WARNING: using default destination configuration
+      jms:MessageProducer var4 = check var3.createProducer(destination = {
+          'type: jms:TOPIC,
+          name: "TOPIC"
+      });
+  ```
 
 ### Supported TIBCO BusinessWorks activities
 
@@ -193,9 +207,16 @@ function unhandled(map<xml> context) returns xml|error {
 - `com.tibco.plugin.json.activities.JSONParserActivity`
 - `com.tibco.plugin.json.activities.JSONRenderActivity`
 - `com.tibco.plugin.soap.SOAPSendReplyActivity`
-- `com.tibco.pe.core.WriteToLogActivity`
 - `com.tibco.plugin.jms.JMSQueueEventSource`
 - `com.tibco.plugin.jms.JMSQueueSendActivity`
 - `com.tibco.plugin.jms.JMSQueueGetMessageActivity`
 - `com.tibco.plugin.jms.JMSTopicPublishActivity`
 - `com.tibco.pe.core.GenerateErrorActivity`
+- `com.tibco.plugin.timer.NullActivity`
+- `com.tibco.plugin.timer.SleepActivity`
+- `com.tibco.pe.core.GetSharedVariableActivity`
+- `com.tibco.pe.core.SetSharedVariableActivity`
+- `com.tibco.plugin.file.FileEventSource`
+- `com.tibco.pe.core.OnStartupEventSource`
+- `com.tibco.plugin.file.ListFilesActivity`
+- `com.tibco.plugin.xml.XMLTransformActivity`
