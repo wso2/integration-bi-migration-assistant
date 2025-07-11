@@ -304,8 +304,14 @@ public class ProcessConverter {
                         new VarDeclStatment(XML, "response",
                                         ConversionUtils.getXMLResultFromContext(contextDecl.ref()));
         body.add(resultDecl);
-        group.returnBindings().ifPresent(binding ->
-                body.add(new VarAssignStatement(resultDecl.ref(), xsltTransform(cx, resultDecl.ref(), binding))));
+        group.returnBindings().ifPresent(binding -> {
+            ActivityConverter.XsltTransformResult transformResult = xsltTransform(cx, resultDecl.ref(), binding);
+            if (!transformResult.nonStandardFunctions().isEmpty()) {
+                body.add(new Statement.Comment("WARNING: Non-standard XSLT functions detected: " + 
+                    String.join(", ", transformResult.nonStandardFunctions())));
+            }
+            body.add(new VarAssignStatement(resultDecl.ref(), transformResult.expression()));
+        });
         body.add(new Return<>(resultDecl.ref()));
         return new BallerinaModel.Resource("'default[string... path]", "",
                 List.of(parameter), Optional.of(XML), body);
@@ -750,11 +756,19 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         return new FunctionCall(analysisResult.from(activity).functionName(), List.of(context));
     }
 
-    private static Expression xsltTransform(ProcessContext cx, VariableReference inputVariable,
-                                                           Activity.Expression.XSLT xslt) {
+    private static ActivityConverter.XsltTransformResult xsltTransform(ProcessContext cx,
+                                                                       VariableReference inputVariable,
+                                                                       Activity.Expression.XSLT xslt) {
         cx.addLibraryImport(Library.XSLT);
-        return new CheckPanic(new FunctionCall(ActivityConverter.XSLTConstants.XSLT_TRANSFORM_FUNCTION,
-                List.of(inputVariable, new XMLTemplate(xslt.expression()))));
+        String xsltContent = xslt.expression();
+        
+        // Detect non-standard functions (Tibco-specific functions)
+        List<String> nonStandardFunctions = ActivityConverter.detectNonStandardFunctions(xsltContent);
+        
+        Expression expression = new CheckPanic(new FunctionCall(ActivityConverter.XSLTConstants.XSLT_TRANSFORM_FUNCTION,
+                List.of(inputVariable, new XMLTemplate(xsltContent))));
+        
+        return new ActivityConverter.XsltTransformResult(expression, nonStandardFunctions);
     }
 
     private static List<Statement> initJobSharedVariables(ProjectContext projectContext,
