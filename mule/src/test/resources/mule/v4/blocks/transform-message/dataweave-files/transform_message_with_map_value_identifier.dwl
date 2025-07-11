@@ -1,5 +1,4 @@
-%dw 1.0
-%output application/json
-%input payload application/json
+%dw 2.0
+output application/json
 ---
-[1, 2, 3, 4] map $ + 1
+[1, 2, 3, 4] map ($ + 1)

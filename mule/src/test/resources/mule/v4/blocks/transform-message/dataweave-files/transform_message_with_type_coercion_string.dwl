@@ -1,4 +1,4 @@
-%dw 1.0
-%output text/plain
+%dw 2.0
+output text/plain
 ---
-10 as :string
+10 as String

@@ -1,12 +1,13 @@
 grammar DataWeave;
 
-// Lexer rules
-VAR: '%var';
-FUNCTION: '%function';
-INPUT: '%input';
-NAMESPACE: '%namespace';
-OUTPUT: '%output';
+// Lexer rules for DataWeave 2.0
+VAR: 'var';
+FUNCTION: 'fun';
+IMPORT: 'import';
+NAMESPACE: 'ns';
+OUTPUT: 'output';
 DW: '%dw';
+TYPE: 'type';
 ASSIGN: '=';
 ARROW: '->';
 BOOLEAN: 'true' | 'false';
@@ -35,6 +36,8 @@ LCURLY: '{';
 RCURLY: '}';
 LSQUARE: '[';
 RSQUARE: ']';
+LPAREN: '(';
+RPAREN: ')';
 SEPARATOR: '---';
 WS: [ \t]+ -> skip; // Skip whitespace
 NEWLINE: [\r\n]+ -> skip;
@@ -53,23 +56,27 @@ header: (directive (NEWLINE | WS)*)+;
 directive
     : dwVersion
     | outputDirective
-    | inputDirective
+    | importDirective
     | namespaceDirective
     | variableDeclaration
-    | functionDeclaration;
+    | functionDeclaration
+    | typeDeclaration;
 
 dwVersion: DW NUMBER;
 
 outputDirective: OUTPUT MEDIA_TYPE;
 
-inputDirective: INPUT IDENTIFIER MEDIA_TYPE;
+importDirective: IMPORT IDENTIFIER ('from' STRING)?;
 
 namespaceDirective: NAMESPACE IDENTIFIER URL;
 
 variableDeclaration: VAR IDENTIFIER ASSIGN expression;
 
-functionDeclaration: FUNCTION IDENTIFIER '(' functionParameters? ')' expression;
+functionDeclaration: FUNCTION IDENTIFIER LPAREN functionParameters? RPAREN expression;
 
+typeDeclaration: TYPE IDENTIFIER ASSIGN typeExpression;
+
+// Body of the parser remains unchanged
 body: expression NEWLINE*;
 
 // Expression Rules (Rewritten for Precedence)
@@ -209,5 +216,17 @@ keyValue: IDENTIFIER COLON expression;
 // Function calls
 functionCall: IDENTIFIER '(' (expression (COMMA expression)*)? ')';
 
+// Type expressions for DataWeave 2.0
 typeExpression
-    : ':' IDENTIFIER;
+    : IDENTIFIER                              # namedType
+    | 'String'                               # stringType
+    | 'Number'                               # numberType
+    | 'Boolean'                              # booleanType
+    | 'DateTime'                             # dateTimeType
+    | 'LocalDateTime'                        # localDateTimeType
+    | 'Date'                                 # dateType
+    | 'Time'                                 # timeType
+    | 'Array' '<' typeExpression '>'         # arrayType
+    | 'Object'                               # objectType
+    | ':' IDENTIFIER                         # legacyType
+    ;

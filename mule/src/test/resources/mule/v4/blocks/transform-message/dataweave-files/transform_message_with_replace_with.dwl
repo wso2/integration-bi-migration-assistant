@@ -1,4 +1,6 @@
-%dw 1.0
-%output application/json
+%dw 2.0
+output application/json
 ---
-b: "admin123" replace /(\d+)/ with "ID"
+{
+  b: "admin123" replace /(\d+)/ with "ID"
+}

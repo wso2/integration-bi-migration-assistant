@@ -42,7 +42,7 @@ public enum MuleXMLTag {
 
     // Components
     LOGGER("logger", 1),
-    TRANSFORM_MESSAGE("dw:transform-message", 3),
+    TRANSFORM_MESSAGE("ee:transform", 3),
     EXPRESSION_COMPONENT("expression-component", 3),
 
     // Scopes
@@ -87,10 +87,10 @@ public enum MuleXMLTag {
     DB_INPUT_PARAMETERS("db:input-parameters", 2),
 
     // Dataweave
-    DW_SET_VARIABLE("dw:set-variable", 2),
-    DW_SET_SESSION_VARIABLE("dw:set-session-variable", 2),
-    DW_SET_PAYLOAD("dw:set-payload", 2),
-    DW_INPUT_PAYLOAD("dw:input-payload", 2),
+    EE_MESSAGE("ee:message", 2),
+    EE_SET_VARIABLE("ee:set-variable", 2),
+    EE_SET_PAYLOAD("ee:set-payload", 2),
+    EE_VARIABLES("ee:variables", 2),
 
     // Yet to support
     SPRING_BEANS("spring:beans", 7),

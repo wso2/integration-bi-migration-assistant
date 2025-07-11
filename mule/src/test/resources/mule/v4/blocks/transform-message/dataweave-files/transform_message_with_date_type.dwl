@@ -1,5 +1,5 @@
-%dw 1.0
-%output application/json
+%dw 2.0
+output application/json
 ---
 {
     date: |2021-01-01|,

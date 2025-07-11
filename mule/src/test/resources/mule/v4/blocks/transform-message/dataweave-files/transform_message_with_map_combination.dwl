@@ -1,4 +1,6 @@
-%dw 1.0
-%output application/json
+%dw 2.0
+output application/json
 ---
-users: ["john", "peter", "matt"] map  upper $
+{
+  users: ["john", "peter", "matt"] map upper($)
+}

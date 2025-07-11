@@ -1,8 +1,8 @@
-%dw 1.0
-%output application/json
+%dw 2.0
+output application/json
 ---
 {
-    a: 1 as :string {format: "##,#"},
-    b: now as :string {format: "yyyy-MM-dd"},
-    c: true as :string
+    a: 1 as String {format: "##,#"},
+    b: now() as String {format: "yyyy-MM-dd"},
+    c: true as String
 }
