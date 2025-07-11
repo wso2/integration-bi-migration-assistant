@@ -187,6 +187,7 @@ public class ActivityConversionTest {
                              unhandledInlineActivity -> unhandledInlineActivity.name();
                 case Process5.ExplicitTransitionGroup.InlineActivity inlineActivity -> inlineActivity.name();
             };
+            String sanitizedPrefix = ConversionUtils.sanitizes(prefix);
             return new AnalysisResult() {
                 @Override
                 public Collection<String> inputTypeName(Process process) {
@@ -215,7 +216,7 @@ public class ActivityConversionTest {
 
                 @Override
                 public ActivityData from(Scope.Flow.Activity activity) {
-                    return new ActivityData(prefix, new BallerinaModel.TypeDesc.MapTypeDesc(XML), XML);
+                    return new ActivityData(sanitizedPrefix, new BallerinaModel.TypeDesc.MapTypeDesc(XML), XML);
                 }
 
                 @Override
