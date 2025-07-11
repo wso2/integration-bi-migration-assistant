@@ -157,7 +157,7 @@ This will treat each child directory within `path/to/projects-directory` as a se
   WARNING: Partially supported activity: JMS Send
   ```
 
-- They will also be listed in the report under heading "Activities that need manual validation". For most typical use cases, you can use the converted source as is, but we highly encourage users to check the converted code. There will be comments explaining any limitations/assumptions the tool have made.
+- They will also be listed in the report under heading "Activities that need manual validation". For most typical use cases, you can use the converted source as is, but we highly encourage users to check the converted code. There will be comments explaining any limitations/assumptions the tool has made.
   ```ballerina
       // WARNING: using default destination configuration
       jms:MessageProducer var4 = check var3.createProducer(destination = {
