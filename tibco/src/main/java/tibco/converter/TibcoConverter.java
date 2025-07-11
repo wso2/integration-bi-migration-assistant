@@ -60,11 +60,6 @@ public class TibcoConverter {
                         + sourcePath);
                 System.exit(1);
             }
-            if (!dryRun) {
-                logger().severe("Error: Multi-root conversion is only supported with dry run mode. "
-                        + "Please use the --dry-run flag.");
-                System.exit(1);
-            }
             migrateTibcoMultiRoot(inputPath, outputPath, preserverStructure, verbose, dryRun);
             return;
         }
