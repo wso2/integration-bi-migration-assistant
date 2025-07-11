@@ -10,7 +10,7 @@ distribution-version = "2201.12.7"
 [[package]]
 org = "wso2"
 name = "tool_migrate_tibco"
-version = "1.2.4"
+version = "1.2.5"
 modules = [
 	{org = "wso2", packageName = "tool_migrate_tibco", moduleName = "tool_migrate_tibco"}
 ]
