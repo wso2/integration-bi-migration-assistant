@@ -620,7 +620,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 break;
             case "time:Civil":
                 if (this.dwContext.currentScriptContext.currentType.equals(DWUtils.NUMBER)) {
-                    this.dwContext.append("[").append(expression).append(", 0]");
+                    this.dwContext.append("time:utcToString([%s,0])".formatted(expression));
                 } else {
                     DataWeaveParser.FormatOptionContext formatOption = ctx.formatOption();
                     if (this.dwContext.currentScriptContext.currentType.equals(DWUtils.STRING) &&

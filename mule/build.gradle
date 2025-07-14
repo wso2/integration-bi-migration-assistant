@@ -62,6 +62,37 @@ tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
     }
 }
 
+// ANTLR code generation tasks
+task generateDataWeaveV3Parser(type: JavaExec) {
+    group = 'antlr'
+    description = 'Generate ANTLR parser classes for DataWeave v3 grammar'
+
+    classpath = configurations.runtimeClasspath
+    mainClass = 'org.antlr.v4.Tool'
+
+    args = [
+        '-package', 'mule.v3.dataweave.parser',
+        '-o', '.',
+        '-visitor',
+        'src/main/java/mule/v3/dataweave/parser/DataWeave.g4'
+    ]
+}
+
+task generateDataWeaveV4Parser(type: JavaExec) {
+    group = 'antlr'
+    description = 'Generate ANTLR parser classes for DataWeave v4 grammar'
+
+    classpath = configurations.runtimeClasspath
+    mainClass = 'org.antlr.v4.Tool'
+
+    args = [
+        '-package', 'mule.v4.dataweave.parser',
+        '-o', '.',
+        '-visitor',
+        'src/main/java/mule/v4/dataweave/parser/DataWeave.g4'
+    ]
+}
+
 test {
     useTestNG() {
         suites 'src/test/resources/testng.xml'

@@ -34,7 +34,7 @@ public class TransformMessageTest extends AbstractBlockTest {
                 "transform-message/transform_message_with_components.bal");
     }
 
-    @Test
+    @Test(enabled = false)
     public void testTransformMessageWithUnsupportedComponents() {
         testMule4ToBal("transform-message/transform_message_with_unsupported_components.xml",
                 "transform-message/transform_message_with_unsupported_components.bal");

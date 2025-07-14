@@ -23,7 +23,6 @@ import mule.v4.ConversionUtils;
 import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.MuleModel.DbConnection;
 import mule.v4.model.MuleXMLTag;
-import org.w3c.dom.CDATASection;
 import org.w3c.dom.Element;
 
 import java.util.ArrayList;
@@ -52,7 +51,6 @@ import static mule.v4.model.MuleModel.HTTPListenerConfig;
 import static mule.v4.model.MuleModel.HTTPRequestConfig;
 import static mule.v4.model.MuleModel.HttpListener;
 import static mule.v4.model.MuleModel.HttpRequest;
-import static mule.v4.model.MuleModel.InputPayloadElement;
 import static mule.v4.model.MuleModel.Kind;
 import static mule.v4.model.MuleModel.LogLevel;
 import static mule.v4.model.MuleModel.Logger;
@@ -62,7 +60,6 @@ import static mule.v4.model.MuleModel.ObjectToString;
 import static mule.v4.model.MuleModel.Payload;
 import static mule.v4.model.MuleModel.RemoveVariable;
 import static mule.v4.model.MuleModel.SetPayloadElement;
-import static mule.v4.model.MuleModel.SetSessionVariableElement;
 import static mule.v4.model.MuleModel.SetVariable;
 import static mule.v4.model.MuleModel.SetVariableElement;
 import static mule.v4.model.MuleModel.SubFlow;
@@ -684,7 +681,8 @@ public class MuleConfigReader {
                             case MuleXMLTag.EE_SET_PAYLOAD -> {
                                 String resource = messageElement.getAttribute("resource");
                                 if (resource.isEmpty()) {
-                                    transformMessageElements.add(new SetPayloadElement(null, messageElement.getTextContent()));
+                                    transformMessageElements.add(
+                                            new SetPayloadElement(null, messageElement.getTextContent()));
                                 } else {
                                     transformMessageElements.add(new SetPayloadElement(resource, null));
                                 }
@@ -695,18 +693,21 @@ public class MuleConfigReader {
                                     MuleXMLNavigator.MuleElement variableChild = messageChild.consumeChild();
                                     Element variableElement = variableChild.getElement();
 
-                                    if (MuleXMLTag.fromTag(variableElement.getTagName()) == MuleXMLTag.EE_SET_VARIABLE) {
+                                    if (MuleXMLTag.fromTag(variableElement.getTagName()) ==
+                                            MuleXMLTag.EE_SET_VARIABLE) {
                                         String variableName = variableElement.getAttribute("variableName");
                                         String resource = variableElement.getAttribute("resource");
                                         String script = null;
                                         if (resource.isEmpty()) {
                                             script = variableElement.getTextContent();
                                         }
-                                        transformMessageElements.add(new SetVariableElement(resource, script, variableName));
+                                        transformMessageElements.add(
+                                                new SetVariableElement(resource, script, variableName));
                                     }
                                 }
                             }
-                            default -> throw new UnsupportedOperationException("Unsupported ee:message child: " + messageTag);
+                            default -> throw new UnsupportedOperationException("Unsupported ee:message child: "
+                                    + messageTag);
                         }
                     }
                 }

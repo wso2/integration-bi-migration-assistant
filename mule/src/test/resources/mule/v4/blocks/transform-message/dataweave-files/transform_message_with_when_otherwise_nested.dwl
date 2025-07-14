@@ -2,13 +2,7 @@
 output application/json
 ---
 {
-	currency: "USD"
-} when payload.country =="USA"
-otherwise
-{
-	currency: "GBP"
-} when payload.country =="UK"
-otherwise
-{
-	currency: "EUR"
+    currency: if (payload.country == "USA") "USD"
+              else if (payload.country == "UK") "GBP"
+              else "EUR"
 }

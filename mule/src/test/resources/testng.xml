@@ -30,7 +30,7 @@
             <class name="mule.v4.blocks.ErrorHandlerTest"/>
             <class name="mule.v4.blocks.VMConnectorTest"/>
             <class name="mule.v4.blocks.PropertyAccessTest"/>
-<!--            <class name="mule.v4.blocks.TransformMessageTest"/>-->
+            <class name="mule.v4.blocks.TransformMessageTest"/>
         </classes>
     </test>
 </suite>

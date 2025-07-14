@@ -11,10 +11,19 @@ public function getFormattedStringFromDate(string dateString, string format) ret
     return formatDateTime(localDateTime, getDateTimeFormatter(java:fromString(format))).toString();
 }
 
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_(ctx);
+    ctx.payload = _dwOutput_;
+}
+
 public function parseInstant(handle instant) returns handle = @java:Method {
     'class: "java.time.Instant",
     name: "parse"
 } external;
+
+function _dwMethod0_(Context ctx) returns json|error {
+    return {"a": intToString(1, "##,#"), "b": check getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd").ensureType(json), "c": true.toString()};
+}
 
 public function formatDateTime(handle dateTime, handle formatter) returns handle = @java:Method {
     'class: "java.time.LocalDateTime"
@@ -44,19 +53,10 @@ public function getFormattedStringFromNumber(handle formatObject, int value) ret
     paramTypes: ["long"]
 } external;
 
-function _dwMethod0_() returns json|error {
-    return {"a": intToString(1, "##,#"), "b": check getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd").ensureType(json), "c": true.toString()};
-}
-
 public function intToString(int intValue, string format) returns string {
     handle formatObj = newDecimalFormat(java:fromString(format));
     handle stringResult = getFormattedStringFromNumber(formatObj, intValue);
     return stringResult.toString();
-}
-
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_();
-    ctx.payload = _dwOutput_;
 }
 
 public function newDecimalFormat(handle format) returns handle = @java:Constructor {

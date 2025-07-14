@@ -6,28 +6,62 @@ FUNCTION: 'fun';
 IMPORT: 'import';
 NAMESPACE: 'ns';
 OUTPUT: 'output';
+INPUT: 'input';
 DW: '%dw';
 TYPE: 'type';
 ASSIGN: '=';
 ARROW: '->';
 BOOLEAN: 'true' | 'false';
 
+// Keywords
+AND: 'and';
+OR: 'or';
+NOT: 'not';
+IF: 'if';
+ELSE: 'else';
+UNLESS: 'unless';
+USING: 'using';
+AS: 'as';
+IS: 'is';
+NULL: 'null';
+DEFAULT: 'default';
+CASE: 'case';
+THROW: 'throw';
+DO: 'do';
+FOR: 'for';
+YIELD: 'yield';
+ENUM: 'enum';
+PRIVATE: 'private';
+ASYNC: 'async';
+MAP: 'map';
+FILTER: 'filter';
+GROUP_BY: 'groupBy';
+SIZE_OF: 'sizeOf';
+UPPER: 'upper';
+LOWER: 'lower';
+REPLACE: 'replace';
+WITH: 'with';
+FROM: 'from';
+
+// Built-in identifiers
+NOW: 'now';
+
 // Operators with names
 OPERATOR_EQUALITY: '==' | '!=' | '~=';
-OPERATOR_RELATIONAL:'>' | '<' | '>=' | '<=' | 'is';
+OPERATOR_RELATIONAL:'>' | '<' | '>=' | '<=';
 OPERATOR_MULTIPLICATIVE: '*' | '/';
 OPERATOR_ADDITIVE: '+' | '>>' | '-' ;
-OPERATOR_TYPE_COERCION: 'as';
 OPERATOR_RANGE: '..';
+CONCAT: '++';
 
 IDENTIFIER: [a-zA-Z_][a-zA-Z0-9_]*;
 INDEX_IDENTIFIER: '$$';
 VALUE_IDENTIFIER: '$';
 URL: [a-zA-Z]+ '://' [a-zA-Z0-9./_-]+;
 MEDIA_TYPE: [a-z]+ '/' [a-z0-9.+-]+;
-NUMBER: [0-9]+('.'[0-9]+)?; // Matches integers and decimals
-STRING: '"' .*? '"' | '\'' .*? '\''; // Support for single and double-quoted strings
-DATE: '|' .*? '|'; // ISO-8601 enclosed in "|"
+NUMBER: [0-9]+('.'[0-9]+)?;
+STRING: '"' .*? '"' | '\'' .*? '\'';
+DATE: '|' .*? '|';
 REGEX: '/' .*? '/';
 DOT: '.';
 COLON: ':';
@@ -39,7 +73,7 @@ RSQUARE: ']';
 LPAREN: '(';
 RPAREN: ')';
 SEPARATOR: '---';
-WS: [ \t]+ -> skip; // Skip whitespace
+WS: [ \t]+ -> skip;
 NEWLINE: [\r\n]+ -> skip;
 COMMENT: '//' ~[\r\n]* -> skip;
 
@@ -56,6 +90,7 @@ header: (directive (NEWLINE | WS)*)+;
 directive
     : dwVersion
     | outputDirective
+    | inputDirective
     | importDirective
     | namespaceDirective
     | variableDeclaration
@@ -66,7 +101,9 @@ dwVersion: DW NUMBER;
 
 outputDirective: OUTPUT MEDIA_TYPE;
 
-importDirective: IMPORT IDENTIFIER ('from' STRING)?;
+inputDirective: INPUT IDENTIFIER MEDIA_TYPE;
+
+importDirective: IMPORT IDENTIFIER (FROM STRING)?;
 
 namespaceDirective: NAMESPACE IDENTIFIER URL;
 
@@ -76,22 +113,25 @@ functionDeclaration: FUNCTION IDENTIFIER LPAREN functionParameters? RPAREN expre
 
 typeDeclaration: TYPE IDENTIFIER ASSIGN typeExpression;
 
-// Body of the parser remains unchanged
+// Body of the parser
 body: expression NEWLINE*;
 
-// Expression Rules (Rewritten for Precedence)
+// Expression Rules
 expression
-    : defaultExpression                             # expressionWrapper
-    | conditionalExpression                         # conditionalExpressionWrapper
+    : operationExpression
     ;
 
-// Level 10: Conditional Expressions (WHEN OTHERWISE, UNLESS OTHERWISE)
-conditionalExpression
-    : defaultExpression ('when' defaultExpression 'otherwise' defaultExpression)+     #whenCondition
-    | defaultExpression ('unless' defaultExpression 'otherwise' defaultExpression)+   #unlessCondition
+// Level 9: Operations (Map, Filter, GroupBy, Replace, Concat)
+operationExpression
+    : operationExpression FILTER implicitLambdaExpression   # filterExpression
+    | operationExpression MAP implicitLambdaExpression      # mapExpression
+    | operationExpression GROUP_BY implicitLambdaExpression # groupByExpression
+    | operationExpression REPLACE REGEX WITH expression     # replaceExpression
+    | operationExpression CONCAT logicalOrExpression        # concatExpression
+    | logicalOrExpression                                   # operationExpressionWrapper
     ;
 
-// Implicit Lambda Expressions (Ensuring `$` or `$$` is inside)
+// Implicit Lambda Expressions
 implicitLambdaExpression
     : inlineLambda
     | expression
@@ -103,28 +143,15 @@ inlineLambda: '(' functionParameters ')' ARROW expression;
 
 functionParameters: IDENTIFIER (COMMA IDENTIFIER)*;
 
-// Level 9: Default value, Pattern Matching, Map, Filter
-defaultExpression
-    : logicalOrExpression defaultExpressionRest # defaultExpressionWrapper
-    ;
-
-defaultExpressionRest
-    : 'filter' implicitLambdaExpression defaultExpressionRest  # filterExpression
-    | 'map' implicitLambdaExpression defaultExpressionRest     # mapExpression
-    | 'groupBy' implicitLambdaExpression defaultExpressionRest # groupByExpression
-    | 'replace' REGEX 'with' expression                        # replaceExpression
-    | '++' expression                                          # concatExpression
-    | /* epsilon (empty) */                                    # defaultExpressionEnd
-    ;
 
 // Level 8: Logical OR
 logicalOrExpression
-    : logicalAndExpression ('or' logicalAndExpression)*
+    : logicalAndExpression (OR logicalAndExpression)*
     ;
 
 // Level 7: Logical AND
 logicalAndExpression
-    : equalityExpression ('and' equalityExpression)*
+    : equalityExpression (AND equalityExpression)*
     ;
 
 // Level 6: Equality Operators (==, !=, ~=)
@@ -132,9 +159,10 @@ equalityExpression
     : relationalExpression (OPERATOR_EQUALITY relationalExpression)*
     ;
 
-// Level 5: Relational and Type Comparison (>, <, >=, ⇐, is)
+// Level 5: Relational and Type Comparison (>, <, >=, <=, is)
 relationalExpression
-    : additiveExpression (OPERATOR_RELATIONAL additiveExpression)*
+    : additiveExpression (OPERATOR_RELATIONAL additiveExpression)*     # relationalComparison
+    | additiveExpression IS typeExpression                             # isExpression
     ;
 
 // Level 4: Additive Operators (+, -, >>)
@@ -149,7 +177,7 @@ multiplicativeExpression
 
 // Level 2: Type Coercion (`as`)
 typeCoercionExpression
-    : unaryExpression (OPERATOR_TYPE_COERCION typeExpression formatOption?)?
+    : unaryExpression (AS typeExpression formatOption?)?
     ;
 
 // Formatting options within `{}`
@@ -159,27 +187,36 @@ formatOption
 
 // Level 1: Unary Operators (-, not)
 unaryExpression
-    : 'sizeOf' expression                   # sizeOfExpression
-    | 'sizeOf' '(' expression ')'           # sizeOfExpressionWithParentheses
-    | 'upper' expression                    # upperExpression
-    | 'upper' '(' expression ')'            # upperExpressionWithParentheses
-    | 'lower' expression                    # lowerExpression
-    | 'lower' '(' expression ')'            # lowerExpressionWithParentheses
-    | primaryExpression                     # primaryExpressionWrapper
+    : SIZE_OF expression                   # sizeOfExpression
+    | SIZE_OF '(' expression ')'           # sizeOfExpressionWithParentheses
+    | UPPER expression                     # upperExpression
+    | UPPER '(' expression ')'             # upperExpressionWithParentheses
+    | LOWER expression                     # lowerExpression
+    | LOWER '(' expression ')'             # lowerExpressionWithParentheses
+    | NOT expression                       # notExpression
+    | '-' expression                       # negativeExpression
+    | primaryExpression                    # primaryExpressionWrapper
     ;
 
 // **Primary Expressions (Highest Precedence)**
 primaryExpression
-    : inlineLambda                           # lambdaExpression
+    : IF LPAREN logicalOrExpression RPAREN logicalOrExpression (ELSE IF LPAREN logicalOrExpression RPAREN logicalOrExpression)* (ELSE logicalOrExpression)?    # ifElseCondition
+    | inlineLambda                           # lambdaExpression
     | grouped                                # groupedExpression
     | literal                                # literalExpression
     | functionCall                           # functionCallExpression
     | array                                  # arrayExpression
     | object                                 # objectExpression
+    | builtInFunction                        # builtInFunctionExpression
     | IDENTIFIER                             # identifierExpression
     | VALUE_IDENTIFIER                       # valueIdentifierExpression
     | INDEX_IDENTIFIER                       # indexIdentifierExpression
     | primaryExpression selectorExpression   # selectorExpressionWrapper
+    ;
+
+// Built-in functions
+builtInFunction
+    : NOW '(' ')'                            # nowFunction
     ;
 
 // Grouped expressions
@@ -207,26 +244,34 @@ array: LSQUARE (expression (COMMA expression)*)? RSQUARE;
 
 // Objects
 object
-    : LCURLY keyValue (COMMA keyValue)* RCURLY  # multiKeyValueObject
-    | keyValue                                  # singleKeyValueObject
+    : LCURLY objectField (COMMA objectField)* RCURLY  # multiFieldObject
+    | LCURLY objectField RCURLY                       # singleFieldObject
     ;
 
-keyValue: IDENTIFIER COLON expression;
+objectField
+    : IDENTIFIER COLON expression              # unquotedKeyField
+    | STRING COLON expression                  # quotedKeyField
+    | '(' expression ')' COLON expression      # dynamicKeyField
+    ;
 
 // Function calls
 functionCall: IDENTIFIER '(' (expression (COMMA expression)*)? ')';
 
 // Type expressions for DataWeave 2.0
 typeExpression
-    : IDENTIFIER                              # namedType
+    : IDENTIFIER                             # namedType
     | 'String'                               # stringType
-    | 'Number'                               # numberType
     | 'Boolean'                              # booleanType
+    | 'Number'                               # numberType
+    | 'Regex'                                # regexType
+    | 'Null'                                 # regexType
+    | 'Date'                                 # dateType
     | 'DateTime'                             # dateTimeType
     | 'LocalDateTime'                        # localDateTimeType
-    | 'Date'                                 # dateType
+    | 'LocalTime'                            # localTimeType
     | 'Time'                                 # timeType
-    | 'Array' '<' typeExpression '>'         # arrayType
+    | 'Period'                               # periodType
+//    | 'Array' '<' typeExpression '>'         # arrayType TODO: conflicts with [1, 4] filter ($ > 2). Revisit later
     | 'Object'                               # objectType
-    | ':' IDENTIFIER                         # legacyType
+    | 'Any'                                  # anyType
     ;

@@ -1,10 +1,8 @@
 %dw 2.0
 output application/json
+input payload application/json
 ---
-{
-  currency: "USD"
-} when payload.country == "USA"
-otherwise
-{
-      currency: "EUR"
-}
+if (payload.country == "USA")
+    { currency: "USD" }
+else
+    { currency: "EUR" }
