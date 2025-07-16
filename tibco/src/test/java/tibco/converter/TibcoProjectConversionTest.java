@@ -82,7 +82,7 @@ public class TibcoProjectConversionTest {
         try (Stream<Path> expectedFiles = Files.walk(expectedBallerinaProject)) {
             var expectedPaths = expectedFiles
                     .filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".bal") | path.toString().endsWith(".toml"))
+                    .filter(path -> path.toString().endsWith(".bal") || path.toString().endsWith(".toml"))
                     .map(expectedBallerinaProject::relativize)
                     .toList();
 
