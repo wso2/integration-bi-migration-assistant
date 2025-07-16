@@ -20,7 +20,7 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import tibco.TibcoToBalConverter;
+import tibco.ProjectConversionContext;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.TibcoAnalysisReport;
 import tibco.model.Process;
@@ -52,7 +52,7 @@ public class ProjectConverter {
     }
 
     public static ConversionResult convertProject(
-            TibcoToBalConverter.ProjectConversionContext conversionContext,
+            ProjectConversionContext conversionContext,
             Map<Process, AnalysisResult> analysisResult, Collection<Process> processes, Collection<Type.Schema> types,
             ProjectResources projectResources, tibco.parser.ProjectContext parserContext) {
         ProjectContext cx = new ProjectContext(conversionContext, analysisResult);

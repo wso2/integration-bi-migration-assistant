@@ -18,7 +18,6 @@
 
 package tibco.parser;
 
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 
@@ -28,8 +27,7 @@ import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 import common.LoggingUtils;
-import tibco.converter.TibcoConverter;
-import tibco.TibcoToBalConverter;
+import tibco.ProjectConversionContext;
 import tibco.model.NameSpace;
 import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
@@ -50,7 +48,7 @@ public class XmlToModelTests {
         stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
     }
-    private static final TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext(
+    private static final ProjectConversionContext cx = new ProjectConversionContext(
             true, false, stateCallback, logCallback);
     private static final ProjectContext projectContext = new ProjectContext(cx, "test-project");
     private static final String ANON_PROCESS = "ANON.proc";

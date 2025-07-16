@@ -25,7 +25,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
-import tibco.TibcoToBalConverter;
+import tibco.ProjectConversionContext;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.TibcoAnalysisReport;
 import tibco.model.Method;
@@ -85,7 +85,7 @@ public class ActivityConversionTest {
         Logger logger = createVerboseLogger("test");
         var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
-        TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext(true, false,
+        ProjectConversionContext cx = new ProjectConversionContext(true, false,
                 List.of(), stateCallback, logCallback);
         tibco.parser.ProjectContext projectContext = new tibco.parser.ProjectContext(cx, "test-project");
         return new tibco.parser.ProcessContext(projectContext, "test-activity.xml");
@@ -95,8 +95,8 @@ public class ActivityConversionTest {
         Logger logger = createVerboseLogger("test");
         var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
-        TibcoToBalConverter.ProjectConversionContext conversionContext =
-                new TibcoToBalConverter.ProjectConversionContext(true, false, List.of(), stateCallback, logCallback);
+        ProjectConversionContext conversionContext =
+                new ProjectConversionContext(true, false, List.of(), stateCallback, logCallback);
         return new TestProcessContext(new TestProjectContext(conversionContext, Map.of()), activity);
     }
 
@@ -134,7 +134,7 @@ public class ActivityConversionTest {
 
     static class TestProjectContext extends ProjectContext {
 
-        TestProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
+        TestProjectContext(ProjectConversionContext conversionContext,
                            Map<Process, AnalysisResult> analysisResult) {
             super(conversionContext, analysisResult);
         }

@@ -27,6 +27,7 @@ import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.LoggingContext;
+import tibco.ProjectConversionContext;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.TibcoAnalysisReport.PartiallySupportedActivityElement;
@@ -92,7 +93,7 @@ public class ProjectContext implements LoggingContext {
 
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
     // TODO: We need to fix this so logging works correctly even for single files.
-    private final TibcoToBalConverter.ProjectConversionContext conversionContext;
+    private final ProjectConversionContext conversionContext;
     private final Map<String, String> generatedResources = new HashMap<>();
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
     private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
@@ -105,7 +106,7 @@ public class ProjectContext implements LoggingContext {
     private final Set<UnhandledActivityElement> unhandledActivities = new HashSet<>();
     private final Set<PartiallySupportedActivityElement> partiallySupportedActivities = new HashSet<>();
 
-    ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
+    ProjectContext(ProjectConversionContext conversionContext,
                    Map<Process, AnalysisResult> analysisResult) {
         this.conversionContext = conversionContext;
         this.analysisResult = analysisResult;

@@ -22,7 +22,7 @@ import common.LoggingUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
-import tibco.TibcoToBalConverter;
+import tibco.ProjectConversionContext;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -41,7 +41,7 @@ public class TibcoProjectConversionTest {
         Logger logger = TibcoConverter.createVerboseLogger("test");
         var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
-        TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext(
+        ProjectConversionContext cx = new ProjectConversionContext(
                 true, false, new ArrayList<>(), stateCallback, logCallback);
         try {
             if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {

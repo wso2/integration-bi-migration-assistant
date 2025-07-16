@@ -25,6 +25,7 @@ import common.CombinedSummaryReport;
 import common.LoggingUtils;
 import common.ProjectSummary;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import tibco.ProjectConversionContext;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.TibcoAnalysisReport;
 
@@ -51,8 +52,8 @@ public class TibcoConverter {
         Logger logger = verbose ? createVerboseLogger("migrate-tibco") : createDefaultLogger("migrate-tibco");
         Consumer<String> stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         Consumer<String> logCallback = LoggingUtils.wrapLoggerForLogCallback(logger);
-        TibcoToBalConverter.ProjectConversionContext context =
-                new TibcoToBalConverter.ProjectConversionContext(verbose, dryRun, stateCallback, logCallback);
+        ProjectConversionContext context =
+                new ProjectConversionContext(verbose, dryRun, stateCallback, logCallback);
         Path inputPath = null;
         try {
             inputPath = Paths.get(sourcePath).toRealPath();
@@ -75,7 +76,7 @@ public class TibcoConverter {
         migrateTibcoInner(context, sourcePath, outputPath, preserverStructure);
     }
 
-    private static void migrateTibcoMultiRoot(TibcoToBalConverter.ProjectConversionContext context,
+    private static void migrateTibcoMultiRoot(ProjectConversionContext context,
                                               Path inputPath, String outputPath, boolean preserverStructure) {
         List<ProjectSummary> projectSummaries = new ArrayList<>();
 
@@ -134,7 +135,7 @@ public class TibcoConverter {
         }
     }
 
-    private static Optional<MigrationResult> migrateTibcoInner(TibcoToBalConverter.ProjectConversionContext context,
+    private static Optional<MigrationResult> migrateTibcoInner(ProjectConversionContext context,
                                                                String sourcePath, String outputPath,
                                                                boolean preserverStructure) {
         Path inputPath;
@@ -160,7 +161,7 @@ public class TibcoConverter {
         }
     }
 
-    static Optional<MigrationResult> migrateTibcoProject(TibcoToBalConverter.ProjectConversionContext cx,
+    static Optional<MigrationResult> migrateTibcoProject(ProjectConversionContext cx,
                                                          String projectPath, String targetPath,
                                                          boolean preserverStructure) {
         Path targetDir = Paths.get(targetPath);
@@ -243,7 +244,7 @@ public class TibcoConverter {
         return Optional.of(new MigrationResult(report));
     }
 
-    private static void writeAnalysisReport(TibcoToBalConverter.ProjectConversionContext context, Path targetDir,
+    private static void writeAnalysisReport(ProjectConversionContext context, Path targetDir,
                                             TibcoAnalysisReport report) throws IOException {
         Path reportFilePath = targetDir.resolve("report.html");
         String htmlContent = report.toHTML();
@@ -251,7 +252,7 @@ public class TibcoConverter {
         context.log(LoggingUtils.Level.INFO, "Created analysis report at: " + reportFilePath);
     }
 
-    private static void writeCombinedSummaryReport(TibcoToBalConverter.ProjectConversionContext context, Path targetDir,
+    private static void writeCombinedSummaryReport(ProjectConversionContext context, Path targetDir,
                                                    List<ProjectSummary> projectSummaries)
             throws IOException {
         Path reportFilePath = targetDir.resolve("combined_summary_report.html");
@@ -296,7 +297,7 @@ public class TibcoConverter {
         }
     }
 
-    private static void createTargetDirectoryIfNeeded(TibcoToBalConverter.ProjectConversionContext context,
+    private static void createTargetDirectoryIfNeeded(ProjectConversionContext context,
                                                       Path targetDir) throws IOException {
         if (Files.exists(targetDir)) {
             return;
@@ -305,7 +306,7 @@ public class TibcoConverter {
         context.log(LoggingUtils.Level.INFO, "Created target directory: " + targetDir);
     }
 
-    private static void addProjectArtifacts(TibcoToBalConverter.ProjectConversionContext cx, String targetPath)
+    private static void addProjectArtifacts(ProjectConversionContext cx, String targetPath)
             throws IOException {
         String org = "converter";
         String name = Paths.get(targetPath).getFileName().toString();

@@ -20,7 +20,7 @@ package tibco.analyzer;
 
 import common.LoggingUtils;
 import tibco.LoggingContext;
-import tibco.TibcoToBalConverter;
+import tibco.ProjectConversionContext;
 import tibco.model.Scope;
 import tibco.model.XSD;
 
@@ -35,9 +35,9 @@ public class ProjectAnalysisContext implements LoggingContext {
     private final Map<Scope.Flow.Activity, String> activityFunctionNames =
             new ConcurrentHashMap<>();
     private final Map<String, XSD.XSDType> xsdTypes = new ConcurrentHashMap<>();
-    private final TibcoToBalConverter.ProjectConversionContext cx;
+    private final ProjectConversionContext cx;
 
-    public ProjectAnalysisContext(TibcoToBalConverter.ProjectConversionContext cx) {
+    public ProjectAnalysisContext(ProjectConversionContext cx) {
         this.cx = cx;
     }
 

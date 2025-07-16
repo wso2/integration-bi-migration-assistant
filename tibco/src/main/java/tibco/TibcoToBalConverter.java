@@ -43,7 +43,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -52,7 +51,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -355,21 +353,4 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
         }
     }
 
-    public record ProjectConversionContext(boolean verbose, boolean dryRun, List<JavaDependencies> javaDependencies,
-                                           Consumer<String> stateCallback, Consumer<String> logCallback) implements
-            LoggingContext {
-
-        public ProjectConversionContext(boolean verbose, boolean dryRun, Consumer<String> stateCallback,
-                                        Consumer<String> logCallback) {
-            this(verbose, dryRun, new ArrayList<>(), stateCallback, logCallback);
-        }
-
-        public void log(LoggingUtils.Level level, String message) {
-            logCallback.accept("[" + level + "] " + message);
-        }
-
-        public void logState(String message) {
-            stateCallback.accept(message);
-        }
-    }
 }

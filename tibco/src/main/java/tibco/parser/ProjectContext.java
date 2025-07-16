@@ -22,7 +22,7 @@ import common.LoggingUtils;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.LoggingContext;
-import tibco.TibcoToBalConverter;
+import tibco.ProjectConversionContext;
 import tibco.analyzer.TibcoAnalysisReport;
 import tibco.analyzer.TibcoAnalysisReport.PartiallySupportedActivityElement.NamedPartiallySupportedActivityElement;
 import tibco.analyzer.TibcoAnalysisReport.PartiallySupportedActivityElement.UnNamedPartiallySupportedActivityElement;
@@ -43,14 +43,14 @@ public final class ProjectContext implements Context, LoggingContext {
     private long nextAnonXSLTIndex = 0;
     private long nextUnhandledActivityIndex = 0;
     private final String projectPath;
-    private final TibcoToBalConverter.ProjectConversionContext conversionContext;
+    private final ProjectConversionContext conversionContext;
     private final Set<TibcoAnalysisReport.UnhandledActivityElement> unhandledActivities = new HashSet<>();
     private final Set<TibcoAnalysisReport.PartiallySupportedActivityElement> partiallySupportedActivities =
             new HashSet<>();
     private final Set<Element> uniqueActivityElements = new HashSet<>();
     private int totalActivityCount = 0;
 
-    public ProjectContext(TibcoToBalConverter.ProjectConversionContext cx, String projectPath) {
+    public ProjectContext(ProjectConversionContext cx, String projectPath) {
         assert cx != null : "Project conversion context cannot be null";
         this.projectPath = projectPath;
         conversionContext = cx;
