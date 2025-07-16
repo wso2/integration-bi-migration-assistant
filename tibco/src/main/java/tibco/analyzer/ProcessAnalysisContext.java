@@ -18,6 +18,8 @@
 
 package tibco.analyzer;
 
+import common.LoggingUtils;
+import tibco.LoggingContext;
 import tibco.converter.ConversionUtils;
 import tibco.model.PartnerLink;
 import tibco.model.Process5.ExplicitTransitionGroup;
@@ -37,7 +39,7 @@ import java.util.Stack;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 
-public class ProcessAnalysisContext {
+public class ProcessAnalysisContext implements LoggingContext {
 
     private final ProjectAnalysisContext projectAnalysisContext;
 
@@ -328,5 +330,15 @@ public class ProcessAnalysisContext {
 
     public Map<String, XSD.XSDType> xsdTypes() {
         return projectAnalysisContext.xsdTypes();
+    }
+
+    @Override
+    public void log(LoggingUtils.Level level, String message) {
+        projectAnalysisContext.log(level, message);
+    }
+
+    @Override
+    public void logState(String message) {
+        projectAnalysisContext.logState(message);
     }
 }

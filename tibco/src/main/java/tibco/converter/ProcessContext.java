@@ -19,8 +19,10 @@
 package tibco.converter;
 
 import common.BallerinaModel;
+import common.LoggingUtils;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import org.jetbrains.annotations.NotNull;
+import tibco.LoggingContext;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.NameSpace;
 import tibco.model.Process;
@@ -36,7 +38,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static common.BallerinaModel.Expression;
@@ -47,8 +48,7 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
 import static tibco.converter.ConversionUtils.baseName;
 
-public class ProcessContext implements ContextWithFile {
-    private static final Logger logger = TibcoConverter.logger();
+public class ProcessContext implements ContextWithFile, LoggingContext {
 
     private final Set<BallerinaModel.Import> imports = new HashSet<>();
     private BallerinaModel.Listener.HTTPListener defaultListener = null;
@@ -68,6 +68,16 @@ public class ProcessContext implements ContextWithFile {
     ProcessContext(ProjectContext projectContext, Process process) {
         this.projectContext = projectContext;
         this.process = process;
+    }
+
+    @Override
+    public void log(LoggingUtils.Level level, String message) {
+        projectContext.log(level, message);
+    }
+
+    @Override
+    public void logState(String message) {
+        projectContext.logState(message);
     }
 
     BallerinaModel.TypeDesc contextType() {
@@ -225,7 +235,7 @@ public class ProcessContext implements ContextWithFile {
     BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {
         String resourceRef = propertyVariableToResourceMap.get(sharedResourcePropertyName);
         if (resourceRef == null) {
-            logger.severe(
+            log(LoggingUtils.Level.SEVERE,
                     "No shared resource found for " + sharedResourcePropertyName + ". Returning placeholder client.");
             return new BallerinaModel.Expression.VariableReference("placeholder_client");
         }

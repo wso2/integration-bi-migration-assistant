@@ -16,25 +16,23 @@
  *  under the License.
  */
 
-package tibco.converter;
+package tibco;
 
-import common.BallerinaModel;
-import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
-import tibco.LoggingContext;
+import common.LoggingUtils;
 
-interface ContextWithFile extends LoggingContext {
+import java.util.function.Consumer;
 
-    boolean hasConstantWithName(String name);
+public record ConversionContext(String org, boolean dryRun, boolean keepStructure,
+                                Consumer<String> stateCallback, Consumer<String> logCallback)
+        implements LoggingContext {
 
-    void addLibraryImport(Library library);
+    @Override
+    public void log(LoggingUtils.Level level, String message) {
+        logCallback.accept("[" + level + "] " + message);
+    }
 
-    BallerinaModel.TypeDesc getTypeByName(String name);
-
-    boolean addModuleTypeDef(String name, BallerinaModel.ModuleTypeDef defn);
-
-    ProjectContext getProjectContext();
-
-    void addTypeAstNode(String name, ModuleMemberDeclarationNode node);
-
-    void addTypeDefAsIntrinsic(String content);
+    @Override
+    public void logState(String message) {
+        stateCallback.accept(message);
+    }
 }

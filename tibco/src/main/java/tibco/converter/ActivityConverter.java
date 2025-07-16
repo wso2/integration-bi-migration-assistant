@@ -37,7 +37,6 @@ import common.BallerinaModel.TypeDesc.StreamTypeDesc;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
-import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.PartnerLink;
 import tibco.model.Process5;
@@ -71,7 +70,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -88,11 +86,12 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
 import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
-import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
+import static common.LoggingUtils.Level.SEVERE;
+import static common.LoggingUtils.Level.WARN;
 import static tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.ListFilesActivity.Mode.FILES_AND_DIRECTORIES;
+import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 
 final class ActivityConverter {
-    private static final Logger logger = TibcoConverter.logger();
 
     private static final TransformPipeline xsltTransformer = createXsltTransformer();
 
@@ -112,7 +111,7 @@ final class ActivityConverter {
         try {
             return Optional.of(convertActivity(new ActivityContext(cx, activity), activity));
         } catch (Exception e) {
-            logger.severe("Cascading activity conversion failure for activity: " + activity.toString());
+            cx.log(SEVERE, "Cascading activity conversion failure for activity: " + activity.toString());
             return Optional.empty();
         }
     }
@@ -236,8 +235,7 @@ final class ActivityConverter {
     private static ActivityConversionResult convertListFilesActivity(
             ActivityContext cx, VariableReference input, InlineActivity.ListFilesActivity listFilesActivity) {
         List<Statement> body = new ArrayList<>();
-        TibcoToBalConverter.logger()
-                .warning("ListFilesActivity: only fileName and fullName are supported in output.");
+        cx.log(WARN, "ListFilesActivity: only fileName and fullName are supported in output.");
         body.add(new Comment("WARNING: Only fileName and fullName are supported in ListFilesActivity output."));
         VarDeclStatment fileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
                 exprFrom("(%s/**/<fileName>/*).toString().trim()".formatted(input.varName())));
@@ -560,7 +558,7 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
                 exprFrom("(%s/*)".formatted(input.varName())));
         body.add(xmlInput);
         body.add(stmtFrom("xmlns \"http://www.tibco.com/namespaces/tnt/plugins/json\" as ns;"));
-        TibcoToBalConverter.logger().warning("JSONRender: assuming single element");
+        cx.log(WARN, "JSONRender: assuming single element");
         BallerinaModel.TypeDesc targetType = ConversionUtils.toTypeDesc(jsonRender.targetType());
         return finishConvertJsonRender(cx, body, targetType, "ns:ActivityOutputClass", xmlInput.ref());
     }
@@ -602,7 +600,7 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
         try {
             cx.addXSDSchemaToConversion(jsonParser.targetType().toSchema());
         } catch (ParserConfigurationException e) {
-            logger.severe("Error converting Element to String: " + e.getMessage()
+            cx.log(SEVERE, "Error converting Element to String: " + e.getMessage()
                         + ". Continuing with conversion.");
         }
         body.add(stmtFrom("xmlns \"http://www.tibco.com/namespaces/tnt/plugins/json\" as ns;"));

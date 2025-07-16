@@ -35,6 +35,7 @@ import common.BallerinaModel.Statement.VarAssignStatement;
 import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
+import common.LoggingUtils;
 import org.jetbrains.annotations.NotNull;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.Process;
@@ -158,8 +159,8 @@ public class ProcessConverter {
 
     private static BallerinaModel.Service createFallbackServices(ProcessContext cx,
                                                                  ExplicitTransitionGroup.InlineActivity startActivity) {
-        TibcoConverter.logger()
-                .warning("Unsupported start activity %s generating fallback service".formatted(startActivity.name()));
+        cx.log(LoggingUtils.Level.WARN,
+                "Unsupported start activity %s generating fallback service".formatted(startActivity.name()));
         List<Statement> body = List.of(
                 new Statement.Comment("FIXME: service for start activity: %s".formatted(startActivity.name())),
                 new Statement.Comment(
@@ -307,7 +308,7 @@ public class ProcessConverter {
         group.returnBindings().ifPresent(binding -> {
             ActivityConverter.XsltTransformResult transformResult = xsltTransform(cx, resultDecl.ref(), binding);
             if (!transformResult.nonStandardFunctions().isEmpty()) {
-                body.add(new Statement.Comment("WARNING: Non-standard XSLT functions detected: " + 
+                        body.add(new Statement.Comment("WARNING: Non-standard XSLT functions detected: " +
                     String.join(", ", transformResult.nonStandardFunctions())));
             }
             body.add(new VarAssignStatement(resultDecl.ref(), transformResult.expression()));
@@ -405,10 +406,10 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                 BiFunction<ProcessContext, ExplicitTransitionGroup, BallerinaModel.Function> fn,
                 ProcessContext cx, ExplicitTransitionGroup group, String functionName) {
         try {
-                return Optional.ofNullable(fn.apply(cx, group));
+            return Optional.ofNullable(fn.apply(cx, group));
         } catch (Exception e) {
-                TibcoConverter.logger().warning("Exception in " + functionName + ": " + e.getMessage());
-                return Optional.empty();
+            cx.log(LoggingUtils.Level.SEVERE, "Exception in " + functionName + ": " + e.getMessage());
+            return Optional.empty();
         }
     }
 
@@ -761,13 +762,13 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                                                                        Activity.Expression.XSLT xslt) {
         cx.addLibraryImport(Library.XSLT);
         String xsltContent = xslt.expression();
-        
+
         // Detect non-standard functions (Tibco-specific functions)
         List<String> nonStandardFunctions = ActivityConverter.detectNonStandardFunctions(xsltContent);
-        
+
         Expression expression = new CheckPanic(new FunctionCall(ActivityConverter.XSLTConstants.XSLT_TRANSFORM_FUNCTION,
                 List.of(inputVariable, new XMLTemplate(xsltContent))));
-        
+
         return new ActivityConverter.XsltTransformResult(expression, nonStandardFunctions);
     }
 
