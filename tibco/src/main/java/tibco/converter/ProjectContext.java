@@ -92,7 +92,6 @@ public class ProjectContext implements LoggingContext {
     private int annonVarCount = 0;
 
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
-    // TODO: We need to fix this so logging works correctly even for single files.
     private final ProjectConversionContext conversionContext;
     private final Map<String, String> generatedResources = new HashMap<>();
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
@@ -106,8 +105,7 @@ public class ProjectContext implements LoggingContext {
     private final Set<UnhandledActivityElement> unhandledActivities = new HashSet<>();
     private final Set<PartiallySupportedActivityElement> partiallySupportedActivities = new HashSet<>();
 
-    ProjectContext(ProjectConversionContext conversionContext,
-                   Map<Process, AnalysisResult> analysisResult) {
+    ProjectContext(ProjectConversionContext conversionContext, Map<Process, AnalysisResult> analysisResult) {
         this.conversionContext = conversionContext;
         this.analysisResult = analysisResult;
     }

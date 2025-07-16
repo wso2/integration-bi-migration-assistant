@@ -29,6 +29,7 @@ import tibco.analyzer.ModelAnalyser;
 import tibco.analyzer.ProjectAnalysisContext;
 import tibco.converter.ConversionResult;
 import tibco.converter.ProjectConverter;
+import tibco.converter.TibcoConverter;
 import tibco.model.Process;
 import tibco.model.Resource;
 import tibco.model.Type;
@@ -51,6 +52,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -58,7 +60,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 public class TibcoToBalConverter {
-
 
     private TibcoToBalConverter() {
     }
@@ -117,10 +118,10 @@ public class TibcoToBalConverter {
         }
         return elements;
     };
-private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
-        new ParsingUnit.SimpleParsingUnit<>(
-                TibcoToBalConverter::getXSDFiles, XmlToTibcoModelParser::parseSchema,
-                (ProjectContext pcx, String filePath) -> new TypeContext(pcx));
+    private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
+            new ParsingUnit.SimpleParsingUnit<>(
+                    TibcoToBalConverter::getXSDFiles, XmlToTibcoModelParser::parseSchema,
+                    (ProjectContext pcx, String filePath) -> new TypeContext(pcx));
     private static final ParsingUnit<Resource.JDBCResource> JDBC_RESOURCE_PARSING_UNIT =
             new ParsingUnit.SimpleParsingUnit<>(
                     TibcoToBalConverter::getJDBCResourceFiles, XmlToTibcoModelParser::parseJDBCResource,
@@ -147,7 +148,7 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
             Set<Resource.SharedVariable> variables = new HashSet<>();
 
             for (String s : getFilesWithExtension(pcx.projectPath(), "sharedvariable")) {
-                        String relativePath = "/" + Paths.get(pcx.projectPath()).relativize(Paths.get(s)).toString();
+                String relativePath = "/" + Paths.get(pcx.projectPath()).relativize(Paths.get(s)).toString();
                 Optional<Resource.SharedVariable> var = XmlToTibcoModelParser.parseSharedVariable(
                         new ResourceContext(pcx, s),
                         parseXmlFile(s), relativePath);
@@ -173,7 +174,6 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
             return variables;
         }
     };
-
 
     private static ResourceContext getResourceContext(ProjectContext pcx, String filePath) {
         return new ResourceContext(pcx, filePath);
@@ -312,6 +312,17 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
         document.getDocumentElement().normalize();
 
         return document.getDocumentElement();
+    }
+
+    public static Map<String, Object> migrateTIBCO(String orgName, String projectName, String sourcePath,
+                                                   Consumer<String> stateCallback, Consumer<String> logCallback) {
+        ProjectConversionContext cx = new ProjectConversionContext(
+                new ConversionContext(orgName, false, false, stateCallback, logCallback), projectName);
+        TibcoConverter.ConvertResult convertResult = TibcoConverter.convertProjectInner(cx, sourcePath);
+        if (convertResult.errorMessage().isPresent()) {
+            return Map.of("error", convertResult.errorMessage().get());
+        }
+        return Map.of("textEdits", convertResult.files(), "report", convertResult.reportHTML());
     }
 
     public enum JavaDependencies {

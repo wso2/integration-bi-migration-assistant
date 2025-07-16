@@ -22,7 +22,6 @@ import common.LoggingUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
-
 import tibco.ConversionContext;
 import tibco.ProjectConversionContext;
 
@@ -43,7 +42,7 @@ public class TibcoProjectConversionTest {
         var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         ConversionContext conversionContext = new ConversionContext(
-                "testOrg", true, false, false, stateCallback, logCallback);
+                "testOrg", false, false, stateCallback, logCallback);
         ProjectConversionContext cx = new ProjectConversionContext(conversionContext, "test");
         try {
             if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
@@ -58,6 +57,57 @@ public class TibcoProjectConversionTest {
         } finally {
             // Clean up temporary directory
             deleteDirectory(tempDir);
+        }
+    }
+
+    @Test(groups = {"tibco", "converter"}, dataProvider = "projectTestCaseProvider")
+    public void testProjectConversionByAPI(Path tibcoProject, Path expectedBallerinaProject) throws IOException {
+        // Run the conversion using the public API
+        var result = tibco.TibcoToBalConverter.migrateTIBCO(
+                "testOrg",
+                "test",
+                tibcoProject.toString(),
+                s -> {
+                },
+                s -> {
+                });
+        Assert.assertNotNull(result, "migrateTIBCO returned null");
+        Assert.assertTrue(result.containsKey("textEdits"), "Result does not contain 'textEdits'");
+        @SuppressWarnings("unchecked")
+        var textEdits = (java.util.Map<String, String>) result.get("textEdits");
+        Assert.assertNotNull(textEdits, "textEdits is null");
+
+        // Collect expected .bal files (except types.bal)
+        try (Stream<Path> expectedFiles = Files.walk(expectedBallerinaProject)) {
+            var expectedPaths = expectedFiles
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".bal") | path.toString().endsWith(".toml"))
+                    .map(expectedBallerinaProject::relativize)
+                    .toList();
+
+            // Check all expected .bal files exist in textEdits and match content
+            for (Path relativePath : expectedPaths) {
+                if (relativePath.endsWith("types.bal")) {
+                    continue;
+                }
+                String key = relativePath.toString().replace('\\', '/');
+                Assert.assertTrue(textEdits.containsKey(key), "Missing .bal file in textEdits: " + key);
+                String actualContent = textEdits.get(key);
+                String expectedContent = Files.readString(expectedBallerinaProject.resolve(relativePath));
+                Assert.assertEquals(actualContent, expectedContent,
+                        "File contents do not match for: " + key);
+            }
+
+            // Check for extra .bal files in textEdits
+            for (String key : textEdits.keySet()) {
+                if (key.endsWith("types.bal")) {
+                    continue;
+                }
+                Path relPath = Path.of(key);
+                if (!expectedPaths.contains(relPath)) {
+                    Assert.fail("Extra .bal file in textEdits: " + key);
+                }
+            }
         }
     }
 

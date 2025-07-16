@@ -21,10 +21,8 @@ package tibco;
 import common.LoggingUtils;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
 
 public final class ProjectConversionContext implements LoggingContext {
@@ -52,10 +50,6 @@ public final class ProjectConversionContext implements LoggingContext {
 
     public String name() {
         return name;
-    }
-
-    public boolean verbose() {
-        return cx.verbose();
     }
 
     public boolean dryRun() {

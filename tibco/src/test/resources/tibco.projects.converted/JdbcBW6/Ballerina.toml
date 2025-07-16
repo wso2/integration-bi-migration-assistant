@@ -1,6 +1,6 @@
 [package]
-org = "converter"
-name = "JdbcBW6"
+org = "testOrg"
+name = "test"
 version = "0.1.0"
 distribution = "2201.12.0"
 

@@ -25,7 +25,6 @@ import common.CombinedSummaryReport;
 import common.LoggingUtils;
 import common.ProjectSummary;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-
 import tibco.ConversionContext;
 import tibco.LoggingContext;
 import tibco.ProjectConversionContext;
@@ -37,13 +36,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.Map;
-import java.util.HashMap;
 
 import static common.LoggingUtils.Level.SEVERE;
 
@@ -53,13 +52,13 @@ public class TibcoConverter {
     }
 
     public static void migrateTibco(String sourcePath, String outputPath, boolean preserverStructure, boolean verbose,
-                                    boolean multiRoot) {
+                                    boolean dryRun, boolean multiRoot) {
         Logger logger = verbose ? createVerboseLogger("migrate-tibco") : createDefaultLogger("migrate-tibco");
         Consumer<String> stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         Consumer<String> logCallback = LoggingUtils.wrapLoggerForLogCallback(logger);
         String org = "converter";
         ConversionContext context =
-                new ConversionContext(org, verbose, false, preserverStructure, stateCallback, logCallback);
+                new ConversionContext(org, dryRun, preserverStructure, stateCallback, logCallback);
         Path inputPath = null;
         try {
             inputPath = Paths.get(sourcePath).toRealPath();
@@ -82,8 +81,7 @@ public class TibcoConverter {
         migrateTibcoInner(context, sourcePath, outputPath);
     }
 
-    private static void migrateTibcoMultiRoot(ConversionContext cx,
-                                              Path inputPath, String outputPath) {
+    private static void migrateTibcoMultiRoot(ConversionContext cx, Path inputPath, String outputPath) {
         List<ProjectSummary> projectSummaries = new ArrayList<>();
         try {
             Files.list(inputPath)
@@ -260,7 +258,7 @@ public class TibcoConverter {
                 name = "%s"
                 version = "%s"
                 distribution = "%s"
-                
+
                 [build-options]
                 observabilityIncluded = true""".formatted(cx.org(), cx.name(), version, distribution));
         for (var each : cx.javaDependencies()) {
@@ -275,7 +273,7 @@ public class TibcoConverter {
 
     }
 
-    static ConvertResult convertProjectInner(ProjectConversionContext cx, String projectPath) {
+    public static ConvertResult convertProjectInner(ProjectConversionContext cx, String projectPath) {
         try {
             ConversionResult result = TibcoToBalConverter.convertProject(cx, projectPath);
             Map<String, String> files = new HashMap<>();

@@ -48,7 +48,7 @@ public class XmlToModelTests {
         Consumer<String> stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         Consumer<String> logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         ConversionContext conversionContext = new ConversionContext(
-                "testOrg", true, false, true, stateCallback, logCallback);
+                "testOrg", false, true, stateCallback, logCallback);
         cx = new ProjectConversionContext(conversionContext, "test");
     }
     private static final ProjectContext projectContext = new ProjectContext(cx, "test-project");

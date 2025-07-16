@@ -22,7 +22,7 @@ import common.LoggingUtils;
 
 import java.util.function.Consumer;
 
-public record ConversionContext(String org, boolean verbose, boolean dryRun, boolean keepStructure,
+public record ConversionContext(String org, boolean dryRun, boolean keepStructure,
                                 Consumer<String> stateCallback, Consumer<String> logCallback)
         implements LoggingContext {
 
