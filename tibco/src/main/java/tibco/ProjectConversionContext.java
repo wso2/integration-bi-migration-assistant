@@ -21,24 +21,64 @@ package tibco;
 import common.LoggingUtils;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
-public record ProjectConversionContext(boolean verbose, boolean dryRun,
-                                       List<TibcoToBalConverter.JavaDependencies> javaDependencies,
-                                       Consumer<String> stateCallback, Consumer<String> logCallback) implements
-        LoggingContext {
+public final class ProjectConversionContext implements LoggingContext {
 
-    public ProjectConversionContext(boolean verbose, boolean dryRun, Consumer<String> stateCallback,
-                                    Consumer<String> logCallback) {
-        this(verbose, dryRun, new ArrayList<>(), stateCallback, logCallback);
+    private final String name;
+    private final List<TibcoToBalConverter.JavaDependencies> javaDependencies = new ArrayList<>();
+    private final ConversionContext cx;
+
+    public ProjectConversionContext(ConversionContext cx, String name) {
+        this.cx = cx;
+        this.name = name;
     }
 
     public void log(LoggingUtils.Level level, String message) {
-        logCallback.accept("[" + level + "] " + message);
+        cx.logCallback().accept("[" + level + "] " + message);
     }
 
     public void logState(String message) {
-        stateCallback.accept(message);
+        cx.stateCallback().accept(message);
+    }
+
+    public String org() {
+        return cx.org();
+    }
+
+    public String name() {
+        return name;
+    }
+
+    public boolean verbose() {
+        return cx.verbose();
+    }
+
+    public boolean dryRun() {
+        return cx.dryRun();
+    }
+
+    public List<TibcoToBalConverter.JavaDependencies> javaDependencies() {
+        return Collections.unmodifiableList(javaDependencies);
+    }
+
+    public Consumer<String> stateCallback() {
+        return cx.stateCallback();
+    }
+
+    public Consumer<String> logCallback() {
+        return cx.logCallback();
+    }
+
+    public boolean keepStructure() {
+        return cx.keepStructure();
+    }
+
+    public void addJavaDependency(TibcoToBalConverter.JavaDependencies dependencies) {
+        javaDependencies.add(dependencies);
     }
 }

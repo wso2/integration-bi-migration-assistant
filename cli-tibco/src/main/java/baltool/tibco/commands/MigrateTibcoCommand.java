@@ -70,7 +70,7 @@ public class MigrateTibcoCommand implements BLauncherCmd {
             errStream.println("Error: Source TIBCO BusinessWorks project directory or `.bwp` file path is required.");
             onInvalidInput();
         }
-        TibcoConverter.migrateTibco(sourcePath, outputPath, keepStructure, verbose, dryRun, multiRoot);
+        TibcoConverter.migrateTibco(sourcePath, outputPath, keepStructure, verbose, multiRoot);
     }
 
     private void onInvalidInput() {

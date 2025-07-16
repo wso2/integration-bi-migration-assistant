@@ -27,6 +27,7 @@ import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 import common.LoggingUtils;
+import tibco.ConversionContext;
 import tibco.ProjectConversionContext;
 import tibco.model.NameSpace;
 import tibco.model.Process5;
@@ -41,15 +42,15 @@ import static tibco.converter.TibcoConverter.createVerboseLogger;
 
 public class XmlToModelTests {
 
-    private static final Consumer<String> stateCallback;
-    private static final Consumer<String> logCallback;
+    private static final ProjectConversionContext cx;
     static {
         Logger logger = createVerboseLogger("test");
-        stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
-        logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        Consumer<String> stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        Consumer<String> logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        ConversionContext conversionContext = new ConversionContext(
+                "testOrg", true, false, true, stateCallback, logCallback);
+        cx = new ProjectConversionContext(conversionContext, "test");
     }
-    private static final ProjectConversionContext cx = new ProjectConversionContext(
-            true, false, stateCallback, logCallback);
     private static final ProjectContext projectContext = new ProjectContext(cx, "test-project");
     private static final String ANON_PROCESS = "ANON.proc";
 

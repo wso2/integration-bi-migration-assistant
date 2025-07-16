@@ -25,6 +25,8 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
+
+import tibco.ConversionContext;
 import tibco.ProjectConversionContext;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.TibcoAnalysisReport;
@@ -85,8 +87,9 @@ public class ActivityConversionTest {
         Logger logger = createVerboseLogger("test");
         var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
-        ProjectConversionContext cx = new ProjectConversionContext(true, false,
-                List.of(), stateCallback, logCallback);
+        ConversionContext conversionContext = new ConversionContext(
+                "testOrg", true, false, true, stateCallback, logCallback);
+        ProjectConversionContext cx = new ProjectConversionContext(conversionContext, "test");
         tibco.parser.ProjectContext projectContext = new tibco.parser.ProjectContext(cx, "test-project");
         return new tibco.parser.ProcessContext(projectContext, "test-activity.xml");
     }
@@ -95,9 +98,10 @@ public class ActivityConversionTest {
         Logger logger = createVerboseLogger("test");
         var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
-        ProjectConversionContext conversionContext =
-                new ProjectConversionContext(true, false, List.of(), stateCallback, logCallback);
-        return new TestProcessContext(new TestProjectContext(conversionContext, Map.of()), activity);
+        ConversionContext conversionContext = new ConversionContext(
+                "testOrg", true, false, true, stateCallback, logCallback);
+        ProjectConversionContext cx = new ProjectConversionContext(conversionContext, "test");
+        return new TestProcessContext(new TestProjectContext(cx, Map.of()), activity);
     }
 
     private static String toString(BallerinaModel.Function function) {

@@ -25,6 +25,9 @@ import common.CombinedSummaryReport;
 import common.LoggingUtils;
 import common.ProjectSummary;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+
+import tibco.ConversionContext;
+import tibco.LoggingContext;
 import tibco.ProjectConversionContext;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.TibcoAnalysisReport;
@@ -39,6 +42,8 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Map;
+import java.util.HashMap;
 
 import static common.LoggingUtils.Level.SEVERE;
 
@@ -48,12 +53,13 @@ public class TibcoConverter {
     }
 
     public static void migrateTibco(String sourcePath, String outputPath, boolean preserverStructure, boolean verbose,
-            boolean dryRun, boolean multiRoot) {
+                                    boolean multiRoot) {
         Logger logger = verbose ? createVerboseLogger("migrate-tibco") : createDefaultLogger("migrate-tibco");
         Consumer<String> stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         Consumer<String> logCallback = LoggingUtils.wrapLoggerForLogCallback(logger);
-        ProjectConversionContext context =
-                new ProjectConversionContext(verbose, dryRun, stateCallback, logCallback);
+        String org = "converter";
+        ConversionContext context =
+                new ConversionContext(org, verbose, false, preserverStructure, stateCallback, logCallback);
         Path inputPath = null;
         try {
             inputPath = Paths.get(sourcePath).toRealPath();
@@ -69,17 +75,16 @@ public class TibcoConverter {
                         + sourcePath);
                 System.exit(1);
             }
-            migrateTibcoMultiRoot(context, inputPath, outputPath, preserverStructure);
+            migrateTibcoMultiRoot(context, inputPath, outputPath);
             return;
         }
 
-        migrateTibcoInner(context, sourcePath, outputPath, preserverStructure);
+        migrateTibcoInner(context, sourcePath, outputPath);
     }
 
-    private static void migrateTibcoMultiRoot(ProjectConversionContext context,
-                                              Path inputPath, String outputPath, boolean preserverStructure) {
+    private static void migrateTibcoMultiRoot(ConversionContext cx,
+                                              Path inputPath, String outputPath) {
         List<ProjectSummary> projectSummaries = new ArrayList<>();
-
         try {
             Files.list(inputPath)
                     .filter(Files::isDirectory)
@@ -91,12 +96,11 @@ public class TibcoConverter {
                         } else {
                             childOutputPath = childDir + "_converted";
                         }
-                        context.logState("Converting project: " + childDir);
-                        context.log(LoggingUtils.Level.INFO, "Converting project: " + childDir);
+                        cx.logState("Converting project: " + childDir);
+                        cx.log(LoggingUtils.Level.INFO, "Converting project: " + childDir);
 
                         Optional<MigrationResult> result =
-                                migrateTibcoInner(context, childDir.toString(), childOutputPath,
-                                        preserverStructure);
+                                migrateTibcoInner(cx, childDir.toString(), childOutputPath);
 
                         if (result.isPresent()) {
                             TibcoAnalysisReport report = result.get().report();
@@ -104,10 +108,9 @@ public class TibcoConverter {
                             // Create individual report for this project
                             Path projectOutputPath = Paths.get(childOutputPath);
                             try {
-                                writeAnalysisReport(context, projectOutputPath, report);
+                                writeAnalysisReport(cx, projectOutputPath, report.toHTML());
                             } catch (IOException e) {
-                                context.log(SEVERE,
-                                        "Error creating individual analysis report for project: " + childName);
+                                cx.log(SEVERE, "Error creating individual analysis report for project: " + childName);
                             }
 
                             // Create project summary
@@ -121,7 +124,7 @@ public class TibcoConverter {
                         }
                     });
         } catch (IOException e) {
-            context.log(SEVERE, "Error reading directory: " + inputPath);
+            cx.log(SEVERE, "Error reading directory: " + inputPath);
             System.exit(1);
             return;
         }
@@ -129,31 +132,30 @@ public class TibcoConverter {
         // Create combined summary report
         Path summaryOutputPath = outputPath != null ? Paths.get(outputPath) : inputPath;
         try {
-            writeCombinedSummaryReport(context, summaryOutputPath, projectSummaries);
+            writeCombinedSummaryReport(cx, summaryOutputPath, projectSummaries);
         } catch (IOException e) {
-            context.log(SEVERE, "Error creating combined summary report");
+            cx.log(SEVERE, "Error creating combined summary report");
         }
     }
 
-    private static Optional<MigrationResult> migrateTibcoInner(ProjectConversionContext context,
-                                                               String sourcePath, String outputPath,
-                                                               boolean preserverStructure) {
+    private static Optional<MigrationResult> migrateTibcoInner(ConversionContext cx, String sourcePath,
+                                                               String outputPath) {
         Path inputPath;
         try {
             inputPath = Paths.get(sourcePath).toRealPath();
         } catch (IOException e) {
-            context.log(SEVERE, "Invalid path: " + sourcePath);
+            cx.log(SEVERE, "Invalid path: " + sourcePath);
             System.exit(1);
             return Optional.empty();
         }
-
+        ProjectConversionContext context = new ProjectConversionContext(cx, inputPath.getFileName().toString());
         if (Files.isRegularFile(inputPath)) {
             String inputRootDirectory = inputPath.getParent().toString();
             String targetPath = outputPath != null ? outputPath : inputRootDirectory + "_converted";
-            return migrateTibcoProject(context, inputRootDirectory, targetPath, preserverStructure);
+            return migrateTibcoProject(context, inputRootDirectory, targetPath);
         } else if (Files.isDirectory(inputPath)) {
             String targetPath = outputPath != null ? outputPath : inputPath + "_converted";
-            return migrateTibcoProject(context, inputPath.toString(), targetPath, preserverStructure);
+            return migrateTibcoProject(context, inputPath.toString(), targetPath);
         } else {
             context.log(SEVERE, "Invalid path: " + inputPath);
             System.exit(1);
@@ -162,12 +164,10 @@ public class TibcoConverter {
     }
 
     static Optional<MigrationResult> migrateTibcoProject(ProjectConversionContext cx,
-                                                         String projectPath, String targetPath,
-                                                         boolean preserverStructure) {
+                                                         String projectPath, String targetPath) {
         Path targetDir = Paths.get(targetPath);
         Path codeGenDir = targetDir;
         java.nio.file.Path tempDir = null;
-        SerializingContext serializingContext = new SerializingContext();
         if (cx.dryRun()) {
             try {
                 tempDir = Files.createTempDirectory("tibco-dryrun");
@@ -189,46 +189,32 @@ public class TibcoConverter {
                 return Optional.empty();
             }
         }
-        ConversionResult result;
-        try {
-            result = TibcoToBalConverter.convertProject(cx, projectPath);
-        } catch (Exception e) {
-            cx.logState("Unrecoverable error while converting project " + projectPath);
-            cx.log(SEVERE,
-                    "Unrecoverable error while converting project" + projectPath + ": " + e.getMessage());
-            System.exit(1);
+
+        ConvertResult convertResult = convertProjectInner(cx, projectPath);
+        if (convertResult.errorMessage().isPresent()) {
+            cx.log(SEVERE, "Conversion failed: " + convertResult.errorMessage().get());
             return Optional.empty();
         }
-        List<BallerinaModel.TextDocument> textDocuments;
-        if (preserverStructure) {
-            textDocuments = result.module().textDocuments();
-        } else {
-            BallerinaModel.Module biModule = new BICodeConverter().convert(result.module());
-            textDocuments = biModule.textDocuments();
-        }
-
-        for (BallerinaModel.TextDocument textDocument : textDocuments) {
+        Map<String, String> files = convertResult.files();
+        // Write files to disk
+        for (Map.Entry<String, String> entry : files.entrySet()) {
+            Path filePath = codeGenDir.resolve(entry.getKey());
             try {
-                writeTextDocument(serializingContext, textDocument, codeGenDir);
+                Files.writeString(filePath, entry.getValue());
             } catch (IOException e) {
-                cx.log(SEVERE, "Failed to create output file" + textDocument.documentName());
+                cx.log(SEVERE, "Failed to create output file " + entry.getKey());
             }
         }
+        // FIXME: this should be in files as well
         try {
             addProjectArtifacts(cx, codeGenDir.toString());
         } catch (IOException e) {
             cx.log(SEVERE, "Error adding project artifacts");
         }
-        try {
-            appendASTToFile(serializingContext, codeGenDir, "types.bal", result.types());
-        } catch (IOException e) {
-            cx.log(SEVERE, "Error creating types files");
-        }
-        TibcoAnalysisReport report = result.report();
-        report.lineCount(serializingContext.linesGenerated);
+        // Write report.html
         try {
             createTargetDirectoryIfNeeded(cx, targetDir);
-            writeAnalysisReport(cx, targetDir, report);
+            writeAnalysisReport(cx, targetDir, convertResult.reportHTML);
         } catch (IOException e) {
             cx.log(SEVERE, "Error creating analysis report");
         }
@@ -241,20 +227,18 @@ public class TibcoConverter {
                         "Failed to clean up temporary directory: " + tempDir + " - " + e.getMessage());
             }
         }
-        return Optional.of(new MigrationResult(report));
+        return Optional.of(new MigrationResult(convertResult.report()));
     }
 
-    private static void writeAnalysisReport(ProjectConversionContext context, Path targetDir,
-                                            TibcoAnalysisReport report) throws IOException {
+    private static void writeAnalysisReport(LoggingContext context, Path targetDir,
+                                            String htmlContent) throws IOException {
         Path reportFilePath = targetDir.resolve("report.html");
-        String htmlContent = report.toHTML();
         Files.writeString(reportFilePath, htmlContent);
         context.log(LoggingUtils.Level.INFO, "Created analysis report at: " + reportFilePath);
     }
 
-    private static void writeCombinedSummaryReport(ProjectConversionContext context, Path targetDir,
-                                                   List<ProjectSummary> projectSummaries)
-            throws IOException {
+    private static void writeCombinedSummaryReport(ConversionContext context, Path targetDir,
+                                                   List<ProjectSummary> projectSummaries) throws IOException {
         Path reportFilePath = targetDir.resolve("combined_summary_report.html");
         CombinedSummaryReport combinedReport = new CombinedSummaryReport("Combined Migration Assessment",
                 projectSummaries);
@@ -262,39 +246,6 @@ public class TibcoConverter {
         Files.writeString(reportFilePath, htmlContent);
         context.log(
                 LoggingUtils.Level.INFO, "Created combined summary report at: " + reportFilePath);
-    }
-
-    private static void writeTextDocument(SerializingContext serializingContext,
-                                          BallerinaModel.TextDocument textDocument, Path targetDir) throws IOException {
-        String fileName = textDocument.documentName();
-        SyntaxTree st = new CodeGenerator(textDocument).generateSyntaxTree();
-        String source = st.toSourceCode();
-        int lineCount = source.split("\r?\n").length;
-        serializingContext.addLines(lineCount);
-        writeASTToFile(targetDir, fileName, st);
-    }
-
-    private static void writeASTToFile(Path targetDir, String fileName, SyntaxTree st) throws IOException {
-        Path filePath = Path.of(targetDir + "/" + fileName);
-        Files.writeString(filePath, st.toSourceCode());
-    }
-
-
-    private static void appendASTToFile(SerializingContext serializingContext, Path targetDir, String fileName,
-                                        SyntaxTree st) throws IOException {
-        Path filePath = Path.of(targetDir + "/" + fileName);
-        String newContent = st.toSourceCode();
-        int lineCount = newContent.split("\r?\n").length;
-        serializingContext.addLines(lineCount);
-
-        if (Files.exists(filePath)) {
-            // If file exists, read the existing content and append the new content to it
-            String existingContent = Files.readString(filePath);
-            Files.writeString(filePath, newContent + existingContent);
-        } else {
-            // If file doesn't exist, just write the new content
-            Files.writeString(filePath, newContent);
-        }
     }
 
     private static void createTargetDirectoryIfNeeded(ProjectConversionContext context,
@@ -308,30 +259,65 @@ public class TibcoConverter {
 
     private static void addProjectArtifacts(ProjectConversionContext cx, String targetPath)
             throws IOException {
-        String org = "converter";
-        String name = Paths.get(targetPath).getFileName().toString();
+        Path tomlPath = Paths.get(targetPath, "Ballerina.toml");
+
+        Files.writeString(tomlPath, ballerinaToml(cx));
+        cx.log(LoggingUtils.Level.INFO, "Created Ballerina.toml file at: " + tomlPath);
+    }
+
+    private static String ballerinaToml(ProjectConversionContext cx) {
         String version = "0.1.0";
         String distribution = "2201.12.0";
 
-        Path tomlPath = Paths.get(targetPath, "Ballerina.toml");
         StringBuilder tomlContent = new StringBuilder("""
                 [package]
                 org = "%s"
                 name = "%s"
                 version = "%s"
                 distribution = "%s"
-
+                
                 [build-options]
-                observabilityIncluded = true""".formatted(org, name, version, distribution));
+                observabilityIncluded = true""".formatted(cx.org(), cx.name(), version, distribution));
         for (var each : cx.javaDependencies()) {
             tomlContent.append("\n");
             tomlContent.append(each.dependencyParam);
         }
-
-        Files.writeString(tomlPath, tomlContent.toString());
-        cx.log(LoggingUtils.Level.INFO, "Created Ballerina.toml file at: " + tomlPath);
+        return tomlContent.toString();
     }
 
+    public record ConvertResult(Optional<String> errorMessage, Map<String, String> files, String reportHTML,
+                                TibcoAnalysisReport report) {
+
+    }
+
+    static ConvertResult convertProjectInner(ProjectConversionContext cx, String projectPath) {
+        try {
+            ConversionResult result = TibcoToBalConverter.convertProject(cx, projectPath);
+            Map<String, String> files = new HashMap<>();
+            // Collect text documents
+            BallerinaModel.Module module =
+                    cx.keepStructure() ? result.module() : new BICodeConverter().convert(result.module());
+            for (BallerinaModel.TextDocument textDocument : module.textDocuments()) {
+                SyntaxTree st = new CodeGenerator(textDocument).generateSyntaxTree();
+                files.put(textDocument.documentName(), st.toSourceCode());
+            }
+            // Add types.bal
+            SyntaxTree typesTree = result.types();
+            if (typesTree != null) {
+                files.put("types.bal", typesTree.toSourceCode());
+            }
+            // Prepare report
+            TibcoAnalysisReport report = result.report();
+            report.lineCount(files.values().stream().
+                    mapToInt(content -> content.split("\r?\n").length)
+                    .sum());
+            return new ConvertResult(Optional.empty(), files, report.toHTML(), report);
+        } catch (Exception e) {
+            cx.logState("Unrecoverable error while converting project " + projectPath);
+            cx.log(SEVERE, "Unrecoverable error while converting project" + projectPath + ": " + e.getMessage());
+            return new ConvertResult(Optional.of(e.getMessage()), null, null, null);
+        }
+    }
 
     public static Logger createDefaultLogger(String name) {
         Logger defaultLogger = Logger.getLogger(name);
@@ -362,15 +348,5 @@ public class TibcoConverter {
         verboseLogger.setLevel(Level.ALL);
 
         return verboseLogger;
-    }
-
-    public static class SerializingContext {
-        private long linesGenerated = 0;
-        public void addLines(int count) {
-            linesGenerated += count;
-        }
-        public long getLinesGenerated() {
-            return linesGenerated;
-        }
     }
 }

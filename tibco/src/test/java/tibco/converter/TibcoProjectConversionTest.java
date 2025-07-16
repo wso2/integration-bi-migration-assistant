@@ -22,12 +22,13 @@ import common.LoggingUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+
+import tibco.ConversionContext;
 import tibco.ProjectConversionContext;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -41,15 +42,16 @@ public class TibcoProjectConversionTest {
         Logger logger = TibcoConverter.createVerboseLogger("test");
         var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
-        ProjectConversionContext cx = new ProjectConversionContext(
-                true, false, new ArrayList<>(), stateCallback, logCallback);
+        ConversionContext conversionContext = new ConversionContext(
+                "testOrg", true, false, false, stateCallback, logCallback);
+        ProjectConversionContext cx = new ProjectConversionContext(conversionContext, "test");
         try {
             if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
-                TibcoConverter.migrateTibcoProject(cx, tibcoProject.toString(), expectedBallerinaProject.toString(),
-                        false);
+                TibcoConverter.migrateTibcoProject(cx, tibcoProject.toString(), expectedBallerinaProject.toString()
+                );
             }
             // Run the conversion
-            TibcoConverter.migrateTibcoProject(cx, tibcoProject.toString(), tempDir.toString(), false);
+            TibcoConverter.migrateTibcoProject(cx, tibcoProject.toString(), tempDir.toString());
 
             // Compare the directories
             compareDirectories(tempDir, expectedBallerinaProject);

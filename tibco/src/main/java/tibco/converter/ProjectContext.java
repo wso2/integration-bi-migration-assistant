@@ -211,7 +211,7 @@ public class ProjectContext implements LoggingContext {
     }
 
     public void addJavaDependency(TibcoToBalConverter.JavaDependencies dependencies) {
-        conversionContext.javaDependencies().add(dependencies);
+        conversionContext.addJavaDependency(dependencies);
     }
 
     String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
