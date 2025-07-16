@@ -43,7 +43,8 @@ public class TibcoProjectConversionTest {
         var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         ConversionContext conversionContext = new ConversionContext(
                 "testOrg", false, false, stateCallback, logCallback);
-        ProjectConversionContext cx = new ProjectConversionContext(conversionContext, "test");
+        ProjectConversionContext cx =
+                new ProjectConversionContext(conversionContext, expectedBallerinaProject.getFileName().toString());
         try {
             if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
                 TibcoConverter.migrateTibcoProject(cx, tibcoProject.toString(), expectedBallerinaProject.toString()
@@ -65,7 +66,7 @@ public class TibcoProjectConversionTest {
         // Run the conversion using the public API
         var result = tibco.TibcoToBalConverter.migrateTIBCO(
                 "testOrg",
-                "test",
+                expectedBallerinaProject.getFileName().toString(),
                 tibcoProject.toString(),
                 s -> {
                 },
