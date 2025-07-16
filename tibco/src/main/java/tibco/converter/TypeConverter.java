@@ -29,6 +29,7 @@ import common.BallerinaModel.Statement.Return;
 import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc.MapTypeDesc;
 import common.CodeGenerator;
+import common.LoggingUtils;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.text.TextDocuments;
 import io.ballerina.xsd.core.response.NodeResponse;
@@ -81,10 +82,10 @@ class TypeConverter {
         if (response.diagnostics().isEmpty()) {
             return;
         }
-        cx.log(LoggingContext.Level.WARN, "Errors detected while trying to convert XSD schemas to Ballerina types. " +
+        cx.log(LoggingUtils.Level.WARN, "Errors detected while trying to convert XSD schemas to Ballerina types. " +
                 "Falling back to placeholder types");
         for (var each : response.diagnostics()) {
-            cx.log(LoggingContext.Level.WARN, each.message());
+            cx.log(LoggingUtils.Level.WARN, each.message());
         }
     }
 

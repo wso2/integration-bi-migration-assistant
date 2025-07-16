@@ -35,8 +35,8 @@ import common.BallerinaModel.Statement.VarAssignStatement;
 import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
+import common.LoggingUtils;
 import org.jetbrains.annotations.NotNull;
-import tibco.LoggingContext;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.Process;
 import tibco.model.Process5;
@@ -159,7 +159,7 @@ public class ProcessConverter {
 
     private static BallerinaModel.Service createFallbackServices(ProcessContext cx,
                                                                  ExplicitTransitionGroup.InlineActivity startActivity) {
-        cx.log(LoggingContext.Level.WARN,
+        cx.log(LoggingUtils.Level.WARN,
                 "Unsupported start activity %s generating fallback service".formatted(startActivity.name()));
         List<Statement> body = List.of(
                 new Statement.Comment("FIXME: service for start activity: %s".formatted(startActivity.name())),
@@ -408,7 +408,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         try {
             return Optional.ofNullable(fn.apply(cx, group));
         } catch (Exception e) {
-            cx.log(LoggingContext.Level.SEVERE, "Exception in " + functionName + ": " + e.getMessage());
+            cx.log(LoggingUtils.Level.SEVERE, "Exception in " + functionName + ": " + e.getMessage());
             return Optional.empty();
         }
     }

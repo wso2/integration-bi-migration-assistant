@@ -65,9 +65,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static tibco.LoggingContext.Level.INFO;
-import static tibco.LoggingContext.Level.SEVERE;
-import static tibco.LoggingContext.Level.WARN;
+import static common.LoggingUtils.Level.INFO;
+import static common.LoggingUtils.Level.SEVERE;
+import static common.LoggingUtils.Level.WARN;
 
 public final class XmlToTibcoModelParser {
 

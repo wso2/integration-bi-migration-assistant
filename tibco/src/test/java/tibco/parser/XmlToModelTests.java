@@ -24,7 +24,10 @@ import org.w3c.dom.Element;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.logging.Logger;
 
+import common.LoggingUtils;
 import tibco.converter.TibcoConverter;
 import tibco.TibcoToBalConverter;
 import tibco.model.NameSpace;
@@ -36,12 +39,19 @@ import tibco.util.TestUtils;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
-
+import static tibco.converter.TibcoConverter.createVerboseLogger;
 
 public class XmlToModelTests {
 
+    private static final Consumer<String> stateCallback;
+    private static final Consumer<String> logCallback;
+    static {
+        Logger logger = createVerboseLogger("test");
+        stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+    }
     private static final TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext(
-            true, false, TibcoConverter.createVerboseLogger("test"));
+            true, false, stateCallback, logCallback);
     private static final ProjectContext projectContext = new ProjectContext(cx, "test-project");
     private static final String ANON_PROCESS = "ANON.proc";
 

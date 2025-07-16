@@ -18,8 +18,8 @@
 
 package tibco.analyzer;
 
+import common.LoggingUtils;
 import org.jetbrains.annotations.NotNull;
-import tibco.LoggingContext;
 import tibco.model.Process;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.model.Scope;
@@ -39,7 +39,7 @@ public class LoggingAnalysisPass extends AnalysisPass {
 
     @Override
     public @NotNull AnalysisResult getResult(ProcessAnalysisContext cx, Process process) {
-        cx.log(LoggingContext.Level.INFO,
+        cx.log(LoggingUtils.Level.INFO,
                 String.format("Process Statistics - Name: %s, Total Activities: %d, Unhandled Activities: %d",
                 process.name(), totalActivityCount, unhandledActivityCount));
         return AnalysisResult.empty();

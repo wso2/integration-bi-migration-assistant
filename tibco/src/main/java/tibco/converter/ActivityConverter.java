@@ -86,8 +86,8 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
 import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
-import static tibco.LoggingContext.Level.SEVERE;
-import static tibco.LoggingContext.Level.WARN;
+import static common.LoggingUtils.Level.SEVERE;
+import static common.LoggingUtils.Level.WARN;
 import static tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.ListFilesActivity.Mode.FILES_AND_DIRECTORIES;
 import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 

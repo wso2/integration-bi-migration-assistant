@@ -18,16 +18,11 @@
 
 package tibco;
 
+import common.LoggingUtils;
+
 public interface LoggingContext {
 
-    enum Level {
-        INFO,
-        WARN,
-        ERROR,
-        SEVERE
-    }
-
-    void log(Level level, String message);
+    void log(LoggingUtils.Level level, String message);
 
     void logState(String message);
 }

@@ -19,6 +19,7 @@
 package tibco.converter;
 
 import common.BallerinaModel;
+import common.LoggingUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -43,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -79,15 +81,22 @@ public class ActivityConversionTest {
     }
 
     private static tibco.parser.ProcessContext getProcessContextForElement(Element element) {
+
+        Logger logger = createVerboseLogger("test");
+        var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext(true, false,
-                List.of(), createVerboseLogger("test"));
+                List.of(), stateCallback, logCallback);
         tibco.parser.ProjectContext projectContext = new tibco.parser.ProjectContext(cx, "test-project");
         return new tibco.parser.ProcessContext(projectContext, "test-activity.xml");
     }
 
     private static ProcessContext getProcessContext(Scope.Flow.Activity activity) {
+        Logger logger = createVerboseLogger("test");
+        var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         TibcoToBalConverter.ProjectConversionContext conversionContext =
-                new TibcoToBalConverter.ProjectConversionContext(true, false, List.of(), createVerboseLogger("test"));
+                new TibcoToBalConverter.ProjectConversionContext(true, false, List.of(), stateCallback, logCallback);
         return new TestProcessContext(new TestProjectContext(conversionContext, Map.of()), activity);
     }
 

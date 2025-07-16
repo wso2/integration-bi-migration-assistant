@@ -18,6 +18,7 @@
 
 package tibco.converter;
 
+import common.LoggingUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -27,6 +28,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 public class TibcoProjectConversionTest {
@@ -36,8 +38,11 @@ public class TibcoProjectConversionTest {
         // Create a temporary directory for the output
         Path tempDir = Files.createTempDirectory("tibco-conversion-test");
         // Create a ProjectConversionContext with verbose logger for test
+        Logger logger = TibcoConverter.createVerboseLogger("test");
+        var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext(
-                true, false, new ArrayList<>(), TibcoConverter.createVerboseLogger("test"));
+                true, false, new ArrayList<>(), stateCallback, logCallback);
         try {
             if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
                 TibcoConverter.migrateTibcoProject(cx, tibcoProject.toString(), expectedBallerinaProject.toString(),

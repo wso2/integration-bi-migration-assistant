@@ -18,6 +18,7 @@
 
 package tibco.parser;
 
+import common.LoggingUtils;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.LoggingContext;
@@ -56,7 +57,7 @@ public final class ProjectContext implements Context, LoggingContext {
     }
 
     @Override
-    public void log(Level level, String message) {
+    public void log(LoggingUtils.Level level, String message) {
         conversionContext.log(level, message);
     }
 
@@ -105,7 +106,7 @@ public final class ProjectContext implements Context, LoggingContext {
             sb.append(" type='").append(type).append("'");
         }
         sb.append(" element=").append(ConversionUtils.elementToString(element));
-        log(Level.SEVERE, sb.toString());
+        log(LoggingUtils.Level.SEVERE, sb.toString());
     }
 
     @Override
@@ -124,7 +125,7 @@ public final class ProjectContext implements Context, LoggingContext {
             sb.append(" type='").append(type).append("'");
         }
         sb.append(" element=").append(ConversionUtils.elementToString(element));
-        log(Level.WARN, sb.toString());
+        log(LoggingUtils.Level.WARN, sb.toString());
     }
 
     @Override
@@ -134,7 +135,7 @@ public final class ProjectContext implements Context, LoggingContext {
             sb.append(" name='").append(name).append("'");
         }
         sb.append(" element=").append(ConversionUtils.elementToString(element));
-        log(Level.SEVERE, sb.toString());
+        log(LoggingUtils.Level.SEVERE, sb.toString());
     }
 
     @Override
@@ -144,42 +145,42 @@ public final class ProjectContext implements Context, LoggingContext {
             sb.append(" name='").append(name).append("'");
         }
         sb.append(" element=").append(ConversionUtils.elementToString(element));
-        log(Level.WARN, sb.toString());
+        log(LoggingUtils.Level.WARN, sb.toString());
     }
 
     @Override
     public void registerUnsupportedTransition(org.w3c.dom.Element element) {
         StringBuilder sb = new StringBuilder("[UNSUPPORTED TRANSITION]");
         sb.append(" element=").append(ConversionUtils.elementToString(element));
-        log(Level.SEVERE, sb.toString());
+        log(LoggingUtils.Level.SEVERE, sb.toString());
     }
 
     @Override
     public void registerUnsupportedSchema(org.w3c.dom.Element element) {
         StringBuilder sb = new StringBuilder("[UNSUPPORTED SCHEMA]");
         sb.append(" element=").append(ConversionUtils.elementToString(element));
-        log(Level.SEVERE, sb.toString());
+        log(LoggingUtils.Level.SEVERE, sb.toString());
     }
 
     @Override
     public void registerPartiallySupportedSchema(org.w3c.dom.Element element) {
         StringBuilder sb = new StringBuilder("[PARTIALLY SUPPORTED SCHEMA]");
         sb.append(" element=").append(ConversionUtils.elementToString(element));
-        log(Level.WARN, sb.toString());
+        log(LoggingUtils.Level.WARN, sb.toString());
     }
 
     @Override
     public void registerUnsupportedWSDLDefinition(org.w3c.dom.Element element) {
         StringBuilder sb = new StringBuilder("[UNSUPPORTED WSDL DEFINITION]");
         sb.append(" element=").append(ConversionUtils.elementToString(element));
-        log(Level.SEVERE, sb.toString());
+        log(LoggingUtils.Level.SEVERE, sb.toString());
     }
 
     @Override
     public void registerPartiallySupportedWSDLDefinition(org.w3c.dom.Element element) {
         StringBuilder sb = new StringBuilder("[PARTIALLY SUPPORTED WSDL DEFINITION]");
         sb.append(" element=").append(ConversionUtils.elementToString(element));
-        log(Level.WARN, sb.toString());
+        log(LoggingUtils.Level.WARN, sb.toString());
     }
 
     @Override

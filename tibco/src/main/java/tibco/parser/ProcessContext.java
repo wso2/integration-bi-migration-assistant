@@ -18,6 +18,7 @@
 
 package tibco.parser;
 
+import common.LoggingUtils;
 import org.w3c.dom.Element;
 import tibco.LoggingContext;
 import tibco.model.NameSpace;
@@ -123,7 +124,7 @@ public class ProcessContext implements Context, LoggingContext {
     }
 
     @Override
-    public void log(Level level, String message) {
+    public void log(LoggingUtils.Level level, String message) {
         projectContext.log(level, message);
     }
 

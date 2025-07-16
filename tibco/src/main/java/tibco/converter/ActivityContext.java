@@ -19,6 +19,7 @@
 package tibco.converter;
 
 import common.BallerinaModel;
+import common.LoggingUtils;
 import tibco.LoggingContext;
 import tibco.model.NameSpace;
 import tibco.model.Resource;
@@ -39,7 +40,7 @@ public class ActivityContext implements LoggingContext {
     }
 
     @Override
-    public void log(Level level, String message) {
+    public void log(LoggingUtils.Level level, String message) {
         processContext.log(level, message);
     }
 

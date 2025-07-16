@@ -19,6 +19,7 @@
 package tibco.converter;
 
 import common.BallerinaModel;
+import common.LoggingUtils;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import org.jetbrains.annotations.NotNull;
 import tibco.LoggingContext;
@@ -70,7 +71,7 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     }
 
     @Override
-    public void log(Level level, String message) {
+    public void log(LoggingUtils.Level level, String message) {
         projectContext.log(level, message);
     }
 
@@ -234,7 +235,7 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {
         String resourceRef = propertyVariableToResourceMap.get(sharedResourcePropertyName);
         if (resourceRef == null) {
-            log(Level.SEVERE,
+            log(LoggingUtils.Level.SEVERE,
                     "No shared resource found for " + sharedResourcePropertyName + ". Returning placeholder client.");
             return new BallerinaModel.Expression.VariableReference("placeholder_client");
         }

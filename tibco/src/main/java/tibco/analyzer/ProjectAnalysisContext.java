@@ -18,6 +18,7 @@
 
 package tibco.analyzer;
 
+import common.LoggingUtils;
 import tibco.LoggingContext;
 import tibco.TibcoToBalConverter;
 import tibco.model.Scope;
@@ -57,7 +58,7 @@ public class ProjectAnalysisContext implements LoggingContext {
     }
 
     @Override
-    public void log(Level level, String message) {
+    public void log(LoggingUtils.Level level, String message) {
         cx.log(level, message);
     }
 

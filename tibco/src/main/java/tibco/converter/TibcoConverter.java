@@ -22,9 +22,9 @@ import common.BICodeConverter;
 import common.BallerinaModel;
 import common.CodeGenerator;
 import common.CombinedSummaryReport;
+import common.LoggingUtils;
 import common.ProjectSummary;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import tibco.LoggingContext;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.TibcoAnalysisReport;
 
@@ -35,10 +35,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static tibco.LoggingContext.Level.SEVERE;
+import static common.LoggingUtils.Level.SEVERE;
 
 public class TibcoConverter {
 
@@ -47,9 +48,11 @@ public class TibcoConverter {
 
     public static void migrateTibco(String sourcePath, String outputPath, boolean preserverStructure, boolean verbose,
             boolean dryRun, boolean multiRoot) {
+        Logger logger = verbose ? createVerboseLogger("migrate-tibco") : createDefaultLogger("migrate-tibco");
+        Consumer<String> stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        Consumer<String> logCallback = LoggingUtils.wrapLoggerForLogCallback(logger);
         TibcoToBalConverter.ProjectConversionContext context =
-                new TibcoToBalConverter.ProjectConversionContext(verbose, dryRun,
-                        verbose ? createVerboseLogger("migrate-tibco") : createDefaultLogger("migrate-tibco"));
+                new TibcoToBalConverter.ProjectConversionContext(verbose, dryRun, stateCallback, logCallback);
         Path inputPath = null;
         try {
             inputPath = Paths.get(sourcePath).toRealPath();
@@ -88,7 +91,7 @@ public class TibcoConverter {
                             childOutputPath = childDir + "_converted";
                         }
                         context.logState("Converting project: " + childDir);
-                        context.log(LoggingContext.Level.INFO, "Converting project: " + childDir);
+                        context.log(LoggingUtils.Level.INFO, "Converting project: " + childDir);
 
                         Optional<MigrationResult> result =
                                 migrateTibcoInner(context, childDir.toString(), childOutputPath,
@@ -169,7 +172,7 @@ public class TibcoConverter {
                 tempDir = Files.createTempDirectory("tibco-dryrun");
                 codeGenDir = tempDir;
                 cx.logState("Generating code in temporary directory: " + codeGenDir);
-                cx.log(LoggingContext.Level.INFO,
+                cx.log(LoggingUtils.Level.INFO,
                         "[Dry Run] Generating code in temporary directory: " + codeGenDir);
             } catch (IOException e) {
                 cx.log(SEVERE, "Error creating temporary directory for dry run");
@@ -230,10 +233,10 @@ public class TibcoConverter {
         }
         if (cx.dryRun()) {
             try {
-                cx.log(LoggingContext.Level.INFO,
+                cx.log(LoggingUtils.Level.INFO,
                         "[Dry Run] Temporary code generation directory: " + tempDir);
             } catch (Exception e) {
-                cx.log(LoggingContext.Level.WARN,
+                cx.log(LoggingUtils.Level.WARN,
                         "Failed to clean up temporary directory: " + tempDir + " - " + e.getMessage());
             }
         }
@@ -245,7 +248,7 @@ public class TibcoConverter {
         Path reportFilePath = targetDir.resolve("report.html");
         String htmlContent = report.toHTML();
         Files.writeString(reportFilePath, htmlContent);
-        context.log(LoggingContext.Level.INFO, "Created analysis report at: " + reportFilePath);
+        context.log(LoggingUtils.Level.INFO, "Created analysis report at: " + reportFilePath);
     }
 
     private static void writeCombinedSummaryReport(TibcoToBalConverter.ProjectConversionContext context, Path targetDir,
@@ -257,7 +260,7 @@ public class TibcoConverter {
         String htmlContent = combinedReport.toHTML();
         Files.writeString(reportFilePath, htmlContent);
         context.log(
-                LoggingContext.Level.INFO, "Created combined summary report at: " + reportFilePath);
+                LoggingUtils.Level.INFO, "Created combined summary report at: " + reportFilePath);
     }
 
     private static void writeTextDocument(SerializingContext serializingContext,
@@ -299,7 +302,7 @@ public class TibcoConverter {
             return;
         }
         Files.createDirectories(targetDir);
-        context.log(LoggingContext.Level.INFO, "Created target directory: " + targetDir);
+        context.log(LoggingUtils.Level.INFO, "Created target directory: " + targetDir);
     }
 
     private static void addProjectArtifacts(TibcoToBalConverter.ProjectConversionContext cx, String targetPath)
@@ -325,7 +328,7 @@ public class TibcoConverter {
         }
 
         Files.writeString(tomlPath, tomlContent.toString());
-        cx.log(LoggingContext.Level.INFO, "Created Ballerina.toml file at: " + tomlPath);
+        cx.log(LoggingUtils.Level.INFO, "Created Ballerina.toml file at: " + tomlPath);
     }
 
 

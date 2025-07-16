@@ -18,6 +18,7 @@
 
 package tibco;
 
+import common.LoggingUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
@@ -51,7 +52,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.logging.Logger;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -88,7 +89,7 @@ public class TibcoToBalConverter {
             jmsSharedResource = jmsSharedResourceParser.parse(pcx);
             sharedVariables = SHARED_VARIABLE_PARSING_UNIT.parse(pcx);
         } catch (IOException | SAXException | ParserConfigurationException e) {
-            cx.log(LoggingContext.Level.SEVERE, "Unrecoverable error while parsing project file: " + projectPath);
+            cx.log(LoggingUtils.Level.SEVERE, "Unrecoverable error while parsing project file: " + projectPath);
             throw new RuntimeException("Error while parsing the XML file: ", e);
         }
         ModelAnalyser analyser = new ModelAnalyser(List.of(
@@ -113,7 +114,7 @@ public class TibcoToBalConverter {
             if (parsedElement.isPresent()) {
                 elements.add(parsedElement.get());
             } else {
-                pcx.log(LoggingContext.Level.SEVERE, "Failed to parse process: " + s);
+                pcx.log(LoggingUtils.Level.SEVERE, "Failed to parse process: " + s);
             }
         }
         return elements;
@@ -155,7 +156,7 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
                 if (var.isPresent()) {
                     variables.add(var.get());
                 } else {
-                    pcx.log(LoggingContext.Level.SEVERE, "Failed to parse sharedvariable: " + s);
+                    pcx.log(LoggingUtils.Level.SEVERE, "Failed to parse sharedvariable: " + s);
                 }
             }
 
@@ -167,7 +168,7 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
                 if (var.isPresent()) {
                     variables.add(var.get());
                 } else {
-                    pcx.log(LoggingContext.Level.SEVERE, "Failed to parse jobsharedvariable: " + s);
+                    pcx.log(LoggingUtils.Level.SEVERE, "Failed to parse jobsharedvariable: " + s);
                 }
             }
 
@@ -198,7 +199,7 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
                 if (resource.isPresent()) {
                     result.add(resource.get());
                 } else {
-                    pcx.log(LoggingContext.Level.SEVERE, "Failed to parse HTTPSharedResource: " + file);
+                    pcx.log(LoggingUtils.Level.SEVERE, "Failed to parse HTTPSharedResource: " + file);
                 }
             }
             return result;
@@ -222,7 +223,7 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
                 if (resource.isPresent()) {
                     result.add(resource.get());
                 } else {
-                    pcx.log(LoggingContext.Level.SEVERE, "Failed to parse JMSSharedResource: " + file);
+                    pcx.log(LoggingUtils.Level.SEVERE, "Failed to parse JMSSharedResource: " + file);
                 }
             }
             return result;
@@ -249,7 +250,7 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
                     if (parsedElement.isPresent()) {
                         elements.add(parsedElement.get());
                     } else {
-                        pcx.log(LoggingContext.Level.SEVERE, "Failed to parse resource: " + s);
+                        pcx.log(LoggingUtils.Level.SEVERE, "Failed to parse resource: " + s);
                     }
                 }
                 return elements;
@@ -355,27 +356,20 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
     }
 
     public record ProjectConversionContext(boolean verbose, boolean dryRun, List<JavaDependencies> javaDependencies,
-                                           Logger logger) implements
+                                           Consumer<String> stateCallback, Consumer<String> logCallback) implements
             LoggingContext {
 
-        public ProjectConversionContext {
-            assert logger != null;
+        public ProjectConversionContext(boolean verbose, boolean dryRun, Consumer<String> stateCallback,
+                                        Consumer<String> logCallback) {
+            this(verbose, dryRun, new ArrayList<>(), stateCallback, logCallback);
         }
 
-        public ProjectConversionContext(boolean verbose, boolean dryRun, Logger logger) {
-            this(verbose, dryRun, new ArrayList<>(), logger);
-        }
-
-        public void log(LoggingContext.Level level, String message) {
-            switch (level) {
-                case INFO -> logger.info(message);
-                case WARN -> logger.warning(message);
-                case ERROR -> logger.severe(message);
-            }
+        public void log(LoggingUtils.Level level, String message) {
+            logCallback.accept("[" + level + "] " + message);
         }
 
         public void logState(String message) {
-            logger.info(message);
+            stateCallback.accept(message);
         }
     }
 }

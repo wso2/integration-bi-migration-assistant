@@ -18,6 +18,7 @@
 
 package tibco.parser;
 
+import common.LoggingUtils;
 import tibco.LoggingContext;
 
 import java.io.IOException;
@@ -34,7 +35,7 @@ public class ResourceContext implements Context, LoggingContext {
     }
 
     @Override
-    public void log(Level level, String message) {
+    public void log(LoggingUtils.Level level, String message) {
         projectContext.log(level, message);
     }
 

@@ -18,6 +18,7 @@
 
 package tibco.analyzer;
 
+import common.LoggingUtils;
 import tibco.LoggingContext;
 import tibco.converter.ConversionUtils;
 import tibco.model.PartnerLink;
@@ -332,7 +333,7 @@ public class ProcessAnalysisContext implements LoggingContext {
     }
 
     @Override
-    public void log(Level level, String message) {
+    public void log(LoggingUtils.Level level, String message) {
         projectAnalysisContext.log(level, message);
     }
 

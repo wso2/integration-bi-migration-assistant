@@ -24,6 +24,7 @@ import common.BallerinaModel.Expression.CheckPanic;
 import common.BallerinaModel.Expression.NewExpression;
 import common.BallerinaModel.Expression.StringConstant;
 import common.BallerinaModel.ModuleVar;
+import common.LoggingUtils;
 import tibco.LoggingContext;
 import tibco.TibcoToBalConverter;
 import tibco.model.Resource;
@@ -76,7 +77,7 @@ final class ResourceConvertor {
             return TibcoToBalConverter.JavaDependencies.JDBC_MARIADB;
         }
         // Default to H2 for unknown JDBC URLs
-        cx.log(LoggingContext.Level.WARN, "Unknown JDBC URL format: " + url + ". Defaulting to H2 connector.");
+        cx.log(LoggingUtils.Level.WARN, "Unknown JDBC URL format: " + url + ". Defaulting to H2 connector.");
         return TibcoToBalConverter.JavaDependencies.JDBC_H2;
     }
 
