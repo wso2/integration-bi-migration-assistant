@@ -18,6 +18,8 @@
 
 package tibco.analyzer;
 
+import tibco.LoggingContext;
+import tibco.TibcoToBalConverter;
 import tibco.model.Scope;
 import tibco.model.XSD;
 
@@ -26,14 +28,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ProjectAnalysisContext {
+public class ProjectAnalysisContext implements LoggingContext {
 
     private final Set<String> controlFlowFunctionNames = new LinkedHashSet<>();
     private final Map<Scope.Flow.Activity, String> activityFunctionNames =
             new ConcurrentHashMap<>();
     private final Map<String, XSD.XSDType> xsdTypes = new ConcurrentHashMap<>();
+    private final TibcoToBalConverter.ProjectConversionContext cx;
 
-    public ProjectAnalysisContext() {
+    public ProjectAnalysisContext(TibcoToBalConverter.ProjectConversionContext cx) {
+        this.cx = cx;
     }
 
     public Set<String> controlFlowFunctionNames() {
@@ -50,5 +54,15 @@ public class ProjectAnalysisContext {
 
     void addXsdType(String name, XSD.XSDType type) {
         xsdTypes.put(name, type);
+    }
+
+    @Override
+    public void log(Level level, String message) {
+        cx.log(level, message);
+    }
+
+    @Override
+    public void logState(String message) {
+        cx.logState(message);
     }
 }

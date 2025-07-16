@@ -24,6 +24,7 @@ import common.BallerinaModel.Expression.CheckPanic;
 import common.BallerinaModel.Expression.NewExpression;
 import common.BallerinaModel.Expression.StringConstant;
 import common.BallerinaModel.ModuleVar;
+import tibco.LoggingContext;
 import tibco.TibcoToBalConverter;
 import tibco.model.Resource;
 import tibco.model.Resource.HTTPClientResource;
@@ -55,13 +56,13 @@ final class ResourceConvertor {
             ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(resource.name()), "jdbc:Client",
                     Optional.of(new CheckPanic(constructorCall)), false, false);
             cx.addResourceDeclaration(resource.name(), resourceVar, substitutions.values(), List.of(Library.JDBC));
-            cx.addJavaDependency(pickJavaSQLConnector(resource.dbUrl()));
+            cx.addJavaDependency(pickJavaSQLConnector(cx, resource.dbUrl()));
         } catch (Exception e) {
             cx.registerResourceConversionFailure(resource);
         }
     }
 
-    private static TibcoToBalConverter.JavaDependencies pickJavaSQLConnector(String dbUrl) {
+    private static TibcoToBalConverter.JavaDependencies pickJavaSQLConnector(LoggingContext cx, String dbUrl) {
         String url = dbUrl.trim();
         if (url.startsWith("jdbc:h2:")) {
             return TibcoToBalConverter.JavaDependencies.JDBC_H2;
@@ -75,7 +76,7 @@ final class ResourceConvertor {
             return TibcoToBalConverter.JavaDependencies.JDBC_MARIADB;
         }
         // Default to H2 for unknown JDBC URLs
-        TibcoToBalConverter.logger().warning("Unknown JDBC URL format: " + url + ". Defaulting to H2 connector.");
+        cx.log(LoggingContext.Level.WARN, "Unknown JDBC URL format: " + url + ". Defaulting to H2 connector.");
         return TibcoToBalConverter.JavaDependencies.JDBC_H2;
     }
 
@@ -124,7 +125,7 @@ final class ResourceConvertor {
             ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(resource.name()), "jdbc:Client",
                     Optional.of(new CheckPanic(constructorCall)), false, false);
             cx.addResourceDeclaration(resource.name(), resourceVar, List.of(), List.of(Library.JDBC));
-            cx.addJavaDependency(pickJavaSQLConnector(resource.location()));
+            cx.addJavaDependency(pickJavaSQLConnector(cx, resource.location()));
         } catch (Exception e) {
             cx.registerResourceConversionFailure(resource);
         }

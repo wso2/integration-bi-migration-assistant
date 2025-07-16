@@ -28,7 +28,6 @@ import tibco.analyzer.ModelAnalyser;
 import tibco.analyzer.ProjectAnalysisContext;
 import tibco.converter.ConversionResult;
 import tibco.converter.ProjectConverter;
-import tibco.converter.TibcoConverter;
 import tibco.model.Process;
 import tibco.model.Resource;
 import tibco.model.Type;
@@ -89,14 +88,14 @@ public class TibcoToBalConverter {
             jmsSharedResource = jmsSharedResourceParser.parse(pcx);
             sharedVariables = SHARED_VARIABLE_PARSING_UNIT.parse(pcx);
         } catch (IOException | SAXException | ParserConfigurationException e) {
-            logger().severe("Unrecoverable error while parsing project file: " + projectPath);
+            cx.log(LoggingContext.Level.SEVERE, "Unrecoverable error while parsing project file: " + projectPath);
             throw new RuntimeException("Error while parsing the XML file: ", e);
         }
         ModelAnalyser analyser = new ModelAnalyser(List.of(
                 new DefaultAnalysisPass(),
                 new LoggingAnalysisPass()));
         Map<tibco.model.Process, AnalysisResult> analysisResult =
-                analyser.analyseProject(new ProjectAnalysisContext(), processes, types);
+                analyser.analyseProject(new ProjectAnalysisContext(cx), processes, types);
 
         return ProjectConverter.convertProject(cx, analysisResult, processes, types,
                 new ProjectConverter.ProjectResources(jdbcResources,
@@ -114,7 +113,7 @@ public class TibcoToBalConverter {
             if (parsedElement.isPresent()) {
                 elements.add(parsedElement.get());
             } else {
-                logger().warning("Failed to parse process: " + s);
+                pcx.log(LoggingContext.Level.SEVERE, "Failed to parse process: " + s);
             }
         }
         return elements;
@@ -156,7 +155,7 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
                 if (var.isPresent()) {
                     variables.add(var.get());
                 } else {
-                    logger().warning("Failed to parse sharedvariable: " + s);
+                    pcx.log(LoggingContext.Level.SEVERE, "Failed to parse sharedvariable: " + s);
                 }
             }
 
@@ -168,7 +167,7 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
                 if (var.isPresent()) {
                     variables.add(var.get());
                 } else {
-                    logger().warning("Failed to parse jobsharedvariable: " + s);
+                    pcx.log(LoggingContext.Level.SEVERE, "Failed to parse jobsharedvariable: " + s);
                 }
             }
 
@@ -176,9 +175,6 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
         }
     };
 
-    public static Logger logger() {
-        return TibcoConverter.logger();
-    }
 
     private static ResourceContext getResourceContext(ProjectContext pcx, String filePath) {
         return new ResourceContext(pcx, filePath);
@@ -202,7 +198,7 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
                 if (resource.isPresent()) {
                     result.add(resource.get());
                 } else {
-                    logger().warning("Failed to parse HTTPSharedResource: " + file);
+                    pcx.log(LoggingContext.Level.SEVERE, "Failed to parse HTTPSharedResource: " + file);
                 }
             }
             return result;
@@ -226,7 +222,7 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
                 if (resource.isPresent()) {
                     result.add(resource.get());
                 } else {
-                    logger().warning("Failed to parse JMSSharedResource: " + file);
+                    pcx.log(LoggingContext.Level.SEVERE, "Failed to parse JMSSharedResource: " + file);
                 }
             }
             return result;
@@ -253,7 +249,7 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
                     if (parsedElement.isPresent()) {
                         elements.add(parsedElement.get());
                     } else {
-                        logger().warning("Failed to parse resource: " + s);
+                        pcx.log(LoggingContext.Level.SEVERE, "Failed to parse resource: " + s);
                     }
                 }
                 return elements;
@@ -358,11 +354,28 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
         }
     }
 
-    public record ProjectConversionContext(boolean verbose, boolean dryRun, List<JavaDependencies> javaDependencies) {
+    public record ProjectConversionContext(boolean verbose, boolean dryRun, List<JavaDependencies> javaDependencies,
+                                           Logger logger) implements
+            LoggingContext {
 
+        public ProjectConversionContext {
+            assert logger != null;
+        }
 
-        public ProjectConversionContext(boolean verbose, boolean dryRun) {
-            this(verbose, dryRun, new ArrayList<>());
+        public ProjectConversionContext(boolean verbose, boolean dryRun, Logger logger) {
+            this(verbose, dryRun, new ArrayList<>(), logger);
+        }
+
+        public void log(LoggingContext.Level level, String message) {
+            switch (level) {
+                case INFO -> logger.info(message);
+                case WARN -> logger.warning(message);
+                case ERROR -> logger.severe(message);
+            }
+        }
+
+        public void logState(String message) {
+            logger.info(message);
         }
     }
 }

@@ -18,7 +18,9 @@
 
 package tibco.parser;
 
-public class TypeContext implements Context {
+import tibco.LoggingContext;
+
+public class TypeContext implements Context, LoggingContext {
 
     private final ProjectContext projectContext;
 
@@ -89,5 +91,15 @@ public class TypeContext implements Context {
     @Override
     public void incrementActivityCount(org.w3c.dom.Element element) {
         projectContext.incrementActivityCount(element);
+    }
+
+    @Override
+    public void log(Level level, String message) {
+        projectContext.log(level, message);
+    }
+
+    @Override
+    public void logState(String message) {
+        projectContext.logState(message);
     }
 }

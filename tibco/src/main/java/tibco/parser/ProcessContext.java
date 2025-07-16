@@ -19,6 +19,7 @@
 package tibco.parser;
 
 import org.w3c.dom.Element;
+import tibco.LoggingContext;
 import tibco.model.NameSpace;
 
 import java.io.IOException;
@@ -26,7 +27,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 
-public class ProcessContext implements Context {
+public class ProcessContext implements Context, LoggingContext {
 
     private long nextAnonXSLTIndex = 0;
     private final ProjectContext projectContext;
@@ -119,5 +120,15 @@ public class ProcessContext implements Context {
     @Override
     public void incrementActivityCount(Element element) {
         projectContext.incrementActivityCount(element);
+    }
+
+    @Override
+    public void log(Level level, String message) {
+        projectContext.log(level, message);
+    }
+
+    @Override
+    public void logState(String message) {
+        projectContext.logState(message);
     }
 }

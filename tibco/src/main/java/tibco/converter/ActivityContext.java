@@ -19,6 +19,7 @@
 package tibco.converter;
 
 import common.BallerinaModel;
+import tibco.LoggingContext;
 import tibco.model.NameSpace;
 import tibco.model.Resource;
 import tibco.model.Scope;
@@ -26,7 +27,7 @@ import tibco.model.Type;
 
 import java.util.Optional;
 
-public class ActivityContext {
+public class ActivityContext implements LoggingContext {
 
     public final ProcessContext processContext;
     private final Scope.Flow.Activity activity;
@@ -35,6 +36,16 @@ public class ActivityContext {
     ActivityContext(ProcessContext processContext, Scope.Flow.Activity activity) {
         this.activity = activity;
         this.processContext = processContext;
+    }
+
+    @Override
+    public void log(Level level, String message) {
+        processContext.log(level, message);
+    }
+
+    @Override
+    public void logState(String message) {
+        processContext.logState(message);
     }
 
     String getAnnonVarName() {

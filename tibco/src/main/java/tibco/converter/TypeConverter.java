@@ -33,6 +33,7 @@ import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.text.TextDocuments;
 import io.ballerina.xsd.core.response.NodeResponse;
 import org.jetbrains.annotations.NotNull;
+import tibco.LoggingContext;
 import tibco.model.Type;
 import tibco.model.Type.WSDLDefinition;
 import tibco.model.Type.WSDLDefinition.PortType.Operation;
@@ -45,8 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
@@ -55,11 +54,11 @@ import static io.ballerina.xsd.core.XSDToRecord.generateNodes;
 
 class TypeConverter {
 
-    private static final Logger logger = ProjectConverter.logger();
     private TypeConverter() {
     }
 
     static SyntaxTree convertSchemas(ContextWithFile cx, Collection<Type.Schema> schemas) {
+        cx.logState("Converting XSD schemas to Ballerina types");
         String[] content = schemas.stream().map(Type.Schema::element).map(ConversionUtils::elementToString)
                 .toArray(String[]::new);
 
@@ -68,23 +67,24 @@ class TypeConverter {
         }
         try {
             NodeResponse response = generateNodes(content);
-            logTypeConversionErrors(response);
+            logTypeConversionErrors(cx, response);
             SyntaxTree syntaxTree = SyntaxTree.from(TextDocuments.from(""));
             syntaxTree = syntaxTree.modifyWith(response.types());
+            cx.logState("Done converting XSD schemas to Ballerina types");
             return CodeGenerator.formatSyntaxTree(syntaxTree);
         } catch (Exception e) {
             throw new RuntimeException("Type conversion failed due to: " + e.getMessage(), e);
         }
     }
 
-    private static void logTypeConversionErrors(NodeResponse response) {
+    private static void logTypeConversionErrors(LoggingContext cx, NodeResponse response) {
         if (response.diagnostics().isEmpty()) {
             return;
         }
-        logger.log(Level.WARNING, "Errors detected while trying to convert XSD schemas to Ballerina types. " +
+        cx.log(LoggingContext.Level.WARN, "Errors detected while trying to convert XSD schemas to Ballerina types. " +
                 "Falling back to placeholder types");
         for (var each : response.diagnostics()) {
-            logger.log(Level.WARNING, each.message());
+            cx.log(LoggingContext.Level.WARN, each.message());
         }
     }
 

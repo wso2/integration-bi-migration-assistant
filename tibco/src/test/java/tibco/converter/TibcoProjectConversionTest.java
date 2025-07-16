@@ -21,12 +21,13 @@ package tibco.converter;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+import tibco.TibcoToBalConverter;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.stream.Stream;
-
 
 public class TibcoProjectConversionTest {
 
@@ -34,14 +35,16 @@ public class TibcoProjectConversionTest {
     public void testProjectConversion(Path tibcoProject, Path expectedBallerinaProject) throws IOException {
         // Create a temporary directory for the output
         Path tempDir = Files.createTempDirectory("tibco-conversion-test");
+        // Create a ProjectConversionContext with verbose logger for test
+        TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext(
+                true, false, new ArrayList<>(), TibcoConverter.createVerboseLogger("test"));
         try {
             if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
-                TibcoConverter.migrateTibcoProject(tibcoProject.toString(), expectedBallerinaProject.toString(),
-                        false, true, false);
+                TibcoConverter.migrateTibcoProject(cx, tibcoProject.toString(), expectedBallerinaProject.toString(),
+                        false);
             }
             // Run the conversion
-            TibcoConverter.migrateTibcoProject(tibcoProject.toString(), tempDir.toString(), false,
-                    true, false);
+            TibcoConverter.migrateTibcoProject(cx, tibcoProject.toString(), tempDir.toString(), false);
 
             // Compare the directories
             compareDirectories(tempDir, expectedBallerinaProject);

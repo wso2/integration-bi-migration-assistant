@@ -20,7 +20,6 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import org.testng.Assert;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
@@ -49,18 +48,11 @@ import java.util.stream.Stream;
 import javax.xml.parsers.ParserConfigurationException;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static tibco.converter.TibcoConverter.createVerboseLogger;
 import static tibco.util.TestUtils.fileContent;
 import static tibco.util.TestUtils.stringToElement;
 
 public class ActivityConversionTest {
-
-    @BeforeClass
-    public static void setUp() throws Exception {
-        // Initialize the logger for tests using reflection
-        java.lang.reflect.Field loggerField = TibcoConverter.class.getDeclaredField("logger");
-        loggerField.setAccessible(true);
-        loggerField.set(null, TibcoConverter.createDefaultLogger("test-logger"));
-    }
 
     @Test(groups = { "tibco", "converter" }, dataProvider = "activityTestCaseProvider")
     public void testProjectConversion(Path activityPath, Path expectedFunction) throws IOException,
@@ -88,14 +80,14 @@ public class ActivityConversionTest {
 
     private static tibco.parser.ProcessContext getProcessContextForElement(Element element) {
         TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext(true, false,
-                List.of());
+                List.of(), createVerboseLogger("test"));
         tibco.parser.ProjectContext projectContext = new tibco.parser.ProjectContext(cx, "test-project");
         return new tibco.parser.ProcessContext(projectContext, "test-activity.xml");
     }
 
     private static ProcessContext getProcessContext(Scope.Flow.Activity activity) {
         TibcoToBalConverter.ProjectConversionContext conversionContext =
-                new TibcoToBalConverter.ProjectConversionContext(true, false, List.of());
+                new TibcoToBalConverter.ProjectConversionContext(true, false, List.of(), createVerboseLogger("test"));
         return new TestProcessContext(new TestProjectContext(conversionContext, Map.of()), activity);
     }
 

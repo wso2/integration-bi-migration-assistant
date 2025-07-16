@@ -41,17 +41,9 @@ import static org.testng.Assert.assertTrue;
 public class XmlToModelTests {
 
     private static final TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext(
-            true, false, List.of());
+            true, false, TibcoConverter.createVerboseLogger("test"));
     private static final ProjectContext projectContext = new ProjectContext(cx, "test-project");
     private static final String ANON_PROCESS = "ANON.proc";
-
-    @BeforeClass
-    public static void setUp() throws Exception {
-        // Initialize the logger for tests using reflection
-        java.lang.reflect.Field loggerField = TibcoConverter.class.getDeclaredField("logger");
-        loggerField.setAccessible(true);
-        loggerField.set(null, TibcoConverter.createDefaultLogger("test-logger"));
-    }
 
     private static ProcessContext getProcessContext() {
         return new ProcessContext(projectContext, ANON_PROCESS);

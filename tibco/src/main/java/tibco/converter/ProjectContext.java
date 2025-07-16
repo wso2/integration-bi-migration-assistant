@@ -25,6 +25,7 @@ import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
+import tibco.LoggingContext;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.TibcoAnalysisReport.PartiallySupportedActivityElement;
@@ -52,7 +53,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -70,7 +70,7 @@ import static tibco.converter.Library.HTTP;
 import static tibco.converter.Library.JSON_DATA;
 import static tibco.converter.Library.XML_DATA;
 
-public class ProjectContext {
+public class ProjectContext implements LoggingContext {
 
     private final Map<Process, ProcessContext> processContextMap = new HashMap<>();
 
@@ -90,8 +90,8 @@ public class ProjectContext {
     private int annonVarCount = 0;
 
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
-    private static final Logger logger = TibcoConverter.logger();
-    private final Optional<TibcoToBalConverter.ProjectConversionContext> conversionContext;
+    // TODO: We need to fix this so logging works correctly even for single files.
+    private final TibcoToBalConverter.ProjectConversionContext conversionContext;
     private final Map<String, String> generatedResources = new HashMap<>();
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
     private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
@@ -106,8 +106,18 @@ public class ProjectContext {
 
     ProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
                    Map<Process, AnalysisResult> analysisResult) {
-        this.conversionContext = Optional.of(conversionContext);
+        this.conversionContext = conversionContext;
         this.analysisResult = analysisResult;
+    }
+
+    @Override
+    public void log(Level level, String message) {
+        conversionContext.log(level, message);
+    }
+
+    @Override
+    public void logState(String message) {
+        conversionContext.logState(message);
     }
 
     ProcessContext getProcessContext(Process process) {
@@ -121,7 +131,7 @@ public class ProjectContext {
     BallerinaModel.Module serialize(Collection<BallerinaModel.TextDocument> textDocuments) {
         List<BallerinaModel.TextDocument> combinedTextDocuments = Stream.concat(textDocuments.stream(),
                 Stream.of(typesFile(), utilsFile())).toList();
-        logger.info(String.format("Type Statistics - Total Types: %d", typeCount));
+        log(Level.INFO, String.format("Type Statistics - Total Types: %d", typeCount));
         return new BallerinaModel.Module("tibco", combinedTextDocuments);
     }
 
@@ -199,9 +209,7 @@ public class ProjectContext {
     }
 
     public void addJavaDependency(TibcoToBalConverter.JavaDependencies dependencies) {
-        conversionContext.ifPresent(cx -> {
-            cx.javaDependencies().add(dependencies);
-        });
+        conversionContext.javaDependencies().add(dependencies);
     }
 
     String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
@@ -388,7 +396,8 @@ public class ProjectContext {
         String extractedFileName = ConversionUtils.extractFileName(fileName);
         Resource.JMSSharedResource resource = jmsResourceMap.get(extractedFileName);
         if (resource == null) {
-            logger.severe("JMS shared resource not found for file: " + fileName + ". Returning placeholder resource.");
+            log(Level.SEVERE,
+                    "JMS shared resource not found for file: " + fileName + ". Returning placeholder resource.");
             return new Resource.JMSSharedResource("placeholder_" + extractedFileName, "placeholder",
                     new Resource.JMSSharedResource.NamingEnvironment(false, "", "", "", "", "", "", ""),
                     new Resource.JMSSharedResource.ConnectionAttributes(Optional.empty(), Optional.empty(),
@@ -450,7 +459,7 @@ public class ProjectContext {
     public String getConfigVarName(String varName) {
         var varDecl = utilityVars.get(varName);
         if (varDecl == null) {
-            logger.severe("Failed to find configurable variable for " + varName + ". Returning placeholder name.");
+            log(Level.SEVERE, "Failed to find configurable variable for " + varName + ". Returning placeholder name.");
             return "placeholder_" + varName;
         }
         return varDecl.name();
@@ -465,7 +474,7 @@ public class ProjectContext {
         return processContextMap.keySet().stream().filter(proc -> proc.name().equals(processName))
                 .findAny()
                 .orElseGet(() -> {
-                    logger.severe("Failed to find process: " + processName + ". Returning placeholder process.");
+                    log(Level.SEVERE, "Failed to find process: " + processName + ". Returning placeholder process.");
                     return new Process5("placeholder_" + processName, List.of(),
                             new Process5.ExplicitTransitionGroup());
                 });
@@ -500,8 +509,8 @@ public class ProjectContext {
     }
 
     public void registerServiceGenerationError(Process process, Exception e) {
-        logger.severe("Failed to generate service for process: " + process.name() + ". Error: " + e.getMessage());
-        logger.severe("Please check the process definition and ensure it is supported.");
+        log(Level.SEVERE, "Failed to generate service for process: " + process.name() + ". Error: " + e.getMessage());
+        log(Level.SEVERE, "Please check the process definition and ensure it is supported.");
     }
 
     public void registerUnhandledActivity(tibco.model.Scope.Flow.Activity activity, Exception e) {
@@ -516,21 +525,21 @@ public class ProjectContext {
             name = "<unnamed>";
             unhandledActivities.add(new UnNamedUnhandledActivityElement(activity.element(), fileName));
         }
-        logger.severe("Failed to convert activity: " + name + ". Error: " + e.getMessage());
+        log(Level.SEVERE, "Failed to convert activity: " + name + ". Error: " + e.getMessage());
     }
 
     public void registerTransitionPredicateError(Scope.Flow.Activity.ActivityWithSources activity, Exception e) {
-        logger.severe("Failed to convert transition predicate for activity: "
+        log(Level.SEVERE, "Failed to convert transition predicate for activity: "
                 + (activity != null ? activity.toString() : "<null>") + ". Error: " + e.getMessage());
     }
 
     public void registerControlFlowFunctionGenerationError(Process process, Exception e) {
-        logger.severe("Failed to generate control flow function for process: " + process.name() + ". Error: "
+        log(Level.SEVERE, "Failed to generate control flow function for process: " + process.name() + ". Error: "
                 + e.getMessage());
     }
 
     public void registerControlFlowFunctionGenerationError(Scope scope, Exception ex) {
-        logger.severe("Failed to generate control flow function for scope: " + scope.name() + ". Error: "
+        log(Level.SEVERE, "Failed to generate control flow function for scope: " + scope.name() + ". Error: "
                 + ex.getMessage());
     }
 
@@ -547,7 +556,7 @@ public class ProjectContext {
             partiallySupportedActivities.add(
                     new UnNamedPartiallySupportedActivityElement(activity.element(), fileName));
         }
-        logger.warning("Partially supported activity: " + name);
+        log(Level.WARN, "Partially supported activity: " + name);
     }
 
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
@@ -562,7 +571,7 @@ public class ProjectContext {
     public BallerinaModel.Expression.VariableReference dbClient(String sharedResourcePropertyName) {
         String varName = generatedResources.get(sharedResourcePropertyName);
         if (varName == null) {
-            logger.severe(
+            log(Level.SEVERE,
                     "Failed to find db client for " + sharedResourcePropertyName + ". Returning placeholder client.");
             return new BallerinaModel.Expression.VariableReference("placeholder_db_client");
         }
@@ -572,7 +581,7 @@ public class ProjectContext {
     public VariableReference httpListener(String name) {
         String varName = generatedResources.get(name);
         if (varName == null) {
-            logger.severe("Failed to find listener for " + name + ". Returning placeholder listener.");
+            log(Level.SEVERE, "Failed to find listener for " + name + ". Returning placeholder listener.");
             return new BallerinaModel.Expression.VariableReference("placeholder_listener");
         }
         return new BallerinaModel.Expression.VariableReference(varName);
@@ -696,7 +705,7 @@ public class ProjectContext {
         return Intrinsics.GET_FILES_IN_PATH.name;
     }
 
-    private static class ContextWrapperForTypeFile implements ContextWithFile {
+    private static class ContextWrapperForTypeFile implements ContextWithFile, LoggingContext {
 
         final Set<BallerinaModel.Import> imports = new HashSet<>();
         private final Map<String, Optional<BallerinaModel.ModuleTypeDef>> moduleTypeDefs = new HashMap<>();
@@ -797,10 +806,20 @@ public class ProjectContext {
             return new BallerinaModel.TextDocument("types.bal", this.imports.stream().toList(), typeDefs, List.of(),
                     List.of(), List.of(), List.of(), List.of(), typeIntrinsics, nodes);
         }
+
+        @Override
+        public void log(Level level, String message) {
+            cx.log(level, message);
+        }
+
+        @Override
+        public void logState(String message) {
+            cx.logState(message);
+        }
     }
 
     public void registerResourceConversionFailure(Resource resource) {
-        logger.severe("failed to convert resource: " + resource.name()
+        log(Level.SEVERE, "failed to convert resource: " + resource.name()
                 + ". Please check the resource definition and ensure it is supported.");
     }
 
