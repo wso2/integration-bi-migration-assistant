@@ -205,13 +205,6 @@ public class TibcoConverter {
                 cx.log(SEVERE, "Failed to create output file " + entry.getKey());
             }
         }
-        // FIXME: this should be in files as well
-        try {
-            addProjectArtifacts(cx, codeGenDir.toString());
-        } catch (IOException e) {
-            cx.log(SEVERE, "Error adding project artifacts");
-        }
-        // Write report.html
         try {
             createTargetDirectoryIfNeeded(cx, targetDir);
             writeAnalysisReport(cx, targetDir, convertResult.reportHTML);
@@ -257,14 +250,6 @@ public class TibcoConverter {
         context.log(LoggingUtils.Level.INFO, "Created target directory: " + targetDir);
     }
 
-    private static void addProjectArtifacts(ProjectConversionContext cx, String targetPath)
-            throws IOException {
-        Path tomlPath = Paths.get(targetPath, "Ballerina.toml");
-
-        Files.writeString(tomlPath, ballerinaToml(cx));
-        cx.log(LoggingUtils.Level.INFO, "Created Ballerina.toml file at: " + tomlPath);
-    }
-
     private static String ballerinaToml(ProjectConversionContext cx) {
         String version = "0.1.0";
         String distribution = "2201.12.0";
@@ -306,6 +291,7 @@ public class TibcoConverter {
             if (typesTree != null) {
                 files.put("types.bal", typesTree.toSourceCode());
             }
+            files.put("Ballerina.toml", ballerinaToml(cx));
             // Prepare report
             TibcoAnalysisReport report = result.report();
             report.lineCount(files.values().stream().
