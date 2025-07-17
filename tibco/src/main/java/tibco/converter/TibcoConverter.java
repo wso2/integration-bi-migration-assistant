@@ -52,13 +52,14 @@ public class TibcoConverter {
     }
 
     public static void migrateTibco(String sourcePath, String outputPath, boolean preserverStructure, boolean verbose,
-                                    boolean dryRun, boolean multiRoot) {
+                                    boolean dryRun, boolean multiRoot, Optional<String> orgName, 
+                                    Optional<String> projectName) {
         Logger logger = verbose ? createVerboseLogger("migrate-tibco") : createDefaultLogger("migrate-tibco");
         Consumer<String> stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         Consumer<String> logCallback = LoggingUtils.wrapLoggerForLogCallback(logger);
-        String org = "converter";
         ConversionContext context =
-                new ConversionContext(org, dryRun, preserverStructure, stateCallback, logCallback);
+                new ConversionContext(orgName.orElse("converter"), dryRun, preserverStructure, 
+                                      stateCallback, logCallback);
         Path inputPath = null;
         try {
             inputPath = Paths.get(sourcePath).toRealPath();
@@ -74,14 +75,15 @@ public class TibcoConverter {
                         + sourcePath);
                 System.exit(1);
             }
-            migrateTibcoMultiRoot(context, inputPath, outputPath);
+            migrateTibcoMultiRoot(context, inputPath, outputPath, projectName);
             return;
         }
 
-        migrateTibcoInner(context, sourcePath, outputPath);
+        migrateTibcoInner(context, sourcePath, outputPath, projectName);
     }
 
-    private static void migrateTibcoMultiRoot(ConversionContext cx, Path inputPath, String outputPath) {
+    private static void migrateTibcoMultiRoot(ConversionContext cx, Path inputPath, String outputPath, 
+                                              Optional<String> projectName) {
         List<ProjectSummary> projectSummaries = new ArrayList<>();
         try {
             Files.list(inputPath)
@@ -98,7 +100,7 @@ public class TibcoConverter {
                         cx.log(LoggingUtils.Level.INFO, "Converting project: " + childDir);
 
                         Optional<MigrationResult> result =
-                                migrateTibcoInner(cx, childDir.toString(), childOutputPath);
+                                migrateTibcoInner(cx, childDir.toString(), childOutputPath, projectName);
 
                         if (result.isPresent()) {
                             TibcoAnalysisReport report = result.get().report();
@@ -137,7 +139,7 @@ public class TibcoConverter {
     }
 
     private static Optional<MigrationResult> migrateTibcoInner(ConversionContext cx, String sourcePath,
-                                                               String outputPath) {
+                                                               String outputPath, Optional<String> projectName) {
         Path inputPath;
         try {
             inputPath = Paths.get(sourcePath).toRealPath();
@@ -146,7 +148,8 @@ public class TibcoConverter {
             System.exit(1);
             return Optional.empty();
         }
-        ProjectConversionContext context = new ProjectConversionContext(cx, inputPath.getFileName().toString());
+        String finalProjectName = projectName.orElse(inputPath.getFileName().toString());
+        ProjectConversionContext context = new ProjectConversionContext(cx, finalProjectName);
         if (Files.isRegularFile(inputPath)) {
             String inputRootDirectory = inputPath.getParent().toString();
             String targetPath = outputPath != null ? outputPath : inputRootDirectory + "_converted";
