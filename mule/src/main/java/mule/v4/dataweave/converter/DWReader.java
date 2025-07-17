@@ -36,9 +36,7 @@ import java.nio.file.Paths;
 import java.util.List;
 
 import static common.BallerinaModel.Statement;
-import static mule.v4.model.MuleModel.InputPayloadElement;
 import static mule.v4.model.MuleModel.SetPayloadElement;
-import static mule.v4.model.MuleModel.SetSessionVariableElement;
 import static mule.v4.model.MuleModel.SetVariableElement;
 import static mule.v4.model.MuleModel.TransformMessageElement;
 
@@ -112,15 +110,6 @@ public class DWReader {
                     addStatementToList(setVariableElement.script(), setVariableElement.resource(),
                             context, ctx, setVariableElement.variableName(), statementList);
                     break;
-                case DW_SET_SESSION_VARIABLE:
-                    SetSessionVariableElement sessionVariableElement =
-                            (SetSessionVariableElement) child;
-                    addStatementToList(sessionVariableElement.script(), sessionVariableElement.resource(),
-                            context, ctx, sessionVariableElement.variableName(), statementList);
-                    break;
-                case DW_INPUT_PAYLOAD:
-                    context.setMimeType(((InputPayloadElement) child).mimeType());
-                    break;
                 default:
                     // TODO: add this to unsupported blocks in report?
                     statementList.add(new BallerinaStatement(
@@ -176,10 +165,10 @@ public class DWReader {
         if (context.currentScriptContext.containsCheck) {
             statement.append("check ");
         }
-        String paramsString = DWUtils.getParamsString(context.currentScriptContext.params);
+        String paramsString = DWUtils.getParamsString(Constants.FUNC_PARAMS_WITH_CONTEXT);
         statement.append(context.functionNames.getLast())
                 .append("(")
-                .append(!paramsString.isEmpty() ? String.format("ctx.%s.toJson()", paramsString) : "")
+                .append(paramsString)
                 .append(");");
         return statement.toString();
     }

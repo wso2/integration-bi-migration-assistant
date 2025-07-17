@@ -89,21 +89,6 @@ public record MuleModel() {
         }
     }
 
-    public record SetSessionVariableElement(Kind kind, String resource, String script, String variableName)
-            implements TransformMessageElement {
-        public SetSessionVariableElement(String resource, String script, String variableName) {
-            this(Kind.DW_SET_SESSION_VARIABLE, resource, script, variableName);
-        }
-    }
-
-    public record InputPayloadElement(Kind kind, String mimeType, String samplePath)
-            implements TransformMessageElement {
-        // TODO - add support for reader property
-        public InputPayloadElement(String mimeType, String samplePath) {
-            this(Kind.DW_INPUT_PAYLOAD, mimeType, samplePath);
-        }
-    }
-
     public enum LogLevel {
         DEBUG,
         ERROR,

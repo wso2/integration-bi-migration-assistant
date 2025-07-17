@@ -3,10 +3,10 @@ public type Context record {|
 |};
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_();
+    json _dwOutput_ = _dwMethod0_(ctx);
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod0_() returns json {
+function _dwMethod0_(Context ctx) returns json {
     return "apple".toUpperAscii();
 }

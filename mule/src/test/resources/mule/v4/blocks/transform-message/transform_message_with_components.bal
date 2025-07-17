@@ -1,6 +1,6 @@
 import ballerina/http;
 
-public type InboundProperties record {|
+public type Attributes record {|
     http:Request request;
     http:Response response;
     map<string> uriParams = {};
@@ -8,24 +8,23 @@ public type InboundProperties record {|
 
 public type Context record {|
     anydata payload = ();
-    InboundProperties inboundProperties;
+    Attributes attributes;
 |};
 
 public listener http:Listener config = new (8081);
 
 service /foo on config {
     resource function get .(http:Request request) returns http:Response|error {
-        Context ctx = {inboundProperties: {request, response: new}};
-        json myVariable = _dwMethod0_(ctx.payload.toJson());
-        json _dwOutput_ = _dwMethod0_(ctx.payload.toJson());
-        json mySessionVariable = _dwMethod0_(ctx.payload.toJson());
+        Context ctx = {attributes: {request, response: new}};
+        json _dwOutput_ = _dwMethod0_(ctx);
+        json myVariable = _dwMethod0_(ctx);
         ctx.payload = _dwOutput_;
 
-        ctx.inboundProperties.response.setPayload(ctx.payload);
-        return ctx.inboundProperties.response;
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
     }
 }
 
-function _dwMethod0_(json payload) returns json {
+function _dwMethod0_(Context ctx) returns json {
     return "apple".toUpperAscii();
 }

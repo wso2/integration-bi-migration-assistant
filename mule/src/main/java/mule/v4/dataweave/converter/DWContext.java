@@ -75,13 +75,6 @@ public class DWContext {
         this.currentScriptContext.containsCheck = true;
     }
 
-    public void setMimeType(String mimeType) {
-        this.mimeType = mimeType;
-        if (mimeType != null) {
-            this.currentScriptContext.inputType = DWUtils.findBallerinaType(mimeType);
-        }
-    }
-
     public StringBuilder append(String context) {
         return this.currentScriptContext.exprBuilder.append(context);
     }
@@ -108,7 +101,6 @@ public class DWContext {
         public List<BallerinaModel.Parameter> params = new ArrayList<>();
         public List<BallerinaModel.Statement> statements = new ArrayList<>();
         public Map<String, String> varTypes = new HashMap<>();
-        public String inputType;
         public String outputType;
         public String dwVersion;
         public StringBuilder exprBuilder = new StringBuilder();

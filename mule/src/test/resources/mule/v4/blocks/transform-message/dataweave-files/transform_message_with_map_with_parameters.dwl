@@ -1,4 +1,4 @@
-%dw 1.0
-%output application/json
+%dw 2.0
+output application/json
 ---
-["john", "peter", "matt"] map ((firstName, position) -> position ++ ":" ++ upper firstName)
+["john", "peter", "matt"] map ((firstName, position) -> position ++ ":" ++ upper(firstName))

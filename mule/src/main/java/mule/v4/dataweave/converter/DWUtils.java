@@ -54,18 +54,18 @@ public class DWUtils {
 
     // DataWeave Types
     public static final String ARRAY = "array";
-    public static final String BOOLEAN = "boolean";
-    public static final String DATE = "date";
-    public static final String DATETIME = "datetime";
+    public static final String BOOLEAN = "Boolean";
+    public static final String DATE = "Date";
+    public static final String DATETIME = "DateTime";
     public static final String FUNCTION = "function";
-    public static final String NULL = "null";
-    public static final String NUMBER = "number";
-    public static final String OBJECT = "object";
-    public static final String STRING = "string";
-    public static final String TIME = "time";
-    public static final String LOCAL_DATE_TIME = "localdatetime";
+    public static final String NULL = "Null";
+    public static final String NUMBER = "Number";
+    public static final String OBJECT = "Object";
+    public static final String STRING = "String";
+    public static final String TIME = "Time";
+    public static final String LOCAL_DATE_TIME = "LocalDateTime";
     public static final String TIME_ZONE = "timeZone";
-    public static final String PERIOD = "period";
+    public static final String PERIOD = "Period";
     public static final String IDENTIFIER = "identifier";
 
     // DataWeave Built-in functions
