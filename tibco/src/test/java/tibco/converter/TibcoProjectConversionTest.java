@@ -28,6 +28,8 @@ import tibco.ProjectConversionContext;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -63,16 +65,21 @@ public class TibcoProjectConversionTest {
 
     @Test(groups = {"tibco", "converter"}, dataProvider = "projectTestCaseProvider")
     public void testProjectConversionByAPI(Path tibcoProject, Path expectedBallerinaProject) throws IOException {
-        // Run the conversion using the public API
-        var result = tibco.TibcoToBalConverter.migrateTIBCO(
-                "testOrg",
-                expectedBallerinaProject.getFileName().toString(),
-                tibcoProject.toString(),
-                s -> {
+        // Create parameter map for the API
+        java.util.Map<String, Object> parameters = java.util.Map.of(
+                "orgName", "testOrg",
+                "projectName", expectedBallerinaProject.getFileName().toString(),
+                "sourcePath", tibcoProject.toString(),
+                "stateCallback", (java.util.function.Consumer<String>) s -> {
                 },
-                s -> {
-                });
+                "logCallback", (java.util.function.Consumer<String>) s -> {
+                }
+        );
+        
+        // Run the conversion using the new public API
+        var result = tibco.TibcoToBalConverter.migrateTIBCO(parameters);
         Assert.assertNotNull(result, "migrateTIBCO returned null");
+        Assert.assertFalse(result.containsKey("error"), "Conversion failed with error: " + result.get("error"));
         Assert.assertTrue(result.containsKey("textEdits"), "Result does not contain 'textEdits'");
         @SuppressWarnings("unchecked")
         var textEdits = (java.util.Map<String, String>) result.get("textEdits");
@@ -184,6 +191,32 @@ public class TibcoProjectConversionTest {
                         }
                     });
         }
+    }
+
+    @Test(groups = {"tibco", "converter"})
+    public void testMigrateTIBCOAPIErrorHandling() {
+        // Test missing parameter
+        Map<String, Object> emptyParams = new HashMap<>();
+        var result1 = tibco.TibcoToBalConverter.migrateTIBCO(emptyParams);
+        Assert.assertTrue(result1.containsKey("error"), "Should return error for missing parameters");
+        Assert.assertTrue(result1.get("error").toString().contains("Missing required parameter"),
+                "Error message should mention missing parameter");
+
+        // Test wrong type parameter
+        Map<String, Object> wrongTypeParams = new HashMap<>();
+        wrongTypeParams.put("orgName", 123); // Should be String, not Integer
+        var result2 = tibco.TibcoToBalConverter.migrateTIBCO(wrongTypeParams);
+        Assert.assertTrue(result2.containsKey("error"), "Should return error for wrong parameter type");
+        Assert.assertTrue(result2.get("error").toString().contains("must be a String"),
+                "Error message should mention type mismatch");
+
+        // Test missing some parameters
+        Map<String, Object> partialParams = new HashMap<>();
+        partialParams.put("orgName", "testOrg");
+        partialParams.put("projectName", "testProject");
+        // Missing sourcePath, stateCallback, logCallback
+        var result3 = tibco.TibcoToBalConverter.migrateTIBCO(partialParams);
+        Assert.assertTrue(result3.containsKey("error"), "Should return error for missing parameters");
     }
 
     @DataProvider

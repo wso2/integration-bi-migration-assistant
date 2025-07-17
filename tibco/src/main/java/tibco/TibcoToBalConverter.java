@@ -314,8 +314,22 @@ public class TibcoToBalConverter {
         return document.getDocumentElement();
     }
 
-    public static Map<String, Object> migrateTIBCO(String orgName, String projectName, String sourcePath,
-                                                   Consumer<String> stateCallback, Consumer<String> logCallback) {
+    public static Map<String, Object> migrateTIBCO(Map<String, Object> parameters) {
+        try {
+            String orgName = validateAndGetString(parameters, "orgName");
+            String projectName = validateAndGetString(parameters, "projectName");
+            String sourcePath = validateAndGetString(parameters, "sourcePath");
+            Consumer<String> stateCallback = validateAndGetConsumer(parameters, "stateCallback");
+            Consumer<String> logCallback = validateAndGetConsumer(parameters, "logCallback");
+            
+            return migrateTIBCOInner(orgName, projectName, sourcePath, stateCallback, logCallback);
+        } catch (IllegalArgumentException e) {
+            return Map.of("error", e.getMessage());
+        }
+    }
+
+    private static Map<String, Object> migrateTIBCOInner(String orgName, String projectName, String sourcePath,
+                                                         Consumer<String> stateCallback, Consumer<String> logCallback) {
         ProjectConversionContext cx = new ProjectConversionContext(
                 new ConversionContext(orgName, false, false, stateCallback, logCallback), projectName);
         TibcoConverter.ConvertResult convertResult = TibcoConverter.convertProjectInner(cx, sourcePath);
@@ -323,6 +337,31 @@ public class TibcoToBalConverter {
             return Map.of("error", convertResult.errorMessage().get());
         }
         return Map.of("textEdits", convertResult.files(), "report", convertResult.reportHTML());
+    }
+
+    private static String validateAndGetString(Map<String, Object> parameters, String key) {
+        if (!parameters.containsKey(key)) {
+            throw new IllegalArgumentException("Missing required parameter: " + key);
+        }
+        Object value = parameters.get(key);
+        if (!(value instanceof String)) {
+            throw new IllegalArgumentException("Parameter " + key + " must be a String, got: " + 
+                    (value != null ? value.getClass().getSimpleName() : "null"));
+        }
+        return (String) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Consumer<String> validateAndGetConsumer(Map<String, Object> parameters, String key) {
+        if (!parameters.containsKey(key)) {
+            throw new IllegalArgumentException("Missing required parameter: " + key);
+        }
+        Object value = parameters.get(key);
+        if (!(value instanceof Consumer)) {
+            throw new IllegalArgumentException("Parameter " + key + " must be a Consumer<String>, got: " + 
+                    (value != null ? value.getClass().getSimpleName() : "null"));
+        }
+        return (Consumer<String>) value;
     }
 
     public enum JavaDependencies {
