@@ -21,6 +21,7 @@ package cli;
 import tibco.converter.TibcoConverter;
 
 import java.io.PrintStream;
+import java.util.Optional;
 
 public class TibcoCli {
 
@@ -43,8 +44,12 @@ public class TibcoCli {
                     System.exit(1);
                 }
                 String outputPath = args[2];
-                TibcoConverter.migrateTibco(sourcePath, outputPath, false, true, false, false);
+                TibcoConverter.migrateTibco(sourcePath, outputPath, false, true, false, false,
+                        Optional.empty(), Optional.empty());
             }
+        } else {
+            TibcoConverter.migrateTibco(sourcePath, null, false, true, false, false, 
+                    Optional.empty(), Optional.empty());
         }
     }
 }
