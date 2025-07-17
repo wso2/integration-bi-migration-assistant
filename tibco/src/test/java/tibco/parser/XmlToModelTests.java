@@ -18,15 +18,17 @@
 
 package tibco.parser;
 
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.logging.Logger;
 
-import tibco.converter.TibcoConverter;
-import tibco.TibcoToBalConverter;
+import common.LoggingUtils;
+import tibco.ConversionContext;
+import tibco.ProjectConversionContext;
 import tibco.model.NameSpace;
 import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
@@ -36,22 +38,21 @@ import tibco.util.TestUtils;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
-
+import static tibco.converter.TibcoConverter.createVerboseLogger;
 
 public class XmlToModelTests {
 
-    private static final TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext(
-            true, false, List.of());
+    private static final ProjectConversionContext cx;
+    static {
+        Logger logger = createVerboseLogger("test");
+        Consumer<String> stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        Consumer<String> logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        ConversionContext conversionContext = new ConversionContext(
+                "testOrg", false, true, stateCallback, logCallback);
+        cx = new ProjectConversionContext(conversionContext, "test");
+    }
     private static final ProjectContext projectContext = new ProjectContext(cx, "test-project");
     private static final String ANON_PROCESS = "ANON.proc";
-
-    @BeforeClass
-    public static void setUp() throws Exception {
-        // Initialize the logger for tests using reflection
-        java.lang.reflect.Field loggerField = TibcoConverter.class.getDeclaredField("logger");
-        loggerField.setAccessible(true);
-        loggerField.set(null, TibcoConverter.createDefaultLogger("test-logger"));
-    }
 
     private static ProcessContext getProcessContext() {
         return new ProcessContext(projectContext, ANON_PROCESS);

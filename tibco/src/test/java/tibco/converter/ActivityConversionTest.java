@@ -19,13 +19,14 @@
 package tibco.converter;
 
 import common.BallerinaModel;
+import common.LoggingUtils;
 import org.testng.Assert;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
-import tibco.TibcoToBalConverter;
+import tibco.ConversionContext;
+import tibco.ProjectConversionContext;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.TibcoAnalysisReport;
 import tibco.model.Method;
@@ -44,23 +45,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import javax.xml.parsers.ParserConfigurationException;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
+import static tibco.converter.TibcoConverter.createVerboseLogger;
 import static tibco.util.TestUtils.fileContent;
 import static tibco.util.TestUtils.stringToElement;
 
 public class ActivityConversionTest {
-
-    @BeforeClass
-    public static void setUp() throws Exception {
-        // Initialize the logger for tests using reflection
-        java.lang.reflect.Field loggerField = TibcoConverter.class.getDeclaredField("logger");
-        loggerField.setAccessible(true);
-        loggerField.set(null, TibcoConverter.createDefaultLogger("test-logger"));
-    }
 
     @Test(groups = { "tibco", "converter" }, dataProvider = "activityTestCaseProvider")
     public void testProjectConversion(Path activityPath, Path expectedFunction) throws IOException,
@@ -87,16 +82,25 @@ public class ActivityConversionTest {
     }
 
     private static tibco.parser.ProcessContext getProcessContextForElement(Element element) {
-        TibcoToBalConverter.ProjectConversionContext cx = new TibcoToBalConverter.ProjectConversionContext(true, false,
-                List.of());
+
+        Logger logger = createVerboseLogger("test");
+        var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        ConversionContext conversionContext = new ConversionContext(
+                "testOrg", false, true, stateCallback, logCallback);
+        ProjectConversionContext cx = new ProjectConversionContext(conversionContext, "test");
         tibco.parser.ProjectContext projectContext = new tibco.parser.ProjectContext(cx, "test-project");
         return new tibco.parser.ProcessContext(projectContext, "test-activity.xml");
     }
 
     private static ProcessContext getProcessContext(Scope.Flow.Activity activity) {
-        TibcoToBalConverter.ProjectConversionContext conversionContext =
-                new TibcoToBalConverter.ProjectConversionContext(true, false, List.of());
-        return new TestProcessContext(new TestProjectContext(conversionContext, Map.of()), activity);
+        Logger logger = createVerboseLogger("test");
+        var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        ConversionContext conversionContext = new ConversionContext(
+                "testOrg", false, true, stateCallback, logCallback);
+        ProjectConversionContext cx = new ProjectConversionContext(conversionContext, "test");
+        return new TestProcessContext(new TestProjectContext(cx, Map.of()), activity);
     }
 
     private static String toString(BallerinaModel.Function function) {
@@ -133,7 +137,7 @@ public class ActivityConversionTest {
 
     static class TestProjectContext extends ProjectContext {
 
-        TestProjectContext(TibcoToBalConverter.ProjectConversionContext conversionContext,
+        TestProjectContext(ProjectConversionContext conversionContext,
                            Map<Process, AnalysisResult> analysisResult) {
             super(conversionContext, analysisResult);
         }
@@ -187,6 +191,7 @@ public class ActivityConversionTest {
                              unhandledInlineActivity -> unhandledInlineActivity.name();
                 case Process5.ExplicitTransitionGroup.InlineActivity inlineActivity -> inlineActivity.name();
             };
+            String sanitizedPrefix = ConversionUtils.sanitizes(prefix);
             return new AnalysisResult() {
                 @Override
                 public Collection<String> inputTypeName(Process process) {
@@ -215,7 +220,7 @@ public class ActivityConversionTest {
 
                 @Override
                 public ActivityData from(Scope.Flow.Activity activity) {
-                    return new ActivityData(prefix, new BallerinaModel.TypeDesc.MapTypeDesc(XML), XML);
+                    return new ActivityData(sanitizedPrefix, new BallerinaModel.TypeDesc.MapTypeDesc(XML), XML);
                 }
 
                 @Override

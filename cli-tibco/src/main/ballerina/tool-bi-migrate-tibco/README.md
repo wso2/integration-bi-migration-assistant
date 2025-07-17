@@ -14,7 +14,7 @@ $ bal tool pull migrate-tibco
 ### Command Syntax
 
 ```bash
-$ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root]
+$ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root] [-g|--org-name <organization-name>] [-p|--project-name <project-name>]
 ```
 
 ### Parameters
@@ -26,7 +26,9 @@ $ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directo
 - **-k or --keep-structure** - *Optional*. If specified, preserves the original process structure during migration. By default, this option is disabled.
 - **-v or --verbose** - *Optional*. Enable verbose output during conversion.
 - **-d or --dry-run** - *Optional*. Run the parsing and analysis phases and generate the `report.html` file without generating the Ballerina package.
-- **-m or --multi-root** - *Optional*. Treat each child directory as a separate project and convert all of them. This flag is currently only supported with `--dry-run` mode and the source must be a directory containing multiple TIBCO projects.
+- **-m or --multi-root** - *Optional*. Treat each child directory as a separate project and convert all of them. The source must be a directory containing multiple TIBCO projects.
+- **-g or --org-name** - *Optional*. Organization name for the generated Ballerina package. If not provided, defaults to `converter`.
+- **-p or --project-name** - *Optional*. Project name for the generated Ballerina package. If not provided, defaults to the input directory or file name.
 
 ## Examples
 
@@ -107,6 +109,18 @@ This will run the parsing and analysis phases and generate the `report.html` fil
 ### Convert multiple TIBCO BusinessWorks projects with multi-root mode
 
 ```bash
+$ bal migrate-tibco path/to/projects-directory --multi-root
+```
+
+or
+
+```bash
+$ bal migrate-tibco path/to/projects-directory -m
+```
+
+For analysis only (dry-run):
+
+```bash
 $ bal migrate-tibco path/to/projects-directory --multi-root --dry-run
 ```
 
@@ -116,7 +130,21 @@ or
 $ bal migrate-tibco path/to/projects-directory -m -d
 ```
 
-This will treat each child directory within `path/to/projects-directory` as a separate TIBCO project and analyze all of them. This mode is currently only supported with the `--dry-run` flag and generates analysis reports for each project found.
+This will treat each child directory within `path/to/projects-directory` as a separate TIBCO project and convert all of them. When used with `--dry-run`, it generates analysis reports for each project found.
+
+### Convert a TIBCO BusinessWorks project with custom organization and project name
+
+```bash
+$ bal migrate-tibco path/to/tibco-project --org-name myorg --project-name myproject
+```
+
+or
+
+```bash
+$ bal migrate-tibco path/to/tibco-project -g myorg -p myproject
+```
+
+This will create a Ballerina package with organization name `myorg` and project name `myproject` instead of the default values.
 
 ## Output
 
@@ -129,16 +157,30 @@ This will treat each child directory within `path/to/projects-directory` as a se
 ### Unhandled activities
 
 - If the tool encounters any activity which it does not know how to convert it will generate a placeholder "unhandled" function with a comment containing the relevant part of the process file.
+  ```ballerina
+  function unhandled(map<xml> context) returns xml|error {
+      //FIXME: [ParseError] : Unknown activity
+      //<bpws:empty name="OnMessageStart" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions" tibex:constructor="onMessageStart" tibex:xpdlId="c266c167-7a80-40cc-9db2-60739386deeb" xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"/>
 
-```
-function unhandled(map<xml> context) returns xml|error {
-    //FIXME: [ParseError] : Unknown activity
-    //<bpws:empty name="OnMessageStart" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions" tibex:constructor="onMessageStart" tibex:xpdlId="c266c167-7a80-40cc-9db2-60739386deeb" xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"/>
+      //<bpws:empty name="OnMessageStart" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions" tibex:constructor="onMessageStart" tibex:xpdlId="c266c167-7a80-40cc-9db2-60739386deeb" xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"/>
+      return xml `<root></root>`;
+  }
+  ```
 
-    //<bpws:empty name="OnMessageStart" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions" tibex:constructor="onMessageStart" tibex:xpdlId="c266c167-7a80-40cc-9db2-60739386deeb" xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"/>
-    return xml `<root></root>`;
-}
-```
+### Partially supported activities
+- In case of activities that are only partially supported you will see a log message with the activity name.
+  ```
+  WARNING: Partially supported activity: JMS Send
+  ```
+
+- They will also be listed in the report under heading "Activities that need manual validation". For most typical use cases, you can use the converted source as is, but we highly encourage users to check the converted code. There will be comments explaining any limitations/assumptions the tool has made.
+  ```ballerina
+      // WARNING: using default destination configuration
+      jms:MessageProducer var4 = check var3.createProducer(destination = {
+          'type: jms:TOPIC,
+          name: "TOPIC"
+      });
+  ```
 
 ### Supported TIBCO BusinessWorks activities
 
@@ -181,8 +223,16 @@ function unhandled(map<xml> context) returns xml|error {
 - `com.tibco.plugin.json.activities.JSONParserActivity`
 - `com.tibco.plugin.json.activities.JSONRenderActivity`
 - `com.tibco.plugin.soap.SOAPSendReplyActivity`
-- `com.tibco.pe.core.WriteToLogActivity`
 - `com.tibco.plugin.jms.JMSQueueEventSource`
 - `com.tibco.plugin.jms.JMSQueueSendActivity`
 - `com.tibco.plugin.jms.JMSQueueGetMessageActivity`
 - `com.tibco.plugin.jms.JMSTopicPublishActivity`
+- `com.tibco.pe.core.GenerateErrorActivity`
+- `com.tibco.plugin.timer.NullActivity`
+- `com.tibco.plugin.timer.SleepActivity`
+- `com.tibco.pe.core.GetSharedVariableActivity`
+- `com.tibco.pe.core.SetSharedVariableActivity`
+- `com.tibco.plugin.file.FileEventSource`
+- `com.tibco.pe.core.OnStartupEventSource`
+- `com.tibco.plugin.file.ListFilesActivity`
+- `com.tibco.plugin.xml.XMLTransformActivity`

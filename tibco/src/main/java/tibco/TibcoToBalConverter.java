@@ -18,6 +18,7 @@
 
 package tibco;
 
+import common.LoggingUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
@@ -43,7 +44,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -52,7 +52,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.logging.Logger;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -60,7 +60,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 public class TibcoToBalConverter {
-
 
     private TibcoToBalConverter() {
     }
@@ -89,14 +88,14 @@ public class TibcoToBalConverter {
             jmsSharedResource = jmsSharedResourceParser.parse(pcx);
             sharedVariables = SHARED_VARIABLE_PARSING_UNIT.parse(pcx);
         } catch (IOException | SAXException | ParserConfigurationException e) {
-            logger().severe("Unrecoverable error while parsing project file: " + projectPath);
+            cx.log(LoggingUtils.Level.SEVERE, "Unrecoverable error while parsing project file: " + projectPath);
             throw new RuntimeException("Error while parsing the XML file: ", e);
         }
         ModelAnalyser analyser = new ModelAnalyser(List.of(
                 new DefaultAnalysisPass(),
                 new LoggingAnalysisPass()));
         Map<tibco.model.Process, AnalysisResult> analysisResult =
-                analyser.analyseProject(new ProjectAnalysisContext(), processes, types);
+                analyser.analyseProject(new ProjectAnalysisContext(cx), processes, types);
 
         return ProjectConverter.convertProject(cx, analysisResult, processes, types,
                 new ProjectConverter.ProjectResources(jdbcResources,
@@ -114,15 +113,15 @@ public class TibcoToBalConverter {
             if (parsedElement.isPresent()) {
                 elements.add(parsedElement.get());
             } else {
-                logger().warning("Failed to parse process: " + s);
+                pcx.log(LoggingUtils.Level.SEVERE, "Failed to parse process: " + s);
             }
         }
         return elements;
     };
-private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
-        new ParsingUnit.SimpleParsingUnit<>(
-                TibcoToBalConverter::getXSDFiles, XmlToTibcoModelParser::parseSchema,
-                (ProjectContext pcx, String filePath) -> new TypeContext(pcx));
+    private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
+            new ParsingUnit.SimpleParsingUnit<>(
+                    TibcoToBalConverter::getXSDFiles, XmlToTibcoModelParser::parseSchema,
+                    (ProjectContext pcx, String filePath) -> new TypeContext(pcx));
     private static final ParsingUnit<Resource.JDBCResource> JDBC_RESOURCE_PARSING_UNIT =
             new ParsingUnit.SimpleParsingUnit<>(
                     TibcoToBalConverter::getJDBCResourceFiles, XmlToTibcoModelParser::parseJDBCResource,
@@ -149,14 +148,14 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
             Set<Resource.SharedVariable> variables = new HashSet<>();
 
             for (String s : getFilesWithExtension(pcx.projectPath(), "sharedvariable")) {
-                        String relativePath = "/" + Paths.get(pcx.projectPath()).relativize(Paths.get(s)).toString();
+                String relativePath = "/" + Paths.get(pcx.projectPath()).relativize(Paths.get(s)).toString();
                 Optional<Resource.SharedVariable> var = XmlToTibcoModelParser.parseSharedVariable(
                         new ResourceContext(pcx, s),
                         parseXmlFile(s), relativePath);
                 if (var.isPresent()) {
                     variables.add(var.get());
                 } else {
-                    logger().warning("Failed to parse sharedvariable: " + s);
+                    pcx.log(LoggingUtils.Level.SEVERE, "Failed to parse sharedvariable: " + s);
                 }
             }
 
@@ -168,17 +167,13 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
                 if (var.isPresent()) {
                     variables.add(var.get());
                 } else {
-                    logger().warning("Failed to parse jobsharedvariable: " + s);
+                    pcx.log(LoggingUtils.Level.SEVERE, "Failed to parse jobsharedvariable: " + s);
                 }
             }
 
             return variables;
         }
     };
-
-    public static Logger logger() {
-        return TibcoConverter.logger();
-    }
 
     private static ResourceContext getResourceContext(ProjectContext pcx, String filePath) {
         return new ResourceContext(pcx, filePath);
@@ -202,7 +197,7 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
                 if (resource.isPresent()) {
                     result.add(resource.get());
                 } else {
-                    logger().warning("Failed to parse HTTPSharedResource: " + file);
+                    pcx.log(LoggingUtils.Level.SEVERE, "Failed to parse HTTPSharedResource: " + file);
                 }
             }
             return result;
@@ -226,7 +221,7 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
                 if (resource.isPresent()) {
                     result.add(resource.get());
                 } else {
-                    logger().warning("Failed to parse JMSSharedResource: " + file);
+                    pcx.log(LoggingUtils.Level.SEVERE, "Failed to parse JMSSharedResource: " + file);
                 }
             }
             return result;
@@ -253,7 +248,7 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
                     if (parsedElement.isPresent()) {
                         elements.add(parsedElement.get());
                     } else {
-                        logger().warning("Failed to parse resource: " + s);
+                        pcx.log(LoggingUtils.Level.SEVERE, "Failed to parse resource: " + s);
                     }
                 }
                 return elements;
@@ -319,6 +314,56 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
         return document.getDocumentElement();
     }
 
+    public static Map<String, Object> migrateTIBCO(Map<String, Object> parameters) {
+        try {
+            String orgName = validateAndGetString(parameters, "orgName");
+            String projectName = validateAndGetString(parameters, "projectName");
+            String sourcePath = validateAndGetString(parameters, "sourcePath");
+            Consumer<String> stateCallback = validateAndGetConsumer(parameters, "stateCallback");
+            Consumer<String> logCallback = validateAndGetConsumer(parameters, "logCallback");
+            
+            return migrateTIBCOInner(orgName, projectName, sourcePath, stateCallback, logCallback);
+        } catch (IllegalArgumentException e) {
+            return Map.of("error", e.getMessage());
+        }
+    }
+
+    private static Map<String, Object> migrateTIBCOInner(String orgName, String projectName, String sourcePath,
+                                                         Consumer<String> stateCallback, Consumer<String> logCallback) {
+        ProjectConversionContext cx = new ProjectConversionContext(
+                new ConversionContext(orgName, false, false, stateCallback, logCallback), projectName);
+        TibcoConverter.ConvertResult convertResult = TibcoConverter.convertProjectInner(cx, sourcePath);
+        if (convertResult.errorMessage().isPresent()) {
+            return Map.of("error", convertResult.errorMessage().get());
+        }
+        return Map.of("textEdits", convertResult.files(), "report", convertResult.reportHTML());
+    }
+
+    private static String validateAndGetString(Map<String, Object> parameters, String key) {
+        if (!parameters.containsKey(key)) {
+            throw new IllegalArgumentException("Missing required parameter: " + key);
+        }
+        Object value = parameters.get(key);
+        if (!(value instanceof String)) {
+            throw new IllegalArgumentException("Parameter " + key + " must be a String, got: " + 
+                    (value != null ? value.getClass().getSimpleName() : "null"));
+        }
+        return (String) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Consumer<String> validateAndGetConsumer(Map<String, Object> parameters, String key) {
+        if (!parameters.containsKey(key)) {
+            throw new IllegalArgumentException("Missing required parameter: " + key);
+        }
+        Object value = parameters.get(key);
+        if (!(value instanceof Consumer)) {
+            throw new IllegalArgumentException("Parameter " + key + " must be a Consumer<String>, got: " + 
+                    (value != null ? value.getClass().getSimpleName() : "null"));
+        }
+        return (Consumer<String>) value;
+    }
+
     public enum JavaDependencies {
         JDBC_H2("""
                 [[platform.java17.dependency]]
@@ -358,11 +403,4 @@ private static final ParsingUnit<Type.Schema> XSD_PARSING_UNIT =
         }
     }
 
-    public record ProjectConversionContext(boolean verbose, boolean dryRun, List<JavaDependencies> javaDependencies) {
-
-
-        public ProjectConversionContext(boolean verbose, boolean dryRun) {
-            this(verbose, dryRun, new ArrayList<>());
-        }
-    }
 }

@@ -1,0 +1,5 @@
+[tool]
+id = "migrate-logicapps"
+
+[[dependency]]
+path = "../../../../build/libs/logicapps-migration-assistant-0.1.0.jar"

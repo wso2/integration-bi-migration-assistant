@@ -22,6 +22,7 @@ import picocli.CommandLine;
 import tibco.converter.TibcoConverter;
 
 import java.io.PrintStream;
+import java.util.Optional;
 
 /**
  * This class represents the "migrate-tibco" bal tool command.
@@ -34,9 +35,9 @@ public class MigrateTibcoCommand implements BLauncherCmd {
 
     private final PrintStream errStream;
     private static final String CMD_NAME = "migrate-tibco";
-    private static final String USAGE =
-            "bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>] " +
-                    "[-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root]";
+    private static final String USAGE = "bal migrate-tibco <source-project-directory-or-file> " +
+            "[-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] " +
+                    "[-m|--multi-root] [-g|--org-name <organization-name>] [-p|--project-name <project-name>]";
 
     public MigrateTibcoCommand() {
         errStream = System.err;
@@ -52,17 +53,25 @@ public class MigrateTibcoCommand implements BLauncherCmd {
     @CommandLine.Option(names = { "--keep-structure", "-k" }, description = "Keep process structure")
     private boolean keepStructure = false;
 
-    @CommandLine.Option(names = {"--verbose", "-v"}, description = "Enable verbose output", defaultValue = "false")
+    @CommandLine.Option(names = { "--verbose", "-v" }, description = "Enable verbose output", defaultValue = "false")
     private boolean verbose;
 
-    @CommandLine.Option(names = {"--dry-run", "-d"},
-            description = "Simulate the conversion without generating output files", defaultValue = "false")
+    @CommandLine.Option(names = { "--dry-run",
+            "-d" }, description = "Simulate the conversion without generating output files", defaultValue = "false")
     private boolean dryRun;
 
-    @CommandLine.Option(names = {"--multi-root", "-m"},
+    @CommandLine.Option(names = { "--multi-root", "-m" },
             description = "Treat each child directory as a separate project and convert all of them",
             defaultValue = "false")
     private boolean multiRoot;
+
+    @CommandLine.Option(names = { "--org-name",
+            "-g" }, description = "Organization name for the generated Ballerina package")
+    private String orgName;
+
+    @CommandLine.Option(names = { "--project-name",
+            "-p" }, description = "Project name for the generated Ballerina package")
+    private String projectName;
 
     @Override
     public void execute() {
@@ -70,12 +79,14 @@ public class MigrateTibcoCommand implements BLauncherCmd {
             errStream.println("Error: Source TIBCO BusinessWorks project directory or `.bwp` file path is required.");
             onInvalidInput();
         }
-        TibcoConverter.migrateTibco(sourcePath, outputPath, keepStructure, verbose, dryRun, multiRoot);
+        TibcoConverter.migrateTibco(sourcePath, outputPath, keepStructure, verbose, dryRun, multiRoot,
+                Optional.ofNullable(orgName), Optional.ofNullable(projectName));
     }
 
     private void onInvalidInput() {
         errStream.println("Usage: bal migrate-tibco <source-project-directory-or-file> " +
-                "[-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root]");
+                "[-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root] " +
+                        "[-g|--org-name <organization-name>] [-p|--project-name <project-name>]");
         System.exit(1);
     }
 
@@ -97,6 +108,8 @@ public class MigrateTibcoCommand implements BLauncherCmd {
         stringBuilder.append(
                 "  --multi-root, -m         " +
                         "Treat each child directory as a separate project and convert all of them\n");
+        stringBuilder.append("  --org-name, -g           Organization name for the generated Ballerina package\n");
+        stringBuilder.append("  --project-name, -p       Project name for the generated Ballerina package\n");
     }
 
     @Override

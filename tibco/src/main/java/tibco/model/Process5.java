@@ -178,6 +178,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 JMS_QUEUE_GET_MESSAGE_ACTIVITY,
                 JMS_TOPIC_PUBLISH_ACTIVITY,
                 SLEEP,
+                GENERATE_ERROR,
                 GET_SHARED_VARIABLE,
                 SET_SHARED_VARIABLE,
                 FILE_EVENT_SOURCE,
@@ -214,6 +215,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                     new LookUpData("JMSQueueSendActivity", JMS_QUEUE_SEND_ACTIVITY),
                                     new LookUpData("JMSQueueGetMessageActivity", JMS_QUEUE_GET_MESSAGE_ACTIVITY),
                                     new LookUpData("JMSTopicPublishActivity", JMS_TOPIC_PUBLISH_ACTIVITY),
+                                    new LookUpData("GenerateErrorActivity", GENERATE_ERROR),
                                     new LookUpData("SleepActivity", SLEEP),
                                     new LookUpData("GetSharedVariableActivity", GET_SHARED_VARIABLE),
                                     new LookUpData("SetSharedVariableActivity", SET_SHARED_VARIABLE),
@@ -824,6 +826,24 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 @Override
                 public boolean hasInputBinding() {
                     return inputBinding != null;
+                }
+            }
+
+            record GenerateError(Element element, String name, InputBinding inputBinding, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
+
+                public GenerateError {
+                    assert inputBinding != null;
+                }
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.GENERATE_ERROR;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return true;
                 }
             }
 

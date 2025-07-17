@@ -18,15 +18,20 @@
 
 package tibco.converter;
 
+import common.LoggingUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+import tibco.ConversionContext;
+import tibco.ProjectConversionContext;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
-
 
 public class TibcoProjectConversionTest {
 
@@ -34,20 +39,83 @@ public class TibcoProjectConversionTest {
     public void testProjectConversion(Path tibcoProject, Path expectedBallerinaProject) throws IOException {
         // Create a temporary directory for the output
         Path tempDir = Files.createTempDirectory("tibco-conversion-test");
+        // Create a ProjectConversionContext with verbose logger for test
+        Logger logger = TibcoConverter.createVerboseLogger("test");
+        var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        ConversionContext conversionContext = new ConversionContext(
+                "testOrg", false, false, stateCallback, logCallback);
+        ProjectConversionContext cx =
+                new ProjectConversionContext(conversionContext, expectedBallerinaProject.getFileName().toString());
         try {
             if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
-                TibcoConverter.migrateTibcoProject(tibcoProject.toString(), expectedBallerinaProject.toString(),
-                        false, true, false);
+                TibcoConverter.migrateTibcoProject(cx, tibcoProject.toString(), expectedBallerinaProject.toString()
+                );
             }
             // Run the conversion
-            TibcoConverter.migrateTibcoProject(tibcoProject.toString(), tempDir.toString(), false,
-                    true, false);
+            TibcoConverter.migrateTibcoProject(cx, tibcoProject.toString(), tempDir.toString());
 
             // Compare the directories
             compareDirectories(tempDir, expectedBallerinaProject);
         } finally {
             // Clean up temporary directory
             deleteDirectory(tempDir);
+        }
+    }
+
+    @Test(groups = {"tibco", "converter"}, dataProvider = "projectTestCaseProvider")
+    public void testProjectConversionByAPI(Path tibcoProject, Path expectedBallerinaProject) throws IOException {
+        // Create parameter map for the API
+        java.util.Map<String, Object> parameters = java.util.Map.of(
+                "orgName", "testOrg",
+                "projectName", expectedBallerinaProject.getFileName().toString(),
+                "sourcePath", tibcoProject.toString(),
+                "stateCallback", (java.util.function.Consumer<String>) s -> {
+                },
+                "logCallback", (java.util.function.Consumer<String>) s -> {
+                }
+        );
+        
+        // Run the conversion using the new public API
+        var result = tibco.TibcoToBalConverter.migrateTIBCO(parameters);
+        Assert.assertNotNull(result, "migrateTIBCO returned null");
+        Assert.assertFalse(result.containsKey("error"), "Conversion failed with error: " + result.get("error"));
+        Assert.assertTrue(result.containsKey("textEdits"), "Result does not contain 'textEdits'");
+        @SuppressWarnings("unchecked")
+        var textEdits = (java.util.Map<String, String>) result.get("textEdits");
+        Assert.assertNotNull(textEdits, "textEdits is null");
+
+        // Collect expected .bal files (except types.bal)
+        try (Stream<Path> expectedFiles = Files.walk(expectedBallerinaProject)) {
+            var expectedPaths = expectedFiles
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".bal") || path.toString().endsWith(".toml"))
+                    .map(expectedBallerinaProject::relativize)
+                    .toList();
+
+            // Check all expected .bal files exist in textEdits and match content
+            for (Path relativePath : expectedPaths) {
+                if (relativePath.endsWith("types.bal")) {
+                    continue;
+                }
+                String key = relativePath.toString().replace('\\', '/');
+                Assert.assertTrue(textEdits.containsKey(key), "Missing .bal file in textEdits: " + key);
+                String actualContent = textEdits.get(key);
+                String expectedContent = Files.readString(expectedBallerinaProject.resolve(relativePath));
+                Assert.assertEquals(actualContent, expectedContent,
+                        "File contents do not match for: " + key);
+            }
+
+            // Check for extra .bal files in textEdits
+            for (String key : textEdits.keySet()) {
+                if (key.endsWith("types.bal")) {
+                    continue;
+                }
+                Path relPath = Path.of(key);
+                if (!expectedPaths.contains(relPath)) {
+                    Assert.fail("Extra .bal file in textEdits: " + key);
+                }
+            }
         }
     }
 
@@ -123,6 +191,32 @@ public class TibcoProjectConversionTest {
                         }
                     });
         }
+    }
+
+    @Test(groups = {"tibco", "converter"})
+    public void testMigrateTIBCOAPIErrorHandling() {
+        // Test missing parameter
+        Map<String, Object> emptyParams = new HashMap<>();
+        var result1 = tibco.TibcoToBalConverter.migrateTIBCO(emptyParams);
+        Assert.assertTrue(result1.containsKey("error"), "Should return error for missing parameters");
+        Assert.assertTrue(result1.get("error").toString().contains("Missing required parameter"),
+                "Error message should mention missing parameter");
+
+        // Test wrong type parameter
+        Map<String, Object> wrongTypeParams = new HashMap<>();
+        wrongTypeParams.put("orgName", 123); // Should be String, not Integer
+        var result2 = tibco.TibcoToBalConverter.migrateTIBCO(wrongTypeParams);
+        Assert.assertTrue(result2.containsKey("error"), "Should return error for wrong parameter type");
+        Assert.assertTrue(result2.get("error").toString().contains("must be a String"),
+                "Error message should mention type mismatch");
+
+        // Test missing some parameters
+        Map<String, Object> partialParams = new HashMap<>();
+        partialParams.put("orgName", "testOrg");
+        partialParams.put("projectName", "testProject");
+        // Missing sourcePath, stateCallback, logCallback
+        var result3 = tibco.TibcoToBalConverter.migrateTIBCO(partialParams);
+        Assert.assertTrue(result3.containsKey("error"), "Should return error for missing parameters");
     }
 
     @DataProvider

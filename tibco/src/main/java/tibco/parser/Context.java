@@ -19,8 +19,9 @@
 package tibco.parser;
 
 import org.w3c.dom.Element;
+import tibco.LoggingContext;
 
-public interface Context {
+public interface Context extends LoggingContext {
 
     String getNextAnonymousProcessName();
 

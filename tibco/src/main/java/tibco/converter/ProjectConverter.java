@@ -20,7 +20,7 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import tibco.TibcoToBalConverter;
+import tibco.ProjectConversionContext;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.TibcoAnalysisReport;
 import tibco.model.Process;
@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.logging.Logger;
 
 public class ProjectConverter {
 
@@ -53,10 +52,11 @@ public class ProjectConverter {
     }
 
     public static ConversionResult convertProject(
-            TibcoToBalConverter.ProjectConversionContext conversionContext,
+            ProjectConversionContext conversionContext,
             Map<Process, AnalysisResult> analysisResult, Collection<Process> processes, Collection<Type.Schema> types,
             ProjectResources projectResources, tibco.parser.ProjectContext parserContext) {
         ProjectContext cx = new ProjectContext(conversionContext, analysisResult);
+        cx.logState("CodeGeneration started for project");
         convertResources(cx, projectResources);
 
         List<ProcessResult> results =
@@ -71,9 +71,11 @@ public class ProjectConverter {
             }
         }
         List<BallerinaModel.TextDocument> textDocuments = results.stream()
-                .map(result -> convertBody(result, result.process(), cx)).toList();
+                .map(result -> convertBody(cx, result, result.process())).toList();
         schemas.addAll(cx.getXSDSchemas());
         SyntaxTree typeSyntaxTree = convertTypes(cx, schemas);
+        cx.logState("CodeGeneration completed for project");
+        cx.logState("Generating analysis report for project");
         TibcoAnalysisReport parserReport = new TibcoAnalysisReport(
                 parserContext.getTotalActivityCount(),
                 parserContext.getUnhandledActivities().size(),
@@ -89,18 +91,20 @@ public class ProjectConverter {
                 cx.getPartiallySupportedActivities());
 
         TibcoAnalysisReport combinedReport = TibcoAnalysisReport.combine(parserReport, converterReport);
-
+        cx.logState("Done generating analysis report for project");
         return new ConversionResult(cx.serialize(textDocuments), typeSyntaxTree, combinedReport);
     }
 
-    private static BallerinaModel.TextDocument convertBody(ProcessResult result, Process process,
-                                                           ProjectContext cx) {
-        return switch (process) {
+    private static BallerinaModel.TextDocument convertBody(ProjectContext cx, ProcessResult result, Process process) {
+        cx.logState("Converting process: " + process.name());
+        var textDocument = switch (process) {
             case Process5 process5 ->
                     ProcessConverter.convertBody(cx.getProcessContext(process), process5, result.result());
             case Process6 process6 ->
                     ProcessConverter.convertBody(cx.getProcessContext(process), process6, result.result());
         };
+        cx.logState("Process " + process.name() + " converted successfully.");
+        return textDocument;
     }
 
     record ProcessResult(Process process, ProcessConverter.TypeConversionResult result) {
@@ -192,9 +196,5 @@ public class ProjectConverter {
     static SyntaxTree convertTypes(ProjectContext cx, Collection<Type.Schema> schemas) {
         ContextWithFile typeContext = cx.getTypeContext();
         return TypeConverter.convertSchemas(typeContext, schemas);
-    }
-
-    public static Logger logger() {
-        return TibcoToBalConverter.logger();
     }
 }

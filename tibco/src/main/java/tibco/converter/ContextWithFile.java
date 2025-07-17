@@ -20,8 +20,9 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import tibco.LoggingContext;
 
-interface ContextWithFile {
+interface ContextWithFile extends LoggingContext {
 
     boolean hasConstantWithName(String name);
 

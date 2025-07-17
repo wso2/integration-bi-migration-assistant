@@ -18,10 +18,13 @@
 
 package tibco.parser;
 
+import common.LoggingUtils;
+import tibco.LoggingContext;
+
 import java.io.IOException;
 import java.nio.file.Path;
 
-public class ResourceContext implements Context {
+public class ResourceContext implements Context, LoggingContext {
 
     private final ProjectContext projectContext;
     private final Path filePath;
@@ -29,6 +32,16 @@ public class ResourceContext implements Context {
     public ResourceContext(ProjectContext projectContext, String filePath) {
         this.projectContext = projectContext;
         this.filePath = Path.of(filePath);
+    }
+
+    @Override
+    public void log(LoggingUtils.Level level, String message) {
+        projectContext.log(level, message);
+    }
+
+    @Override
+    public void logState(String message) {
+        projectContext.logState(message);
     }
 
     @Override
