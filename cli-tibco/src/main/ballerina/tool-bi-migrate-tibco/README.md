@@ -14,7 +14,7 @@ $ bal tool pull migrate-tibco
 ### Command Syntax
 
 ```bash
-$ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root] [-g|--org <org-name>] [-p|--project-name <project-name>]
+$ bal migrate-tibco <source-project-directory-or-file> [-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root] [-g|--org-name <organization-name>] [-p|--project-name <project-name>]
 ```
 
 ### Parameters
