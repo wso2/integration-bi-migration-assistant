@@ -37,7 +37,7 @@ public class MigrateTibcoCommand implements BLauncherCmd {
     private static final String CMD_NAME = "migrate-tibco";
     private static final String USAGE = "bal migrate-tibco <source-project-directory-or-file> " +
             "[-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] " +
-            "[-m|--multi-root] [-g|--org <org-name>] [-p|--project-name <project-name>]";
+                    "[-m|--multi-root] [-g|--org-name <organization-name>] [-p|--project-name <project-name>]";
 
     public MigrateTibcoCommand() {
         errStream = System.err;
@@ -65,7 +65,7 @@ public class MigrateTibcoCommand implements BLauncherCmd {
             defaultValue = "false")
     private boolean multiRoot;
 
-    @CommandLine.Option(names = { "--org",
+    @CommandLine.Option(names = { "--org-name",
             "-g" }, description = "Organization name for the generated Ballerina package")
     private String orgName;
 
@@ -86,7 +86,7 @@ public class MigrateTibcoCommand implements BLauncherCmd {
     private void onInvalidInput() {
         errStream.println("Usage: bal migrate-tibco <source-project-directory-or-file> " +
                 "[-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root] " +
-                "[-g|--org <org-name>] [-p|--project-name <project-name>]");
+                        "[-g|--org-name <organization-name>] [-p|--project-name <project-name>]");
         System.exit(1);
     }
 
@@ -108,7 +108,7 @@ public class MigrateTibcoCommand implements BLauncherCmd {
         stringBuilder.append(
                 "  --multi-root, -m         " +
                         "Treat each child directory as a separate project and convert all of them\n");
-        stringBuilder.append("  --org, -g                Organization name for the generated Ballerina package\n");
+        stringBuilder.append("  --org-name, -g           Organization name for the generated Ballerina package\n");
         stringBuilder.append("  --project-name, -p       Project name for the generated Ballerina package\n");
     }
 
