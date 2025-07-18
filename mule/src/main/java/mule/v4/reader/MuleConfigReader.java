@@ -668,53 +668,62 @@ public class MuleConfigReader {
         while (muleElement.peekChild() != null) {
             MuleElement child = muleElement.consumeChild();
             Element element = child.getElement();
-
-            MuleXMLTag muleXMLTag = MuleXMLTag.fromTag(child.getElement().getTagName());
+            MuleXMLTag muleXMLTag = MuleXMLTag.fromTag(element.getTagName());
             switch (muleXMLTag) {
                 case MuleXMLTag.EE_MESSAGE -> {
-                    // Process ee:message which contains ee:set-payload and ee:variables
-                    while (child.peekChild() != null) {
-                        MuleElement messageChild = child.consumeChild();
-                        Element messageElement = messageChild.getElement();
-
-                        MuleXMLTag messageTag = MuleXMLTag.fromTag(messageElement.getTagName());
-                        switch (messageTag) {
-                            case MuleXMLTag.EE_SET_PAYLOAD -> {
-                                String resource = messageElement.getAttribute("resource");
-                                if (resource.isEmpty()) {
-                                    transformMessageElements.add(
-                                            new SetPayloadElement(null, messageElement.getTextContent()));
-                                } else {
-                                    transformMessageElements.add(new SetPayloadElement(resource, null));
-                                }
-                            }
-                            case MuleXMLTag.EE_VARIABLES -> {
-                                // Process ee:variables which contains ee:set-variable elements
-                                while (messageChild.peekChild() != null) {
-                                    MuleElement variableChild = messageChild.consumeChild();
-                                    Element variableElement = variableChild.getElement();
-
-                                    if (MuleXMLTag.fromTag(variableElement.getTagName()) ==
-                                            MuleXMLTag.EE_SET_VARIABLE) {
-                                        String variableName = variableElement.getAttribute("variableName");
-                                        String resource = variableElement.getAttribute("resource");
-                                        String script = null;
-                                        if (resource.isEmpty()) {
-                                            script = variableElement.getTextContent();
-                                        }
-                                        transformMessageElements.add(
-                                                new SetVariableElement(resource, script, variableName));
-                                    }
-                                }
-                            }
-                            default -> throw new UnsupportedOperationException("Unsupported ee:message child: "
-                                    + messageTag);
-                        }
-                    }
+                    processTransformMessageChildren(child, transformMessageElements);
+                }
+                case MuleXMLTag.EE_SET_PAYLOAD -> {
+                    processSetPayloadElement(element, transformMessageElements);
+                }
+                case MuleXMLTag.EE_VARIABLES -> {
+                    processVariablesElement(child, transformMessageElements);
                 }
                 default -> throw new UnsupportedOperationException("Unsupported ee:transform child: " + muleXMLTag);
             }
         }
         return new TransformMessage(transformMessageElements);
+    }
+
+    private static void processTransformMessageChildren(MuleElement parent, List<TransformMessageElement> elements) {
+        while (parent.peekChild() != null) {
+            MuleElement child = parent.consumeChild();
+            Element element = child.getElement();
+            MuleXMLTag tag = MuleXMLTag.fromTag(element.getTagName());
+            switch (tag) {
+                case MuleXMLTag.EE_SET_PAYLOAD -> {
+                    processSetPayloadElement(element, elements);
+                }
+                case MuleXMLTag.EE_VARIABLES -> {
+                    processVariablesElement(child, elements);
+                }
+                default -> throw new UnsupportedOperationException("Unsupported ee:message child: " + tag);
+            }
+        }
+    }
+
+    private static void processSetPayloadElement(Element element, List<TransformMessageElement> elements) {
+        String resource = element.getAttribute("resource");
+        if (resource.isEmpty()) {
+            elements.add(new SetPayloadElement(null, element.getTextContent()));
+        } else {
+            elements.add(new SetPayloadElement(resource, null));
+        }
+    }
+
+    private static void processVariablesElement(MuleElement parent, List<TransformMessageElement> elements) {
+        while (parent.peekChild() != null) {
+            MuleElement child = parent.consumeChild();
+            Element element = child.getElement();
+            if (MuleXMLTag.fromTag(element.getTagName()) == MuleXMLTag.EE_SET_VARIABLE) {
+                String variableName = element.getAttribute("variableName");
+                String resource = element.getAttribute("resource");
+                String script = null;
+                if (resource.isEmpty()) {
+                    script = element.getTextContent();
+                }
+                elements.add(new SetVariableElement(resource, script, variableName));
+            }
+        }
     }
 }

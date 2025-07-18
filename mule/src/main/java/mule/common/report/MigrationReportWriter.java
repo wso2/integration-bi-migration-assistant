@@ -43,9 +43,9 @@ public class MigrationReportWriter {
     public static final double AVG_CASE_COMP_TIME_REPEATED = 0.25; // 2 hours
     public static final double WORST_CASE_COMP_TIME_REPEATED = 0.5; // 4 hours
 
-    public static final double BEST_DW_EXPR_TIME = 0.0625; // 30min
-    public static final double AVG_CASE_DW_EXPR_TIME = 0.125; // 1 hour
-    public static final double WORST_CASE_DW_EXPR_TIME = 0.25; // 2 hours
+    public static final double BEST_DW_EXPR_TIME = 0.5 / 30; // 8 min
+    public static final double AVG_CASE_DW_EXPR_TIME = 1.5 / 60; // 12 min
+    public static final double WORST_CASE_DW_EXPR_TIME = 0.125 / 3; // 20 min
 
     public static final double BEST_CASE_INSPECTION_TIME = 0.125 / 30; // 2 min
     public static final double AVG_CASE_INSPECTION_TIME = 0.125 / 12; // 5 min
@@ -133,9 +133,9 @@ public class MigrationReportWriter {
                 worstCaseDays, (int) Math.ceil(worstCaseDays / 5.0),
                 BEST_CASE_COMP_TIME_NEW, BEST_CASE_COMP_TIME_REPEATED * 8, BEST_DW_EXPR_TIME * 8 * 60,
                 BEST_CASE_INSPECTION_TIME * 8 * 60,
-                AVG_CASE_COMP_TIME_NEW, AVG_CASE_COMP_TIME_REPEATED * 8, AVG_CASE_DW_EXPR_TIME * 8,
+                AVG_CASE_COMP_TIME_NEW, AVG_CASE_COMP_TIME_REPEATED * 8, AVG_CASE_DW_EXPR_TIME * 8 * 60,
                 AVG_CASE_INSPECTION_TIME * 8 * 60,
-                WORST_CASE_COMP_TIME_NEW, WORST_CASE_COMP_TIME_REPEATED * 8, WORST_CASE_DW_EXPR_TIME * 8,
+                WORST_CASE_COMP_TIME_NEW, WORST_CASE_COMP_TIME_REPEATED * 8, WORST_CASE_DW_EXPR_TIME * 8 * 60,
                 WORST_CASE_INSPECTION_TIME * 8 * 60,
                 // Content sections
                 unsupportedElementsTable,
