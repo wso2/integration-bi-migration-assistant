@@ -177,6 +177,10 @@ public class MuleMigrator {
 
     private static void convertMuleMultiProjects(String sourceProjectsDir, String outputPathArg, Integer muleVersion,
                                                  boolean dryRun, boolean keepStructure) {
+        if (muleVersion != null) {
+            OUT.println("Using specified Mule version: " + muleVersion);
+        }
+
         Path sourceProjectsDirPath = Path.of(sourceProjectsDir);
         List<Path> projectDirectories;
         try {
@@ -208,8 +212,16 @@ public class MuleMigrator {
                                                               boolean keepStructure, boolean multiRoot) {
         // Detecting Mule project version
         Path sourcePath = Path.of(inputPathArg);
-        MuleVersion version = muleVersion == null ?
-                MigratorUtils.detectVersionForProject(sourcePath) : MuleVersion.fromInt(muleVersion);
+        MuleVersion version;
+        if (muleVersion == null) {
+            version = MigratorUtils.detectVersionForProject(sourcePath);
+            OUT.println("Detected Mule version: " + version);
+        } else {
+            version = MuleVersion.fromInt(muleVersion);
+            if (!multiRoot) {
+                OUT.println("Using specified Mule version: " + version);
+            }
+        }
 
         // Collect xml configs, yaml and property files
         logger().info("Collecting XML configs, YAML, and property files in Mule project...");
@@ -260,8 +272,15 @@ public class MuleMigrator {
         }
 
         // TODO: do we need to verify path exists?
-        MuleVersion version = muleVersion == null ?
-                MigratorUtils.detectVersionForFile(inputXmlFilePath) : MuleVersion.fromInt(muleVersion);
+        MuleVersion version;
+        if (muleVersion == null) {
+            version = MigratorUtils.detectVersionForFile(inputXmlFilePath);
+            OUT.println("Detected Mule version: " + version);
+        } else {
+            version = MuleVersion.fromInt(muleVersion);
+            OUT.println("Using specified Mule version: " + version);
+        }
+
         File xmlConfigFile = inputXmlFilePath.toFile();
         convertToBalProject(version, Collections.singletonList(xmlConfigFile), Collections.emptyList(),
                 Collections.emptyList(), sourceDir, targetDir, inputFileName, dryRun, keepStructure, false);
