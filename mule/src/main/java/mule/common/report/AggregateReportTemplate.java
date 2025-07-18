@@ -15,7 +15,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.report;
+package mule.common.report;
 
 /**
  * Contains HTML template for aggregate migration report.

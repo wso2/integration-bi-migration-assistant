@@ -28,8 +28,9 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
-import static mule.v4.MuleMigrationExecutor.testConvertingMuleProject;
-import static mule.v4.MuleMigrationExecutor.testConvertingMultiMuleProjects;
+import static mule.MuleMigrator.MuleVersion.MULE_V4;
+import static mule.MuleMigrator.testConvertingMuleProject;
+import static mule.MuleMigrator.testConvertingMultiMuleProjects;
 import static mule.v4.MuleToBalConverter.convertStandaloneXMLFileToBallerina;
 
 public class TestConverter {
@@ -48,20 +49,20 @@ public class TestConverter {
     @Test(enabled = false, description = "Test converting a Mule project with default BI structure")
     public void testMuleProjectConversionWithBiStructure() {
         deleteDirectoryIfExists("src/test/resources/mule/v4/projects/demo_project_bi/demo_project_bi_ballerina");
-        testConvertingMuleProject("src/test/resources/mule/v4/projects/demo_project_bi", false, false);
+        testConvertingMuleProject(MULE_V4, "src/test/resources/mule/v4/projects/demo_project_bi", false, false);
     }
 
     @Test(enabled = false, description = "Test converting a Mule project with --keep-structure option enabled")
     public void testMuleProjectConversionWithKeepStructure() {
         deleteDirectoryIfExists(
                 "src/test/resources/mule/v4/projects/demo_project_classic/demo_project_classic_ballerina");
-        testConvertingMuleProject("src/test/resources/mule/v4/projects/demo_project_classic", false, true);
+        testConvertingMuleProject(MULE_V4, "src/test/resources/mule/v4/projects/demo_project_classic", false, true);
     }
 
     @Test(enabled = false, description = "Test converting multi Mule projects with --multi-root option enabled")
     public void testMultiMuleProjectsConversion() {
         deleteDirectoryIfExists("src/test/resources/mule/v4/misc/multi_root_output");
-        testConvertingMultiMuleProjects("src/test/resources/mule/v4/projects",
+        testConvertingMultiMuleProjects(MULE_V4, "src/test/resources/mule/v4/projects",
                 "src/test/resources/mule/v4/misc/multi_root_output", false, false);
     }
 

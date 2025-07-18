@@ -17,7 +17,10 @@
  */
 package mule.v3;
 
-import mule.v3.dataweave.converter.DWConversionStats;
+import mule.common.ContextBase;
+import mule.common.DWConstructBase;
+import mule.common.MigrationMetrics;
+import mule.v3.dataweave.converter.DWConstruct;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,21 +44,29 @@ import static mule.v3.model.MuleModel.UnsupportedBlock;
 /**
  * Context class to hold the state of the conversion process.
  */
-public class Context {
+public class Context extends ContextBase {
     public final ProjectContext projectCtx = new ProjectContext();
     public FileContext currentFileCtx;
     private boolean isStandaloneBalFile = false;
-    public final MigrationMetrics migrationMetrics = new MigrationMetrics();
+    public final MigrationMetrics<DWConstruct> migrationMetrics = new MigrationMetrics<>();
 
+    @Override
+    public MigrationMetrics<? extends DWConstructBase> getMigrationMetrics() {
+        return migrationMetrics;
+    }
+
+    @Override
     public void startNewFile(String filePath) {
         currentFileCtx = new FileContext(filePath, projectCtx);
     }
 
+    @Override
     public void startStandaloneFile(String filePath) {
         currentFileCtx = new FileContext(filePath, projectCtx);
         isStandaloneBalFile = true;
     }
 
+    @Override
     public boolean isStandaloneBalFile() {
         return isStandaloneBalFile;
     }
@@ -161,12 +172,5 @@ public class Context {
         public int payloadVarCount = 0;
         public int clientResultVarCount = 0;
         public int vmReceiveFuncCount = 0;
-    }
-
-    public static class MigrationMetrics {
-        public final DWConversionStats dwConversionStats = new DWConversionStats();
-        public final LinkedHashMap<String, Integer> passedXMLTags = new LinkedHashMap<>();
-        public final LinkedHashMap<String, Integer> failedXMLTags = new LinkedHashMap<>();
-        public final List<String> failedBlocks = new ArrayList<>();
     }
 }

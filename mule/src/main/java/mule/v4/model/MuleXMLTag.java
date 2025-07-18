@@ -17,12 +17,14 @@
  */
 package mule.v4.model;
 
+import mule.common.MuleXMLTagBase;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public enum MuleXMLTag {
+public enum MuleXMLTag implements MuleXMLTagBase {
 
     // Global Elements
     HTTP_LISTENER_CONFIG("http:listener-config", 3),

@@ -18,7 +18,7 @@
 package baltool.mule.commands;
 
 import io.ballerina.cli.BLauncherCmd;
-import mule.v3.MuleMigrationExecutor;
+import mule.MuleMigrator;
 import picocli.CommandLine;
 
 import java.io.PrintStream;
@@ -71,7 +71,7 @@ public class MigrateMuleCommand implements BLauncherCmd {
             errStream.println("Error: mule project directory or mule xml file path is required.");
             onInvalidInput();
         }
-        MuleMigrationExecutor.migrateMuleSource(sourcePath, outputPath, dryRun, verbose, keepStructure, multiRoot);
+        MuleMigrator.migrateMuleSource(sourcePath, outputPath, dryRun, verbose, keepStructure, multiRoot);
     }
 
     private void onInvalidInput() {

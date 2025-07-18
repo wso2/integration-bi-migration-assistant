@@ -17,6 +17,7 @@
  */
 package mule.v3.reader;
 
+import mule.common.MuleXMLNavigator.MuleElement;
 import mule.v3.Constants;
 import mule.v3.Context;
 import mule.v3.ConversionUtils;
@@ -76,10 +77,10 @@ import static mule.v3.model.MuleModel.WhenInChoice;
 
 public class MuleConfigReader {
 
-    public static void readMuleConfigFromRoot(Context ctx, MuleXMLNavigator.MuleElement muleElement,
+    public static void readMuleConfigFromRoot(Context ctx, MuleElement muleElement,
                                               List<Flow> flows, List<SubFlow> subFlows) {
         while (muleElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            MuleElement child = muleElement.consumeChild();
             Element element = child.getElement();
 
             String elementTagName = element.getTagName();
@@ -97,7 +98,7 @@ public class MuleConfigReader {
         }
     }
 
-    public static void readGlobalConfigElement(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    public static void readGlobalConfigElement(Context ctx, MuleElement muleElement) {
         String elementTagName = muleElement.getElement().getTagName();
         if (MuleXMLTag.HTTP_LISTENER_CONFIG.tag().equals(elementTagName)) {
             HTTPListenerConfig httpListenerConfig = readHttpListenerConfig(ctx, muleElement);
@@ -126,7 +127,7 @@ public class MuleConfigReader {
         }
     }
 
-    public static MuleRecord readBlock(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    public static MuleRecord readBlock(Context ctx, MuleElement muleElement) {
         MuleXMLTag muleXMLTag = MuleXMLTag.fromTag(muleElement.getElement().getTagName());
         switch (muleXMLTag) {
             // Source
@@ -206,7 +207,7 @@ public class MuleConfigReader {
     }
 
     // Components
-    private static Logger readLogger(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static Logger readLogger(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_LOG));
         String message = element.getAttribute("message");
@@ -222,23 +223,23 @@ public class MuleConfigReader {
         return new Logger(message, logLevel);
     }
 
-    private static MuleRecord readExpressionComponent(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static MuleRecord readExpressionComponent(Context ctx, MuleElement muleElement) {
         return new ExpressionComponent(muleElement.getElement().getTextContent());
     }
 
     // Flow Control
-    private static Choice readChoice(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static Choice readChoice(Context ctx, MuleElement muleElement) {
         List<WhenInChoice> whens = new ArrayList<>();
         List<MuleRecord> otherwiseProcess = new ArrayList<>();
         while (muleElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            MuleElement child = muleElement.consumeChild();
             Element childElement = child.getElement();
             if (childElement.getTagName().equals(MuleXMLTag.WHEN.tag())) {
                 String condition = childElement.getAttribute("expression");
                 List<MuleRecord> whenProcess = new ArrayList<>();
 
                 while (child.peekChild() != null) {
-                    MuleXMLNavigator.MuleElement whenChild = child.consumeChild();
+                    MuleElement whenChild = child.consumeChild();
                     MuleRecord r = readBlock(ctx, whenChild);
                     whenProcess.add(r);
                 }
@@ -249,7 +250,7 @@ public class MuleConfigReader {
                 assert childElement.getTagName().equals(MuleXMLTag.OTHERWISE.tag());
                 assert otherwiseProcess.isEmpty();
                 while (child.peekChild() != null) {
-                    MuleXMLNavigator.MuleElement otherwiseChild = child.consumeChild();
+                    MuleElement otherwiseChild = child.consumeChild();
                     MuleRecord r = readBlock(ctx, otherwiseChild);
                     otherwiseProcess.add(r);
                 }
@@ -259,7 +260,7 @@ public class MuleConfigReader {
     }
 
     // Scopes
-    public static Flow readFlow(Context ctx, MuleXMLNavigator.MuleElement mFlowElement) {
+    public static Flow readFlow(Context ctx, MuleElement mFlowElement) {
         Element flowElement = mFlowElement.getElement();
         String flowName = flowElement.getAttribute("name");
 
@@ -267,7 +268,7 @@ public class MuleConfigReader {
         List<MuleRecord> flowBlocks = new ArrayList<>();
 
         while (mFlowElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement child = mFlowElement.consumeChild();
+            MuleElement child = mFlowElement.consumeChild();
             Element element = child.getElement();
             if (element.getTagName().equals(MuleXMLTag.HTTP_LISTENER.tag())) {
                 assert source == null;
@@ -290,13 +291,13 @@ public class MuleConfigReader {
         return new Flow(flowName, optSource, flowBlocks);
     }
 
-    public static SubFlow readSubFlow(Context ctx, MuleXMLNavigator.MuleElement mFlowElement) {
+    public static SubFlow readSubFlow(Context ctx, MuleElement mFlowElement) {
         Element flowElement = mFlowElement.getElement();
         String flowName = flowElement.getAttribute("name");
 
         List<MuleRecord> flowBlocks = new ArrayList<>();
         while (mFlowElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement muleElement = mFlowElement.consumeChild();
+            MuleElement muleElement = mFlowElement.consumeChild();
             MuleRecord muleRec = readBlock(ctx, muleElement);
             flowBlocks.add(muleRec);
         }
@@ -304,14 +305,14 @@ public class MuleConfigReader {
         return new SubFlow(flowName, flowBlocks);
     }
 
-    private static Enricher readEnricher(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static Enricher readEnricher(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String source = element.getAttribute("source");
         String target = element.getAttribute("target");
 
         MuleRecord block = null;
         while (muleElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement muleChild = muleElement.consumeChild();
+            MuleElement muleChild = muleElement.consumeChild();
             assert block == null;
             block = readBlock(ctx, muleChild);
         }
@@ -320,10 +321,10 @@ public class MuleConfigReader {
         return new Enricher(source, target, innerBlock);
     }
 
-    private static Async readAsync(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static Async readAsync(Context ctx, MuleElement muleElement) {
         List<MuleRecord> flowBlocks = new ArrayList<>();
         while (muleElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            MuleElement child = muleElement.consumeChild();
             MuleRecord muleRec = readBlock(ctx, child);
             flowBlocks.add(muleRec);
         }
@@ -332,56 +333,55 @@ public class MuleConfigReader {
     }
 
     // Transformers
-    private static Payload readSetPayload(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static Payload readSetPayload(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String muleExpr = element.getAttribute("value");
         return new Payload(muleExpr);
     }
 
-    private static SetVariable readSetVariable(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static SetVariable readSetVariable(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String varName = element.getAttribute("variableName");
         String val = element.getAttribute("value");
         return new SetVariable(varName, val);
     }
 
-    private static SetSessionVariable readSetSessionVariable(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static SetSessionVariable readSetSessionVariable(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String varName = element.getAttribute("variableName");
         String val = element.getAttribute("value");
         return new SetSessionVariable(varName, val);
     }
 
-    private static RemoveVariable readRemoveVariable(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static RemoveVariable readRemoveVariable(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String varName = element.getAttribute("variableName");
         return new RemoveVariable(Kind.REMOVE_VARIABLE, varName);
     }
 
-    private static RemoveVariable readRemoveSessionVariable(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static RemoveVariable readRemoveSessionVariable(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String varName = element.getAttribute("variableName");
         return new RemoveVariable(Kind.REMOVE_SESSION_VARIABLE, varName);
     }
 
-    private static ObjectToJson readObjectToJson(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static ObjectToJson readObjectToJson(Context ctx, MuleElement muleElement) {
         return new ObjectToJson();
     }
 
-    private static ObjectToString readObjectToString(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static ObjectToString readObjectToString(Context ctx, MuleElement muleElement) {
         return new ObjectToString();
     }
 
     // Error handling
-    private static CatchExceptionStrategy readCatchExceptionStrategy(Context ctx,
-                                                                     MuleXMLNavigator.MuleElement muleElement) {
+    private static CatchExceptionStrategy readCatchExceptionStrategy(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String name = element.getAttribute("name");
         String when = element.getAttribute("when");
 
         List<MuleRecord> catchBlocks = new ArrayList<>();
         while (muleElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement muleChild = muleElement.consumeChild();
+            MuleElement muleChild = muleElement.consumeChild();
             MuleRecord muleRec = readBlock(ctx, muleChild);
             catchBlocks.add(muleRec);
         }
@@ -389,14 +389,13 @@ public class MuleConfigReader {
         return new CatchExceptionStrategy(catchBlocks, when, name);
     }
 
-    private static ChoiceExceptionStrategy readChoiceExceptionStrategy(Context ctx,
-                                                                       MuleXMLNavigator.MuleElement muleElement) {
+    private static ChoiceExceptionStrategy readChoiceExceptionStrategy(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String name = element.getAttribute("name");
 
         List<CatchExceptionStrategy> catchExceptionStrategyList = new ArrayList<>();
         while (muleElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement muleChild = muleElement.consumeChild();
+            MuleElement muleChild = muleElement.consumeChild();
             assert muleChild.getElement().getTagName().equals(MuleXMLTag.CATCH_EXCEPTION_STRATEGY.tag());
             // TODO: only catch-exp-strategy is supported for now
             CatchExceptionStrategy catchExceptionStrategy = readCatchExceptionStrategy(ctx, muleChild);
@@ -406,15 +405,14 @@ public class MuleConfigReader {
         return new ChoiceExceptionStrategy(catchExceptionStrategyList, name);
     }
 
-    private static ReferenceExceptionStrategy readReferenceExceptionStrategy(Context ctx,
-                                                                             MuleXMLNavigator.MuleElement muleElement) {
+    private static ReferenceExceptionStrategy readReferenceExceptionStrategy(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String refName = element.getAttribute("ref");
         return new ReferenceExceptionStrategy(refName);
     }
 
     // HTTP Module
-    private static HttpListener readHttpListener(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static HttpListener readHttpListener(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String configRef = element.getAttribute("config-ref");
         String resourcePath = element.getAttribute("path");
@@ -423,7 +421,7 @@ public class MuleConfigReader {
         return new HttpListener(configRef, resourcePath, allowedMethods);
     }
 
-    private static HttpRequest readHttpRequest(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static HttpRequest readHttpRequest(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String configRef = element.getAttribute("config-ref");
         HTTPRequestConfig httpRequestConfig = ctx.projectCtx.getHttpRequestConfig(configRef);;
@@ -441,7 +439,7 @@ public class MuleConfigReader {
 
         Map<String, String> queryParams = new HashMap<>();
         while (muleElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            MuleElement child = muleElement.consumeChild();
             if (child.getElement().getTagName().equals(MuleXMLTag.HTTP_REQEUST_BUILDER.tag())) {
                 processQueryParams(queryParams, child);
             } else {
@@ -453,9 +451,9 @@ public class MuleConfigReader {
         return new HttpRequest(configRef, method, url, path, queryParams);
     }
 
-    private static void processQueryParams(Map<String, String> queryParams, MuleXMLNavigator.MuleElement muleElement) {
+    private static void processQueryParams(Map<String, String> queryParams, MuleElement muleElement) {
         while (muleElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            MuleElement child = muleElement.consumeChild();
             Element element = child.getElement();
             assert element.getTagName().equals(MuleXMLTag.HTTP_QUERY_PARAM.tag());
             String paramName = element.getAttribute("paramName");
@@ -464,21 +462,21 @@ public class MuleConfigReader {
         }
     }
 
-    private static FlowReference readFlowReference(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static FlowReference readFlowReference(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String flowName = element.getAttribute("name");
         return new FlowReference(flowName);
     }
 
     // VM Connector
-    private static VMInboundEndpoint readVMInboundEndpoint(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static VMInboundEndpoint readVMInboundEndpoint(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String path = element.getAttribute("path");
         String exchangePattern = element.getAttribute("exchange-pattern");
         return new VMInboundEndpoint(path, exchangePattern);
     }
 
-    private static VMOutboundEndpoint readVMOutboundEndpoint(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static VMOutboundEndpoint readVMOutboundEndpoint(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String path = element.getAttribute("path");
         String exchangePattern = element.getAttribute("exchange-pattern");
@@ -486,7 +484,7 @@ public class MuleConfigReader {
     }
 
     // Database Connector
-    private static Database readDatabase(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static Database readDatabase(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String configRef = element.getAttribute("config-ref");
 
@@ -494,7 +492,7 @@ public class MuleConfigReader {
         String query = null;
 
         while (muleElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            MuleElement child = muleElement.consumeChild();
             assert queryType == null;
 
             queryType = getQueryType(child.getElement().getTagName());
@@ -527,7 +525,7 @@ public class MuleConfigReader {
         };
     }
 
-    private static String readQuery(Context ctx, MuleXMLNavigator.MuleElement muleElement, QueryType queryType) {
+    private static String readQuery(Context ctx, MuleElement muleElement, QueryType queryType) {
         return switch (queryType) {
             case PARAMETERIZED_QUERY -> readDbParameterizedQuery(ctx, muleElement);
             case DYNAMIC_QUERY -> readDbDynamicQuery(ctx, muleElement);
@@ -535,26 +533,26 @@ public class MuleConfigReader {
         };
     }
 
-    private static String readDbParameterizedQuery(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static String readDbParameterizedQuery(Context ctx, MuleElement muleElement) {
         return muleElement.getElement().getTextContent();
     }
 
-    private static String readDbDynamicQuery(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static String readDbDynamicQuery(Context ctx, MuleElement muleElement) {
         return muleElement.getElement().getTextContent();
     }
 
-    private static String readDbTemplateQueryRef(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static String readDbTemplateQueryRef(Context ctx, MuleElement muleElement) {
         return muleElement.getElement().getAttribute("name");
     }
 
-    private static UnsupportedBlock readUnsupportedBlock(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static UnsupportedBlock readUnsupportedBlock(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String xmlBlock = ConversionUtils.elementToString(element);
         return new UnsupportedBlock(xmlBlock);
     }
 
     // Global Elements
-    private static HTTPListenerConfig readHttpListenerConfig(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static HTTPListenerConfig readHttpListenerConfig(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP));
         String listenerName = element.getAttribute("name");
@@ -564,7 +562,7 @@ public class MuleConfigReader {
         return new HTTPListenerConfig(listenerName, basePath, port, host);
     }
 
-    private static HTTPRequestConfig readHttpRequestConfig(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static HTTPRequestConfig readHttpRequestConfig(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP));
         String configName = element.getAttribute("name");
@@ -574,7 +572,7 @@ public class MuleConfigReader {
         return new HTTPRequestConfig(configName, host, port, protocol);
     }
 
-    private static DbMSQLConfig readDbMySQLConfig(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static DbMSQLConfig readDbMySQLConfig(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_MYSQL));
         ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_MYSQL_DRIVER, Optional.of("_")));
@@ -587,7 +585,7 @@ public class MuleConfigReader {
         return new DbMSQLConfig(name, host, port, user, password, database);
     }
 
-    private static DbOracleConfig readDbOracleConfig(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static DbOracleConfig readDbOracleConfig(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_ORACLEDB));
         ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_ORACLEDB_DRIVER, Optional.of("_")));
@@ -600,13 +598,13 @@ public class MuleConfigReader {
         return new DbOracleConfig(name, host, port, user, password, instance);
     }
 
-    private static DbTemplateQuery readDbTemplateQuery(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static DbTemplateQuery readDbTemplateQuery(Context ctx, MuleElement muleElement) {
         String name = muleElement.getElement().getAttribute("name");
         String query = null;
         List<DbInParam> dbInParams = new ArrayList<>();
 
         while (muleElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            MuleElement child = muleElement.consumeChild();
             Element childElement = child.getElement();
 
             if (childElement.getTagName().equals("db:parameterized-query")) {
@@ -625,7 +623,7 @@ public class MuleConfigReader {
         return new DbTemplateQuery(name, query, dbInParams);
     }
 
-    private static DbInParam readDbInParam(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static DbInParam readDbInParam(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String name = element.getAttribute("name");
         String type = element.getAttribute("type");
@@ -634,10 +632,10 @@ public class MuleConfigReader {
         return new DbInParam(name, ty, defaultValue);
     }
 
-    private static TransformMessage readTransformMessage(Context ctx, MuleXMLNavigator.MuleElement muleElement) {
+    private static TransformMessage readTransformMessage(Context ctx, MuleElement muleElement) {
         List<TransformMessageElement> transformMessageElements = new ArrayList<>();
         while (muleElement.peekChild() != null) {
-            MuleXMLNavigator.MuleElement child = muleElement.consumeChild();
+            MuleElement child = muleElement.consumeChild();
             Element element = child.getElement();
 
             MuleXMLTag muleXMLTag = MuleXMLTag.fromTag(child.getElement().getTagName());

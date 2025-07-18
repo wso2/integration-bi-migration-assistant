@@ -20,6 +20,7 @@ package mule.v3.dataweave.converter;
 
 import common.BallerinaModel.Statement.BallerinaStatement;
 import io.ballerina.compiler.internal.parser.LexerTerminals;
+import mule.common.DWConversionStats;
 import mule.v3.Constants;
 import mule.v3.Context;
 import mule.v3.dataweave.converter.builder.IfStatementBuilder;

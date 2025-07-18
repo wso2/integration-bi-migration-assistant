@@ -21,8 +21,9 @@ import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import mule.v3.reader.MuleXMLNavigator;
-import mule.v3.reader.MuleXMLNavigator.MuleElement;
+import mule.common.MuleXMLNavigator;
+import mule.common.MuleXMLNavigator.MuleElement;
+import mule.v3.model.MuleXMLTag;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
@@ -87,7 +88,7 @@ public class MuleToBalConverter {
     public static SyntaxTree convertStandaloneXMLFileToBallerina(String xmlFilePath) {
         Context ctx = new Context();
         ctx.startStandaloneFile(xmlFilePath);
-        MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator(ctx.migrationMetrics);
+        MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator(ctx.migrationMetrics, MuleXMLTag::isCompatible);
         TextDocument txtDoc = convertXMLFileToBir(ctx, muleXMLNavigator, xmlFilePath, "internal");
         return new CodeGenerator(txtDoc).generateSyntaxTree();
     }

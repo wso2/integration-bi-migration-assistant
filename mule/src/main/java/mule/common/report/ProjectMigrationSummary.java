@@ -15,9 +15,10 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.report;
+package mule.common.report;
 
-import mule.v3.dataweave.converter.DWConversionStats;
+import mule.common.DWConstructBase;
+import mule.common.DWConversionStats;
 
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -49,7 +50,7 @@ public record ProjectMigrationSummary(String sourceProjectName,
                                       LinkedHashMap<String, Integer> passedXMLTags,
                                       LinkedHashMap<String, Integer> failedXMLTags,
                                       List<String> failedBlocks,
-                                      DWConversionStats dwConversionStats,
+                                      DWConversionStats<? extends DWConstructBase> dwConversionStats,
                                       int migrationCoverage,
                                       double bestCaseDays,
                                       double averageCaseDays,

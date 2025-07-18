@@ -17,6 +17,7 @@
  */
 package mule.v4;
 
+import mule.MuleMigrator;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -212,10 +213,10 @@ public class YamlToTomlConverterTest {
 
         StringBuilder tomlContent = new StringBuilder();
         tomlContent.append("# Properties from database.properties\n");
-        MuleMigrationExecutor.processPropertiesFile(propertiesFile.toFile(), tomlContent);
+        MuleMigrator.processPropertiesFile(propertiesFile.toFile(), tomlContent);
         tomlContent.append("\n");
         tomlContent.append("# Properties from config.yaml\n");
-        MuleMigrationExecutor.processYamlFile(yamlFile.toFile(), tomlContent);
+        MuleMigrator.processYamlFile(yamlFile.toFile(), tomlContent);
         tomlContent.append("\n");
 
         assertEquals(tomlContent.toString(), expectedToml);
@@ -227,7 +228,7 @@ public class YamlToTomlConverterTest {
 
         StringBuilder tomlContent = new StringBuilder();
         tomlContent.append("# Properties from ").append(filename).append("\n");
-        MuleMigrationExecutor.processYamlFile(yamlFile.toFile(), tomlContent);
+        MuleMigrator.processYamlFile(yamlFile.toFile(), tomlContent);
         tomlContent.append("\n");
 
         assertEquals(tomlContent.toString(), expectedToml);

@@ -15,23 +15,31 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v4.dataweave.converter;
+package mule.common;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class DWConversionStats {
-    final List<String> failedDWExpressions = new ArrayList<>();
-    private final Map<DWConstruct, Integer> encountered = new LinkedHashMap<>();
-    private final Map<DWConstruct, Integer> converted = new LinkedHashMap<>();
+public class DWConversionStats<T extends DWConstructBase> {
+    public final List<String> failedDWExpressions = new ArrayList<>();
+    private final Map<T, Integer> encountered = new LinkedHashMap<>();
+    private final Map<T, Integer> converted = new LinkedHashMap<>();
 
-    public void record(DWConstruct construct, boolean isConverted) {
+    public void record(T construct, boolean isConverted) {
         encountered.merge(construct, 1, Integer::sum);
         if (isConverted) {
             converted.merge(construct, 1, Integer::sum);
         }
+    }
+
+    public int getTotalEncounteredCount() {
+        return encountered.values().stream().mapToInt(i -> i).sum();
+    }
+
+    public int getConvertedCount() {
+        return converted.values().stream().mapToInt(i -> i).sum();
     }
 
     public int getTotalWeight() {
