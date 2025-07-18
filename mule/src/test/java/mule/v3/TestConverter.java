@@ -28,7 +28,6 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
-import static mule.MuleMigrator.MuleVersion.MULE_V3;
 import static mule.MuleMigrator.testConvertingMuleProject;
 import static mule.MuleMigrator.testConvertingMultiMuleProjects;
 import static mule.v3.MuleToBalConverter.convertStandaloneXMLFileToBallerina;
@@ -49,20 +48,20 @@ public class TestConverter {
     @Test(description = "Test converting a Mule project with default BI structure")
     public void testMuleProjectConversionWithBiStructure() {
         deleteDirectoryIfExists("src/test/resources/mule/v3/projects/demo_project_bi/demo_project_bi_ballerina");
-        testConvertingMuleProject(MULE_V3, "src/test/resources/mule/v3/projects/demo_project_bi", false, false);
+        testConvertingMuleProject(3, "src/test/resources/mule/v3/projects/demo_project_bi", false, false);
     }
 
     @Test(description = "Test converting a Mule project with --keep-structure option enabled")
     public void testMuleProjectConversionWithKeepStructure() {
         deleteDirectoryIfExists(
                 "src/test/resources/mule/v3/projects/demo_project_classic/demo_project_classic_ballerina");
-        testConvertingMuleProject(MULE_V3, "src/test/resources/mule/v3/projects/demo_project_classic", false, true);
+        testConvertingMuleProject(3, "src/test/resources/mule/v3/projects/demo_project_classic", false, true);
     }
 
     @Test(description = "Test converting multi Mule projects with --multi-root option enabled")
     public void testMultiMuleProjectsConversion() {
         deleteDirectoryIfExists("src/test/resources/mule/v3/misc/multi_root_output");
-        testConvertingMultiMuleProjects(MULE_V3, "src/test/resources/mule/v3/projects",
+        testConvertingMultiMuleProjects(3, "src/test/resources/mule/v3/projects",
                 "src/test/resources/mule/v3/misc/multi_root_output", false, false);
     }
 

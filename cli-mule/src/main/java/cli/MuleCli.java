@@ -36,6 +36,6 @@ public class MuleCli {
         if (args.length == 3 && (args[1].equals("-o") || args[1].equals("--out"))) {
             outputPathArg = args[2];
         }
-        MuleMigrator.migrateMuleSource(inputPathArg, outputPathArg, false, false, false, false);
+        MuleMigrator.migrateMuleSource(inputPathArg, outputPathArg, null, false, false, false, false);
     }
 }
