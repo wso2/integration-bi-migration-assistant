@@ -9,15 +9,15 @@ The migration tool supports both Mule 3.x and Mule 4.x projects.
 ## Supported Mule Components
 
 The migration tool currently supports a wide range of Mule components for both Mule 3.x and Mule 4.x. For a full list of supported components and their mappings, see:
-- [Mule 3.x Components](../../../mule/docs/palette-item-mappings.md)
-- [Mule 4.x Components](../../../mule/docs/palette-item-mappings-v4.md)
+- [Mule 3.x Components](https://github.com/wso2/integration-bi-migration-assistant/blob/main/mule/docs/palette-item-mappings-v3.md)
+- [Mule 4.x Components](https://github.com/wso2/integration-bi-migration-assistant/blob/main/mule/docs/palette-item-mappings-v4.md)
 
 ## Supported DataWeave Transformations
 
 The migration tool supports both DataWeave 1.0 (Mule 3.x) and DataWeave 2.0 (Mule 4.x) transformations. For details and 
 conversion samples, see:
-- [DataWeave 1.0 Mappings](../../../mule/docs/dataweave-mappings.md)
-- [DataWeave 2.0 Mappings](../../../mule/docs/dataweave-mappings-v4.md)
+- [DataWeave 1.0 Mappings](https://github.com/wso2/integration-bi-migration-assistant/blob/main/mule/docs/dataweave-mappings-v3.md)
+- [DataWeave 2.0 Mappings](https://github.com/wso2/integration-bi-migration-assistant/blob/main/mule/docs/dataweave-mappings-v4.md)
 
 ## Installation
 
