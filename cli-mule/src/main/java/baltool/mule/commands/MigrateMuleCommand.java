@@ -18,7 +18,7 @@
 package baltool.mule.commands;
 
 import io.ballerina.cli.BLauncherCmd;
-import mule.v3.MuleMigrationExecutor;
+import mule.MuleMigrator;
 import picocli.CommandLine;
 
 import java.io.PrintStream;
@@ -36,7 +36,8 @@ public class MigrateMuleCommand implements BLauncherCmd {
     private final PrintStream errStream;
     private static final String CMD_NAME = "migrate-mule";
     private static final String USAGE = "bal migrate-mule <source-project/s-directory-or-file> " +
-            "[-o|--out <output-directory>] [-v|--verbose] [-k|--keep-structure] [-d|--dry-run] [-m|--multi-root]";
+            "[-o|--out <output-directory>] [-f|--force-version <3|4>]" +
+            "[-v|--verbose] [-k|--keep-structure] [-d|--dry-run] [-m|--multi-root]";
 
     public MigrateMuleCommand() {
         errStream = System.err;
@@ -48,6 +49,10 @@ public class MigrateMuleCommand implements BLauncherCmd {
 
     @CommandLine.Option(names = { "--out", "-o" }, description = "Output directory path")
     private String outputPath;
+
+    @CommandLine.Option(names = { "--force-version", "-f" },
+            description = "Force Mule version (3 or 4) if automatic detection fails")
+    private Integer muleVersion;
 
     @CommandLine.Option(names = {"--verbose", "-v"}, description = "Enable verbose output", defaultValue = "false")
     private boolean verbose;
@@ -71,12 +76,11 @@ public class MigrateMuleCommand implements BLauncherCmd {
             errStream.println("Error: mule project directory or mule xml file path is required.");
             onInvalidInput();
         }
-        MuleMigrationExecutor.migrateMuleSource(sourcePath, outputPath, dryRun, verbose, keepStructure, multiRoot);
+        MuleMigrator.migrateMuleSource(sourcePath, outputPath, muleVersion, dryRun, verbose, keepStructure, multiRoot);
     }
 
     private void onInvalidInput() {
-        errStream.println("Usage: bal migrate-mule <source-project-directory-or-file> " +
-                "[-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root]");
+        errStream.println("Usage: " + USAGE);
         System.exit(1);
     }
 
@@ -87,11 +91,13 @@ public class MigrateMuleCommand implements BLauncherCmd {
 
     @Override
     public void printLongDesc(StringBuilder stringBuilder) {
-        stringBuilder.append("Migrate Mule project or standalone `.xml` file to Ballerina Integrator\n\n");
+        stringBuilder.append("Migrate Mule project or standalone `.xml` file to Ballerina\n\n");
         stringBuilder.append("This command accepts a Mule project directory or a standalone Mule `.xml` file path\n");
         stringBuilder.append("as input and generates equivalent Ballerina code" +
                 " that can be opened in Ballerina Integrator.\n\n");
         stringBuilder.append("Optional flags:\n");
+        stringBuilder.append("  --out, -o                Output directory path\n");
+        stringBuilder.append("  --force-version, -f      Force Mule version (3 or 4) if automatic detection fails\n");
         stringBuilder.append("  --keep-structure, -k     Keep mule project structure\n");
         stringBuilder.append("  --verbose, -v            Enable verbose output during conversion\n");
         stringBuilder.append("  --dry-run, -d            Simulate the conversion without generating output files\n");
@@ -105,7 +111,7 @@ public class MigrateMuleCommand implements BLauncherCmd {
         stringBuilder.append("Examples:\n");
         stringBuilder.append("  bal migrate-mule /path/to/mule-project\n");
         stringBuilder.append("  bal migrate-mule /path/to/mule-project --out /path/to/output\n");
-        stringBuilder.append("  bal migrate-mule /path/to/mule-flow.xml");
+        stringBuilder.append("  bal migrate-mule /path/to/mule-flow.xml\n");
         stringBuilder.append("  bal migrate-mule /path/to/mule-flow.xml --out /path/to/output\n");
         stringBuilder.append("  bal migrate-mule /path/to/mule-project --dry-run\n");
         stringBuilder.append("  bal migrate-mule /path/to/mule-project --keep-structure\n");
@@ -113,6 +119,8 @@ public class MigrateMuleCommand implements BLauncherCmd {
         stringBuilder.append("  bal migrate-mule /path/to/mule-project --dry-run --verbose\n");
         stringBuilder.append("  bal migrate-mule /path/to/mule-projects-directory --multi-root\n");
         stringBuilder.append("  bal migrate-mule /path/to/mule-projects-directory --multi-root --dry-run\n");
+        stringBuilder.append("  bal migrate-mule /path/to/mule-project --force-version 3\n");
+        stringBuilder.append("  bal migrate-mule /path/to/mule-project --force-version 4\n");
     }
 
     @Override

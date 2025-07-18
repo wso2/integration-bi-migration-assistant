@@ -43,12 +43,12 @@ checkstyleMain.exclude("mule/v3/dataweave/parser/*.java")
 checkstyleMain.exclude("mule/v4/dataweave/parser/*.java")
 
 // To bypass 120 word limit for html template
-checkstyleMain.exclude("mule/v3/report/MigrationReportTemplate.java")
-checkstyleMain.exclude("mule/v3/report/AggregateReportTemplate.java")
-checkstyleMain.exclude("mule/v3/report/AggregateReportWriter.java")
-checkstyleMain.exclude("mule/v4/report/MigrationReportTemplate.java")
-checkstyleMain.exclude("mule/v4/report/AggregateReportTemplate.java")
-checkstyleMain.exclude("mule/v4/report/AggregateReportWriter.java")
+checkstyleMain.exclude("mule/common/report/MigrationReportTemplate.java")
+checkstyleMain.exclude("mule/common/report/AggregateReportTemplate.java")
+checkstyleMain.exclude("mule/common/report/AggregateReportWriter.java")
+checkstyleMain.exclude("mule/common/report/MigrationReportTemplate.java")
+checkstyleMain.exclude("mule/common/report/AggregateReportTemplate.java")
+checkstyleMain.exclude("mule/common/report/AggregateReportWriter.java")
 
 spotbugs {
     reportLevel = 'high'

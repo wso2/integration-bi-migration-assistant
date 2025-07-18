@@ -15,35 +15,42 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v4.reader;
+package mule.common;
 
-import mule.v4.Context;
-import mule.v4.model.MuleXMLTag;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import java.util.LinkedHashMap;
+import java.util.function.Function;
 
 public class MuleXMLNavigator {
-    private final Context.MigrationMetrics migrationMetrics;
+    protected final MigrationMetrics<? extends DWConstructBase> migrationMetrics;
+    private final Function<String, Boolean> isCompatibleFunction;
 
-    public MuleXMLNavigator(Context.MigrationMetrics migrationMetrics) {
+    public MuleXMLNavigator(MigrationMetrics<? extends DWConstructBase> migrationMetrics,
+                            Function<String, Boolean> isCompatibleFunction) {
+        assert migrationMetrics != null && isCompatibleFunction != null;
         this.migrationMetrics = migrationMetrics;
+        this.isCompatibleFunction = isCompatibleFunction;
     }
 
     public MuleElement createRootMuleElement(Element rootElement) {
         return new MuleElement(rootElement);
     }
 
-    private void updateXMLTagCountMaps(String tagName) {
-        if (MuleXMLTag.isCompatible(tagName)) {
+    protected boolean isCompatible(String tagName) {
+        return isCompatibleFunction.apply(tagName);
+    }
+
+    protected void updateXMLTagCountMaps(String tagName) {
+        if (isCompatible(tagName)) {
             updateXMLTagCountMap(migrationMetrics.passedXMLTags, tagName);
         } else {
             updateXMLTagCountMap(migrationMetrics.failedXMLTags, tagName);
         }
     }
 
-    private void updateXMLTagCountMap(LinkedHashMap<String, Integer> hashMap, String tagName) {
+    protected void updateXMLTagCountMap(LinkedHashMap<String, Integer> hashMap, String tagName) {
         Integer i = hashMap.get(tagName);
         if (i == null) {
             hashMap.put(tagName, 1);
@@ -53,10 +60,11 @@ public class MuleXMLNavigator {
     }
 
     public class MuleElement {
-        private final Element rootElement;
-        private Element currentChild;
+        protected final Element rootElement;
+        protected Element currentChild;
 
-        private MuleElement(Element rootElement) {
+        protected MuleElement(Element rootElement) {
+            assert rootElement != null;
             this.rootElement = rootElement;
             this.currentChild = peekFirstChild();
         }

@@ -15,26 +15,26 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.report;
+package mule.common.report;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import static mule.v3.MuleMigrationExecutor.logger;
-import static mule.v3.report.MigrationReportWriter.AVG_CASE_COMP_TIME_NEW;
-import static mule.v3.report.MigrationReportWriter.AVG_CASE_COMP_TIME_REPEATED;
-import static mule.v3.report.MigrationReportWriter.AVG_CASE_DW_EXPR_TIME;
-import static mule.v3.report.MigrationReportWriter.AVG_CASE_INSPECTION_TIME;
-import static mule.v3.report.MigrationReportWriter.BEST_CASE_COMP_TIME_NEW;
-import static mule.v3.report.MigrationReportWriter.BEST_CASE_COMP_TIME_REPEATED;
-import static mule.v3.report.MigrationReportWriter.BEST_CASE_INSPECTION_TIME;
-import static mule.v3.report.MigrationReportWriter.BEST_DW_EXPR_TIME;
-import static mule.v3.report.MigrationReportWriter.WORST_CASE_COMP_TIME_NEW;
-import static mule.v3.report.MigrationReportWriter.WORST_CASE_COMP_TIME_REPEATED;
-import static mule.v3.report.MigrationReportWriter.WORST_CASE_DW_EXPR_TIME;
-import static mule.v3.report.MigrationReportWriter.WORST_CASE_INSPECTION_TIME;
+import static mule.MuleMigrator.logger;
+import static mule.common.report.MigrationReportWriter.AVG_CASE_COMP_TIME_NEW;
+import static mule.common.report.MigrationReportWriter.AVG_CASE_COMP_TIME_REPEATED;
+import static mule.common.report.MigrationReportWriter.AVG_CASE_DW_EXPR_TIME;
+import static mule.common.report.MigrationReportWriter.AVG_CASE_INSPECTION_TIME;
+import static mule.common.report.MigrationReportWriter.BEST_CASE_COMP_TIME_NEW;
+import static mule.common.report.MigrationReportWriter.BEST_CASE_COMP_TIME_REPEATED;
+import static mule.common.report.MigrationReportWriter.BEST_CASE_INSPECTION_TIME;
+import static mule.common.report.MigrationReportWriter.BEST_DW_EXPR_TIME;
+import static mule.common.report.MigrationReportWriter.WORST_CASE_COMP_TIME_NEW;
+import static mule.common.report.MigrationReportWriter.WORST_CASE_COMP_TIME_REPEATED;
+import static mule.common.report.MigrationReportWriter.WORST_CASE_DW_EXPR_TIME;
+import static mule.common.report.MigrationReportWriter.WORST_CASE_INSPECTION_TIME;
 
 /**
  * Utility class to generate and write an aggregate migration report.

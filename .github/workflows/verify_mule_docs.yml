@@ -1,4 +1,4 @@
-name: Verify Auto-Generated Markdown File Contents
+name: Verify Mule Docs
 on:
   push:
     branches:
@@ -22,8 +22,11 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Generate samples
-        run: python3 scripts/generate_samples_md.py
+      - name: Generate Mule v3 docs
+        run: python3 scripts/generate_mule_docs_v3.py
+
+      - name: Generate Mule v4 docs
+        run: python3 scripts/generate_mule_docs_v4.py
 
       - name: Print git diff
         run: git diff
@@ -31,6 +34,6 @@ jobs:
       - name: Check for uncommitted changes
         run: |
           if [[ -n $(git status --porcelain) ]]; then
-            echo "Uncommitted changes to README.md/SAMPLES.md detected. Please commit the changes."
+            echo "Uncommitted changes to README.md and documentation files detected. Please commit the changes."
             exit 1
           fi

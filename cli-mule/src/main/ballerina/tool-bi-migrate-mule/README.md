@@ -2,6 +2,23 @@
 The `migrate-mule` tool enables the conversion of [MuleSoft](https://www.mulesoft.com) applications into Ballerina packages compatible with the [WSO2 Ballerina Integrator](https://wso2.com/integrator/ballerina-integrator).
 It accepts either a MuleSoft project directory or a standalone Mule XML file as input and produces an equivalent Ballerina Integrator application.
 
+## Supported Mule Versions
+
+The migration tool supports both Mule 3.x and Mule 4.x projects.
+
+## Supported Mule Components
+
+The migration tool currently supports a wide range of Mule components for both Mule 3.x and Mule 4.x. For a full list of supported components and their mappings, see:
+- [Mule 3.x Components](../../../mule/docs/palette-item-mappings.md)
+- [Mule 4.x Components](../../../mule/docs/palette-item-mappings-v4.md)
+
+## Supported DataWeave Transformations
+
+The migration tool supports both DataWeave 1.0 (Mule 3.x) and DataWeave 2.0 (Mule 4.x) transformations. For details and 
+conversion samples, see:
+- [DataWeave 1.0 Mappings](../../../mule/docs/dataweave-mappings.md)
+- [DataWeave 2.0 Mappings](../../../mule/docs/dataweave-mappings-v4.md)
+
 ## Installation
 
 To pull the `migrate-mule` tool from Ballerina Central, run the following command:
@@ -14,16 +31,16 @@ $ bal tool pull migrate-mule
 ### Command Syntax
 
 ```bash
-$ bal migrate-mule <source-project-directory-or-file> [-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root]
+$ bal migrate-mule <source-project-directory-or-file> [-o|--out <output-directory>] [-f|--force-version <3|4>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root]
 ```
 
 ### Parameters
 
-- **source-project-directory-or-file** - *Required*. The path to the MuleSoft project directory or a standalone Mule
-  XML file to be migrated.
-- **-o or --out** - *Optional*. The directory where the new Ballerina package will be created. If not provided,
+- **source-project-directory-or-file** - *Required*. The path to the MuleSoft project directory or a standalone Mule XML file to be migrated.
+- **-o or --out** - *Optional*. The directory where the new Ballerina package will be created. If not provided:
     - For a project directory input, the new Ballerina package is created inside the source project directory.
     - For a standalone XML file, the new Ballerina package is created in the same directory as the source file.
+- **-f or --force-version** - *Optional*. Force the Mule version to 3 or 4 if automatic detection fails.
 - **-k or --keep-structure** - *Optional*. If specified, preserves the original Mule project structure during migration. By default, this option is disabled.
 - **-v or --verbose** - *Optional*. Enable verbose output during conversion.
 - **-d or --dry-run** - *Optional*. Run the parsing and analysis phases and generate the `migration_report.html` file without generating the Ballerina package.
@@ -32,10 +49,17 @@ $ bal migrate-mule <source-project-directory-or-file> [-o|--out <output-director
 ### Project Structure Requirements
 
 The migration tool expects a standard MuleSoft project hierarchy with configuration XML files located under:
-```muleProjectPath/src/main/app```.
 
-When using a MuleSoft project directory as input, the tool will look for XML files in this location by default.
-Make sure your project follows this structure.
+- For **Mule 3.x projects**:
+  ```
+  muleProjectPath/src/main/app
+  ```
+- For **Mule 4.x projects**:
+  ```
+  muleProjectPath/src/main/mule
+  ```
+
+When using a MuleSoft project directory as input, the tool will look for XML files in these locations by default based on the detected Mule version. Make sure your project follows the appropriate structure.
 
 ### Examples
 
@@ -113,6 +137,20 @@ $ bal migrate-tibco path/to/projects-directory --out path/to/reports-directory -
 
 Additionally, you can use the `--dry-run` flag to run the parsing and analysis phases without generating Ballerina packages. This will generate individual analysis reports for each project found in the directory and an aggregated report `aggregate_migration_report.html` summarizing the migration results.
 
+#### Force Mule Version During Migration
+
+The migration tool will intelligently detect the Mule version (3.x or 4.x) from your project or XML file. However, if automatic detection fails, you can use the `--force-version` flag to explicitly specify the Mule version for migration.
+
+```bash
+$ bal migrate-mule /path/to/mule-project --force-version 3
+```
+This will force the migration tool to treat the input as a Mule 3.x project.
+
+```bash
+$ bal migrate-mule /path/to/mule-project --force-version 4
+```
+This will force the migration tool to treat the input as a Mule 4.x project.
+
 ## Output
 - For a mule project directory input: A new Ballerina package is created with the same name as the input project
   directory, appended with a `_ballerina` suffix.
@@ -178,60 +216,6 @@ public function endpoint(Context ctx) returns http:Response|error {
 // ------------------------------------------------------------------------
 ```
 
-## Supported Features
-
-### Mule Components
-The migration tool currently supports converting the following MuleSoft components:
-
-- [Async](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#async)
-- [Catch Exception Strategy](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#catch-exception-strategy)
-- [Choice](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#choice)
-- [Choice Exception Strategy](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#choice-exception-strategy)
-- [Database Connector](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#database-connector)
-- [Expression Component](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#expression-component)
-- [Flow](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#flow)
-- [Http Listener](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#http-listener)
-- [Http Request](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#http-request)
-- [Logger](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#logger)
-- [Message Enricher](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#message-enricher)
-- [Object To Json](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#object-to-json)
-- [Object To String](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#object-to-string)
-- [Reference Exception Strategy](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#reference-exception-strategy)
-- [Session Variable](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#session-variable)
-- [Set Payload](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#set-payload)
-- [Sub Flow](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#sub-flow)
-- [Transform Message](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#transform-message)
-- [Variable](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#variable)
-- [Vm Connector](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_COMPONENT_SAMPLES.md#vm-connector)
-
-### DataWeave Transformations
-
-The migration tool currently supports the following DataWeave expressions:
-
-- [Concat Array Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#concat-array-expression)
-- [Concat Object Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#concat-object-expression)
-- [Concat String Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#concat-string-expression)
-- [Date Type Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#date-type-expression)
-- [Filter Value Identifier Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#filter-value-identifier-expression)
-- [Lower Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#lower-expression)
-- [Map Combination Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#map-combination-expression)
-- [Map Index Identifier Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#map-index-identifier-expression)
-- [Map Index Identifier Only Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#map-index-identifier-only-expression)
-- [Map Value Identifier Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#map-value-identifier-expression)
-- [Map With Parameters Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#map-with-parameters-expression)
-- [Replace With Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#replace-with-expression)
-- [Single Selector Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#single-selector-expression)
-- [Sizeof Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#sizeof-expression)
-- [String Return Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#string-return-expression)
-- [Type Coercion Date To Number Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#type-coercion-date-to-number-expression)
-- [Type Coercion Format Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#type-coercion-format-expression)
-- [Type Coercion Number Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#type-coercion-number-expression)
-- [Type Coercion String Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#type-coercion-string-expression)
-- [Type Coercion To Date Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#type-coercion-to-date-expression)
-- [Upper Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#upper-expression)
-- [When Otherwise Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#when-otherwise-expression)
-- [When Otherwise Nested Expression](https://github.com/wso2/integration-bi-migration-assistant/blob/main/samples/MULE_DATAWEAVE_SAMPLES.md#when-otherwise-nested-expression)
-
 ## Limitations
-- Currently supports Mule **3.x only**. Support for Mule **4.x** is planned for future releases.
+
 - Some moderate to advanced MuleSoft features may require manual adjustments after migration.

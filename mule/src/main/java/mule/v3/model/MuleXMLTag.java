@@ -17,12 +17,14 @@
  */
 package mule.v3.model;
 
+import mule.common.MuleXMLTagBase;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public enum MuleXMLTag {
+public enum MuleXMLTag implements MuleXMLTagBase {
 
     // Global Elements
     HTTP_LISTENER_CONFIG("http:listener-config", 5),
@@ -125,7 +127,7 @@ public enum MuleXMLTag {
         return UNSUPPORTED_TAG;
     }
 
-    public static final HashSet<String> COMPATIBLE_XML_TAGS =
+    private static final HashSet<String> COMPATIBLE_XML_TAGS =
             Arrays.stream(MuleXMLTag.values()).filter(muleXMLTag -> SPRING_BEANS.compareTo(muleXMLTag) > 0)
                     .map(MuleXMLTag::tag).collect(Collectors.toCollection(HashSet::new));
 
@@ -133,7 +135,7 @@ public enum MuleXMLTag {
         return COMPATIBLE_XML_TAGS.contains(tag);
     }
 
-    public static final Map<String, Integer> TAG_WEIGHTS_MAP =
+    private static final Map<String, Integer> TAG_WEIGHTS_MAP =
             Arrays.stream(MuleXMLTag.values()).collect(Collectors.toMap(MuleXMLTag::tag, MuleXMLTag::weight));
 
     private static final int DEFAULT_WEIGHT = 5;

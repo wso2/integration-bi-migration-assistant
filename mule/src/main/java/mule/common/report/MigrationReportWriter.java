@@ -15,19 +15,21 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v3.report;
+package mule.common.report;
 
-import mule.v3.Context;
-import mule.v3.dataweave.converter.DWConversionStats;
-import mule.v3.model.MuleXMLTag;
+import mule.MuleMigrator.MuleVersion;
+import mule.common.DWConstructBase;
+import mule.common.DWConversionStats;
+import mule.common.MigrationMetrics;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.function.Function;
 
-import static mule.v3.MuleMigrationExecutor.logger;
+import static mule.MuleMigrator.logger;
 
 public class MigrationReportWriter {
 
@@ -53,10 +55,10 @@ public class MigrationReportWriter {
     public static final String MIGRATION_SUMMARY_TITLE = "Migration Summary";
     public static final String MIGRATION_ASSESSMENT_TITLE = "Migration Assessment";
 
-    public static void genAndWriteMigrationReport(ProjectMigrationSummary projSummary) {
+    public static void genAndWriteMigrationReport(ProjectMigrationSummary projSummary, MuleVersion muleVersion) {
         String reportTitle = projSummary.dryRun() ? MIGRATION_ASSESSMENT_TITLE : MIGRATION_SUMMARY_TITLE;
         try {
-            String reportContent = generateReport(projSummary, reportTitle);
+            String reportContent = generateReport(projSummary, reportTitle, muleVersion);
             Files.writeString(projSummary.reportFilePath(), reportContent);
             logger().info("'%s' report written to %s".formatted(reportTitle, projSummary.reportFilePath()));
         } catch (IOException e) {
@@ -64,7 +66,7 @@ public class MigrationReportWriter {
         }
     }
 
-    private static String generateReport(ProjectMigrationSummary pms, String reportTitle) {
+    private static String generateReport(ProjectMigrationSummary pms, String reportTitle, MuleVersion muleVersion) {
         logger().info("Generating migration assessment report...");
         String unsupportedElementsTable = generateUnsupportedElementsTable(pms.failedXMLTags());
         String unsupportedBlocksHtml = generateUnsupportedBlocksHtml(pms.failedBlocks());
@@ -76,11 +78,11 @@ public class MigrationReportWriter {
         int nonMigratableXmlElements = totalXmlElements - migratableXmlElements;
 
         // Calculate element coverage and DataWeave coverage
-        int elementCoverage = calculateElementsCoverage(pms);
+        int elementCoverage = calculateElementsCoverage(pms, muleVersion);
         String elementCoverageColor = getCoverageColor(elementCoverage);
 
         // DataWeave metrics
-        DWConversionStats dwStats = pms.dwConversionStats();
+        DWConversionStats<? extends DWConstructBase> dwStats = pms.dwConversionStats();
         int totalDwConstructs = dwStats.getTotalEncounteredCount();
         int migratableDwConstructs = dwStats.getConvertedCount();
         int nonMigratableDwConstructs = totalDwConstructs - migratableDwConstructs;
@@ -172,11 +174,13 @@ public class MigrationReportWriter {
         }
     }
 
-    public static ProjectMigrationSummary getProjectMigrationSummary(String sourceProjectName,
+    public static ProjectMigrationSummary getProjectMigrationSummary(MuleVersion muleVersion,
+                                                                     String sourceProjectName,
                                                                      String balPackageName,
                                                                      Path balPackageDir,
                                                                      boolean dryRun,
-                                                                     Context.MigrationMetrics metrics) {
+                                                                     MigrationMetrics<? extends DWConstructBase>
+                                                                             metrics) {
         int failedDWExprCount = countUnsupportedDWExpressions(metrics.dwConversionStats);
 
         // Calculate implementation times
@@ -184,7 +188,7 @@ public class MigrationReportWriter {
         double avgCaseDays = calculateAverageCaseEstimate(metrics.failedXMLTags, failedDWExprCount);
         double worstCaseDays = calculateWorstCaseEstimate(metrics.failedXMLTags, failedDWExprCount);
 
-        int migrationCoverage = calculateMigrationCoverage(metrics);
+        int migrationCoverage = calculateMigrationCoverage(muleVersion, metrics);
         Path reportFilePath = balPackageDir.resolve(MIGRATION_REPORT_NAME);
 
         return new ProjectMigrationSummary(sourceProjectName, balPackageName, reportFilePath, dryRun,
@@ -193,9 +197,10 @@ public class MigrationReportWriter {
                 metrics.failedXMLTags.size(), failedDWExprCount);
     }
 
-    private static int calculateMigrationCoverage(Context.MigrationMetrics metrics) {
-        int totalPassedWeight = calculateTotalWeight(metrics.passedXMLTags);
-        int totalFailedWeight = calculateTotalWeight(metrics.failedXMLTags);
+    private static int calculateMigrationCoverage(MuleVersion muleVersion,
+                                                  MigrationMetrics<? extends DWConstructBase> metrics) {
+        int totalPassedWeight = calculateTotalWeight(muleVersion, metrics.passedXMLTags);
+        int totalFailedWeight = calculateTotalWeight(muleVersion, metrics.failedXMLTags);
         int dwTotalWeight = metrics.dwConversionStats.getTotalWeight();
         int dwConvertedWeight = metrics.dwConversionStats.getConvertedWeight();
 
@@ -205,9 +210,12 @@ public class MigrationReportWriter {
         return combinedTotalWeight == 0 ? 0 : (combinedConvertedWeight * 100) / combinedTotalWeight;
     }
 
-    private static int calculateTotalWeight(LinkedHashMap<String, Integer> tagMap) {
+    private static int calculateTotalWeight(MuleVersion muleVersion, LinkedHashMap<String, Integer> tagMap) {
+        // TODO: refactor this
+        Function<String, Integer> getWeightFromTag = muleVersion.equals(MuleVersion.MULE_V3) ?
+                mule.v3.model.MuleXMLTag::getWeightFromTag : mule.v4.model.MuleXMLTag::getWeightFromTag;
         return tagMap.entrySet().stream()
-                .mapToInt(entry -> MuleXMLTag.getWeightFromTag(entry.getKey()) * entry.getValue())
+                .mapToInt(entry -> getWeightFromTag.apply(entry.getKey()) * entry.getValue())
                 .sum();
     }
 
@@ -244,10 +252,10 @@ public class MigrationReportWriter {
                 .replace("'", "&#39;");
     }
 
-    private static String generateDataweaveExpressionsHtml(DWConversionStats dwStats) {
+    private static String generateDataweaveExpressionsHtml(DWConversionStats<? extends DWConstructBase> dwStats) {
         StringBuilder sb = new StringBuilder();
         int expressionCount = 1;
-        for (String dwExpr : dwStats.getFailedDWExpressions()) {
+        for (Object dwExpr : dwStats.getFailedDWExpressions()) {
             sb.append("<div class=\"block-item\"><div class=\"block-header\">");
             sb.append("<span class=\"block-number\">Expression #").append(expressionCount++).append("</span>");
             sb.append("<span class=\"block-type\">").append("Dataweave Expression").append("</span>");
@@ -289,19 +297,19 @@ public class MigrationReportWriter {
                 dwExpressions * WORST_CASE_DW_EXPR_TIME;
     }
 
-    private static int countUnsupportedDWExpressions(DWConversionStats dwStats) {
+    private static int countUnsupportedDWExpressions(DWConversionStats<? extends DWConstructBase> dwStats) {
         return dwStats.getFailedDWExpressions().size();
     }
 
-    private static int calculateElementsCoverage(ProjectMigrationSummary pms) {
-        int xmlPassedWeight = calculateTotalWeight(pms.passedXMLTags());
-        int xmlFailedWeight = calculateTotalWeight(pms.failedXMLTags());
+    private static int calculateElementsCoverage(ProjectMigrationSummary pms, MuleVersion muleVersion) {
+        int xmlPassedWeight = calculateTotalWeight(muleVersion, pms.passedXMLTags());
+        int xmlFailedWeight = calculateTotalWeight(muleVersion, pms.failedXMLTags());
         int totalXmlWeight = xmlPassedWeight + xmlFailedWeight;
         return totalXmlWeight > 0 ? (xmlPassedWeight * 100) / totalXmlWeight : 0;
     }
 
     private static int calculateDataweaveCoverage(ProjectMigrationSummary pms) {
-        DWConversionStats stats = pms.dwConversionStats();
+        DWConversionStats<? extends DWConstructBase> stats = pms.dwConversionStats();
         int convertedWeight = stats.getConvertedWeight();
         int totalWeight = stats.getTotalWeight();
         return totalWeight > 0 ? (convertedWeight * 100) / totalWeight : 0;

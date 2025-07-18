@@ -17,7 +17,9 @@
  */
 package mule.v4.dataweave.converter;
 
-public enum DWConstruct {
+import mule.common.DWConstructBase;
+
+public enum DWConstruct implements DWConstructBase {
     // Basic Constructs
     LITERAL("literal", 1),
     IDENTIFIER("identifier", 1),
@@ -76,12 +78,13 @@ public enum DWConstruct {
         this.weight = weight;
     }
 
+    @Override
     public String component() {
         return component;
     }
 
+    @Override
     public int weight() {
         return weight;
     }
-
 }

@@ -17,7 +17,7 @@
  */
 package cli;
 
-import mule.v3.MuleMigrationExecutor;
+import mule.MuleMigrator;
 
 import java.util.logging.Logger;
 
@@ -36,6 +36,6 @@ public class MuleCli {
         if (args.length == 3 && (args[1].equals("-o") || args[1].equals("--out"))) {
             outputPathArg = args[2];
         }
-        MuleMigrationExecutor.migrateMuleSource(inputPathArg, outputPathArg, false, false, false, false);
+        MuleMigrator.migrateMuleSource(inputPathArg, outputPathArg, null, false, false, false, false);
     }
 }
