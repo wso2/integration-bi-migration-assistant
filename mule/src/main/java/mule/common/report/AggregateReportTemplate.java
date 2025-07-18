@@ -565,7 +565,7 @@ public class AggregateReportTemplate {
                           <ul>
                             <li>%s days per each new unsupported element code line for analysis, implementation, and testing</li>
                             <li>%s hour per each repeated unsupported element code line for implementation</li>
-                            <li>%s hour per each unsupported dataweave code line for translation</li>
+                            <li>%s minutes per each unsupported dataweave code line for translation</li>
                             <li>%s minutes per each converted code line for inspection and verification</li>
                             <li>Assumes medium complexity with moderate implementation challenges</li>
                           </ul>
@@ -574,7 +574,7 @@ public class AggregateReportTemplate {
                           <ul>
                             <li>%s days per each new unsupported element code line for analysis, implementation, and testing</li>
                             <li>%s hour per each repeated unsupported element code line for implementation</li>
-                            <li>%s hours per each unsupported dataweave code line for translation</li>
+                            <li>%s minutes per each unsupported dataweave code line for translation</li>
                             <li>%s minutes per each converted code line for inspection and verification</li>
                             <li>Assumes high complexity with significant implementation challenges</li>
                           </ul>
