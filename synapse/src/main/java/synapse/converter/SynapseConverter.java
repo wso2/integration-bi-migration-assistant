@@ -17,6 +17,16 @@
  */
 package synapse.converter;
 
+import common.AuthenticateUtils;
+import common.LoggingContext;
+import common.LoggingUtils;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Optional;
 
 /**
@@ -50,6 +60,19 @@ public class SynapseConverter {
         logInfo("Multi Root: " + multiRoot);
         logInfo("Organization Name: " + orgName.orElse("N/A"));
         logInfo("Project Name: " + projectName.orElse("N/A"));
+
+        try {
+            logInfo("Getting authentication token...");
+            String accessToken = getAccessToken();
+            logInfo("Authentication successful");
+
+            logInfo("Making API request to Claude...");
+            String response = callClaudeAPI(accessToken);
+            logInfo("API response: " + response);
+
+        } catch (Exception e) {
+            logInfo("Error during authentication or API call: " + e.getMessage());
+        }
         
         // TODO: Implement actual Synapse to Ballerina conversion logic
         logInfo("Synapse conversion logic not yet implemented. This is a placeholder.");
@@ -66,5 +89,77 @@ public class SynapseConverter {
     private static void writeToOutputStream(String message) {
         // Using a different pattern to avoid checkstyle regex violation
         System.out.print(message + "\n");
+    }
+
+    private static String getAccessToken() throws Exception {
+        // Create authentication configuration
+        // TODO: Fix this, with config for synapse
+        String authOrg = isDevMode() ? "ballerinacopilotdev" : "ballerinacopilot";
+        String authClientId = isDevMode() ? "XpQ6lphi7kjKkWzumYyqqNf7CjIa" : "9rKng8hSZd0VkeA45Lt4LOfCp9Aa";
+        String authRedirectUrl = "https://98c70105-822c-4359-8579-4da58f0ab4b7.e1-us-east-azure.choreoapps.dev";
+        String ballerinaUserHomeName = ".ballerina";
+        String configFilePath = "migrate-synapse.toml";
+        int authenticationTimeoutSeconds = 180;
+        String toolName = "Synapse Migration Tool";
+
+        AuthenticateUtils.Config config = new AuthenticateUtils.Config(
+                authOrg, authClientId, authRedirectUrl, ballerinaUserHomeName,
+                configFilePath, authenticationTimeoutSeconds, toolName
+        );
+
+        LoggingContext logger = new SynapseLoggingContext();
+        return AuthenticateUtils.getValidAccessToken(config, logger);
+    }
+
+    private static boolean isDevMode() {
+        return "true".equals(System.getenv("BALLERINA_DEV_UPDATE"));
+    }
+
+    private static String callClaudeAPI(String accessToken) throws IOException, InterruptedException {
+        String apiUrl =
+                "https://e95488c8-8511-4882-967f-ec3ae2a0f86f-prod.e1-us-east-azure.choreoapis.dev/ballerina-copilot/intelligence-api/v1.0/claude/messages";
+
+        String jsonPayload = """
+                {
+                    "model": "claude-3-7-sonnet-latest",
+                    "max_tokens": 1024,
+                    "messages": [
+                        {"role": "user", "content": "Hello, Claude"}
+                    ]
+                }""";
+
+        HttpClient client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .build();
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(apiUrl))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + accessToken)
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .timeout(Duration.ofSeconds(30))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() == 200) {
+            return response.body();
+        } else {
+            throw new RuntimeException(
+                    "API call failed with status: " + response.statusCode() + ", body: " + response.body());
+        }
+    }
+
+    private static class SynapseLoggingContext implements LoggingContext {
+
+        @Override
+        public void log(LoggingUtils.Level level, String message) {
+            logInfo("[" + level + "] " + message);
+        }
+
+        @Override
+        public void logState(String message) {
+            logInfo("[STATE] " + message);
+        }
     }
 }
