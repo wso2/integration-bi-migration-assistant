@@ -42,8 +42,10 @@ build {
     dependsOn "common:build"
     dependsOn "mule:build"
     dependsOn "tibco:build"
+    dependsOn "synapse:build"
     dependsOn "cli-mule:build"
     dependsOn "cli-tibco:build"
+    dependsOn "cli-synapse:build"
 }
 
 // Convenience task to publish the common library to Maven local

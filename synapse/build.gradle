@@ -1,0 +1,54 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'checkstyle'
+    id 'com.github.spotbugs' version '5.1.3'
+}
+
+group 'com.wso2'
+version '0.1.0-SNAPSHOT'
+
+dependencies {
+    // ballerina-lang
+    implementation group: 'org.ballerinalang', name: 'ballerina-parser', version: "${ballerinaLangVersion}"
+    implementation group: 'org.ballerinalang', name: 'formatter-core', version: "${ballerinaLangVersion}"
+    implementation group: 'org.ballerinalang', name: 'ballerina-tools-api', version: "${ballerinaLangVersion}"
+
+    // common
+    implementation project(path: ':common')
+
+    // Dev dependencies
+    implementation group: 'org.jetbrains', name: 'annotations', version: "${jetbrainsAnnotationsVersion}"
+    testImplementation group: 'org.testng', name: 'testng', version: "${testngVersion}"
+    spotbugs group: 'com.github.spotbugs', name: 'spotbugs', version: "${spotbugsVersion}"
+}
+
+checkstyle {
+    toolVersion = '10.12.5'
+    config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
+    ignoreFailures = false
+}
+
+spotbugs {
+    reportLevel = 'high'
+    excludeFilter = file("${rootProject.projectDir}/spotbugs-exclude.xml")
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+    reports {
+        html.required = true
+        xml.required = false
+    }
+}
+
+test {
+    useTestNG() {
+        suites 'src/test/resources/testng.xml'
+    }
+}
+
+build {
+    dependsOn ":common:build"
+    dependsOn checkstyleMain
+    dependsOn spotbugsMain
+}

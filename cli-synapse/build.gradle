@@ -1,0 +1,135 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'checkstyle'
+    id 'com.github.spotbugs' version '5.1.3'
+}
+
+def ballerinaToolDir = "${projectDir}/src/main/ballerina/tool-bi-migrate-synapse"
+def balToolVersion = "${synapseVersion}"
+def ballerinaVersion = "${ballerinaLangVersion}"
+
+group 'com.wso2'
+version '0.1.0-SNAPSHOT'
+
+def libJarPath = "../../../../build/libs/synapse-migration-assistant-${project.version}.jar"
+
+dependencies {
+    // synapse
+    implementation project(path: ':synapse')
+
+    // Dev dependencies
+    implementation group: 'org.ballerinalang', name: 'ballerina-cli', version: "${ballerinaLangVersion}"
+    implementation group: 'info.picocli', name: 'picocli', version: "${picocliVersion}"
+    implementation group: 'org.jetbrains', name: 'annotations', version: "${jetbrainsAnnotationsVersion}"
+    testImplementation group: 'org.testng', name: 'testng', version: "${testngVersion}"
+    spotbugs group: 'com.github.spotbugs', name: 'spotbugs', version: "${spotbugsVersion}"
+}
+
+checkstyle {
+    toolVersion = '10.12.5'
+    config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
+}
+
+spotbugs {
+    reportLevel = 'high'
+    excludeFilter = file("${rootProject.projectDir}/spotbugs-exclude.xml")
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+    reports {
+        html.required = true
+        xml.required = false
+    }
+}
+
+test {
+    useTestNG() {
+        suites 'src/test/resources/testng.xml'
+    }
+}
+
+// Keep this for backward compatibility
+application {
+    mainClassName = 'cli.Main'
+}
+
+// Default jar task - we'll keep it for backward compatibility
+jar {
+    dependsOn ':common:jar'
+    manifest {
+        attributes(
+                'Main-Class': 'cli.Main'
+        )
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveFileName = 'integration-bi-migration-assistant.jar'
+}
+
+task updateTomlFile {
+    def balToml = file("${ballerinaToolDir}/Ballerina.toml")
+    def toolToml = file("${ballerinaToolDir}/BalTool.toml")
+    doLast {
+        if (balToml.exists()) {
+            def text = balToml.text
+            text = text.replaceAll('version\\s*=\\s*"[^"]*"', 'version = "' + balToolVersion + '"')
+            text = text.replaceAll('distribution\\s*=\\s*"[^"]*"', 'distribution = "' + ballerinaVersion + '"')
+            balToml.text = text
+        }
+        if (toolToml.exists()) {
+            def text = toolToml.text
+            text = text.replaceAll('path\\s*=\\s*"[^"]*"', 'path = "' + libJarPath + '"')
+            toolToml.text = text
+        }
+    }
+}
+
+// Create a separate JAR for Synapse migrations
+tasks.register('synapseJar', Jar) {
+    dependsOn ':common:jar'
+    manifest {
+        attributes(
+                'Main-Class': 'cli.SynapseCli'
+        )
+    }
+    from {
+        sourceSets.main.output
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveBaseName = 'synapse-migration-assistant'
+    archiveVersion = project.version
+}
+
+tasks.register('synapsePack', Exec) {
+    dependsOn synapseJar, updateTomlFile
+    workingDir ballerinaToolDir
+    commandLine '/opt/homebrew/bin/bal', 'pack'
+    group = 'build'
+}
+
+tasks.register('synapseRelease', Exec) {
+    dependsOn synapsePack
+    workingDir ballerinaToolDir
+    commandLine '/opt/homebrew/bin/bal', 'push'
+    group = 'build'
+}
+
+tasks.register('synapseReleaseLocal', Exec) {
+    dependsOn synapsePack
+    workingDir ballerinaToolDir
+    commandLine '/opt/homebrew/bin/bal', 'push', '--repository=local'
+    group = 'build'
+}
+
+build {
+    dependsOn ":synapse:build"
+    dependsOn checkstyleMain
+    dependsOn spotbugsMain
+    dependsOn synapseJar
+}

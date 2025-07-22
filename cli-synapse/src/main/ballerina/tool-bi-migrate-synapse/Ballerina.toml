@@ -1,0 +1,6 @@
+[package]
+org = "wso2"
+name = "tool_migrate_synapse"
+version = "1.0.0"
+distribution = "2201.12.3"
+keywords = ["migrate-synapse", "synapse-migrate", "synapse", "migrator"]
