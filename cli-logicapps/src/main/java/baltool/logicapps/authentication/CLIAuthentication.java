@@ -22,15 +22,6 @@ import common.AuthenticateUtils;
 import common.LoggingContext;
 import common.LoggingUtils;
 
-import static baltool.logicapps.Constants.AUTHENTICATION_TIMEOUT_SECONDS;
-import static baltool.logicapps.Constants.AUTH_CLIENT_ID;
-import static baltool.logicapps.Constants.DEV_AUTH_CLIENT_ID;
-import static baltool.logicapps.Constants.AUTH_ORG;
-import static baltool.logicapps.Constants.DEV_AUTH_ORG;
-import static baltool.logicapps.Constants.AUTH_REDIRECT_URL;
-import static baltool.logicapps.Constants.DEV_AUTH_REDIRECT_URL;
-import static baltool.logicapps.Constants.BALLERINA_USER_HOME_NAME;
-import static baltool.logicapps.Constants.CONFIG_FILE_PATH;
 import static baltool.logicapps.Constants.TOOL_NAME;
 
 /**
@@ -62,12 +53,7 @@ public class CLIAuthentication {
      */
     private static AuthenticateUtils.Config createAuthConfig() {
         return new AuthenticateUtils.Config(
-                getAuthOrg(),
-                getAuthClientID(),
-                getAuthRedirectURL(),
-                BALLERINA_USER_HOME_NAME,
-                CONFIG_FILE_PATH,
-                AUTHENTICATION_TIMEOUT_SECONDS,
+                BALLERINA_DEV_UPDATE,
                 TOOL_NAME
         );
     }
@@ -103,30 +89,4 @@ public class CLIAuthentication {
         };
     }
 
-    /**
-     * Retrieves the OAuth client ID based on the environment.
-     *
-     * @return The client ID for the OAuth flow
-     */
-    private static String getAuthClientID() {
-        return BALLERINA_DEV_UPDATE ? DEV_AUTH_CLIENT_ID : AUTH_CLIENT_ID;
-    }
-
-    /**
-     * Retrieves the organization name for the OAuth flow based on the environment.
-     *
-     * @return The organization name for the OAuth flow
-     */
-    private static String getAuthOrg() {
-        return BALLERINA_DEV_UPDATE ? DEV_AUTH_ORG : AUTH_ORG;
-    }
-
-    /**
-     * Retrieves the redirect URL for the OAuth flow based on the environment.
-     *
-     * @return The redirect URL for the OAuth flow
-     */
-    private static String getAuthRedirectURL() {
-        return BALLERINA_DEV_UPDATE ? DEV_AUTH_REDIRECT_URL : AUTH_REDIRECT_URL;
-    }
 }

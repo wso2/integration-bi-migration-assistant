@@ -49,20 +49,53 @@ import java.util.concurrent.TimeUnit;
  */
 public class AuthenticateUtils {
 
+    // Common constants
+    private static final String AUTH_HOST = "https://98c70105-822c-4359-8579-4da58f0ab4b7.";
+    private static final String BALLERINA_USER_HOME_NAME = ".ballerina";
+    private static final String DEFAULT_CONFIG_FILE_PATH = "migrate-tool.toml";
+    private static final int AUTHENTICATION_TIMEOUT_SECONDS = 180;
+
+    // Production environment constants
+    private static final String PROD_AUTH_ORG = "ballerinacopilot";
+    private static final String PROD_AUTH_CLIENT_ID = "9rKng8hSZd0VkeA45Lt4LOfCp9Aa";
+    private static final String PROD_AUTH_REDIRECT_URL = AUTH_HOST + "e1-us-east-azure.choreoapps.dev";
+
+    // Development environment constants
+    private static final String DEV_AUTH_ORG = "ballerinacopilotdev";
+    private static final String DEV_AUTH_CLIENT_ID = "XpQ6lphi7kjKkWzumYyqqNf7CjIa";
+    private static final String DEV_AUTH_REDIRECT_URL = AUTH_HOST + "e1-us-east-azure.choreoapps.dev";
+
     /**
      * Configuration class for authentication parameters.
      *
-     * @param authOrg the organization ID
-     * @param authClientId the client ID for authentication
-     * @param authRedirectUrl the redirect URL for authentication
-     * @param ballerinaUserHomeName the Ballerina user home name
-     * @param configFilePath the config file path
-     * @param authenticationTimeoutSeconds the authentication timeout in seconds
+     * @param isDevelopment whether to use development or production environment
      * @param toolName the name of the tool for display in HTML templates
      */
-    public record Config(String authOrg, String authClientId, String authRedirectUrl, String ballerinaUserHomeName,
-                         String configFilePath, int authenticationTimeoutSeconds, String toolName) {
+    public record Config(boolean isDevelopment, String toolName) {
 
+        public String authOrg() {
+            return isDevelopment ? DEV_AUTH_ORG : PROD_AUTH_ORG;
+        }
+
+        public String authClientId() {
+            return isDevelopment ? DEV_AUTH_CLIENT_ID : PROD_AUTH_CLIENT_ID;
+        }
+
+        public String authRedirectUrl() {
+            return isDevelopment ? DEV_AUTH_REDIRECT_URL : PROD_AUTH_REDIRECT_URL;
+        }
+
+        public String ballerinaUserHomeName() {
+            return BALLERINA_USER_HOME_NAME;
+        }
+
+        public int authenticationTimeoutSeconds() {
+            return AUTHENTICATION_TIMEOUT_SECONDS;
+        }
+
+        public String configFilePath() {
+            return DEFAULT_CONFIG_FILE_PATH;
+        }
     }
 
     /**
@@ -485,6 +518,7 @@ public class AuthenticateUtils {
      * Callback handler for the HTTP server that processes the OAuth response.
      *
      * @param state the authentication state to update with the OAuth response
+     * @param toolName the name of the tool for display in HTML templates
      */
     private record CallbackHandler(AuthenticationState state, String toolName) implements HttpHandler {
 

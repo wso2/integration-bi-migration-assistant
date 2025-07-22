@@ -73,7 +73,7 @@ public class SynapseConverter {
         } catch (Exception e) {
             logInfo("Error during authentication or API call: " + e.getMessage());
         }
-        
+
         // TODO: Implement actual Synapse to Ballerina conversion logic
         logInfo("Synapse conversion logic not yet implemented. This is a placeholder.");
     }
@@ -93,18 +93,9 @@ public class SynapseConverter {
 
     private static String getAccessToken() throws Exception {
         // Create authentication configuration
-        // TODO: Fix this, with config for synapse
-        String authOrg = isDevMode() ? "ballerinacopilotdev" : "ballerinacopilot";
-        String authClientId = isDevMode() ? "XpQ6lphi7kjKkWzumYyqqNf7CjIa" : "9rKng8hSZd0VkeA45Lt4LOfCp9Aa";
-        String authRedirectUrl = "https://98c70105-822c-4359-8579-4da58f0ab4b7.e1-us-east-azure.choreoapps.dev";
-        String ballerinaUserHomeName = ".ballerina";
-        String configFilePath = "migrate-synapse.toml";
-        int authenticationTimeoutSeconds = 180;
-        String toolName = "Synapse Migration Tool";
-
         AuthenticateUtils.Config config = new AuthenticateUtils.Config(
-                authOrg, authClientId, authRedirectUrl, ballerinaUserHomeName,
-                configFilePath, authenticationTimeoutSeconds, toolName
+                isDevMode(),
+                "Synapse Migration Tool"
         );
 
         LoggingContext logger = new SynapseLoggingContext();
@@ -116,8 +107,8 @@ public class SynapseConverter {
     }
 
     private static String callClaudeAPI(String accessToken) throws IOException, InterruptedException {
-        String apiUrl =
-                "https://e95488c8-8511-4882-967f-ec3ae2a0f86f-prod.e1-us-east-azure.choreoapis.dev/ballerina-copilot/intelligence-api/v1.0/claude/messages";
+        String host = "https://e95488c8-8511-4882-967f-ec3ae2a0f86f-prod.e1-us-east-azure.choreoapis.dev/";
+        String apiUrl = host + "ballerina-copilot/intelligence-api/v1.0/claude/messages";
 
         String jsonPayload = """
                 {
