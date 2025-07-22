@@ -46,5 +46,6 @@ public class Constants {
     public static final String DEFAULT_PROJECT_VERSION = "0.1.0";
     public static final String TRIPLE_BACKTICK_BALLERINA = "```ballerina";
     public static final String TRIPLE_BACKTICK = "```";
+    public static final String TOOL_NAME = "LogicApps Migration Tool";
     public static final int MAXIMUM_RETRY_COUNT = 2;
 }

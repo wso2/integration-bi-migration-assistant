@@ -19,10 +19,10 @@
 package tibco.converter;
 
 import common.BallerinaModel;
+import common.LoggingContext;
 import common.LoggingUtils;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import org.jetbrains.annotations.NotNull;
-import tibco.LoggingContext;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.NameSpace;
 import tibco.model.Process;

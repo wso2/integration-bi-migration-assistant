@@ -16,9 +16,7 @@
  *  under the License.
  */
 
-package tibco;
-
-import common.LoggingUtils;
+package common;
 
 public interface LoggingContext {
 

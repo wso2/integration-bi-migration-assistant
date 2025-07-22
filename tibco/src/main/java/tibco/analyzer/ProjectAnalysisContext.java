@@ -18,8 +18,8 @@
 
 package tibco.analyzer;
 
+import common.LoggingContext;
 import common.LoggingUtils;
-import tibco.LoggingContext;
 import tibco.ProjectConversionContext;
 import tibco.model.Scope;
 import tibco.model.XSD;

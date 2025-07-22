@@ -18,8 +18,8 @@
 
 package tibco.analyzer;
 
+import common.LoggingContext;
 import common.LoggingUtils;
-import tibco.LoggingContext;
 import tibco.converter.ConversionUtils;
 import tibco.model.PartnerLink;
 import tibco.model.Process5.ExplicitTransitionGroup;
