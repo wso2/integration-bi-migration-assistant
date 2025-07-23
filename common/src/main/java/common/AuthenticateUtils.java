@@ -22,6 +22,7 @@ import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.Desktop;
 import java.io.IOException;
@@ -73,18 +74,22 @@ public class AuthenticateUtils {
      */
     public record Config(boolean isDevelopment, String toolName) {
 
+        @NotNull
         public String authOrg() {
             return isDevelopment ? DEV_AUTH_ORG : PROD_AUTH_ORG;
         }
 
+        @NotNull
         public String authClientId() {
             return isDevelopment ? DEV_AUTH_CLIENT_ID : PROD_AUTH_CLIENT_ID;
         }
 
+        @NotNull
         public String authRedirectUrl() {
             return isDevelopment ? DEV_AUTH_REDIRECT_URL : PROD_AUTH_REDIRECT_URL;
         }
 
+        @NotNull
         public String ballerinaUserHomeName() {
             return BALLERINA_USER_HOME_NAME;
         }
@@ -93,6 +98,7 @@ public class AuthenticateUtils {
             return AUTHENTICATION_TIMEOUT_SECONDS;
         }
 
+        @NotNull
         public String configFilePath() {
             return DEFAULT_CONFIG_FILE_PATH;
         }

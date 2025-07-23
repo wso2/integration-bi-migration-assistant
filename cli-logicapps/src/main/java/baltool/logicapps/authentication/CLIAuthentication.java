@@ -69,16 +69,10 @@ public class CLIAuthentication {
             @Override
             public void log(LoggingUtils.Level level, String message) {
                 switch (level) {
-                    case INFO:
-                        logger.printInfo(message);
-                        break;
-                    case ERROR:
-                    case SEVERE:
-                        logger.printError(message);
-                        break;
-                    case WARN:
-                        logger.printWarn(message);
-                        break;
+                    case INFO -> logger.printInfo(message);
+                    case ERROR, SEVERE -> logger.printError(message);
+                    case WARN -> logger.printWarn(message);
+                    case DEBUG -> logger.printDebug(message);
                 }
             }
 

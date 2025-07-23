@@ -99,19 +99,8 @@ public class SynapseCli {
     }
 
     private static void printError(String message) {
-        printToErrorStream(message);
-    }
-
-    private static void printToErrorStream(String message) {
-        logError(message);
-    }
-
-    private static void logError(String message) {
-        writeToErrorStream(message);
-    }
-
-    private static void writeToErrorStream(String message) {
         // Using a different pattern to avoid checkstyle regex violation
         System.err.print(message + "\n");
     }
+
 }

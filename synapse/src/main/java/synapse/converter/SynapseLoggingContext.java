@@ -20,109 +20,39 @@ package synapse.converter;
 
 import common.LoggingContext;
 import common.LoggingUtils;
+import common.StatefulLoggingContext;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.List;
 
 class SynapseLoggingContext implements LoggingContext {
 
+    private final StatefulLoggingContext delegate;
     private final PrintStream out = System.out;
-    private String currentState = null;
-    private boolean stateActive = false;
-    private final List<String> currentStateBuffer = new ArrayList<>();
-    private int linesWritten = 0;
+
+    SynapseLoggingContext() {
+        this.delegate = new StatefulLoggingContext(this::handleStateOutput, this::handleLogOutput);
+    }
 
     @Override
     public void log(LoggingUtils.Level level, String message) {
-        if (currentState == null) {
-            throw new IllegalStateException("Cannot log without first setting a state. Call logState() first.");
-        }
-
-        String logLine = "  " + formatLogMessage(level, message);
-        currentStateBuffer.add(logLine);
-        out.println(logLine);
-        linesWritten++;
+        delegate.log(level, message);
     }
 
     @Override
     public void logState(String message) {
-        if (stateActive) {
-            // Clear all lines written under current state (move up and clear)
-            for (int i = 0; i < linesWritten; i++) {
-                out.print("\u001B[1A"); // Move cursor up one line
-                out.print("\u001B[2K"); // Clear entire line
-            }
-            // Clear the state line itself
-            out.print("\u001B[1A\u001B[2K");
-            
-            // Rewrite completed state
-            out.println("\u001B[1m◉ " + currentState + "\u001B[0m");
-            
-            // Rewrite all buffered log lines
-            for (String line : currentStateBuffer) {
-                out.println(line);
-            }
-            out.println();
-        }
-
-        currentState = message;
-        stateActive = true;
-        currentStateBuffer.clear();
-        linesWritten = 0;
-
-        // Add extra newline for visual separation before new state
-        out.println();
-        out.print("\u001B[1m▶ " + message + "\u001B[0m");
-        out.flush();
+        delegate.logState(message);
     }
 
     public void markCurrentStateComplete() {
-        if (stateActive) {
-            // Clear all lines written under current state (move up and clear)
-            for (int i = 0; i < linesWritten; i++) {
-                out.print("\u001B[1A"); // Move cursor up one line
-                out.print("\u001B[2K"); // Clear entire line
-            }
-            // Clear the state line itself
-            out.print("\u001B[1A\u001B[2K");
-            
-            // Rewrite completed state
-            out.println("\u001B[1m◉ " + currentState + "\u001B[0m");
-            
-            // Rewrite all buffered log lines
-            for (String line : currentStateBuffer) {
-                out.println(line);
-            }
-            out.println();
-            
-            // Reset state
-            stateActive = false;
-            currentState = null;
-            currentStateBuffer.clear();
-            linesWritten = 0;
-            
-            // Ensure final output with newline
-            out.flush();
-        }
+        delegate.markCurrentStateComplete();
     }
 
-    private String getLevelPrefix(LoggingUtils.Level level) {
-        return switch (level) {
-            case ERROR -> "\u001B[31m❌ "; // Red
-            case SEVERE -> "\u001B[31m🚨 "; // Red
-            case WARN -> "⚠️  ";
-            case INFO -> "\u001B[2mℹ️  "; // Dim/light font
-            case DEBUG -> "\u001B[2m🐛 "; // Dim/light font
-        };
+    private void handleStateOutput(String message) {
+        out.println(message);
+        out.flush();
     }
 
-    private String formatLogMessage(LoggingUtils.Level level, String message) {
-        String levelPrefix = getLevelPrefix(level);
-        return switch (level) {
-            case ERROR, SEVERE -> levelPrefix + message + "\u001B[0m"; // Reset after red text
-            case INFO, DEBUG -> levelPrefix + message + "\u001B[0m"; // Reset after dim text
-            case WARN -> levelPrefix + message; // No color change needed
-        };
+    private void handleLogOutput(String message) {
+        out.println(message);
     }
 }
