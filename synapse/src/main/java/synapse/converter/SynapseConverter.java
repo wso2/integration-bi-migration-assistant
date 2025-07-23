@@ -19,7 +19,6 @@ package synapse.converter;
 
 import common.AuthenticateUtils;
 import common.LoggingContext;
-import common.LoggingUtils;
 
 import java.io.IOException;
 import java.net.URI;
@@ -28,6 +27,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Optional;
+
+import static common.LoggingUtils.Level.INFO;
+import static common.LoggingUtils.Level.SEVERE;
 
 /**
  * Main entry point for Synapse to Ballerina conversion.
@@ -51,54 +53,40 @@ public class SynapseConverter {
     public static void migrateSynapse(String sourcePath, String outputPath, boolean keepStructure,
                                       boolean verbose, boolean dryRun, boolean multiRoot,
                                       Optional<String> orgName, Optional<String> projectName) {
-        logInfo("=== Synapse Migration Tool ===");
-        logInfo("Source Path: " + sourcePath);
-        logInfo("Output Path: " + outputPath);
-        logInfo("Keep Structure: " + keepStructure);
-        logInfo("Verbose: " + verbose);
-        logInfo("Dry Run: " + dryRun);
-        logInfo("Multi Root: " + multiRoot);
-        logInfo("Organization Name: " + orgName.orElse("N/A"));
-        logInfo("Project Name: " + projectName.orElse("N/A"));
+        SynapseLoggingContext logger = new SynapseLoggingContext();
+        logger.logState("Testing connection to Ballerina Copilot");
+        logger.log(INFO, "=== Synapse Migration Tool ===");
+        logger.log(INFO, "Source Path: " + sourcePath);
+        logger.log(INFO, "Output Path: " + outputPath);
+        logger.log(INFO, "Keep Structure: " + keepStructure);
+        logger.log(INFO, "Verbose: " + verbose);
+        logger.log(INFO, "Dry Run: " + dryRun);
+        logger.log(INFO, "Multi Root: " + multiRoot);
+        logger.log(INFO, "Organization Name: " + orgName.orElse("N/A"));
+        logger.log(INFO, "Project Name: " + projectName.orElse("N/A"));
 
         try {
-            logInfo("Getting authentication token...");
-            String accessToken = getAccessToken();
-            logInfo("Authentication successful");
+            logger.logState("Authenticating with Ballerina Copilot");
+            String accessToken = getAccessToken(logger);
+            logger.log(INFO, "Authentication successful");
 
-            logInfo("Making API request to Claude...");
+            logger.logState("Testing connectivity to Ballerina Copilot API");
             String response = callClaudeAPI(accessToken);
-            logInfo("API response: " + response);
+            logger.log(INFO, "API response: " + response);
 
         } catch (Exception e) {
-            logInfo("Error during authentication or API call: " + e.getMessage());
+            logger.log(SEVERE, "Error during authentication or API call: " + e.getMessage());
         }
 
         // TODO: Implement actual Synapse to Ballerina conversion logic
-        logInfo("Synapse conversion logic not yet implemented. This is a placeholder.");
+        logger.logState("Done converting Synapse to Ballerina");
+        logger.log(INFO, "Synapse conversion logic not yet implemented. This is a placeholder.");
+        logger.markCurrentStateComplete();
     }
 
-    private static void logInfo(String message) {
-        printToStandardOutput(message);
-    }
-
-    private static void printToStandardOutput(String message) {
-        writeToOutputStream(message);
-    }
-
-    private static void writeToOutputStream(String message) {
-        // Using a different pattern to avoid checkstyle regex violation
-        System.out.print(message + "\n");
-    }
-
-    private static String getAccessToken() throws Exception {
+    private static String getAccessToken(LoggingContext logger) throws Exception {
         // Create authentication configuration
-        AuthenticateUtils.Config config = new AuthenticateUtils.Config(
-                isDevMode(),
-                "Synapse Migration Tool"
-        );
-
-        LoggingContext logger = new SynapseLoggingContext();
+        AuthenticateUtils.Config config = new AuthenticateUtils.Config(isDevMode(), "Synapse Migration Tool");
         return AuthenticateUtils.getValidAccessToken(config, logger);
     }
 
@@ -141,16 +129,4 @@ public class SynapseConverter {
         }
     }
 
-    private static class SynapseLoggingContext implements LoggingContext {
-
-        @Override
-        public void log(LoggingUtils.Level level, String message) {
-            logInfo("[" + level + "] " + message);
-        }
-
-        @Override
-        public void logState(String message) {
-            logInfo("[STATE] " + message);
-        }
-    }
 }

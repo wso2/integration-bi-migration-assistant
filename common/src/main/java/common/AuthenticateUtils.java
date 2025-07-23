@@ -121,24 +121,24 @@ public class AuthenticateUtils {
     public static String getValidAccessToken(Config config, LoggingContext logger) throws Exception {
         String existingToken = loadTokenFromConfig("accessToken", config, logger);
         if (existingToken != null) {
-            logger.log(LoggingUtils.Level.INFO, "Found existing access token in config file");
+            logger.log(LoggingUtils.Level.DEBUG, "Found existing access token in config file");
             if (isTokenValid(existingToken, config, logger)) {
-                logger.log(LoggingUtils.Level.INFO, "Token is valid");
+                logger.log(LoggingUtils.Level.DEBUG, "Token is valid");
                 return existingToken;
             }
-            logger.log(LoggingUtils.Level.INFO, "Token is invalid, trying to refresh");
+            logger.log(LoggingUtils.Level.DEBUG, "Token is invalid, trying to refresh");
             String refreshToken = loadTokenFromConfig("refreshToken", config, logger);
             if (refreshToken != null) {
-                logger.log(LoggingUtils.Level.INFO, "Found existing refresh token in config file");
+                logger.log(LoggingUtils.Level.DEBUG, "Found existing refresh token in config file");
                 String newAccessToken = refreshAccessToken(refreshToken, config, logger);
                 if (newAccessToken != null) {
-                    logger.log(LoggingUtils.Level.INFO, "Successfully refreshed access token");
+                    logger.log(LoggingUtils.Level.DEBUG, "Successfully refreshed access token");
                     return newAccessToken;
                 }
             }
         }
 
-        logger.logState("Performing new authentication");
+        logger.log(LoggingUtils.Level.DEBUG, "No valid access token found, performing full authentication");
         return performFullAuthentication(config, logger);
     }
 
@@ -154,9 +154,9 @@ public class AuthenticateUtils {
     private static String performFullAuthentication(Config config, LoggingContext logger) throws Exception {
         AuthenticationState state = new AuthenticationState();
         String authCode = authenticate(state, config, logger);
-        logger.log(LoggingUtils.Level.INFO, "Authentication successful");
+        logger.log(LoggingUtils.Level.DEBUG, "Authentication successful");
         if (authCode != null) {
-            logger.log(LoggingUtils.Level.INFO, "Exchanging authorization code for tokens");
+            logger.log(LoggingUtils.Level.DEBUG, "Exchanging authorization code for tokens");
             return exchangeCodeForTokens(authCode, config, logger);
         }
         return null;
@@ -257,6 +257,7 @@ public class AuthenticateUtils {
                 }
                 return accessToken;
             } else {
+                logger.log(LoggingUtils.Level.ERROR, "No access token found in response");
                 throw new RuntimeException("No access token found in response");
             }
         } else {
@@ -264,6 +265,7 @@ public class AuthenticateUtils {
             if (response.body() != null) {
                 errorMsg += "\nError response: " + response.body();
             }
+            logger.log(LoggingUtils.Level.ERROR, errorMsg);
             throw new RuntimeException(errorMsg);
         }
     }
@@ -434,9 +436,12 @@ public class AuthenticateUtils {
             openBrowser(stateParam, config, logger);
             boolean received = state.callbackReceived.await(config.authenticationTimeoutSeconds(), TimeUnit.SECONDS);
             if (!received) {
+                logger.log(LoggingUtils.Level.ERROR, "Authentication timed out after " +
+                        config.authenticationTimeoutSeconds() + " seconds");
                 throw new RuntimeException("Authentication timed out");
             }
             if (state.error != null) {
+                logger.log(LoggingUtils.Level.ERROR, "Authentication failed: " + state.error);
                 throw new RuntimeException("Authentication failed: " + state.error);
             }
             return state.authorizationCode;
@@ -490,12 +495,13 @@ public class AuthenticateUtils {
                 config.authClientId(), state);
 
         logger.logState("Opening browser for authentication...");
-        logger.logState("If browser doesn't open automatically, visit: " + authUrl);
+        logger.log(LoggingUtils.Level.INFO, "If browser doesn't open automatically, visit: " + authUrl);
 
         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
             Desktop.getDesktop().browse(new URI(authUrl));
         } else {
-            logger.logState("Please open the above URL in your browser manually.");
+            logger.log(LoggingUtils.Level.WARN, "Failed to open browser automatically. " +
+                    "Please visit the following URL manually: " + authUrl);
         }
     }
 

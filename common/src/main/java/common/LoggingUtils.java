@@ -42,6 +42,8 @@ public final class LoggingUtils {
                 logger.warning(trimmed.substring(6).trim());
             } else if (trimmed.startsWith("[INFO]")) {
                 logger.info(trimmed.substring(6).trim());
+            } else if (trimmed.startsWith("[DEBUG]")) {
+                logger.fine(trimmed.substring(7).trim());
             } else {
                 logger.info(trimmed);
             }
@@ -53,6 +55,7 @@ public final class LoggingUtils {
     }
 
     public enum Level {
+        DEBUG,
         INFO,
         WARN,
         ERROR,
