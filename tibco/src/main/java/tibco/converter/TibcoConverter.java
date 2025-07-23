@@ -290,7 +290,14 @@ public class TibcoConverter {
             // Add types.bal
             SyntaxTree typesTree = result.types();
             if (typesTree != null) {
-                files.put("types.bal", typesTree.toSourceCode());
+                String xsdTypeSource = typesTree.toSourceCode();
+                String typeSource;
+                if (files.containsKey("types.bal")) {
+                    typeSource = files.get("types.bal") + "\n" + xsdTypeSource;
+                } else {
+                    typeSource = xsdTypeSource;
+                }
+                files.put("types.bal", typeSource);
             }
             files.put("Ballerina.toml", ballerinaToml(cx));
             // Prepare report
