@@ -23,6 +23,12 @@ import common.LoggingUtils;
 
 public class ConversionContext implements LoggingContext {
 
+    private final String projectPath;
+
+    public ConversionContext(String projectPath) {
+        this.projectPath = projectPath;
+    }
+
     @Override
     public void log(LoggingUtils.Level level, String message) {
         throw new UnsupportedOperationException("unimplemented");
@@ -32,5 +38,9 @@ public class ConversionContext implements LoggingContext {
     public void logState(String message) {
         throw new UnsupportedOperationException("unimplemented");
 
+    }
+
+    public String projectPath() {
+        return projectPath;
     }
 }

@@ -20,22 +20,27 @@ package synapse.converter.tools;
 
 import common.LoggingContext;
 import common.LoggingUtils;
+import synapse.converter.ConversionContext;
 
 public class ToolContext implements LoggingContext {
 
-    private final LoggingContext loggingDelegate;
+    private final ConversionContext conversionContext;
 
-    public ToolContext(LoggingContext loggingDelegate) {
-        this.loggingDelegate = loggingDelegate;
+    public ToolContext(ConversionContext conversionContext) {
+        this.conversionContext = conversionContext;
     }
 
     @Override
     public void log(LoggingUtils.Level level, String message) {
-        loggingDelegate.log(level, message);
+        conversionContext.log(level, message);
     }
 
     @Override
     public void logState(String message) {
-        loggingDelegate.logState(message);
+        conversionContext.logState(message);
+    }
+
+    public String projectPath() {
+        return conversionContext.projectPath();
     }
 }

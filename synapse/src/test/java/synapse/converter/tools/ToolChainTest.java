@@ -229,6 +229,10 @@ public class ToolChainTest {
     }
 
     private static class MockConversionContext extends ConversionContext {
+
+        public MockConversionContext() {
+            super("");
+        }
         @Override
         public void log(LoggingUtils.Level level, String message) {
             // Mock implementation - no actual logging for tests

@@ -19,7 +19,6 @@
 package synapse.converter.tools;
 
 import com.google.gson.Gson;
-import common.LoggingUtils;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -34,14 +33,14 @@ public class ToolUtilsTest {
 
     @BeforeMethod
     public void setUp() {
-        mockContext = new ToolContext(new MockLoggingContext());
+        mockContext = new ToolContext(new MockConversionContext());
     }
 
     @Test
     public void testGetToolDescriptorForClaudeTool() {
         ClaudeTool mockClaudeTool = new MockClaudeTool();
         String result = ToolUtils.getToolDescriptor(mockClaudeTool);
-        
+
         Map<String, String> parsedResult = gson.fromJson(result, Map.class);
         assertEquals(parsedResult.get("type"), "text_editor_20250429");
         assertEquals(parsedResult.get("name"), "str_replace_based_edit_tool");
@@ -51,7 +50,7 @@ public class ToolUtilsTest {
     public void testGetToolDescriptorForSynapseConversionTool() {
         SynapseConversionTool mockSynapseTool = new MockSynapseConversionTool();
         String result = ToolUtils.getToolDescriptor(mockSynapseTool);
-        
+
         Map<String, Object> parsedResult = gson.fromJson(result, Map.class);
         assertEquals(parsedResult.get("name"), "get_weather");
         assertEquals(parsedResult.get("description"), "Get the current weather in a given location");
@@ -68,7 +67,7 @@ public class ToolUtilsTest {
         Tool mockTool = new MockSuccessfulTool();
         String result = ToolUtils.getToolResponse(mockContext, "toolu_01A09q90qw90lq917835lq9",
                 "{\"location\":\"San Francisco, CA\"}", mockTool);
-        
+
         Map<String, String> parsedResult = gson.fromJson(result, Map.class);
         assertEquals(parsedResult.get("type"), "tool_result");
         assertEquals(parsedResult.get("tool_use_id"), "toolu_01A09q90qw90lq917835lq9");
@@ -80,7 +79,7 @@ public class ToolUtilsTest {
         Tool mockTool = new MockFailingTool();
         String result = ToolUtils.getToolResponse(mockContext, "toolu_01A09q90qw90lq917835lq9",
                 "{\"location\":\"San Francisco, CA\"}", mockTool);
-        
+
         Map<String, String> parsedResult = gson.fromJson(result, Map.class);
         assertEquals(parsedResult.get("type"), "tool_result");
         assertEquals(parsedResult.get("tool_use_id"), "toolu_01A09q90qw90lq917835lq9");
@@ -154,15 +153,17 @@ public class ToolUtilsTest {
         }
     }
 
-    private static class MockLoggingContext implements common.LoggingContext {
-        @Override
-        public void log(LoggingUtils.Level level, String message) {
-            // Mock implementation - no actual logging
+    private static class MockConversionContext extends synapse.converter.ConversionContext {
+        public MockConversionContext() {
+            super("");
         }
-
+        @Override
+        public void log(common.LoggingUtils.Level level, String message) {
+            // Mock implementation - no actual logging for tests
+        }
         @Override
         public void logState(String message) {
-            // Mock implementation - no actual logging
+            // Mock implementation - no actual logging for tests
         }
     }
 }
