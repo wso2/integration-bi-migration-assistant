@@ -1,9 +1,8 @@
 package synapse.converter.tools;
 
-import synapse.converter.report.Project;
-
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import synapse.converter.report.Project;
 
 public class ReportGenerationTest {
     private final ReportGeneration tool = new ReportGeneration();
