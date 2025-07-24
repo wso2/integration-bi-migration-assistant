@@ -43,4 +43,8 @@ public class ToolContext implements LoggingContext {
     public String projectPath() {
         return conversionContext.projectPath();
     }
+
+    public String targetPath() {
+        return conversionContext.targetPath();
+    }
 }

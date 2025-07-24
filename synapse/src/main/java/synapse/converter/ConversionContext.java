@@ -24,9 +24,16 @@ import common.LoggingUtils;
 public class ConversionContext implements LoggingContext {
 
     private final String projectPath;
+    private final String targetPath;
 
     public ConversionContext(String projectPath) {
         this.projectPath = projectPath;
+        this.targetPath = null;
+    }
+
+    public ConversionContext(String projectPath, String targetPath) {
+        this.projectPath = projectPath;
+        this.targetPath = targetPath;
     }
 
     @Override
@@ -42,5 +49,9 @@ public class ConversionContext implements LoggingContext {
 
     public String projectPath() {
         return projectPath;
+    }
+
+    public String targetPath() {
+        return targetPath;
     }
 }
