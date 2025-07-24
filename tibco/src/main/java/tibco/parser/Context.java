@@ -18,8 +18,8 @@
 
 package tibco.parser;
 
+import common.LoggingContext;
 import org.w3c.dom.Element;
-import tibco.LoggingContext;
 
 public interface Context extends LoggingContext {
 
