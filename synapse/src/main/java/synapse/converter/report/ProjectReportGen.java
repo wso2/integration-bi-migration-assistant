@@ -21,7 +21,6 @@ package synapse.converter.report;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.Comparator;
 
 public class ProjectReportGen {
 
@@ -33,7 +32,7 @@ public class ProjectReportGen {
         html.append(generatePageTitle(projectName));
         html.append(generateCoverageOverview(project, totalCodeLines));
         html.append(generateManualWorkEstimation(project, totalCodeLines, mediatorEstimate, lineEstimate));
-        html.append(generateMediatorBreakdown(project));
+        html.append(CommonComponents.generateMediatorBreakdown(Arrays.asList(project.mediators())));
         html.append(generateFooter());
         html.append(generateHtmlFooter());
 
@@ -55,16 +54,16 @@ public class ProjectReportGen {
                       margin: 0;
                       padding: 20px;
                     }
-                
+
                     .container {
                       max-width: 1200px;
                       margin: 0 auto;
                     }
-                
+
                     h1, h2, h3 {
                       color: #333;
                     }
-                
+
                     h1 {
                       text-align: center;
                       color: #4682B4;
@@ -76,7 +75,7 @@ public class ProjectReportGen {
                       position: relative;
                       border-bottom: 1px solid rgba(70, 130, 180, 0.2);
                     }
-                
+
                     h1::after {
                       content: "";
                       position: absolute;
@@ -87,7 +86,7 @@ public class ProjectReportGen {
                       height: 3px;
                       background-color: rgba(70, 130, 180, 0.8);
                     }
-                
+
                     .summary-container h2 {
                       margin-top: 0;
                       color: #4682B4;
@@ -315,60 +314,17 @@ public class ProjectReportGen {
     }
 
     private static String generateCoverageOverview(Project project, int totalCodeLines) {
-        double overallConfidence = project.overallConfidence();
-        String confidencePercentage = String.format("%.0f%%", overallConfidence * 100);
-        String confidenceLevel = getConfidenceLevel(overallConfidence);
-        String confidenceBadgeClass = getConfidenceBadgeClass(overallConfidence);
-        String coverageBarColor = getCoverageBarColor(overallConfidence);
-        int coverageWidth = (int) Math.round(overallConfidence * 100);
+        String metric = CommonComponents.generateMetric(project.overallConfidence(), totalCodeLines,
+                project.mediators().length);
 
         return """
                   <div class="summary-container">
                     <h2>Migration Coverage Overview</h2>
                     <div class="metrics" style="flex-direction: column; align-items: center; width: 100%%;">
-                
-                      <!-- Overall Confidence -->
-                      <div class="metric">
-                        <div class="metric-left">
-                          <span class="metric-value">%s</span>
-                          <span class="metric-label">Overall Confidence</span>
-                          <div class="coverage-indicator">
-                            <div class="coverage-bar" style="width: %d%%; background-color: %s;"></div>
-                          </div>
-                          <div class="status-badge-container">
-                            <span class="status-badge %s">%s</span>
-                          </div>
-                        </div>
-                        <div class="metric-right">
-                          <div class="coverage-breakdown">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                              <span class="breakdown-label">Total Code Lines:</span>
-                              <span class="breakdown-value">%d</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                              <span class="breakdown-label">Mediators:</span>
-                              <span class="breakdown-value">%d</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                      %s
                     </div>
                   </div>
-                """.formatted(confidencePercentage, coverageWidth, coverageBarColor, confidenceBadgeClass,
-                confidenceLevel,
-                totalCodeLines, project.mediators().length);
-    }
-
-    private static String estimationNote(String scenario, double hours, double lines, String reason) {
-        return """
-                <li>%s:
-                  <ul>
-                    <li>%.1f day per each mediator code line for analysis, implementation, and testing</li>
-                    <li>%.1f minutes per each converted code line for inspection and verification</li>
-                    <li>%s</li>
-                  </ul>
-                </li>
-                """.formatted(scenario, hours, lines, reason);
+                """.formatted(metric);
     }
 
     private static String generateManualWorkEstimation(Project project, double lines, Estimation mediatorEstimate,
@@ -387,17 +343,7 @@ public class ProjectReportGen {
         int bestWeeks = Math.max(1, (int) Math.ceil(bestDays / 5.0));
         int avgWeeks = Math.max(1, (int) Math.ceil(avgDays / 5.0));
         int worstWeeks = Math.max(1, (int) Math.ceil(worstDays / 5.0));
-        String bestCase = estimationNote("Best case scenario",
-                mediatorEstimate.bestCaseHours() / 8.0, lineEstimate.bestCaseHours() / 60.0,
-                "Assumes minimal complexity and straightforward implementations");
-
-        String avgCase = estimationNote("Average case scenario",
-                mediatorEstimate.avgCaseHours() / 8.0, lineEstimate.avgCaseHours() / 60.0,
-                "Assumes medium complexity with moderate implementation challenges");
-
-        String worstCase = estimationNote("Worst case scenario",
-                mediatorEstimate.worstCaseHours() / 8.0, lineEstimate.worstCaseHours() / 60.0,
-                "Assumes high complexity with significant implementation challenges");
+        String estimationNotes = CommonComponents.estimationNotes(mediatorEstimate, lineEstimate);
         return """
                   <div class="summary-container">
                     <h2>Manual Work Estimation</h2>
@@ -423,49 +369,9 @@ public class ProjectReportGen {
                         <td class="time-worst">%d weeks</td>
                       </tr>
                     </table>
-                    <div class="estimation-notes">
-                      <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours,
-                         5 working days = 1 week</p>
-                      <ul>
-                        %s
-                        %s
-                        %s
-                      </ul>
-                    </div>
+                    %s
                   </div>
-                """.formatted(bestDays, bestWeeks, avgDays, avgWeeks, worstDays, worstWeeks,
-                bestCase, avgCase, worstCase);
-    }
-
-    private static String generateMediatorBreakdown(Project project) {
-        StringBuilder tableRows = new StringBuilder();
-
-        // Sort mediators by confidence (least confident first)
-        Mediator[] sortedMediators = Arrays.stream(project.mediators())
-                .sorted(Comparator.comparingDouble(Mediator::confidenceScore))
-                .toArray(Mediator[]::new);
-
-        for (Mediator mediator : sortedMediators) {
-            tableRows.append("""
-                            <tr>
-                              <td>%s</td>
-                              <td>%d</td>
-                              <td>%.2f</td>
-                              <td>%.2f</td>
-                            </tr>
-                    """.formatted(mediator.name(), mediator.instances(), mediator.confidenceScore(),
-                    mediator.complexityScore()));
-        }
-
-        return """
-                  <div class="summary-container">
-                    <h2>Mediator wise breakdown</h2>
-                    <table>
-                      <tr><th>Tag Name</th><th>Frequency</th><th>Confidence</th><th>Complexity</th></tr>
-                       %s
-                  </table>
-                  </div>
-                """.formatted(tableRows.toString());
+                """.formatted(bestDays, bestWeeks, avgDays, avgWeeks, worstDays, worstWeeks, estimationNotes);
     }
 
     private static String generateFooter() {
@@ -483,33 +389,4 @@ public class ProjectReportGen {
                 """;
     }
 
-    private static String getConfidenceLevel(double confidence) {
-        if (confidence >= 0.8) {
-            return "HIGH CONFIDENCE";
-        }
-        if (confidence >= 0.5) {
-            return "MEDIUM CONFIDENCE";
-        }
-        return "LOW CONFIDENCE";
-    }
-
-    private static String getConfidenceBadgeClass(double confidence) {
-        if (confidence >= 0.8) {
-            return "status-high";
-        }
-        if (confidence >= 0.5) {
-            return "status-medium";
-        }
-        return "status-low";
-    }
-
-    private static String getCoverageBarColor(double confidence) {
-        if (confidence >= 0.8) {
-            return "#4CAF50"; // Green
-        }
-        if (confidence >= 0.5) {
-            return "#FF9800"; // Orange
-        }
-        return "#F44336"; // Red
-    }
 }
