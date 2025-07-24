@@ -18,7 +18,6 @@
 
 package synapse.converter.report;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 
@@ -38,15 +37,15 @@ public class CommonComponents {
 
     static String estimationNotes(Estimation mediatorEstimate, Estimation lineEstimate) {
         String bestCase = estimationNote("Best case scenario",
-                mediatorEstimate.bestCaseHours() / 8.0, lineEstimate.bestCaseHours() / 60.0,
+                mediatorEstimate.bestCaseHours() / 8.0, lineEstimate.bestCaseHours() * 60.0,
                 "Assumes minimal complexity and straightforward implementations");
 
         String avgCase = estimationNote("Average case scenario",
-                mediatorEstimate.avgCaseHours() / 8.0, lineEstimate.avgCaseHours() / 60.0,
+                mediatorEstimate.avgCaseHours() / 8.0, lineEstimate.avgCaseHours() * 60.0,
                 "Assumes medium complexity with moderate implementation challenges");
 
         String worstCase = estimationNote("Worst case scenario",
-                mediatorEstimate.worstCaseHours() / 8.0, lineEstimate.worstCaseHours() / 60.0,
+                mediatorEstimate.worstCaseHours() / 8.0, lineEstimate.worstCaseHours() * 60.0,
                 "Assumes high complexity with significant implementation challenges");
         return """
                 <div class="estimation-notes">

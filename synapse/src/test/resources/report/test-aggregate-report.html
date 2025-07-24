@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Aggregate Migration Summary</title>
+  <style>
+        body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1, h2, h3 {
+      color: #333;
+    }
+
+    .status-badge-container {
+      margin-top: 5px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #4682B4;
+      font-size: 2.5em;
+      font-weight: 300;
+      margin: 15px auto 40px;
+      padding: 0 0 15px;
+      max-width: fit-content;
+      position: relative;
+      border-bottom: 1px solid rgba(70, 130, 180, 0.2);
+    }
+
+    h1::after {
+      content: "";
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 3px;
+      background-color: rgba(70, 130, 180, 0.8);
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.9em;
+      color: #666;
+    }
+
+        .summary-container {
+      background-color: #fff;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+      margin: 25px 0;
+      transition: box-shadow 0.3s;
+    }
+
+    .summary-container:hover {
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .summary-container h2 {
+      margin-top: 0;
+      color: #4682B4;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      text-align: center;
+      font-size: 1.5em;
+    }
+
+    /* Metric styling */
+    .metric {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 15px 20px;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 20px;
+      background-color: #f0f8ff;
+      border-radius: 8px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-bottom: 15px;
+      border: 1px solid #eaeaea;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .metric:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .metric-value {
+      font-weight: bold;
+      font-size: 2em;
+      color: #4682B4;
+      margin-bottom: 5px;
+    }
+
+    .metric-label {
+      font-size: 1em;
+      margin-top: 5px;
+      color: #666;
+      text-align: center;
+    }
+
+    .metric-left {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .metric-right {
+      flex: 1;
+      padding-top: 10px;
+    }
+
+    .coverage-breakdown {
+      font-size: 0.85em;
+      color: #666;
+    }
+
+    .breakdown-value {
+      font-weight: 600;
+    }
+
+    /* Coverage indicator */
+    .coverage-indicator {
+      width: 80%;
+      height: 6px;
+      background-color: #f0f0f0;
+      border-radius: 3px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+      margin-top: 8px;
+    }
+
+    .coverage-bar {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.5s ease-in-out;
+    }
+
+        /* Time estimates styling */
+    .time-estimates {
+      display: flex;
+      flex: 1;
+      gap: 10px;
+      background-color: #eff8ff;
+      border-radius: 8px;
+      padding: 15px;
+      padding-top: 30px;
+      position: relative;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin: 20px 0;
+      border: 1px solid #eaeaea;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .time-estimates:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .time-estimates::before {
+      content: "Manual Work Estimation";
+      position: absolute;
+      top: 8px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      font-weight: normal;
+      font-size: 0.9em;
+      color: #666;
+    }
+
+    .time-estimate {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .time-label {
+      font-size: 0.8em;
+      color: #666;
+      margin-bottom: 5px;
+    }
+
+    .time-value {
+      font-weight: bold;
+      color: #4682B4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .time-days {
+      font-size: 1.1em;
+    }
+
+    .time-weeks {
+      font-size: 0.75em;
+      color: #777;
+      margin-top: 2px;
+    }
+
+    .time-best {
+      color: #4CAF50;
+    }
+
+    .time-avg {
+      color: #4682B4;
+    }
+
+    .time-worst {
+      color: #FF5722;
+    }
+
+    /* Project cards */
+    .project-card {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+      margin: 20px 0;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      gap: 15px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      align-items: center;
+    }
+
+    .project-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+    }
+
+    .project-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+      gap: 12px;
+    }
+
+    .project-name {
+      font-size: 1.2em;
+      font-weight: 600;
+      margin-right: 10px;
+    }
+
+    .project-link {
+      color: #4682B4;
+      text-decoration: none;
+      position: relative;
+      padding-bottom: 2px;
+    }
+
+    .project-link:after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: 0;
+      left: 0;
+      background-color: #4682B4;
+      transition: width 0.3s;
+    }
+
+    .project-link:hover:after {
+      width: 100%;
+    }
+
+        /* Status badges */
+    .status-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.75em;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      display: inline-block;
+    }
+
+    .status-high {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid rgba(46, 125, 50, 0.2);
+    }
+
+    .status-medium {
+      background-color: #fff8e1;
+      color: #f57c00;
+      border: 1px solid rgba(245, 124, 0, 0.2);
+    }
+
+    .status-low {
+      background-color: #ffebee;
+      color: #c62828;
+      border: 1px solid rgba(198, 40, 40, 0.2);
+    }
+
+    /* Table styling */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #4682B4;
+      color: white;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
+    tr:hover {
+      background-color: #ddd;
+    }
+
+    /* Estimation notes */
+    .estimation-notes {
+      margin-top: 25px;
+      padding: 20px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #4682B4;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .estimation-notes p {
+      margin-top: 0;
+    }
+
+    .estimation-notes ul {
+      margin: 15px 0 5px 25px;
+      padding-left: 0;
+    }
+
+    .estimation-notes li {
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Aggregate Migration Summary</h1>
+  <div class="summary-container">
+    <h2>Overview</h2>
+    <div class="metrics" style="flex-direction: column; align-items: center; width: 100%;">
+      <div class="metric" style="flex-direction: column; align-items: center; gap: 0px">
+        <span class="metric-value">2</span>
+        <span class="metric-label">Projects Analyzed</span>
+      </div>
+      <div class="metric">
+  <div class="metric-left">
+    <span class="metric-value">80%</span>
+    <span class="metric-label">Overall Confidence</span>
+    <div class="coverage-indicator">
+      <div class="coverage-bar" style="width: 80%; background-color: #4CAF50;"></div>
+    </div>
+    <div class="status-badge-container">
+      <span class="status-badge status-high">HIGH CONFIDENCE</span>
+    </div>
+  </div>
+  <div class="metric-right">
+    <div class="coverage-breakdown">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <span class="breakdown-label">Total Code Lines:</span>
+        <span class="breakdown-value">170</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <span class="breakdown-label">Mediators:</span>
+        <span class="breakdown-value">6</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+    </div>
+        <div style="display: flex; justify-content: center; margin: 20px 0;">
+      <div class="time-estimates" style="width: 100%; box-sizing: border-box;">
+        <div class="time-estimate best-case">
+          <div class="time-label">Best Case</div>
+          <div class="time-value time-best">
+            <span class="time-days">18.8d</span>
+            <span class="time-weeks">(~3.8w)</span>
+          </div>
+        </div>
+        <div class="time-estimate avg-case">
+          <div class="time-label">Average Case</div>
+          <div class="time-value time-avg">
+            <span class="time-days">38.5d</span>
+            <span class="time-weeks">(~7.7w)</span>
+          </div>
+        </div>
+        <div class="time-estimate worst-case">
+          <div class="time-label">Worst Case</div>
+          <div class="time-value time-worst">
+            <span class="time-days">60.5d</span>
+            <span class="time-weeks">(~12.1w)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="estimation-notes">
+      <p><strong>Note:</strong></p>
+      <ul>
+        <li>2 Synapse projects analyzed for migration to Ballerina</li>
+        <li>80% average automated conversion confidence across all projects</li>
+        <li>Time estimates shown above represents manual work required to complete migration for all
+        projects combined</li>
+      </ul>
+    </div>
+    <div class="estimation-notes">
+      <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours,
+         5 working days = 1 week</p>
+      <ul>
+        <li>Best case scenario:
+  <ul>
+    <li>1.4 day per each mediator code line for analysis, implementation, and testing</li>
+    <li>2.0 minutes per each converted code line for inspection and verification</li>
+    <li>Assumes minimal complexity and straightforward implementations</li>
+  </ul>
+</li>
+
+        <li>Average case scenario:
+  <ul>
+    <li>2.8 day per each mediator code line for analysis, implementation, and testing</li>
+    <li>5.0 minutes per each converted code line for inspection and verification</li>
+    <li>Assumes medium complexity with moderate implementation challenges</li>
+  </ul>
+</li>
+
+        <li>Worst case scenario:
+  <ul>
+    <li>4.3 day per each mediator code line for analysis, implementation, and testing</li>
+    <li>10.0 minutes per each converted code line for inspection and verification</li>
+    <li>Assumes high complexity with significant implementation challenges</li>
+  </ul>
+</li>
+
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="projects-container">
+    <div class="project-card" style="display:flex; flex:1; flex-direction:column">
+      <div style="display:flex; flex:1; flex-direction:column; width:100%">
+        <div class="project-header">
+          <div class="project-name">
+            <a href="project2/report.html" class="project-link">project2</a>
+          </div>
+          <span class="status-badge status-high">High Coverage</span>
+        </div>
+        <div style="display:flex; flex:1; flex-direction:row; justify-content: space-between; align-items: center;">
+          <div class="project-left" style="display:flex; flex:1; margin-right: 20px; margin-top: 20px;">
+            <div class="project-details" style="display:flex; flex:1">
+              <div class="project-metrics" style="display:flex; flex:1">
+                <div class="metric">
+                  <div class="metric-left">
+                    <span class="metric-value">85%</span>
+                    <span class="metric-label">Project Confidence</span>
+                    <div class="coverage-indicator">
+                      <div class="coverage-bar" style="width: 85%; background-color: #4CAF50;"></div>
+                    </div>
+                  </div>
+                  <div class="metric-right">
+                    <div class="coverage-breakdown">
+                      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span class="breakdown-label">Total Code Lines:</span>
+                        <span class="breakdown-value">90</span>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span class="breakdown-label">Mediators:</span>
+                        <span class="breakdown-value">3</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="time-estimates" style="margin-left: 20px;">
+  <div class="time-estimate best-case">
+    <div class="time-label">Best Case</div>
+    <div class="time-value time-best">
+      <span class="time-days">9.5</span>
+      <span class="time-weeks">(~2w)</span>
+    </div>
+  </div>
+  <div class="time-estimate avg-case">
+    <div class="time-label">Average Case</div>
+    <div class="time-value time-avg">
+      <span class="time-days">19.3</span>
+      <span class="time-weeks">(~4w)</span>
+    </div>
+  </div>
+  <div class="time-estimate worst-case">
+    <div class="time-label">Worst Case</div>
+    <div class="time-value time-worst">
+      <span class="time-days">30.4</span>
+      <span class="time-weeks">(~7w)</span>
+    </div>
+  </div>
+</div>
+
+          </div>
+        </div>
+    </div>
+    <div class="project-card" style="display:flex; flex:1; flex-direction:column">
+      <div style="display:flex; flex:1; flex-direction:column; width:100%">
+        <div class="project-header">
+          <div class="project-name">
+            <a href="project1/report.html" class="project-link">project1</a>
+          </div>
+          <span class="status-badge status-medium">Medium Coverage</span>
+        </div>
+        <div style="display:flex; flex:1; flex-direction:row; justify-content: space-between; align-items: center;">
+          <div class="project-left" style="display:flex; flex:1; margin-right: 20px; margin-top: 20px;">
+            <div class="project-details" style="display:flex; flex:1">
+              <div class="project-metrics" style="display:flex; flex:1">
+                <div class="metric">
+                  <div class="metric-left">
+                    <span class="metric-value">75%</span>
+                    <span class="metric-label">Project Confidence</span>
+                    <div class="coverage-indicator">
+                      <div class="coverage-bar" style="width: 75%; background-color: #FF9800;"></div>
+                    </div>
+                  </div>
+                  <div class="metric-right">
+                    <div class="coverage-breakdown">
+                      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span class="breakdown-label">Total Code Lines:</span>
+                        <span class="breakdown-value">80</span>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span class="breakdown-label">Mediators:</span>
+                        <span class="breakdown-value">3</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="time-estimates" style="margin-left: 20px;">
+  <div class="time-estimate best-case">
+    <div class="time-label">Best Case</div>
+    <div class="time-value time-best">
+      <span class="time-days">9.4</span>
+      <span class="time-weeks">(~2w)</span>
+    </div>
+  </div>
+  <div class="time-estimate avg-case">
+    <div class="time-label">Average Case</div>
+    <div class="time-value time-avg">
+      <span class="time-days">19.1</span>
+      <span class="time-weeks">(~4w)</span>
+    </div>
+  </div>
+  <div class="time-estimate worst-case">
+    <div class="time-label">Worst Case</div>
+    <div class="time-value time-worst">
+      <span class="time-days">30.0</span>
+      <span class="time-weeks">(~7w)</span>
+    </div>
+  </div>
+</div>
+
+          </div>
+        </div>
+    </div>
+  </div>
+  <div class="summary-container">
+    <h2>Mediator wise breakdown</h2>
+    <table>
+      <tr><th>Tag Name</th><th>Frequency</th><th>Confidence</th><th>Complexity</th></tr>
+              <tr>
+          <td>scripting-component</td>
+          <td>1</td>
+          <td>0.50</td>
+          <td>0.60</td>
+        </tr>
+        <tr>
+          <td>string-to-byte-array-transformer</td>
+          <td>1</td>
+          <td>0.60</td>
+          <td>0.50</td>
+        </tr>
+        <tr>
+          <td>smtp-outbound-endpoint</td>
+          <td>1</td>
+          <td>0.70</td>
+          <td>0.40</td>
+        </tr>
+        <tr>
+          <td>byte-array-to-string-transformer</td>
+          <td>1</td>
+          <td>0.80</td>
+          <td>0.30</td>
+        </tr>
+        <tr>
+          <td>unit-successful</td>
+          <td>2</td>
+          <td>0.90</td>
+          <td>0.20</td>
+        </tr>
+
+    </table>
+  </div>
+</div>
+<footer><p>Report generated on: 7/25/2025, 9:24:01 AM</p></footer>
+</body>
+</html>
