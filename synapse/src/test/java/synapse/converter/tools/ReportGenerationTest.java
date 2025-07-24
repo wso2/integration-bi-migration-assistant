@@ -1,5 +1,7 @@
 package synapse.converter.tools;
 
+import synapse.converter.report.Project;
+
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -58,7 +60,7 @@ public class ReportGenerationTest {
             }
             """;
         String result = tool.execute(dummyContext, normalizeJson(payload));
-        Assert.assertEquals(result, "Payload validated successfully.");
+        Assert.assertEquals(result, "Report generated successfully");
     }
     @Test
     public void testMissingOverallConfidence() {
@@ -203,16 +205,16 @@ public class ReportGenerationTest {
                 }
                 """;
         com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(payload).getAsJsonObject();
-        ReportGeneration.Report report = ReportGeneration.parseRequest(json);
-        Assert.assertEquals(report.overallConfidence(), 0.85);
-        Assert.assertEquals(report.mediators().length, 2);
-        Assert.assertEquals(report.mediators()[0].name(), "HTTP");
-        Assert.assertEquals(report.mediators()[0].instances(), 2);
-        Assert.assertEquals(report.mediators()[0].confidenceScore(), 0.9);
-        Assert.assertEquals(report.mediators()[0].complexityScore(), 0.3);
-        Assert.assertEquals(report.mediators()[1].name(), "DB");
-        Assert.assertEquals(report.mediators()[1].instances(), 1);
-        Assert.assertEquals(report.mediators()[1].confidenceScore(), 0.7);
-        Assert.assertEquals(report.mediators()[1].complexityScore(), 0.5);
+        Project project = ReportGeneration.parseRequest(json);
+        Assert.assertEquals(project.overallConfidence(), 0.85);
+        Assert.assertEquals(project.mediators().length, 2);
+        Assert.assertEquals(project.mediators()[0].name(), "HTTP");
+        Assert.assertEquals(project.mediators()[0].instances(), 2);
+        Assert.assertEquals(project.mediators()[0].confidenceScore(), 0.9);
+        Assert.assertEquals(project.mediators()[0].complexityScore(), 0.3);
+        Assert.assertEquals(project.mediators()[1].name(), "DB");
+        Assert.assertEquals(project.mediators()[1].instances(), 1);
+        Assert.assertEquals(project.mediators()[1].confidenceScore(), 0.7);
+        Assert.assertEquals(project.mediators()[1].complexityScore(), 0.5);
     }
 }

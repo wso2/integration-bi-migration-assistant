@@ -18,32 +18,13 @@
 
 package synapse.converter.tools;
 
-import java.util.Arrays;
-
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import synapse.converter.report.Mediator;
+import synapse.converter.report.Project;
 
 public class ReportGeneration implements SynapseConversionTool {
-
-    record Mediator(String name, int instances, double confidenceScore, double complexityScore) {
-
-        double timeEstimate(double baseTime) {
-            // Tunable parameters for complexity and confidence impact
-            double alpha = 1.0; // weight for complexity
-            double beta = 1.0; // weight for (1 - confidence)
-            return instances * baseTime * (1 + alpha * complexityScore) * (1 + beta * (1 - confidenceScore));
-        }
-    }
-
-    record Report(double overallConfidence, Mediator[] mediators) {
-
-        double timeEstimate(double baseTime) {
-            return Arrays.stream(mediators)
-                    .mapToDouble(m -> m.timeEstimate(baseTime))
-                    .sum();
-        }
-    }
 
     @Override
     public String name() {
@@ -105,8 +86,8 @@ public class ReportGeneration implements SynapseConversionTool {
         return "Report generated successfully";
     }
 
-    static Report parseRequest(JsonObject requestNode) {
-        // Parse to Report record
+    static Project parseRequest(JsonObject requestNode) {
+        // Parse to Project record
         double overallConfidence = requestNode.get("overall_confidence").getAsDouble();
         JsonArray mediatorsArray = requestNode.getAsJsonArray("mediators");
         Mediator[] mediators = new Mediator[mediatorsArray.size()];
@@ -118,7 +99,7 @@ public class ReportGeneration implements SynapseConversionTool {
             double complexityScore = mediatorObj.get("complexity_score").getAsDouble();
             mediators[i] = new Mediator(name, instances, confidenceScore, complexityScore);
         }
-        return new Report(overallConfidence, mediators);
+        return new Project(overallConfidence, mediators);
     }
 
     /**
