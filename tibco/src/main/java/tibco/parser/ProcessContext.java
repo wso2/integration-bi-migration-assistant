@@ -18,9 +18,9 @@
 
 package tibco.parser;
 
+import common.LoggingContext;
 import common.LoggingUtils;
 import org.w3c.dom.Element;
-import tibco.LoggingContext;
 import tibco.model.NameSpace;
 
 import java.io.IOException;
