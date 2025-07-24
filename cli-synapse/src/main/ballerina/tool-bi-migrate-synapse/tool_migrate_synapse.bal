@@ -1,0 +1,1 @@
+// Ballerina tool definition for migrate-synapse

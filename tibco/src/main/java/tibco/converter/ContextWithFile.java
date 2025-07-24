@@ -19,8 +19,8 @@
 package tibco.converter;
 
 import common.BallerinaModel;
+import common.LoggingContext;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
-import tibco.LoggingContext;
 
 interface ContextWithFile extends LoggingContext {
 

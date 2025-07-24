@@ -16,13 +16,31 @@
  *  under the License.
  */
 
-package tibco;
+package synapse.converter;
 
+import common.LoggingContext;
 import common.LoggingUtils;
 
-public interface LoggingContext {
+public class ConversionContext implements LoggingContext {
 
-    void log(LoggingUtils.Level level, String message);
+    private final String projectPath;
 
-    void logState(String message);
+    public ConversionContext(String projectPath) {
+        this.projectPath = projectPath;
+    }
+
+    @Override
+    public void log(LoggingUtils.Level level, String message) {
+        throw new UnsupportedOperationException("unimplemented");
+    }
+
+    @Override
+    public void logState(String message) {
+        throw new UnsupportedOperationException("unimplemented");
+
+    }
+
+    public String projectPath() {
+        return projectPath;
+    }
 }

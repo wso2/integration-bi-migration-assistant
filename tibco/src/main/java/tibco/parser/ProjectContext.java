@@ -18,10 +18,10 @@
 
 package tibco.parser;
 
+import common.LoggingContext;
 import common.LoggingUtils;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
-import tibco.LoggingContext;
 import tibco.ProjectConversionContext;
 import tibco.analyzer.TibcoAnalysisReport;
 import tibco.analyzer.TibcoAnalysisReport.PartiallySupportedActivityElement.NamedPartiallySupportedActivityElement;
