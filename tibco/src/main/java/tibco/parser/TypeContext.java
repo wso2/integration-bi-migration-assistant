@@ -18,8 +18,8 @@
 
 package tibco.parser;
 
+import common.LoggingContext;
 import common.LoggingUtils;
-import tibco.LoggingContext;
 
 public class TypeContext implements Context, LoggingContext {
 

@@ -19,8 +19,8 @@
 package tibco.converter;
 
 import common.BallerinaModel;
+import common.LoggingContext;
 import common.LoggingUtils;
-import tibco.LoggingContext;
 import tibco.model.NameSpace;
 import tibco.model.Resource;
 import tibco.model.Scope;

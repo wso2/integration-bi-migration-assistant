@@ -1,0 +1,5 @@
+[tool]
+id = "migrate-synapse"
+
+[[dependency]]
+path = "../../../../build/libs/synapse-migration-assistant-0.1.0-SNAPSHOT.jar"

@@ -16,13 +16,11 @@
  *  under the License.
  */
 
-package tibco;
+package synapse.converter.tools;
 
-import common.LoggingUtils;
+public interface ClaudeTool extends Tool {
 
-public interface LoggingContext {
+    String type();
 
-    void log(LoggingUtils.Level level, String message);
-
-    void logState(String message);
+    String name();
 }
