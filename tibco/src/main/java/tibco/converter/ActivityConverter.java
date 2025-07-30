@@ -823,8 +823,19 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
 
     private static ActivityConversionResult convertCallProcess(
             ActivityContext cx, VariableReference input, InlineActivity.CallProcess callProcess) {
-        VariableReference client = cx.getProcessClient(callProcess.processName());
+        Optional<VariableReference> processClient = cx.getProcessClient(callProcess.processName());
+        VariableReference client;
         List<Statement> body = new ArrayList<>();
+        if (processClient.isPresent()) {
+            client = processClient.get();
+        } else {
+            // TODO: properly handle this using package approach
+            String message =
+                    "Failed to find process client for: %s using a placeholder".formatted(callProcess.processName());
+            cx.log(SEVERE, message);
+            body.add(new Comment(message));
+            client = new VariableReference("processClient_" + ConversionUtils.sanitizes(callProcess.processName()));
+        }
         VarDeclStatment request = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 exprFrom("%s/*".formatted(input.varName())));
         body.add(request);
