@@ -1897,9 +1897,6 @@ public final class XmlToTibcoModelParser {
     private static InlineActivity.JMSActivityBase parseJMSActivityInner(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
         String permittedMessageType = getInlineActivityConfigValue(element, "PermittedMessageType");
-        if (!permittedMessageType.equals("Text")) {
-            throw new UnsupportedOperationException("Unsupported permitted message type: " + permittedMessageType);
-        }
         Element config = getFirstChildWithTag(element, "config");
         InlineActivity.JMSActivityBase.SessionAttributes sessionAttributes = parseJMSSessionAttributes(config);
         InlineActivity.JMSActivityBase.ConfigurableHeaders configurableHeaders = parseJMSConfigurableHeaders(config);

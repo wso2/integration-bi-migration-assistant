@@ -373,6 +373,11 @@ final class ActivityConverter {
                 JMSConnectionData.from(cx, cx.getJmsResource(jmsQueueSendActivity.connectionReference()));
         body.add(jmsConnectionData.connection);
         body.add(jmsConnectionData.session);
+        if (!jmsQueueSendActivity.permittedMessageType().equalsIgnoreCase("Text")) {
+            body.add(new Comment(
+                    "WARNING: Unexpected message type: %s Only Text messages are supported in JMSQueueSendActivity"
+                            .formatted(jmsQueueSendActivity.permittedMessageType())));
+        }
         body.add(new Comment("WARNING: using default destination configuration"));
         VarDeclStatment producer = new VarDeclStatment(ConversionUtils.Constants.JMS_MESSAGE_PRODUCER,
                 cx.getAnnonVarName(),
