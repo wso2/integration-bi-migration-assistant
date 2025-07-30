@@ -295,28 +295,47 @@ final class ActivityConverter {
     private static ActivityConversionResult convertSetSharedVariable(
             ActivityContext cx, VariableReference input, InlineActivity.SetSharedVariable setSharedVariable) {
         String setSharedVariableFn = cx.processContext.getSetSharedVariableFn();
-        Resource.SharedVariable sharedVariable =
-                cx.getSharedVariableByRelativePath(setSharedVariable.variableConfig())
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Shared variable not found for: " + setSharedVariable.name()));
-        List<Statement> body = List.of(new CallStatement(
+        Optional<Resource.SharedVariable> sharedVariable =
+                cx.getSharedVariableByRelativePath(setSharedVariable.variableConfig());
+        String sharedVariableName;
+        List<Statement> body = new ArrayList<>();
+        if (sharedVariable.isPresent()) {
+            sharedVariableName = sharedVariable.get().name();
+        } else {
+            String message =
+                    "Failed to find shared variable for: %s using a placeholder".formatted(setSharedVariable.name());
+            body.add(new Comment(message));
+            cx.log(SEVERE, message);
+            sharedVariableName = "sharedVariable_" + ConversionUtils.sanitizes(setSharedVariable.name());
+        }
+        body.add(new CallStatement(
                 new FunctionCall(setSharedVariableFn,
-                        List.of(cx.contextVarRef(), new StringConstant(sharedVariable.name()), input))));
+                        List.of(cx.contextVarRef(), new StringConstant(sharedVariableName), input))));
         return new ActivityConversionResult(input, body);
     }
 
     private static ActivityConversionResult convertGetSharedVariable(
             ActivityContext cx, VariableReference input, InlineActivity.GetSharedVariable getSharedVariable) {
         String getSharedVariableFn = cx.processContext.getGetSharedVariableFn();
-        Resource.SharedVariable sharedVariable =
-                cx.getSharedVariableByRelativePath(getSharedVariable.variableConfig())
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Shared variable not found for: " + getSharedVariable.name()));
+        Optional<Resource.SharedVariable> sharedVariable =
+                cx.getSharedVariableByRelativePath(getSharedVariable.variableConfig());
+        String sharedVariableName;
+        List<Statement> body = new ArrayList<>();
+        if (sharedVariable.isPresent()) {
+            sharedVariableName = sharedVariable.get().name();
+        } else {
+            String message =
+                    "Failed to find shared variable for: %s using a placeholder".formatted(getSharedVariable.name());
+
+            body.add(new Comment(message));
+            cx.log(SEVERE, message);
+            sharedVariableName = "sharedVariable_" + ConversionUtils.sanitizes(getSharedVariable.name());
+        }
         VarDeclStatment value = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new FunctionCall(getSharedVariableFn,
-                        List.of(cx.contextVarRef(), new StringConstant(sharedVariable.name()))));
-        return new ActivityConversionResult(value.ref(), List.of(value));
-
+                        List.of(cx.contextVarRef(), new StringConstant(sharedVariableName))));
+        body.add(value);
+        return new ActivityConversionResult(value.ref(), body);
     }
 
     private static ActivityConversionResult convertJMSQueueGetActivity(
