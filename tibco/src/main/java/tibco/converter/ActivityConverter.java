@@ -338,11 +338,40 @@ final class ActivityConverter {
         return new ActivityConversionResult(value.ref(), body);
     }
 
+    private static void checkAndLogSessionAttributesWarnings(ActivityContext cx,
+                    InlineActivity.JMSActivityBase.SessionAttributes sessionAttributes, InlineActivity activity) {
+            List<String> noneValues = new ArrayList<>();
+
+            if (sessionAttributes.transacted().isEmpty()) {
+                    noneValues.add("transacted");
+            }
+            if (sessionAttributes.acknowledgeMode().isEmpty()) {
+                    noneValues.add("acknowledgeMode");
+            }
+            if (sessionAttributes.maxSessions().isEmpty()) {
+                    noneValues.add("maxSessions");
+            }
+            if (sessionAttributes.destination().isEmpty()) {
+                    noneValues.add("destination");
+            }
+
+            if (!noneValues.isEmpty()) {
+                    String warningMessage = String.format(
+                                    "WARNING: JMS Activity '%s' has unsupported values for SessionAttributes: %s. Most likely they were TIBCO configuration values",
+                                    activity.name(), String.join(", ", noneValues));
+                    cx.log(WARN, warningMessage);
+                    cx.registerPartiallySupportedActivity(activity);
+            }
+    }
+
     private static ActivityConversionResult convertJMSQueueGetActivity(
             ActivityContext cx, VariableReference input,
             InlineActivity.JMSQueueGetMessageActivity jmsQueueGetMessageActivity) {
         cx.addLibraryImport(Library.JMS);
         List<Statement> body = new ArrayList<>();
+        checkAndLogSessionAttributesWarnings(cx, jmsQueueGetMessageActivity.sessionAttributes(),
+                        jmsQueueGetMessageActivity);
+
         JMSConnectionData jmsConnectionData =
                 JMSConnectionData.from(cx, cx.getJmsResource(jmsQueueGetMessageActivity.connectionReference()));
         body.add(jmsConnectionData.connection);
@@ -388,6 +417,9 @@ final class ActivityConverter {
             ActivityContext cx, VariableReference input, InlineActivity.JMSQueueSendActivity jmsQueueSendActivity) {
         cx.addLibraryImport(Library.JMS);
         List<Statement> body = new ArrayList<>();
+
+        checkAndLogSessionAttributesWarnings(cx, jmsQueueSendActivity.sessionAttributes(), jmsQueueSendActivity);
+
         JMSConnectionData jmsConnectionData =
                 JMSConnectionData.from(cx, cx.getJmsResource(jmsQueueSendActivity.connectionReference()));
         body.add(jmsConnectionData.connection);
@@ -422,11 +454,17 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
                 InlineActivity.JMSTopicPublishActivity jmsTopicPublishActivity) {
         cx.addLibraryImport(Library.JMS);
         List<Statement> body = new ArrayList<>();
+
+        checkAndLogSessionAttributesWarnings(cx, jmsTopicPublishActivity.sessionAttributes(), jmsTopicPublishActivity);
+
         JMSConnectionData jmsConnectionData = JMSConnectionData.from(cx,
                         cx.getJmsResource(jmsTopicPublishActivity.connectionReference()));
         body.add(jmsConnectionData.connection);
         body.add(jmsConnectionData.session);
         body.add(new Comment("WARNING: using default destination configuration"));
+
+        // Use destination from SessionAttributes if available, otherwise use default
+        String destinationName = jmsTopicPublishActivity.sessionAttributes().destination().orElse("Default topic");
         VarDeclStatment producer = new VarDeclStatment(ConversionUtils.Constants.JMS_MESSAGE_PRODUCER,
                         cx.getAnnonVarName(),
                         new Check(new MethodCall(jmsConnectionData.session().ref(), "createProducer", List.of(
@@ -435,8 +473,7 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
                                                             'type: jms:TOPIC,
                                                             name: "%s"
                                                         }
-                                                        """.formatted(
-                                                        jmsTopicPublishActivity.sessionAttributes().destination()))))));
+                                                        """.formatted(destinationName))))));
         body.add(producer);
 
         VarDeclStatment contentString = new VarDeclStatment(STRING, cx.getAnnonVarName(),

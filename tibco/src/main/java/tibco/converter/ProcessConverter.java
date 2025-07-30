@@ -231,7 +231,7 @@ public class ProcessConverter {
         String listenerName = "jms" + ConversionUtils.sanitizes(jmsQueueEventSource.name()) + "Listener";
         String initialContextFactory = jmsResource.namingEnvironment().namingInitialContextFactory();
         String providerUrl = jmsResource.namingEnvironment().providerURL();
-        String destinationName = jmsQueueEventSource.sessionAttributes().destination();
+        String destinationName = jmsQueueEventSource.sessionAttributes().destination().orElse("Default queue");
 
         BallerinaModel.Listener.JMSListener listener =
                 new BallerinaModel.Listener.JMSListener(listenerName, initialContextFactory, providerUrl,

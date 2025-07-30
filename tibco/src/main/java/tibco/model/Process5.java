@@ -640,8 +640,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                    ConfigurableHeaders configurableHeaders,
                     String connectionReference, String fileName) {
 
-                public record SessionAttributes(boolean transacted, int acknowledgeMode, int maxSessions,
-                                                String destination) {
+                public record SessionAttributes(Optional<Boolean> transacted, Optional<Integer> acknowledgeMode,
+                        Optional<Integer> maxSessions, Optional<String> destination) {
 
                 }
 
