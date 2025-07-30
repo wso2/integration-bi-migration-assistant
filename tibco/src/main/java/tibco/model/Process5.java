@@ -124,7 +124,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 return this;
             }
             if (activities.isEmpty()) {
-                return this;
+                throw new IllegalStateException("Empty process without activities");
             }
             String startActivityName = transitions.stream()
                     .filter(transition -> transition.from().equalsIgnoreCase("start"))
