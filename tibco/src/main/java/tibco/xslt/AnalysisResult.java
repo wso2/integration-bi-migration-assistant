@@ -106,9 +106,12 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
         return new ParseResult(paths, parameters);
     }
 
-    // TODO: properly handle comments
     static ParseResult parseTag(String tagDefn, int offset) {
         assert tagDefn.startsWith("<") && tagDefn.endsWith(">");
+        if (tagDefn.startsWith("<!--") && tagDefn.endsWith("-->")) {
+            // this is a comment, skip it
+            return new ParseResult(Collections.emptyList(), Collections.emptyList());
+        }
         int index = 1;
         index = skipSpaces(tagDefn, index);
         // seek till end of tag name
