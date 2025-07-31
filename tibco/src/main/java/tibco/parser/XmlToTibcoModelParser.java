@@ -578,11 +578,9 @@ public final class XmlToTibcoModelParser {
 
     private static XMLParseActivity parseXmlParseActivity(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
-        String inputStyle = getInlineActivityConfigValue(element, "inputStyle");
-        if (!inputStyle.equalsIgnoreCase("text")) {
-            throw new ParserException("Unsupported inputStyle value: " + inputStyle, element);
-        }
-        return new XMLParseActivity(element, name, inputBinding, cx.fileName());
+        XMLParseActivity.InputStyle inputStyle =
+                XMLParseActivity.InputStyle.from(getInlineActivityConfigValue(element, "inputStyle"));
+        return new XMLParseActivity(element, name, inputBinding, inputStyle, cx.fileName());
     }
 
     private static XMLRenderActivity parseXmlRenderActivity(ProcessContext cx, Element element, String name,

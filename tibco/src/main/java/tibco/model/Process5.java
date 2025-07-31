@@ -384,8 +384,21 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record XMLParseActivity(Element element, String name,
-                    InputBinding inputBinding, String fileName)
+                                    InputBinding inputBinding, InputStyle inputStyle, String fileName)
                     implements ExplicitTransitionGroup.InlineActivity {
+
+                public enum InputStyle {
+                    TEXT,
+                    BINARY;
+
+                    public static InputStyle from(String s) {
+                        return switch (s.toLowerCase()) {
+                            case "text" -> TEXT;
+                            case "binary" -> BINARY;
+                            default -> throw new IllegalArgumentException("Unknown XMLParseActivity input style: " + s);
+                        };
+                    }
+                }
 
                 public XMLParseActivity {
                     assert inputBinding != null;

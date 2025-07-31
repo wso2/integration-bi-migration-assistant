@@ -949,14 +949,33 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
     private static ActivityConversionResult convertXmlParseActivity(
             ActivityContext cx, VariableReference result, InlineActivity.XMLParseActivity xmlParseActivity) {
         List<Statement> body = new ArrayList<>();
-        VarDeclStatment xmlString = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                exprFrom("%s/<xmlString>/*".formatted(result.varName())));
-        body.add(xmlString);
-        VarDeclStatment asString = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                new MethodCall(xmlString.ref(), "toString", List.of()));
-        body.add(asString);
+
+        VariableReference stringRepr;
+        if (xmlParseActivity.inputStyle() == InlineActivity.XMLParseActivity.InputStyle.TEXT) {
+            VarDeclStatment xmlString = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                    exprFrom("%s/<xmlString>/*".formatted(result.varName())));
+            body.add(xmlString);
+            VarDeclStatment asString = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                    new MethodCall(xmlString.ref(), "toString", List.of()));
+            body.add(asString);
+            stringRepr = asString.ref();
+        } else {
+            VarDeclStatment bytes = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                    exprFrom("%s/<bytes>/*".formatted(result.varName())));
+            body.add(bytes);
+            VarDeclStatment byteArr = new VarDeclStatment(new BallerinaModel.TypeDesc.ArrayTypeDesc(
+                    BallerinaModel.TypeDesc.BuiltinType.BYTE), cx.getAnnonVarName());
+            body.add(byteArr);
+            body.add(new Comment(
+                    "WARNING: xml parse from bytes detected properly initialize %s using %s".formatted(byteArr.ref(),
+                            bytes.ref())));
+            VarDeclStatment stringValue = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                    new Check(new FunctionCall("string:fromBytes", List.of(byteArr.ref()))));
+            body.add(stringValue);
+            stringRepr = stringValue.ref();
+        }
         VarDeclStatment xmlValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new Check(new FunctionCall("xml:fromString", List.of(asString.ref()))));
+                new Check(new FunctionCall("xml:fromString", List.of(stringRepr))));
         body.add(xmlValue);
         VarDeclStatment wrappedValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new XMLTemplate("<root>${%s}</root>".formatted(xmlValue.ref())));
