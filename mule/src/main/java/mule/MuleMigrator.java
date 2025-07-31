@@ -25,8 +25,13 @@ import mule.common.ContextBase;
 import mule.common.DWConstructBase;
 import mule.common.DWConversionStats;
 import mule.common.MigrationMetrics;
+import mule.common.MigrationResult;
 import mule.common.MuleXMLNavigator;
-import mule.common.report.ProjectMigrationSummary;
+import mule.common.MultiMigrationResult;
+import mule.common.ProjectMigrationResult;
+import mule.common.report.AggregateReportGenerator;
+import mule.common.report.IndividualReportGenerator;
+import mule.common.report.ProjectMigrationStats;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.BufferedReader;
@@ -41,8 +46,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 import static common.BallerinaModel.Import;
@@ -52,10 +59,8 @@ import static mule.MigratorUtils.collectXmlFiles;
 import static mule.MigratorUtils.collectYamlAndPropertyFiles;
 import static mule.MigratorUtils.createDirectories;
 import static mule.MigratorUtils.getImmediateSubdirectories;
-import static mule.common.report.AggregateReportWriter.AGGREGATE_MIGRATION_REPORT_NAME;
-import static mule.common.report.AggregateReportWriter.genAndWriteAggregateReport;
-import static mule.common.report.MigrationReportWriter.genAndWriteMigrationReport;
-import static mule.common.report.MigrationReportWriter.getProjectMigrationSummary;
+import static mule.common.report.IndividualReportGenerator.INDIVIDUAL_REPORT_NAME;
+import static mule.common.report.IndividualReportGenerator.getProjectMigrationStats;
 import static mule.v3.MuleToBalConverter.convertXMLFileToBir;
 import static mule.v4.MuleToBalConverter.convertXMLFileToBir;
 import static mule.v3.MuleToBalConverter.createContextTypeDefns;
@@ -64,7 +69,6 @@ import static mule.v4.MuleToBalConverter.createTextDocument;
 
 public class MuleMigrator {
 
-    public static final String BAL_PROJECT_SUFFIX = "_ballerina";
     public static final String INTERNAL_TYPES_FILE_NAME = "internal_types.bal";
     public static final String MULE_V3_DEFAULT_XML_CONFIGS_DIR_NAME = "app";
     public static final String MULE_V4_DEFAULT_XML_CONFIGS_DIR_NAME = "mule";
@@ -91,43 +95,130 @@ public class MuleMigrator {
     private static Logger logger;
     private static final PrintStream OUT = System.out;
 
-    // TODO: add new version option
-    public static void migrateMuleSource(String inputPathArg, String outputPathArg, Integer muleVersion,
-                                         boolean dryRun, boolean verbose, boolean keepStructure, boolean multiRoot) {
+
+    public static Map<String, Object> migrateMule(Map<String, Object> parameters) {
+        try {
+            String orgName = validateAndGetString(parameters, "orgName");
+            String projectName = validateAndGetString(parameters, "projectName");
+            String sourcePath = validateAndGetString(parameters, "sourcePath");
+            Consumer<String> stateCallback = validateAndGetConsumer(parameters, "stateCallback");
+            Consumer<String> logCallback = validateAndGetConsumer(parameters, "logCallback");
+            return migrateMuleInner(orgName, projectName, sourcePath, stateCallback, logCallback);
+        } catch (IllegalArgumentException e) {
+            return Map.of("error", e.getMessage());
+        }
+    }
+
+    private static Map<String, Object> migrateMuleInner(String orgName, String projectName, String sourcePath,
+                                                        Consumer<String> stateCallback, Consumer<String> logCallback) {
+        MigrationResult result = migrateMuleSource(sourcePath, null, orgName, projectName, null,
+                false, false, false, false);
+        if (result.getFatalError().isPresent()) {
+            return Map.of("error", result.getFatalError().get());
+        }
+
+        ProjectMigrationResult projResult = (ProjectMigrationResult) result;
+        return Map.of("textEdits", projResult.getFiles(), "report", projResult.getHtmlReport());
+    }
+
+    private static String validateAndGetString(Map<String, Object> parameters, String key) {
+        if (!parameters.containsKey(key)) {
+            throw new IllegalArgumentException("Missing required parameter: " + key);
+        }
+        Object value = parameters.get(key);
+        if (!(value instanceof String)) {
+            throw new IllegalArgumentException("Parameter " + key + " must be a String, got: " +
+                    (value != null ? value.getClass().getSimpleName() : "null"));
+        }
+        return (String) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Consumer<String> validateAndGetConsumer(Map<String, Object> parameters, String key) {
+        if (!parameters.containsKey(key)) {
+            throw new IllegalArgumentException("Missing required parameter: " + key);
+        }
+        Object value = parameters.get(key);
+        if (!(value instanceof Consumer)) {
+            throw new IllegalArgumentException("Parameter " + key + " must be a Consumer<String>, got: " +
+                    (value != null ? value.getClass().getSimpleName() : "null"));
+        }
+        return (Consumer<String>) value;
+    }
+
+    public static void migrateMuleSourceAndWrite(String inputPathArg, String outputPathArg, String orgName,
+                                                           String projectName, Integer muleVersion, boolean dryRun,
+                                                           boolean verbose, boolean keepStructure, boolean multiRoot) {
+        MigrationResult result = migrateMuleSource(inputPathArg, outputPathArg, orgName, projectName, muleVersion,
+                dryRun, verbose, keepStructure, multiRoot);
+        if (result.getFatalError().isPresent()) {
+            logger().severe(result.getFatalError().get());
+            return;
+        }
+
+        if (result instanceof ProjectMigrationResult projResult) {
+            writeSingleRootMigration(projResult, dryRun);
+        } else if (result instanceof MultiMigrationResult multiResult)  {
+            writeMultiRootMigration(dryRun, multiResult);
+        } else {
+            throw new IllegalStateException("Unexpected MigrationResult type: " + result.getClass().getName());
+        }
+    }
+
+    public static MigrationResult migrateMuleSource(String inputPathArg, String outputPathArg, String orgNameArg,
+                                                    String projectNameArg, Integer muleVersion, boolean dryRun,
+                                                    boolean verbose, boolean keepStructure, boolean multiRoot) {
+
         logger = verbose ? createDefaultLogger("migrate-mule") : createSilentLogger("migrate-mule");
         logger().info("migrate-mule tool initialized with --dry-run =" + dryRun + ", --verbose = " + verbose +
                 ", --keep-structure = " + keepStructure + ", --multi-root = " + multiRoot);
-        Path sourcePath = Paths.get(inputPathArg);
-        if (!Files.exists(sourcePath)) {
-            logger().severe("Source path does not exist: '" + sourcePath + "'");
-            System.exit(1);
+
+        MigrationResult result = multiRoot ? new MultiMigrationResult() : new ProjectMigrationResult();
+        validateInputPathArg(result, inputPathArg);
+        validateMuleVersionArg(result, muleVersion);
+
+        if (result.getFatalError().isPresent()) {
+            return result;
         }
 
-        // TODO: handle migrate-mule pathToProjects missing -m flag scenario
         if (multiRoot) {
-            logger().info("Multi-root mode enabled. Converting all Mule projects in the directory: '" +
-                    sourcePath + "'");
-            if (!Files.isDirectory(sourcePath)) {
-                logger().severe("Multi-root mode requires a directory as input, but got a file: '" + sourcePath + "'");
-                System.exit(1);
-            }
-            validateOutputPathArg(outputPathArg);
-            validateMuleVersionArg(muleVersion);
-            convertMuleMultiProjects(inputPathArg, outputPathArg, muleVersion, dryRun, keepStructure);
-        } else if (Files.isDirectory(sourcePath)) {
+            migrateMultiMuleSource((MultiMigrationResult) result, inputPathArg, outputPathArg, muleVersion, dryRun,
+                    verbose, keepStructure);
+        } else {
+            migrateSingleMuleSource((ProjectMigrationResult) result, inputPathArg, outputPathArg, orgNameArg,
+                    projectNameArg, muleVersion, dryRun, verbose, keepStructure);
+        }
+        return result;
+    }
+
+    public static void migrateSingleMuleSource(ProjectMigrationResult result, String inputPathArg, String outputPathArg,
+                                               String orgNameArg, String projectNameArg, Integer muleVersion,
+                                               boolean dryRun, boolean verbose, boolean keepStructure) {
+        Path sourcePath = Paths.get(inputPathArg);
+        if (Files.isDirectory(sourcePath)) {
             logger().info("Source path is a Mule project directory: '" + sourcePath + "'");
-            validateOutputPathArg(outputPathArg);
-            validateMuleVersionArg(muleVersion);
-            convertMuleProject(inputPathArg, outputPathArg, muleVersion, dryRun, keepStructure, false);
+            convertMuleProject(result, inputPathArg, outputPathArg, orgNameArg, projectNameArg, muleVersion, dryRun,
+                    keepStructure, false);
         } else if (Files.isRegularFile(sourcePath) && inputPathArg.endsWith(".xml")) {
             logger().info("Source path is a Mule XML file: '" + sourcePath + "'");
-            validateOutputPathArg(outputPathArg);
-            validateMuleVersionArg(muleVersion);
-            convertMuleXmlFile(inputPathArg, outputPathArg, muleVersion, dryRun, keepStructure);
+            convertMuleXmlFile(result, inputPathArg, outputPathArg, orgNameArg, projectNameArg, muleVersion, dryRun,
+                    keepStructure);
         } else {
-            logger().severe("Invalid source path: '" + sourcePath + "'. Must be a directory or .xml file.");
-            System.exit(1);
+            result.setFatalError("Invalid source path: '" + sourcePath + "'. Must be a directory or .xml file.");
         }
+    }
+
+    public static void migrateMultiMuleSource(MultiMigrationResult result, String inputPathArg, String outputPathArg,
+                                              Integer muleVersion, boolean dryRun, boolean verbose,
+                                              boolean keepStructure) {
+        Path sourcePath = Paths.get(inputPathArg);
+        logger().info("Multi-root mode enabled. Converting all Mule projects in the directory: '" +
+                sourcePath + "'");
+        if (!Files.isDirectory(sourcePath)) {
+            result.setFatalError("Multi-root mode requires a directory as input, but got a file: '" + sourcePath + "'");
+            return;
+        }
+        convertMuleMultiProjects(result, inputPathArg, outputPathArg, muleVersion, dryRun, keepStructure);
     }
 
     public static Logger logger() {
@@ -144,74 +235,97 @@ public class MuleMigrator {
         return Logger.getLogger(name);
     }
 
-    private static void validateMuleVersionArg(Integer muleVersion) {
+    private static void validateInputPathArg(MigrationResult result, String inputPathArg) {
+        Path inputPath = Paths.get(inputPathArg);
+        if (!Files.exists(inputPath)) {
+            result.setFatalError("Source path does not exist: '" + inputPath + "'");
+        }
+    }
+
+//    private static Optional<String> validateOutputPathArg(ProjectMigrationResult result, String outputPathArg) {
+//        if (outputPathArg != null) {
+//            Path outputPath = Paths.get(outputPathArg);
+////            if (!Files.exists(outputPath)) {
+//            // TODO:
+////                try {
+////                    Files.createDirectories(outputPath);
+////                    logger().info("Created output directory: " + outputPath);
+////                } catch (IOException e) {
+////                    logger().severe("Cannot create output directory: " + outputPath + " - " + e.getMessage());
+////                    System.exit(1);
+////                }
+////            } else
+//            if (!Files.isDirectory(outputPath)) {
+//                logger().severe("Output path exists but is not a directory: " + outputPath);
+//            }
+//        }
+//    }
+
+    private static void validateMuleVersionArg(MigrationResult result, Integer muleVersion) {
         if (muleVersion == null) {
             logger().info("No Mule version specified. Tool will automatically detect the Mule version.");
             return;
         }
         logger().info("Validating Mule version argument: " + muleVersion);
         if (muleVersion != 3 && muleVersion != 4) {
-            logger().severe("Invalid Mule version specified: " + muleVersion + ". Must be 3 or 4.");
-            System.exit(1);
+            result.setFatalError("Invalid Mule version specified: " + muleVersion + ". Must be 3 or 4.");
         }
     }
 
-    private static void validateOutputPathArg(String outputPathArg) {
-        if (outputPathArg != null) {
-            logger().info("Validating output path argument: '" + outputPathArg + "'");
-            Path outputPath = Paths.get(outputPathArg);
-            if (!Files.exists(outputPath)) {
-                try {
-                    Files.createDirectories(outputPath);
-                    logger().info("Created output directory: " + outputPath);
-                } catch (IOException e) {
-                    logger().severe("Cannot create output directory: " + outputPath + " - " + e.getMessage());
-                    System.exit(1);
-                }
-            } else if (!Files.isDirectory(outputPath)) {
-                logger().severe("Output path exists but is not a directory: " + outputPath);
-                System.exit(1);
-            }
-        }
-    }
-
-    private static void convertMuleMultiProjects(String sourceProjectsDir, String outputPathArg, Integer muleVersion,
+    private static void convertMuleMultiProjects(MultiMigrationResult multiResult, String sourceProjectsDir,
+                                                 String outputPathArg,
+                                                 Integer muleVersion,
                                                  boolean dryRun, boolean keepStructure) {
-        if (muleVersion != null) {
-            OUT.println("Using specified Mule version: " + muleVersion);
-        }
-
         Path sourceProjectsDirPath = Path.of(sourceProjectsDir);
+        Path targetPath = outputPathArg != null ? Path.of(outputPathArg) : sourceProjectsDirPath;
+        multiResult.setTargetPath(targetPath);
+
         List<Path> projectDirectories;
         try {
             projectDirectories = getImmediateSubdirectories(sourceProjectsDirPath);
         } catch (IOException e) {
-            logger().severe("Error listing subdirectories of " + sourceProjectsDir + ": " + e.getMessage());
+            multiResult.setFatalError("Error listing subdirectories of " + sourceProjectsDir + ": " + e.getMessage());
             return;
         }
 
-        List<ProjectMigrationSummary> projectSummaries = new ArrayList<>();
+        if (muleVersion != null) {
+            OUT.println("Using specified Mule version: " + muleVersion);
+        }
+
+        List<ProjectMigrationResult> projResultList = new ArrayList<>();
         for (Path projectDir : projectDirectories) {
             logger().info("Converting Mule project: " + projectDir);
+            ProjectMigrationResult projResult = new ProjectMigrationResult();
+            projResultList.add(projResult);
             try {
-                ProjectMigrationSummary projSummary = convertMuleProject(projectDir.toString(), outputPathArg,
-                        muleVersion, dryRun, keepStructure, true);
-                projectSummaries.add(projSummary);
+                convertMuleProject(projResult, projectDir.toString(), outputPathArg, null, null, muleVersion, dryRun,
+                        keepStructure, true);
             } catch (Exception e) {
                 logger().severe("Error converting Mule project " + projectDir + ": " + e.getMessage());
             }
         }
 
-        Path targetDir = outputPathArg != null ? Path.of(outputPathArg) : sourceProjectsDirPath;
-        genAndWriteAggregateReport(projectSummaries, targetDir, dryRun);
-        printMultiRootCompletion(targetDir.resolve(AGGREGATE_MIGRATION_REPORT_NAME), dryRun);
+        multiResult.setMigrationResults(projResultList);
+
+        String aggregateReport = AggregateReportGenerator.generateHtmlReport(projResultList, targetPath, dryRun);
+        multiResult.setHtmlReport(aggregateReport);
+//        printMultiRootCompletion(targetPath.resolve(AGGREGATE_MIGRATION_REPORT_NAME), dryRun);
     }
 
-    private static ProjectMigrationSummary convertMuleProject(String inputPathArg, String outputPathArg,
-                                                              Integer muleVersion, boolean dryRun,
-                                                              boolean keepStructure, boolean multiRoot) {
-        // Detecting Mule project version
+    private static void convertMuleProject(ProjectMigrationResult result, String inputPathArg, String outputPathArg,
+                                           String orgNameArg, String projectNameArg, Integer muleVersion,
+                                           boolean dryRun, boolean keepStructure, boolean multiRoot) {
         Path sourcePath = Path.of(inputPathArg);
+        Path targetPath = outputPathArg != null ? Path.of(outputPathArg) : sourcePath;
+        result.setTargetPath(targetPath);
+
+        String sourceProjectName = sourcePath.getFileName().toString();
+        result.setSourceName(sourceProjectName);
+
+        result.setOrgName(MigratorUtils.getBalOrgName(orgNameArg));
+        result.setProjectName(MigratorUtils.getBalProjectName(projectNameArg, sourceProjectName));
+
+        // Detecting Mule project version
         MuleVersion version;
         if (muleVersion == null) {
             version = MigratorUtils.detectVersionForProject(sourcePath);
@@ -222,6 +336,7 @@ public class MuleMigrator {
                 OUT.println("Using specified Mule version: " + version);
             }
         }
+        result.setMuleVersion(version);
 
         // Collect xml configs, yaml and property files
         logger().info("Collecting XML configs, YAML, and property files in Mule project...");
@@ -235,7 +350,12 @@ public class MuleMigrator {
             logger().info("Detected Mule version: MULE_V4");
             muleXmlConfigDir = muleXmlConfigDir.resolve(MULE_V4_DEFAULT_XML_CONFIGS_DIR_NAME);
         }
+
         collectXmlFiles(muleXmlConfigDir.toFile(), xmlFiles);
+        if (xmlFiles.isEmpty()) {
+            result.setFatalError("No XML files found in the directory: " + muleXmlConfigDir);
+            return;
+        }
 
         List<File> yamlFiles = new ArrayList<>();
         List<File> propertyFiles = new ArrayList<>();
@@ -246,32 +366,25 @@ public class MuleMigrator {
         logger().info("Found " + xmlFiles.size() + " .xml files, " + yamlFiles.size() + ".yaml files, and " +
                 propertyFiles.size() + " .properties files.");
 
-        if (xmlFiles.isEmpty()) {
-            logger().severe("No XML files found in the directory: " + muleXmlConfigDir);
-            System.exit(1);
-        }
 
-        String sourceProjectName = sourcePath.getFileName().toString();
-        Path targetDir = outputPathArg != null ? Path.of(outputPathArg) : sourcePath;
-        return convertToBalProject(version, xmlFiles, yamlFiles, propertyFiles, muleXmlConfigDir, targetDir,
+        convertToBalProject(result, version, xmlFiles, yamlFiles, propertyFiles, muleXmlConfigDir,
                 sourceProjectName, dryRun, keepStructure, multiRoot);
     }
 
-    private static void convertMuleXmlFile(String inputPathArg, String outputPathArg, Integer muleVersion,
-                                           boolean dryRun,
-                                           boolean keepStructure) {
+    private static void convertMuleXmlFile(ProjectMigrationResult result, String inputPathArg,
+                                           String outputPathArg, String orgNameArg, String projectNameArg,
+                                           Integer muleVersion, boolean dryRun, boolean keepStructure) {
         Path inputXmlFilePath = Path.of(inputPathArg);
-        String inputFileName = inputXmlFilePath.getFileName().toString().split(".xml")[0];
         Path sourceDir = inputXmlFilePath.getParent() != null ? inputXmlFilePath.getParent() : Path.of(".");
+        Path targetPath = outputPathArg != null ? Path.of(outputPathArg) : sourceDir;
+        result.setTargetPath(targetPath);
 
-        Path targetDir;
-        if (outputPathArg != null) {
-            targetDir = Path.of(outputPathArg);
-        } else {
-            targetDir = sourceDir;
-        }
+        String inputFileName = inputXmlFilePath.getFileName().toString().split(".xml")[0];
+        result.setSourceName(inputFileName);
 
-        // TODO: do we need to verify path exists?
+        result.setOrgName(MigratorUtils.getBalOrgName(orgNameArg));
+        result.setProjectName(MigratorUtils.getBalProjectName(projectNameArg, inputFileName));
+
         MuleVersion version;
         if (muleVersion == null) {
             version = MigratorUtils.detectVersionForFile(inputXmlFilePath);
@@ -280,10 +393,12 @@ public class MuleMigrator {
             version = MuleVersion.fromInt(muleVersion);
             OUT.println("Using specified Mule version: " + version);
         }
+        result.setMuleVersion(version);
+
 
         File xmlConfigFile = inputXmlFilePath.toFile();
-        convertToBalProject(version, Collections.singletonList(xmlConfigFile), Collections.emptyList(),
-                Collections.emptyList(), sourceDir, targetDir, inputFileName, dryRun, keepStructure, false);
+        convertToBalProject(result, version, Collections.singletonList(xmlConfigFile), Collections.emptyList(),
+                Collections.emptyList(), sourceDir, inputFileName, dryRun, keepStructure, false);
     }
 
     private static ContextBase getContext(MuleVersion muleVersion) {
@@ -306,11 +421,30 @@ public class MuleMigrator {
         }
     }
 
-    private static ProjectMigrationSummary convertToBalProject(MuleVersion muleVersion, List<File> xmlFiles,
-                                                               List<File> yamlFiles, List<File> propertyFiles,
-                                                               Path muleAppDir, Path targetDir, String sourceName,
-                                                               boolean dryRun, boolean keepStructure,
-                                                               boolean multiRoot) {
+    private static void writeSingleRootMigration(ProjectMigrationResult result, boolean dryRun) {
+        Path balPackageDir = result.getTargetPath().resolve(result.getProjectName());
+        createDirectories(balPackageDir);
+        MigratorUtils.writeFile(balPackageDir, INDIVIDUAL_REPORT_NAME, result.getHtmlReport());
+        if (!dryRun) {
+            MigratorUtils.writeFilesFromMap(balPackageDir, result.getFiles());
+        }
+    }
+
+    private static void writeMultiRootMigration(boolean dryRun, MultiMigrationResult multiResult) {
+        for (ProjectMigrationResult projResult : multiResult.getMigrationResults()) {
+            writeSingleRootMigration(projResult, dryRun);
+        }
+        String aggregateReport = multiResult.getHtmlReport();
+        Path targetPath = multiResult.getTargetPath();
+        MigratorUtils.writeFile(targetPath, AggregateReportGenerator.AGGREGATE_MIGRATION_REPORT_NAME,
+                aggregateReport);
+    }
+
+    private static void convertToBalProject(ProjectMigrationResult result, MuleVersion muleVersion,
+                                            List<File> xmlFiles,
+                                            List<File> yamlFiles, List<File> propertyFiles,
+                                            Path muleAppDir, String sourceName,
+                                            boolean dryRun, boolean keepStructure, boolean multiRoot) {
         logger().info("Converting Mule XML configs to ballerina intermediate representation...");
         // 1. Convert xml configs to ballerina-ir
         ContextBase ctx = getContext(muleVersion);
@@ -330,19 +464,16 @@ public class MuleMigrator {
         TextDocument birTxtDoc = genBirForInternalTypes(ctx);
         birTxtDocs.add(birTxtDoc);
 
-        // 2. Generate and write migration report
-        String balPackageName = sourceName + BAL_PROJECT_SUFFIX;
-        Path balPackageDir = targetDir.resolve(balPackageName);
-        createDirectories(balPackageDir);
-        ProjectMigrationSummary projSummary = getProjectMigrationSummary(muleVersion, sourceName, balPackageName,
-                balPackageDir, dryRun, ctx.getMigrationMetrics());
-        genAndWriteMigrationReport(projSummary, muleVersion);
+        // 2. Generate migration report
+        ProjectMigrationStats migrationStats = getProjectMigrationStats(muleVersion, ctx.getMigrationMetrics());
+        result.setMigrationStats(migrationStats);
+
+        String individualReport = IndividualReportGenerator
+                .generateHtmlReport(migrationStats, muleVersion, dryRun, sourceName);
+        result.setHtmlReport(individualReport);
 
         if (dryRun) {
-            if (!multiRoot) {
-                printDryRunCompletion(projSummary.reportFilePath());
-            }
-            return projSummary;
+            return;
         }
 
         // 3. Rearrange BIR for BI Structure
@@ -351,18 +482,13 @@ public class MuleMigrator {
             birTxtDocs = new BICodeConverter().convert(new BallerinaModel.Module("mock", birTxtDocs)).textDocuments();
         }
 
-        // 3. Write project
-        writeProjectArtifacts(balPackageName, balPackageDir);
-        writeBirAsBalFiles(birTxtDocs, balPackageDir);
-        genAndWriteConfigTOMLFile(yamlFiles, propertyFiles, balPackageDir);
-
-        // 4. Print conversion percentages
-        if (!multiRoot) {
-            printDataWeaveConversionPercentage(ctx.getMigrationMetrics());
-            printOverallProjectConversionPercentage(projSummary.migrationCoverage());
-        }
-
-        return projSummary;
+        // 3. Generate project artifacts and bal files
+        Map<String, String> allFiles = new HashMap<>();
+        allFiles.putAll(genProjectArtifacts(result.getOrgName(), result.getProjectName()));
+        allFiles.putAll(genBalFilesFromBir(birTxtDocs));
+        allFiles.putAll(genConfigTOMLFile(yamlFiles, propertyFiles));
+        allFiles = Collections.unmodifiableMap(allFiles);
+        result.setFiles(allFiles);
     }
 
     /**
@@ -426,8 +552,9 @@ public class MuleMigrator {
                 Collections.emptyList());
     }
 
-    private static void writeBirAsBalFiles(List<TextDocument> birTxtDocs, Path balPackageDir) {
-        logger().info("Generating syntax trees from BIR files and write them as .bal files...");
+    private static Map<String, String> genBalFilesFromBir(List<TextDocument> birTxtDocs) {
+//        logger().info("Generating syntax trees from BIR files and write them as .bal files...");
+        Map<String, String> balFiles = new HashMap<>();
         for (TextDocument bir : birTxtDocs) {
             SyntaxTree syntaxTree;
             try {
@@ -437,24 +564,16 @@ public class MuleMigrator {
                 logger().severe("Error generating syntax tree from BIR file: " + bir.documentName());
                 continue;
             }
-            Path filePath = balPackageDir.resolve(bir.documentName());
 
-            try {
-                logger().info("Writing bal file: " + bir.documentName());
-                Files.writeString(filePath, syntaxTree.toSourceCode());
-            } catch (IOException e) {
-                logger().severe("Error writing to file: " + bir.documentName());
-            }
+            balFiles.put(bir.documentName(), syntaxTree.toSourceCode());
         }
+        return balFiles;
     }
 
-    private static void writeProjectArtifacts(String balPackageName, Path balPackageDir)  {
-        logger().info("Writing Ballerina project artifacts to: " + balPackageDir);
-        String org = "migrate_mule";
+    private static Map<String, String> genProjectArtifacts(String orgName, String projectName) {
         String version = "0.1.0";
         String distribution = "2201.12.3";
 
-        Path tomlPath = balPackageDir.resolve("Ballerina.toml");
         String tomlContent = """
                 [package]
                 org = "%s"
@@ -464,50 +583,39 @@ public class MuleMigrator {
                 
                 [build-options]
                 observabilityIncluded = true
-                """.formatted(org, balPackageName, version, distribution);
+                """.formatted(orgName, projectName, version, distribution);
 
-        try {
-            Files.writeString(tomlPath, tomlContent);
-            logger().info("Created Ballerina.toml file at: " + tomlPath);
-        } catch (IOException e) {
-            logger().severe("Error writing Ballerina.toml file: " + e.getMessage());
-        }
+        return Map.of("Ballerina.toml", tomlContent);
     }
 
-    private static void genAndWriteConfigTOMLFile(List<File> yamlFiles, List<File> propertyFiles,
-                                                  Path targetFolderPath) {
+    private static Map<String, String> genConfigTOMLFile(List<File> yamlFiles, List<File> propertyFiles) {
         logger().info("Generating Config.toml file from .yaml and .properties files...");
-        Path configPath = targetFolderPath.resolve("Config.toml");
         StringBuilder tomlContent = new StringBuilder();
 
-        try {
-            // Process .properties files
-            for (File propFile : propertyFiles) {
-                if (propFile.getName().equals("mule-deploy.properties")) {
-                    // Skip mule-deploy.properties file
-                    continue;
-                }
-
-                // Add file name as comment
-                tomlContent.append("# Properties from ").append(propFile.getName()).append("\n");
-                processPropertiesFile(propFile, tomlContent);
-                tomlContent.append("\n");
+        // Process .properties files
+        for (File propFile : propertyFiles) {
+            if (propFile.getName().equals("mule-deploy.properties")) {
+                // Skip mule-deploy.properties file
+                continue;
             }
 
-            // Process .yaml files using SnakeYAML
-            for (File yamlFile : yamlFiles) {
-                tomlContent.append("# Properties from ").append(yamlFile.getName()).append("\n");
-                processYamlFile(yamlFile, tomlContent);
-                tomlContent.append("\n");
-            }
-
-            Files.writeString(configPath, tomlContent.toString(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            logger().severe("Error creating Config.toml: " + e.getMessage());
+            // Add file name as comment
+            tomlContent.append("# Properties from ").append(propFile.getName()).append("\n");
+            processPropertiesFile(propFile, tomlContent);
+            tomlContent.append("\n");
         }
+
+        // Process .yaml files using SnakeYAML
+        for (File yamlFile : yamlFiles) {
+            tomlContent.append("# Properties from ").append(yamlFile.getName()).append("\n");
+            processYamlFile(yamlFile, tomlContent);
+            tomlContent.append("\n");
+        }
+
+        return Map.of("Config.toml", tomlContent.toString());
     }
 
-    public static void processPropertiesFile(File propFile, StringBuilder tomlContent) throws IOException {
+    public static void processPropertiesFile(File propFile, StringBuilder tomlContent) {
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(new FileInputStream(propFile), StandardCharsets.UTF_8))) {
             String line;
@@ -523,6 +631,8 @@ public class MuleMigrator {
                     tomlContent.append(key).append(" = \"").append(escapeTomlValue(value)).append("\"\n");
                 }
             }
+        } catch (Exception e) {
+            logger().severe("Error processing properties file " + propFile.getName() + ": " + e.getMessage());
         }
     }
 
@@ -609,13 +719,14 @@ public class MuleMigrator {
     public static void testConvertingMuleProject(Integer muleVersion, String inputPathArg, boolean dryRun,
                                                  boolean keepStructure) {
         logger = createSilentLogger("migrate-mule-test-suite");
-        convertMuleProject(inputPathArg, null, muleVersion, dryRun, keepStructure, false);
+        migrateMuleSourceAndWrite(inputPathArg, null, null, null, muleVersion, dryRun, false, keepStructure, false);
     }
 
     public static void testConvertingMultiMuleProjects(Integer muleVersion, String pathToProjects,
                                                        String outputPathArg, boolean dryRun, boolean keepStructure) {
         logger = createSilentLogger("migrate-mule-test-suite");
-        convertMuleMultiProjects(pathToProjects, outputPathArg, muleVersion, dryRun, keepStructure);
+        migrateMuleSourceAndWrite(pathToProjects, outputPathArg, null, null, muleVersion, dryRun, false,
+                keepStructure, true);
     }
 
     // --------------------------------------------- End of Testing API ---------------------------------------------

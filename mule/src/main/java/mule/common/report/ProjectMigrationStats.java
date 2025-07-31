@@ -20,17 +20,12 @@ package mule.common.report;
 import mule.common.DWConstructBase;
 import mule.common.DWConversionStats;
 
-import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
- * Record to hold the summary of a project migration.
+ * Record to hold the project migration statistics.
  *
- * @param sourceProjectName         name of the source
- * @param balPackageName            name of the converted bal package
- * @param reportFilePath            path to the migration report
- * @param dryRun                    indicates if the migration was a dry run
  * @param passedXMLTags             a map of successfully migrated XML tags with their counts
  * @param failedXMLTags             a map of failed XML tags with their counts
  * @param failedBlocks              a list of blocks that failed during migration
@@ -43,18 +38,14 @@ import java.util.List;
  * @param failedDWExprCount         count of DataWeave expressions that failed migration
  * @since 1.1.1
  */
-public record ProjectMigrationSummary(String sourceProjectName,
-                                      String balPackageName,
-                                      Path reportFilePath,
-                                      boolean dryRun,
-                                      LinkedHashMap<String, Integer> passedXMLTags,
-                                      LinkedHashMap<String, Integer> failedXMLTags,
-                                      List<String> failedBlocks,
-                                      DWConversionStats<? extends DWConstructBase> dwConversionStats,
-                                      int migrationCoverage,
-                                      double bestCaseDays,
-                                      double averageCaseDays,
-                                      double worstCaseDays,
-                                      int failedDistinctXMLTagCount,
-                                      int failedDWExprCount) {
+public record ProjectMigrationStats(LinkedHashMap<String, Integer> passedXMLTags,
+                                    LinkedHashMap<String, Integer> failedXMLTags,
+                                    List<String> failedBlocks,
+                                    DWConversionStats<? extends DWConstructBase> dwConversionStats,
+                                    int migrationCoverage,
+                                    double bestCaseDays,
+                                    double averageCaseDays,
+                                    double worstCaseDays,
+                                    int failedDistinctXMLTagCount,
+                                    int failedDWExprCount) {
 }
