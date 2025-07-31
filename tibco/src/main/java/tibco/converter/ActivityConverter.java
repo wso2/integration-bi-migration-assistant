@@ -56,6 +56,7 @@ import tibco.model.Scope.Flow.Activity.Reply;
 import tibco.model.Scope.Flow.Activity.Throw;
 import tibco.model.Scope.Flow.Activity.UnhandledActivity;
 import tibco.model.ValueSource;
+import tibco.model.XSD;
 import tibco.xslt.AddMissingParameters;
 import tibco.xslt.IgnoreRootWrapper;
 import tibco.xslt.ReplaceDotAccessWithXPath;
@@ -620,7 +621,8 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
         body.add(xmlInput);
         body.add(stmtFrom("xmlns \"http://www.tibco.com/namespaces/tnt/plugins/json\" as ns;"));
         cx.log(WARN, "JSONRender: assuming single element");
-        BallerinaModel.TypeDesc targetType = ConversionUtils.toTypeDesc(jsonRender.targetType());
+        BallerinaModel.TypeDesc targetType = jsonRender.targetType().map(ConversionUtils::toTypeDesc).orElseGet(
+                () -> new BallerinaModel.TypeDesc.MapTypeDesc(JSON));
         return finishConvertJsonRender(cx, body, targetType, "ns:ActivityOutputClass", xmlInput.ref());
     }
 
@@ -657,9 +659,13 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
             ActivityContext cx, VariableReference input, InlineActivity.JSONParser jsonParser) {
         List<Statement> body = new ArrayList<>();
 
-        String targetTypeName = jsonParser.targetType().type().name();
+        String targetTypeName = jsonParser.targetType()
+                .map(xsd -> xsd.type().name())
+                .orElseGet(() -> new BallerinaModel.TypeDesc.MapTypeDesc(JSON).toString());
         try {
-            cx.addXSDSchemaToConversion(jsonParser.targetType().toSchema());
+            if (jsonParser.targetType().isPresent()) {
+                cx.addXSDSchemaToConversion(jsonParser.targetType().get().toSchema());
+            }
         } catch (ParserConfigurationException e) {
             cx.log(SEVERE, "Error converting Element to String: " + e.getMessage()
                         + ". Continuing with conversion.");

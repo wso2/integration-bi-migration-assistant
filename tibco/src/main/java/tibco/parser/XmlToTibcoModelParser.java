@@ -451,11 +451,11 @@ public final class XmlToTibcoModelParser {
                 cx.fileName());
     }
 
-    private static @NotNull XSD getJSONActivityTarget(Element element) {
-        Element config = getFirstChildWithTag(element, "config");
-        Element activityOutputEditor = getFirstChildWithTag(config, "ActivityOutputEditor");
-        Element xsdElement = getFirstChildWithTag(activityOutputEditor, "element");
-        return parseXSD(xsdElement);
+    private static @NotNull Optional<XSD> getJSONActivityTarget(Element element) {
+        return tryGetFirstChildWithTag(element, "config")
+                .flatMap(config -> tryGetFirstChildWithTag(config, "ActivityOutputEditor"))
+                .flatMap(activityOutputEditor -> tryGetFirstChildWithTag(activityOutputEditor, "element"))
+                .map(XmlToTibcoModelParser::parseXSD);
     }
 
     private static XSD parseXSD(Element element) {

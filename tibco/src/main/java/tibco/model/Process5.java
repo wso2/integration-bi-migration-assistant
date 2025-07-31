@@ -246,7 +246,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record JSONRender(Element element, String name, InputBinding inputBinding,
-                              XSD targetType, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+                              Optional<XSD> targetType, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
 
                 public JSONRender {
                     assert inputBinding != null;
@@ -264,7 +265,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record JSONParser(Element element, String name, InputBinding inputBinding,
-                              XSD targetType, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+                              Optional<XSD> targetType, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
 
                 public JSONParser {
                     assert inputBinding != null;
