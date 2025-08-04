@@ -22,7 +22,6 @@ import common.BallerinaModel;
 
 public record RenderJSONAsXML(String type) implements ComptimeFunction {
 
-    // FIXME: special case map json
     private static final String NAME = "renderJsonAs%sXML";
     private static final String FUNCTION = """
             function %1$s(xml value) returns xml|error {

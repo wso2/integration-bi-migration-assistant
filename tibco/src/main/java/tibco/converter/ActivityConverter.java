@@ -56,7 +56,6 @@ import tibco.model.Scope.Flow.Activity.Reply;
 import tibco.model.Scope.Flow.Activity.Throw;
 import tibco.model.Scope.Flow.Activity.UnhandledActivity;
 import tibco.model.ValueSource;
-import tibco.model.XSD;
 import tibco.xslt.AddMissingParameters;
 import tibco.xslt.IgnoreRootWrapper;
 import tibco.xslt.ReplaceDotAccessWithXPath;
@@ -358,7 +357,8 @@ final class ActivityConverter {
 
             if (!noneValues.isEmpty()) {
                     String warningMessage = String.format(
-                                    "WARNING: JMS Activity '%s' has unsupported values for SessionAttributes: %s. Most likely they were TIBCO configuration values",
+                                    "WARNING: JMS Activity '%s' has unsupported values for SessionAttributes: %s. " +
+                                    "Most likely they were TIBCO configuration values",
                                     activity.name(), String.join(", ", noneValues));
                     cx.log(WARN, warningMessage);
                     cx.registerPartiallySupportedActivity(activity);
