@@ -104,8 +104,8 @@ public final class XmlToTibcoModelParser {
             java.util.Map<String, String> jndiProperties = parseJMSJNDIProperties(config);
             cx.log(INFO, "Done parsing JMSSharedResource: " + name);
             cx.logState("Parsed JMSSharedResource: " + name);
-            return Optional.of(new Resource.JMSSharedResource(name, cx.getResourcePath(), fileName, namingEnvironment, connectionAttributes,
-                    jndiProperties));
+            return Optional.of(new Resource.JMSSharedResource(name, cx.getResourcePath(), fileName,
+                    namingEnvironment, connectionAttributes, jndiProperties));
         } catch (Exception ex) {
             cx.registerUnsupportedResource(root, name);
             return Optional.empty();
@@ -176,8 +176,8 @@ public final class XmlToTibcoModelParser {
                     .map(XmlToTibcoModelParser::parseSubstitutionBinding).toList();
             cx.log(INFO, "Done parsing JDBCResource: " + name);
             cx.logState("Parsed JDBCResource: " + name);
-            return Optional.of(new Resource.JDBCResource(name, cx.getResourcePath(), username, password, jdbcDriver, dbUrl,
-                    substitutionBindings));
+            return Optional.of(new Resource.JDBCResource(name, cx.getResourcePath(), username, password,
+                    jdbcDriver, dbUrl, substitutionBindings));
         } catch (Exception ex) {
             cx.registerUnsupportedResource(root, name);
             return Optional.empty();
@@ -198,7 +198,8 @@ public final class XmlToTibcoModelParser {
                     .map(XmlToTibcoModelParser::parseSubstitutionBinding).toList();
             cx.log(INFO, "Done parsing HTTPConnectionResource: " + name);
             cx.logState("Parsed HTTPConnectionResource: " + name);
-            return Optional.of(new Resource.HTTPConnectionResource(name, cx.getResourcePath(), svcRegServiceName, substitutionBindings));
+            return Optional.of(new Resource.HTTPConnectionResource(name, cx.getResourcePath(),
+                    svcRegServiceName, substitutionBindings));
         } catch (Exception ex) {
             cx.registerUnsupportedResource(root, name);
             return Optional.empty();
@@ -1976,7 +1977,8 @@ public final class XmlToTibcoModelParser {
                 cx.registerPartiallySupportedResource(root, name);
                 initialValue = "<root/>";
                 cx.log(INFO, "Done parsing SharedVariable: " + name);
-                return Optional.of(new Resource.SharedVariable(name, cx.getResourcePath(), persistent, initialValue, isShared, relativePath));
+                return Optional.of(new Resource.SharedVariable(name, cx.getResourcePath(), persistent,
+                        initialValue, isShared, relativePath));
             }
             String initialValueRef = getFirstChildWithTag(config, "initialValueRef").getTextContent();
             try {
@@ -1989,7 +1991,8 @@ public final class XmlToTibcoModelParser {
             }
             cx.log(INFO, "Done parsing SharedVariable: " + name);
             cx.logState("SharedVariable parsed successfully: " + name);
-            return Optional.of(new Resource.SharedVariable(name, cx.getResourcePath(), persistent, initialValue, isShared, relativePath));
+            return Optional.of(new Resource.SharedVariable(name, cx.getResourcePath(), persistent,
+                    initialValue, isShared, relativePath));
         } catch (Exception ex) {
             cx.registerUnsupportedResource(root, relativePath);
             return Optional.empty();

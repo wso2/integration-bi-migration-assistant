@@ -591,7 +591,6 @@ public class ProjectContext implements LoggingContext {
         return Optional.of(new BallerinaModel.Expression.VariableReference(varName));
     }
 
-    // FIXME: they should get the path
     void addResourceDeclaration(String resourceName, BallerinaModel.ModuleVar resourceVar,
                                 Collection<BallerinaModel.ModuleVar> configurables, Collection<Library> imports) {
         imports.forEach(this::importLibraryIfNeededToUtility);
@@ -600,7 +599,6 @@ public class ProjectContext implements LoggingContext {
         generatedResources.put(resourceName, resourceVar.name());
     }
 
-    // FIXME: they should get the path
     void addListnerDeclartion(String resourceName, BallerinaModel.Listener listener,
                               Collection<BallerinaModel.ModuleVar> configurables, Collection<Library> imports) {
         imports.forEach(this::importLibraryIfNeededToUtility);
