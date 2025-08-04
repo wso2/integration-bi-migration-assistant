@@ -86,11 +86,26 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
 
     void addResourceVariable(Variable.PropertyVariable propertyVariable) {
         switch (propertyVariable) {
-            case Variable.PropertyVariable.PropertyReference ref ->
-                propertyVariableToResourceMap.put(ref.name(), ref.literal());
+            case Variable.PropertyVariable.PropertyReference ref -> {
+                String resourceName = ref.literal();
+                String resourcePath = findResourcePathByName(resourceName);
+                propertyVariableToResourceMap.put(ref.name(), resourcePath);
+            }
             case Variable.PropertyVariable.SimpleProperty simpleProperty ->
                 projectContext.addConfigurableVariable(simpleProperty.name(), simpleProperty.source());
         }
+    }
+
+    private String findResourcePathByName(String resourceName) {
+        // Find the resource path from the generated resources map by matching the resource name
+        for (String resourcePath : projectContext.getGeneratedResourceKeys()) {
+            String name = tibco.converter.ConversionUtils.resourceNameFromPath(resourcePath);
+            if (name.equals(resourceName)) {
+                return resourcePath;
+            }
+        }
+        // If not found, return the original name (fallback)
+        return resourceName;
     }
 
     String getToXmlFunction() {

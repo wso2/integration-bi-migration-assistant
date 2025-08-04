@@ -71,7 +71,7 @@
             <pd:type>com.tibco.plugin.jdbc.JDBCGeneralActivity</pd:type>
             <pd:resourceType>ae.activities.JDBCGeneralActivity</pd:resourceType>
             <config>
-                <jdbcSharedConfig>/Resources/JDBCConnection.sharedjdbc</jdbcSharedConfig>
+                <jdbcSharedConfig>/SharedResources/JDBCConnection.sharedjdbc</jdbcSharedConfig>
             </config>
             <pd:inputBindings>
                 <jdbcGeneralActivityInput>

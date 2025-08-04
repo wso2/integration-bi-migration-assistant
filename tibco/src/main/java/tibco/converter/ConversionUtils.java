@@ -234,6 +234,18 @@ public final class ConversionUtils {
         return parts[parts.length - 1];
     }
 
+    public static String resourceNameFromPath(String path) {
+        String baseFileName = baseName(path);
+        String[] suffixes = {".sharedjdbc", ".sharedhttp", ".sharedjms", ".sharedvariable"};
+        for (String suffix : suffixes) {
+            if (baseFileName.endsWith(suffix)) {
+                return baseFileName.substring(0, baseFileName.length() - suffix.length());
+            }
+        }
+        int lastDotIndex = baseFileName.lastIndexOf('.');
+        return lastDotIndex > 0 ? baseFileName.substring(0, lastDotIndex) : baseFileName;
+    }
+
     public static String createSoapEnvelope(Expression.VariableReference body) {
         return """
                 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"

@@ -90,6 +90,11 @@ public final class ProjectContext implements Context, LoggingContext {
         return projectPath;
     }
 
+    public String getRelativePath(Path filePath) {
+        Path projectPathObj = Paths.get(projectPath);
+        return projectPathObj.relativize(filePath).toString().replace("\\", "/");
+    }
+
     @Override
     public void registerUnhandledActivity(org.w3c.dom.Element element, String name, String type, String fileName) {
         if (name != null && !name.isEmpty() && type != null && !type.isEmpty()) {

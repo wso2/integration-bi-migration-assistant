@@ -388,17 +388,17 @@ public class ProjectContext implements LoggingContext {
     }
 
     public void addJMSResource(Resource.JMSSharedResource jmsResource) {
-        String fileName = ConversionUtils.extractFileName(jmsResource.fileName());
-        jmsResourceMap.put(fileName, jmsResource);
+        jmsResourceMap.put(jmsResource.path(), jmsResource);
     }
 
-    public Resource.JMSSharedResource getJMSResource(String fileName) {
-        String extractedFileName = ConversionUtils.extractFileName(fileName);
-        Resource.JMSSharedResource resource = jmsResourceMap.get(extractedFileName);
+    public Resource.JMSSharedResource getJMSResource(String resourcePath) {
+        Resource.JMSSharedResource resource = jmsResourceMap.get(resourcePath);
         if (resource == null) {
             log(LoggingUtils.Level.SEVERE,
-                    "JMS shared resource not found for file: " + fileName + ". Returning placeholder resource.");
-            return new Resource.JMSSharedResource("placeholder_" + extractedFileName, "placeholder",
+                    "JMS shared resource not found for file: " + resourcePath + ". Returning placeholder resource.");
+            return new Resource.JMSSharedResource("placeholder_" + ConversionUtils.sanitizes(resourcePath),
+                    "/placeholder/path",
+                    "placeholder",
                     new Resource.JMSSharedResource.NamingEnvironment(false, "", "", "", "", "", "", ""),
                     new Resource.JMSSharedResource.ConnectionAttributes(Optional.empty(), Optional.empty(),
                             Optional.empty(), false),
@@ -584,6 +584,7 @@ public class ProjectContext implements LoggingContext {
     }
 
     public VariableReference httpListener(String name) {
+        // First try direct lookup by name
         String varName = generatedResources.get(name);
         if (varName == null) {
             log(LoggingUtils.Level.SEVERE, "Failed to find listener for " + name + ". Returning placeholder listener.");
@@ -592,6 +593,7 @@ public class ProjectContext implements LoggingContext {
         return new BallerinaModel.Expression.VariableReference(varName);
     }
 
+    // FIXME: they should get the path
     void addResourceDeclaration(String resourceName, BallerinaModel.ModuleVar resourceVar,
                                 Collection<BallerinaModel.ModuleVar> configurables, Collection<Library> imports) {
         imports.forEach(this::importLibraryIfNeededToUtility);
@@ -600,12 +602,17 @@ public class ProjectContext implements LoggingContext {
         generatedResources.put(resourceName, resourceVar.name());
     }
 
+    // FIXME: they should get the path
     void addListnerDeclartion(String resourceName, BallerinaModel.Listener listener,
                               Collection<BallerinaModel.ModuleVar> configurables, Collection<Library> imports) {
         imports.forEach(this::importLibraryIfNeededToUtility);
         configurables.forEach(each -> utilityVars.put(each.name(), each));
         utilityListeners.put(listener.name(), listener);
         generatedResources.put(resourceName, listener.name());
+    }
+
+    public Collection<String> getGeneratedResourceKeys() {
+        return generatedResources.keySet();
     }
 
     public String getUtilityVarName(String base) {
@@ -632,14 +639,6 @@ public class ProjectContext implements LoggingContext {
         utilityIntrinsics.add(Intrinsics.XML_PARSER);
         utilityIntrinsics.add(Intrinsics.PATCH_XML_NAMESPACES);
         return Intrinsics.PATCH_XML_NAMESPACES.name;
-    }
-
-    public String getRenderJsonFn() {
-        utilityIntrinsics.add(Intrinsics.XML_PARSER_RESULT);
-        utilityIntrinsics.add(Intrinsics.XML_PARSER);
-        utilityIntrinsics.add(Intrinsics.RENDER_JSON);
-        utilityIntrinsics.add(Intrinsics.TO_JSON);
-        return Intrinsics.RENDER_JSON.name;
     }
 
     public void registerProcessClient(String processName, String clientName) {

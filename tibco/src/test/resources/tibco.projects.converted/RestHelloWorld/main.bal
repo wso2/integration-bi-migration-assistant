@@ -1,8 +1,8 @@
 import ballerina/http;
 
-public listener http:Listener GeneralConnection_sharedhttp = new (9090, {host: "localhost"});
+public listener http:Listener GeneralConnection = new (9090, {host: "localhost"});
 
-service on GeneralConnection_sharedhttp {
+service on GeneralConnection {
     resource function 'default [string... path](xml input) returns xml {
         map<SharedVariableContext> jobSharedVariables = {};
         xml inputVal = xml `<root>
@@ -18,7 +18,7 @@ service on GeneralConnection_sharedhttp {
     }
 }
 
-service on GeneralConnection_sharedhttp {
+service on GeneralConnection {
     resource function 'default [string... path](xml input) returns xml {
         map<SharedVariableContext> jobSharedVariables = {};
         xml inputVal = xml `<root>

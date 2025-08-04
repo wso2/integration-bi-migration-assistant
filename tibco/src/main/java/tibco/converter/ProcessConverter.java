@@ -246,8 +246,7 @@ public class ProcessConverter {
                                                                                      ExplicitTransitionGroup group,
                                                                                      HttpEventSource startActivity) {
         BallerinaModel.Resource resource = generateResourceFunctionForHTTPStartActivity(cx, group);
-        String name = baseName(startActivity.sharedChannel());
-        VariableReference listenerRef = cx.getProjectContext().httpListener(name);
+        VariableReference listenerRef = cx.getProjectContext().httpListener(startActivity.sharedChannel());
         return new BallerinaModel.Service("", listenerRef.varName(), List.of(resource));
     }
 

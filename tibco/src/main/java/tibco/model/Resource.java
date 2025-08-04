@@ -27,9 +27,11 @@ public interface Resource {
 
     String name();
 
+    String path();
+
     Collection<SubstitutionBinding> substitutionBindings();
 
-    record JDBCSharedResource(String name, String location) implements Resource {
+    record JDBCSharedResource(String name, String path, String location) implements Resource {
 
         @Override
         public Collection<SubstitutionBinding> substitutionBindings() {
@@ -37,17 +39,17 @@ public interface Resource {
         }
     }
 
-    record JDBCResource(String name, String userName, String password, String jdbcDriver, String dbUrl,
+    record JDBCResource(String name, String path, String userName, String password, String jdbcDriver, String dbUrl,
                         Collection<SubstitutionBinding> substitutionBindings) implements Resource {
 
     }
 
-    record HTTPConnectionResource(String name, String svcRegServiceName,
+    record HTTPConnectionResource(String name, String path, String svcRegServiceName,
                                   Collection<SubstitutionBinding> substitutionBindings) implements Resource {
 
     }
 
-    record HTTPSharedResource(String name, String host, int port) implements Resource {
+    record HTTPSharedResource(String name, String path, String host, int port) implements Resource {
 
         @Override
         public Collection<SubstitutionBinding> substitutionBindings() {
@@ -55,7 +57,7 @@ public interface Resource {
         }
     }
 
-    record HTTPClientResource(String name, Optional<Integer> port,
+    record HTTPClientResource(String name, String path, Optional<Integer> port,
                               Collection<SubstitutionBinding> substitutionBindings)
             implements Resource {
 
@@ -65,7 +67,7 @@ public interface Resource {
 
     }
 
-    record JMSSharedResource(String name, String fileName, NamingEnvironment namingEnvironment,
+    record JMSSharedResource(String name, String path, String fileName, NamingEnvironment namingEnvironment,
             ConnectionAttributes connectionAttributes, Map<String, String> jndiProperties)
             implements Resource {
 
@@ -84,7 +86,7 @@ public interface Resource {
         }
     }
 
-    record SharedVariable(String name, boolean persistent, String initialValue, boolean isShared, String relativePath)
+    record SharedVariable(String name, String path, boolean persistent, String initialValue, boolean isShared, String relativePath)
             implements Resource {
         @Override
         public Collection<SubstitutionBinding> substitutionBindings() {
