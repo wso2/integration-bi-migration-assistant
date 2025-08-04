@@ -395,7 +395,8 @@ public class ProjectContext implements LoggingContext {
         Resource.JMSSharedResource resource = jmsResourceMap.get(resourcePath);
         if (resource == null) {
             log(LoggingUtils.Level.SEVERE,
-                    "JMS shared resource not found for file: " + resourcePath + ". Returning placeholder resource.");
+                    "WARNING: JMS shared resource not found for file: " + resourcePath
+                            + ". Returning placeholder resource.");
             return new Resource.JMSSharedResource("placeholder_" + ConversionUtils.sanitizes(resourcePath),
                     "/placeholder/path",
                     "placeholder",
@@ -460,7 +461,7 @@ public class ProjectContext implements LoggingContext {
         var varDecl = utilityVars.get(varName);
         if (varDecl == null) {
             log(LoggingUtils.Level.SEVERE,
-                    "Failed to find configurable variable for " + varName + ". Returning placeholder name.");
+                    "WARNING: Failed to find configurable variable for " + varName + ". Returning placeholder name.");
             return "placeholder_" + varName;
         }
         return varDecl.name();
@@ -476,7 +477,7 @@ public class ProjectContext implements LoggingContext {
                 .findAny()
                 .orElseGet(() -> {
                     log(LoggingUtils.Level.SEVERE,
-                            "Failed to find process: " + processName + ". Returning placeholder process.");
+                            "WARNING: Failed to find process: " + processName + ". Returning placeholder process.");
                     return new Process5("placeholder_" + processName, List.of(),
                             new Process5.ExplicitTransitionGroup());
                 });
@@ -573,24 +574,21 @@ public class ProjectContext implements LoggingContext {
         }
     }
 
-    public BallerinaModel.Expression.VariableReference dbClient(String sharedResourcePropertyName) {
+    public Optional<VariableReference> dbClient(String sharedResourcePropertyName) {
         String varName = generatedResources.get(sharedResourcePropertyName);
         if (varName == null) {
-            log(LoggingUtils.Level.SEVERE,
-                    "Failed to find db client for " + sharedResourcePropertyName + ". Returning placeholder client.");
-            return new BallerinaModel.Expression.VariableReference("placeholder_db_client");
+            return Optional.empty();
         }
-        return new BallerinaModel.Expression.VariableReference(varName);
+        return Optional.of(new BallerinaModel.Expression.VariableReference(varName));
     }
 
-    public VariableReference httpListener(String name) {
+    public Optional<VariableReference> httpListener(String name) {
         // First try direct lookup by name
         String varName = generatedResources.get(name);
         if (varName == null) {
-            log(LoggingUtils.Level.SEVERE, "Failed to find listener for " + name + ". Returning placeholder listener.");
-            return new BallerinaModel.Expression.VariableReference("placeholder_listener");
+            return Optional.empty();
         }
-        return new BallerinaModel.Expression.VariableReference(varName);
+        return Optional.of(new BallerinaModel.Expression.VariableReference(varName));
     }
 
     // FIXME: they should get the path

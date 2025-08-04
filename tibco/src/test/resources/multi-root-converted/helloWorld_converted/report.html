@@ -365,18 +365,18 @@ table code {
             </tr>
             <tr>
                 <td>Best Case</td>
-                <td class="time-best">1 day</td>
+                <td class="time-best">2 days</td>
                 <td class="time-best">1 week</td>
             </tr>
             <tr>
                 <td>Average Case</td>
-                <td class="time-avg">1 day</td>
+                <td class="time-avg">3 days</td>
                 <td class="time-avg">1 week</td>
             </tr>
             <tr>
                 <td>Worst Case</td>
-                <td class="time-worst">1 day</td>
-                <td class="time-worst">1 week</td>
+                <td class="time-worst">6 days</td>
+                <td class="time-worst">2 weeks</td>
             </tr>
         </table>
         <div class="estimation-notes">
@@ -424,15 +424,31 @@ table code {
     </div>
 </div>
 <div class="summary-container">
-    <h2>Activities that may require manual changes</h2>
+    <h2>Activities that need manual validation</h2>
     <div id="partiallySupportedSection">
-        <table class="hidden">
+        <table>
             <tr><th>Activity name</th><th>Frequency</th></tr>
+        <tr>
+            <td><code>CALL_PROCESS</code></td>
+            <td>1</td>
+        </tr>
+        <tr>
+            <td><code>GET_SHARED_VARIABLE</code></td>
+            <td>1</td>
+        </tr>
+        <tr>
+            <td><code>JDBC</code></td>
+            <td>1</td>
+        </tr>
+        <tr>
+            <td><code>SET_SHARED_VARIABLE</code></td>
+            <td>1</td>
+        </tr>
         </table>
-        <p class="empty-message visible" id="partiallySupportedEmpty">
+        <p class="empty-message hidden" id="partiallySupportedEmpty">
             No partially supported activities found
         </p>
-        <div class="estimation-notes hidden">
+        <div class="estimation-notes">
             <p><strong>Note:</strong> These activities are converted but may require manual review or adjustments.</p>
         </div>
     </div>

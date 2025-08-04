@@ -147,8 +147,12 @@ public class ProjectConverter {
                             process.transitionGroup()));
             mainFn = Optional.empty();
         }
-        ProcessConverter.addProcessClient(cx.getProcessContext(process), process.transitionGroup(),
-                projectResources.httpSharedResources);
+        try {
+            ProcessConverter.addProcessClient(cx.getProcessContext(process), process.transitionGroup(),
+                    projectResources.httpSharedResources);
+        } catch (Exception e) {
+            cx.registerServiceGenerationError(process, e);
+        }
         return new ProcessResult(process, new ProcessConverter.TypeConversionResult(startService, mainFn));
     }
 

@@ -69,7 +69,7 @@ public class ActivityContext implements LoggingContext {
         return processContext.contextVarRef();
     }
 
-    BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {
+    Optional<BallerinaModel.Expression.VariableReference> client(String sharedResourcePropertyName) {
         return processContext.client(sharedResourcePropertyName);
     }
 
@@ -134,7 +134,7 @@ public class ActivityContext implements LoggingContext {
         projectContext().addXSDSchemaToConversion(schema);
     }
 
-    public BallerinaModel.Expression.VariableReference dbClient(String connection) {
+    public Optional<BallerinaModel.Expression.VariableReference> dbClient(String connection) {
         return projectContext().dbClient(connection);
     }
 

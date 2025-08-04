@@ -246,7 +246,24 @@ public class ProcessConverter {
                                                                                      ExplicitTransitionGroup group,
                                                                                      HttpEventSource startActivity) {
         BallerinaModel.Resource resource = generateResourceFunctionForHTTPStartActivity(cx, group);
-        VariableReference listenerRef = cx.getProjectContext().httpListener(startActivity.sharedChannel());
+
+        // Handle missing HTTP listener resource
+        Optional<VariableReference> listenerOpt = cx.getProjectContext().httpListener(startActivity.sharedChannel());
+        VariableReference listenerRef;
+        if (listenerOpt.isEmpty()) {
+                cx.log(LoggingUtils.Level.SEVERE,
+                                "WARNING: Failed to find listener for " + startActivity.sharedChannel()
+                                + ". Creating placeholder listener.");
+                // Create a placeholder listener
+                BallerinaModel.Listener placeholderListener = new BallerinaModel.Listener.HTTPListener(
+                                "placeholder_listener", "8080", "0.0.0.0");
+                cx.getProjectContext().addListnerDeclartion(startActivity.sharedChannel(), placeholderListener,
+                                List.of(), List.of(Library.HTTP));
+                listenerRef = new VariableReference("placeholder_listener");
+        } else {
+                listenerRef = listenerOpt.get();
+        }
+
         return new BallerinaModel.Service("", listenerRef.varName(), List.of(resource));
     }
 

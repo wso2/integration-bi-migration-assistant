@@ -247,12 +247,10 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         return activityFnType.parameters().getFirst().ref();
     }
 
-    BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {
+    Optional<BallerinaModel.Expression.VariableReference> client(String sharedResourcePropertyName) {
         String resourceRef = propertyVariableToResourceMap.get(sharedResourcePropertyName);
         if (resourceRef == null) {
-            log(LoggingUtils.Level.SEVERE,
-                    "No shared resource found for " + sharedResourcePropertyName + ". Returning placeholder client.");
-            return new BallerinaModel.Expression.VariableReference("placeholder_client");
+            return Optional.empty();
         }
         return projectContext.dbClient(resourceRef);
     }
