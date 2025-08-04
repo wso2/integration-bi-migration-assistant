@@ -82,7 +82,7 @@ public final class ProjectContext implements Context, LoggingContext {
     }
 
     public String getFileContent(String relativePath) throws IOException {
-        Path fullPath = Paths.get(projectPath, relativePath);
+        Path fullPath = Paths.get(projectPath, "..", relativePath);
         return Files.readString(fullPath);
     }
 
@@ -91,8 +91,7 @@ public final class ProjectContext implements Context, LoggingContext {
     }
 
     public String getRelativePath(Path filePath) {
-        Path projectPathObj = Paths.get(projectPath);
-        return projectPathObj.relativize(filePath).toString().replace("\\", "/");
+        return Paths.get(projectPath, "..").relativize(filePath).toString().replace("\\", "/");
     }
 
     @Override

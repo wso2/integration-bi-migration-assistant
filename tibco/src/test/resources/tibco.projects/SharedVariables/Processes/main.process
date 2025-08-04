@@ -11,7 +11,7 @@
             <defaultEncoding>ISO8859_1</defaultEncoding>
             <inputOutputVersion>5.3.0</inputOutputVersion>
             <newMimeSupport>true</newMimeSupport>
-            <sharedChannel>/Resources/GeneralConnection.sharedhttp</sharedChannel>
+            <sharedChannel>/SharedVariables/Resources/GeneralConnection.sharedhttp</sharedChannel>
             <parsePostData>true</parsePostData>
             <customField>
                 <row>
