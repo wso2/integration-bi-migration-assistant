@@ -35,7 +35,7 @@ import java.util.stream.Stream;
 public class TibcoProjectConversionTest {
 
     @Test(groups = {"tibco", "converter"}, dataProvider = "projectTestCaseProvider")
-    public void testProjectConversion(Path tibcoProject, Path expectedBallerinaProject) throws IOException {
+    public void testProjectConversion(Path tibcoProject, Path expectedBallerinaProject) throws Exception {
         // Create a temporary directory for the output
         Path tempDir = Files.createTempDirectory("tibco-conversion-test");
         // Create a ProjectConversionContext with verbose logger for test
