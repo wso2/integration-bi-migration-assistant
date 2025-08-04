@@ -82,8 +82,8 @@ public class TibcoConverter {
         migrateTibcoInner(context, sourcePath, outputPath, projectName);
     }
 
-    private static void migrateTibcoMultiRoot(ConversionContext cx, Path inputPath, String outputPath, 
-                                              Optional<String> projectName) {
+    static void migrateTibcoMultiRoot(ConversionContext cx, Path inputPath, String outputPath, 
+                                      Optional<String> projectName) {
         List<ProjectSummary> projectSummaries = new ArrayList<>();
         try {
             Files.list(inputPath)

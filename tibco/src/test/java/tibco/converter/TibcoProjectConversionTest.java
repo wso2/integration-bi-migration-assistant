@@ -18,7 +18,6 @@
 
 package tibco.converter;
 
-import common.LoggingUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -30,7 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class TibcoProjectConversionTest {
@@ -40,13 +39,8 @@ public class TibcoProjectConversionTest {
         // Create a temporary directory for the output
         Path tempDir = Files.createTempDirectory("tibco-conversion-test");
         // Create a ProjectConversionContext with verbose logger for test
-        Logger logger = TibcoConverter.createVerboseLogger("test");
-        var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
-        var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
-        ConversionContext conversionContext = new ConversionContext(
-                "testOrg", false, false, stateCallback, logCallback);
-        ProjectConversionContext cx =
-                new ProjectConversionContext(conversionContext, expectedBallerinaProject.getFileName().toString());
+        ProjectConversionContext cx = TestUtils.createTestProjectConversionContext(
+                "testOrg", expectedBallerinaProject.getFileName().toString());
         try {
             if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
                 TibcoConverter.migrateTibcoProject(cx, tibcoProject.toString(), expectedBallerinaProject.toString()
@@ -56,10 +50,10 @@ public class TibcoProjectConversionTest {
             TibcoConverter.migrateTibcoProject(cx, tibcoProject.toString(), tempDir.toString());
 
             // Compare the directories
-            compareDirectories(tempDir, expectedBallerinaProject);
+            TestUtils.compareDirectories(tempDir, expectedBallerinaProject);
         } finally {
             // Clean up temporary directory
-            deleteDirectory(tempDir);
+            TestUtils.deleteDirectory(tempDir);
         }
     }
 
@@ -119,77 +113,53 @@ public class TibcoProjectConversionTest {
         }
     }
 
-    private void compareDirectories(Path actual, Path expected) throws IOException {
-        // First check if both directories exist
-        Assert.assertTrue(Files.isDirectory(actual), "Actual path is not a directory: " + actual);
-        Assert.assertTrue(Files.isDirectory(expected), "Expected path is not a directory: " + expected);
+    @Test(groups = {"tibco", "converter"})
+    public void testMultiRootConversion() throws IOException {
+        // Create temporary directories for input and output
+        Path tempInputDir = Files.createTempDirectory("tibco-multiroot-input");
+        Path tempOutputDir = Files.createTempDirectory("tibco-multiroot-output");
 
-        // Compare directory contents
-        try (Stream<Path> expectedFiles = Files.walk(expected);
-             Stream<Path> actualFiles = Files.walk(actual)) {
+        // Setup multi-root source directory structure
+        Path multiRootSource = Path.of("src", "test", "resources", "multi-root");
+        Path expectedMultiRootOutput = Path.of("src", "test", "resources", "multi-root-converted");
 
-            // Get relative paths for comparison, filtering only .bal files
-            var expectedPaths = expectedFiles
-                    .filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".bal"))
-                    .map(expected::relativize)
-                    .toList();
+        try {
+            // Copy source structure to temp directory if needed for modification
+            // For this test, we'll use the existing test resources directly
 
-            var actualPaths = actualFiles
-                    .filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".bal"))
-                    .map(actual::relativize)
-                    .toList();
+            // Create test conversion context
+            ConversionContext cx = TestUtils.createTestConversionContext("testOrg", false, false);
 
-            // Check if all expected .bal files exist
-            for (Path relativePath : expectedPaths) {
-                if (relativePath.endsWith("types.bal")) {
-                    // Skip types.bal as it is generated and may differ
-                    continue;
-                }
-                Assert.assertTrue(actualPaths.contains(relativePath),
-                        "Missing .bal file in actual directory: " + relativePath);
-
-                // Compare file contents
-                Path expectedFile = expected.resolve(relativePath);
-                Path actualFile = actual.resolve(relativePath);
-                compareFiles(actualFile, expectedFile);
+            if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
+                // Update expected results
+                TibcoConverter.migrateTibcoMultiRoot(cx, multiRootSource, expectedMultiRootOutput.toString(),
+                        Optional.empty());
             }
 
-            // Check for extra .bal files
-            for (Path relativePath : actualPaths) {
-                if (relativePath.endsWith("types.bal")) {
-                    // Skip types.bal as it is generated and may differ
-                    continue;
-                }
-                Assert.assertTrue(expectedPaths.contains(relativePath),
-                        "Extra .bal file in actual directory: " + relativePath);
-            }
-        }
-    }
+            // Run multi-root conversion
+            TibcoConverter.migrateTibcoMultiRoot(cx, multiRootSource, tempOutputDir.toString(), Optional.empty());
 
-    private void compareFiles(Path actual, Path expected) throws IOException {
-        if (actual.toString().contains("types") || actual.toString().contains(".html")) {
-            // These are generated by XSD core and change from run to run
-            return;
-        }
-        String actualContent = Files.readString(actual);
-        String expectedContent = Files.readString(expected);
-        Assert.assertEquals(actualContent, expectedContent,
-                "File contents do not match for: " + actual.getFileName());
-    }
+            // Verify the structure - should have two converted projects
+            Assert.assertTrue(Files.exists(tempOutputDir.resolve("helloWorld_converted")),
+                    "helloWorld_converted directory should exist");
+            Assert.assertTrue(Files.exists(tempOutputDir.resolve("lib_converted")),
+                    "lib_converted directory should exist");
+            Assert.assertTrue(Files.exists(tempOutputDir.resolve("combined_summary_report.html")),
+                    "Combined summary report should exist");
 
-    private void deleteDirectory(Path directory) throws IOException {
-        if (Files.exists(directory)) {
-            Files.walk(directory)
-                    .sorted((a, b) -> -a.compareTo(b)) // Reverse order to delete files before directories
-                    .forEach(path -> {
-                        try {
-                            Files.delete(path);
-                        } catch (IOException e) {
-                            throw new RuntimeException("Failed to delete: " + path, e);
-                        }
-                    });
+            // Compare each converted project with expected results
+            TestUtils.compareDirectories(tempOutputDir.resolve("helloWorld_converted"),
+                    expectedMultiRootOutput.resolve("helloWorld_converted"));
+            TestUtils.compareDirectories(tempOutputDir.resolve("lib_converted"),
+                    expectedMultiRootOutput.resolve("lib_converted"));
+
+            // Verify combined summary report exists (content comparison skipped as it may vary)
+            Assert.assertTrue(Files.exists(tempOutputDir.resolve("combined_summary_report.html")));
+
+        } finally {
+            // Clean up temporary directories
+            TestUtils.deleteDirectory(tempInputDir);
+            TestUtils.deleteDirectory(tempOutputDir);
         }
     }
 
