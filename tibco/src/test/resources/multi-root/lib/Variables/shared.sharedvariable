@@ -7,6 +7,6 @@
         <persistent>false</persistent>
         <multi-engine>false</multi-engine>
         <initialValue>byRef</initialValue>
-        <initialValueRef>/Resources/Data/callData.xml</initialValueRef>
+        <initialValueRef>/lib/Resources/Data/callData.xml</initialValueRef>
     </config>
 </BWSharedResource>
