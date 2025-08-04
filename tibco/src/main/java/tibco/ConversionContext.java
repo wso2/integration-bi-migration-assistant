@@ -18,6 +18,7 @@
 
 package tibco;
 
+import common.LoggingContext;
 import common.LoggingUtils;
 
 import java.util.function.Consumer;

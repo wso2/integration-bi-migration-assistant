@@ -15,6 +15,9 @@ version "${logicAppsVersion}"
 def libJarPath = "../../../../build/libs/logicapps-migration-assistant-${project.version}.jar"
 
 dependencies {
+    // Common project dependency
+    implementation project(':common')
+
     // Dev dependencies
     implementation "info.picocli:picocli:${picocliVersion}"
     implementation "org.jetbrains:annotations:${jetbrainsAnnotationsVersion}"
@@ -82,15 +85,14 @@ task copyDependencies(type: Copy) {
 
 // Default jar task - we'll keep it for backward compatibility
 jar {
-    dependsOn copyDependencies
+    dependsOn ':common:jar'
     manifest {
         attributes(
-                'Main-Class': 'cli.Main',
-                'Class-Path': configurations.runtimeClasspath.files.collect { "lib/${it.name}" }.join(' ')
+                'Main-Class': 'cli.Main'
         )
     }
     from {
-        sourceSets.main.output
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveFileName = 'integration-bi-migration-assistant.jar'
@@ -98,15 +100,17 @@ jar {
 
 // Create a separate JAR for LogicApp migrations
 task logicAppsJar(type: Jar) {
-    dependsOn copyDependencies
+    dependsOn ':common:jar'
     manifest {
         attributes(
-                'Main-Class': 'cli.LogicAppsCli',
-                'Class-Path': configurations.runtimeClasspath.files.collect { "lib/${it.name}" }.join(' ')
+                'Main-Class': 'cli.LogicAppsCli'
         )
     }
     from {
         sourceSets.main.output
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveBaseName = 'logicapps-migration-assistant'
@@ -135,6 +139,7 @@ tasks.register('logicAppsReleaseLocal', Exec) {
 }
 
 build {
+    dependsOn ":common:build"
     dependsOn checkstyleMain
     dependsOn spotbugsMain
     dependsOn logicAppsJar
