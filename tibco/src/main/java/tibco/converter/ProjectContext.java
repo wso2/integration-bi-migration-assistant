@@ -478,7 +478,7 @@ public class ProjectContext implements LoggingContext {
                 .orElseGet(() -> {
                     log(LoggingUtils.Level.SEVERE,
                             "WARNING: Failed to find process: " + processName + ". Returning placeholder process.");
-                    return new Process5("placeholder_" + processName, List.of(),
+                    return new Process5("placeholder_" + processName, "/placeholder", List.of(),
                             new Process5.ExplicitTransitionGroup());
                 });
     }

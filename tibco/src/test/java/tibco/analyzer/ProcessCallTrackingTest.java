@@ -63,9 +63,9 @@ public class ProcessCallTrackingTest {
         ResourceAnalysisPass analysisPass = new ResourceAnalysisPass();
 
         // Create real Process instances using the existing process creation pattern
-        Process5 process1 = new Process5("TestProcess1", Collections.emptyList(),
+        Process5 process1 = new Process5("TestProcess1", "/TestProcess1", Collections.emptyList(),
             new Process5.ExplicitTransitionGroup());
-        Process5 process2 = new Process5("TestProcess2", Collections.emptyList(),
+        Process5 process2 = new Process5("TestProcess2", "/TestProcess2", Collections.emptyList(),
             new Process5.ExplicitTransitionGroup());
 
         // Test that initially, no processes are marked as called

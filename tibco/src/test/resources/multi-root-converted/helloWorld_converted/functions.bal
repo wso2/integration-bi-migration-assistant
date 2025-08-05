@@ -20,7 +20,7 @@ function Call_shared_process(Context cx) returns error? {
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
     addToContext(cx, "$Start", var1);
-    start_lib_shared_process(cx);
+    start_lib_Process_shared_process(cx);
     xml var2 = cx.result;
     addToContext(cx, "Call-shared-process", var2);
 }

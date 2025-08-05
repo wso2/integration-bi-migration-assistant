@@ -350,10 +350,10 @@ public final class XmlToTibcoModelParser {
             }
         }
         if (transitionGroup.isEmpty()) {
-            return new Process6(name, nameSpaces, types, processInfo, processInterface,
+            return new Process6(name, cx.getProcessPath(), nameSpaces, types, processInfo, processInterface,
                     processTemplateConfigurations, partnerLinks, variables, scope);
         }
-        return new Process5(name, nameSpaces, transitionGroup);
+        return new Process5(name, cx.getProcessPath(), nameSpaces, transitionGroup);
     }
 
     private static Flow.Activity.Expression.XSLT parseReturnBindings(ProcessContext cx, Element element) {

@@ -95,7 +95,7 @@
         <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
         <pd:resourceType>ae.process.subprocess</pd:resourceType>
         <config>
-            <processName>/lib/shared.process</processName>
+            <processName>/lib/Process/shared.process</processName>
         </config>
         <pd:inputBindings>
             <InvokeProcessInput>

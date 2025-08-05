@@ -18,6 +18,8 @@
 
 package tibco.model;
 
+import tibco.util.PathMatcher;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +36,7 @@ public sealed interface Resource {
     ResourceKind kind();
 
     default boolean matches(ResourceIdentifier identifier) {
-        return kind().equals(identifier.kind()) && path().equals(identifier.path());
+        return kind().equals(identifier.kind()) && PathMatcher.matches(path(), identifier.path());
     }
 
     enum ResourceKind {

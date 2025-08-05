@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public record Process5(String name, Collection<NameSpace> nameSpaces,
+public record Process5(String name, String path, Collection<NameSpace> nameSpaces,
                        ExplicitTransitionGroup transitionGroup) implements Process {
 
     @Override

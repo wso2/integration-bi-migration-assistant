@@ -18,17 +18,21 @@
 
 package tibco.model;
 
+import tibco.util.PathMatcher;
+
 import java.util.Collection;
 
 public sealed interface Process permits Process5, Process6 {
 
     String name();
 
+    String path();
+
     Collection<NameSpace> nameSpaces();
 
     record ProcessIdentifier(String name) {
         public boolean matches(Process process) {
-            return process.name().equals(name);
+            return PathMatcher.matches(process.path(), name);
         }
     }
 }
