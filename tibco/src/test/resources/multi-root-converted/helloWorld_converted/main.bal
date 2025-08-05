@@ -5,6 +5,13 @@ public listener http:Listener placeholder_listener = new (8080);
 service on placeholder_listener {
     resource function 'default [string... path](xml input) returns xml {
         map<SharedVariableContext> jobSharedVariables = {};
+        xml shared = xml `<callData><count>0</count></callData>`;
+        SharedVariableContext sharedContext = {getter: function() returns xml {
+                return shared;
+            }, setter: function(xml value) {
+                shared = value;
+            }};
+        jobSharedVariables["shared"] = sharedContext;
         xml inputVal = xml `<root>
     <item>
         ${input}

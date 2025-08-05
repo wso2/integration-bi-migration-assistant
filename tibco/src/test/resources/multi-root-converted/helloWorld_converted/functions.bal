@@ -76,10 +76,9 @@ function SQL_Direct(Context cx) returns error? {
     string var2 = (var1/**/<statement>/*).toString().trim();
     sql:ParameterizedQuery var3 = ``;
     var3.strings = [var2];
-    // WARNING: Missing DB client resource '/lib/Resources/JDBCConnection.sharedjdbc'. Using placeholder client.
     xml var4;
     if var2.startsWith("SELECT") {
-        stream<record {|anydata...;|}, error?> var5 = placeholder_db_connection->query(var3);
+        stream<record {|anydata...;|}, error?> var5 = JDBCConnection->query(var3);
         xml var6 = xml ``;
         check from var each in var5
             do {
@@ -90,7 +89,7 @@ function SQL_Direct(Context cx) returns error? {
         xml var8 = xml `<root>${var6}</root>`;
         var4 = var8;
     } else {
-        sql:ExecutionResult var9 = check placeholder_db_connection->execute(var3);
+        sql:ExecutionResult var9 = check JDBCConnection->execute(var3);
         xml var10 = xml `<root></root>`;
         var4 = var10;
     }
@@ -100,8 +99,7 @@ function SQL_Direct(Context cx) returns error? {
 
 function loadSharedVariable(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    // WARNING: Failed to find shared variable for: loadSharedVariable using a placeholder
-    xml var1 = getSharedVariable(cx, "sharedVariable_loadSharedVariable");
+    xml var1 = getSharedVariable(cx, "shared");
     addToContext(cx, "loadSharedVariable", var1);
 }
 
@@ -145,8 +143,7 @@ function storeSharedVariable(Context cx) returns error? {
 
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
-    // WARNING: Failed to find shared variable for: storeSharedVariable using a placeholder
-    setSharedVariable(cx, "sharedVariable_storeSharedVariable", var1);
+    setSharedVariable(cx, "shared", var1);
     addToContext(cx, "storeSharedVariable", var1);
 }
 

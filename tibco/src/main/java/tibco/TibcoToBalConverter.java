@@ -22,6 +22,10 @@ import common.LoggingUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
+
+import tibco.analyzer.DefaultAnalysisPass;
+import tibco.analyzer.LoggingAnalysisPass;
+import tibco.analyzer.ModelAnalyser;
 import tibco.model.Process;
 import tibco.model.Resource;
 import tibco.model.Type;
@@ -132,7 +136,7 @@ public class TibcoToBalConverter {
                 String relativePath = "/" + Paths.get(pcx.projectPath()).relativize(Paths.get(s)).toString();
                 Optional<Resource.SharedVariable> var = XmlToTibcoModelParser.parseSharedVariable(
                         new ResourceContext(pcx, s),
-                        parseXmlFile(s), relativePath);
+                        parseXmlFile(s));
                 if (var.isPresent()) {
                     variables.add(var.get());
                 } else {
@@ -144,7 +148,7 @@ public class TibcoToBalConverter {
                 String relativePath = "/" + Paths.get(pcx.projectPath()).relativize(Paths.get(s)).toString();
                 Optional<Resource.SharedVariable> var = XmlToTibcoModelParser.parseJobSharedVariable(
                         new ResourceContext(pcx, s),
-                        parseXmlFile(s), relativePath);
+                        parseXmlFile(s));
                 if (var.isPresent()) {
                     variables.add(var.get());
                 } else {
@@ -317,7 +321,9 @@ public class TibcoToBalConverter {
             tibco.converter.TibcoConverter.ParsedProject parsed =
                     tibco.converter.TibcoConverter.parseProject(cx, sourcePath);
             tibco.converter.TibcoConverter.AnalyzedProject analyzed =
-                    tibco.converter.TibcoConverter.analyzeProject(cx, parsed);
+                    tibco.converter.TibcoConverter.analyzeProject(cx, parsed, new ModelAnalyser(List.of(
+                            new DefaultAnalysisPass(),
+                            new LoggingAnalysisPass())));
             tibco.converter.TibcoConverter.GeneratedProject generated =
                     tibco.converter.TibcoConverter.generateCode(cx, analyzed);
             tibco.converter.TibcoConverter.SerializedProject serialized =

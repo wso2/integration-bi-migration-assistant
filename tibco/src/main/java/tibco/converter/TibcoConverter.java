@@ -34,6 +34,7 @@ import tibco.analyzer.DefaultAnalysisPass;
 import tibco.analyzer.LoggingAnalysisPass;
 import tibco.analyzer.ModelAnalyser;
 import tibco.analyzer.ProjectAnalysisContext;
+import tibco.analyzer.ResourceAnalysisPass;
 import tibco.analyzer.TibcoAnalysisReport;
 import tibco.converter.ProjectConverter.ProjectResources;
 import tibco.model.Process;
@@ -99,14 +100,12 @@ public class TibcoConverter {
         }
     }
 
-    public static AnalyzedProject analyzeProject(ProjectConversionContext cx, ParsedProject parsed) {
-        ModelAnalyser analyser = new ModelAnalyser(List.of(
-                new DefaultAnalysisPass(),
-                new LoggingAnalysisPass()));
+    public static AnalyzedProject analyzeProject(ProjectConversionContext cx, ParsedProject parsed,
+                                                 ModelAnalyser modelAnalyser) {
 
         ProjectAnalysisContext analysisContext = new ProjectAnalysisContext(cx, parsed.resources());
         Map<Process, AnalysisResult> analysisResults =
-                analyser.analyseProject(analysisContext, parsed.processes(), parsed.types(), parsed.resources());
+                modelAnalyser.analyseProject(analysisContext, parsed.processes(), parsed.types(), parsed.resources());
         ProjectResources resources = ProjectResources.merge(parsed.resources(), analysisContext.capturedResources());
         return new AnalyzedProject(parsed.processes(), parsed.types(), resources, parsed.parserContext(),
                 analysisResults);
@@ -153,7 +152,9 @@ public class TibcoConverter {
     public static void migrateTibcoProject(ProjectConversionContext cx, String projectPath, String targetPath)
             throws Exception {
         ParsedProject parsed = parseProject(cx, projectPath);
-        AnalyzedProject analyzed = analyzeProject(cx, parsed);
+        AnalyzedProject analyzed = analyzeProject(cx, parsed, new ModelAnalyser(List.of(
+                new DefaultAnalysisPass(),
+                new LoggingAnalysisPass())));
         GeneratedProject generated = generateCode(cx, analyzed);
         SerializedProject serialized = serializeProject(cx, generated);
         writeProjectFiles(cx, serialized, targetPath, false);
@@ -282,7 +283,11 @@ public class TibcoConverter {
             if (parsed != null) {
                 cx.logState("Analyzing project: " + childName);
                 try {
-                    AnalyzedProject analyzed = analyzeProject(context, parsed);
+                    ModelAnalyser modelAnalyser = new ModelAnalyser(List.of(
+                            new DefaultAnalysisPass(),
+                            new LoggingAnalysisPass(),
+                            new ResourceAnalysisPass()));
+                    AnalyzedProject analyzed = analyzeProject(context, parsed, modelAnalyser);
                     analyzedProjects.add(analyzed);
                 } catch (Exception e) {
                     cx.log(SEVERE, "Failed to analyze project: " + childName + ": " + e.getMessage());
@@ -399,7 +404,9 @@ public class TibcoConverter {
 
         try {
             ParsedProject parsed = parseProject(context, projectPath);
-            AnalyzedProject analyzed = analyzeProject(context, parsed);
+            AnalyzedProject analyzed = analyzeProject(context, parsed, new ModelAnalyser(List.of(
+                    new DefaultAnalysisPass(),
+                    new LoggingAnalysisPass())));
             GeneratedProject generated = generateCode(context, analyzed);
             SerializedProject serialized = serializeProject(context, generated);
             writeProjectFiles(context, serialized, targetPath, context.dryRun());

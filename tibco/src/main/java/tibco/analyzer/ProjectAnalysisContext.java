@@ -27,6 +27,7 @@ import tibco.model.Scope;
 import tibco.model.XSD;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -42,13 +43,13 @@ public class ProjectAnalysisContext implements LoggingContext {
     private final ProjectConversionContext cx;
     private final ProjectResources projectResources;
     private final ProjectResources capturedResources = new ProjectResources(
-            new ArrayList<>(),
-            new ArrayList<>(),
-            new ArrayList<>(),
-            new ArrayList<>(),
-            new ArrayList<>(),
-            new ArrayList<>(),
-            new ArrayList<>());
+            new HashSet<>(),
+            new HashSet<>(),
+            new HashSet<>(),
+            new HashSet<>(),
+            new HashSet<>(),
+            new HashSet<>(),
+            new HashSet<>());
 
     public ProjectAnalysisContext(ProjectConversionContext cx, ProjectResources projectResources) {
         this.cx = cx;

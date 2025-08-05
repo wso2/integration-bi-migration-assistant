@@ -228,7 +228,13 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record JDBC(Element element, String name, InputBinding inputBinding,
-                        String connection, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+                        String connection, String fileName) implements ExplicitTransitionGroup.InlineActivity,
+                    Scope.Flow.ActivityWithResources {
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List.of(new Resource.ResourceIdentifier(Resource.ResourceKind.JDBC_SHARED, connection));
+                }
 
                 public JDBC {
                     assert inputBinding != null;
@@ -607,7 +613,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
 
             record HttpEventSource(Element element, String name, String sharedChannel,
                     InputBinding inputBinding, String fileName)
-                    implements ExplicitTransitionGroup.InlineActivity {
+                    implements ExplicitTransitionGroup.InlineActivity, Scope.Flow.ActivityWithResources {
 
                 @Override
                 public InlineActivityType type() {
@@ -617,6 +623,11 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 @Override
                 public boolean hasInputBinding() {
                     return inputBinding != null;
+                }
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List.of(new Resource.ResourceIdentifier(Resource.ResourceKind.HTTP_SHARED, sharedChannel));
                 }
             }
 
@@ -670,11 +681,19 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             record JMSQueueEventSource(Element element, String name, InputBinding inputBinding,
                                        String permittedMessageType, JMSActivityBase.SessionAttributes sessionAttributes,
                                        JMSActivityBase.ConfigurableHeaders configurableHeaders,
-                    String connectionReference, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+                                       String connectionReference, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity,
+                    Scope.Flow.ActivityWithResources {
 
                 public JMSQueueEventSource(JMSActivityBase base) {
                     this(base.element, base.name, base.inputBinding, base.permittedMessageType,
                             base.sessionAttributes, base.configurableHeaders, base.connectionReference, base.fileName);
+                }
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List
+                            .of(new Resource.ResourceIdentifier(Resource.ResourceKind.JMS_SHARED, connectionReference));
                 }
 
                 @Override
@@ -692,11 +711,19 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                         String permittedMessageType,
                                         JMSActivityBase.SessionAttributes sessionAttributes,
                                         JMSActivityBase.ConfigurableHeaders configurableHeaders,
-                    String connectionReference, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+                                        String connectionReference, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity,
+                    Scope.Flow.ActivityWithResources {
 
                 public JMSQueueSendActivity(JMSActivityBase base) {
                     this(base.element, base.name, base.inputBinding, base.permittedMessageType,
                             base.sessionAttributes, base.configurableHeaders, base.connectionReference, base.fileName);
+                }
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List
+                            .of(new Resource.ResourceIdentifier(Resource.ResourceKind.JMS_SHARED, connectionReference));
                 }
 
                 @Override
@@ -715,11 +742,17 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                               JMSActivityBase.SessionAttributes sessionAttributes,
                                               JMSActivityBase.ConfigurableHeaders configurableHeaders,
                     String connectionReference, String fileName)
-                    implements ExplicitTransitionGroup.InlineActivity {
+                    implements ExplicitTransitionGroup.InlineActivity, Scope.Flow.ActivityWithResources {
 
                 public JMSQueueGetMessageActivity(JMSActivityBase base) {
                     this(base.element, base.name, base.inputBinding, base.permittedMessageType,
                             base.sessionAttributes, base.configurableHeaders, base.connectionReference, base.fileName);
+                }
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List
+                            .of(new Resource.ResourceIdentifier(Resource.ResourceKind.JMS_SHARED, connectionReference));
                 }
 
                 @Override
@@ -739,11 +772,17 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                            JMSActivityBase.ConfigurableHeaders configurableHeaders,
                                            String connectionReference,
                                            String fileName)
-                    implements ExplicitTransitionGroup.InlineActivity {
+                    implements ExplicitTransitionGroup.InlineActivity, Scope.Flow.ActivityWithResources {
 
                 public JMSTopicPublishActivity(JMSActivityBase base) {
                     this(base.element, base.name, base.inputBinding, base.permittedMessageType,
                             base.sessionAttributes, base.configurableHeaders, base.connectionReference, base.fileName);
+                }
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List
+                            .of(new Resource.ResourceIdentifier(Resource.ResourceKind.JMS_SHARED, connectionReference));
                 }
 
                 @Override
@@ -786,7 +825,15 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record GetSharedVariable(Element element, String name, InputBinding inputBinding,
-                    String variableConfig, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+                                     String variableConfig, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity,
+                    Scope.Flow.ActivityWithResources {
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List
+                            .of(new Resource.ResourceIdentifier(Resource.ResourceKind.SHARED_VARIABLE, variableConfig));
+                }
 
                 @Override
                 public InlineActivityType type() {
@@ -800,10 +847,18 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record SetSharedVariable(Element element, String name, InputBinding inputBinding,
-                    String variableConfig, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+                                     String variableConfig, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity,
+                    Scope.Flow.ActivityWithResources {
 
                 public SetSharedVariable {
                     assert inputBinding != null;
+                }
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List
+                            .of(new Resource.ResourceIdentifier(Resource.ResourceKind.SHARED_VARIABLE, variableConfig));
                 }
 
                 @Override

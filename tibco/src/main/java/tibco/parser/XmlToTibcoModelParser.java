@@ -1947,19 +1947,17 @@ public final class XmlToTibcoModelParser {
         return new InlineActivity.JMSActivityBase.ConfigurableHeaders(jmsDeliveryMode, jmsExpiration, jmsPriority);
     }
 
-    public static Optional<Resource.SharedVariable> parseSharedVariable(ResourceContext cx, Element root,
-            String relativePath) {
-        return parseSharedVariable(cx, root, false, relativePath);
+    public static Optional<Resource.SharedVariable> parseSharedVariable(ResourceContext cx, Element root) {
+        return parseSharedVariable(cx, root, false);
     }
 
-    public static Optional<Resource.SharedVariable> parseJobSharedVariable(ResourceContext cx, Element root,
-            String relativePath) {
-        return parseSharedVariable(cx, root, true, relativePath);
+    public static Optional<Resource.SharedVariable> parseJobSharedVariable(ResourceContext cx, Element root) {
+        return parseSharedVariable(cx, root, true);
     }
 
     private static Optional<Resource.SharedVariable> parseSharedVariable(ResourceContext cx, Element root,
-            boolean isShared, String relativePath) {
-        cx.logState("Parsing SharedVariable: " + relativePath);
+                                                                         boolean isShared) {
+        cx.logState("Parsing SharedVariable: " + cx.getResourcePath());
         cx.log(INFO, "Start parsing SharedVariable");
         try {
             String name = getFirstChildWithTag(root, "name").getTextContent();
@@ -1978,7 +1976,7 @@ public final class XmlToTibcoModelParser {
                 initialValue = "<root/>";
                 cx.log(INFO, "Done parsing SharedVariable: " + name);
                 return Optional.of(new Resource.SharedVariable(name, cx.getResourcePath(), persistent,
-                        initialValue, isShared, relativePath));
+                        initialValue, isShared));
             }
             String initialValueRef = getFirstChildWithTag(config, "initialValueRef").getTextContent();
             try {
@@ -1992,9 +1990,9 @@ public final class XmlToTibcoModelParser {
             cx.log(INFO, "Done parsing SharedVariable: " + name);
             cx.logState("SharedVariable parsed successfully: " + name);
             return Optional.of(new Resource.SharedVariable(name, cx.getResourcePath(), persistent,
-                    initialValue, isShared, relativePath));
+                    initialValue, isShared));
         } catch (Exception ex) {
-            cx.registerUnsupportedResource(root, relativePath);
+            cx.registerUnsupportedResource(root, cx.getResourcePath());
             return Optional.empty();
         }
     }

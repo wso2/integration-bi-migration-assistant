@@ -424,7 +424,7 @@ public class ProjectContext implements LoggingContext {
 
     public Optional<Resource.SharedVariable> getSharedVariableByRelativePath(String relativePath) {
         return sharedVariables.stream()
-                .filter(sv -> sv.relativePath().equals(relativePath))
+                .filter(sv -> sv.path().equals(relativePath))
                 .findFirst();
     }
 
