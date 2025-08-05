@@ -26,7 +26,6 @@ import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.XSD;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;

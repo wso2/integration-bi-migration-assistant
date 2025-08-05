@@ -79,7 +79,7 @@ public class ProcessConverter {
     private ProcessConverter() {
     }
 
-    static BallerinaModel.Service convertStartActivityService(
+    static @NotNull BallerinaModel.Service convertStartActivityService(
             ProcessContext cx, ExplicitTransitionGroup group) {
         ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity();
         return switch (startActivity) {
@@ -334,7 +334,7 @@ public class ProcessConverter {
                 List.of(parameter), Optional.of(XML), body);
     }
 
-    static BallerinaModel.TextDocument convertBody(ProcessContext cx, Process5 process,
+    static @NotNull BallerinaModel.TextDocument convertBody(ProcessContext cx, Process5 process,
                                                    TypeConversionResult result) {
         process.nameSpaces().forEach(cx::addNameSpace);
         List<BallerinaModel.Function> functions = cx.getAnalysisResult().activities().stream()
@@ -350,7 +350,7 @@ public class ProcessConverter {
         return cx.serialize(result.service(), functions);
     }
 
-    static BallerinaModel.TextDocument convertBody(ProcessContext cx, Process6 process,
+    static @NotNull BallerinaModel.TextDocument convertBody(ProcessContext cx, Process6 process,
                                                    TypeConversionResult result) {
         process.variables().stream()
                 .filter(each -> each instanceof Variable.PropertyVariable)
@@ -472,7 +472,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                 BOOLEAN, List.of(new Return<>(expr)));
     }
 
-    static TypeConversionResult convertTypes(ProcessContext cx, Process6 process) {
+    static @NotNull TypeConversionResult convertTypes(ProcessContext cx, Process6 process) {
         List<BallerinaModel.Service> services = process.types().stream()
                 .filter(type -> type instanceof Type.WSDLDefinition)
                 .map(type -> (Type.WSDLDefinition) type)
@@ -512,7 +512,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
             this(service, Optional.empty());
         }
 
-        public static TypeConversionResult empty() {
+        public static @NotNull TypeConversionResult empty() {
             return new TypeConversionResult(List.of(), Optional.empty());
         }
 

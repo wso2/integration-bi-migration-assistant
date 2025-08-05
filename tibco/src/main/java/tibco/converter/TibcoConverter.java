@@ -25,6 +25,7 @@ import common.CombinedSummaryReport;
 import common.LoggingUtils;
 import common.ProjectSummary;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import org.jetbrains.annotations.NotNull;
 import tibco.ConversionContext;
 import tibco.LoggingContext;
 import tibco.ProjectConversionContext;
@@ -82,7 +83,7 @@ public class TibcoConverter {
 
     }
 
-    public static ParsedProject parseProject(ProjectConversionContext cx, String projectPath) {
+    public static @NotNull ParsedProject parseProject(ProjectConversionContext cx, String projectPath) {
         try {
             tibco.parser.ProjectContext pcx = new tibco.parser.ProjectContext(cx, projectPath);
             Set<Process> processes = TibcoToBalConverter.parseProcesses(pcx);
@@ -100,8 +101,8 @@ public class TibcoConverter {
         }
     }
 
-    public static AnalyzedProject analyzeProject(ProjectConversionContext cx, ParsedProject parsed,
-                                                 ModelAnalyser modelAnalyser) {
+    public static @NotNull AnalyzedProject analyzeProject(ProjectConversionContext cx, ParsedProject parsed,
+                                                         ModelAnalyser modelAnalyser) {
 
         ProjectAnalysisContext analysisContext = new ProjectAnalysisContext(cx, parsed.resources());
         Map<Process, AnalysisResult> analysisResults =
@@ -111,13 +112,13 @@ public class TibcoConverter {
                 analysisResults);
     }
 
-    public static GeneratedProject generateCode(ProjectConversionContext cx, AnalyzedProject analyzed) {
+    public static @NotNull GeneratedProject generateCode(ProjectConversionContext cx, AnalyzedProject analyzed) {
         ConversionResult result = ProjectConverter.convertProject(cx, analyzed.analysisResults(), analyzed.processes(),
                 analyzed.types(), analyzed.resources(), analyzed.parserContext());
         return new GeneratedProject(result);
     }
 
-    public static SerializedProject serializeProject(ProjectConversionContext cx, GeneratedProject generated) {
+    public static @NotNull SerializedProject serializeProject(ProjectConversionContext cx, GeneratedProject generated) {
         Map<String, String> files = new HashMap<>();
         ConversionResult result = generated.conversionResult();
 
@@ -217,7 +218,7 @@ public class TibcoConverter {
                         + sourcePath);
                 System.exit(1);
             }
-            migrateTibcoMultiRoot(context, inputPath, outputPath, projectName, keepStructure);
+            migrateTibcoMultiRoot(context, inputPath, outputPath, projectName);
             return;
         }
 
@@ -225,12 +226,16 @@ public class TibcoConverter {
     }
 
     static void migrateTibcoMultiRoot(ConversionContext cx, Path inputPath, String outputPath,
-                                      Optional<String> projectName, boolean keepStructure) {
-        List<ProjectSummary> projectSummaries = new ArrayList<>();
-        List<String> childPaths = new ArrayList<>();
-        List<String> childOutputPaths = new ArrayList<>();
-        List<String> childNames = new ArrayList<>();
+                                      Optional<String> projectName) {
+        // Stage 0: Initialize project info
+        record ProjectInfo(
+                String childPath,
+                String childOutputPath,
+                String childName,
+                ProjectConversionContext context) {
+        }
 
+        List<ProjectInfo> projectInfoList = new ArrayList<>();
         try {
             Files.list(inputPath)
                     .filter(Files::isDirectory)
@@ -242,9 +247,14 @@ public class TibcoConverter {
                         } else {
                             childOutputPath = childDir + "_converted";
                         }
-                        childPaths.add(childDir.toString());
-                        childOutputPaths.add(childOutputPath);
-                        childNames.add(childName);
+                        String finalProjectName = projectName.orElse(childName);
+                        ProjectConversionContext context = new ProjectConversionContext(cx, finalProjectName);
+
+                        projectInfoList.add(new ProjectInfo(
+                                childDir.toString(),
+                                childOutputPath,
+                                childName,
+                                context));
                     });
         } catch (IOException e) {
             cx.log(SEVERE, "Error reading directory: " + inputPath);
@@ -253,116 +263,121 @@ public class TibcoConverter {
         }
 
         // Stage 1: Parse all projects
-        List<ParsedProject> parsedProjects = new ArrayList<>();
-        List<ProjectConversionContext> contexts = new ArrayList<>();
-        for (int i = 0; i < childPaths.size(); i++) {
-            String childPath = childPaths.get(i);
-            String childName = childNames.get(i);
-            String finalProjectName = projectName.orElse(childName);
-            ProjectConversionContext context = new ProjectConversionContext(cx, finalProjectName);
-            contexts.add(context);
+        record ParsedProjectInfo(
+                ProjectInfo info,
+                ParsedProject parsed) {
+        }
 
-            cx.logState("Parsing project: " + childPath);
-            cx.log(LoggingUtils.Level.INFO, "Parsing project: " + childPath);
+        List<ParsedProjectInfo> parsedProjects = new ArrayList<>();
+        for (ProjectInfo info : projectInfoList) {
+            cx.logState("Parsing project: " + info.childPath());
+            cx.log(LoggingUtils.Level.INFO, "Parsing project: " + info.childPath());
             try {
-                ParsedProject parsed = parseProject(context, childPath);
-                parsedProjects.add(parsed);
+                ParsedProject parsed = parseProject(info.context(), info.childPath());
+                parsedProjects.add(new ParsedProjectInfo(info, parsed));
             } catch (Exception e) {
-                cx.log(SEVERE, "Failed to parse project: " + childPath + ": " + e.getMessage());
-                parsedProjects.add(null);
+                cx.log(SEVERE, "Failed to parse project: " + info.childPath() + ": " + e.getMessage());
+                // Skip this project
             }
         }
 
         // Stage 2: Analyze all projects
-        List<AnalyzedProject> analyzedProjects = new ArrayList<>();
-        for (int i = 0; i < parsedProjects.size(); i++) {
-            ParsedProject parsed = parsedProjects.get(i);
-            ProjectConversionContext context = contexts.get(i);
-            String childName = childNames.get(i);
+        record AnalyzedProjectInfo(
+                ProjectInfo info,
+                ParsedProject parsed,
+                AnalyzedProject analyzed) {
+        }
 
-            if (parsed != null) {
-                cx.logState("Analyzing project: " + childName);
-                try {
-                    ModelAnalyser modelAnalyser = new ModelAnalyser(List.of(
-                            new DefaultAnalysisPass(),
-                            new LoggingAnalysisPass(),
-                            new ResourceAnalysisPass()));
-                    AnalyzedProject analyzed = analyzeProject(context, parsed, modelAnalyser);
-                    analyzedProjects.add(analyzed);
-                } catch (Exception e) {
-                    cx.log(SEVERE, "Failed to analyze project: " + childName + ": " + e.getMessage());
-                    analyzedProjects.add(null);
-                }
-            } else {
-                analyzedProjects.add(null);
+        List<AnalyzedProjectInfo> analyzedProjects = new ArrayList<>();
+        for (ParsedProjectInfo parsedInfo : parsedProjects) {
+            cx.logState("Analyzing project: " + parsedInfo.info().childName());
+            try {
+                ModelAnalyser modelAnalyser = new ModelAnalyser(List.of(
+                        new DefaultAnalysisPass(),
+                        new LoggingAnalysisPass(),
+                        new ResourceAnalysisPass()));
+                AnalyzedProject analyzed = analyzeProject(parsedInfo.info().context(), parsedInfo.parsed(),
+                        modelAnalyser);
+                analyzedProjects.add(new AnalyzedProjectInfo(
+                        parsedInfo.info(),
+                        parsedInfo.parsed(),
+                        analyzed));
+            } catch (Exception e) {
+                cx.log(SEVERE, "Failed to analyze project: " + parsedInfo.info().childName() + ": " + e.getMessage());
+                // Skip this project
             }
         }
 
         // Stage 3: Generate code for all projects
-        List<GeneratedProject> generatedProjects = new ArrayList<>();
-        for (int i = 0; i < analyzedProjects.size(); i++) {
-            AnalyzedProject analyzed = analyzedProjects.get(i);
-            ProjectConversionContext context = contexts.get(i);
-            String childName = childNames.get(i);
+        record GeneratedProjectInfo(
+                ProjectInfo info,
+                ParsedProject parsed,
+                AnalyzedProject analyzed,
+                GeneratedProject generated) {
+        }
 
-            if (analyzed != null) {
-                cx.logState("Generating code for project: " + childName);
-                try {
-                    GeneratedProject generated = generateCode(context, analyzed);
-                    generatedProjects.add(generated);
-                } catch (Exception e) {
-                    cx.log(SEVERE, "Failed to generate code for project: " + childName + ": " + e.getMessage());
-                    generatedProjects.add(null);
-                }
-            } else {
-                generatedProjects.add(null);
+        List<GeneratedProjectInfo> generatedProjects = new ArrayList<>();
+        for (AnalyzedProjectInfo analyzedInfo : analyzedProjects) {
+            cx.logState("Generating code for project: " + analyzedInfo.info().childName());
+            try {
+                GeneratedProject generated = generateCode(analyzedInfo.info().context(), analyzedInfo.analyzed());
+                generatedProjects.add(new GeneratedProjectInfo(
+                        analyzedInfo.info(),
+                        analyzedInfo.parsed(),
+                        analyzedInfo.analyzed(),
+                        generated));
+            } catch (Exception e) {
+                cx.log(SEVERE, "Failed to generate code for project: " + analyzedInfo.info().childName() + ": "
+                        + e.getMessage());
+                // Skip this project
             }
         }
 
         // Stage 4: Serialize all projects
-        List<SerializedProject> serializedProjects = new ArrayList<>();
-        for (int i = 0; i < generatedProjects.size(); i++) {
-            GeneratedProject generated = generatedProjects.get(i);
-            ProjectConversionContext context = contexts.get(i);
-            String childName = childNames.get(i);
+        record SerializedProjectInfo(
+                ProjectInfo info,
+                ParsedProject parsed,
+                AnalyzedProject analyzed,
+                GeneratedProject generated,
+                SerializedProject serialized) {
+        }
 
-            if (generated != null) {
-                cx.logState("Serializing project: " + childName);
-                try {
-                    SerializedProject serialized = serializeProject(context, generated);
-                    serializedProjects.add(serialized);
-                } catch (Exception e) {
-                    cx.log(SEVERE, "Failed to serialize project: " + childName + ": " + e.getMessage());
-                    serializedProjects.add(null);
-                }
-            } else {
-                serializedProjects.add(null);
+        List<SerializedProjectInfo> serializedProjects = new ArrayList<>();
+        for (GeneratedProjectInfo generatedInfo : generatedProjects) {
+            cx.logState("Serializing project: " + generatedInfo.info().childName());
+            try {
+                SerializedProject serialized = serializeProject(generatedInfo.info().context(),
+                        generatedInfo.generated());
+                serializedProjects.add(new SerializedProjectInfo(
+                        generatedInfo.info(),
+                        generatedInfo.parsed(),
+                        generatedInfo.analyzed(),
+                        generatedInfo.generated(),
+                        serialized));
+            } catch (Exception e) {
+                cx.log(SEVERE,
+                        "Failed to serialize project: " + generatedInfo.info().childName() + ": " + e.getMessage());
+                // Skip this project
             }
         }
 
-        // Stage 5: Write all projects to disk
-        for (int i = 0; i < serializedProjects.size(); i++) {
-            SerializedProject serialized = serializedProjects.get(i);
-            ProjectConversionContext context = contexts.get(i);
-            String childOutputPath = childOutputPaths.get(i);
-            String childName = childNames.get(i);
+        // Stage 5: Write all projects to disk and collect summaries
+        List<ProjectSummary> projectSummaries = new ArrayList<>();
+        for (SerializedProjectInfo serializedInfo : serializedProjects) {
+            cx.logState("Writing project: " + serializedInfo.info().childName());
+            try {
+                writeProjectFiles(serializedInfo.info().context(), serializedInfo.serialized(),
+                        serializedInfo.info().childOutputPath(), serializedInfo.info().context().dryRun());
 
-            if (serialized != null) {
-                cx.logState("Writing project: " + childName);
-                try {
-                    writeProjectFiles(context, serialized, childOutputPath, context.dryRun());
-
-                    // Create project summary
-                    String reportRelativePath = childName + "_converted/report.html";
-                    ProjectSummary projectSummary = serialized.report().toProjectSummary(
-                            childName,
-                            childPaths.get(i),
-                            reportRelativePath
-                    );
-                    projectSummaries.add(projectSummary);
-                } catch (Exception e) {
-                    cx.log(SEVERE, "Failed to write project: " + childName + ": " + e.getMessage());
-                }
+                // Create project summary
+                String reportRelativePath = serializedInfo.info().childName() + "_converted/report.html";
+                        ProjectSummary projectSummary = serializedInfo.serialized().report().toProjectSummary(
+                        serializedInfo.info().childName(),
+                        serializedInfo.info().childPath(),
+                        reportRelativePath);
+                projectSummaries.add(projectSummary);
+            } catch (Exception e) {
+                cx.log(SEVERE, "Failed to write project: " + serializedInfo.info().childName() + ": " + e.getMessage());
             }
         }
 

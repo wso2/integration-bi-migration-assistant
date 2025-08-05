@@ -133,12 +133,12 @@ public class TibcoProjectConversionTest {
             if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
                 // Update expected results
                 TibcoConverter.migrateTibcoMultiRoot(cx, multiRootSource, expectedMultiRootOutput.toString(),
-                        Optional.empty(), false);
+                        Optional.empty());
             }
 
             // Run multi-root conversion
-            TibcoConverter.migrateTibcoMultiRoot(cx, multiRootSource, tempOutputDir.toString(), Optional.empty(),
-                    false);
+            TibcoConverter.migrateTibcoMultiRoot(cx, multiRootSource, tempOutputDir.toString(), Optional.empty()
+            );
 
             // Verify the structure - should have two converted projects
             Assert.assertTrue(Files.exists(tempOutputDir.resolve("helloWorld_converted")),

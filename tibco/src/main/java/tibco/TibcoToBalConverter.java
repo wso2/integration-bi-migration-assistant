@@ -19,10 +19,10 @@
 package tibco;
 
 import common.LoggingUtils;
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
-
 import tibco.analyzer.DefaultAnalysisPass;
 import tibco.analyzer.LoggingAnalysisPass;
 import tibco.analyzer.ModelAnalyser;
@@ -60,17 +60,18 @@ public class TibcoToBalConverter {
     private TibcoToBalConverter() {
     }
 
-    public static java.util.Set<tibco.model.Process> parseProcesses(tibco.parser.ProjectContext pcx) 
+    public static @NotNull java.util.Set<tibco.model.Process> parseProcesses(tibco.parser.ProjectContext pcx)
             throws IOException, SAXException, ParserConfigurationException {
         return PROCESS_PARSING_UNIT.parse(pcx);
     }
 
-    public static java.util.Set<tibco.model.Type.Schema> parseTypes(tibco.parser.ProjectContext pcx) 
+    public static @NotNull java.util.Set<tibco.model.Type.Schema> parseTypes(tibco.parser.ProjectContext pcx)
             throws IOException, SAXException, ParserConfigurationException {
         return XSD_PARSING_UNIT.parse(pcx);
     }
 
-    public static tibco.converter.ProjectConverter.ProjectResources parseResources(tibco.parser.ProjectContext pcx) 
+    public static @NotNull tibco.converter.ProjectConverter.ProjectResources parseResources(
+            tibco.parser.ProjectContext pcx)
             throws IOException, SAXException, ParserConfigurationException {
         java.util.Set<Resource.JDBCResource> jdbcResources = JDBC_RESOURCE_PARSING_UNIT.parse(pcx);
         java.util.Set<Resource.HTTPConnectionResource> httpConnectionResources =
@@ -82,7 +83,7 @@ public class TibcoToBalConverter {
         var jmsSharedResourceParser = new JMSSharedResourceParsingUnit();
         java.util.Set<Resource.JMSSharedResource> jmsSharedResource = jmsSharedResourceParser.parse(pcx);
         java.util.Set<Resource.SharedVariable> sharedVariables = SHARED_VARIABLE_PARSING_UNIT.parse(pcx);
-        
+
         return new tibco.converter.ProjectConverter.ProjectResources(jdbcResources,
                 httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource,
                 jmsSharedResource, sharedVariables);
@@ -145,7 +146,6 @@ public class TibcoToBalConverter {
             }
 
             for (String s : getFilesWithExtension(pcx.projectPath(), "jobsharedvariable")) {
-                String relativePath = "/" + Paths.get(pcx.projectPath()).relativize(Paths.get(s)).toString();
                 Optional<Resource.SharedVariable> var = XmlToTibcoModelParser.parseJobSharedVariable(
                         new ResourceContext(pcx, s),
                         parseXmlFile(s));
@@ -299,22 +299,22 @@ public class TibcoToBalConverter {
         return document.getDocumentElement();
     }
 
-    public static Map<String, Object> migrateTIBCO(Map<String, Object> parameters) {
+    public static @NotNull Map<String, Object> migrateTIBCO(Map<String, Object> parameters) {
         try {
             String orgName = validateAndGetString(parameters, "orgName");
             String projectName = validateAndGetString(parameters, "projectName");
             String sourcePath = validateAndGetString(parameters, "sourcePath");
             Consumer<String> stateCallback = validateAndGetConsumer(parameters, "stateCallback");
             Consumer<String> logCallback = validateAndGetConsumer(parameters, "logCallback");
-            
+
             return migrateTIBCOInner(orgName, projectName, sourcePath, stateCallback, logCallback);
         } catch (IllegalArgumentException e) {
             return Map.of("error", e.getMessage());
         }
     }
 
-    private static Map<String, Object> migrateTIBCOInner(String orgName, String projectName, String sourcePath,
-                                                         Consumer<String> stateCallback, Consumer<String> logCallback) {
+    private static @NotNull Map<String, Object> migrateTIBCOInner(String orgName, String projectName, String sourcePath,
+            Consumer<String> stateCallback, Consumer<String> logCallback) {
         ProjectConversionContext cx = new ProjectConversionContext(
                 new ConversionContext(orgName, false, false, stateCallback, logCallback), projectName);
         try {
@@ -328,33 +328,33 @@ public class TibcoToBalConverter {
                     tibco.converter.TibcoConverter.generateCode(cx, analyzed);
             tibco.converter.TibcoConverter.SerializedProject serialized =
                     tibco.converter.TibcoConverter.serializeProject(cx, generated);
-            
+
             return Map.of("textEdits", serialized.files(), "report", serialized.report().toHTML());
         } catch (Exception e) {
             return Map.of("error", e.getMessage());
         }
     }
 
-    private static String validateAndGetString(Map<String, Object> parameters, String key) {
+    private static @NotNull String validateAndGetString(Map<String, Object> parameters, String key) {
         if (!parameters.containsKey(key)) {
             throw new IllegalArgumentException("Missing required parameter: " + key);
         }
         Object value = parameters.get(key);
         if (!(value instanceof String)) {
-            throw new IllegalArgumentException("Parameter " + key + " must be a String, got: " + 
+            throw new IllegalArgumentException("Parameter " + key + " must be a String, got: " +
                     (value != null ? value.getClass().getSimpleName() : "null"));
         }
         return (String) value;
     }
 
     @SuppressWarnings("unchecked")
-    private static Consumer<String> validateAndGetConsumer(Map<String, Object> parameters, String key) {
+    private static @NotNull Consumer<String> validateAndGetConsumer(Map<String, Object> parameters, String key) {
         if (!parameters.containsKey(key)) {
             throw new IllegalArgumentException("Missing required parameter: " + key);
         }
         Object value = parameters.get(key);
         if (!(value instanceof Consumer)) {
-            throw new IllegalArgumentException("Parameter " + key + " must be a Consumer<String>, got: " + 
+            throw new IllegalArgumentException("Parameter " + key + " must be a Consumer<String>, got: " +
                     (value != null ? value.getClass().getSimpleName() : "null"));
         }
         return (Consumer<String>) value;

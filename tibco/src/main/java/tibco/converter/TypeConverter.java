@@ -58,7 +58,7 @@ class TypeConverter {
     private TypeConverter() {
     }
 
-    static SyntaxTree convertSchemas(ContextWithFile cx, Collection<Type.Schema> schemas) {
+    static @NotNull SyntaxTree convertSchemas(ContextWithFile cx, Collection<Type.Schema> schemas) {
         cx.logState("Converting XSD schemas to Ballerina types");
         String[] content = schemas.stream().map(Type.Schema::element).map(ConversionUtils::elementToString)
                 .toArray(String[]::new);
@@ -89,7 +89,8 @@ class TypeConverter {
         }
     }
 
-    static Collection<BallerinaModel.Service> convertWsdlDefinition(ProcessContext cx, WSDLDefinition wsdlDefinition) {
+    static @NotNull Collection<BallerinaModel.Service> convertWsdlDefinition(ProcessContext cx,
+            WSDLDefinition wsdlDefinition) {
         Map<String, String> messageTypes = getMessageTypeDefinitions(cx, wsdlDefinition);
         return wsdlDefinition.portType().stream()
                 .map(portType -> convertPortType(cx, messageTypes, portType, wsdlDefinition.namespaces(),

@@ -107,7 +107,7 @@ final class ActivityConverter {
         return xsltTransformer;
     }
 
-    public static Optional<BallerinaModel.Function> convertActivity(ProcessContext cx, Activity activity) {
+    public static @NotNull Optional<BallerinaModel.Function> convertActivity(ProcessContext cx, Activity activity) {
         try {
             return Optional.of(convertActivity(new ActivityContext(cx, activity), activity));
         } catch (Exception e) {

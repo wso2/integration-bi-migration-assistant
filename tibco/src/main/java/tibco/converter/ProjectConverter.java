@@ -20,6 +20,7 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import org.jetbrains.annotations.NotNull;
 import tibco.ProjectConversionContext;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.TibcoAnalysisReport;
@@ -73,7 +74,7 @@ public class ProjectConverter {
          * @param second the second ProjectResources instance
          * @return a new ProjectResources instance containing merged collections
          */
-        public static ProjectResources merge(ProjectResources first, ProjectResources second) {
+        public static @NotNull ProjectResources merge(ProjectResources first, ProjectResources second) {
             return new ProjectResources(
                     mergeCollections(first.jdbcResources, second.jdbcResources),
                     mergeCollections(first.httpConnectionResources, second.httpConnectionResources),
@@ -96,7 +97,7 @@ public class ProjectConverter {
         }
     }
 
-    public static ConversionResult convertProject(
+    public static @NotNull ConversionResult convertProject(
             ProjectConversionContext conversionContext,
             Map<Process, AnalysisResult> analysisResult, Collection<Process> processes, Collection<Type.Schema> types,
             ProjectResources projectResources, tibco.parser.ProjectContext parserContext) {
@@ -157,7 +158,8 @@ public class ProjectConverter {
             assert result != null : "Type conversion result cannot be null";
             assert process != null : "Process cannot be null";
         }
-        public static ProcessResult empty(Process process) {
+
+        public static @NotNull ProcessResult empty(Process process) {
             return new ProcessResult(process, ProcessConverter.TypeConversionResult.empty());
         }
 
