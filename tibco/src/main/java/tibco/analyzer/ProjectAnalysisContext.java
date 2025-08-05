@@ -22,16 +22,23 @@ import common.LoggingUtils;
 import tibco.LoggingContext;
 import tibco.ProjectConversionContext;
 import tibco.converter.ProjectConverter.ProjectResources;
+import tibco.model.Process;
 import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.XSD;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Queue;
+import java.util.LinkedList;
+import java.util.Collection;
+import java.util.stream.Stream;
 
 public class ProjectAnalysisContext implements LoggingContext {
 
@@ -49,10 +56,19 @@ public class ProjectAnalysisContext implements LoggingContext {
             new HashSet<>(),
             new HashSet<>(),
             new HashSet<>());
+    private final Set<Process> capturedProcesses = new HashSet<>();
+    private Set<Process> currentProcesses = new HashSet<>();
+
+    // Queue to hold processes for analysis
+    private final Queue<Process> processQueue = new LinkedList<>();
 
     public ProjectAnalysisContext(ProjectConversionContext cx, ProjectResources projectResources) {
         this.cx = cx;
         this.projectResources = projectResources;
+    }
+
+    public void setCurrentProcesses(Set<Process> processes) {
+        this.currentProcesses = processes;
     }
 
     public Set<String> controlFlowFunctionNames() {
@@ -105,7 +121,8 @@ public class ProjectAnalysisContext implements LoggingContext {
      * @return Optional containing the resource if found, empty otherwise
      */
     private Optional<Resource> findResourceInProjectResources(Resource.ResourceIdentifier identifier) {
-        return projectResources.stream()
+        return Stream.of(projectResources, capturedResources)
+                .flatMap(ProjectResources::stream)
                 .filter(resource -> resource.matches(identifier))
                 .findFirst();
     }
@@ -149,4 +166,73 @@ public class ProjectAnalysisContext implements LoggingContext {
     public ProjectResources capturedResources() {
         return capturedResources;
     }
+
+    public Optional<Process> lookupProcess(Process.ProcessIdentifier identifier) {
+        // First, look in project's own processes
+        Optional<Process> localProcess = findProcessInProject(identifier);
+
+        if (localProcess.isPresent()) {
+            return localProcess;
+        }
+
+        // If not found locally, look in ConversionContext
+        Optional<Process> globalProcess = cx.conversionContext().lookupProcess(identifier);
+
+        // If found in ConversionContext, capture it for this project
+        if (globalProcess.isPresent()) {
+            var process = globalProcess.get();
+            processQueue.add(process);
+            capturedProcesses.add(process);
+        }
+
+        return globalProcess;
+    }
+
+    private Optional<Process> findProcessInProject(Process.ProcessIdentifier identifier) {
+        return Stream.of(currentProcesses, capturedProcesses)
+                .flatMap(Set::stream)
+                .filter(identifier::matches)
+                .findFirst();
+    }
+
+    public Set<Process> capturedProcesses() {
+        return capturedProcesses;
+    }
+
+    /**
+     * Adds all processes to the analysis queue.
+     *
+     * @param processes the collection of processes to add to the queue
+     */
+    public void addProcessesToQueue(Collection<Process> processes) {
+        // Filter out null processes before adding to queue
+        processes.stream()
+                .filter(Objects::nonNull)
+                .forEach(processQueue::add);
+    }
+
+    /**
+     * Retrieves and removes the next process from the analysis queue.
+     *
+     * @return the next process to analyze
+     * @throws IllegalStateException if the queue is empty or contains null
+     *                               processes
+     */
+    public Process getNextProcess() {
+        Process process = processQueue.poll();
+        if (process == null) {
+            throw new IllegalStateException("No more processes in queue or queue contains null processes");
+        }
+        return process;
+    }
+
+    /**
+     * Checks if there are more processes in the queue to analyze.
+     *
+     * @return true if there are processes remaining in the queue, false otherwise
+     */
+    public boolean hasMoreProcesses() {
+        return !processQueue.isEmpty();
+    }
+
 }

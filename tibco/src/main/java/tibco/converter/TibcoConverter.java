@@ -54,6 +54,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static common.LoggingUtils.Level.SEVERE;
 
@@ -93,6 +95,9 @@ public class TibcoConverter {
             // Add all parsed resources to the ConversionContext for global lookup
             cx.conversionContext().addProjectResources(resources);
 
+            // Add all parsed processes to the ConversionContext for global lookup
+            cx.conversionContext().addProjectProcesses(processes);
+
             return new ParsedProject(processes, types, resources, pcx);
         } catch (Exception e) {
             cx.log(LoggingUtils.Level.SEVERE,
@@ -105,10 +110,14 @@ public class TibcoConverter {
                                                          ModelAnalyser modelAnalyser) {
 
         ProjectAnalysisContext analysisContext = new ProjectAnalysisContext(cx, parsed.resources());
+        analysisContext.setCurrentProcesses(parsed.processes());
         Map<Process, AnalysisResult> analysisResults =
                 modelAnalyser.analyseProject(analysisContext, parsed.processes(), parsed.types(), parsed.resources());
         ProjectResources resources = ProjectResources.merge(parsed.resources(), analysisContext.capturedResources());
-        return new AnalyzedProject(parsed.processes(), parsed.types(), resources, parsed.parserContext(),
+        Set<Process> process = Stream.of(parsed.processes(), analysisContext.capturedProcesses())
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+        return new AnalyzedProject(process, parsed.types(), resources, parsed.parserContext(),
                 analysisResults);
     }
 

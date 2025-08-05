@@ -19,6 +19,8 @@
 package tibco.analyzer;
 
 import common.LoggingUtils;
+import tibco.model.Process;
+import tibco.model.Process5;
 import tibco.model.Resource;
 import tibco.model.Scope;
 
@@ -26,15 +28,24 @@ public class ResourceAnalysisPass extends AnalysisPass {
 
     @Override
     protected void analyseActivity(ProcessAnalysisContext cx, Scope.Flow.Activity activity) {
-        if (!(activity instanceof Scope.Flow.ActivityWithResources activityWithResources)) {
-            return;
+        // Handle resource lookup for activities with resources
+        if (activity instanceof Scope.Flow.ActivityWithResources activityWithResources) {
+            for (Resource.ResourceIdentifier resource : activityWithResources.resources()) {
+                if (cx.lookupResource(resource).isEmpty()) {
+                    cx.log(LoggingUtils.Level.SEVERE,
+                            String.format("Failed to find resource %s", resource.path()));
+                }
+            }
         }
-        for (Resource.ResourceIdentifier resource : activityWithResources.resources()) {
-            if (cx.lookupResource(resource).isEmpty()) {
-                cx.log(LoggingUtils.Level.SEVERE,
-                        String.format("Failed to find resource %s", resource.path()));
-                ;
+
+        if (activity instanceof Process5.ExplicitTransitionGroup.InlineActivity.CallProcess callProcess) {
+            String processName = callProcess.processName();
+            Process.ProcessIdentifier processId = new Process.ProcessIdentifier(processName);
+            if (cx.lookupProcess(processId).isEmpty()) {
+                cx.log(LoggingUtils.Level.WARN,
+                        String.format("CallProcess references unknown process: %s", processName));
             }
         }
     }
+
 }

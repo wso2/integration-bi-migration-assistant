@@ -49,8 +49,14 @@ public class ModelAnalyser {
 
     private Map<Process, AnalysisResult> analyseProcesses(ProjectAnalysisContext cx,
                                                           Collection<Process> processes) {
+        // Add all processes to the queue at the beginning
+        cx.addProcessesToQueue(processes);
+
         Map<Process, AnalysisResult> analysisResults = new HashMap<>();
-        for (Process process : processes) {
+
+        // Pull processes from the queue and analyze them
+        while (cx.hasMoreProcesses()) {
+            Process process = cx.getNextProcess();
             AnalysisResult combined = AnalysisResult.empty();
             for (AnalysisPass pass : passes) {
                 ProcessAnalysisContext analysisContext = new ProcessAnalysisContext(cx);
@@ -60,6 +66,7 @@ public class ModelAnalyser {
             }
             analysisResults.put(process, combined);
         }
+
         return Collections.unmodifiableMap(analysisResults);
     }
 

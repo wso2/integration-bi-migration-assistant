@@ -354,4 +354,15 @@ public class ProcessAnalysisContext implements LoggingContext {
     public Optional<Resource> lookupResource(Resource.ResourceIdentifier identifier) {
         return projectAnalysisContext.lookupResource(identifier);
     }
+
+    /**
+     * Looks up a process by its identifier.
+     * Delegates to the ProjectAnalysisContext.
+     *
+     * @param identifier the process identifier to look up
+     * @return Optional containing the process if found, empty otherwise
+     */
+    public Optional<tibco.model.Process> lookupProcess(tibco.model.Process.ProcessIdentifier identifier) {
+        return projectAnalysisContext.lookupProcess(identifier);
+    }
 }

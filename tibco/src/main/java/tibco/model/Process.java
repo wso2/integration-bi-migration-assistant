@@ -25,4 +25,10 @@ public sealed interface Process permits Process5, Process6 {
     String name();
 
     Collection<NameSpace> nameSpaces();
+
+    record ProcessIdentifier(String name) {
+        public boolean matches(Process process) {
+            return process.name().equals(name);
+        }
+    }
 }
