@@ -295,28 +295,74 @@ final class ActivityConverter {
     private static ActivityConversionResult convertSetSharedVariable(
             ActivityContext cx, VariableReference input, InlineActivity.SetSharedVariable setSharedVariable) {
         String setSharedVariableFn = cx.processContext.getSetSharedVariableFn();
-        Resource.SharedVariable sharedVariable =
-                cx.getSharedVariableByRelativePath(setSharedVariable.variableConfig())
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Shared variable not found for: " + setSharedVariable.name()));
-        List<Statement> body = List.of(new CallStatement(
+        Optional<Resource.SharedVariable> sharedVariable =
+                cx.getSharedVariableByRelativePath(setSharedVariable.variableConfig());
+        String sharedVariableName;
+        List<Statement> body = new ArrayList<>();
+        if (sharedVariable.isPresent()) {
+            sharedVariableName = sharedVariable.get().name();
+        } else {
+            String message =
+                    "Failed to find shared variable for: %s using a placeholder".formatted(setSharedVariable.name());
+            body.add(new Comment(message));
+            cx.log(SEVERE, message);
+            sharedVariableName = "sharedVariable_" + ConversionUtils.sanitizes(setSharedVariable.name());
+        }
+        body.add(new CallStatement(
                 new FunctionCall(setSharedVariableFn,
-                        List.of(cx.contextVarRef(), new StringConstant(sharedVariable.name()), input))));
+                        List.of(cx.contextVarRef(), new StringConstant(sharedVariableName), input))));
         return new ActivityConversionResult(input, body);
     }
 
     private static ActivityConversionResult convertGetSharedVariable(
             ActivityContext cx, VariableReference input, InlineActivity.GetSharedVariable getSharedVariable) {
         String getSharedVariableFn = cx.processContext.getGetSharedVariableFn();
-        Resource.SharedVariable sharedVariable =
-                cx.getSharedVariableByRelativePath(getSharedVariable.variableConfig())
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Shared variable not found for: " + getSharedVariable.name()));
+        Optional<Resource.SharedVariable> sharedVariable =
+                cx.getSharedVariableByRelativePath(getSharedVariable.variableConfig());
+        String sharedVariableName;
+        List<Statement> body = new ArrayList<>();
+        if (sharedVariable.isPresent()) {
+            sharedVariableName = sharedVariable.get().name();
+        } else {
+            String message =
+                    "Failed to find shared variable for: %s using a placeholder".formatted(getSharedVariable.name());
+
+            body.add(new Comment(message));
+            cx.log(SEVERE, message);
+            sharedVariableName = "sharedVariable_" + ConversionUtils.sanitizes(getSharedVariable.name());
+        }
         VarDeclStatment value = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new FunctionCall(getSharedVariableFn,
-                        List.of(cx.contextVarRef(), new StringConstant(sharedVariable.name()))));
-        return new ActivityConversionResult(value.ref(), List.of(value));
+                        List.of(cx.contextVarRef(), new StringConstant(sharedVariableName))));
+        body.add(value);
+        return new ActivityConversionResult(value.ref(), body);
+    }
 
+    private static void checkAndLogSessionAttributesWarnings(ActivityContext cx,
+                    InlineActivity.JMSActivityBase.SessionAttributes sessionAttributes, InlineActivity activity) {
+            List<String> noneValues = new ArrayList<>();
+
+            if (sessionAttributes.transacted().isEmpty()) {
+                    noneValues.add("transacted");
+            }
+            if (sessionAttributes.acknowledgeMode().isEmpty()) {
+                    noneValues.add("acknowledgeMode");
+            }
+            if (sessionAttributes.maxSessions().isEmpty()) {
+                    noneValues.add("maxSessions");
+            }
+            if (sessionAttributes.destination().isEmpty()) {
+                    noneValues.add("destination");
+            }
+
+            if (!noneValues.isEmpty()) {
+                    String warningMessage = String.format(
+                                    "WARNING: JMS Activity '%s' has unsupported values for SessionAttributes: %s. " +
+                                    "Most likely they were TIBCO configuration values",
+                                    activity.name(), String.join(", ", noneValues));
+                    cx.log(WARN, warningMessage);
+                    cx.registerPartiallySupportedActivity(activity);
+            }
     }
 
     private static ActivityConversionResult convertJMSQueueGetActivity(
@@ -324,6 +370,9 @@ final class ActivityConverter {
             InlineActivity.JMSQueueGetMessageActivity jmsQueueGetMessageActivity) {
         cx.addLibraryImport(Library.JMS);
         List<Statement> body = new ArrayList<>();
+        checkAndLogSessionAttributesWarnings(cx, jmsQueueGetMessageActivity.sessionAttributes(),
+                        jmsQueueGetMessageActivity);
+
         JMSConnectionData jmsConnectionData =
                 JMSConnectionData.from(cx, cx.getJmsResource(jmsQueueGetMessageActivity.connectionReference()));
         body.add(jmsConnectionData.connection);
@@ -369,10 +418,18 @@ final class ActivityConverter {
             ActivityContext cx, VariableReference input, InlineActivity.JMSQueueSendActivity jmsQueueSendActivity) {
         cx.addLibraryImport(Library.JMS);
         List<Statement> body = new ArrayList<>();
+
+        checkAndLogSessionAttributesWarnings(cx, jmsQueueSendActivity.sessionAttributes(), jmsQueueSendActivity);
+
         JMSConnectionData jmsConnectionData =
                 JMSConnectionData.from(cx, cx.getJmsResource(jmsQueueSendActivity.connectionReference()));
         body.add(jmsConnectionData.connection);
         body.add(jmsConnectionData.session);
+        if (!jmsQueueSendActivity.permittedMessageType().equalsIgnoreCase("Text")) {
+            body.add(new Comment(
+                    "WARNING: Unexpected message type: %s Only Text messages are supported in JMSQueueSendActivity"
+                            .formatted(jmsQueueSendActivity.permittedMessageType())));
+        }
         body.add(new Comment("WARNING: using default destination configuration"));
         VarDeclStatment producer = new VarDeclStatment(ConversionUtils.Constants.JMS_MESSAGE_PRODUCER,
                 cx.getAnnonVarName(),
@@ -398,11 +455,17 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
                 InlineActivity.JMSTopicPublishActivity jmsTopicPublishActivity) {
         cx.addLibraryImport(Library.JMS);
         List<Statement> body = new ArrayList<>();
+
+        checkAndLogSessionAttributesWarnings(cx, jmsTopicPublishActivity.sessionAttributes(), jmsTopicPublishActivity);
+
         JMSConnectionData jmsConnectionData = JMSConnectionData.from(cx,
                         cx.getJmsResource(jmsTopicPublishActivity.connectionReference()));
         body.add(jmsConnectionData.connection);
         body.add(jmsConnectionData.session);
         body.add(new Comment("WARNING: using default destination configuration"));
+
+        // Use destination from SessionAttributes if available, otherwise use default
+        String destinationName = jmsTopicPublishActivity.sessionAttributes().destination().orElse("Default topic");
         VarDeclStatment producer = new VarDeclStatment(ConversionUtils.Constants.JMS_MESSAGE_PRODUCER,
                         cx.getAnnonVarName(),
                         new Check(new MethodCall(jmsConnectionData.session().ref(), "createProducer", List.of(
@@ -411,8 +474,7 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
                                                             'type: jms:TOPIC,
                                                             name: "%s"
                                                         }
-                                                        """.formatted(
-                                                        jmsTopicPublishActivity.sessionAttributes().destination()))))));
+                                                        """.formatted(destinationName))))));
         body.add(producer);
 
         VarDeclStatment contentString = new VarDeclStatment(STRING, cx.getAnnonVarName(),
@@ -559,7 +621,8 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
         body.add(xmlInput);
         body.add(stmtFrom("xmlns \"http://www.tibco.com/namespaces/tnt/plugins/json\" as ns;"));
         cx.log(WARN, "JSONRender: assuming single element");
-        BallerinaModel.TypeDesc targetType = ConversionUtils.toTypeDesc(jsonRender.targetType());
+        BallerinaModel.TypeDesc targetType = jsonRender.targetType().map(ConversionUtils::toTypeDesc).orElseGet(
+                () -> new BallerinaModel.TypeDesc.MapTypeDesc(JSON));
         return finishConvertJsonRender(cx, body, targetType, "ns:ActivityOutputClass", xmlInput.ref());
     }
 
@@ -596,9 +659,13 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
             ActivityContext cx, VariableReference input, InlineActivity.JSONParser jsonParser) {
         List<Statement> body = new ArrayList<>();
 
-        String targetTypeName = jsonParser.targetType().type().name();
+        String targetTypeName = jsonParser.targetType()
+                .map(xsd -> xsd.type().name())
+                .orElseGet(() -> new BallerinaModel.TypeDesc.MapTypeDesc(JSON).toString());
         try {
-            cx.addXSDSchemaToConversion(jsonParser.targetType().toSchema());
+            if (jsonParser.targetType().isPresent()) {
+                cx.addXSDSchemaToConversion(jsonParser.targetType().get().toSchema());
+            }
         } catch (ParserConfigurationException e) {
             cx.log(SEVERE, "Error converting Element to String: " + e.getMessage()
                         + ". Continuing with conversion.");
@@ -799,8 +866,19 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
 
     private static ActivityConversionResult convertCallProcess(
             ActivityContext cx, VariableReference input, InlineActivity.CallProcess callProcess) {
-        VariableReference client = cx.getProcessClient(callProcess.processName());
+        Optional<VariableReference> processClient = cx.getProcessClient(callProcess.processName());
+        VariableReference client;
         List<Statement> body = new ArrayList<>();
+        if (processClient.isPresent()) {
+            client = processClient.get();
+        } else {
+            // TODO: properly handle this using package approach
+            String message =
+                    "Failed to find process client for: %s using a placeholder".formatted(callProcess.processName());
+            cx.log(SEVERE, message);
+            body.add(new Comment(message));
+            client = new VariableReference("processClient_" + ConversionUtils.sanitizes(callProcess.processName()));
+        }
         VarDeclStatment request = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 exprFrom("%s/*".formatted(input.varName())));
         body.add(request);
@@ -871,14 +949,33 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
     private static ActivityConversionResult convertXmlParseActivity(
             ActivityContext cx, VariableReference result, InlineActivity.XMLParseActivity xmlParseActivity) {
         List<Statement> body = new ArrayList<>();
-        VarDeclStatment xmlString = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                exprFrom("%s/<xmlString>/*".formatted(result.varName())));
-        body.add(xmlString);
-        VarDeclStatment asString = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                new MethodCall(xmlString.ref(), "toString", List.of()));
-        body.add(asString);
+
+        VariableReference stringRepr;
+        if (xmlParseActivity.inputStyle() == InlineActivity.XMLParseActivity.InputStyle.TEXT) {
+            VarDeclStatment xmlString = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                    exprFrom("%s/<xmlString>/*".formatted(result.varName())));
+            body.add(xmlString);
+            VarDeclStatment asString = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                    new MethodCall(xmlString.ref(), "toString", List.of()));
+            body.add(asString);
+            stringRepr = asString.ref();
+        } else {
+            VarDeclStatment bytes = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                    exprFrom("%s/<bytes>/*".formatted(result.varName())));
+            body.add(bytes);
+            VarDeclStatment byteArr = new VarDeclStatment(new BallerinaModel.TypeDesc.ArrayTypeDesc(
+                    BallerinaModel.TypeDesc.BuiltinType.BYTE), cx.getAnnonVarName());
+            body.add(byteArr);
+            body.add(new Comment(
+                    "WARNING: xml parse from bytes detected properly initialize %s using %s".formatted(byteArr.ref(),
+                            bytes.ref())));
+            VarDeclStatment stringValue = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                    new Check(new FunctionCall("string:fromBytes", List.of(byteArr.ref()))));
+            body.add(stringValue);
+            stringRepr = stringValue.ref();
+        }
         VarDeclStatment xmlValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new Check(new FunctionCall("xml:fromString", List.of(asString.ref()))));
+                new Check(new FunctionCall("xml:fromString", List.of(stringRepr))));
         body.add(xmlValue);
         VarDeclStatment wrappedValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new XMLTemplate("<root>${%s}</root>".formatted(xmlValue.ref())));

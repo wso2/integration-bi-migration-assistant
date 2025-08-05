@@ -150,7 +150,7 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         projectContext.registerProcessClient(baseName(process.name()).toLowerCase(), name);
     }
 
-    public Expression.VariableReference getProcessClient(String processName) {
+    public Optional<Expression.VariableReference> getProcessClient(String processName) {
         return projectContext.getProcessClient(baseName(processName).toLowerCase());
     }
 

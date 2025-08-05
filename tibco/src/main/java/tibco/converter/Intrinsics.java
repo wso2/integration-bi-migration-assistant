@@ -228,7 +228,7 @@ public enum Intrinsics {
     RENDER_JSON_AS_XML(
             "renderJSONAsXML",
             """
-                    function renderJSONAsXML(json value, string? namespace, string typeName) returns xml|error {
+                    function renderJSONAsXML(json value, string? namespace, string? typeName) returns xml|error {
                         anydata body;
                         if (value is map<json>) {
                             xml acum = xml ``;
@@ -240,7 +240,8 @@ public enum Intrinsics {
                             body = value;
                         }
 
-                        string rep = string `<${typeName}>${body.toString()}</${typeName}>`;
+                        string rep = typeName == () ? body.toString() :
+                            string `<${typeName}>${body.toString()}</${typeName}>`;
                         xml result = check xml:fromString(rep);
                         if (namespace == ()) {
                             return result;

@@ -486,8 +486,8 @@ public class ProjectContext implements LoggingContext {
         return "proj_annon_var" + annonVarCount++;
     }
 
-    public VariableReference getProcessClient(String processName) {
-        return new VariableReference(Objects.requireNonNull(processClients.get(processName)));
+    public Optional<VariableReference> getProcessClient(String processName) {
+        return Optional.ofNullable(processClients.get(processName)).map(VariableReference::new);
     }
 
     public String getToJsonFunction() {

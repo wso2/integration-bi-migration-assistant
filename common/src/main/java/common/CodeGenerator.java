@@ -177,7 +177,10 @@ public class CodeGenerator {
         }
 
         SyntaxTree syntaxTree = createSyntaxTree(importDecls, moduleMemberDecls, eofLeadingMinutiae);
-        syntaxTree = formatSyntaxTree(syntaxTree);
+        // This is to a hack to avoid OOM when we give huge projects
+        if (System.getenv("BAL_MIGRATE_SKIP_FORMATTING") == null) {
+            syntaxTree = formatSyntaxTree(syntaxTree);
+        }
         return syntaxTree;
     }
 

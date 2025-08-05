@@ -282,7 +282,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             STRING("string"),
             HANDLE("handle"),
             READONLY("readonly"),
-            XML("xml");
+            XML("xml"),
+            BYTE("byte");
 
             private final String name;
 

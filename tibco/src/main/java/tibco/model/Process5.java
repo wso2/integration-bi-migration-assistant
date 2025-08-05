@@ -124,7 +124,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 return this;
             }
             if (activities.isEmpty()) {
-                return this;
+                throw new IllegalStateException("Empty process without activities");
             }
             String startActivityName = transitions.stream()
                     .filter(transition -> transition.from().equalsIgnoreCase("start"))
@@ -246,7 +246,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record JSONRender(Element element, String name, InputBinding inputBinding,
-                              XSD targetType, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+                              Optional<XSD> targetType, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
 
                 public JSONRender {
                     assert inputBinding != null;
@@ -264,7 +265,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record JSONParser(Element element, String name, InputBinding inputBinding,
-                              XSD targetType, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+                              Optional<XSD> targetType, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
 
                 public JSONParser {
                     assert inputBinding != null;
@@ -382,8 +384,21 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record XMLParseActivity(Element element, String name,
-                    InputBinding inputBinding, String fileName)
+                                    InputBinding inputBinding, InputStyle inputStyle, String fileName)
                     implements ExplicitTransitionGroup.InlineActivity {
+
+                public enum InputStyle {
+                    TEXT,
+                    BINARY;
+
+                    public static InputStyle from(String s) {
+                        return switch (s.toLowerCase()) {
+                            case "text" -> TEXT;
+                            case "binary" -> BINARY;
+                            default -> throw new IllegalArgumentException("Unknown XMLParseActivity input style: " + s);
+                        };
+                    }
+                }
 
                 public XMLParseActivity {
                     assert inputBinding != null;
@@ -640,8 +655,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                    ConfigurableHeaders configurableHeaders,
                     String connectionReference, String fileName) {
 
-                public record SessionAttributes(boolean transacted, int acknowledgeMode, int maxSessions,
-                                                String destination) {
+                public record SessionAttributes(Optional<Boolean> transacted, Optional<Integer> acknowledgeMode,
+                        Optional<Integer> maxSessions, Optional<String> destination) {
 
                 }
 
