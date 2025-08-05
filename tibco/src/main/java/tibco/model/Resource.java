@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public interface Resource {
+public sealed interface Resource {
 
     String name();
 
@@ -31,22 +31,55 @@ public interface Resource {
 
     Collection<SubstitutionBinding> substitutionBindings();
 
+    ResourceKind kind();
+
+    default boolean matches(ResourceIdentifier identifier) {
+        return kind().equals(identifier.kind()) && path().equals(identifier.path());
+    }
+
+    enum ResourceKind {
+        JDBC_SHARED,
+        JDBC,
+        HTTP_CONNECTION,
+        HTTP_SHARED,
+        HTTP_CLIENT,
+        JMS_SHARED,
+        SHARED_VARIABLE
+    }
+
+    record ResourceIdentifier(ResourceKind kind, String path) {
+
+    }
+
     record JDBCSharedResource(String name, String path, String location) implements Resource {
 
         @Override
         public Collection<SubstitutionBinding> substitutionBindings() {
             return List.of();
         }
+
+        @Override
+        public ResourceKind kind() {
+            return ResourceKind.JDBC_SHARED;
+        }
     }
 
     record JDBCResource(String name, String path, String userName, String password, String jdbcDriver, String dbUrl,
                         Collection<SubstitutionBinding> substitutionBindings) implements Resource {
 
+        @Override
+        public ResourceKind kind() {
+            return ResourceKind.JDBC;
+        }
     }
 
     record HTTPConnectionResource(String name, String path, String svcRegServiceName,
                                   Collection<SubstitutionBinding> substitutionBindings) implements Resource {
 
+        @Override
+        public ResourceKind kind() {
+            return ResourceKind.HTTP_CONNECTION;
+        }
     }
 
     record HTTPSharedResource(String name, String path, String host, int port) implements Resource {
@@ -55,12 +88,21 @@ public interface Resource {
         public Collection<SubstitutionBinding> substitutionBindings() {
             return List.of();
         }
+
+        @Override
+        public ResourceKind kind() {
+            return ResourceKind.HTTP_SHARED;
+        }
     }
 
     record HTTPClientResource(String name, String path, Optional<Integer> port,
                               Collection<SubstitutionBinding> substitutionBindings)
             implements Resource {
 
+        @Override
+        public ResourceKind kind() {
+            return ResourceKind.HTTP_CLIENT;
+        }
     }
 
     record SubstitutionBinding(String template, String propName) {
@@ -74,6 +116,11 @@ public interface Resource {
         @Override
         public Collection<SubstitutionBinding> substitutionBindings() {
             return List.of();
+        }
+
+        @Override
+        public ResourceKind kind() {
+            return ResourceKind.JMS_SHARED;
         }
 
         public record NamingEnvironment(boolean useJNDI, String providerURL, String namingURL,
@@ -92,6 +139,11 @@ public interface Resource {
         @Override
         public Collection<SubstitutionBinding> substitutionBindings() {
             return List.of();
+        }
+
+        @Override
+        public ResourceKind kind() {
+            return ResourceKind.SHARED_VARIABLE;
         }
     }
 }

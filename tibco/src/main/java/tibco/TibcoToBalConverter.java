@@ -22,14 +22,6 @@ import common.LoggingUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
-import tibco.analyzer.AnalysisResult;
-import tibco.analyzer.DefaultAnalysisPass;
-import tibco.analyzer.LoggingAnalysisPass;
-import tibco.analyzer.ModelAnalyser;
-import tibco.analyzer.ProjectAnalysisContext;
-import tibco.converter.ConversionResult;
-import tibco.converter.ProjectConverter;
-import tibco.converter.TibcoConverter;
 import tibco.model.Process;
 import tibco.model.Resource;
 import tibco.model.Type;
@@ -77,7 +69,8 @@ public class TibcoToBalConverter {
     public static tibco.converter.ProjectConverter.ProjectResources parseResources(tibco.parser.ProjectContext pcx) 
             throws IOException, SAXException, ParserConfigurationException {
         java.util.Set<Resource.JDBCResource> jdbcResources = JDBC_RESOURCE_PARSING_UNIT.parse(pcx);
-        java.util.Set<Resource.HTTPConnectionResource> httpConnectionResources = HTTP_CONN_RESOURCE_PARSING_UNIT.parse(pcx);
+        java.util.Set<Resource.HTTPConnectionResource> httpConnectionResources =
+                HTTP_CONN_RESOURCE_PARSING_UNIT.parse(pcx);
         java.util.Set<Resource.HTTPClientResource> httpClientResources = HTTP_CLIENT_RESOURCE_PARSING_UNIT.parse(pcx);
         var httpSharedResourceParser = new HTTPSharedResourceParsingUnit();
         java.util.Set<Resource.HTTPSharedResource> httpSharedResources = httpSharedResourceParser.parse(pcx);
@@ -321,10 +314,14 @@ public class TibcoToBalConverter {
         ProjectConversionContext cx = new ProjectConversionContext(
                 new ConversionContext(orgName, false, false, stateCallback, logCallback), projectName);
         try {
-            tibco.converter.TibcoConverter.ParsedProject parsed = tibco.converter.TibcoConverter.parseProject(cx, sourcePath);
-            tibco.converter.TibcoConverter.AnalyzedProject analyzed = tibco.converter.TibcoConverter.analyzeProject(cx, parsed);
-            tibco.converter.TibcoConverter.GeneratedProject generated = tibco.converter.TibcoConverter.generateCode(cx, analyzed);
-            tibco.converter.TibcoConverter.SerializedProject serialized = tibco.converter.TibcoConverter.serializeProject(cx, generated);
+            tibco.converter.TibcoConverter.ParsedProject parsed =
+                    tibco.converter.TibcoConverter.parseProject(cx, sourcePath);
+            tibco.converter.TibcoConverter.AnalyzedProject analyzed =
+                    tibco.converter.TibcoConverter.analyzeProject(cx, parsed);
+            tibco.converter.TibcoConverter.GeneratedProject generated =
+                    tibco.converter.TibcoConverter.generateCode(cx, analyzed);
+            tibco.converter.TibcoConverter.SerializedProject serialized =
+                    tibco.converter.TibcoConverter.serializeProject(cx, generated);
             
             return Map.of("textEdits", serialized.files(), "report", serialized.report().toHTML());
         } catch (Exception e) {

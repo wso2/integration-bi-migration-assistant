@@ -18,6 +18,7 @@
 
 package tibco.analyzer;
 
+import tibco.converter.ProjectConverter;
 import tibco.model.Process;
 import tibco.model.Type;
 
@@ -37,7 +38,8 @@ public class ModelAnalyser {
 
     public Map<Process, AnalysisResult> analyseProject(ProjectAnalysisContext context,
                                                        Collection<Process> processes,
-                                                       Collection<Type.Schema> schemas) {
+                                                       Collection<Type.Schema> schemas,
+                                                       ProjectConverter.ProjectResources resources) {
         schemas.stream().map(Type.Schema::xsdTypes).flatMap(Collection::stream).forEachOrdered(each -> {
             context.addXsdType(each.name(), each.type());
         });

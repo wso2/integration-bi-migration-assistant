@@ -34,21 +34,66 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public class ProjectConverter {
 
     public record ProjectResources(
             Collection<Resource.JDBCResource> jdbcResources,
             Collection<Resource.HTTPConnectionResource> httpConnectionResources,
-            Set<Resource.HTTPClientResource> httpClientResources,
-            Set<Resource.HTTPSharedResource> httpSharedResources,
-            Set<Resource.JDBCSharedResource> jdbcSharedResource,
-            Set<Resource.JMSSharedResource> jmsSharedResource,
-            Set<Resource.SharedVariable> sharedVariables
+            Collection<Resource.HTTPClientResource> httpClientResources,
+            Collection<Resource.HTTPSharedResource> httpSharedResources,
+            Collection<Resource.JDBCSharedResource> jdbcSharedResource,
+            Collection<Resource.JMSSharedResource> jmsSharedResource,
+            Collection<Resource.SharedVariable> sharedVariables
     ) {
 
+        /**
+         * Returns a stream of all resources in this ProjectResources instance.
+         *
+         * @return a stream containing all resources
+         */
+        public Stream<Resource> stream() {
+            return Stream.of(
+                    jdbcResources,
+                    httpConnectionResources,
+                    httpClientResources,
+                    httpSharedResources,
+                    jdbcSharedResource,
+                    jmsSharedResource,
+                    sharedVariables).flatMap(Collection::stream);
+        }
+
+        /**
+         * Merges two ProjectResources instances into a single one.
+         * Collections from both instances are combined using ArrayList.
+         *
+         * @param first  the first ProjectResources instance
+         * @param second the second ProjectResources instance
+         * @return a new ProjectResources instance containing merged collections
+         */
+        public static ProjectResources merge(ProjectResources first, ProjectResources second) {
+            return new ProjectResources(
+                    mergeCollections(first.jdbcResources, second.jdbcResources),
+                    mergeCollections(first.httpConnectionResources, second.httpConnectionResources),
+                    mergeCollections(first.httpClientResources, second.httpClientResources),
+                    mergeCollections(first.httpSharedResources, second.httpSharedResources),
+                    mergeCollections(first.jdbcSharedResource, second.jdbcSharedResource),
+                    mergeCollections(first.jmsSharedResource, second.jmsSharedResource),
+                    mergeCollections(first.sharedVariables, second.sharedVariables));
+        }
+
+        private static <T> Collection<T> mergeCollections(Collection<T> first, Collection<T> second) {
+            Collection<T> result = new ArrayList<>();
+            if (first != null) {
+                result.addAll(first);
+            }
+            if (second != null) {
+                result.addAll(second);
+            }
+            return result;
+        }
     }
 
     public static ConversionResult convertProject(

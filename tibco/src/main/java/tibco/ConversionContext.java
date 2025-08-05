@@ -19,12 +19,23 @@
 package tibco;
 
 import common.LoggingUtils;
+import tibco.converter.ProjectConverter.ProjectResources;
+import tibco.model.Resource;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public record ConversionContext(String org, boolean dryRun, boolean keepStructure,
-                                Consumer<String> stateCallback, Consumer<String> logCallback)
-        implements LoggingContext {
+        Consumer<String> stateCallback, Consumer<String> logCallback,
+        List<ProjectResources> projectResources) implements LoggingContext {
+
+    public ConversionContext(String org, boolean dryRun, boolean keepStructure,
+            Consumer<String> stateCallback, Consumer<String> logCallback) {
+        this(org, dryRun, keepStructure, stateCallback, logCallback, new ArrayList<>());
+    }
 
     @Override
     public void log(LoggingUtils.Level level, String message) {
@@ -34,5 +45,20 @@ public record ConversionContext(String org, boolean dryRun, boolean keepStructur
     @Override
     public void logState(String message) {
         stateCallback.accept(message);
+    }
+
+    public Optional<Resource> lookupResource(Resource.ResourceIdentifier identifier) {
+        return projectResources.stream()
+                .flatMap(ProjectResources::stream)
+                .filter(resource -> resource.matches(identifier))
+                .findFirst();
+    }
+
+    public void addProjectResources(ProjectResources resources) {
+        projectResources.add(resources);
+    }
+
+    public void addProjectResources(Collection<ProjectResources> resources) {
+        projectResources.addAll(resources);
     }
 }

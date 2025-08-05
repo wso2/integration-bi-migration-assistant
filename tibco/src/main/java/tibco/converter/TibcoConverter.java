@@ -30,9 +30,9 @@ import tibco.LoggingContext;
 import tibco.ProjectConversionContext;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
-import tibco.analyzer.ModelAnalyser;
 import tibco.analyzer.DefaultAnalysisPass;
 import tibco.analyzer.LoggingAnalysisPass;
+import tibco.analyzer.ModelAnalyser;
 import tibco.analyzer.ProjectAnalysisContext;
 import tibco.analyzer.TibcoAnalysisReport;
 import tibco.converter.ProjectConverter.ProjectResources;
@@ -87,6 +87,10 @@ public class TibcoConverter {
             Set<Process> processes = TibcoToBalConverter.parseProcesses(pcx);
             Set<Schema> types = TibcoToBalConverter.parseTypes(pcx);
             ProjectResources resources = TibcoToBalConverter.parseResources(pcx);
+
+            // Add all parsed resources to the ConversionContext for global lookup
+            cx.conversionContext().addProjectResources(resources);
+
             return new ParsedProject(processes, types, resources, pcx);
         } catch (Exception e) {
             cx.log(LoggingUtils.Level.SEVERE,
@@ -99,9 +103,12 @@ public class TibcoConverter {
         ModelAnalyser analyser = new ModelAnalyser(List.of(
                 new DefaultAnalysisPass(),
                 new LoggingAnalysisPass()));
+
+        ProjectAnalysisContext analysisContext = new ProjectAnalysisContext(cx, parsed.resources());
         Map<Process, AnalysisResult> analysisResults =
-                analyser.analyseProject(new ProjectAnalysisContext(cx), parsed.processes(), parsed.types());
-        return new AnalyzedProject(parsed.processes(), parsed.types(), parsed.resources(), parsed.parserContext(),
+                analyser.analyseProject(analysisContext, parsed.processes(), parsed.types(), parsed.resources());
+        ProjectResources resources = ProjectResources.merge(parsed.resources(), analysisContext.capturedResources());
+        return new AnalyzedProject(parsed.processes(), parsed.types(), resources, parsed.parserContext(),
                 analysisResults);
     }
 
@@ -186,15 +193,14 @@ public class TibcoConverter {
         }
     }
 
-    public static void migrateTibco(String sourcePath, String outputPath, boolean preserverStructure, boolean verbose,
-                                    boolean dryRun, boolean multiRoot, Optional<String> orgName, 
-                                    Optional<String> projectName) {
+    public static void migrateTibco(String sourcePath, String outputPath, boolean keepStructure, boolean verbose,
+            boolean dryRun, boolean multiRoot, Optional<String> orgName, Optional<String> projectName) {
         Logger logger = verbose ? createVerboseLogger("migrate-tibco") : createDefaultLogger("migrate-tibco");
         Consumer<String> stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         Consumer<String> logCallback = LoggingUtils.wrapLoggerForLogCallback(logger);
         ConversionContext context =
-                new ConversionContext(orgName.orElse("converter"), dryRun, preserverStructure, 
-                                      stateCallback, logCallback);
+                new ConversionContext(orgName.orElse("converter"), dryRun, keepStructure,
+                        stateCallback, logCallback);
         Path inputPath = null;
         try {
             inputPath = Paths.get(sourcePath).toRealPath();
@@ -210,20 +216,20 @@ public class TibcoConverter {
                         + sourcePath);
                 System.exit(1);
             }
-            migrateTibcoMultiRoot(context, inputPath, outputPath, projectName);
+            migrateTibcoMultiRoot(context, inputPath, outputPath, projectName, keepStructure);
             return;
         }
 
         migrateTibcoInner(context, sourcePath, outputPath, projectName);
     }
 
-    static void migrateTibcoMultiRoot(ConversionContext cx, Path inputPath, String outputPath, 
-                                      Optional<String> projectName) {
+    static void migrateTibcoMultiRoot(ConversionContext cx, Path inputPath, String outputPath,
+                                      Optional<String> projectName, boolean keepStructure) {
         List<ProjectSummary> projectSummaries = new ArrayList<>();
         List<String> childPaths = new ArrayList<>();
         List<String> childOutputPaths = new ArrayList<>();
         List<String> childNames = new ArrayList<>();
-        
+
         try {
             Files.list(inputPath)
                     .filter(Files::isDirectory)

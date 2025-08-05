@@ -69,7 +69,7 @@ public class TibcoProjectConversionTest {
                 "logCallback", (java.util.function.Consumer<String>) s -> {
                 }
         );
-        
+
         // Run the conversion using the new public API
         var result = tibco.TibcoToBalConverter.migrateTIBCO(parameters);
         Assert.assertNotNull(result, "migrateTIBCO returned null");
@@ -133,11 +133,12 @@ public class TibcoProjectConversionTest {
             if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
                 // Update expected results
                 TibcoConverter.migrateTibcoMultiRoot(cx, multiRootSource, expectedMultiRootOutput.toString(),
-                        Optional.empty());
+                        Optional.empty(), false);
             }
 
             // Run multi-root conversion
-            TibcoConverter.migrateTibcoMultiRoot(cx, multiRootSource, tempOutputDir.toString(), Optional.empty());
+            TibcoConverter.migrateTibcoMultiRoot(cx, multiRootSource, tempOutputDir.toString(), Optional.empty(),
+                    false);
 
             // Verify the structure - should have two converted projects
             Assert.assertTrue(Files.exists(tempOutputDir.resolve("helloWorld_converted")),
