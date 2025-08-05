@@ -46,7 +46,7 @@ public interface AnalysisResult {
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
-                Collections.emptyMap(), TibcoAnalysisReport.empty());
+                Collections.emptyMap(), Collections.emptySet(), TibcoAnalysisReport.empty());
     }
 
     Collection<String> inputTypeName(Process process);
@@ -96,6 +96,8 @@ public interface AnalysisResult {
     XSD.XSDType getType(String name);
 
     Set<String> getTypeNames();
+
+    boolean isProcessCalled(Process process);
 
     record ActivityData(String functionName, BallerinaModel.TypeDesc argumentType,
             BallerinaModel.TypeDesc returnType) {

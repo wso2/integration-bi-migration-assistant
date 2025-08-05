@@ -329,6 +329,11 @@ public class ActivityConversionTest {
                 public Set<String> getTypeNames() {
                     return Set.of();
                 }
+
+                @Override
+                public boolean isProcessCalled(Process process) {
+                    return false;
+                }
             };
         }
 
