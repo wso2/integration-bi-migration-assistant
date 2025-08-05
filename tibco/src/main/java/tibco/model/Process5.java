@@ -18,7 +18,6 @@
 
 package tibco.model;
 
-import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 
 import java.util.ArrayList;
@@ -38,15 +37,19 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
 
     public record ExplicitTransitionGroup(List<ExplicitTransitionGroup.InlineActivity> activities,
                                           List<ExplicitTransitionGroup.Transition> transitions,
-                                          ExplicitTransitionGroup.InlineActivity startActivity,
+                                          ExplicitTransitionGroup.InlineActivity start,
                                           Optional<Scope.Flow.Activity.Expression.XSLT> returnBindings) {
 
         public ExplicitTransitionGroup() {
             this(null);
         }
 
+        public Optional<InlineActivity> startActivity() {
+            return Optional.ofNullable(start);
+        }
+
         public boolean isEmpty() {
-            return activities.isEmpty() && transitions.isEmpty() && startActivity == null;
+            return activities.isEmpty() && transitions.isEmpty();
         }
 
         ExplicitTransitionGroup(ExplicitTransitionGroup.InlineActivity startActivity) {
@@ -61,13 +64,13 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
         public ExplicitTransitionGroup append(ExplicitTransitionGroup.InlineActivity activity) {
             List<ExplicitTransitionGroup.InlineActivity> newActivities = new ArrayList<>(activities);
             newActivities.add(activity);
-            return new ExplicitTransitionGroup(newActivities, transitions, startActivity, returnBindings);
+            return new ExplicitTransitionGroup(newActivities, transitions, start, returnBindings);
         }
 
         public ExplicitTransitionGroup append(ExplicitTransitionGroup.Transition transition) {
             List<ExplicitTransitionGroup.Transition> newTransitions = new ArrayList<>(transitions);
             newTransitions.add(transition);
-            return new ExplicitTransitionGroup(activities, newTransitions, startActivity, returnBindings);
+            return new ExplicitTransitionGroup(activities, newTransitions, start, returnBindings);
         }
 
         public ExplicitTransitionGroup setStartActivity(ExplicitTransitionGroup.InlineActivity startActivity) {
@@ -77,7 +80,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
         }
 
         public ExplicitTransitionGroup setReturnBindings(Scope.Flow.Activity.Expression.XSLT expression) {
-            return new ExplicitTransitionGroup(activities, transitions, startActivity, Optional.of(expression));
+            return new ExplicitTransitionGroup(activities, transitions, start, Optional.of(expression));
         }
 
         public sealed interface InlineActivityWithBody extends ExplicitTransitionGroup.InlineActivity {
@@ -117,24 +120,6 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 }
 
             }
-        }
-
-        public @NotNull ExplicitTransitionGroup resolve() {
-            if (startActivity != null) {
-                return this;
-            }
-            if (activities.isEmpty()) {
-                throw new IllegalStateException("Empty process without activities");
-            }
-            String startActivityName = transitions.stream()
-                    .filter(transition -> transition.from().equalsIgnoreCase("start"))
-                    .findFirst().map(ExplicitTransitionGroup.Transition::to)
-                    .orElseThrow(() -> new IllegalStateException("failed to find start activity"));
-            ExplicitTransitionGroup.InlineActivity startActivity = activities.stream()
-                    .filter(each -> each.name().equals(startActivityName))
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalStateException("no such activity" + startActivityName));
-            return this.setStartActivity(startActivity);
         }
 
         public record Transition(String from, String to) {

@@ -23,6 +23,7 @@ import common.BallerinaModel.Expression;
 import common.BallerinaModel.Statement.VarDeclStatment;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
+import tibco.model.Process;
 import tibco.model.Scope;
 import tibco.model.Scope.Flow.Activity.ActivityExtension.Config.SQL;
 import tibco.model.XSD;
@@ -354,12 +355,11 @@ public final class ConversionUtils {
         };
     }
 
-    public static @NotNull String extractFileName(String filePath) {
-        if (filePath == null || filePath.isBlank()) {
-            throw new IllegalArgumentException("File path cannot be null or blank");
-        }
-        // Handle both forward slashes and backslashes
-        int lastSlash = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
-        return lastSlash >= 0 ? filePath.substring(lastSlash + 1) : filePath;
+    public static @NotNull String processFunctionName(Process process) {
+        return processFunctionName(process.name());
+    }
+
+    public static @NotNull String processFunctionName(String processName) {
+        return "start_" + sanitizes(processName);
     }
 }

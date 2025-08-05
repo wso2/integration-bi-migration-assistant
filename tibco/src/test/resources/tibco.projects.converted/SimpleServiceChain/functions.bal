@@ -18,10 +18,10 @@ function Call_Foo(Context cx) returns error? {
 
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
-    xml var2 = var1/*;
-    xml var3 = check proj_annon_var2->post("", var2);
-    xml var4 = xml `<root>${var3}</root>`;
-    addToContext(cx, "Call-Foo", var4);
+    addToContext(cx, "$Start", var1);
+    start_Processes_Foo_process(cx);
+    xml var2 = cx.result;
+    addToContext(cx, "Call-Foo", var2);
 }
 
 function HTTP_Receiver(Context cx) returns error? {

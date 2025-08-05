@@ -70,7 +70,6 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
 import static common.ConversionUtils.stmtFrom;
-import static tibco.converter.ConversionUtils.baseName;
 import static tibco.converter.Library.FILE;
 import static tibco.converter.Library.JMS;
 
@@ -81,7 +80,7 @@ public class ProcessConverter {
 
     static @NotNull BallerinaModel.Service convertStartActivityService(
             ProcessContext cx, ExplicitTransitionGroup group) {
-        ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity();
+        ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity().get();
         return switch (startActivity) {
             case HttpEventSource httpEventSource -> createHTTPServiceForStartActivity(cx, group, httpEventSource);
             case FileEventSource fileEventSource -> createFileEventServiceForStartActivity(cx, group, fileEventSource);
@@ -265,25 +264,6 @@ public class ProcessConverter {
         }
 
         return new BallerinaModel.Service("", listenerRef.varName(), List.of(resource));
-    }
-
-    static void addProcessClient(ProcessContext cx, ExplicitTransitionGroup group,
-                                 Collection<Resource.HTTPSharedResource> httpSharedResources) {
-        ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity();
-        if (!(startActivity instanceof HttpEventSource httpEventSource)) {
-            return;
-        }
-        String name = baseName(httpEventSource.sharedChannel());
-        Resource.HTTPSharedResource http = httpSharedResources.stream()
-                .filter(each -> each.name().equals(name))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Failed to find http source for " + name));
-        String path = http.host() + ":" + http.port();
-        cx.addLibraryImport(Library.HTTP);
-        BallerinaModel.ModuleVar moduleVar = new BallerinaModel.ModuleVar(cx.getAnonName(), "http:Client",
-                Optional.of(new CheckPanic(exprFrom("new (\"%s\")".formatted(path)))), false, false);
-        cx.addOnDemandModuleVar(moduleVar.name(), moduleVar);
-        cx.registerProcessClient(moduleVar.name());
     }
 
     private static BallerinaModel.@NotNull Resource generateResourceFunctionForHTTPStartActivity(
@@ -516,9 +496,6 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
             return new TypeConversionResult(List.of(), Optional.empty());
         }
 
-        public boolean isEmpty() {
-            return service.isEmpty() && mainFn.isEmpty();
-        }
     }
 
     private static BallerinaModel.Function generateExplicitTransitionBlockStartFunction(

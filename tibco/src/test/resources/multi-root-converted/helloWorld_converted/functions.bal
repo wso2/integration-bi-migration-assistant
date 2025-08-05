@@ -19,11 +19,10 @@ function Call_shared_process(Context cx) returns error? {
 
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
-    // WARNING: Failed to find process client for: /lib/shared.process using a placeholder
-    xml var2 = var1/*;
-    xml var3 = check processClient_lib_shared_process->post("", var2);
-    xml var4 = xml `<root>${var3}</root>`;
-    addToContext(cx, "Call-shared-process", var4);
+    addToContext(cx, "$Start", var1);
+    start_lib_shared_process(cx);
+    xml var2 = cx.result;
+    addToContext(cx, "Call-shared-process", var2);
 }
 
 function HTTP_Receiver(Context cx) returns error? {
@@ -166,7 +165,6 @@ function Log(Context cx) returns error? {
 }
 
 function scope0_1ActivityRunner(Context cx) returns error? {
-    check Log(cx);
 }
 
 function scope0_1FaultHandler(error err, Context cx) returns () {

@@ -223,7 +223,7 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     }
 
     String getProcessStartFunctionName() {
-        return "start_" + ConversionUtils.sanitizes(process.name());
+        return ConversionUtils.processFunctionName(process);
     }
 
     String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {

@@ -352,8 +352,6 @@ public final class XmlToTibcoModelParser {
         if (transitionGroup.isEmpty()) {
             return new Process6(name, nameSpaces, types, processInfo, processInterface,
                     processTemplateConfigurations, partnerLinks, variables, scope);
-        } else {
-            transitionGroup = transitionGroup.resolve();
         }
         return new Process5(name, nameSpaces, transitionGroup);
     }
@@ -520,7 +518,6 @@ public final class XmlToTibcoModelParser {
                 }
             }
         }
-        transitionGroup = transitionGroup.resolve();
         return new LoopGroup(element, name, inputBinding, overExpr, iterationElementSlot, indexSlot,
                 activityOutputName, accumulateOutput, transitionGroup, cx.fileName());
     }

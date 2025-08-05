@@ -103,13 +103,14 @@ public final class DefaultAnalysisPass extends AnalysisPass {
                 .map(activity -> new ActivityGraphData(activity.name(), cx.activityNode(activity)))
                 .collect(Collectors.toMap(ActivityGraphData::name, ActivityGraphData::node));
         cx.setActivityNodes(activityNodes);
-        ExplicitTransitionGroup.InlineActivity startActivity = explicitTransitionGroup.startActivity();
-        activityNodes.put(startActivity.name(), cx.activityNode(startActivity));
-        graph.addRoot(activityNodes.get(startActivity.name()));
-        explicitTransitionGroup.transitions().forEach(transition -> {
-            analyseTransition(cx, explicitTransitionGroup, transition);
+        explicitTransitionGroup.startActivity().ifPresent(startActivity -> {
+            activityNodes.put(startActivity.name(), cx.activityNode(startActivity));
+            graph.addRoot(activityNodes.get(startActivity.name()));
+            explicitTransitionGroup.transitions().forEach(transition -> {
+                analyseTransition(cx, explicitTransitionGroup, transition);
+            });
+            cx.allocateActivityNameIfNeeded(startActivity);
         });
-        cx.allocateActivityNameIfNeeded(startActivity);
         explicitTransitionGroup.activities().forEach(cx::allocateActivityNameIfNeeded);
         explicitTransitionGroup.activities().stream()
                 .flatMap(each -> {

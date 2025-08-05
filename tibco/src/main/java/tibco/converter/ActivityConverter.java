@@ -882,29 +882,14 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
 
     private static ActivityConversionResult convertCallProcess(
             ActivityContext cx, VariableReference input, InlineActivity.CallProcess callProcess) {
-        Optional<VariableReference> processClient = cx.getProcessClient(callProcess.processName());
-        VariableReference client;
         List<Statement> body = new ArrayList<>();
-        if (processClient.isPresent()) {
-            client = processClient.get();
-        } else {
-            // TODO: properly handle this using package approach
-            String message =
-                            "WARNING: Failed to find process client for: %s using a placeholder"
-                                            .formatted(callProcess.processName());
-            cx.log(SEVERE, message);
-            body.add(new Comment(message));
-            client = new VariableReference("processClient_" + ConversionUtils.sanitizes(callProcess.processName()));
-        }
-        VarDeclStatment request = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                exprFrom("%s/*".formatted(input.varName())));
-        body.add(request);
+        body.add(addToContext(cx, input, "$Start"));
+        String processFn = ConversionUtils.processFunctionName(callProcess.processName());
 
-        VarDeclStatment returnedValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new Check(new RemoteMethodCallAction(client, "post",
-                        List.of(new StringConstant(""), request.ref()))));
-        body.add(returnedValue);
-        VarDeclStatment result = wrapWithRoot(cx, returnedValue.ref());
+        body.add(new CallStatement(new FunctionCall(processFn, List.of(cx.contextVarRef()))));
+
+        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "result"));
         body.add(result);
         return new ActivityConversionResult(result.ref(), body);
     }

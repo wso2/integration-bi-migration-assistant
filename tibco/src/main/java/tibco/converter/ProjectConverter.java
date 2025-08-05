@@ -35,7 +35,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class ProjectConverter {
@@ -107,8 +106,7 @@ public class ProjectConverter {
 
         List<ProcessResult> results =
                 processes.stream()
-                        .map(process -> convertServices(cx, process, projectResources))
-                        .filter(Predicate.not(ProcessResult::isEmpty))
+                        .map(process -> convertServices(cx, process))
                         .toList();
         List<Type.Schema> schemas = new ArrayList<>(types);
         for (Process each : processes) {
@@ -163,16 +161,12 @@ public class ProjectConverter {
             return new ProcessResult(process, ProcessConverter.TypeConversionResult.empty());
         }
 
-        public boolean isEmpty() {
-            return result.isEmpty();
-        }
     }
 
-    private static ProcessResult convertServices(ProjectContext cx, Process process,
-                                                 ProjectResources projectResources) {
+    private static ProcessResult convertServices(ProjectContext cx, Process process) {
         try {
             return switch (process) {
-                case Process5 process5 -> convertServices(cx, process5, projectResources);
+                case Process5 process5 -> convertServices(cx, process5);
                 case Process6 process6 -> convertServices(cx, process6);
             };
         } catch (Exception e) {
@@ -181,31 +175,30 @@ public class ProjectConverter {
         }
     }
 
-    private static ProcessResult convertServices(ProjectContext cx, Process5 process,
-                                                 ProjectResources projectResources) {
+    private static ProcessResult convertServices(ProjectContext cx, Process5 process) {
         List<BallerinaModel.Service> startService;
         Optional<BallerinaModel.Function> mainFn;
         if (isLifecycleProcess(process)) {
             startService = List.of();
             mainFn = Optional.of(ProcessConverter.createMainFunction(cx.getProcessContext(process), process));
         } else {
-            startService =
-                    List.of(ProcessConverter.convertStartActivityService(cx.getProcessContext(process),
-                            process.transitionGroup()));
+            // Check if the group has a start activity before attempting to convert it
+            startService = process.transitionGroup().startActivity()
+                    .map(startActivity -> ProcessConverter.convertStartActivityService(cx.getProcessContext(process),
+                            process.transitionGroup()))
+                    .map(List::of)
+                    .orElse(List.of());
             mainFn = Optional.empty();
-        }
-        try {
-            ProcessConverter.addProcessClient(cx.getProcessContext(process), process.transitionGroup(),
-                    projectResources.httpSharedResources);
-        } catch (Exception e) {
-            cx.registerServiceGenerationError(process, e);
         }
         return new ProcessResult(process, new ProcessConverter.TypeConversionResult(startService, mainFn));
     }
 
     private static boolean isLifecycleProcess(Process5 process) {
         return process.transitionGroup()
-                .startActivity() instanceof Process5.ExplicitTransitionGroup.InlineActivity.OnStartupEventSource;
+                .startActivity().map(
+                        startActivity -> startActivity instanceof
+                                Process5.ExplicitTransitionGroup.InlineActivity.OnStartupEventSource)
+                .orElse(false);
     }
 
     private static ProcessResult convertServices(ProjectContext cx, Process6 process) {

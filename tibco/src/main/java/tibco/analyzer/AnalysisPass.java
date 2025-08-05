@@ -59,7 +59,7 @@ public class AnalysisPass {
             ProcessAnalysisContext cx, Process5.ExplicitTransitionGroup explicitTransitionGroup) {
         explicitTransitionGroup.transitions().forEach(each -> analyseTransition(cx, explicitTransitionGroup, each));
         explicitTransitionGroup.activities().forEach(each -> analyseActivity(cx, each));
-        analyseActivity(cx, explicitTransitionGroup.startActivity());
+        explicitTransitionGroup.startActivity().ifPresent(startActivity -> analyseActivity(cx, startActivity));
         explicitTransitionGroup.activities().stream()
                 .flatMap(each ->
                         each instanceof Process5.ExplicitTransitionGroup.NestedGroup nestedGroup ?
