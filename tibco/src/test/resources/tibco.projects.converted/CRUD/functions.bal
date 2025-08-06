@@ -13,7 +13,7 @@ function ErrorLog(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0">
-     <xsl:template name="Transform2" match="/">
+     <xsl:template name="Transform3" match="/">
         <ActivityInput>
                     
     <message>
@@ -35,6 +35,36 @@ function HTTP_Receiver(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
     addToContext(cx, "HTTP-Receiver", var1);
+}
+
+function JDBC_Query(Context cx) returns error? {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0">
+     <xsl:template name="Transform2" match="/">
+        <jdbcQueryActivityInput/>
+
+    </xsl:template>
+</xsl:stylesheet>`, cx.variables);
+    string var2 = "select * FROM DB";
+    sql:ParameterizedQuery var3 = ``;
+    var3.strings = [var2];
+    xml var4;
+    stream<record {|anydata...;|}, error?> var5 = JDBCConnection->query(var3);
+    xml var6 = xml ``;
+    int var7 = 0;
+    while var7 < 100 {
+        var each = var5.next();
+        if each is error? {
+            break;
+        }
+        var7 += 1;
+        xml var8 = check toXML(each);
+        var6 = var6 + xml `<Record>${var8}</Record>`;
+    }
+    xml var9 = xml `<root>${var6}</root>`;
+    var4 = var9;
+    addToContext(cx, "JDBC-Query", var4);
 }
 
 function Log(Context cx) returns error? {
@@ -62,13 +92,13 @@ function SQL_Direct(Context cx) returns error? {
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform1" match="/">
         <jdbcGeneralActivityInput>
-                        
-    <statement>
-                                SELECT * FROM DB WHERE USER_ID=
-        <xsl:value-of select="$post//UserId" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-                            
-    </statement>
                     
+    <statement>
+                            SELECT * FROM DB WHERE USER_ID=
+        <xsl:value-of select="$post//UserId" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                        
+    </statement>
+                
 </jdbcGeneralActivityInput>
 
     </xsl:template>
@@ -101,6 +131,7 @@ function scope0ActivityRunner(Context cx) returns error? {
     check HTTP_Receiver(cx);
     check Log(cx);
     check SQL_Direct(cx);
+    check JDBC_Query(cx);
 }
 
 function scope0FaultHandler(error err, Context cx) returns () {

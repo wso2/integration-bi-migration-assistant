@@ -429,6 +429,7 @@ public final class XmlToTibcoModelParser {
             case JSON_PARSER_ACTIVITY -> parseJSONParserActivity(cx, element, name, inputBinding);
             case JSON_RENDER_ACTIVITY -> parseJSONRenderActivity(cx, element, name, inputBinding);
             case JDBC -> parseJDBCActivity(cx, element, name, inputBinding);
+            case JDBC_QUERY -> parseJDBCQueryActivity(cx, element, name, inputBinding);
             case MAPPER -> parseMapperActivity(cx, name, inputBinding, element);
             case JMS_QUEUE_EVENT_SOURCE -> parseJMSQueueEventSource(cx, element, name, inputBinding);
             case JMS_QUEUE_SEND_ACTIVITY -> parseJMSQueueSendActivity(cx, element, name, inputBinding);
@@ -449,6 +450,23 @@ public final class XmlToTibcoModelParser {
         String connection = tryGetInlineActivityConfigValue(element, "jdbcSharedConfig")
                 .orElseThrow(() -> new ParserException("Failed to find jdbcSharedConfig", element));
         return new InlineActivity.JDBC(element, name, inputBinding, connection, cx.fileName());
+    }
+
+    private static InlineActivity.JDBCQuery parseJDBCQueryActivity(ProcessContext cx, Element element, String name,
+            Flow.Activity.InputBinding inputBinding) {
+        String connection = tryGetInlineActivityConfigValue(element, "jdbcSharedConfig")
+                .orElseThrow(() -> new ParserException("Failed to find jdbcSharedConfig", element));
+
+        Optional<Integer> timeout = tryGetInlineActivityConfigValue(element, "timeout")
+                .map(Integer::parseInt);
+
+        Optional<Integer> maxRows = tryGetInlineActivityConfigValue(element, "maxRows")
+                .map(Integer::parseInt);
+
+        Optional<String> statement = tryGetInlineActivityConfigValue(element, "statement");
+
+        return new InlineActivity.JDBCQuery(element, name, cx.fileName(), inputBinding, connection, timeout, maxRows,
+                statement);
     }
 
     private static InlineActivity.JSONRender parseJSONRenderActivity(ProcessContext cx, Element element, String name,

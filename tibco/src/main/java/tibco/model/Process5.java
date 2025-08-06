@@ -157,6 +157,7 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                 JSON_PARSER_ACTIVITY,
                 JSON_RENDER_ACTIVITY,
                 JDBC,
+                JDBC_QUERY,
                 MAPPER,
                 JMS_QUEUE_EVENT_SOURCE,
                 JMS_QUEUE_SEND_ACTIVITY,
@@ -204,6 +205,7 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                                     new LookUpData("SleepActivity", SLEEP),
                                     new LookUpData("GetSharedVariableActivity", GET_SHARED_VARIABLE),
                                     new LookUpData("SetSharedVariableActivity", SET_SHARED_VARIABLE),
+                                    new LookUpData("JDBCQueryActivity", JDBC_QUERY),
                                     new LookUpData("FileEventSource", FILE_EVENT_SOURCE),
                             new LookUpData("OnStartupEventSource", ON_STARTUP),
                             new LookUpData("ListFilesActivity", LIST_FILES))
@@ -233,6 +235,27 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                 @Override
                 public boolean hasInputBinding() {
                     return true;
+                }
+            }
+
+            record JDBCQuery(Element element, String name, String fileName, InputBinding inputBinding,
+                             String connection, Optional<Integer> timeout, Optional<Integer> maxRow,
+                             Optional<String> statement)
+                    implements ExplicitTransitionGroup.InlineActivity, Scope.Flow.ActivityWithResources {
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.JDBC_QUERY;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
+                }
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List.of(new Resource.ResourceIdentifier(Resource.ResourceKind.JDBC_SHARED, connection));
                 }
             }
 

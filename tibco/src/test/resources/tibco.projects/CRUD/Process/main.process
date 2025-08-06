@@ -68,19 +68,33 @@
         </pd:inputBindings>
     </pd:activity>
     <pd:activity name="SQL Direct">
-            <pd:type>com.tibco.plugin.jdbc.JDBCGeneralActivity</pd:type>
-            <pd:resourceType>ae.activities.JDBCGeneralActivity</pd:resourceType>
-            <config>
-                <jdbcSharedConfig>/CRUD/SharedResources/JDBCConnection.sharedjdbc</jdbcSharedConfig>
-            </config>
-            <pd:inputBindings>
-                <jdbcGeneralActivityInput>
-                    <statement>
-                        SELECT * FROM DB WHERE USER_ID=<xsl:value-of select="$post//UserId"/>
-                    </statement>
-                </jdbcGeneralActivityInput>
-            </pd:inputBindings>
-        </pd:activity>
+        <pd:type>com.tibco.plugin.jdbc.JDBCGeneralActivity</pd:type>
+        <pd:resourceType>ae.activities.JDBCGeneralActivity</pd:resourceType>
+        <config>
+            <jdbcSharedConfig>/CRUD/SharedResources/JDBCConnection.sharedjdbc</jdbcSharedConfig>
+        </config>
+        <pd:inputBindings>
+            <jdbcGeneralActivityInput>
+                <statement>
+                    SELECT * FROM DB WHERE USER_ID=<xsl:value-of select="$post//UserId"/>
+                </statement>
+            </jdbcGeneralActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="JDBC Query">
+        <pd:type>com.tibco.plugin.jdbc.JDBCQueryActivity</pd:type>
+        <pd:resourceType>ae.activities.JDBCQueryActivity</pd:resourceType>
+        <config>
+            <timeout>10</timeout>
+            <maxRows>100</maxRows>
+            <jdbcSharedConfig>/CRUD/SharedResources/JDBCConnection.sharedjdbc</jdbcSharedConfig>
+            <statement>select * FROM DB</statement>
+        </config>
+        <pd:inputBindings>
+            <jdbcQueryActivityInput/>
+        </pd:inputBindings>
+    </pd:activity>
+
     <pd:activity name="Catch">
         <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
         <pd:resourceType>ae.activities.catch</pd:resourceType>
@@ -131,6 +145,13 @@
     </pd:transition>
     <pd:transition>
         <pd:from>SQL Direct</pd:from>
+        <pd:to>JDBC Query</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>JDBC Query</pd:from>
         <pd:to>End</pd:to>
         <pd:lineType>Default</pd:lineType>
         <pd:lineColor>-16777216</pd:lineColor>
