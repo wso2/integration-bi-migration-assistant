@@ -81,12 +81,12 @@ public final class XmlToTibcoModelParser {
         try {
             name = tryGetFirstChildWithTag(root, "name").map(org.w3c.dom.Element::getTextContent).orElse("");
             Element configuration = getFirstChildWithTag(root, "config");
-            String location = getFirstChildWithTag(configuration, "location").getTextContent();
+            Optional<String> location = parseOptionalString(configuration, "location");
             cx.log(INFO, "Done parsing JDBCSharedResource: " + name);
             cx.logState("Parsed JDBCSharedResource: " + name);
             return Optional.of(new Resource.JDBCSharedResource(name, cx.getResourcePath(), location));
         } catch (Exception ex) {
-            cx.registerUnsupportedResource(root, name);
+            cx.registerPartiallySupportedResource(root, name);
             return Optional.empty();
         }
     }
@@ -99,64 +99,81 @@ public final class XmlToTibcoModelParser {
         try {
             name = tryGetFirstChildWithTag(root, "name").map(org.w3c.dom.Element::getTextContent).orElse("");
             Element config = getFirstChildWithTag(root, "config");
-            var namingEnvironment = parseJMSNamingEnvironment(config);
-            var connectionAttributes = parseJMSConnectionAttributes(config);
-            java.util.Map<String, String> jndiProperties = parseJMSJNDIProperties(config);
+            Optional<Resource.JMSSharedResource.NamingEnvironment> namingEnvironment = parseJMSNamingEnvironment(
+                    config);
+            Optional<Resource.JMSSharedResource.ConnectionAttributes> connectionAttributes =
+                    parseJMSConnectionAttributes(
+                            config);
+            Map<String, String> jndiProperties = parseJMSJNDIProperties(config);
             cx.log(INFO, "Done parsing JMSSharedResource: " + name);
             cx.logState("Parsed JMSSharedResource: " + name);
-            return Optional.of(new Resource.JMSSharedResource(name, cx.getResourcePath(), fileName,
+            return Optional.of(new Resource.JMSSharedResource(name, cx.getResourcePath(), Optional.of(fileName),
                     namingEnvironment, connectionAttributes, jndiProperties));
         } catch (Exception ex) {
-            cx.registerUnsupportedResource(root, name);
+            cx.registerPartiallySupportedResource(root, name);
             return Optional.empty();
         }
     }
 
-    private static Resource.JMSSharedResource.NamingEnvironment parseJMSNamingEnvironment(Element config) {
-        Element namingEnvElement = getFirstChildWithTag(config, "NamingEnvironment");
-        boolean useJNDI = Boolean.parseBoolean(getFirstChildWithTag(namingEnvElement, "UseJNDI").getTextContent());
-        String providerURL = getFirstChildWithTag(namingEnvElement, "ProviderURL").getTextContent();
-        String namingURL = getFirstChildWithTag(namingEnvElement, "NamingURL").getTextContent();
-        String namingInitialContextFactory = getFirstChildWithTag(namingEnvElement, "NamingInitialContextFactory")
-                .getTextContent();
-        String topicFactoryName = getFirstChildWithTag(namingEnvElement, "TopicFactoryName").getTextContent();
-        String queueFactoryName = getFirstChildWithTag(namingEnvElement, "QueueFactoryName").getTextContent();
-        String namingPrincipal = getFirstChildWithTag(namingEnvElement, "NamingPrincipal").getTextContent();
-        String namingCredential = getFirstChildWithTag(namingEnvElement, "NamingCredential").getTextContent();
+    private static Optional<Resource.JMSSharedResource.NamingEnvironment> parseJMSNamingEnvironment(Element config) {
+        try {
+            Element namingEnvElement = getFirstChildWithTag(config, "NamingEnvironment");
+            Optional<Boolean> useJNDI = parseOptionalBoolean(namingEnvElement, "UseJNDI");
+            Optional<String> providerURL = parseOptionalString(namingEnvElement, "ProviderURL");
+            Optional<String> namingURL = parseOptionalString(namingEnvElement, "NamingURL");
+            Optional<String> namingInitialContextFactory = parseOptionalString(namingEnvElement,
+                    "NamingInitialContextFactory");
+            Optional<String> topicFactoryName = parseOptionalString(namingEnvElement, "TopicFactoryName");
+            Optional<String> queueFactoryName = parseOptionalString(namingEnvElement, "QueueFactoryName");
+            Optional<String> namingPrincipal = parseOptionalString(namingEnvElement, "NamingPrincipal");
+            Optional<String> namingCredential = parseOptionalString(namingEnvElement, "NamingCredential");
 
-        return new Resource.JMSSharedResource.NamingEnvironment(useJNDI, providerURL, namingURL,
-                namingInitialContextFactory, topicFactoryName, queueFactoryName, namingPrincipal, namingCredential);
+            return Optional.of(new Resource.JMSSharedResource.NamingEnvironment(useJNDI, providerURL, namingURL,
+                    namingInitialContextFactory, topicFactoryName, queueFactoryName, namingPrincipal,
+                    namingCredential));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 
-    private static Resource.JMSSharedResource.ConnectionAttributes parseJMSConnectionAttributes(Element config) {
-        Element connAttrsElement = getFirstChildWithTag(config, "ConnectionAttributes");
-        Optional<String> username = tryGetFirstChildWithTag(connAttrsElement, "username")
-                .map(Element::getTextContent)
-                .filter(s -> !s.isBlank());
-        Optional<String> password = tryGetFirstChildWithTag(connAttrsElement, "password")
-                .map(Element::getTextContent)
-                .filter(s -> !s.isBlank());
-        Optional<String> clientID = tryGetFirstChildWithTag(connAttrsElement, "clientID")
-                .map(Element::getTextContent)
-                .filter(s -> !s.isBlank());
-        boolean autoGenClientID = Boolean
-                .parseBoolean(getFirstChildWithTag(connAttrsElement, "autoGenClientID").getTextContent());
+    private static Optional<Resource.JMSSharedResource.ConnectionAttributes> parseJMSConnectionAttributes(
+            Element config) {
+        try {
+            Element connAttrsElement = getFirstChildWithTag(config, "ConnectionAttributes");
+            Optional<String> username = tryGetFirstChildWithTag(connAttrsElement, "username")
+                    .map(Element::getTextContent)
+                    .filter(s -> !s.isBlank());
+            Optional<String> password = tryGetFirstChildWithTag(connAttrsElement, "password")
+                    .map(Element::getTextContent)
+                    .filter(s -> !s.isBlank());
+            Optional<String> clientID = tryGetFirstChildWithTag(connAttrsElement, "clientID")
+                    .map(Element::getTextContent)
+                    .filter(s -> !s.isBlank());
+            Optional<Boolean> autoGenClientID = parseOptionalBoolean(connAttrsElement, "autoGenClientID");
 
-        return new Resource.JMSSharedResource.ConnectionAttributes(username, password, clientID, autoGenClientID);
+            return Optional.of(
+                    new Resource.JMSSharedResource.ConnectionAttributes(username, password, clientID, autoGenClientID));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 
     private static Map<String, String> parseJMSJNDIProperties(Element config) {
-        Map<String, String> jndiProperties = new HashMap<>();
-        tryGetFirstChildWithTag(config, "JNDIProperties").ifPresent(jndiPropsElement -> {
-            for (Element row : new ElementIterable(jndiPropsElement)) {
-                if (getTagNameWithoutNameSpace(row).equals("row")) {
-                    String propName = getFirstChildWithTag(row, "Name").getTextContent();
-                    String propValue = getFirstChildWithTag(row, "Value").getTextContent();
-                    jndiProperties.put(propName, propValue);
+        try {
+            Map<String, String> jndiProperties = new HashMap<>();
+            tryGetFirstChildWithTag(config, "JNDIProperties").ifPresent(jndiPropsElement -> {
+                for (Element row : new ElementIterable(jndiPropsElement)) {
+                    if (getTagNameWithoutNameSpace(row).equals("row")) {
+                        String propName = getFirstChildWithTag(row, "Name").getTextContent();
+                        String propValue = getFirstChildWithTag(row, "Value").getTextContent();
+                        jndiProperties.put(propName, propValue);
+                    }
                 }
-            }
-        });
-        return jndiProperties;
+            });
+            return jndiProperties;
+        } catch (Exception e) {
+            return Map.of();
+        }
     }
 
     public static Optional<Resource.JDBCResource> parseJDBCResource(ResourceContext cx, Element root) {
@@ -166,11 +183,11 @@ public final class XmlToTibcoModelParser {
         try {
             name = tryGetAttributeIgnoringNamespace(root, "name").orElse("");
             Element configuration = getFirstChildWithTag(root, "configuration");
-            String username = configuration.getAttribute("username");
-            String password = configuration.getAttribute("password");
+            String username = parseOptionalAttribute(configuration, "username").orElse("username");
+            String password = parseOptionalAttribute(configuration, "password").orElse("password");
             Element connectionConfig = getFirstChildWithTag(configuration, "connectionConfig");
-            String jdbcDriver = connectionConfig.getAttribute("jdbcDriver");
-            String dbUrl = connectionConfig.getAttribute("dbURL");
+            String jdbcDriver = parseOptionalAttribute(connectionConfig, "jdbcDriver").orElse("jdbcDriver");
+            String dbUrl = parseOptionalAttribute(connectionConfig, "dbURL").orElse("dbURL");
             Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(connectionConfig,
                     "substitutionBindings")
                     .map(XmlToTibcoModelParser::parseSubstitutionBinding).toList();
@@ -192,7 +209,8 @@ public final class XmlToTibcoModelParser {
         try {
             name = tryGetAttributeIgnoringNamespace(root, "name").orElse("");
             Element configuration = getFirstChildWithTag(root, "configuration");
-            String svcRegServiceName = configuration.getAttribute("svcRegServiceName");
+            String svcRegServiceName =
+                    parseOptionalAttribute(configuration, "svcRegServiceName").orElse("svcRegServiceName");
             Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(configuration,
                     "substitutionBindings")
                     .map(XmlToTibcoModelParser::parseSubstitutionBinding).toList();
@@ -213,13 +231,13 @@ public final class XmlToTibcoModelParser {
         String localName = name != null ? name : "";
         try {
             Element config = getFirstChildWithTag(root, "config");
-            String host = getFirstChildWithTag(config, "Host").getTextContent();
-            int port = Integer.parseInt(getFirstChildWithTag(config, "Port").getTextContent());
+            Optional<String> host = parseOptionalString(config, "Host");
+            Optional<Integer> port = parseOptionalInt(config, "Port");
             cx.log(INFO, "Done parsing HTTPSharedResource: " + localName);
             cx.logState("Parsed HTTPSharedResource: " + localName);
             return Optional.of(new Resource.HTTPSharedResource(localName, cx.getResourcePath(), host, port));
         } catch (Exception ex) {
-            cx.registerUnsupportedResource(root, localName);
+            cx.registerPartiallySupportedResource(root, localName);
             return Optional.empty();
         }
     }
@@ -1797,6 +1815,57 @@ public final class XmlToTibcoModelParser {
 
     private static Optional<Element> getFistMatchingChild(Element element, Predicate<Element> predicate) {
         return ElementIterable.of(element).stream().filter(predicate).findFirst();
+    }
+
+    private static boolean isConfigurableValue(String value) {
+        return value != null && value.startsWith("%%") && value.endsWith("%%");
+    }
+
+    private static Optional<String> parseOptionalString(Element parent, String childTag) {
+        try {
+            Element child = getFirstChildWithTag(parent, childTag);
+            String value = child.getTextContent();
+            if (isConfigurableValue(value)) {
+                return Optional.empty();
+            }
+            return Optional.of(value);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    private static Optional<Integer> parseOptionalInt(Element parent, String childTag) {
+        try {
+            Element child = getFirstChildWithTag(parent, childTag);
+            String value = child.getTextContent();
+            if (isConfigurableValue(value)) {
+                return Optional.empty();
+            }
+            return Optional.of(Integer.parseInt(value));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    private static Optional<Boolean> parseOptionalBoolean(Element parent, String childTag) {
+        try {
+            Element child = getFirstChildWithTag(parent, childTag);
+            String value = child.getTextContent();
+            if (isConfigurableValue(value)) {
+                return Optional.empty();
+            }
+            return Optional.of(Boolean.parseBoolean(value));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    private static Optional<String> parseOptionalAttribute(Element element, String attributeName) {
+        String value = element.getAttribute(attributeName);
+        if (value == null || value.isBlank() || isConfigurableValue(value)) {
+            return Optional.empty();
+        }
+        return Optional.of(value);
     }
 
     private record ElementIterable(Element root) implements Iterable<Element> {

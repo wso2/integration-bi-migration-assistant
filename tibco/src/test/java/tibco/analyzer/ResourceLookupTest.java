@@ -114,10 +114,9 @@ public class ResourceLookupTest {
     public void testProcessAnalysisContextDelegation() {
         // Create test resources
         Resource.JMSSharedResource resource = new Resource.JMSSharedResource(
-                "testJms", "/test/path", "file.xml",
-                new Resource.JMSSharedResource.NamingEnvironment(false, "", "", "", "", "", "", ""),
-                new Resource.JMSSharedResource.ConnectionAttributes(Optional.empty(), Optional.empty(),
-                        Optional.empty(), false),
+                "testJms", "/test/path", Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
                 new java.util.HashMap<>());
 
         ProjectResources projectResources = new ProjectResources(

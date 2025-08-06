@@ -497,25 +497,43 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
 
         static JMSConnectionData from(ActivityContext cx, Resource.JMSSharedResource jmsSharedResource) {
             StringBuilder sb = new StringBuilder();
-            String initialContextFactory = jmsSharedResource.namingEnvironment()
-                    .namingInitialContextFactory();
-            sb.append("initialContextFactory = \"").append(initialContextFactory).append("\",");
-            String providerUrl = jmsSharedResource.namingEnvironment().providerURL();
-            sb.append("providerUrl = \"").append(providerUrl).append("\"");
-            jmsSharedResource.connectionAttributes().username().ifPresent(userName -> {
+            String connectionName = cx.getAnnonVarName();
+            ProjectContext projectContext = cx.processContext.projectContext;
+            BallerinaModel.Expression initialContextFactory = jmsSharedResource.namingEnvironment().flatMap(
+                            Resource.JMSSharedResource.NamingEnvironment::namingInitialContextFactory)
+                    .map(value -> (BallerinaModel.Expression) new StringConstant(value))
+                    .orElseGet(() -> {
+                        String varName = connectionName + "NamingInitialContextFactory";
+                        projectContext.addConfigurableVariable(varName, varName, STRING);
+                        return new VariableReference(varName);
+                    });
+            sb.append("initialContextFactory = ").append(initialContextFactory).append(",");
+            BallerinaModel.Expression providerUrl = jmsSharedResource.namingEnvironment().flatMap(
+                            Resource.JMSSharedResource.NamingEnvironment::providerURL)
+                    .map(value -> (BallerinaModel.Expression) new StringConstant(value))
+                    .orElseGet(() -> {
+
+                        String varName = connectionName + "NamingInitialContextFactory";
+                        projectContext.addConfigurableVariable(varName, varName, STRING);
+                        return new VariableReference(varName);
+                    });
+            sb.append("providerUrl = ").append(providerUrl);
+            jmsSharedResource.connectionAttributes().flatMap(
+                    Resource.JMSSharedResource.ConnectionAttributes::username).ifPresent(userName -> {
                 if (sb.charAt(sb.length() - 1) != ',') {
                     sb.append(",");
                 }
                 sb.append("username = \"").append(userName).append("\"");
             });
-            jmsSharedResource.connectionAttributes().password().ifPresent(password -> {
+            jmsSharedResource.connectionAttributes().flatMap(
+                    Resource.JMSSharedResource.ConnectionAttributes::password).ifPresent(password -> {
                 if (sb.charAt(sb.length() - 1) != ',') {
                     sb.append(",");
                 }
                 sb.append("password = \"").append(password).append("\"");
             });
             VarDeclStatment connection =
-                    new VarDeclStatment(ConversionUtils.Constants.JMS_CONNECTION, cx.getAnnonVarName(),
+                    new VarDeclStatment(ConversionUtils.Constants.JMS_CONNECTION, connectionName,
                             new Check(exprFrom("new (" + sb + ")")));
 
             VarDeclStatment session = new VarDeclStatment(ConversionUtils.Constants.JMS_SESSION,
