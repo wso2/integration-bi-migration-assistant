@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Migration Assessment</title>
+    <style>/* Base styles */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+h1, h2, h3 {
+    color: #333;
+}
+
+h1 {
+    text-align: center;
+    color: #4682B4;
+    font-size: 2.5em;
+    font-weight: 300;
+    margin: 15px auto 40px;
+    padding: 0 0 15px;
+    max-width: 600px;
+    position: relative;
+    border-bottom: 1px solid rgba(70, 130, 180, 0.2);
+}
+
+h1::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 3px;
+    background-color: rgba(70, 130, 180, 0.8);
+}
+
+.summary-container h2 {
+    margin-top: 0;
+    color: #4682B4;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 1.5em;
+}
+
+h3 {
+    color: #4682B4;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+/* Summary container styling */
+.summary-container {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    margin: 25px 0;
+    transition: box-shadow 0.3s;
+}
+
+.summary-container:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Coverage indicator */
+.coverage-indicator {
+    width: 100%;
+    height: 12px;
+    background-color: #f0f0f0;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin: 10px 0 20px 0;
+}
+
+.coverage-bar {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.5s ease-in-out;
+}
+
+/* Table styling */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+
+th {
+    background-color: #4682B4;
+    color: white;
+}
+
+tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+tr:hover {
+    background-color: #ddd;
+}
+
+/* Estimation notes */
+.estimation-notes {
+    margin-top: 25px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #4682B4;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.estimation-notes p {
+    margin-top: 0;
+}
+
+.estimation-notes ul {
+    margin: 15px 0 5px 25px;
+    padding-left: 0;
+}
+
+.estimation-notes li {
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+/* Code blocks styling */
+.unsupported-blocks {
+    padding: 10px;
+}
+
+.block-item {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.block-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+}
+
+.block-header {
+    background-color: #4682B4;
+    color: white;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.block-code {
+    margin: 0;
+    padding: 15px;
+    background-color: #fff;
+    overflow-x: auto;
+    font-family: monospace;
+    white-space: pre-wrap;
+}
+
+.block-number {
+    font-weight: bold;
+}
+
+.block-type {
+    font-family: monospace;
+}
+
+/* Status badges */
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75em;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: inline-block;
+    margin-left: 15px;
+}
+
+.status-high {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid rgba(46, 125, 50, 0.2);
+}
+
+.status-medium {
+    background-color: #fff8e1;
+    color: #f57c00;
+    border: 1px solid rgba(245, 124, 0, 0.2);
+}
+
+.status-low {
+    background-color: #ffebee;
+    color: #c62828;
+    border: 1px solid rgba(198, 40, 40, 0.2);
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+/* Code in tables */
+table code {
+    background-color: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+/* Metric styling with box shape and hover effects */
+.metric {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 15px 20px;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 15px;
+    border: 1px solid #eaeaea;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.metric:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.metric-value {
+    font-weight: bold;
+    font-size: 1.8em;
+    color: #4682B4;
+    margin-bottom: 5px;
+}
+
+.metric-label {
+    font-size: 0.9em;
+    color: #666;
+    text-align: center;
+}
+
+.metric-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.metric-right {
+    flex: 1;
+    padding-top: 10px;
+}
+
+/* Time estimation table styling */
+.time-best {
+    color: #4CAF50;
+    font-weight: 600;
+}
+
+.time-avg {
+    color: #4682B4;
+    font-weight: 600;
+}
+
+.time-worst {
+    color: #FF5722;
+    font-weight: 600;
+}
+
+.drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
+.drawer.open { max-height: 500px; }
+.empty-message { text-align: center; padding: 20px; color: #666; }
+
+/* Coverage bar with data attributes */
+.coverage-bar[data-width] {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.5s ease-in-out;
+}
+
+/* Utility classes for visibility */
+.hidden {
+    display: none;
+}
+
+.visible {
+    display: block;
+}
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1>Migration Assessment</h1>
+    <div class="summary-container">
+        <h2>Migration Coverage Overview</h2>
+        <div class="metrics">
+
+          <!-- Overall Coverage -->
+          <div class="metric">
+            <div class="metric-left">
+              <span class="metric-value">100%</span>
+              <span class="metric-label">Overall Coverage</span>
+              <div class="coverage-indicator">
+                <div class="coverage-bar" data-width="100" data-color="#4CAF50"></div>
+              </div>
+              <div>
+                <span class="status-badge status-high">High Coverage</span>
+              </div>
+            </div>
+            <div class="metric-right">
+              <div class="coverage-breakdown">
+                <div>
+                  <span class="breakdown-label">Total activity(s):</span>
+                  <span class="breakdown-value">2</span>
+                </div>
+                <div>
+                  <span class="breakdown-label">Migratable activity(s):</span>
+                  <span class="breakdown-value">2</span>
+                </div>
+                <div>
+                  <span class="breakdown-label">Non-migratable activity(s):</span>
+                  <span class="breakdown-value">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>
+    <div class="summary-container">
+        <h2>Manual Work Estimation</h2>
+        <table>
+            <tr>
+                <th>Scenario</th>
+                <th>Working Days</th>
+                <th>Weeks (approx.)</th>
+            </tr>
+            <tr>
+                <td>Best Case</td>
+                <td class="time-best">1 day</td>
+                <td class="time-best">1 week</td>
+            </tr>
+            <tr>
+                <td>Average Case</td>
+                <td class="time-avg">2 days</td>
+                <td class="time-avg">1 week</td>
+            </tr>
+            <tr>
+                <td>Worst Case</td>
+                <td class="time-worst">4 days</td>
+                <td class="time-worst">1 week</td>
+            </tr>
+        </table>
+        <div class="estimation-notes">
+            <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
+            <ul>
+                <li>Best case scenario:
+                  <ul>
+                    <li>1.0 day per each new unsupported activity for analysis, implementation, and testing</li>
+                    <li>1.0 hour per each repeated unsupported activity for implementation</li>
+                    <li>2 minutes per each line of code generated</li>
+                    <li>Assumes minimal complexity and straightforward implementations</li>
+                  </ul>
+                </li>
+                <li>Average case scenario:
+                  <ul>
+                    <li>2.0 days per each new unsupported activity for analysis, implementation, and testing</li>
+                    <li>2.0 hour per each repeated unsupported activity for implementation</li>
+                    <li>5 minutes per each line of code generated</li>
+                    <li>Assumes medium complexity with moderate implementation challenges</li>
+                  </ul>
+                </li>
+                <li>Worst case scenario:
+                  <ul>
+                    <li>3.0 days per each new unsupported activity for analysis, implementation, and testing</li>
+                    <li>4.0 hour per each repeated unsupported activity for implementation</li>
+                    <li>10 minutes per each line of code generated</li>
+                    <li>Assumes high complexity with significant implementation challenges</li>
+                  </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+<div class="summary-container">
+    <h2>Currently Unsupported Activities</h2>
+    <div id="toolSupportSection">
+                                                                                                                                                                                                            <table class="hidden">
+    <tr><th>Activity name</th><th>Frequency</th></tr>
+        </table>
+        <p class="empty-message visible" id="toolSupportEmpty">
+            No unsupported activities found
+        </p>
+        <div class="estimation-notes hidden">
+            <p><strong>Note:</strong> These activities are expected to be supported in future versions of the migration tool.</p>
+        </div>
+    </div>
+</div>
+<div class="summary-container">
+    <h2>Activities that may require manual changes</h2>
+    <div id="partiallySupportedSection">
+        <table class="hidden">
+            <tr><th>Activity name</th><th>Frequency</th></tr>
+        </table>
+        <p class="empty-message visible" id="partiallySupportedEmpty">
+            No partially supported activities found
+        </p>
+        <div class="estimation-notes hidden">
+            <p><strong>Note:</strong> These activities are converted but may require manual review or adjustments.</p>
+        </div>
+    </div>
+</div>
+    <footer><p>Report generated on: <span id="datetime"></span></p></footer>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+          // Set coverage bar styles from data attributes
+          const coverageBars = document.querySelectorAll('.coverage-bar[data-width]');
+          coverageBars.forEach(function(bar) {
+              const width = bar.getAttribute('data-width');
+              const color = bar.getAttribute('data-color');
+              bar.style.width = width + '%%';
+              bar.style.backgroundColor = color;
+          });
+
+          // Check Currently Unsupported Elements
+          const toolSupportTable = document.querySelector('#toolSupportSection table');
+          if (toolSupportTable.rows.length <= 1) {
+              toolSupportTable.classList.add('hidden');
+              document.getElementById('toolSupportEmpty').classList.remove('hidden');
+              document.getElementById('toolSupportEmpty').classList.add('visible');
+              document.querySelector('#toolSupportSection .estimation-notes').classList.add('hidden');
+          }
+
+          // Check Partially Supported Elements
+          const partiallySupportedTable = document.querySelector('#partiallySupportedSection table');
+          if (partiallySupportedTable.rows.length <= 1) {
+              partiallySupportedTable.classList.add('hidden');
+              document.getElementById('partiallySupportedEmpty').classList.remove('hidden');
+              document.getElementById('partiallySupportedEmpty').classList.add('visible');
+              document.querySelector('#partiallySupportedSection .estimation-notes').classList.add('hidden');
+          }
+      });
+    </script>
+    <script>document.getElementById("datetime").innerHTML = new Date().toLocaleString();</script>
+</body>
+</html>

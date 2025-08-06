@@ -118,7 +118,7 @@ public class ActivityContext implements LoggingContext {
         return processContext.getRenderJsonAsXMLFunction(type);
     }
 
-    BallerinaModel.Expression.VariableReference getProcessClient(String processName) {
+    Optional<BallerinaModel.Expression.VariableReference> getProcessClient(String processName) {
         return processContext.getProcessClient(processName);
     }
 

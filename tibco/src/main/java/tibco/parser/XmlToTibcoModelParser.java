@@ -348,10 +348,11 @@ public final class XmlToTibcoModelParser {
                 }
             }
         }
-        transitionGroup = transitionGroup.resolve();
         if (transitionGroup.isEmpty()) {
             return new Process6(name, nameSpaces, types, processInfo, processInterface,
                     processTemplateConfigurations, partnerLinks, variables, scope);
+        } else {
+            transitionGroup = transitionGroup.resolve();
         }
         return new Process5(name, nameSpaces, transitionGroup);
     }
@@ -450,11 +451,11 @@ public final class XmlToTibcoModelParser {
                 cx.fileName());
     }
 
-    private static @NotNull XSD getJSONActivityTarget(Element element) {
-        Element config = getFirstChildWithTag(element, "config");
-        Element activityOutputEditor = getFirstChildWithTag(config, "ActivityOutputEditor");
-        Element xsdElement = getFirstChildWithTag(activityOutputEditor, "element");
-        return parseXSD(xsdElement);
+    private static @NotNull Optional<XSD> getJSONActivityTarget(Element element) {
+        return tryGetFirstChildWithTag(element, "config")
+                .flatMap(config -> tryGetFirstChildWithTag(config, "ActivityOutputEditor"))
+                .flatMap(activityOutputEditor -> tryGetFirstChildWithTag(activityOutputEditor, "element"))
+                .map(XmlToTibcoModelParser::parseXSD);
     }
 
     private static XSD parseXSD(Element element) {
@@ -577,11 +578,9 @@ public final class XmlToTibcoModelParser {
 
     private static XMLParseActivity parseXmlParseActivity(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
-        String inputStyle = getInlineActivityConfigValue(element, "inputStyle");
-        if (!inputStyle.equalsIgnoreCase("text")) {
-            throw new ParserException("Unsupported inputStyle value: " + inputStyle, element);
-        }
-        return new XMLParseActivity(element, name, inputBinding, cx.fileName());
+        XMLParseActivity.InputStyle inputStyle =
+                XMLParseActivity.InputStyle.from(getInlineActivityConfigValue(element, "inputStyle"));
+        return new XMLParseActivity(element, name, inputBinding, inputStyle, cx.fileName());
     }
 
     private static XMLRenderActivity parseXmlRenderActivity(ProcessContext cx, Element element, String name,
@@ -1896,23 +1895,48 @@ public final class XmlToTibcoModelParser {
     private static InlineActivity.JMSActivityBase parseJMSActivityInner(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
         String permittedMessageType = getInlineActivityConfigValue(element, "PermittedMessageType");
-        if (!permittedMessageType.equals("Text")) {
-            throw new UnsupportedOperationException("Unsupported permitted message type: " + permittedMessageType);
-        }
         Element config = getFirstChildWithTag(element, "config");
-        InlineActivity.JMSActivityBase.SessionAttributes sessionAttributes = parseJMSSessionAttributes(config);
+        InlineActivity.JMSActivityBase.SessionAttributes sessionAttributes = parseJMSSessionAttributes(cx, config);
         InlineActivity.JMSActivityBase.ConfigurableHeaders configurableHeaders = parseJMSConfigurableHeaders(config);
         String connectionReference = getInlineActivityConfigValue(element, "ConnectionReference");
         return new InlineActivity.JMSActivityBase(element, name, inputBinding, permittedMessageType,
                 sessionAttributes, configurableHeaders, connectionReference, cx.fileName());
     }
 
-    private static InlineActivity.JMSActivityBase.SessionAttributes parseJMSSessionAttributes(Element config) {
+    private static InlineActivity.JMSActivityBase.SessionAttributes parseJMSSessionAttributes(ProcessContext cx,
+            Element config) {
         Element sessionAttrs = getFirstChildWithTag(config, "SessionAttributes");
-        boolean transacted = Boolean.parseBoolean(getFirstChildWithTag(sessionAttrs, "transacted").getTextContent());
-        int acknowledgeMode = Integer.parseInt(getFirstChildWithTag(sessionAttrs, "acknowledgeMode").getTextContent());
-        int maxSessions = Integer.parseInt(getFirstChildWithTag(sessionAttrs, "maxSessions").getTextContent());
-        String destination = getFirstChildWithTag(sessionAttrs, "destination").getTextContent();
+
+        Optional<Boolean> transacted = Optional.empty();
+        try {
+            transacted = Optional
+                    .of(Boolean.parseBoolean(getFirstChildWithTag(sessionAttrs, "transacted").getTextContent()));
+        } catch (Exception e) {
+            cx.log(SEVERE, "Failed to parse transacted value in JMS SessionAttributes: " + e.getMessage());
+        }
+
+        Optional<Integer> acknowledgeMode = Optional.empty();
+        try {
+            acknowledgeMode = Optional
+                    .of(Integer.parseInt(getFirstChildWithTag(sessionAttrs, "acknowledgeMode").getTextContent()));
+        } catch (Exception e) {
+            cx.log(SEVERE, "Failed to parse acknowledgeMode value in JMS SessionAttributes: " + e.getMessage());
+        }
+
+        Optional<Integer> maxSessions = Optional.empty();
+        try {
+            maxSessions = Optional
+                    .of(Integer.parseInt(getFirstChildWithTag(sessionAttrs, "maxSessions").getTextContent()));
+        } catch (Exception e) {
+            cx.log(SEVERE, "Failed to parse maxSessions value in JMS SessionAttributes: " + e.getMessage());
+        }
+
+        Optional<String> destination = Optional.empty();
+        try {
+            destination = Optional.of(getFirstChildWithTag(sessionAttrs, "destination").getTextContent());
+        } catch (Exception e) {
+            cx.log(SEVERE, "Failed to parse destination value in JMS SessionAttributes: " + e.getMessage());
+        }
 
         return new InlineActivity.JMSActivityBase.SessionAttributes(transacted, acknowledgeMode, maxSessions,
                 destination);
