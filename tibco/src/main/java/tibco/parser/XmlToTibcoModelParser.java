@@ -430,6 +430,7 @@ public final class XmlToTibcoModelParser {
             case JSON_RENDER_ACTIVITY -> parseJSONRenderActivity(cx, element, name, inputBinding);
             case JDBC -> parseJDBCActivity(cx, element, name, inputBinding);
             case JDBC_QUERY -> parseJDBCQueryActivity(cx, element, name, inputBinding);
+            case JDBC_UPDATE -> parseJDBCUpdateActivity(cx, element, name, inputBinding);
             case MAPPER -> parseMapperActivity(cx, name, inputBinding, element);
             case JMS_QUEUE_EVENT_SOURCE -> parseJMSQueueEventSource(cx, element, name, inputBinding);
             case JMS_QUEUE_SEND_ACTIVITY -> parseJMSQueueSendActivity(cx, element, name, inputBinding);
@@ -467,6 +468,21 @@ public final class XmlToTibcoModelParser {
 
         return new InlineActivity.JDBCQuery(element, name, cx.fileName(), inputBinding, connection, timeout, maxRows,
                 statement);
+    }
+
+    private static InlineActivity.JDBCUpdate parseJDBCUpdateActivity(ProcessContext cx, Element element, String name,
+            Flow.Activity.InputBinding inputBinding) {
+        String connection = tryGetInlineActivityConfigValue(element, "jdbcSharedConfig")
+                .orElseThrow(() -> new ParserException("Failed to find jdbcSharedConfig", element));
+
+        Optional<String> statement = tryGetInlineActivityConfigValue(element, "statement");
+
+        boolean hasPreparedData = tryGetFirstChildWithTag(element, "config")
+                .flatMap(config -> tryGetFirstChildWithTag(config, "Prepared_Param_DataType"))
+                .isPresent();
+
+        return new InlineActivity.JDBCUpdate(element, name, cx.fileName(), inputBinding, connection, statement,
+                hasPreparedData);
     }
 
     private static InlineActivity.JSONRender parseJSONRenderActivity(ProcessContext cx, Element element, String name,

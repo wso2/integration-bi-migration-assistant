@@ -1,0 +1,21 @@
+<pd:activity name="JDBC Update">
+    <pd:type>com.tibco.plugin.jdbc.JDBCUpdateActivity</pd:type>
+    <pd:resourceType>ae.activities.JDBCUpdateActivity</pd:resourceType>
+    <config>
+        <jdbcSharedConfig>/CRUD/SharedResources/JDBCConnection.sharedjdbc</jdbcSharedConfig>
+        <statement>INSERT INTO DB (USER_ID) VALUES (?)</statement>
+        <Prepared_Param_DataType>
+            <parameter>
+                <parameterName>UserId</parameterName>
+                <dataType>VARCHAR</dataType>
+            </parameter>
+        </Prepared_Param_DataType>
+    </config>
+    <pd:inputBindings>
+        <jdbcUpdateActivityInput>
+            <UserId>
+                <xsl:value-of select="$post//UserId"/>
+            </UserId>
+        </jdbcUpdateActivityInput>
+    </pd:inputBindings>
+</pd:activity>

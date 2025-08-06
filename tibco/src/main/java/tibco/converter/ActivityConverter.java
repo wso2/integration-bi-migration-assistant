@@ -224,6 +224,7 @@ final class ActivityConverter {
                     convertListFilesActivity(cx, result, listFilesActivity);
             case InlineActivity.GenerateError generateError -> convertGenerateError(cx, result, generateError);
             case InlineActivity.JDBCQuery jdbcQuery -> convertJDBCQuery(cx, result, jdbcQuery);
+            case InlineActivity.JDBCUpdate jdbcUpdate -> convertJDBCUpdate(cx, result, jdbcUpdate);
         };
         body.addAll(conversion.body());
         body.add(addToContext(cx, conversion.result(), inlineActivity.name()));
@@ -692,6 +693,39 @@ final class ActivityConverter {
                 exprFrom("%s.startsWith(\"SELECT\")".formatted(jdbcSetup.statement())), ifSelectBody, List.of(),
                 queryBody));
         body.add(new Comment("WARNING: validate jdbc query result mapping"));
+        return new ActivityConversionResult(result.ref(), body);
+    }
+
+    private static ActivityConversionResult convertJDBCUpdate(
+            ActivityContext cx, VariableReference input, InlineActivity.JDBCUpdate jdbcUpdate) {
+        List<Statement> body = new ArrayList<>();
+        Function<String, String> configurableNames = (suffix) -> {
+            String prefix = ConversionUtils.sanitizes(jdbcUpdate.name());
+            return prefix + suffix;
+        };
+
+        if (jdbcUpdate.hasPreparedData()) {
+            cx.log(WARN, "JDBCUpdate: prepared data is not supported");
+            body.add(new Comment(
+                    "WARNING: Prepared data is not supported, validate generated query"));
+        }
+
+        BallerinaModel.Expression statementExpr = jdbcUpdate.statement()
+                .map(value -> (BallerinaModel.Expression) new StringConstant(value))
+                .orElseGet(() -> {
+                    String configName = configurableNames.apply("Statement");
+                    cx.projectContext().addConfigurableVariable(configName, configName);
+                    return new VariableReference(configName);
+                });
+        
+        JDBCSetupResult jdbcSetup = setupJDBCConnection(cx, body, jdbcUpdate.connection(), statementExpr);
+
+        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName());
+        body.add(result);
+
+        var queryResult = finishSQLQuery(cx, jdbcSetup.client(), jdbcSetup.query(), body);
+        body.add(new Statement.VarAssignStatement(result.ref(), queryResult.result()));
+        body.add(new Comment("WARNING: validate jdbc update result mapping"));
         return new ActivityConversionResult(result.ref(), body);
     }
 

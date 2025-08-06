@@ -85,13 +85,44 @@
         <pd:type>com.tibco.plugin.jdbc.JDBCQueryActivity</pd:type>
         <pd:resourceType>ae.activities.JDBCQueryActivity</pd:resourceType>
         <config>
-            <timeout>10</timeout>
             <maxRows>100</maxRows>
             <jdbcSharedConfig>/CRUD/SharedResources/JDBCConnection.sharedjdbc</jdbcSharedConfig>
             <statement>select * FROM DB</statement>
         </config>
         <pd:inputBindings>
             <jdbcQueryActivityInput/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="JDBC Delete">
+        <pd:type>com.tibco.plugin.jdbc.JDBCUpdateActivity</pd:type>
+        <pd:resourceType>ae.activities.JDBCUpdateActivity</pd:resourceType>
+        <config>
+            <jdbcSharedConfig>/CRUD/SharedResources/JDBCConnection.sharedjdbc</jdbcSharedConfig>
+            <statement>delete from DB where USER_ID=<xsl:value-of select="$post//UserId"/></statement>
+        </config>
+        <pd:inputBindings>
+            <jdbcUpdateActivityInput/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="JDBC Update">
+        <pd:type>com.tibco.plugin.jdbc.JDBCUpdateActivity</pd:type>
+        <pd:resourceType>ae.activities.JDBCUpdateActivity</pd:resourceType>
+        <config>
+            <jdbcSharedConfig>/CRUD/SharedResources/JDBCConnection.sharedjdbc</jdbcSharedConfig>
+            <statement>INSERT INTO DB (USER_ID) VALUES (?)</statement>
+            <Prepared_Param_DataType>
+                <parameter>
+                    <parameterName>UserId</parameterName>
+                    <dataType>VARCHAR</dataType>
+                </parameter>
+            </Prepared_Param_DataType>
+        </config>
+        <pd:inputBindings>
+            <jdbcUpdateActivityInput>
+                <UserId>
+                    <xsl:value-of select="$post//UserId"/>
+                </UserId>
+            </jdbcUpdateActivityInput>
         </pd:inputBindings>
     </pd:activity>
 
@@ -152,6 +183,20 @@
     </pd:transition>
     <pd:transition>
         <pd:from>JDBC Query</pd:from>
+        <pd:to>JDBC Delete</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>JDBC Delete</pd:from>
+        <pd:to>JDBC Update</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>JDBC Update</pd:from>
         <pd:to>End</pd:to>
         <pd:lineType>Default</pd:lineType>
         <pd:lineColor>-16777216</pd:lineColor>
