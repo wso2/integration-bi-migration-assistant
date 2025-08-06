@@ -21,12 +21,11 @@ import mule.MuleMigrator.MuleVersion;
 import mule.common.DWConstructBase;
 import mule.common.DWConversionStats;
 import mule.common.MigrationMetrics;
+import mule.common.MuleLogger;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.function.Function;
-
-import static mule.MuleMigrator.logger;
 
 public class IndividualReportGenerator {
 
@@ -52,9 +51,9 @@ public class IndividualReportGenerator {
     public static final String MIGRATION_SUMMARY_TITLE = "Migration Summary";
     public static final String MIGRATION_ASSESSMENT_TITLE = "Migration Assessment";
 
-    public static String generateHtmlReport(ProjectMigrationStats pms, MuleVersion muleVersion,
+    public static String generateHtmlReport(MuleLogger logger, ProjectMigrationStats pms, MuleVersion muleVersion,
                                             boolean dryRun, String sourceProjectName) {
-        logger().info("Generating migration report...");
+        logger.logState("Generating individual migration report...");
         String unsupportedElementsTable = generateUnsupportedElementsTable(pms.failedXMLTags());
         String unsupportedBlocksHtml = generateUnsupportedBlocksHtml(pms.failedBlocks());
         String dataweaveExpressionsHtml = generateDataweaveExpressionsHtml(pms.dwConversionStats());
@@ -97,6 +96,7 @@ public class IndividualReportGenerator {
         double worstCaseDays = pms.worstCaseDays() + totalItems * WORST_CASE_INSPECTION_TIME;
 
         String reportTitle = dryRun ? MIGRATION_ASSESSMENT_TITLE : MIGRATION_SUMMARY_TITLE;
+        logger.logInfo("Formating individual migration report...");
         return String.format(
                 IndividualReportTemplate.getHtmlTemplate(),
                 reportTitle,

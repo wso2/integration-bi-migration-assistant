@@ -17,6 +17,7 @@
  */
 package mule.common.report;
 
+import mule.common.MuleLogger;
 import mule.common.ProjectMigrationResult;
 
 import java.nio.file.Path;
@@ -47,8 +48,9 @@ public class AggregateReportGenerator {
     public static final String MIGRATION_SUMMARY_TITLE = "Aggregate Migration Summary";
     public static final String MIGRATION_ASSESSMENT_TITLE = "Aggregate Migration Assessment";
 
-    public static String generateHtmlReport(List<ProjectMigrationResult> projectResults, Path convertedProjectsDir,
-                                            boolean dryRun) {
+    public static String generateHtmlReport(MuleLogger logger, List<ProjectMigrationResult> projectResults,
+                                            Path convertedProjectsDir, boolean dryRun) {
+        logger.logState("Generating aggregate migration report...");
         double avgCoverage = projectResults.stream().map(ProjectMigrationResult::getMigrationStats)
                 .mapToDouble(ProjectMigrationStats::migrationCoverage)
                 .average().orElse(0.0);
@@ -95,6 +97,7 @@ public class AggregateReportGenerator {
                           "#F44336";                       // Red for low
 
         String reportTitle = dryRun ? MIGRATION_ASSESSMENT_TITLE : MIGRATION_SUMMARY_TITLE;
+        logger.logInfo("Formating aggregate migration report...");
         return String.format(
                 AggregateReportTemplate.getHtmlTemplate(),
                 reportTitle,                                     // %s - title

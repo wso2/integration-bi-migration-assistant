@@ -85,8 +85,8 @@ public class MigrateMuleCommand implements BLauncherCmd {
             errStream.println("Error: mule project directory or mule xml file path is required.");
             onInvalidInput();
         }
-        MuleMigrator.migrateMuleSource(sourcePath, outputPath, orgName, projectName, muleVersion, dryRun, verbose,
-                keepStructure, multiRoot);
+        MuleMigrator.migrateAndExportMuleSource(sourcePath, outputPath, orgName, projectName, muleVersion, dryRun,
+                verbose, keepStructure, multiRoot);
     }
 
     private void onInvalidInput() {
