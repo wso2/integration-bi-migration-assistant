@@ -107,7 +107,7 @@ final class ActivityConverter {
         return xsltTransformer;
     }
 
-    public static Optional<BallerinaModel.Function> convertActivity(ProcessContext cx, Activity activity) {
+    public static @NotNull Optional<BallerinaModel.Function> convertActivity(ProcessContext cx, Activity activity) {
         try {
             return Optional.of(convertActivity(new ActivityContext(cx, activity), activity));
         } catch (Exception e) {
@@ -303,7 +303,8 @@ final class ActivityConverter {
             sharedVariableName = sharedVariable.get().name();
         } else {
             String message =
-                    "Failed to find shared variable for: %s using a placeholder".formatted(setSharedVariable.name());
+                            "WARNING: Failed to find shared variable for: %s using a placeholder"
+                                            .formatted(setSharedVariable.name());
             body.add(new Comment(message));
             cx.log(SEVERE, message);
             sharedVariableName = "sharedVariable_" + ConversionUtils.sanitizes(setSharedVariable.name());
@@ -325,7 +326,8 @@ final class ActivityConverter {
             sharedVariableName = sharedVariable.get().name();
         } else {
             String message =
-                    "Failed to find shared variable for: %s using a placeholder".formatted(getSharedVariable.name());
+                            "WARNING: Failed to find shared variable for: %s using a placeholder"
+                                            .formatted(getSharedVariable.name());
 
             body.add(new Comment(message));
             cx.log(SEVERE, message);
@@ -595,7 +597,21 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
                 cx.getAnnonVarName(), exprFrom("``"));
         body.add(query);
         body.add(common.ConversionUtils.stmtFrom("%s.strings = [%s];".formatted(query.ref(), statement.ref())));
-        VariableReference client = cx.dbClient(jdbc.connection());
+
+        // Handle missing DB client resource
+        Optional<VariableReference> dbClientOpt = cx.dbClient(jdbc.connection());
+        VariableReference client;
+        if (dbClientOpt.isEmpty()) {
+                cx.log(SEVERE, "WARNING: Failed to find db client for " + jdbc.connection()
+                                + ". Creating placeholder client.");
+                body.add(new Comment(
+                                "WARNING: Missing DB client resource '" + jdbc.connection()
+                                                + "'. Using placeholder client."));
+                client = new VariableReference("placeholder_db_connection");
+        } else {
+                client = dbClientOpt.get();
+        }
+
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName());
         body.add(result);
 
@@ -866,28 +882,14 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
 
     private static ActivityConversionResult convertCallProcess(
             ActivityContext cx, VariableReference input, InlineActivity.CallProcess callProcess) {
-        Optional<VariableReference> processClient = cx.getProcessClient(callProcess.processName());
-        VariableReference client;
         List<Statement> body = new ArrayList<>();
-        if (processClient.isPresent()) {
-            client = processClient.get();
-        } else {
-            // TODO: properly handle this using package approach
-            String message =
-                    "Failed to find process client for: %s using a placeholder".formatted(callProcess.processName());
-            cx.log(SEVERE, message);
-            body.add(new Comment(message));
-            client = new VariableReference("processClient_" + ConversionUtils.sanitizes(callProcess.processName()));
-        }
-        VarDeclStatment request = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                exprFrom("%s/*".formatted(input.varName())));
-        body.add(request);
+        body.add(addToContext(cx, input, "$Start"));
+        String processFn = ConversionUtils.processFunctionName(callProcess.processName());
 
-        VarDeclStatment returnedValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new Check(new RemoteMethodCallAction(client, "post",
-                        List.of(new StringConstant(""), request.ref()))));
-        body.add(returnedValue);
-        VarDeclStatment result = wrapWithRoot(cx, returnedValue.ref());
+        body.add(new CallStatement(new FunctionCall(processFn, List.of(cx.contextVarRef()))));
+
+        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "result"));
         body.add(result);
         return new ActivityConversionResult(result.ref(), body);
     }
@@ -1366,7 +1368,19 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
         VarDeclStatment queryDecl = ConversionUtils.createQueryDecl(cx, vars, sql);
         body.add(queryDecl);
 
-        VariableReference dbClient = cx.client(sql.sharedResourcePropertyName());
+        // Handle missing DB client resource
+        Optional<VariableReference> dbClientOpt = cx.client(sql.sharedResourcePropertyName());
+        VariableReference dbClient;
+        if (dbClientOpt.isEmpty()) {
+                cx.log(SEVERE, "WARNING: Failed to find db client for " + sql.sharedResourcePropertyName()
+                                + ". Creating placeholder client.");
+                body.add(new Comment("WARNING: Missing DB client resource '" + sql.sharedResourcePropertyName() +
+                                "'. Using placeholder client."));
+                dbClient = new VariableReference("placeholder_db_connection");
+        } else {
+                dbClient = dbClientOpt.get();
+        }
+
         if (sql.query().toUpperCase().startsWith("SELECT")) {
             return finishSelectQuery(cx, dbClient, queryDecl.ref(), body);
         }
@@ -1430,7 +1444,20 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
     private static ActivityConversionResult createHttpSend(
             ActivityContext cx, VariableReference configVar, ActivityExtension.Config.HTTPSend httpSend) {
         List<Statement> body = new ArrayList<>();
-        VariableReference client = cx.client(httpSend.httpClientResource());
+
+        // Handle missing HTTP client resource
+        Optional<VariableReference> clientOpt = cx.client(httpSend.httpClientResource());
+        VariableReference client;
+        if (clientOpt.isEmpty()) {
+                cx.log(SEVERE, "WARNING: Failed to find http client for " + httpSend.httpClientResource()
+                                + ". Creating placeholder client.");
+                body.add(new Comment("WARNING: Missing HTTP client resource '" + httpSend.httpClientResource()
+                                + "'. Using placeholder client."));
+                client = new VariableReference("placeholder_http_connection");
+        } else {
+                client = clientOpt.get();
+        }
+
         VarDeclStatment method = new VarDeclStatment(STRING, cx.getAnnonVarName(),
                 exprFrom("(%s/**/<Method>[0]).data()".formatted(configVar.varName())));
         body.add(method);

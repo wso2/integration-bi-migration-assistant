@@ -388,17 +388,18 @@ public class ProjectContext implements LoggingContext {
     }
 
     public void addJMSResource(Resource.JMSSharedResource jmsResource) {
-        String fileName = ConversionUtils.extractFileName(jmsResource.fileName());
-        jmsResourceMap.put(fileName, jmsResource);
+        jmsResourceMap.put(jmsResource.path(), jmsResource);
     }
 
-    public Resource.JMSSharedResource getJMSResource(String fileName) {
-        String extractedFileName = ConversionUtils.extractFileName(fileName);
-        Resource.JMSSharedResource resource = jmsResourceMap.get(extractedFileName);
+    public Resource.JMSSharedResource getJMSResource(String resourcePath) {
+        Resource.JMSSharedResource resource = jmsResourceMap.get(resourcePath);
         if (resource == null) {
             log(LoggingUtils.Level.SEVERE,
-                    "JMS shared resource not found for file: " + fileName + ". Returning placeholder resource.");
-            return new Resource.JMSSharedResource("placeholder_" + extractedFileName, "placeholder",
+                    "WARNING: JMS shared resource not found for file: " + resourcePath
+                            + ". Returning placeholder resource.");
+            return new Resource.JMSSharedResource("placeholder_" + ConversionUtils.sanitizes(resourcePath),
+                    "/placeholder/path",
+                    "placeholder",
                     new Resource.JMSSharedResource.NamingEnvironment(false, "", "", "", "", "", "", ""),
                     new Resource.JMSSharedResource.ConnectionAttributes(Optional.empty(), Optional.empty(),
                             Optional.empty(), false),
@@ -423,7 +424,7 @@ public class ProjectContext implements LoggingContext {
 
     public Optional<Resource.SharedVariable> getSharedVariableByRelativePath(String relativePath) {
         return sharedVariables.stream()
-                .filter(sv -> sv.relativePath().equals(relativePath))
+                .filter(sv -> sv.path().equals(relativePath))
                 .findFirst();
     }
 
@@ -460,7 +461,7 @@ public class ProjectContext implements LoggingContext {
         var varDecl = utilityVars.get(varName);
         if (varDecl == null) {
             log(LoggingUtils.Level.SEVERE,
-                    "Failed to find configurable variable for " + varName + ". Returning placeholder name.");
+                    "WARNING: Failed to find configurable variable for " + varName + ". Returning placeholder name.");
             return "placeholder_" + varName;
         }
         return varDecl.name();
@@ -476,8 +477,8 @@ public class ProjectContext implements LoggingContext {
                 .findAny()
                 .orElseGet(() -> {
                     log(LoggingUtils.Level.SEVERE,
-                            "Failed to find process: " + processName + ". Returning placeholder process.");
-                    return new Process5("placeholder_" + processName, List.of(),
+                            "WARNING: Failed to find process: " + processName + ". Returning placeholder process.");
+                    return new Process5("placeholder_" + processName, "/placeholder", List.of(),
                             new Process5.ExplicitTransitionGroup());
                 });
     }
@@ -573,23 +574,21 @@ public class ProjectContext implements LoggingContext {
         }
     }
 
-    public BallerinaModel.Expression.VariableReference dbClient(String sharedResourcePropertyName) {
+    public Optional<VariableReference> dbClient(String sharedResourcePropertyName) {
         String varName = generatedResources.get(sharedResourcePropertyName);
         if (varName == null) {
-            log(LoggingUtils.Level.SEVERE,
-                    "Failed to find db client for " + sharedResourcePropertyName + ". Returning placeholder client.");
-            return new BallerinaModel.Expression.VariableReference("placeholder_db_client");
+            return Optional.empty();
         }
-        return new BallerinaModel.Expression.VariableReference(varName);
+        return Optional.of(new BallerinaModel.Expression.VariableReference(varName));
     }
 
-    public VariableReference httpListener(String name) {
+    public Optional<VariableReference> httpListener(String name) {
+        // First try direct lookup by name
         String varName = generatedResources.get(name);
         if (varName == null) {
-            log(LoggingUtils.Level.SEVERE, "Failed to find listener for " + name + ". Returning placeholder listener.");
-            return new BallerinaModel.Expression.VariableReference("placeholder_listener");
+            return Optional.empty();
         }
-        return new BallerinaModel.Expression.VariableReference(varName);
+        return Optional.of(new BallerinaModel.Expression.VariableReference(varName));
     }
 
     void addResourceDeclaration(String resourceName, BallerinaModel.ModuleVar resourceVar,
@@ -606,6 +605,10 @@ public class ProjectContext implements LoggingContext {
         configurables.forEach(each -> utilityVars.put(each.name(), each));
         utilityListeners.put(listener.name(), listener);
         generatedResources.put(resourceName, listener.name());
+    }
+
+    public Collection<String> getGeneratedResourceKeys() {
+        return generatedResources.keySet();
     }
 
     public String getUtilityVarName(String base) {
@@ -632,14 +635,6 @@ public class ProjectContext implements LoggingContext {
         utilityIntrinsics.add(Intrinsics.XML_PARSER);
         utilityIntrinsics.add(Intrinsics.PATCH_XML_NAMESPACES);
         return Intrinsics.PATCH_XML_NAMESPACES.name;
-    }
-
-    public String getRenderJsonFn() {
-        utilityIntrinsics.add(Intrinsics.XML_PARSER_RESULT);
-        utilityIntrinsics.add(Intrinsics.XML_PARSER);
-        utilityIntrinsics.add(Intrinsics.RENDER_JSON);
-        utilityIntrinsics.add(Intrinsics.TO_JSON);
-        return Intrinsics.RENDER_JSON.name;
     }
 
     public void registerProcessClient(String processName, String clientName) {

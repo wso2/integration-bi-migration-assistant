@@ -19,7 +19,7 @@
                 <JMSExpiration>0</JMSExpiration>
                 <JMSPriority>4</JMSPriority>
             </ConfigurableHeaders>
-            <ConnectionReference>jms.sharedjmscon</ConnectionReference>
+            <ConnectionReference>/JMSLog/SharedResources/jms.sharedjmscon</ConnectionReference>
         </config>
         <pd:inputBindings/>
     </pd:starter>
@@ -57,7 +57,7 @@
                 <JMSExpiration>0</JMSExpiration>
                 <JMSPriority>4</JMSPriority>
             </ConfigurableHeaders>
-            <ConnectionReference>jms2.sharedjmscon</ConnectionReference>
+            <ConnectionReference>/JMSLog/SharedResources/jms2.sharedjmscon</ConnectionReference>
         </config>
         <pd:inputBindings>
             <ns1:ActivityInput>
@@ -96,7 +96,7 @@
                 <JMSExpiration>0</JMSExpiration>
                 <JMSPriority>4</JMSPriority>
             </ConfigurableHeaders>
-            <ConnectionReference>jms.sharedjmscon</ConnectionReference>
+            <ConnectionReference>/JMSLog/SharedResources/jms.sharedjmscon</ConnectionReference>
         </config>
         <pd:inputBindings/>
     </pd:activity>
@@ -130,7 +130,7 @@
                 <JMSExpiration>0</JMSExpiration>
                 <JMSPriority>4</JMSPriority>
             </ConfigurableHeaders>
-            <ConnectionReference>jms.sharedjmscon</ConnectionReference>
+            <ConnectionReference>/JMSLog/SharedResources/jms.sharedjmscon</ConnectionReference>
         </config>
         <pd:inputBindings>
             <ns1:ActivityInput>

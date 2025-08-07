@@ -11,7 +11,7 @@
             <defaultEncoding>ISO8859_1</defaultEncoding>
             <inputOutputVersion>5.3.0</inputOutputVersion>
             <newMimeSupport>true</newMimeSupport>
-            <sharedChannel>/SharedResources/MainConnection.sharedhttp</sharedChannel>
+            <sharedChannel>/SimpleServiceChain/SharedResources/MainConnection.sharedhttp</sharedChannel>
             <parsePostData>true</parsePostData>
             <customField>
                 <row>
@@ -57,7 +57,7 @@
         <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
         <pd:resourceType>ae.process.subprocess</pd:resourceType>
         <config>
-            <processName>Foo.process</processName>
+            <processName>Processes/Foo.process</processName>
         </config>
         <pd:inputBindings>
             <InvokeProcessInput>

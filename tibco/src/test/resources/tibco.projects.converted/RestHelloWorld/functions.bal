@@ -57,10 +57,10 @@ function InvokeProcess(Context cx) returns error? {
 
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
-    xml var2 = var1/*;
-    xml var3 = check proj_annon_var1->post("", var2);
-    xml var4 = xml `<root>${var3}</root>`;
-    addToContext(cx, "InvokeProcess", var4);
+    addToContext(cx, "$Start", var1);
+    start_Processes_Other_process(cx);
+    xml var2 = cx.result;
+    addToContext(cx, "InvokeProcess", var2);
 }
 
 function Log(Context cx) returns error? {
@@ -540,8 +540,6 @@ function scope0_1ScopeFn(Context cx) returns () {
 }
 
 function scope1ActivityRunner(Context cx) returns error? {
-    check InnerLogIndex(cx);
-    check InnerLogElement(cx);
 }
 
 function scope1FaultHandler(error err, Context cx) returns () {

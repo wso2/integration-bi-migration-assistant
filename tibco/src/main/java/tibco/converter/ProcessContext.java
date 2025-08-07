@@ -86,11 +86,26 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
 
     void addResourceVariable(Variable.PropertyVariable propertyVariable) {
         switch (propertyVariable) {
-            case Variable.PropertyVariable.PropertyReference ref ->
-                propertyVariableToResourceMap.put(ref.name(), ref.literal());
+            case Variable.PropertyVariable.PropertyReference ref -> {
+                String resourceName = ref.literal();
+                String resourcePath = findResourcePathByName(resourceName);
+                propertyVariableToResourceMap.put(ref.name(), resourcePath);
+            }
             case Variable.PropertyVariable.SimpleProperty simpleProperty ->
                 projectContext.addConfigurableVariable(simpleProperty.name(), simpleProperty.source());
         }
+    }
+
+    private String findResourcePathByName(String resourceName) {
+        // Find the resource path from the generated resources map by matching the resource name
+        for (String resourcePath : projectContext.getGeneratedResourceKeys()) {
+            String name = tibco.converter.ConversionUtils.resourceNameFromPath(resourcePath);
+            if (name.equals(resourceName)) {
+                return resourcePath;
+            }
+        }
+        // If not found, return the original name (fallback)
+        return resourceName;
     }
 
     String getToXmlFunction() {
@@ -208,7 +223,7 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     }
 
     String getProcessStartFunctionName() {
-        return "start_" + ConversionUtils.sanitizes(process.name());
+        return ConversionUtils.processFunctionName(process);
     }
 
     String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
@@ -232,12 +247,10 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         return activityFnType.parameters().getFirst().ref();
     }
 
-    BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {
+    Optional<BallerinaModel.Expression.VariableReference> client(String sharedResourcePropertyName) {
         String resourceRef = propertyVariableToResourceMap.get(sharedResourcePropertyName);
         if (resourceRef == null) {
-            log(LoggingUtils.Level.SEVERE,
-                    "No shared resource found for " + sharedResourcePropertyName + ". Returning placeholder client.");
-            return new BallerinaModel.Expression.VariableReference("placeholder_client");
+            return Optional.empty();
         }
         return projectContext.dbClient(resourceRef);
     }

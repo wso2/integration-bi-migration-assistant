@@ -55,6 +55,7 @@ final class AnalysisResultImpl implements AnalysisResult {
     private final Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencies;
     private final Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions;
     private final Map<String, XSD.XSDType> xsdTypes;
+    private final Set<Process> calledProcesses;
     TibcoAnalysisReport report;
 
     AnalysisResultImpl(Map<Scope.Flow.Link, Collection<Scope.Flow.Activity>> destinationMap,
@@ -71,7 +72,7 @@ final class AnalysisResultImpl implements AnalysisResult {
                        Map<String, Scope.Flow.Activity> activityByName,
                        Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencies,
                        Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions,
-                       Map<String, XSD.XSDType> xsdTypes, TibcoAnalysisReport report) {
+                       Map<String, XSD.XSDType> xsdTypes, Set<Process> calledProcesses, TibcoAnalysisReport report) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.activityData = activityData;
@@ -86,8 +87,9 @@ final class AnalysisResultImpl implements AnalysisResult {
         this.activityByName = activityByName;
         this.explicitTransitionGroupDependencies = explicitTransitionGroupDependencies;
         this.explicitTransitionGroupControlFlowFunctions = explicitTransitionGroupControlFlowFunctions;
-        this.report = report;
         this.xsdTypes = xsdTypes;
+        this.calledProcesses = calledProcesses;
+        this.report = report;
     }
 
     @Override
@@ -276,7 +278,8 @@ final class AnalysisResultImpl implements AnalysisResult {
                 combineMap(this.explicitTransitionGroupDependencies, other.explicitTransitionGroupDependencies),
                 combineMap(this.explicitTransitionGroupControlFlowFunctions,
                         other.explicitTransitionGroupControlFlowFunctions),
-                combineMap(this.xsdTypes, other.xsdTypes), combineReports(other)
+                combineMap(this.xsdTypes, other.xsdTypes), combineSet(this.calledProcesses, other.calledProcesses), 
+                combineReports(other)
         );
     }
 
@@ -312,11 +315,22 @@ final class AnalysisResultImpl implements AnalysisResult {
                 .collect(Collectors.toSet());
     }
 
+    @Override
+    public boolean isProcessCalled(Process process) {
+        return calledProcesses.contains(process);
+    }
+
     static <K, V> Map<K, V> combineMap(Map<K, V> map1, Map<K, V> map2) {
         Map<K, V> map = new HashMap<>(map1.size() + map2.size());
         map.putAll(map1);
         map.putAll(map2);
         return Collections.unmodifiableMap(map);
+    }
+
+    static <T> Set<T> combineSet(Set<T> set1, Set<T> set2) {
+        Set<T> combined = new java.util.HashSet<>(set1);
+        combined.addAll(set2);
+        return Collections.unmodifiableSet(combined);
     }
 
 }

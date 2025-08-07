@@ -67,6 +67,10 @@ public class ResourceContext implements Context, LoggingContext {
         return projectContext.getFileContent(relativePath);
     }
 
+    public String getResourcePath() {
+        return "/" + projectContext.getRelativePath(filePath);
+    }
+
     @Override
     public void registerUnhandledActivity(org.w3c.dom.Element element, String name, String type, String fileName) {
         projectContext.registerUnhandledActivity(element, name, type, fileName);

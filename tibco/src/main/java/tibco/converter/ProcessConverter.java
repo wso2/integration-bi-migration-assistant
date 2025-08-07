@@ -70,7 +70,6 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
 import static common.ConversionUtils.stmtFrom;
-import static tibco.converter.ConversionUtils.baseName;
 import static tibco.converter.Library.FILE;
 import static tibco.converter.Library.JMS;
 
@@ -79,9 +78,9 @@ public class ProcessConverter {
     private ProcessConverter() {
     }
 
-    static BallerinaModel.Service convertStartActivityService(
+    static @NotNull BallerinaModel.Service convertStartActivityService(
             ProcessContext cx, ExplicitTransitionGroup group) {
-        ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity();
+        ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity().get();
         return switch (startActivity) {
             case HttpEventSource httpEventSource -> createHTTPServiceForStartActivity(cx, group, httpEventSource);
             case FileEventSource fileEventSource -> createFileEventServiceForStartActivity(cx, group, fileEventSource);
@@ -246,28 +245,25 @@ public class ProcessConverter {
                                                                                      ExplicitTransitionGroup group,
                                                                                      HttpEventSource startActivity) {
         BallerinaModel.Resource resource = generateResourceFunctionForHTTPStartActivity(cx, group);
-        String name = baseName(startActivity.sharedChannel());
-        VariableReference listenerRef = cx.getProjectContext().httpListener(name);
-        return new BallerinaModel.Service("", listenerRef.varName(), List.of(resource));
-    }
 
-    static void addProcessClient(ProcessContext cx, ExplicitTransitionGroup group,
-                                 Collection<Resource.HTTPSharedResource> httpSharedResources) {
-        ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity();
-        if (!(startActivity instanceof HttpEventSource httpEventSource)) {
-            return;
+        // Handle missing HTTP listener resource
+        Optional<VariableReference> listenerOpt = cx.getProjectContext().httpListener(startActivity.sharedChannel());
+        VariableReference listenerRef;
+        if (listenerOpt.isEmpty()) {
+                cx.log(LoggingUtils.Level.SEVERE,
+                                "WARNING: Failed to find listener for " + startActivity.sharedChannel()
+                                + ". Creating placeholder listener.");
+                // Create a placeholder listener
+                BallerinaModel.Listener placeholderListener = new BallerinaModel.Listener.HTTPListener(
+                                "placeholder_listener", "8080", "0.0.0.0");
+                cx.getProjectContext().addListnerDeclartion(startActivity.sharedChannel(), placeholderListener,
+                                List.of(), List.of(Library.HTTP));
+                listenerRef = new VariableReference("placeholder_listener");
+        } else {
+                listenerRef = listenerOpt.get();
         }
-        String name = baseName(httpEventSource.sharedChannel());
-        Resource.HTTPSharedResource http = httpSharedResources.stream()
-                .filter(each -> each.name().equals(name))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Failed to find http source for " + name));
-        String path = http.host() + ":" + http.port();
-        cx.addLibraryImport(Library.HTTP);
-        BallerinaModel.ModuleVar moduleVar = new BallerinaModel.ModuleVar(cx.getAnonName(), "http:Client",
-                Optional.of(new CheckPanic(exprFrom("new (\"%s\")".formatted(path)))), false, false);
-        cx.addOnDemandModuleVar(moduleVar.name(), moduleVar);
-        cx.registerProcessClient(moduleVar.name());
+
+        return new BallerinaModel.Service("", listenerRef.varName(), List.of(resource));
     }
 
     private static BallerinaModel.@NotNull Resource generateResourceFunctionForHTTPStartActivity(
@@ -318,7 +314,7 @@ public class ProcessConverter {
                 List.of(parameter), Optional.of(XML), body);
     }
 
-    static BallerinaModel.TextDocument convertBody(ProcessContext cx, Process5 process,
+    static @NotNull BallerinaModel.TextDocument convertBody(ProcessContext cx, Process5 process,
                                                    TypeConversionResult result) {
         process.nameSpaces().forEach(cx::addNameSpace);
         List<BallerinaModel.Function> functions = cx.getAnalysisResult().activities().stream()
@@ -334,7 +330,7 @@ public class ProcessConverter {
         return cx.serialize(result.service(), functions);
     }
 
-    static BallerinaModel.TextDocument convertBody(ProcessContext cx, Process6 process,
+    static @NotNull BallerinaModel.TextDocument convertBody(ProcessContext cx, Process6 process,
                                                    TypeConversionResult result) {
         process.variables().stream()
                 .filter(each -> each instanceof Variable.PropertyVariable)
@@ -456,7 +452,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                 BOOLEAN, List.of(new Return<>(expr)));
     }
 
-    static TypeConversionResult convertTypes(ProcessContext cx, Process6 process) {
+    static @NotNull TypeConversionResult convertTypes(ProcessContext cx, Process6 process) {
         List<BallerinaModel.Service> services = process.types().stream()
                 .filter(type -> type instanceof Type.WSDLDefinition)
                 .map(type -> (Type.WSDLDefinition) type)
@@ -496,13 +492,10 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
             this(service, Optional.empty());
         }
 
-        public static TypeConversionResult empty() {
+        public static @NotNull TypeConversionResult empty() {
             return new TypeConversionResult(List.of(), Optional.empty());
         }
 
-        public boolean isEmpty() {
-            return service.isEmpty() && mainFn.isEmpty();
-        }
     }
 
     private static BallerinaModel.Function generateExplicitTransitionBlockStartFunction(

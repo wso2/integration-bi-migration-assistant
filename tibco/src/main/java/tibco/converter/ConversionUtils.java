@@ -23,6 +23,7 @@ import common.BallerinaModel.Expression;
 import common.BallerinaModel.Statement.VarDeclStatment;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
+import tibco.model.Process;
 import tibco.model.Scope;
 import tibco.model.Scope.Flow.Activity.ActivityExtension.Config.SQL;
 import tibco.model.XSD;
@@ -57,8 +58,8 @@ import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 
 public final class ConversionUtils {
 
-    @NotNull
-    public static BallerinaModel.TypeDesc jsonResponseTypeDesc(BallerinaModel.TypeDesc.TypeReference responseTypeRef) {
+    public static @NotNull BallerinaModel.TypeDesc jsonResponseTypeDesc(
+            BallerinaModel.TypeDesc.TypeReference responseTypeRef) {
         return BallerinaModel.TypeDesc.IntersectionTypeDesc.of(
                 READONLY,
                 new RecordTypeDesc(
@@ -71,8 +72,8 @@ public final class ConversionUtils {
                         BuiltinType.NEVER));
     }
 
-    @NotNull
-    public static BallerinaModel.TypeDesc xmlResponseTypeDesc(BallerinaModel.TypeDesc.TypeReference responseTypeRef) {
+    public static @NotNull BallerinaModel.TypeDesc xmlResponseTypeDesc(
+            BallerinaModel.TypeDesc.TypeReference responseTypeRef) {
         return BallerinaModel.TypeDesc.IntersectionTypeDesc.of(
                 READONLY,
                 new RecordTypeDesc(
@@ -85,8 +86,8 @@ public final class ConversionUtils {
                         BuiltinType.NEVER));
     }
 
-    @NotNull
-    public static BallerinaModel.TypeDesc textResponseTypeDesc(BallerinaModel.TypeDesc.TypeReference responseTypeRef) {
+    public static @NotNull BallerinaModel.TypeDesc textResponseTypeDesc(
+            BallerinaModel.TypeDesc.TypeReference responseTypeRef) {
         return BallerinaModel.TypeDesc.IntersectionTypeDesc.of(
                 READONLY,
                 new RecordTypeDesc(
@@ -102,7 +103,7 @@ public final class ConversionUtils {
     private ConversionUtils() {
     }
 
-    public static String sanitizes(String name) {
+    public static @NotNull String sanitizes(String name) {
         String sanitized = name.replaceAll("[^a-zA-Z0-9]", "_");
         while (!Character.isAlphabetic(sanitized.charAt(0))) {
             sanitized = sanitized.substring(1);
@@ -113,7 +114,7 @@ public final class ConversionUtils {
         return sanitized;
     }
 
-    public static String escapeString(String value) {
+    public static @NotNull String escapeString(String value) {
         if (value == null) {
             return "";
         }
@@ -124,7 +125,7 @@ public final class ConversionUtils {
         return name.equals("type");
     }
 
-    public static String getSanitizedUniqueName(String name, Collection<String> allocatedNames) {
+    public static @NotNull String getSanitizedUniqueName(String name, Collection<String> allocatedNames) {
         String sanitized = sanitizes(name);
         String nameToCheck = sanitized;
         if (allocatedNames.contains(nameToCheck)) {
@@ -133,7 +134,7 @@ public final class ConversionUtils {
         return nameToCheck;
     }
 
-    public static BuiltinType from(SQL.SQLType sqlType) {
+    public static @NotNull BuiltinType from(SQL.SQLType sqlType) {
         return switch (sqlType) {
             case INTEGER, BIGINT, SMALLINT -> INT;
             case DECIMAL, NUMERIC, REAL, DOUBLE -> DECIMAL;
@@ -190,7 +191,7 @@ public final class ConversionUtils {
         return exprFrom(sb.toString());
     }
 
-    public static String elementToString(Element element) {
+    public static @NotNull String elementToString(Element element) {
         try {
             TransformerFactory factory = TransformerFactory.newInstance();
             Transformer transformer = factory.newTransformer();
@@ -209,11 +210,11 @@ public final class ConversionUtils {
         }
     }
 
-    public static String sanitizePath(String path) {
+    public static @NotNull String sanitizePath(String path) {
         return path.replaceAll("^/+", "").replaceAll("/+$", "");
     }
 
-    public static String stripNamespace(String tagName) {
+    public static @NotNull String stripNamespace(String tagName) {
         String[] parts = tagName.split(":");
         if (parts.length == 1) {
             return parts[0];
@@ -229,12 +230,24 @@ public final class ConversionUtils {
         return new Expression.FunctionCall(predicateTestFn, List.of(value, xPathExpr));
     }
 
-    public static String baseName(String value) {
+    public static @NotNull String baseName(String value) {
         String[] parts = value.split("/");
         return parts[parts.length - 1];
     }
 
-    public static String createSoapEnvelope(Expression.VariableReference body) {
+    public static @NotNull String resourceNameFromPath(String path) {
+        String baseFileName = baseName(path);
+        String[] suffixes = {".sharedjdbc", ".sharedhttp", ".sharedjms", ".sharedvariable"};
+        for (String suffix : suffixes) {
+            if (baseFileName.endsWith(suffix)) {
+                return baseFileName.substring(0, baseFileName.length() - suffix.length());
+            }
+        }
+        int lastDotIndex = baseFileName.lastIndexOf('.');
+        return lastDotIndex > 0 ? baseFileName.substring(0, lastDotIndex) : baseFileName;
+    }
+
+    public static @NotNull String createSoapEnvelope(Expression.VariableReference body) {
         return """
                 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
                   soap:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
@@ -287,38 +300,37 @@ public final class ConversionUtils {
                 new BallerinaModel.TypeDesc.TypeReference("FileData");
     }
 
-    public static BallerinaModel.TypeDesc.FunctionTypeDesc processFunctionType(ProcessContext cx) {
+    public static @NotNull BallerinaModel.TypeDesc.FunctionTypeDesc processFunctionType(ProcessContext cx) {
         return new BallerinaModel.TypeDesc.FunctionTypeDesc(
                 List.of(new BallerinaModel.Parameter("cx", cx.contextType())));
     }
 
-    public static BallerinaModel.TypeDesc.FunctionTypeDesc scopeFnType(ProcessContext cx) {
+    public static @NotNull BallerinaModel.TypeDesc.FunctionTypeDesc scopeFnType(ProcessContext cx) {
         return new BallerinaModel.TypeDesc.FunctionTypeDesc(
                 List.of(new BallerinaModel.Parameter("cx", cx.contextType())));
     }
 
-    @NotNull
-    public static Expression.FieldAccess getXMLResultFromContext(Expression.VariableReference context) {
+    public static @NotNull Expression.FieldAccess getXMLResultFromContext(Expression.VariableReference context) {
         return new Expression.FieldAccess(context, "result");
     }
 
-    public static BallerinaModel.TypeDesc.FunctionTypeDesc activityFnType(ProcessContext cx) {
+    public static @NotNull BallerinaModel.TypeDesc.FunctionTypeDesc activityFnType(ProcessContext cx) {
         return new BallerinaModel.TypeDesc.FunctionTypeDesc(
                 List.of(new BallerinaModel.Parameter("cx", cx.contextType())),
                 BallerinaModel.TypeDesc.UnionTypeDesc.of(NIL, BallerinaModel.TypeDesc.BuiltinType.ERROR));
     }
 
-    public static BallerinaModel.TypeDesc.FunctionTypeDesc errorFlowFnType(ProcessContext cx) {
+    public static @NotNull BallerinaModel.TypeDesc.FunctionTypeDesc errorFlowFnType(ProcessContext cx) {
         return new BallerinaModel.TypeDesc.FunctionTypeDesc(
                 List.of(new BallerinaModel.Parameter("err", BallerinaModel.TypeDesc.BuiltinType.ERROR),
                         new BallerinaModel.Parameter("cx", cx.contextType())));
     }
 
-    public static BallerinaModel.TypeDesc toTypeDesc(XSD xsd) {
+    public static @NotNull BallerinaModel.TypeDesc toTypeDesc(XSD xsd) {
         return toTypeDesc(xsd.type().type());
     }
 
-    public static BallerinaModel.TypeDesc toTypeDesc(XSD.XSDType type) {
+    public static @NotNull BallerinaModel.TypeDesc toTypeDesc(XSD.XSDType type) {
         return switch (type) {
             case XSD.XSDType.BasicXSDType basicXSDType -> basicTypeToTD(basicXSDType);
             case XSD.XSDType.ComplexType complexType -> complexTypeToTD(complexType);
@@ -343,12 +355,11 @@ public final class ConversionUtils {
         };
     }
 
-    public static String extractFileName(String filePath) {
-        if (filePath == null || filePath.isBlank()) {
-            throw new IllegalArgumentException("File path cannot be null or blank");
-        }
-        // Handle both forward slashes and backslashes
-        int lastSlash = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
-        return lastSlash >= 0 ? filePath.substring(lastSlash + 1) : filePath;
+    public static @NotNull String processFunctionName(Process process) {
+        return processFunctionName(process.name());
+    }
+
+    public static @NotNull String processFunctionName(String processName) {
+        return "start_" + sanitizes(processName);
     }
 }

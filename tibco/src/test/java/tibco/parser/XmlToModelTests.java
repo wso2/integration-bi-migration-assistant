@@ -112,7 +112,7 @@ public class XmlToModelTests {
         Process5 process = (Process5) processOpt.get();
         assertEquals(process.name(), "Processes/MainProcessStarter.process");
         Process5.ExplicitTransitionGroup transitionGroup = process.transitionGroup();
-        assertEquals(transitionGroup.startActivity().name(), "HTTP Receiver");
+        assertEquals(transitionGroup.startActivity().get().name(), "HTTP Receiver");
     }
 
     @Test

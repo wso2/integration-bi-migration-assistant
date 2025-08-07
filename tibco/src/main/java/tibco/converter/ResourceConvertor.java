@@ -54,9 +54,10 @@ final class ResourceConvertor {
                     Stream.of(resource.dbUrl(), resource.userName(), resource.password())
                             .map(value -> toExpr(substitutions, value))
                             .toList());
-            ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(resource.name()), "jdbc:Client",
+            ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(
+                    ConversionUtils.resourceNameFromPath(resource.path())), "jdbc:Client",
                     Optional.of(new CheckPanic(constructorCall)), false, false);
-            cx.addResourceDeclaration(resource.name(), resourceVar, substitutions.values(), List.of(Library.JDBC));
+            cx.addResourceDeclaration(resource.path(), resourceVar, substitutions.values(), List.of(Library.JDBC));
             cx.addJavaDependency(pickJavaSQLConnector(cx, resource.dbUrl()));
         } catch (Exception e) {
             cx.registerResourceConversionFailure(resource);
@@ -92,9 +93,10 @@ final class ResourceConvertor {
                 hostName = hostName + ":" + resource.port().get();
             }
             NewExpression constructorCall = new NewExpression(List.of(toExpr(substitutions, hostName)));
-            ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(resource.name()), "http:Client",
+            ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(
+                    ConversionUtils.resourceNameFromPath(resource.path())), "http:Client",
                     Optional.of(new CheckPanic(constructorCall)), false, false);
-            cx.addResourceDeclaration(resource.name(), resourceVar, substitutions.values(), List.of(Library.HTTP));
+            cx.addResourceDeclaration(resource.path(), resourceVar, substitutions.values(), List.of(Library.HTTP));
         } catch (Exception e) {
             cx.registerResourceConversionFailure(resource);
         }
@@ -111,10 +113,10 @@ final class ResourceConvertor {
 
     public static void convertHttpSharedResource(ProjectContext cx, Resource.HTTPSharedResource resource) {
         try {
-            String name = tibco.converter.ConversionUtils.sanitizes(resource.name());
-            BallerinaModel.Listener listener = new BallerinaModel.Listener.HTTPListener(name,
+            BallerinaModel.Listener listener = new BallerinaModel.Listener.HTTPListener(ConversionUtils.sanitizes(
+                    ConversionUtils.resourceNameFromPath(resource.path())),
                     Integer.toString(resource.port()), resource.host());
-            cx.addListnerDeclartion(resource.name(), listener, List.of(), List.of(Library.HTTP));
+            cx.addListnerDeclartion(resource.path(), listener, List.of(), List.of(Library.HTTP));
         } catch (Exception e) {
             cx.registerResourceConversionFailure(resource);
         }
@@ -123,9 +125,10 @@ final class ResourceConvertor {
     public static void convertJDBCSharedResource(ProjectContext cx, Resource.JDBCSharedResource resource) {
         try {
             NewExpression constructorCall = new NewExpression(List.of(new StringConstant(resource.location())));
-            ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(resource.name()), "jdbc:Client",
+            ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(
+                    ConversionUtils.resourceNameFromPath(resource.path())), "jdbc:Client",
                     Optional.of(new CheckPanic(constructorCall)), false, false);
-            cx.addResourceDeclaration(resource.name(), resourceVar, List.of(), List.of(Library.JDBC));
+            cx.addResourceDeclaration(resource.path(), resourceVar, List.of(), List.of(Library.JDBC));
             cx.addJavaDependency(pickJavaSQLConnector(cx, resource.location()));
         } catch (Exception e) {
             cx.registerResourceConversionFailure(resource);
