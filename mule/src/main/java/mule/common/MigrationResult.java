@@ -15,13 +15,13 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package tibco;
+package mule.common;
 
-import common.LoggingUtils;
+import java.util.Optional;
 
-public interface LoggingContext {
+public interface MigrationResult {
 
-    void log(LoggingUtils.Level level, String message);
+    Optional<String> getFatalError();
 
-    void logState(String message);
+    void setFatalError(String fatalError);
 }

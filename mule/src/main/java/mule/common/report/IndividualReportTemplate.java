@@ -20,7 +20,7 @@ package mule.common.report;
 /**
  * Contains HTML template for migration assessment report.
  */
-public class MigrationReportTemplate {
+public class IndividualReportTemplate {
 
     public static String getHtmlTemplate() {
         return """

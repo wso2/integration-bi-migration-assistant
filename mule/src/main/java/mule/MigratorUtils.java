@@ -17,20 +17,24 @@
  */
 package mule;
 
+import mule.common.MuleLogger;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static mule.MuleMigrator.logger;
-
 public class MigratorUtils {
+
+    public static final String BAL_PROJECT_SUFFIX = "_ballerina";
+    public static final String BAL_DEFAULT_PROJECT_ORG = "mule_migrator";
 
     public static final List<String> MULE_V4_ONLY_TERMS = Arrays.asList(
             "doc:id", "xmlns:ee", "<ee:message", "<ee:transform", "<ttp:listener-connection"
@@ -40,13 +44,38 @@ public class MigratorUtils {
             "xmlns:dw", "<dw:transform-message"
     );
 
-    public static void createDirectories(Path path) {
-        logger().info("Creating directories if they do not exist: " + path);
+
+    public static String getBalProjectName(String projectNameArg, String sourceName) {
+        return projectNameArg != null ? projectNameArg : sourceName + BAL_PROJECT_SUFFIX;
+    }
+
+    public static String getBalOrgName(String orgNameArg) {
+        return orgNameArg != null ? orgNameArg : BAL_DEFAULT_PROJECT_ORG;
+    }
+
+    public static void writeFilesFromMap(MuleLogger logger, Path targetDir, Map<String, String> files) {
+        for (Map.Entry<String, String> entry : files.entrySet()) {
+            writeFile(logger, targetDir, entry.getKey(), entry.getValue());
+        }
+    }
+
+    public static void writeFile(MuleLogger logger, Path targetDir, String fileName, String content) {
+        Path filePath = targetDir.resolve(fileName);
+        try {
+            Files.writeString(filePath, content, StandardCharsets.UTF_8);
+            logger.logInfo("Wrote file: " + filePath);
+        } catch (IOException e) {
+            logger.logSevere("Error writing to file: " + filePath + ", " + e.getMessage());
+        }
+    }
+
+    public static void createDirectories(MuleLogger logger, Path path) {
+        logger.logInfo("Creating directories if they do not exist: " + path);
         if (!Files.exists(path)) {
             try {
                 Files.createDirectories(path);
             } catch (IOException e) {
-                logger().severe("Error creating directories: " + path);
+                logger.logSevere("Error creating directories: " + path);
             }
         }
     }

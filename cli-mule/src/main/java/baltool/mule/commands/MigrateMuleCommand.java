@@ -37,7 +37,8 @@ public class MigrateMuleCommand implements BLauncherCmd {
     private static final String CMD_NAME = "migrate-mule";
     private static final String USAGE = "bal migrate-mule <source-project/s-directory-or-file> " +
             "[-o|--out <output-directory>] [-f|--force-version <3|4>]" +
-            "[-v|--verbose] [-k|--keep-structure] [-d|--dry-run] [-m|--multi-root]";
+            "[-v|--verbose] [-k|--keep-structure] [-d|--dry-run] [-m|--multi-root] " +
+            "[-g|--org-name <organization-name>] [-p|--project-name <project-name>]";
 
     public MigrateMuleCommand() {
         errStream = System.err;
@@ -47,10 +48,10 @@ public class MigrateMuleCommand implements BLauncherCmd {
             arity = "0..1")
     private String sourcePath;
 
-    @CommandLine.Option(names = { "--out", "-o" }, description = "Output directory path")
+    @CommandLine.Option(names = {"--out", "-o"}, description = "Output directory path")
     private String outputPath;
 
-    @CommandLine.Option(names = { "--force-version", "-f" },
+    @CommandLine.Option(names = {"--force-version", "-f"},
             description = "Force Mule version (3 or 4) if automatic detection fails")
     private Integer muleVersion;
 
@@ -61,7 +62,7 @@ public class MigrateMuleCommand implements BLauncherCmd {
             description = "Simulate the conversion without generating output files", defaultValue = "false")
     private boolean dryRun;
 
-    @CommandLine.Option(names = { "--keep-structure", "-k" },
+    @CommandLine.Option(names = {"--keep-structure", "-k"},
             description = "Keep mule project structure", defaultValue = "false")
     private boolean keepStructure;
 
@@ -70,13 +71,22 @@ public class MigrateMuleCommand implements BLauncherCmd {
             defaultValue = "false")
     private boolean multiRoot;
 
+    @CommandLine.Option(names = {"--org-name", "-g"},
+            description = "Organization name for the generating Ballerina package")
+    private String orgName;
+
+    @CommandLine.Option(names = {"--project-name", "-p"},
+            description = "Project name for the generating Ballerina package")
+    private String projectName;
+
     @Override
     public void execute() {
         if (sourcePath == null) {
             errStream.println("Error: mule project directory or mule xml file path is required.");
             onInvalidInput();
         }
-        MuleMigrator.migrateMuleSource(sourcePath, outputPath, muleVersion, dryRun, verbose, keepStructure, multiRoot);
+        MuleMigrator.migrateAndExportMuleSource(sourcePath, outputPath, orgName, projectName, muleVersion, dryRun,
+                verbose, keepStructure, multiRoot);
     }
 
     private void onInvalidInput() {
@@ -103,6 +113,8 @@ public class MigrateMuleCommand implements BLauncherCmd {
         stringBuilder.append("  --dry-run, -d            Simulate the conversion without generating output files\n");
         stringBuilder.append("  --multi-root, -m         Treat each child directory as a separate project and convert" +
                 " all of them\n");
+        stringBuilder.append("  --org-name, -g           Organization name for the generated Ballerina package\n");
+        stringBuilder.append("  --project-name, -p       Project name for the generated Ballerina package\n");
     }
 
     @Override
