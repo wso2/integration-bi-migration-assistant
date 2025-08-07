@@ -76,7 +76,7 @@
         <pd:inputBindings>
             <jdbcGeneralActivityInput>
                 <statement>
-                    SELECT * FROM DB WHERE USER_ID=<xsl:value-of select="$post//UserId"/>
+                    SELECT * FROM DB WHERE USER_ID=foo
                 </statement>
             </jdbcGeneralActivityInput>
         </pd:inputBindings>
@@ -98,7 +98,7 @@
         <pd:resourceType>ae.activities.JDBCUpdateActivity</pd:resourceType>
         <config>
             <jdbcSharedConfig>/CRUD/SharedResources/JDBCConnection.sharedjdbc</jdbcSharedConfig>
-            <statement>delete from DB where USER_ID=<xsl:value-of select="$post//UserId"/></statement>
+            <statement>delete from DB where USER_ID=foo</statement>
         </config>
         <pd:inputBindings>
             <jdbcUpdateActivityInput/>

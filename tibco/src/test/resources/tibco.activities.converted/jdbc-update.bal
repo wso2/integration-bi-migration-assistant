@@ -17,18 +17,16 @@ function JDBC_Update(Context cx) returns error? {
     
 // WARNING: Prepared data is not supported, validate generated query
 
-    string var2 = "INSERT INTO DB (USER_ID) VALUES (?)";
-    sql:ParameterizedQuery var3 = ``;
-    var3.strings = [var2];
+    sql:ParameterizedQuery var2 = `INSERT INTO DB (USER_ID) VALUES (?)`;
     
 // WARNING: Missing DB client resource '/CRUD/SharedResources/JDBCConnection.sharedjdbc'. Using placeholder client.
 
-    xml var4;
-    sql:ExecutionResult var5 = check placeholder_db_connection->execute(var3);
-    xml var6 = xml`<root></root>`;
-    var4 = var6;
+    xml var3;
+    sql:ExecutionResult var4 = check placeholder_db_connection->execute(var2);
+    xml var5 = xml`<root></root>`;
+    var3 = var5;
     
 // WARNING: validate jdbc update result mapping
 
-    addToContext(cx, "JDBC-Update", var4);
+    addToContext(cx, "JDBC-Update", var3);
 }

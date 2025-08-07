@@ -235,20 +235,13 @@ final class ActivityConverter {
         return body;
     }
 
-    private record JDBCSetupResult(VariableReference statement, VariableReference query, VariableReference client) {
+    private record JDBCSetupResult(VariableReference query, VariableReference client) {
 
     }
 
     private static JDBCSetupResult setupJDBCConnection(ActivityContext cx, List<Statement> body,
                                                        String connectionName,
-                                                       BallerinaModel.Expression statementExpr) {
-        VarDeclStatment statement = new VarDeclStatment(STRING, cx.getAnnonVarName(), statementExpr);
-        body.add(statement);
-
-        VarDeclStatment query = new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
-                cx.getAnnonVarName(), exprFrom("``"));
-        body.add(query);
-        body.add(stmtFrom("%s.strings = [%s];".formatted(query.ref(), statement.ref())));
+                                                       VariableReference query) {
 
         Optional<VariableReference> dbClientOpt = cx.dbClient(connectionName);
         VariableReference client;
@@ -263,7 +256,7 @@ final class ActivityConverter {
             client = dbClientOpt.get();
         }
 
-        return new JDBCSetupResult(statement.ref(), query.ref(), client);
+        return new JDBCSetupResult(query, client);
     }
 
     private static ActivityConversionResult convertJDBCQuery(ActivityContext cx, VariableReference input,
@@ -274,15 +267,18 @@ final class ActivityConverter {
             return prefix + suffix;
         };
 
-        BallerinaModel.Expression statementExpr = jdbcQuery.statement()
-                .map(value -> (BallerinaModel.Expression) new StringConstant(value))
+        VarDeclStatment query = jdbcQuery.statement()
+                .map(value -> new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
+                        cx.getAnnonVarName(), exprFrom("`%s`".formatted(value))))
                 .orElseGet(() -> {
                     String configName = configurableNames.apply("Statement");
                     cx.projectContext().addConfigurableVariable(configName, configName);
-                    return new VariableReference(configName);
+                    return new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
+                            cx.getAnnonVarName(), exprFrom("`${%s}`".formatted(configName)));
                 });
 
-        JDBCSetupResult jdbcSetup = setupJDBCConnection(cx, body, jdbcQuery.connection(), statementExpr);
+        body.add(query);
+        JDBCSetupResult jdbcSetup = setupJDBCConnection(cx, body, jdbcQuery.connection(), query.ref());
 
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName());
         body.add(result);
@@ -676,7 +672,15 @@ final class ActivityConverter {
 
         BallerinaModel.Expression statementExpr =
                 exprFrom("(%s/**/<statement>/*).toString().trim()".formatted(input.varName()));
-        JDBCSetupResult jdbcSetup = setupJDBCConnection(cx, body, jdbc.connection(), statementExpr);
+
+        VarDeclStatment statement = new VarDeclStatment(STRING, cx.getAnnonVarName(), statementExpr);
+        body.add(statement);
+
+        VarDeclStatment query = new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
+                cx.getAnnonVarName(), exprFrom("``"));
+        body.add(query);
+        body.add(stmtFrom("%s.strings = [%s];".formatted(query.ref(), statement.ref())));
+        JDBCSetupResult jdbcSetup = setupJDBCConnection(cx, body, jdbc.connection(), query.ref());
 
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName());
         body.add(result);
@@ -690,7 +694,7 @@ final class ActivityConverter {
         queryBody.add(new Statement.VarAssignStatement(result.ref(), queryResult.result()));
 
         body.add(new Statement.IfElseStatement(
-                exprFrom("%s.startsWith(\"SELECT\")".formatted(jdbcSetup.statement())), ifSelectBody, List.of(),
+                exprFrom("%s.startsWith(\"SELECT\")".formatted(statement.ref())), ifSelectBody, List.of(),
                 queryBody));
         body.add(new Comment("WARNING: validate jdbc query result mapping"));
         return new ActivityConversionResult(result.ref(), body);
@@ -710,15 +714,19 @@ final class ActivityConverter {
                     "WARNING: Prepared data is not supported, validate generated query"));
         }
 
-        BallerinaModel.Expression statementExpr = jdbcUpdate.statement()
-                .map(value -> (BallerinaModel.Expression) new StringConstant(value))
+        VarDeclStatment query = jdbcUpdate.statement()
+                .map(value -> new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
+                        cx.getAnnonVarName(), exprFrom("`%s`".formatted(value))))
                 .orElseGet(() -> {
                     String configName = configurableNames.apply("Statement");
                     cx.projectContext().addConfigurableVariable(configName, configName);
-                    return new VariableReference(configName);
+                    return new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
+                            cx.getAnnonVarName(), exprFrom("`${%s}`".formatted(configName)));
                 });
-        
-        JDBCSetupResult jdbcSetup = setupJDBCConnection(cx, body, jdbcUpdate.connection(), statementExpr);
+
+        body.add(query);
+
+        JDBCSetupResult jdbcSetup = setupJDBCConnection(cx, body, jdbcUpdate.connection(), query.ref());
 
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName());
         body.add(result);
@@ -1875,7 +1883,6 @@ final class ActivityConverter {
     record XsltTransformResult(BallerinaModel.Expression expression, List<String> nonStandardFunctions) {
 
     }
-
     static final class XSLTConstants {
 
         static final String XSLT_TRANSFORM_FUNCTION = "xslt:transform";

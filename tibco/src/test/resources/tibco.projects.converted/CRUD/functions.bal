@@ -46,15 +46,13 @@ function JDBC_Delete(Context cx) returns error? {
 
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
-    string var2 = "delete from DB where USER_ID=";
-    sql:ParameterizedQuery var3 = ``;
-    var3.strings = [var2];
-    xml var4;
-    sql:ExecutionResult var5 = check JDBCConnection->execute(var3);
-    xml var6 = xml `<root></root>`;
-    var4 = var6;
+    sql:ParameterizedQuery var2 = `delete from DB where USER_ID=foo`;
+    xml var3;
+    sql:ExecutionResult var4 = check JDBCConnection->execute(var2);
+    xml var5 = xml `<root></root>`;
+    var3 = var5;
     // WARNING: validate jdbc update result mapping
-    addToContext(cx, "JDBC-Delete", var4);
+    addToContext(cx, "JDBC-Delete", var3);
 }
 
 function JDBC_Query(Context cx) returns error? {
@@ -66,25 +64,23 @@ function JDBC_Query(Context cx) returns error? {
 
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
-    string var2 = "select * FROM DB";
-    sql:ParameterizedQuery var3 = ``;
-    var3.strings = [var2];
-    xml var4;
-    stream<record {|anydata...;|}, error?> var5 = JDBCConnection->query(var3);
-    xml var6 = xml ``;
-    int var7 = 0;
-    while var7 < 100 {
-        var each = var5.next();
+    sql:ParameterizedQuery var2 = `select * FROM DB`;
+    xml var3;
+    stream<record {|anydata...;|}, error?> var4 = JDBCConnection->query(var2);
+    xml var5 = xml ``;
+    int var6 = 0;
+    while var6 < 100 {
+        var each = var4.next();
         if each is error? {
             break;
         }
-        var7 += 1;
-        xml var8 = check toXML(each);
-        var6 = var6 + xml `<Record>${var8}</Record>`;
+        var6 += 1;
+        xml var7 = check toXML(each);
+        var5 = var5 + xml `<Record>${var7}</Record>`;
     }
-    xml var9 = xml `<root>${var6}</root>`;
-    var4 = var9;
-    addToContext(cx, "JDBC-Query", var4);
+    xml var8 = xml `<root>${var5}</root>`;
+    var3 = var8;
+    addToContext(cx, "JDBC-Query", var3);
 }
 
 function JDBC_Update(Context cx) returns error? {
@@ -104,15 +100,13 @@ function JDBC_Update(Context cx) returns error? {
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
     // WARNING: Prepared data is not supported, validate generated query
-    string var2 = "INSERT INTO DB (USER_ID) VALUES (?)";
-    sql:ParameterizedQuery var3 = ``;
-    var3.strings = [var2];
-    xml var4;
-    sql:ExecutionResult var5 = check JDBCConnection->execute(var3);
-    xml var6 = xml `<root></root>`;
-    var4 = var6;
+    sql:ParameterizedQuery var2 = `INSERT INTO DB (USER_ID) VALUES (?)`;
+    xml var3;
+    sql:ExecutionResult var4 = check JDBCConnection->execute(var2);
+    xml var5 = xml `<root></root>`;
+    var3 = var5;
     // WARNING: validate jdbc update result mapping
-    addToContext(cx, "JDBC-Update", var4);
+    addToContext(cx, "JDBC-Update", var3);
 }
 
 function Log(Context cx) returns error? {
@@ -138,14 +132,13 @@ function Log(Context cx) returns error? {
 function SQL_Direct(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform1" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0">
+     <xsl:template name="Transform1" match="/">
         <jdbcGeneralActivityInput>
                     
     <statement>
-                            SELECT * FROM DB WHERE USER_ID=
-        <xsl:value-of select="$post//UserId" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-                        
-    </statement>
+                    SELECT * FROM DB WHERE USER_ID=foo
+                </statement>
                 
 </jdbcGeneralActivityInput>
 
