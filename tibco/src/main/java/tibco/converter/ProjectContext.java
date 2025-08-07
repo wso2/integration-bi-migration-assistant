@@ -399,10 +399,9 @@ public class ProjectContext implements LoggingContext {
                             + ". Returning placeholder resource.");
             return new Resource.JMSSharedResource("placeholder_" + ConversionUtils.sanitizes(resourcePath),
                     "/placeholder/path",
-                    "placeholder",
-                    new Resource.JMSSharedResource.NamingEnvironment(false, "", "", "", "", "", "", ""),
-                    new Resource.JMSSharedResource.ConnectionAttributes(Optional.empty(), Optional.empty(),
-                            Optional.empty(), false),
+                    Optional.empty(),
+                    Optional.empty(),
+                    Optional.empty(),
                     Map.of());
         }
         return resource;
@@ -439,7 +438,11 @@ public class ProjectContext implements LoggingContext {
     }
 
     public void addConfigurableVariable(String name, String source) {
-        BallerinaModel.ModuleVar var = BallerinaModel.ModuleVar.configurable(source, STRING);
+        addConfigurableVariable(name, source, STRING);
+    }
+
+    public void addConfigurableVariable(String name, String source, BallerinaModel.TypeDesc type) {
+        BallerinaModel.ModuleVar var = BallerinaModel.ModuleVar.configurable(source, type);
         utilityVars.put(name, var);
     }
 

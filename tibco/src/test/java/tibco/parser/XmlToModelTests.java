@@ -74,8 +74,8 @@ public class XmlToModelTests {
                         TestUtils.stringToElement(xmlText))
                 .orElseThrow();
         assertEquals(resource.name(), "test");
-        assertEquals(resource.host(), "localhost");
-        assertEquals(resource.port(), 9090);
+        assertEquals(resource.host().get(), "localhost");
+        assertEquals(resource.port().get(), 9090);
     }
 
     @Test

@@ -314,7 +314,7 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
             return;
         }
         BallerinaModel.Service defaultService = service.get();
-        String port = defaultListener.port();
+        String port = defaultListener.port().toString();
         BallerinaModel.Resource defaultResource = defaultService.resources().getFirst();
         String path = ConversionUtils.sanitizePath(defaultService.basePath() + "/" + defaultResource.path());
         Expression initExpr = exprFrom("checkpanic new(\"localhost:%s/%s\")".formatted(port, path));

@@ -400,17 +400,19 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
-        record HTTPListener(String name, String port, String host) implements Listener {
+        record HTTPListener(String name, Expression port, Optional<Expression> host) implements Listener {
+
+            public HTTPListener(String name, String port, String host) {
+                this(name, ConversionUtils.exprFrom(port),
+                        host.equals("0.0.0.0") ? Optional.empty() : Optional.of(new Expression.StringConstant(host)));
+            }
 
             @Override
             @NotNull
             public String toString() {
                 String argList;
-                if (host.equals("0.0.0.0")) {
-                    argList = "(%s)".formatted(port);
-                } else {
-                    argList = "(%s, {host: \"%s\"})".formatted(port, host);
-                }
+                argList = host.map(expression -> "(%s, {host: %s})".formatted(port, expression))
+                        .orElseGet(() -> "(%s)".formatted(port));
                 return "public listener http:Listener %s = new %s;".formatted(name, argList);
             }
 
@@ -420,8 +422,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
-        record JMSListener(String name, String initialContextFactory, String providerUrl, String destinationName,
-                           Optional<String> username, Optional<String> password)
+        record JMSListener(String name, Expression initialContextFactory, Expression providerUrl,
+                           String destinationName, Optional<String> username, Optional<String> password)
                 implements Listener {
 
             @Override
@@ -433,8 +435,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             @NotNull
             public String toString() {
                 StringBuilder connectionConfig = new StringBuilder();
-                connectionConfig.append("initialContextFactory: \"").append(initialContextFactory).append("\",\n");
-                connectionConfig.append("providerUrl: \"").append(providerUrl).append("\"");
+                connectionConfig.append("initialContextFactory: ").append(initialContextFactory).append(",\n");
+                connectionConfig.append("providerUrl: ").append(providerUrl);
 
                 if (username.isPresent() && password.isPresent()) {
                     connectionConfig.append(",\nusername: \"").append(username.get()).append("\",\n");
@@ -624,6 +626,15 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             @Override
             public String toString() {
                 return "()";
+            }
+        }
+
+        record IntConstant(int value) implements Expression, TypeDesc {
+
+            @Override
+            @NotNull
+            public String toString() {
+                return Integer.toString(value);
             }
         }
 

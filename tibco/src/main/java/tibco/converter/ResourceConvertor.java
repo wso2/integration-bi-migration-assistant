@@ -25,8 +25,10 @@ import common.BallerinaModel.Expression.NewExpression;
 import common.BallerinaModel.Expression.StringConstant;
 import common.BallerinaModel.ModuleVar;
 import common.LoggingUtils;
+import org.jetbrains.annotations.NotNull;
 import tibco.LoggingContext;
 import tibco.TibcoToBalConverter;
+import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.JMSQueueEventSource;
 import tibco.model.Resource;
 import tibco.model.Resource.HTTPClientResource;
 import tibco.model.Resource.HTTPConnectionResource;
@@ -39,7 +41,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static common.BallerinaModel.TypeDesc.BuiltinType.INT;
 import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
+import static tibco.converter.Library.JMS;
 
 final class ResourceConvertor {
 
@@ -113,9 +117,18 @@ final class ResourceConvertor {
 
     public static void convertHttpSharedResource(ProjectContext cx, Resource.HTTPSharedResource resource) {
         try {
-            BallerinaModel.Listener listener = new BallerinaModel.Listener.HTTPListener(ConversionUtils.sanitizes(
-                    ConversionUtils.resourceNameFromPath(resource.path())),
-                    Integer.toString(resource.port()), resource.host());
+            String listenerName = ConversionUtils.sanitizes(
+                    ConversionUtils.resourceNameFromPath(resource.path()));
+            Expression port =
+                    resource.port().map(value -> (Expression) common.ConversionUtils.exprFrom(Integer.toString(value)))
+                            .orElseGet(() -> {
+                                        String onMissingName = listenerName + "Port";
+                                        cx.addConfigurableVariable(onMissingName, onMissingName, INT);
+                                        return new Expression.VariableReference(onMissingName);
+                                    }
+                            );
+            BallerinaModel.Listener listener = new BallerinaModel.Listener.HTTPListener(listenerName,
+                    port, Optional.of(getOptionalConfigurableValueString(cx, resource.host(), listenerName + "Host")));
             cx.addListnerDeclartion(resource.path(), listener, List.of(), List.of(Library.HTTP));
         } catch (Exception e) {
             cx.registerResourceConversionFailure(resource);
@@ -124,15 +137,44 @@ final class ResourceConvertor {
 
     public static void convertJDBCSharedResource(ProjectContext cx, Resource.JDBCSharedResource resource) {
         try {
-            NewExpression constructorCall = new NewExpression(List.of(new StringConstant(resource.location())));
-            ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(
-                    ConversionUtils.resourceNameFromPath(resource.path())), "jdbc:Client",
+            String clientName = cx.getUtilityVarName(ConversionUtils.resourceNameFromPath(resource.path()));
+            NewExpression constructorCall = new NewExpression(
+                    List.of(getOptionalConfigurableValueString(cx, resource.location(), clientName + "Location")));
+            ModuleVar resourceVar = new ModuleVar(clientName, "jdbc:Client",
                     Optional.of(new CheckPanic(constructorCall)), false, false);
             cx.addResourceDeclaration(resource.path(), resourceVar, List.of(), List.of(Library.JDBC));
-            cx.addJavaDependency(pickJavaSQLConnector(cx, resource.location()));
+            cx.addJavaDependency(
+                    resource.location().map(location -> pickJavaSQLConnector(cx, location)).orElseGet(() -> {
+                        cx.log(LoggingUtils.Level.WARN, "JDBC url not given. Defaulting to H2 connector.");
+                        return TibcoToBalConverter.JavaDependencies.JDBC_H2;
+                    }));
         } catch (Exception e) {
             cx.registerResourceConversionFailure(resource);
         }
+    }
+
+    @NotNull
+    static BallerinaModel.Listener.JMSListener convertJMSSharedResource(
+            ProjectContext cx, JMSQueueEventSource jmsQueueEventSource, Resource.JMSSharedResource jmsResource,
+            String listenerName, String connectionReference) {
+        Expression initialContextFactory =
+                getOptionalConfigurableValueString(cx, jmsResource.namingEnvironment().flatMap(
+                                Resource.JMSSharedResource.NamingEnvironment::namingInitialContextFactory),
+                        listenerName + "InitialContextFactory");
+        Expression providerUrl = getOptionalConfigurableValueString(cx,
+                jmsResource.namingEnvironment().flatMap(Resource.JMSSharedResource.NamingEnvironment::providerURL),
+                listenerName + "ProviderURL");
+        String destinationName = jmsQueueEventSource.sessionAttributes().destination().orElse("Default queue");
+
+        BallerinaModel.Listener.JMSListener listener =
+                new BallerinaModel.Listener.JMSListener(listenerName, initialContextFactory, providerUrl,
+                        destinationName, jmsResource.connectionAttributes().flatMap(
+                        Resource.JMSSharedResource.ConnectionAttributes::username),
+                        jmsResource.connectionAttributes()
+                                .flatMap(Resource.JMSSharedResource.ConnectionAttributes::password));
+        cx.addListnerDeclartion(connectionReference, listener, List.of(),
+                List.of(JMS));
+        return listener;
     }
 
     private record SubstitutionResult(boolean hasInterpolations, String result) {
@@ -174,5 +216,14 @@ final class ResourceConvertor {
     private static ModuleVar convertSubstitutionBinding(ProjectContext cx,
                                                         Resource.SubstitutionBinding binding) {
         return ModuleVar.configurable(cx.getUtilityVarName(binding.template()), STRING);
+    }
+
+    private static Expression getOptionalConfigurableValueString(ProjectContext cx, Optional<String> configValue,
+                                                                 String onMissingName) {
+        return configValue.map(value -> (Expression) new StringConstant(value)).orElseGet(() -> {
+                    cx.addConfigurableVariable(onMissingName, onMissingName, STRING);
+                    return new Expression.VariableReference(onMissingName);
+                }
+        );
     }
 }

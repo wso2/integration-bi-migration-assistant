@@ -53,7 +53,7 @@ public sealed interface Resource {
 
     }
 
-    record JDBCSharedResource(String name, String path, String location) implements Resource {
+    record JDBCSharedResource(String name, String path, Optional<String> location) implements Resource {
 
         @Override
         public Collection<SubstitutionBinding> substitutionBindings() {
@@ -84,7 +84,8 @@ public sealed interface Resource {
         }
     }
 
-    record HTTPSharedResource(String name, String path, String host, int port) implements Resource {
+    record HTTPSharedResource(String name, String path, Optional<String> host, Optional<Integer> port)
+            implements Resource {
 
         @Override
         public Collection<SubstitutionBinding> substitutionBindings() {
@@ -111,8 +112,9 @@ public sealed interface Resource {
 
     }
 
-    record JMSSharedResource(String name, String path, String fileName, NamingEnvironment namingEnvironment,
-            ConnectionAttributes connectionAttributes, Map<String, String> jndiProperties)
+    record JMSSharedResource(String name, String path, Optional<String> fileName,
+                             Optional<NamingEnvironment> namingEnvironment,
+                             Optional<ConnectionAttributes> connectionAttributes, Map<String, String> jndiProperties)
             implements Resource {
 
         @Override
@@ -125,13 +127,15 @@ public sealed interface Resource {
             return ResourceKind.JMS_SHARED;
         }
 
-        public record NamingEnvironment(boolean useJNDI, String providerURL, String namingURL,
-                String namingInitialContextFactory, String topicFactoryName,
-                String queueFactoryName, String namingPrincipal, String namingCredential) {
+        public record NamingEnvironment(Optional<Boolean> useJNDI, Optional<String> providerURL,
+                                        Optional<String> namingURL,
+                                        Optional<String> namingInitialContextFactory, Optional<String> topicFactoryName,
+                                        Optional<String> queueFactoryName, Optional<String> namingPrincipal,
+                                        Optional<String> namingCredential) {
         }
 
         public record ConnectionAttributes(Optional<String> username, Optional<String> password,
-                Optional<String> clientID, boolean autoGenClientID) {
+                                           Optional<String> clientID, Optional<Boolean> autoGenClientID) {
         }
     }
 

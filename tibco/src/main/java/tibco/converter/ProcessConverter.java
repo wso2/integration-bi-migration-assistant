@@ -223,22 +223,14 @@ public class ProcessConverter {
 
     private static BallerinaModel.Listener.JMSListener createJMSListener(
             ProcessContext cx, ExplicitTransitionGroup.InlineActivity.JMSQueueEventSource jmsQueueEventSource) {
-        assert jmsQueueEventSource.connectionReference() != null : "JMS connection reference cannot be null";
+        String connectionReference = jmsQueueEventSource.connectionReference();
+        assert connectionReference != null : "JMS connection reference cannot be null";
 
-        Resource.JMSSharedResource jmsResource = cx.getJMSResource(jmsQueueEventSource.connectionReference());
-
+        Resource.JMSSharedResource jmsResource = cx.getJMSResource(connectionReference);
         String listenerName = "jms" + ConversionUtils.sanitizes(jmsQueueEventSource.name()) + "Listener";
-        String initialContextFactory = jmsResource.namingEnvironment().namingInitialContextFactory();
-        String providerUrl = jmsResource.namingEnvironment().providerURL();
-        String destinationName = jmsQueueEventSource.sessionAttributes().destination().orElse("Default queue");
 
-        BallerinaModel.Listener.JMSListener listener =
-                new BallerinaModel.Listener.JMSListener(listenerName, initialContextFactory, providerUrl,
-                        destinationName, jmsResource.connectionAttributes().username(),
-                        jmsResource.connectionAttributes().password());
-        cx.projectContext.addListnerDeclartion(jmsQueueEventSource.connectionReference(), listener, List.of(),
-                List.of(JMS));
-        return listener;
+        return ResourceConvertor.convertJMSSharedResource(cx.projectContext, jmsQueueEventSource, jmsResource,
+                listenerName, connectionReference);
     }
 
     private static BallerinaModel.@NotNull Service createHTTPServiceForStartActivity(ProcessContext cx,
