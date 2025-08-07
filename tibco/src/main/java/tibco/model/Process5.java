@@ -332,10 +332,6 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             record CallProcess(Element element, String name, InputBinding inputBinding,
                                String processName, String fileName) implements ExplicitTransitionGroup.InlineActivity {
 
-                public CallProcess {
-                    assert inputBinding != null;
-                }
-
                 @Override
                 public InlineActivityType type() {
                     return InlineActivityType.CALL_PROCESS;
@@ -343,7 +339,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
 
                 @Override
                 public boolean hasInputBinding() {
-                    return true;
+                    return inputBinding != null;
                 }
             }
 

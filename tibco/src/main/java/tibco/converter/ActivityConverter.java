@@ -716,9 +716,9 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
         VarDeclStatment envelope = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new XMLTemplate(ConversionUtils.createSoapEnvelope(result)));
         body.add(envelope);
-        // We only support SOAP 1.1
-        BallerinaModel.Expression soapAction = soapSendReceive.soapAction().map(StringConstant::new)
-                .orElseThrow(() -> new IllegalArgumentException("SOAP action is required"));
+        BallerinaModel.Expression soapAction =
+                soapSendReceive.soapAction().map(action -> (BallerinaModel.Expression) new StringConstant(action))
+                        .orElseGet(BallerinaModel.Expression.NilConstant::new);
         VarDeclStatment res = new VarDeclStatment(XML, cx.getAnnonVarName(), new Check(
                 new RemoteMethodCallAction(new VariableReference(clientName), "sendReceive",
                         List.of(envelope.ref(), soapAction))));
