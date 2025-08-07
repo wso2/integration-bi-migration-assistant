@@ -619,6 +619,14 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
+        record NilConstant() implements Expression, TypeDesc {
+
+            @Override
+            public String toString() {
+                return "()";
+            }
+        }
+
         record NewExpression(Optional<String> classDescriptor, List<Expression> args) implements Expression {
 
             public NewExpression(List<Expression> args) {
