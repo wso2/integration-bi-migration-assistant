@@ -226,7 +226,6 @@ public class ProcessConverter {
         String connectionReference = jmsQueueEventSource.connectionReference();
         assert connectionReference != null : "JMS connection reference cannot be null";
 
-        // FIXME: move this to resource converter
         Resource.JMSSharedResource jmsResource = cx.getJMSResource(connectionReference);
         String listenerName = "jms" + ConversionUtils.sanitizes(jmsQueueEventSource.name()) + "Listener";
 

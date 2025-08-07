@@ -25,9 +25,9 @@ import common.BallerinaModel.Expression.NewExpression;
 import common.BallerinaModel.Expression.StringConstant;
 import common.BallerinaModel.ModuleVar;
 import common.LoggingUtils;
+import org.jetbrains.annotations.NotNull;
 import tibco.LoggingContext;
 import tibco.TibcoToBalConverter;
-import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.JMSQueueEventSource;
 import tibco.model.Resource;
 import tibco.model.Resource.HTTPClientResource;
@@ -40,8 +40,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import org.jetbrains.annotations.NotNull;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.INT;
 import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
