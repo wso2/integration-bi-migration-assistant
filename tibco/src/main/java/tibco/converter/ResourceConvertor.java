@@ -153,7 +153,8 @@ final class ResourceConvertor {
         }
     }
 
-    static BallerinaModel.Listener.@NotNull JMSListener convertJMSSharedResource(
+    @NotNull
+    static BallerinaModel.Listener.JMSListener convertJMSSharedResource(
             ProjectContext cx, JMSQueueEventSource jmsQueueEventSource, Resource.JMSSharedResource jmsResource,
             String listenerName, String connectionReference) {
         Expression initialContextFactory =

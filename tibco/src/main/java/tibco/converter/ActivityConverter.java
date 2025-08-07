@@ -513,7 +513,7 @@ private static ActivityConversionResult convertJMSTopicPublishActivity(
                     .map(value -> (BallerinaModel.Expression) new StringConstant(value))
                     .orElseGet(() -> {
 
-                        String varName = connectionName + "NamingInitialContextFactory";
+                        String varName = connectionName + "ProviderUrl";
                         projectContext.addConfigurableVariable(varName, varName, STRING);
                         return new VariableReference(varName);
                     });
