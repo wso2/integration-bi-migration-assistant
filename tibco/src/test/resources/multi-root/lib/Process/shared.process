@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-    <pd:name>/lib/shared.process</pd:name>
+    <pd:name>/lib/Process/shared.process</pd:name>
     <pd:startName>HTTP Receiver</pd:startName>
     <pd:returnBindings/>
     <pd:endName>End</pd:endName>
