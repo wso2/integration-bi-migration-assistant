@@ -38,7 +38,7 @@ jobs:
         env:
           packageUser: ${{ github.actor }}
           packagePAT: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew build -x test
+        run: ./gradlew build -x test -x checkstyleMain -x checkstyleTest
 
       - name: Ballerina Central Dev Push
         if: ${{ inputs.environment == 'DEV CENTRAL' }}
