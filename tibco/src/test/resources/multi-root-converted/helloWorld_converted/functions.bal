@@ -178,7 +178,7 @@ function scope0_1ScopeFn(Context cx) returns () {
     }
 }
 
-function start_lib_shared_process(Context cx) returns () {
+function start_lib_Process_shared_process(Context cx) returns () {
     return scope0_1ScopeFn(cx);
 }
 

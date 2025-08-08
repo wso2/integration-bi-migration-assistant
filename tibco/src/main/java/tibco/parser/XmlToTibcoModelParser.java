@@ -458,11 +458,11 @@ public final class XmlToTibcoModelParser {
         String connection = tryGetInlineActivityConfigValue(element, "jdbcSharedConfig")
                 .orElseThrow(() -> new ParserException("Failed to find jdbcSharedConfig", element));
 
-        Optional<Integer> timeout = tryGetInlineActivityConfigValue(element, "timeout")
-                .map(Integer::parseInt);
+        Optional<Integer> timeout = tryParseConfig(tryGetInlineActivityConfigValue(element, "timeout"),
+                Integer::parseInt);
 
-        Optional<Integer> maxRows = tryGetInlineActivityConfigValue(element, "maxRows")
-                .map(Integer::parseInt);
+        Optional<Integer> maxRows = tryParseConfig(tryGetInlineActivityConfigValue(element, "maxRows"),
+                Integer::parseInt);
 
         Optional<String> statement = tryGetInlineActivityConfigValue(element, "statement");
 
@@ -515,12 +515,12 @@ public final class XmlToTibcoModelParser {
                 : XSD.XSDType.BasicXSDType.parse(typeAttr);
         String minOccursAttrib = element.getAttribute("minOccurs");
         Optional<Integer> minOccurs = minOccursAttrib.isBlank() ? Optional.empty()
-                : Optional.of(Integer.parseInt(minOccursAttrib));
+                : tryParseConfig(Optional.of(minOccursAttrib), Integer::parseInt);
 
         String maxOccursAttrib = element.getAttribute("maxOccurs");
-        Optional<Integer> maxOccurs =
-                maxOccursAttrib.isBlank() || maxOccursAttrib.equals("unbounded") ? Optional.empty()
-                        : Optional.of(Integer.parseInt(maxOccursAttrib));
+        Optional<Integer> maxOccurs = maxOccursAttrib.isBlank() || maxOccursAttrib.equals("unbounded")
+                ? Optional.empty()
+                : tryParseConfig(Optional.of(maxOccursAttrib), Integer::parseInt);
 
         return new XSD.Element(name, type, minOccurs, maxOccurs);
     }
@@ -1875,7 +1875,7 @@ public final class XmlToTibcoModelParser {
             if (isConfigurableValue(value)) {
                 return Optional.empty();
             }
-            return Optional.of(Integer.parseInt(value));
+            return tryParseConfig(Optional.of(value), Integer::parseInt);
         } catch (Exception e) {
             return Optional.empty();
         }
@@ -2011,20 +2011,16 @@ public final class XmlToTibcoModelParser {
             cx.log(SEVERE, "Failed to parse transacted value in JMS SessionAttributes: " + e.getMessage());
         }
 
-        Optional<Integer> acknowledgeMode = Optional.empty();
-        try {
-            acknowledgeMode = Optional
-                    .of(Integer.parseInt(getFirstChildWithTag(sessionAttrs, "acknowledgeMode").getTextContent()));
-        } catch (Exception e) {
-            cx.log(SEVERE, "Failed to parse acknowledgeMode value in JMS SessionAttributes: " + e.getMessage());
+        Optional<Integer> acknowledgeMode = tryParseConfig(
+                Optional.of(getFirstChildWithTag(sessionAttrs, "acknowledgeMode").getTextContent()), Integer::parseInt);
+        if (acknowledgeMode.isEmpty()) {
+            cx.log(SEVERE, "Failed to parse acknowledgeMode value in JMS SessionAttributes");
         }
 
-        Optional<Integer> maxSessions = Optional.empty();
-        try {
-            maxSessions = Optional
-                    .of(Integer.parseInt(getFirstChildWithTag(sessionAttrs, "maxSessions").getTextContent()));
-        } catch (Exception e) {
-            cx.log(SEVERE, "Failed to parse maxSessions value in JMS SessionAttributes: " + e.getMessage());
+        Optional<Integer> maxSessions = tryParseConfig(
+                Optional.of(getFirstChildWithTag(sessionAttrs, "maxSessions").getTextContent()), Integer::parseInt);
+        if (maxSessions.isEmpty()) {
+            cx.log(SEVERE, "Failed to parse maxSessions value in JMS SessionAttributes");
         }
 
         Optional<String> destination = Optional.empty();
@@ -2143,5 +2139,13 @@ public final class XmlToTibcoModelParser {
             String name, Flow.Activity.InputBinding inputBinding) {
         var mode = InlineActivity.ListFilesActivity.Mode.from(getInlineActivityConfigValue(element, "mode"));
         return new InlineActivity.ListFilesActivity(element, name, inputBinding, mode, cx.fileName());
+    }
+
+    private static <E> Optional<E> tryParseConfig(Optional<String> configValue, Function<String, E> parseFunction) {
+        try {
+            return configValue.map(parseFunction);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 }
