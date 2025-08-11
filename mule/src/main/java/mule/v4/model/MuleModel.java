@@ -224,6 +224,12 @@ public record MuleModel() {
         }
     }
 
+    public record GlobalProperty(Kind kind, String name, String value) implements MuleRecord {
+        public GlobalProperty(String name, String value) {
+            this(Kind.GLOBAL_PROPERTY, name, value);
+        }
+    }
+
     public record VMConfig(Kind kind, String name, List<VMQueue> queues) implements MuleRecord {
         public VMConfig(String name, List<VMQueue> queues) {
             this(Kind.VM_CONFIG, name, queues);
@@ -276,6 +282,7 @@ public record MuleModel() {
     public enum Kind {
         HTTP_LISTENER,
         VM_CONFIG,
+        GLOBAL_PROPERTY,
         VM_LISTENER,
         VM_PUBLISH,
         VM_CONSUME,

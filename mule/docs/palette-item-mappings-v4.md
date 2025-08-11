@@ -377,6 +377,43 @@ service /mule4 on listener_config {
 
 ```
 
+- ### Global Property
+
+**Input (global_property.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <global-property doc:name="Global Property" doc:id="80008100-f2ec-4e8c-9e9f-21c0615df09c" name="company.name" value="WSO2" />
+    <flow name="demoFlow" doc:id="150c5b03-c0a2-437c-af88-f5a80a77eb51" >
+        <logger level="INFO" doc:name="Logger" doc:id="03486a7b-2cd8-4d55-a1a5-f583c7eec67c" message="Company name : ${company.name}"/>
+    </flow>
+</mule>
+
+```
+**Output (global_property.bal):**
+```ballerina
+import ballerina/log;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+configurable string company_name = "WSO2";
+
+public function demoFlow(Context ctx) {
+    log:printInfo(string `Company name : ${company_name}`);
+}
+
+```
+
 ## Database Connector
 
 - ### Basic Db Select

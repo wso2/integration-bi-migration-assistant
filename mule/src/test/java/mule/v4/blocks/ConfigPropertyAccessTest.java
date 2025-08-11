@@ -23,7 +23,13 @@ public class ConfigPropertyAccessTest extends AbstractBlockTest {
 
     @Test
     public void testConfigPropertyAccess() {
-        testMule4ToBal("config-property-access/external_property_access_in_message.xml",
-                "config-property-access/external_property_access_in_message.bal");
+        testMule4ToBal("config-property-access/config_property_access_in_message.xml",
+                "config-property-access/config_property_access_in_message.bal");
+    }
+
+    @Test
+    public void testGlobalProperty() {
+        testMule4ToBal("config-property-access/global_property.xml",
+                "config-property-access/global_property.bal");
     }
 }

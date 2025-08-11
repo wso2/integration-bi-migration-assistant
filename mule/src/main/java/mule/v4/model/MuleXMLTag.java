@@ -36,6 +36,7 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     DB_ORACLE_CONNECTION("db:oracle-connection", 3),
     VM_CONFIG("vm:config", 1),
     CONFIGURATION_PROPERTIES("configuration-properties", 1),
+    GLOBAL_PROPERTY("global-property", 1),
 
     // Flow Control
     CHOICE("choice", 3),
