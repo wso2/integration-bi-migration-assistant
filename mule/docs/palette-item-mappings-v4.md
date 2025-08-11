@@ -17,7 +17,6 @@
 - [Object To String](palette-item-mappings-v4.md#object-to-string)
 - [On Error Continue](palette-item-mappings-v4.md#on-error-continue)
 - [On Error Propagate](palette-item-mappings-v4.md#on-error-propagate)
-- [Session Variable](palette-item-mappings-v4.md#session-variable)
 - [Set Payload](palette-item-mappings-v4.md#set-payload)
 - [Sub Flow](palette-item-mappings-v4.md#sub-flow)
 - [Transform Message](palette-item-mappings-v4.md#transform-message)
@@ -2599,220 +2598,6 @@ service /mule4 on listener_config {
 
 ```
 
-## Session Variable
-
-- ### Basic Set Session Variable
-
-**Input (basic_set_session_variable.xml):**
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-
-<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-      xmlns="http://www.mulesoft.org/schema/mule/core"
-      xmlns:json="http://www.mulesoft.org/schema/mule/json"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
-http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
-    <flow name="myFlow">
-        <logger message="xxx: flow starting logger invoked" level="INFO" doc:name="Logger"/>
-        <set-session-variable variableName="day" value="21" doc:name="Session Variable"/>
-        <set-session-variable variableName="month" value="July" doc:name="Session Variable"/>
-        <set-session-variable variableName="from" value="2025" doc:name="Session Variable"/>
-        <logger message="Session variables are: day - #[sessionVars.day], month - #[sessionVars.month], from - #[sessionVars['from']]" level="INFO" doc:name="Logger"/>
-    </flow>
-</mule>
-
-```
-**Output (basic_set_session_variable.bal):**
-```ballerina
-import ballerina/log;
-
-public type SessionVars record {|
-    string day?;
-    string month?;
-    string 'from?;
-|};
-
-public type Context record {|
-    anydata payload = ();
-    SessionVars sessionVars = {};
-|};
-
-public function myFlow(Context ctx) {
-    log:printInfo("xxx: flow starting logger invoked");
-    ctx.sessionVars.day = "21";
-    ctx.sessionVars.month = "July";
-    ctx.sessionVars.'from = "2025";
-    log:printInfo(string `Session variables are: day - ${ctx.sessionVars.day.toString()}, month - ${ctx.sessionVars.month.toString()}, from - ${ctx.sessionVars.'from.toString()}`);
-}
-
-```
-
-- ### Set Session Variable With Http Source
-
-**Input (set_session_variable_with_http_source.xml):**
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-
-<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-      xmlns="http://www.mulesoft.org/schema/mule/core"
-      xmlns:json="http://www.mulesoft.org/schema/mule/json"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
-http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
-    <http:listener-config name="HTTP_Config" host="0.0.0.0" port="8081" basePath="/mule3" doc:name="HTTP Listener Config"/>
-    <flow name="sessionVarExampleFlow">
-        <!-- HTTP Listener as the source -->
-        <http:listener config-ref="HTTP_Config" path="/session" allowedMethods="GET" doc:name="HTTP Listener"/>
-
-        <!-- Set Session Variable -->
-        <set-session-variable variableName="sessionVarExample" value="Initial Value" doc:name="Set Session Variable"/>
-
-        <!-- Log Initial Session Variable -->
-        <logger message="Session Variable (Initial): #[sessionVars.sessionVarExample]" level="INFO" doc:name="Logger Initial"/>
-
-        <!-- Modify Session Variable -->
-        <set-session-variable variableName="sessionVarExample" value="Modified Value" doc:name="Modify Session Variable"/>
-
-        <!-- Log Modified Session Variable -->
-        <logger message="Session Variable (Modified): #[sessionVars.sessionVarExample]" level="INFO" doc:name="Logger Modified"/>
-
-        <set-payload value="{&quot;message&quot;:&quot;Check logs for session variable values&quot;}" doc:name="Set JSON Response"/>
-    </flow>
-</mule>
-
-```
-**Output (set_session_variable_with_http_source.bal):**
-```ballerina
-import ballerina/http;
-import ballerina/log;
-
-public type SessionVars record {|
-    string sessionVarExample?;
-|};
-
-public type InboundProperties record {|
-    http:Request request;
-    http:Response response;
-    map<string> uriParams = {};
-|};
-
-public type Context record {|
-    anydata payload = ();
-    SessionVars sessionVars = {};
-    InboundProperties inboundProperties;
-|};
-
-public listener http:Listener HTTP_Config = new (8081);
-
-service /mule3 on HTTP_Config {
-    resource function get session(http:Request request) returns http:Response|error {
-        Context ctx = {inboundProperties: {request, response: new}};
-        ctx.sessionVars.sessionVarExample = "Initial Value";
-        log:printInfo(string `Session Variable (Initial): ${ctx.sessionVars.sessionVarExample.toString()}`);
-        ctx.sessionVars.sessionVarExample = "Modified Value";
-        log:printInfo(string `Session Variable (Modified): ${ctx.sessionVars.sessionVarExample.toString()}`);
-
-        // set payload
-        string payload0 = "{\"message\":\"Check logs for session variable values\"}";
-        ctx.payload = payload0;
-
-        ctx.inboundProperties.response.setPayload(ctx.payload);
-        return ctx.inboundProperties.response;
-    }
-}
-
-```
-
-- ### Simple Remove Session Variable
-
-**Input (simple_remove_session_variable.xml):**
-```xml
-<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-      xmlns="http://www.mulesoft.org/schema/mule/core"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
-    <flow name="weatherServiceFlow">
-        <set-session-variable variableName="greeting" value="#['hello session']" doc:name="Session Variable"/>
-        <set-session-variable variableName="from" value="#['USA']" doc:name="Session Variable"/>
-        <remove-session-variable variableName="greeting" doc:name="Session Variable"/>
-        <remove-session-variable variableName="from" doc:name="Session Variable"/>
-    </flow>
-</mule>
-
-```
-**Output (simple_remove_session_variable.bal):**
-```ballerina
-public type SessionVars record {|
-    string greeting?;
-    string 'from?;
-|};
-
-public type Context record {|
-    anydata payload = ();
-    SessionVars sessionVars = {};
-|};
-
-public function weatherServiceFlow(Context ctx) {
-    ctx.sessionVars.greeting = "hello session";
-    ctx.sessionVars.'from = "USA";
-    ctx.sessionVars.greeting = ();
-    ctx.sessionVars.'from = ();
-}
-
-```
-
-- ### Updating Same Session Variable
-
-**Input (updating_same_session_variable.xml):**
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-
-<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-      xmlns="http://www.mulesoft.org/schema/mule/core"
-      xmlns:json="http://www.mulesoft.org/schema/mule/json"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
-http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
-    <flow name="myFlow">
-        <logger message="xxx: flow starting logger invoked" level="INFO" doc:name="Logger"/>
-        <set-session-variable variableName="sessionVar1" value="initial value" doc:name="Session Variable"/>
-        <set-session-variable variableName="sessionVar1" value="updated value" doc:name="Session Variable"/>
-        <logger message="xxx: end of flow reached" level="INFO" doc:name="Logger"/>
-    </flow>
-</mule>
-
-```
-**Output (updating_same_session_variable.bal):**
-```ballerina
-import ballerina/log;
-
-public type SessionVars record {|
-    string sessionVar1?;
-|};
-
-public type Context record {|
-    anydata payload = ();
-    SessionVars sessionVars = {};
-|};
-
-public function myFlow(Context ctx) {
-    log:printInfo("xxx: flow starting logger invoked");
-    ctx.sessionVars.sessionVar1 = "initial value";
-    ctx.sessionVars.sessionVar1 = "updated value";
-    log:printInfo("xxx: end of flow reached");
-}
-
-```
-
 ## Set Payload
 
 - ### Basic Set Payload
@@ -3325,6 +3110,58 @@ service /mule4 on config {
         ctx.attributes.response.setPayload(ctx.payload);
         return ctx.attributes.response;
     }
+}
+
+```
+
+- ### Updating Same Variable
+
+**Input (updating_same_variable.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="Listener">
+        <http:listener-connection host="0.0.0.0" port="9091" />
+    </http:listener-config>
+    <configuration-properties doc:name="Configuration properties" doc:id="60c232be-ea26-4ab0-a71a-30f8e2c794ac" file="config.properties" />
+    <flow name="raise-error-example-flow">
+        <logger level="INFO" doc:name="Logger" doc:id="9e98ecb9-4e5e-4aac-bcb6-6121b72d8f37" message="flow starting logger invoked."/>
+        <set-variable value="initial value" doc:name="Set Variable" doc:id="9ce291ac-8826-4fc0-858d-e9b38c809412" variableName="var1"/>
+        <set-variable value="updated value" doc:name="Set Variable" doc:id="6511d009-f9e5-48ea-800a-f8271a78e4d1" variableName="var1"/>
+        <logger level="INFO" doc:name="Logger" doc:id="2751abc7-ca74-4371-8d2f-2c361577fa83" message="flow ending logger invoked."/>
+    </flow>
+</mule>
+
+```
+**Output (updating_same_variable.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Vars record {|
+    string var1?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public listener http:Listener Listener = new (9091);
+
+public function raise\-error\-example\-flow(Context ctx) {
+    log:printInfo("flow starting logger invoked.");
+    ctx.vars.var1 = "initial value";
+    ctx.vars.var1 = "updated value";
+    log:printInfo("flow ending logger invoked.");
 }
 
 ```
