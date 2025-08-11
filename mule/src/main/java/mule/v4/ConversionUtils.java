@@ -304,7 +304,7 @@ public class ConversionUtils {
         }
     }
 
-    private static String processPropertyName(Context ctx, String propertyName) {
+    public static String processPropertyName(Context ctx, String propertyName) {
         String configVarName = propertyName.replace('.', '_');
         if (!ctx.projectCtx.configurableVarExists(configVarName)) {
             var configVarDecl = new ModuleVar(configVarName, "string", Optional.of(exprFrom("?")), false, true);

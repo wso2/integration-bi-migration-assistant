@@ -87,6 +87,7 @@ The migration tool currently supports the following Mule 4.x components:
 
 - [Async](docs/palette-item-mappings-v4.md#async)
 - [Choice](docs/palette-item-mappings-v4.md#choice)
+- [Config Property Access](docs/palette-item-mappings-v4.md#config-property-access)
 - [Database Connector](docs/palette-item-mappings-v4.md#database-connector)
 - [Error Handler](docs/palette-item-mappings-v4.md#error-handler)
 - [Expression Component](docs/palette-item-mappings-v4.md#expression-component)
@@ -99,7 +100,6 @@ The migration tool currently supports the following Mule 4.x components:
 - [Object To String](docs/palette-item-mappings-v4.md#object-to-string)
 - [On Error Continue](docs/palette-item-mappings-v4.md#on-error-continue)
 - [On Error Propagate](docs/palette-item-mappings-v4.md#on-error-propagate)
-- [Property Access](docs/palette-item-mappings-v4.md#property-access)
 - [Session Variable](docs/palette-item-mappings-v4.md#session-variable)
 - [Set Payload](docs/palette-item-mappings-v4.md#set-payload)
 - [Sub Flow](docs/palette-item-mappings-v4.md#sub-flow)

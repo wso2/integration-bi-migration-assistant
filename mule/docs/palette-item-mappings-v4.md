@@ -4,6 +4,7 @@
 
 - [Async](palette-item-mappings-v4.md#async)
 - [Choice](palette-item-mappings-v4.md#choice)
+- [Config Property Access](palette-item-mappings-v4.md#config-property-access)
 - [Database Connector](palette-item-mappings-v4.md#database-connector)
 - [Error Handler](palette-item-mappings-v4.md#error-handler)
 - [Expression Component](palette-item-mappings-v4.md#expression-component)
@@ -16,7 +17,6 @@
 - [Object To String](palette-item-mappings-v4.md#object-to-string)
 - [On Error Continue](palette-item-mappings-v4.md#on-error-continue)
 - [On Error Propagate](palette-item-mappings-v4.md#on-error-propagate)
-- [Property Access](palette-item-mappings-v4.md#property-access)
 - [Session Variable](palette-item-mappings-v4.md#session-variable)
 - [Set Payload](palette-item-mappings-v4.md#set-payload)
 - [Sub Flow](palette-item-mappings-v4.md#sub-flow)
@@ -277,6 +277,102 @@ public function demoFlow(Context ctx) {
         log:printInfo(string `You have scored ${ctx.vars.marks.toString()}. Your grade is 'C'.`);
     } else {
         log:printInfo(string `You have scored ${ctx.vars.marks.toString()}. Your grade is 'F'.`);
+    }
+}
+
+```
+
+## Config Property Access
+
+- ### Config Property Access In Message
+
+**Input (config_property_access_in_message.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="listener_config" doc:name="HTTP Listener config" doc:id="73a0fa89-f2fe-48ca-a692-eb28f9809a9c" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="${http.port}" />
+    </http:listener-config>
+    <db:config name="db_config" doc:name="Database Config" doc:id="e8bc20de-c3ee-450e-a42a-4c8940636ea6" >
+        <db:my-sql-connection host="${db.host}" port="${db.port}" user="${db.user}" password="${db.password}" database="${db.database}" />
+    </db:config>
+    <configuration-properties doc:name="Configuration properties" doc:id="c366b738-c9b9-4915-9094-4c5e363c630f" file="config.yaml" />
+    <flow name="demoFlow" doc:id="4a79ef8b-6421-4704-9d8f-2c6c3817a45d" >
+        <http:listener doc:name="Listener" doc:id="6c4ca706-9983-47cd-9282-479ce0780c78" config-ref="listener_config" allowedMethods="GET" path="property_access"/>
+        <set-variable value="#[p('http.host') ++ ':' ++ p('http.port')]" doc:name="Set DB Connection String" doc:id="1d96e838-5365-4994-8283-5b1d1dbbfdf5" variableName="dbConnectionString"/>
+        <logger level="INFO" doc:name="Log App Running Port" doc:id="91bd5a2d-3cec-431f-89f4-9fea74eb5fe3" message="#['App running on port: ' ++ p('http.port')]"/>
+        <db:select doc:name="Select" doc:id="10c7026c-bfd7-4d41-8f95-c7a0df37c74f" config-ref="db_config">
+            <db:sql ><![CDATA[SELECT * FROM USERS;]]></db:sql>
+        </db:select>
+        <logger level="INFO" doc:name="Logger" doc:id="b33e3b7f-2ea2-4d11-8a95-2d9daa4fe4fc" message="#['Welcome, ' ++ p('user.firstName') ++ ' ' ++ p('user.lastName') ++ '. Your account balance is ' ++ p('user.balance')]"/>
+    </flow>
+</mule>
+
+```
+**Output (config_property_access_in_message.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+import ballerina/sql;
+import ballerinax/mysql;
+import ballerinax/mysql.driver as _;
+
+public type Vars record {|
+    anydata dbConnectionString?;
+|};
+
+public type Attributes record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+    Attributes attributes;
+|};
+
+public type Record record {
+};
+
+configurable string http_host = ?;
+configurable string http_port = ?;
+configurable string user_firstName = ?;
+configurable string user_lastName = ?;
+configurable string user_balance = ?;
+configurable string db_host = ?;
+configurable string db_user = ?;
+configurable string db_password = ?;
+configurable string db_database = ?;
+configurable string db_port = ?;
+mysql:Client db_config = check new (db_host, db_user, db_password, db_database, check int:fromString(db_port));
+public listener http:Listener listener_config = new (check int:fromString(http_port));
+
+service /mule4 on listener_config {
+    resource function get property_access(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        ctx.vars.dbConnectionString = http_host + ":" + http_port;
+        log:printInfo("App running on port: " + http_port);
+
+        // database operation
+        sql:ParameterizedQuery dbQuery0 = `SELECT * FROM USERS;`;
+        stream<Record, sql:Error?> dbStream0 = db_config->query(dbQuery0);
+        Record[] dbSelect0 = check from Record _iterator_ in dbStream0
+            select _iterator_;
+        ctx.payload = dbSelect0;
+        log:printInfo("Welcome, " + user_firstName + " " + user_lastName + ". Your account balance is " + user_balance);
+
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
     }
 }
 
@@ -2495,98 +2591,6 @@ service /mule4 on listener_config {
             ctx.payload = payload1;
             ctx.attributes.response.statusCode = 500;
         }
-
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
-    }
-}
-
-```
-
-## Property Access
-
-- ### External Property Access In Message
-
-**Input (external_property_access_in_message.xml):**
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-
-<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
-      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
-      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
-http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
-http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
-http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
-    <http:listener-config name="listener_config" doc:name="HTTP Listener config" doc:id="73a0fa89-f2fe-48ca-a692-eb28f9809a9c" basePath="mule4">
-        <http:listener-connection host="0.0.0.0" port="${http.port}" />
-    </http:listener-config>
-    <db:config name="db_config" doc:name="Database Config" doc:id="e8bc20de-c3ee-450e-a42a-4c8940636ea6" >
-        <db:my-sql-connection host="${db.host}" port="${db.port}" user="${db.user}" password="${db.password}" database="${db.database}" />
-    </db:config>
-    <configuration-properties doc:name="Configuration properties" doc:id="c366b738-c9b9-4915-9094-4c5e363c630f" file="config.yaml" />
-    <flow name="demoFlow" doc:id="4a79ef8b-6421-4704-9d8f-2c6c3817a45d" >
-        <http:listener doc:name="Listener" doc:id="6c4ca706-9983-47cd-9282-479ce0780c78" config-ref="listener_config" allowedMethods="GET" path="property_access"/>
-        <set-variable value="#[p('http.host') ++ ':' ++ p('http.port')]" doc:name="Set DB Connection String" doc:id="1d96e838-5365-4994-8283-5b1d1dbbfdf5" variableName="dbConnectionString"/>
-        <logger level="INFO" doc:name="Log App Running Port" doc:id="91bd5a2d-3cec-431f-89f4-9fea74eb5fe3" message="#['App running on port: ' ++ p('http.port')]"/>
-        <db:select doc:name="Select" doc:id="10c7026c-bfd7-4d41-8f95-c7a0df37c74f" config-ref="db_config">
-            <db:sql ><![CDATA[SELECT * FROM USERS;]]></db:sql>
-        </db:select>
-        <logger level="INFO" doc:name="Logger" doc:id="b33e3b7f-2ea2-4d11-8a95-2d9daa4fe4fc" message="#['Welcome, ' ++ p('user.firstName') ++ ' ' ++ p('user.lastName') ++ '. Your account balance is ' ++ p('user.balance')]"/>
-    </flow>
-</mule>
-
-```
-**Output (external_property_access_in_message.bal):**
-```ballerina
-import ballerina/http;
-import ballerina/log;
-import ballerina/sql;
-import ballerinax/mysql;
-import ballerinax/mysql.driver as _;
-
-public type Vars record {|
-    anydata dbConnectionString?;
-|};
-
-public type Attributes record {|
-    http:Request request;
-    http:Response response;
-    map<string> uriParams = {};
-|};
-
-public type Context record {|
-    anydata payload = ();
-    Vars vars = {};
-    Attributes attributes;
-|};
-
-public type Record record {
-};
-
-configurable string http_port = ?;
-configurable string db_host = ?;
-configurable string db_user = ?;
-configurable string db_password = ?;
-configurable string db_database = ?;
-configurable string db_port = ?;
-mysql:Client db_config = check new (db_host, db_user, db_password, db_database, check int:fromString(db_port));
-public listener http:Listener listener_config = new (check int:fromString(http_port));
-
-service /mule4 on listener_config {
-    resource function get property_access(http:Request request) returns http:Response|error {
-        Context ctx = {attributes: {request, response: new}};
-        ctx.vars.dbConnectionString = p("http.host") + +":" + +p("http.port");
-        log:printInfo("App running on port: " + +p.toString() ("http.port"));
-
-        // database operation
-        sql:ParameterizedQuery dbQuery0 = `SELECT * FROM USERS;`;
-        stream<Record, sql:Error?> dbStream0 = db_config->query(dbQuery0);
-        Record[] dbSelect0 = check from Record _iterator_ in dbStream0
-            select _iterator_;
-        ctx.payload = dbSelect0;
-        log:printInfo("Welcome, " + +p.toString() ("user.firstName") + +" " + +p.toString() ("user.lastName") + +". Your account balance is " + +p.toString() ("user.balance"));
 
         ctx.attributes.response.setPayload(ctx.payload);
         return ctx.attributes.response;
