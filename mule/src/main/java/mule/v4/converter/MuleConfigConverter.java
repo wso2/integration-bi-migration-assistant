@@ -17,6 +17,7 @@
  */
 package mule.v4.converter;
 
+import common.BallerinaModel.Statement.PartialStatement;
 import mule.v4.Constants;
 import mule.v4.Context;
 import mule.v4.ConversionUtils;
@@ -75,6 +76,7 @@ import static mule.v4.model.MuleModel.RaiseError;
 import static mule.v4.model.MuleModel.RemoveVariable;
 import static mule.v4.model.MuleModel.SetVariable;
 import static mule.v4.model.MuleModel.TransformMessage;
+import static mule.v4.model.MuleModel.Try;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
 import static mule.v4.model.MuleModel.VMPublish;
 import static mule.v4.model.MuleModel.WhenInChoice;
@@ -95,7 +97,8 @@ public class MuleConfigConverter {
                 stmts.remove(namedWorkerDecl);
             }
 
-            if (stmts.size() == 1 && stmts.getFirst() instanceof DoStatement doStatement) {
+            if (stmts.size() == 1 && stmts.getFirst() instanceof PartialStatement(Statement statement)) {
+                DoStatement doStatement = (DoStatement) statement;
                 body = new ArrayList<>(Collections.singletonList(new DoStatement(body, doStatement.onFailClause())));
                 continue;
             }
@@ -240,6 +243,9 @@ public class MuleConfigConverter {
             }
             case Async async -> {
                 return convertAsync(ctx, async);
+            }
+            case Try tr -> {
+                return convertTry(ctx, tr);
             }
             case VMPublish vmPublish -> {
                 return convertVMPublish(ctx, vmPublish);
@@ -479,6 +485,10 @@ public class MuleConfigConverter {
         return stmts;
     }
 
+    private static List<Statement> convertTry(Context ctx, Try tr) {
+        return convertTopLevelMuleBlocks(ctx, tr.flowBlocks());
+    }
+
     private static List<Statement> convertVMPublish(Context ctx, VMPublish vmPublish) {
         String queueName = vmPublish.queueName();
         String funcName = ctx.projectCtx.vmQueueNameToBalFuncMap.get(queueName);
@@ -534,7 +544,8 @@ public class MuleConfigConverter {
         TypeBindingPattern typeBindingPattern = new TypeBindingPattern(BAL_ERROR_TYPE, Constants.ON_FAIL_ERROR_VAR_REF);
         OnFailClause onFailClause = new OnFailClause(onFailBody, typeBindingPattern);
         DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
-        return List.of(doStatement);
+        PartialStatement partialStatement = new PartialStatement(doStatement);
+        return List.of(partialStatement);
     }
 
     private static List<Statement> convertOnErrorContinue(Context ctx, OnErrorContinue onErrorContinue) {

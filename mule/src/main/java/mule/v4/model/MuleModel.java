@@ -142,6 +142,12 @@ public record MuleModel() {
         }
     }
 
+    public record Try(Kind kind, List<MuleRecord> flowBlocks) implements MuleRecord {
+        public Try(List<MuleRecord> flowBlocks) {
+            this(Kind.TRY, flowBlocks);
+        }
+    }
+
     public record Enricher(Kind kind, String source, String target, Optional<MuleRecord> innerBlock)
             implements MuleRecord {
         public Enricher(String source, String target, Optional<MuleRecord> innerBlock) {
@@ -321,6 +327,7 @@ public record MuleModel() {
         FLOW,
         SUB_FLOW,
         ASYNC,
+        TRY,
         MESSAGE_ENRICHER,
         ERROR_HANDLER,
         ON_ERROR_CONTINUE,

@@ -68,6 +68,7 @@ import static mule.v4.model.MuleModel.SetVariableElement;
 import static mule.v4.model.MuleModel.SubFlow;
 import static mule.v4.model.MuleModel.TransformMessage;
 import static mule.v4.model.MuleModel.TransformMessageElement;
+import static mule.v4.model.MuleModel.Try;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
 import static mule.v4.model.MuleModel.VMConfig;
 import static mule.v4.model.MuleModel.VMConsume;
@@ -190,6 +191,9 @@ public class MuleConfigReader {
             }
             case MuleXMLTag.ASYNC -> {
                 return readAsync(ctx, muleElement);
+            }
+            case MuleXMLTag.TRY -> {
+                return readTry(ctx, muleElement);
             }
             case MuleXMLTag.ERROR_HANDLER -> {
                 return readErrorHandler(ctx, muleElement);
@@ -339,6 +343,17 @@ public class MuleConfigReader {
         }
 
         return new Async(flowBlocks);
+    }
+
+    private static Try readTry(Context ctx, MuleElement muleElement) {
+        List<MuleRecord> flowBlocks = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            MuleRecord muleRec = readBlock(ctx, child);
+            flowBlocks.add(muleRec);
+        }
+
+        return new Try(flowBlocks);
     }
 
     // Transformers

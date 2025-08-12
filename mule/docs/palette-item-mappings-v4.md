@@ -21,6 +21,7 @@
 - [Set Payload](palette-item-mappings-v4.md#set-payload)
 - [Sub Flow](palette-item-mappings-v4.md#sub-flow)
 - [Transform Message](palette-item-mappings-v4.md#transform-message)
+- [Try](palette-item-mappings-v4.md#try)
 - [Variable](palette-item-mappings-v4.md#variable)
 - [Vm Connector](palette-item-mappings-v4.md#vm-connector)
 # Sample Input and Output (Mule 4.x)
@@ -706,22 +707,22 @@ public function demoFlow(Context ctx) {
         anydata payload0 = 1 / 0;
         ctx.payload = payload0;
         log:printInfo("xxx: log after exception");
-    } on fail error e {
-        my_error_handler(ctx, e);
+    } on fail error err {
+        my_error_handler(ctx, err);
     }
 }
 
 public function my_error_handler(Context ctx, error e) {
     // on-error-propagate
-    log:printError("Message: " + e.message());
-    log:printError("Trace: " + e.stackTrace().toString());
+    log:printError("Message: " + err.message());
+    log:printError("Trace: " + err.stackTrace().toString());
 
     log:printInfo("Error handled in on-error-propagate");
 
     // set payload
     string payload1 = "Custom error message: Something went wrong.";
     ctx.payload = payload1;
-    panic e;
+    panic err;
 }
 
 ```
@@ -790,8 +791,8 @@ service /mule4 on listener_config {
             anydata payload0 = 1 / 0;
             ctx.payload = payload0;
             log:printInfo("xxx: log after exception");
-        } on fail error e {
-            my_error_handler(ctx, e);
+        } on fail error err {
+            my_error_handler(ctx, err);
         }
 
         ctx.attributes.response.setPayload(ctx.payload);
@@ -801,25 +802,25 @@ service /mule4 on listener_config {
 
 public function my_error_handler(Context ctx, error e) {
     // TODO: if conditions may require some manual adjustments
-    if e is "ANY" && e.message() == "#[error.description contains 'timeout']" {
+    if err is "ANY" && err.message() == "#[error.description contains 'timeout']" {
 
         // on-error-propagate
 
-        log:printError("Message: " + e.message());
-        log:printError("Trace: " + e.stackTrace().toString());
+        log:printError("Message: " + err.message());
+        log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("xxx: first error catch");
         ctx.attributes.response.statusCode = 500;
-    } else if e is "EXPRESSION" {
+    } else if err is "EXPRESSION" {
         // on-error-continue
-        log:printError("Message: " + e.message());
-        log:printError("Trace: " + e.stackTrace().toString());
+        log:printError("Message: " + err.message());
+        log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("xxx: second error catch");
-    } else if e.message() == "#[error.cause.'type' == 'java.lang.NullPointerException']" {
+    } else if err.message() == "#[error.cause.'type' == 'java.lang.NullPointerException']" {
         // on-error-continue
-        log:printError("Message: " + e.message());
-        log:printError("Trace: " + e.stackTrace().toString());
+        log:printError("Message: " + err.message());
+        log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("xxx: last error catch");
     }
@@ -886,8 +887,8 @@ service /mule4 on listener_config {
             anydata payload0 = 1 / 0;
             ctx.payload = payload0;
             log:printInfo("xxx: log after exception");
-        } on fail error e {
-            my_error_handler(ctx, e);
+        } on fail error err {
+            my_error_handler(ctx, err);
         }
 
         ctx.attributes.response.setPayload(ctx.payload);
@@ -897,8 +898,8 @@ service /mule4 on listener_config {
 
 public function my_error_handler(Context ctx, error e) {
     // on-error-propagate
-    log:printError("Message: " + e.message());
-    log:printError("Trace: " + e.stackTrace().toString());
+    log:printError("Message: " + err.message());
+    log:printError("Trace: " + err.stackTrace().toString());
 
     log:printInfo("Error handled in on-error-propagate");
 
@@ -2406,10 +2407,10 @@ public function demoFlow(Context ctx) {
         anydata payload0 = 1 / 0;
         ctx.payload = payload0;
         log:printInfo("xxx: log after exception");
-    } on fail error e {
+    } on fail error err {
         // on-error-continue
-        log:printError("Message: " + e.message());
-        log:printError("Trace: " + e.stackTrace().toString());
+        log:printError("Message: " + err.message());
+        log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("xxx: error handled in on-error-continue");
 
@@ -2479,10 +2480,10 @@ service /mule4 on listener_config {
             anydata payload0 = 1 / 0;
             ctx.payload = payload0;
             log:printInfo("xxx: log after exception");
-        } on fail error e {
+        } on fail error err {
             // on-error-continue
-            log:printError("Message: " + e.message());
-            log:printError("Trace: " + e.stackTrace().toString());
+            log:printError("Message: " + err.message());
+            log:printError("Trace: " + err.stackTrace().toString());
 
             log:printInfo("xxx: error handled in on-error-continue");
 
@@ -2542,17 +2543,17 @@ public function demoFlow(Context ctx) {
         anydata payload0 = 1 / 0;
         ctx.payload = payload0;
         log:printInfo("xxx: log after exception");
-    } on fail error e {
+    } on fail error err {
         // on-error-propagate
-        log:printError("Message: " + e.message());
-        log:printError("Trace: " + e.stackTrace().toString());
+        log:printError("Message: " + err.message());
+        log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("Error handled in on-error-propagate");
 
         // set payload
         string payload1 = "Custom error message: Something went wrong.";
         ctx.payload = payload1;
-        panic e;
+        panic err;
     }
 }
 
@@ -2616,10 +2617,10 @@ service /mule4 on listener_config {
             anydata payload0 = 1 / 0;
             ctx.payload = payload0;
             log:printInfo("xxx: log after exception");
-        } on fail error e {
+        } on fail error err {
             // on-error-propagate
-            log:printError("Message: " + e.message());
-            log:printError("Trace: " + e.stackTrace().toString());
+            log:printError("Message: " + err.message());
+            log:printError("Trace: " + err.stackTrace().toString());
 
             log:printInfo("Error handled in on-error-propagate");
 
@@ -3079,6 +3080,97 @@ function _dwMethod0_(json payload) returns json {
     // DATAWEAVE PARSING FAILED.
     // line 7:13 mismatched input 'map' expecting {<EOF>, NEWLINE}
 
+}
+
+```
+
+## Try
+
+- ### Basic Try Scope
+
+**Input (basic_try_scope.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="HTTP_Listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="muleDemoFlow">
+        <http:listener path="/checkAge" config-ref="HTTP_Listener_config" allowedMethods="POST"/>
+        <logger level="INFO" message="Start of flow - Payload received: #[payload]"/>
+        <try>
+            <choice>
+                <when expression="#[payload.age as Number &lt; 16]">
+                    <raise-error type="PRECONDITIONS:INCORRECT_AGE" description="Age is below minimum requirement"/>
+                </when>
+                <otherwise>
+                    <logger level="INFO" message="Age is acceptable: #[payload.age]"/>
+                </otherwise>
+            </choice>
+            <error-handler>
+                <on-error-continue logException="true">
+                    <set-payload value='{ "status": "error", "message": "#[error.description]" }' mimeType="application/json"/>
+                </on-error-continue>
+            </error-handler>
+        </try>
+
+        <logger level="INFO" message="End of flow"/>
+    </flow>
+</mule>
+
+```
+**Output (basic_try_scope.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Attributes record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public type PRECONDITIONS__INCORRECT_AGE distinct error;
+
+public listener http:Listener HTTP_Listener_config = new (8081);
+
+service / on HTTP_Listener_config {
+    resource function post checkAge(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        log:printInfo(string `Start of flow - Payload received: ${ctx.payload.toString()}`);
+        do {
+            if ctx.payload.age is Number < 16 {
+                fail error PRECONDITIONS__INCORRECT_AGE("Age is below minimum requirement");
+            } else {
+                log:printInfo(string `Age is acceptable: ${ctx.payload.age.toString()}`);
+            }
+        } on fail error err {
+            // on-error-continue
+            log:printError("Message: " + err.message());
+            log:printError("Trace: " + err.stackTrace().toString());
+
+            // set payload
+            anydata payload0 = string `{ "status": "error", "message": "${err.message()}" }`;
+            ctx.payload = payload0;
+        }
+        log:printInfo("End of flow");
+
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
+    }
 }
 
 ```

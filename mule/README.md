@@ -104,6 +104,7 @@ The migration tool currently supports the following Mule 4.x components:
 - [Set Payload](docs/palette-item-mappings-v4.md#set-payload)
 - [Sub Flow](docs/palette-item-mappings-v4.md#sub-flow)
 - [Transform Message](docs/palette-item-mappings-v4.md#transform-message)
+- [Try](docs/palette-item-mappings-v4.md#try)
 - [Variable](docs/palette-item-mappings-v4.md#variable)
 - [Vm Connector](docs/palette-item-mappings-v4.md#vm-connector)
 

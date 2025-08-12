@@ -388,8 +388,8 @@ public class MELConverter {
                 case "payload", "message.payload" -> "ctx.payload";
                 case "message" -> "ctx";
                 case "null" -> "()";
-                case "flowVars", "sessionVars" -> Constants.VARS_FIELD_ACCESS;
-                case "message.inboundProperties", "inboundProperties" -> Constants.ATTRIBUTES_FIELD_ACCESS;
+                case "error.description" -> "%s.message()".formatted(Constants.ON_FAIL_ERROR_VAR_REF);
+                case "as" -> "is"; // TODO: Not supported. This is to format it in a pretty way.
                 default -> str;
             };
         }

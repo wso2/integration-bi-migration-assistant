@@ -871,6 +871,14 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                         "\n";
             }
         }
+
+        /**
+         * This is used to represent a statement that is not fully constructed yet.
+         *
+         * @param statement the statement that is partially constructed
+         */
+        record PartialStatement(Statement statement) implements Statement {
+        }
     }
 
     // This is wrong but should be good enough for our uses

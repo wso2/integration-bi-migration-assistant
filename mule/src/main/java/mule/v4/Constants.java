@@ -41,7 +41,7 @@ public class Constants {
     public static final String MODULE_TIME = "time";
     public static final String MODULE_INT = "lang.'int";
     public static final String MODULE_JAVA = "jballerina.java";
-    public static final String ON_FAIL_ERROR_VAR_REF = "e";
+    public static final String ON_FAIL_ERROR_VAR_REF = "err";
 
     // Context Type Def
     public static final String CONTEXT_RECORD_TYPE = "Context";

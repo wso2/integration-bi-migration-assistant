@@ -11,10 +11,10 @@ public function demoFlow(Context ctx) {
         anydata payload0 = 1 / 0;
         ctx.payload = payload0;
         log:printInfo("xxx: log after exception");
-    } on fail error e {
+    } on fail error err {
         // on-error-continue
-        log:printError("Message: " + e.message());
-        log:printError("Trace: " + e.stackTrace().toString());
+        log:printError("Message: " + err.message());
+        log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("xxx: error handled in on-error-continue");
 
