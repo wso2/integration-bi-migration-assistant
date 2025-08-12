@@ -28,11 +28,11 @@
    ],
    "manualValidationActivities":[
 {
-   "activityName":"JDBC",
+   "activityName":"com.tibco.plugin.jdbc.JDBCGeneralActivity",
    "frequency":1
 },
 {
-   "activityName":"JDBC_UPDATE",
+   "activityName":"com.tibco.plugin.jdbc.JDBCUpdateActivity",
    "frequency":2
 }
    ]

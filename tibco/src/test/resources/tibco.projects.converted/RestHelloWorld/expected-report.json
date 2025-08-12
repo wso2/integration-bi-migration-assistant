@@ -28,11 +28,11 @@
    ],
    "manualValidationActivities":[
 {
-   "activityName":"JDBC",
+   "activityName":"com.tibco.plugin.jdbc.JDBCGeneralActivity",
    "frequency":1
 },
 {
-   "activityName":"JSON_PARSER_ACTIVITY",
+   "activityName":"com.tibco.plugin.json.JSONParserActivity",
    "frequency":1
 }
    ]
