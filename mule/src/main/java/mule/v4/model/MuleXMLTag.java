@@ -67,6 +67,7 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     ERROR_HANDLER("error-handler", 2),
     ON_ERROR_CONTINUE("on-error-continue", 2),
     ON_ERROR_PROPAGATE("on-error-propagate", 2),
+    RAISE_ERROR("raise-error", 2),
 
     // HTTP Module
     HTTP_LISTENER("http:listener", 5),

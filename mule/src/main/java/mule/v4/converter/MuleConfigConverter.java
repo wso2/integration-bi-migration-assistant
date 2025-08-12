@@ -71,6 +71,7 @@ import static mule.v4.model.MuleModel.MuleRecord;
 import static mule.v4.model.MuleModel.ObjectToJson;
 import static mule.v4.model.MuleModel.ObjectToString;
 import static mule.v4.model.MuleModel.Payload;
+import static mule.v4.model.MuleModel.RaiseError;
 import static mule.v4.model.MuleModel.RemoveVariable;
 import static mule.v4.model.MuleModel.SetVariable;
 import static mule.v4.model.MuleModel.TransformMessage;
@@ -221,6 +222,9 @@ public class MuleConfigConverter {
             }
             case OnErrorPropagate onErrorPropagate -> {
                 return convertOnErrorPropagate(ctx, onErrorPropagate);
+            }
+            case RaiseError raiseError -> {
+                return convertRaiseError(ctx, raiseError);
             }
             case ExpressionComponent ec -> {
                 return convertExprComponent(ctx, ec);
@@ -429,8 +433,11 @@ public class MuleConfigConverter {
     private static List<Statement> convertDatabase(Context ctx, Database database) {
         ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_SQL, Optional.empty()));
         String streamConstraintType = Constants.GENERIC_RECORD_TYPE_REF;
-        ctx.currentFileCtx.balConstructs.typeDefs.put(streamConstraintType,
-                new ModuleTypeDef(streamConstraintType, typeFrom(Constants.GENERIC_RECORD_TYPE)));
+
+        if (!ctx.projectCtx.typeDefExists(streamConstraintType)) {
+            ctx.currentFileCtx.balConstructs.typeDefs.put(streamConstraintType,
+                    new ModuleTypeDef(streamConstraintType, typeFrom(Constants.GENERIC_RECORD_TYPE)));
+        }
 
         List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n\n// database operation\n"));
@@ -572,5 +579,16 @@ public class MuleConfigConverter {
         }
 
         return stmts;
+    }
+
+    private static List<Statement> convertRaiseError(Context ctx, RaiseError raiseError) {
+        String errorType = raiseError.type().replace(":", "__");
+        if (!ctx.projectCtx.typeDefExists(errorType)) {
+            ctx.currentFileCtx.balConstructs.typeDefs.put(
+                    errorType, new ModuleTypeDef(errorType, typeFrom("distinct error"))
+            );
+        }
+        BallerinaStatement stmt = stmtFrom("fail error %s(\"%s\");".formatted(errorType, raiseError.description()));
+        return List.of(stmt);
     }
 }

@@ -17,6 +17,7 @@
 - [Object To String](palette-item-mappings-v4.md#object-to-string)
 - [On Error Continue](palette-item-mappings-v4.md#on-error-continue)
 - [On Error Propagate](palette-item-mappings-v4.md#on-error-propagate)
+- [Raise Error](palette-item-mappings-v4.md#raise-error)
 - [Set Payload](palette-item-mappings-v4.md#set-payload)
 - [Sub Flow](palette-item-mappings-v4.md#sub-flow)
 - [Transform Message](palette-item-mappings-v4.md#transform-message)
@@ -2626,6 +2627,75 @@ service /mule4 on listener_config {
             string payload1 = "Custom error message: Something went wrong.";
             ctx.payload = payload1;
             ctx.attributes.response.statusCode = 500;
+        }
+
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
+    }
+}
+
+```
+
+## Raise Error
+
+- ### Basic Raise Error
+
+**Input (basic_raise_error.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="HTTP_Listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="raise-error-example-flow">
+        <http:listener config-ref="HTTP_Listener_config" path="/test"/>
+        <choice>
+            <when expression="#[message.attributes.queryParams.age &lt; 16]">
+                <raise-error type="PRECONDITIONS:INCORRECT_AGE" description="Minimum age of 16 required to drive" />
+            </when>
+            <otherwise >
+                <logger level="INFO" message="User age above 16 years. Allowed to drive"/>
+            </otherwise>
+        </choice>
+    </flow>
+</mule>
+
+```
+**Output (basic_raise_error.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Attributes record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public type PRECONDITIONS__INCORRECT_AGE distinct error;
+
+public listener http:Listener HTTP_Listener_config = new (8081);
+
+service / on HTTP_Listener_config {
+    resource function default test(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        if ctx.attributes.request.getQueryParamValue("age") < 16 {
+            fail error PRECONDITIONS__INCORRECT_AGE("Minimum age of 16 required to drive");
+        } else {
+            log:printInfo("User age above 16 years. Allowed to drive");
         }
 
         ctx.attributes.response.setPayload(ctx.payload);

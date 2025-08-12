@@ -209,6 +209,12 @@ public record MuleModel() {
         }
     }
 
+    public record RaiseError(Kind kind, String type, String description) implements MuleRecord {
+        public RaiseError(String type, String description) {
+            this(Kind.RAISE_ERROR, type, description);
+        }
+    }
+
     // Global Elements
     public record HTTPListenerConfig(Kind kind, String name, String basePath, String port,
                                      String host) implements MuleRecord {
@@ -319,6 +325,7 @@ public record MuleModel() {
         ERROR_HANDLER,
         ON_ERROR_CONTINUE,
         ON_ERROR_PROPAGATE,
+        RAISE_ERROR,
         UNSUPPORTED_BLOCK
     }
 

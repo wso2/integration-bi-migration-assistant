@@ -60,6 +60,7 @@ import static mule.v4.model.MuleModel.MuleRecord;
 import static mule.v4.model.MuleModel.ObjectToJson;
 import static mule.v4.model.MuleModel.ObjectToString;
 import static mule.v4.model.MuleModel.Payload;
+import static mule.v4.model.MuleModel.RaiseError;
 import static mule.v4.model.MuleModel.RemoveVariable;
 import static mule.v4.model.MuleModel.SetPayloadElement;
 import static mule.v4.model.MuleModel.SetVariable;
@@ -198,6 +199,9 @@ public class MuleConfigReader {
             }
             case MuleXMLTag.ON_ERROR_PROPAGATE -> {
                 return readOnErrorPropagate(ctx, muleElement);
+            }
+            case MuleXMLTag.RAISE_ERROR -> {
+                return readRaiseError(ctx, muleElement);
             }
             case MuleXMLTag.VM_PUBLISH -> {
                 return readVMPublish(ctx, muleElement);
@@ -418,6 +422,13 @@ public class MuleConfigReader {
         }
 
         return new OnErrorPropagate(errorBlocks, type, when, enableNotifications, logException);
+    }
+
+    private static RaiseError readRaiseError(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String type = element.getAttribute("type");
+        String description = element.getAttribute("description");
+        return new RaiseError(type, description);
     }
 
     // HTTP Module

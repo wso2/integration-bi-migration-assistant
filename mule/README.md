@@ -100,6 +100,7 @@ The migration tool currently supports the following Mule 4.x components:
 - [Object To String](docs/palette-item-mappings-v4.md#object-to-string)
 - [On Error Continue](docs/palette-item-mappings-v4.md#on-error-continue)
 - [On Error Propagate](docs/palette-item-mappings-v4.md#on-error-propagate)
+- [Raise Error](docs/palette-item-mappings-v4.md#raise-error)
 - [Set Payload](docs/palette-item-mappings-v4.md#set-payload)
 - [Sub Flow](docs/palette-item-mappings-v4.md#sub-flow)
 - [Transform Message](docs/palette-item-mappings-v4.md#transform-message)

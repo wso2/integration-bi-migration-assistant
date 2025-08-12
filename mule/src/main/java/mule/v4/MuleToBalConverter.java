@@ -221,7 +221,9 @@ public class MuleToBalConverter {
             ConversionUtils.addConfigVarEntry(ctx, configVarName, globalProperty.value());
         }
 
-        ArrayList<ModuleVar> orderedModuleVars = new ArrayList<>(ctx.currentFileCtx.configs.configurableVars.values());
+        ArrayList<ModuleVar> orderedModuleVars = new ArrayList<>(
+                ctx.currentFileCtx.balConstructs.configurableVars.values()
+        );
         orderedModuleVars.addAll(moduleVars);
         return createTextDocument(balFileName + ".bal", new ArrayList<>(ctx.currentFileCtx.balConstructs.imports),
                 typeDefs, orderedModuleVars, listeners, services, functions.stream().toList(), comments);

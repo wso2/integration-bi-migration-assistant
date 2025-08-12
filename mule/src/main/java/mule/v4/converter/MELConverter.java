@@ -121,7 +121,7 @@ public class MELConverter {
     }
 
     private static boolean isAttributesToken(String token) {
-        return token.equals("attributes");
+        return token.equals("message.attributes") || token.equals("attributes");
     }
 
     private static boolean isVarsToken(String token) {
