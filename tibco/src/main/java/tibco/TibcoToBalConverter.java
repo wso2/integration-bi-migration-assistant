@@ -329,7 +329,8 @@ public class TibcoToBalConverter {
             tibco.converter.TibcoConverter.SerializedProject serialized =
                     tibco.converter.TibcoConverter.serializeProject(cx, generated);
 
-            return Map.of("textEdits", serialized.files(), "report", serialized.report().toHTML());
+            return Map.of("textEdits", serialized.files(), "report", serialized.report().toHTML(), 
+                    "report-json", serialized.report().toJSON());
         } catch (Exception e) {
             return Map.of("error", e.getMessage());
         }

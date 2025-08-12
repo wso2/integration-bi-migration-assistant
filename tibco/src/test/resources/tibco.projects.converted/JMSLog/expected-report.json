@@ -1,0 +1,43 @@
+    {
+"coverageOverview":{
+   "coveragePercentage":100,
+   "totalActivities":7,
+   "migratableActivities":7,
+   "nonMigratableActivities":0
+},
+    "manualWorkEstimation":[
+{
+   "scenario":"Best Case",
+   "workingDays":"2 days",
+   "weeks":"1 week"
+},
+{
+   "scenario":"Average Case",
+   "workingDays":"4 days",
+   "weeks":"1 week"
+},
+{
+   "scenario":"Worst Case",
+   "workingDays":"7 days",
+   "weeks":"2 weeks"
+}
+    ],
+       "elementType":"Activity",
+   "unsupportedActivities":[
+
+   ],
+   "manualValidationActivities":[
+{
+   "activityName":"JMS_QUEUE_GET_MESSAGE_ACTIVITY",
+   "frequency":1
+},
+{
+   "activityName":"JMS_QUEUE_SEND_ACTIVITY",
+   "frequency":1
+},
+{
+   "activityName":"JMS_TOPIC_PUBLISH_ACTIVITY",
+   "frequency":1
+}
+   ]
+    }
