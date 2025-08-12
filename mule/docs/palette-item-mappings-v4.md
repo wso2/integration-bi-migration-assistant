@@ -4,6 +4,7 @@
 
 - [Async](palette-item-mappings-v4.md#async)
 - [Choice](palette-item-mappings-v4.md#choice)
+- [Config Property Access](palette-item-mappings-v4.md#config-property-access)
 - [Database Connector](palette-item-mappings-v4.md#database-connector)
 - [Error Handler](palette-item-mappings-v4.md#error-handler)
 - [Expression Component](palette-item-mappings-v4.md#expression-component)
@@ -16,8 +17,6 @@
 - [Object To String](palette-item-mappings-v4.md#object-to-string)
 - [On Error Continue](palette-item-mappings-v4.md#on-error-continue)
 - [On Error Propagate](palette-item-mappings-v4.md#on-error-propagate)
-- [Property Access](palette-item-mappings-v4.md#property-access)
-- [Session Variable](palette-item-mappings-v4.md#session-variable)
 - [Set Payload](palette-item-mappings-v4.md#set-payload)
 - [Sub Flow](palette-item-mappings-v4.md#sub-flow)
 - [Transform Message](palette-item-mappings-v4.md#transform-message)
@@ -278,6 +277,139 @@ public function demoFlow(Context ctx) {
     } else {
         log:printInfo(string `You have scored ${ctx.vars.marks.toString()}. Your grade is 'F'.`);
     }
+}
+
+```
+
+## Config Property Access
+
+- ### Config Property Access In Message
+
+**Input (config_property_access_in_message.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="listener_config" doc:name="HTTP Listener config" doc:id="73a0fa89-f2fe-48ca-a692-eb28f9809a9c" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="${http.port}" />
+    </http:listener-config>
+    <db:config name="db_config" doc:name="Database Config" doc:id="e8bc20de-c3ee-450e-a42a-4c8940636ea6" >
+        <db:my-sql-connection host="${db.host}" port="${db.port}" user="${db.user}" password="${db.password}" database="${db.database}" />
+    </db:config>
+    <configuration-properties doc:name="Configuration properties" doc:id="c366b738-c9b9-4915-9094-4c5e363c630f" file="config.yaml" />
+    <flow name="demoFlow" doc:id="4a79ef8b-6421-4704-9d8f-2c6c3817a45d" >
+        <http:listener doc:name="Listener" doc:id="6c4ca706-9983-47cd-9282-479ce0780c78" config-ref="listener_config" allowedMethods="GET" path="property_access"/>
+        <set-variable value="#[p('http.host') ++ ':' ++ p('http.port')]" doc:name="Set DB Connection String" doc:id="1d96e838-5365-4994-8283-5b1d1dbbfdf5" variableName="dbConnectionString"/>
+        <logger level="INFO" doc:name="Log App Running Port" doc:id="91bd5a2d-3cec-431f-89f4-9fea74eb5fe3" message="#['App running on port: ' ++ p('http.port')]"/>
+        <db:select doc:name="Select" doc:id="10c7026c-bfd7-4d41-8f95-c7a0df37c74f" config-ref="db_config">
+            <db:sql ><![CDATA[SELECT * FROM USERS;]]></db:sql>
+        </db:select>
+        <logger level="INFO" doc:name="Logger" doc:id="b33e3b7f-2ea2-4d11-8a95-2d9daa4fe4fc" message="#['Welcome, ' ++ p('user.firstName') ++ ' ' ++ p('user.lastName') ++ '. Your account balance is ' ++ p('user.balance')]"/>
+    </flow>
+</mule>
+
+```
+**Output (config_property_access_in_message.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+import ballerina/sql;
+import ballerinax/mysql;
+import ballerinax/mysql.driver as _;
+
+public type Vars record {|
+    anydata dbConnectionString?;
+|};
+
+public type Attributes record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+    Attributes attributes;
+|};
+
+public type Record record {
+};
+
+configurable string http_host = ?;
+configurable string http_port = ?;
+configurable string user_firstName = ?;
+configurable string user_lastName = ?;
+configurable string user_balance = ?;
+configurable string db_host = ?;
+configurable string db_user = ?;
+configurable string db_password = ?;
+configurable string db_database = ?;
+configurable string db_port = ?;
+mysql:Client db_config = check new (db_host, db_user, db_password, db_database, check int:fromString(db_port));
+public listener http:Listener listener_config = new (check int:fromString(http_port));
+
+service /mule4 on listener_config {
+    resource function get property_access(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        ctx.vars.dbConnectionString = http_host + ":" + http_port;
+        log:printInfo("App running on port: " + http_port);
+
+        // database operation
+        sql:ParameterizedQuery dbQuery0 = `SELECT * FROM USERS;`;
+        stream<Record, sql:Error?> dbStream0 = db_config->query(dbQuery0);
+        Record[] dbSelect0 = check from Record _iterator_ in dbStream0
+            select _iterator_;
+        ctx.payload = dbSelect0;
+        log:printInfo("Welcome, " + user_firstName + " " + user_lastName + ". Your account balance is " + user_balance);
+
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
+    }
+}
+
+```
+
+- ### Global Property
+
+**Input (global_property.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <global-property doc:name="Global Property" doc:id="80008100-f2ec-4e8c-9e9f-21c0615df09c" name="company.name" value="WSO2" />
+    <flow name="demoFlow" doc:id="150c5b03-c0a2-437c-af88-f5a80a77eb51" >
+        <logger level="INFO" doc:name="Logger" doc:id="03486a7b-2cd8-4d55-a1a5-f583c7eec67c" message="Company name : ${company.name}"/>
+    </flow>
+</mule>
+
+```
+**Output (global_property.bal):**
+```ballerina
+import ballerina/log;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+configurable string company_name = "WSO2";
+
+public function demoFlow(Context ctx) {
+    log:printInfo(string `Company name : ${company_name}`);
 }
 
 ```
@@ -2503,312 +2635,6 @@ service /mule4 on listener_config {
 
 ```
 
-## Property Access
-
-- ### External Property Access In Message
-
-**Input (external_property_access_in_message.xml):**
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-
-<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
-      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
-      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
-http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
-http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
-http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
-    <http:listener-config name="listener_config" doc:name="HTTP Listener config" doc:id="73a0fa89-f2fe-48ca-a692-eb28f9809a9c" basePath="mule4">
-        <http:listener-connection host="0.0.0.0" port="${http.port}" />
-    </http:listener-config>
-    <db:config name="db_config" doc:name="Database Config" doc:id="e8bc20de-c3ee-450e-a42a-4c8940636ea6" >
-        <db:my-sql-connection host="${db.host}" port="${db.port}" user="${db.user}" password="${db.password}" database="${db.database}" />
-    </db:config>
-    <configuration-properties doc:name="Configuration properties" doc:id="c366b738-c9b9-4915-9094-4c5e363c630f" file="config.yaml" />
-    <flow name="demoFlow" doc:id="4a79ef8b-6421-4704-9d8f-2c6c3817a45d" >
-        <http:listener doc:name="Listener" doc:id="6c4ca706-9983-47cd-9282-479ce0780c78" config-ref="listener_config" allowedMethods="GET" path="property_access"/>
-        <set-variable value="#[p('http.host') ++ ':' ++ p('http.port')]" doc:name="Set DB Connection String" doc:id="1d96e838-5365-4994-8283-5b1d1dbbfdf5" variableName="dbConnectionString"/>
-        <logger level="INFO" doc:name="Log App Running Port" doc:id="91bd5a2d-3cec-431f-89f4-9fea74eb5fe3" message="#['App running on port: ' ++ p('http.port')]"/>
-        <db:select doc:name="Select" doc:id="10c7026c-bfd7-4d41-8f95-c7a0df37c74f" config-ref="db_config">
-            <db:sql ><![CDATA[SELECT * FROM USERS;]]></db:sql>
-        </db:select>
-        <logger level="INFO" doc:name="Logger" doc:id="b33e3b7f-2ea2-4d11-8a95-2d9daa4fe4fc" message="#['Welcome, ' ++ p('user.firstName') ++ ' ' ++ p('user.lastName') ++ '. Your account balance is ' ++ p('user.balance')]"/>
-    </flow>
-</mule>
-
-```
-**Output (external_property_access_in_message.bal):**
-```ballerina
-import ballerina/http;
-import ballerina/log;
-import ballerina/sql;
-import ballerinax/mysql;
-import ballerinax/mysql.driver as _;
-
-public type Vars record {|
-    anydata dbConnectionString?;
-|};
-
-public type Attributes record {|
-    http:Request request;
-    http:Response response;
-    map<string> uriParams = {};
-|};
-
-public type Context record {|
-    anydata payload = ();
-    Vars vars = {};
-    Attributes attributes;
-|};
-
-public type Record record {
-};
-
-configurable string http_port = ?;
-configurable string db_host = ?;
-configurable string db_user = ?;
-configurable string db_password = ?;
-configurable string db_database = ?;
-configurable string db_port = ?;
-mysql:Client db_config = check new (db_host, db_user, db_password, db_database, check int:fromString(db_port));
-public listener http:Listener listener_config = new (check int:fromString(http_port));
-
-service /mule4 on listener_config {
-    resource function get property_access(http:Request request) returns http:Response|error {
-        Context ctx = {attributes: {request, response: new}};
-        ctx.vars.dbConnectionString = p("http.host") + +":" + +p("http.port");
-        log:printInfo("App running on port: " + +p.toString() ("http.port"));
-
-        // database operation
-        sql:ParameterizedQuery dbQuery0 = `SELECT * FROM USERS;`;
-        stream<Record, sql:Error?> dbStream0 = db_config->query(dbQuery0);
-        Record[] dbSelect0 = check from Record _iterator_ in dbStream0
-            select _iterator_;
-        ctx.payload = dbSelect0;
-        log:printInfo("Welcome, " + +p.toString() ("user.firstName") + +" " + +p.toString() ("user.lastName") + +". Your account balance is " + +p.toString() ("user.balance"));
-
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
-    }
-}
-
-```
-
-## Session Variable
-
-- ### Basic Set Session Variable
-
-**Input (basic_set_session_variable.xml):**
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-
-<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-      xmlns="http://www.mulesoft.org/schema/mule/core"
-      xmlns:json="http://www.mulesoft.org/schema/mule/json"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
-http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
-    <flow name="myFlow">
-        <logger message="xxx: flow starting logger invoked" level="INFO" doc:name="Logger"/>
-        <set-session-variable variableName="day" value="21" doc:name="Session Variable"/>
-        <set-session-variable variableName="month" value="July" doc:name="Session Variable"/>
-        <set-session-variable variableName="from" value="2025" doc:name="Session Variable"/>
-        <logger message="Session variables are: day - #[sessionVars.day], month - #[sessionVars.month], from - #[sessionVars['from']]" level="INFO" doc:name="Logger"/>
-    </flow>
-</mule>
-
-```
-**Output (basic_set_session_variable.bal):**
-```ballerina
-import ballerina/log;
-
-public type SessionVars record {|
-    string day?;
-    string month?;
-    string 'from?;
-|};
-
-public type Context record {|
-    anydata payload = ();
-    SessionVars sessionVars = {};
-|};
-
-public function myFlow(Context ctx) {
-    log:printInfo("xxx: flow starting logger invoked");
-    ctx.sessionVars.day = "21";
-    ctx.sessionVars.month = "July";
-    ctx.sessionVars.'from = "2025";
-    log:printInfo(string `Session variables are: day - ${ctx.sessionVars.day.toString()}, month - ${ctx.sessionVars.month.toString()}, from - ${ctx.sessionVars.'from.toString()}`);
-}
-
-```
-
-- ### Set Session Variable With Http Source
-
-**Input (set_session_variable_with_http_source.xml):**
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-
-<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-      xmlns="http://www.mulesoft.org/schema/mule/core"
-      xmlns:json="http://www.mulesoft.org/schema/mule/json"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
-http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
-    <http:listener-config name="HTTP_Config" host="0.0.0.0" port="8081" basePath="/mule3" doc:name="HTTP Listener Config"/>
-    <flow name="sessionVarExampleFlow">
-        <!-- HTTP Listener as the source -->
-        <http:listener config-ref="HTTP_Config" path="/session" allowedMethods="GET" doc:name="HTTP Listener"/>
-
-        <!-- Set Session Variable -->
-        <set-session-variable variableName="sessionVarExample" value="Initial Value" doc:name="Set Session Variable"/>
-
-        <!-- Log Initial Session Variable -->
-        <logger message="Session Variable (Initial): #[sessionVars.sessionVarExample]" level="INFO" doc:name="Logger Initial"/>
-
-        <!-- Modify Session Variable -->
-        <set-session-variable variableName="sessionVarExample" value="Modified Value" doc:name="Modify Session Variable"/>
-
-        <!-- Log Modified Session Variable -->
-        <logger message="Session Variable (Modified): #[sessionVars.sessionVarExample]" level="INFO" doc:name="Logger Modified"/>
-
-        <set-payload value="{&quot;message&quot;:&quot;Check logs for session variable values&quot;}" doc:name="Set JSON Response"/>
-    </flow>
-</mule>
-
-```
-**Output (set_session_variable_with_http_source.bal):**
-```ballerina
-import ballerina/http;
-import ballerina/log;
-
-public type SessionVars record {|
-    string sessionVarExample?;
-|};
-
-public type InboundProperties record {|
-    http:Request request;
-    http:Response response;
-    map<string> uriParams = {};
-|};
-
-public type Context record {|
-    anydata payload = ();
-    SessionVars sessionVars = {};
-    InboundProperties inboundProperties;
-|};
-
-public listener http:Listener HTTP_Config = new (8081);
-
-service /mule3 on HTTP_Config {
-    resource function get session(http:Request request) returns http:Response|error {
-        Context ctx = {inboundProperties: {request, response: new}};
-        ctx.sessionVars.sessionVarExample = "Initial Value";
-        log:printInfo(string `Session Variable (Initial): ${ctx.sessionVars.sessionVarExample.toString()}`);
-        ctx.sessionVars.sessionVarExample = "Modified Value";
-        log:printInfo(string `Session Variable (Modified): ${ctx.sessionVars.sessionVarExample.toString()}`);
-
-        // set payload
-        string payload0 = "{\"message\":\"Check logs for session variable values\"}";
-        ctx.payload = payload0;
-
-        ctx.inboundProperties.response.setPayload(ctx.payload);
-        return ctx.inboundProperties.response;
-    }
-}
-
-```
-
-- ### Simple Remove Session Variable
-
-**Input (simple_remove_session_variable.xml):**
-```xml
-<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-      xmlns="http://www.mulesoft.org/schema/mule/core"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
-    <flow name="weatherServiceFlow">
-        <set-session-variable variableName="greeting" value="#['hello session']" doc:name="Session Variable"/>
-        <set-session-variable variableName="from" value="#['USA']" doc:name="Session Variable"/>
-        <remove-session-variable variableName="greeting" doc:name="Session Variable"/>
-        <remove-session-variable variableName="from" doc:name="Session Variable"/>
-    </flow>
-</mule>
-
-```
-**Output (simple_remove_session_variable.bal):**
-```ballerina
-public type SessionVars record {|
-    string greeting?;
-    string 'from?;
-|};
-
-public type Context record {|
-    anydata payload = ();
-    SessionVars sessionVars = {};
-|};
-
-public function weatherServiceFlow(Context ctx) {
-    ctx.sessionVars.greeting = "hello session";
-    ctx.sessionVars.'from = "USA";
-    ctx.sessionVars.greeting = ();
-    ctx.sessionVars.'from = ();
-}
-
-```
-
-- ### Updating Same Session Variable
-
-**Input (updating_same_session_variable.xml):**
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-
-<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-      xmlns="http://www.mulesoft.org/schema/mule/core"
-      xmlns:json="http://www.mulesoft.org/schema/mule/json"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
-http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
-    <flow name="myFlow">
-        <logger message="xxx: flow starting logger invoked" level="INFO" doc:name="Logger"/>
-        <set-session-variable variableName="sessionVar1" value="initial value" doc:name="Session Variable"/>
-        <set-session-variable variableName="sessionVar1" value="updated value" doc:name="Session Variable"/>
-        <logger message="xxx: end of flow reached" level="INFO" doc:name="Logger"/>
-    </flow>
-</mule>
-
-```
-**Output (updating_same_session_variable.bal):**
-```ballerina
-import ballerina/log;
-
-public type SessionVars record {|
-    string sessionVar1?;
-|};
-
-public type Context record {|
-    anydata payload = ();
-    SessionVars sessionVars = {};
-|};
-
-public function myFlow(Context ctx) {
-    log:printInfo("xxx: flow starting logger invoked");
-    ctx.sessionVars.sessionVar1 = "initial value";
-    ctx.sessionVars.sessionVar1 = "updated value";
-    log:printInfo("xxx: end of flow reached");
-}
-
-```
-
 ## Set Payload
 
 - ### Basic Set Payload
@@ -3321,6 +3147,58 @@ service /mule4 on config {
         ctx.attributes.response.setPayload(ctx.payload);
         return ctx.attributes.response;
     }
+}
+
+```
+
+- ### Updating Same Variable
+
+**Input (updating_same_variable.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="Listener">
+        <http:listener-connection host="0.0.0.0" port="9091" />
+    </http:listener-config>
+    <configuration-properties doc:name="Configuration properties" doc:id="60c232be-ea26-4ab0-a71a-30f8e2c794ac" file="config.properties" />
+    <flow name="raise-error-example-flow">
+        <logger level="INFO" doc:name="Logger" doc:id="9e98ecb9-4e5e-4aac-bcb6-6121b72d8f37" message="flow starting logger invoked."/>
+        <set-variable value="initial value" doc:name="Set Variable" doc:id="9ce291ac-8826-4fc0-858d-e9b38c809412" variableName="var1"/>
+        <set-variable value="updated value" doc:name="Set Variable" doc:id="6511d009-f9e5-48ea-800a-f8271a78e4d1" variableName="var1"/>
+        <logger level="INFO" doc:name="Logger" doc:id="2751abc7-ca74-4371-8d2f-2c361577fa83" message="flow ending logger invoked."/>
+    </flow>
+</mule>
+
+```
+**Output (updating_same_variable.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Vars record {|
+    string var1?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public listener http:Listener Listener = new (9091);
+
+public function raise\-error\-example\-flow(Context ctx) {
+    log:printInfo("flow starting logger invoked.");
+    ctx.vars.var1 = "initial value";
+    ctx.vars.var1 = "updated value";
+    log:printInfo("flow ending logger invoked.");
 }
 
 ```

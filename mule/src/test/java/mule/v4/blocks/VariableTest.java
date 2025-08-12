@@ -30,4 +30,9 @@ public class VariableTest extends AbstractBlockTest {
     public void testSimpleRemoveVariable() {
         testMule4ToBal("variable/simple_remove_variable.xml", "variable/simple_remove_variable.bal");
     }
+
+    @Test
+    public void testUpdatingSameVariable() {
+        testMule4ToBal("variable/updating_same_variable.xml", "variable/updating_same_variable.bal");
+    }
 }

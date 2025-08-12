@@ -72,6 +72,7 @@ import static mule.v4.model.MuleModel.DbMySqlConnection;
 import static mule.v4.model.MuleModel.DbOracleConnection;
 import static mule.v4.model.MuleModel.ErrorHandler;
 import static mule.v4.model.MuleModel.Flow;
+import static mule.v4.model.MuleModel.GlobalProperty;
 import static mule.v4.model.MuleModel.HTTPListenerConfig;
 import static mule.v4.model.MuleModel.HttpListener;
 import static mule.v4.model.MuleModel.Kind;
@@ -213,6 +214,11 @@ public class MuleToBalConverter {
             typeDefs = contextTypeDefns;
         } else {
             typeDefs = ctx.currentFileCtx.balConstructs.typeDefs.values().stream().toList();
+        }
+
+        for (GlobalProperty globalProperty : ctx.currentFileCtx.configs.globalProperties) {
+            String configVarName = globalProperty.name().replace('.', '_');
+            ConversionUtils.addConfigVarEntry(ctx, configVarName, globalProperty.value());
         }
 
         ArrayList<ModuleVar> orderedModuleVars = new ArrayList<>(ctx.currentFileCtx.configs.configurableVars.values());

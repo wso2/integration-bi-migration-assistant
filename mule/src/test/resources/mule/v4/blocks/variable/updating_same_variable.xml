@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="Listener">
+        <http:listener-connection host="0.0.0.0" port="9091" />
+    </http:listener-config>
+    <configuration-properties doc:name="Configuration properties" doc:id="60c232be-ea26-4ab0-a71a-30f8e2c794ac" file="config.properties" />
+    <flow name="raise-error-example-flow">
+        <logger level="INFO" doc:name="Logger" doc:id="9e98ecb9-4e5e-4aac-bcb6-6121b72d8f37" message="flow starting logger invoked."/>
+        <set-variable value="initial value" doc:name="Set Variable" doc:id="9ce291ac-8826-4fc0-858d-e9b38c809412" variableName="var1"/>
+        <set-variable value="updated value" doc:name="Set Variable" doc:id="6511d009-f9e5-48ea-800a-f8271a78e4d1" variableName="var1"/>
+        <logger level="INFO" doc:name="Logger" doc:id="2751abc7-ca74-4371-8d2f-2c361577fa83" message="flow ending logger invoked."/>
+    </flow>
+</mule>

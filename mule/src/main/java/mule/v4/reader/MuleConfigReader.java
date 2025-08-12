@@ -43,6 +43,7 @@ import static mule.v4.model.MuleModel.DbOracleConnection;
 import static mule.v4.model.MuleModel.Enricher;
 import static mule.v4.model.MuleModel.ErrorHandler;
 import static mule.v4.model.MuleModel.ErrorHandlerRecord;
+import static mule.v4.model.MuleModel.GlobalProperty;
 import static mule.v4.model.MuleModel.OnErrorContinue;
 import static mule.v4.model.MuleModel.OnErrorPropagate;
 import static mule.v4.model.MuleModel.ExpressionComponent;
@@ -122,6 +123,9 @@ public class MuleConfigReader {
             // TODO: Revisit how we can use this
         } else if (MuleXMLTag.CONFIGURATION_PROPERTIES.tag().equals(elementTagName)) {
             // Ignore as we automatically add all .yaml and .properties to config.toml
+        } else if (MuleXMLTag.GLOBAL_PROPERTY.tag().equals(elementTagName)) {
+            GlobalProperty globalProperty = readGlobalProperty(ctx, muleElement);
+            ctx.currentFileCtx.configs.globalProperties.add(globalProperty);
         } else {
             UnsupportedBlock unsupportedBlock = readUnsupportedBlock(ctx, muleElement);
             ctx.currentFileCtx.configs.unsupportedBlocks.add(unsupportedBlock);
@@ -614,6 +618,13 @@ public class MuleConfigReader {
             }
         }
         return queues;
+    }
+
+    private static GlobalProperty readGlobalProperty(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String name = element.getAttribute("name");
+        String value = element.getAttribute("value");
+        return new GlobalProperty(name, value);
     }
 
     private static DbConfig readDbConfig(Context ctx, MuleElement muleElement) {

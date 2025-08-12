@@ -79,11 +79,18 @@ public class MELConverter {
                 }
             }
 
-            if (currentChar == '(' && tokenStr.equals("exception.causedBy")) {
-                // Handle choice-exception conditions like exception.causedBy(java.lang.NullPointerException)
-                i = processExceptionCausedBy(melExpr, i, tokenStr, result);
-                token.setLength(0);
-                continue;
+            if (currentChar == '(') {
+                if (i + 1 < melExpr.length() && melExpr.charAt(i + 1) == '\'' && tokenStr.equals("p")) {
+                    i = processPPropAccess(ctx, melExpr, i, tokenStr, result);
+                    token.setLength(0);
+                    continue;
+                }
+                if (tokenStr.equals("exception.causedBy")) {
+                    // Handle choice-exception conditions like exception.causedBy(java.lang.NullPointerException)
+                    i = processExceptionCausedBy(melExpr, i, tokenStr, result);
+                    token.setLength(0);
+                    continue;
+                }
             }
 
             if (currentChar == '[' && !token.isEmpty()) {
@@ -91,6 +98,11 @@ public class MELConverter {
                 processToken(token, result, false); // Don't add toString here
                 i = processArrayAccess(melExpr, i, result);
                 continue;
+            }
+
+            if (currentChar == '+' && i + 1 < melExpr.length() && melExpr.charAt(i + 1) == '+') {
+                // e.g. melExpr = "payload ++ 'foo' ++ 'bar'"
+                i++; // Skip the next '+'
             }
 
             // Build tokens for identifiers and keywords
@@ -143,6 +155,35 @@ public class MELConverter {
         }
 
         result.append(getAttrVal(ctx, stringLiteral.toString()));
+        return i;
+    }
+
+    private static int processPPropAccess(Context ctx, String melExpr, int startPos, String baseToken,
+                                          StringBuilder result) {
+        StringBuilder externalPropName = new StringBuilder();
+        int i = startPos;
+
+        assert melExpr.charAt(i) == '(';
+        assert melExpr.charAt(i + 1) == '\'';
+        i = i + 2; // Skip open paren and starting quote
+
+        while (i < melExpr.length() && melExpr.charAt(i) != '\'') {
+            externalPropName.append(melExpr.charAt(i));
+            i++;
+        }
+
+        if (i < melExpr.length() && melExpr.charAt(i) == '\'') {
+            i++; // Skip the ending quote
+        }
+
+        if (i < melExpr.length() && melExpr.charAt(i) == ')') {
+            i++; // Skip the closing parenthesis
+        }
+
+        String configVarName = ConversionUtils.processPropertyName(ctx, externalPropName.toString());
+        result.append(configVarName);
+
+        i--; // Adjust for the next iteration
         return i;
     }
 

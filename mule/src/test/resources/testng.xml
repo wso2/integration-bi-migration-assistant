@@ -19,8 +19,6 @@
             <class name="mule.v4.blocks.SubFlowTest"/>
             <class name="mule.v4.blocks.SetPayloadTest"/>
             <class name="mule.v4.blocks.VariableTest"/>
-            <!--        TODO:session variables do not exist in mule 4. Merge with VariableTest-->
-            <!--        <class name="mule.v4.blocks.SessionVariableTest"/>-->
             <class name="mule.v4.blocks.ChoiceTest"/>
             <class name="mule.v4.blocks.DatabaseConnectorTest"/>
             <class name="mule.v4.blocks.HttpRequestTest"/>
@@ -29,7 +27,7 @@
             <class name="mule.v4.blocks.OnErrorPropagateTest"/>
             <class name="mule.v4.blocks.ErrorHandlerTest"/>
             <class name="mule.v4.blocks.VMConnectorTest"/>
-            <class name="mule.v4.blocks.PropertyAccessTest"/>
+            <class name="mule.v4.blocks.ConfigPropertyAccessTest"/>
             <class name="mule.v4.blocks.TransformMessageTest"/>
         </classes>
     </test>

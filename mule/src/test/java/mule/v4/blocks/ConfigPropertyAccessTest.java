@@ -19,17 +19,17 @@ package mule.v4.blocks;
 
 import org.testng.annotations.Test;
 
-/**
- * Tests for miscellaneous Mule 3 parts that do not fit into other categories.
- *
- * @since 1.0.2
- */
-public class PropertyAccessTest extends AbstractBlockTest {
+public class ConfigPropertyAccessTest extends AbstractBlockTest {
 
     @Test
-    public void testExternalPropertyAccess() {
-        // TODO: New in mule 4. Implement p('http.port') support for Dataweave.
-        testMule4ToBal("property-access/external_property_access_in_message.xml",
-                "property-access/external_property_access_in_message.bal");
+    public void testConfigPropertyAccess() {
+        testMule4ToBal("config-property-access/config_property_access_in_message.xml",
+                "config-property-access/config_property_access_in_message.bal");
+    }
+
+    @Test
+    public void testGlobalProperty() {
+        testMule4ToBal("config-property-access/global_property.xml",
+                "config-property-access/global_property.bal");
     }
 }

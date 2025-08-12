@@ -23,7 +23,11 @@ public type Context record {|
 public type Record record {
 };
 
+configurable string http_host = ?;
 configurable string http_port = ?;
+configurable string user_firstName = ?;
+configurable string user_lastName = ?;
+configurable string user_balance = ?;
 configurable string db_host = ?;
 configurable string db_user = ?;
 configurable string db_password = ?;
@@ -35,8 +39,8 @@ public listener http:Listener listener_config = new (check int:fromString(http_p
 service /mule4 on listener_config {
     resource function get property_access(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
-        ctx.vars.dbConnectionString = p("http.host") + +":" + +p("http.port");
-        log:printInfo("App running on port: " + +p.toString() ("http.port"));
+        ctx.vars.dbConnectionString = http_host + ":" + http_port;
+        log:printInfo("App running on port: " + http_port);
 
         // database operation
         sql:ParameterizedQuery dbQuery0 = `SELECT * FROM USERS;`;
@@ -44,7 +48,7 @@ service /mule4 on listener_config {
         Record[] dbSelect0 = check from Record _iterator_ in dbStream0
             select _iterator_;
         ctx.payload = dbSelect0;
-        log:printInfo("Welcome, " + +p.toString() ("user.firstName") + +" " + +p.toString() ("user.lastName") + +". Your account balance is " + +p.toString() ("user.balance"));
+        log:printInfo("Welcome, " + user_firstName + " " + user_lastName + ". Your account balance is " + user_balance);
 
         ctx.attributes.response.setPayload(ctx.payload);
         return ctx.attributes.response;

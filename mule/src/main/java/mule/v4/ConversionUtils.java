@@ -304,14 +304,19 @@ public class ConversionUtils {
         }
     }
 
-    private static String processPropertyName(Context ctx, String propertyName) {
+    public static String processPropertyName(Context ctx, String propertyName) {
         String configVarName = propertyName.replace('.', '_');
         if (!ctx.projectCtx.configurableVarExists(configVarName)) {
-            var configVarDecl = new ModuleVar(configVarName, "string", Optional.of(exprFrom("?")), false, true);
-            ctx.currentFileCtx.configs.configurableVars.put(configVarName, configVarDecl);
+            addConfigVarEntry(ctx, configVarName, null);
         }
 
         return configVarName;
+    }
+
+    public static void addConfigVarEntry(Context ctx, String varName, String varValue) {
+        String valueExpr = varValue == null ? "?" : "\"%s\"".formatted(varValue);
+        var configVarDecl = new ModuleVar(varName, "string", Optional.of(exprFrom(valueExpr)), false, true);
+        ctx.currentFileCtx.configs.configurableVars.put(varName, configVarDecl);
     }
 
     public static String getAttrVal(Context ctx, String propValue) {
