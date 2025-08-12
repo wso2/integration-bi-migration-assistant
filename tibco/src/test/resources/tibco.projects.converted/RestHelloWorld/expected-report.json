@@ -1,0 +1,39 @@
+    {
+"coverageOverview":{
+   "coveragePercentage":100,
+   "totalActivities":22,
+   "migratableActivities":22,
+   "nonMigratableActivities":0
+},
+    "manualWorkEstimation":[
+{
+   "scenario":"Best Case",
+   "workingDays":"4 days",
+   "weeks":"1 week"
+},
+{
+   "scenario":"Average Case",
+   "workingDays":"9 days",
+   "weeks":"2 weeks"
+},
+{
+   "scenario":"Worst Case",
+   "workingDays":"17 days",
+   "weeks":"4 weeks"
+}
+    ],
+       "elementType":"Activity",
+   "unsupportedActivities":[
+
+   ],
+   "manualValidationActivities":[
+{
+   "activityName":"JDBC",
+   "frequency":1
+},
+{
+   "activityName":"JSON_PARSER_ACTIVITY",
+   "frequency":1
+}
+   ]
+    }

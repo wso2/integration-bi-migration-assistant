@@ -37,6 +37,32 @@ import java.util.Optional;
 public final class TibcoAnalysisReport {
 
     private static final String REPORT_TITLE = "Migration Assessment";
+
+    public record TimeEstimation(double bestCaseDays, double averageCaseDays, double worstCaseDays) {
+        public int bestCaseDaysRounded() {
+            return (int) Math.ceil(bestCaseDays);
+        }
+        
+        public int averageCaseDaysRounded() {
+            return (int) Math.ceil(averageCaseDays);
+        }
+        
+        public int worstCaseDaysRounded() {
+            return (int) Math.ceil(worstCaseDays);
+        }
+        
+        public int bestCaseWeeks() {
+            return (int) Math.ceil(bestCaseDays / 5.0);
+        }
+        
+        public int averageCaseWeeks() {
+            return (int) Math.ceil(averageCaseDays / 5.0);
+        }
+        
+        public int worstCaseWeeks() {
+            return (int) Math.ceil(worstCaseDays / 5.0);
+        }
+    }
     private final int totalActivityCount;
     private final int unhandledActivityCount;
     private final Collection<UnhandledActivityElement> unhandledActivityElements;
@@ -130,6 +156,47 @@ public final class TibcoAnalysisReport {
                 return other.element().equals(this.element);
             }
         }
+    }
+
+    /**
+     * Calculates time estimation based on unhandled activities and line count.
+     * 
+     * @return TimeEstimation record containing best, average, and worst case estimates
+     */
+    private TimeEstimation calculateTimeEstimation() {
+        Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
+        
+        double bestCaseDays = 0.0;
+        double averageCaseDays = 0.0;
+        double worstCaseDays = 0.0;
+
+        for (Collection<AnalysisReport.UnhandledElement> elements : unhandledElementsMap.values()) {
+            int count = elements.size();
+            if (count > 0) {
+                // First instance (new activity) gets full day estimate
+                bestCaseDays += 1.0;
+                averageCaseDays += 2.0;
+                worstCaseDays += 3.0;
+
+                // Additional instances (repeated activities) get hour estimates
+                if (count > 1) {
+                    int repeatedCount = count - 1;
+                    bestCaseDays += repeatedCount * (1.0 / 8.0); // 1 hour = 1/8 day
+                    averageCaseDays += repeatedCount * (2.0 / 8.0); // 2 hours = 2/8 day
+                    worstCaseDays += repeatedCount * (4.0 / 8.0); // 4 hours = 4/8 day
+                }
+            }
+        }
+
+        // Add line-based time estimation
+        double bestCaseLineDays = (lineCount * 2.0) / 60.0 / 8.0; // 2 min/line
+        double averageCaseLineDays = (lineCount * 5.0) / 60.0 / 8.0; // 5 min/line
+        double worstCaseLineDays = (lineCount * 10.0) / 60.0 / 8.0; // 10 min/line
+        bestCaseDays += bestCaseLineDays;
+        averageCaseDays += averageCaseLineDays;
+        worstCaseDays += worstCaseLineDays;
+
+        return new TimeEstimation(bestCaseDays, averageCaseDays, worstCaseDays);
     }
 
     /**
@@ -240,6 +307,127 @@ public final class TibcoAnalysisReport {
         }
 
         return estimation;
+    }
+
+    /**
+     * Generates a JSON report of the TIBCO analysis.
+     *
+     * @return A string containing the JSON report
+     */
+    public String toJSON() {
+        Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
+        Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap = 
+                createPartiallySupportedElementsMap();
+        
+        double coveragePercentage = 100.0 - (totalActivityCount > 0 ? 
+                (double) unhandledActivityCount / totalActivityCount * 100.0 : 0.0);
+        
+        TimeEstimation timeEstimation = calculateTimeEstimation();
+
+        String coverageOverview = """
+               "coverageOverview":{
+                  "coveragePercentage":%d,
+                  "totalActivities":%d,
+                  "migratableActivities":%d,
+                  "nonMigratableActivities":%d
+               }""".formatted(
+                Math.round(coveragePercentage),
+                totalActivityCount,
+                totalActivityCount - unhandledActivityCount,
+                unhandledActivityCount
+        );
+
+        String bestCaseEstimation = """
+                  {
+                     "scenario":"Best Case",
+                     "workingDays":"%d day%s",
+                     "weeks":"%d week%s"
+                  }""".formatted(
+                timeEstimation.bestCaseDaysRounded(),
+                timeEstimation.bestCaseDaysRounded() != 1 ? "s" : "",
+                timeEstimation.bestCaseWeeks(),
+                timeEstimation.bestCaseWeeks() != 1 ? "s" : ""
+        );
+
+        String averageCaseEstimation = """
+                  {
+                     "scenario":"Average Case",
+                     "workingDays":"%d day%s",
+                     "weeks":"%d week%s"
+                  }""".formatted(
+                timeEstimation.averageCaseDaysRounded(),
+                timeEstimation.averageCaseDaysRounded() != 1 ? "s" : "",
+                timeEstimation.averageCaseWeeks(),
+                timeEstimation.averageCaseWeeks() != 1 ? "s" : ""
+        );
+
+        String worstCaseEstimation = """
+                  {
+                     "scenario":"Worst Case",
+                     "workingDays":"%d day%s",
+                     "weeks":"%d week%s"
+                  }""".formatted(
+                timeEstimation.worstCaseDaysRounded(),
+                timeEstimation.worstCaseDaysRounded() != 1 ? "s" : "",
+                timeEstimation.worstCaseWeeks(),
+                timeEstimation.worstCaseWeeks() != 1 ? "s" : ""
+        );
+
+        String manualWorkEstimation = """
+               "manualWorkEstimation":[
+           %s,
+           %s,
+           %s
+               ]""".formatted(bestCaseEstimation, averageCaseEstimation, worstCaseEstimation);
+
+        StringBuilder unsupportedActivities = new StringBuilder();
+        unsupportedActivities.append("   \"unsupportedActivities\":[\n");
+        boolean firstUnsupported = true;
+        // Sort keys for deterministic ordering
+        var sortedUnsupportedKeys = unhandledElementsMap.keySet().stream().sorted().toList();
+        for (String activityType : sortedUnsupportedKeys) {
+            if (!firstUnsupported) {
+                unsupportedActivities.append(",\n");
+            }
+            unsupportedActivities.append("      \"").append(activityType).append("\"");
+            firstUnsupported = false;
+        }
+        unsupportedActivities.append("\n   ]");
+
+        StringBuilder manualValidationActivities = new StringBuilder();
+        manualValidationActivities.append("   \"manualValidationActivities\":[\n");
+        boolean firstPartial = true;
+        // Sort entries by key for deterministic ordering
+        var sortedPartialEntries = partiallySupportedElementsMap.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .toList();
+        for (Map.Entry<String, Collection<AnalysisReport.UnhandledElement>> entry : sortedPartialEntries) {
+            if (!firstPartial) {
+                manualValidationActivities.append(",\n");
+            }
+            String validationActivity = """
+                      {
+                         "activityName":"%s",
+                         "frequency":%d
+                      }""".formatted(entry.getKey(), entry.getValue().size());
+            manualValidationActivities.append(validationActivity);
+            firstPartial = false;
+        }
+        manualValidationActivities.append("\n   ]");
+
+        return """
+               {
+           %s,
+           %s,
+                  "elementType":"Activity",
+           %s,
+           %s
+               }""".formatted(
+                coverageOverview,
+                manualWorkEstimation,
+                unsupportedActivities.toString(),
+                manualValidationActivities.toString()
+        );
     }
 
     /**
