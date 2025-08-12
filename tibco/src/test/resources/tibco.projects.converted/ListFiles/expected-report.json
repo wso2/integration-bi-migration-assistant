@@ -28,7 +28,7 @@
    ],
    "manualValidationActivities":[
 {
-   "activityName":"LIST_FILES",
+   "activityName":"com.tibco.plugin.file.ListFilesActivity",
    "frequency":1
 }
    ]

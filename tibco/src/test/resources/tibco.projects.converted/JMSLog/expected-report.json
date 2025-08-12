@@ -28,15 +28,15 @@
    ],
    "manualValidationActivities":[
 {
-   "activityName":"JMS_QUEUE_GET_MESSAGE_ACTIVITY",
+   "activityName":"com.tibco.plugin.jms.JMSQueueGetMessageActivity",
    "frequency":1
 },
 {
-   "activityName":"JMS_QUEUE_SEND_ACTIVITY",
+   "activityName":"com.tibco.plugin.jms.JMSQueueSendActivity",
    "frequency":1
 },
 {
-   "activityName":"JMS_TOPIC_PUBLISH_ACTIVITY",
+   "activityName":"com.tibco.plugin.jms.JMSTopicPublishActivity",
    "frequency":1
 }
    ]
