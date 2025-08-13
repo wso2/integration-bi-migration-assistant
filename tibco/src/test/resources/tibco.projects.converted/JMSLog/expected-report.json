@@ -1,0 +1,43 @@
+    {
+"coverageOverview":{
+   "coveragePercentage":100,
+   "totalActivities":7,
+   "migratableActivities":7,
+   "nonMigratableActivities":0
+},
+    "manualWorkEstimation":[
+{
+   "scenario":"Best Case",
+   "workingDays":"2 days",
+   "weeks":"1 week"
+},
+{
+   "scenario":"Average Case",
+   "workingDays":"4 days",
+   "weeks":"1 week"
+},
+{
+   "scenario":"Worst Case",
+   "workingDays":"7 days",
+   "weeks":"2 weeks"
+}
+    ],
+       "elementType":"Activity",
+   "unsupportedActivities":[
+
+   ],
+   "manualValidationActivities":[
+{
+   "activityName":"com.tibco.plugin.jms.JMSQueueGetMessageActivity",
+   "frequency":1
+},
+{
+   "activityName":"com.tibco.plugin.jms.JMSQueueSendActivity",
+   "frequency":1
+},
+{
+   "activityName":"com.tibco.plugin.jms.JMSTopicPublishActivity",
+   "frequency":1
+}
+   ]
+    }

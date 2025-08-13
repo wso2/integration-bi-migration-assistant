@@ -214,6 +214,45 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                             .filter(each -> type.endsWith(each.suffix)).findFirst()
                             .map(LookUpData::activityType).orElse(UNHANDLED);
                 }
+
+                public String toTibco() {
+                    return switch (this) {
+                        case ASSIGN -> "com.tibco.pe.core.AssignActivity";
+                        case HTTP_EVENT_SOURCE -> "com.tibco.plugin.http.HTTPEventSource";
+                        case HTTP_RESPONSE -> "com.tibco.plugin.http.HTTPResponseActivity";
+                        case UNHANDLED -> "UnhandledActivity";
+                        case NULL -> "com.tibco.pe.core.NullActivity";
+                        case WRITE_LOG -> "com.tibco.pe.core.WriteToLogActivity";
+                        case CALL_PROCESS -> "com.tibco.pe.core.CallProcessActivity";
+                        case FILE_WRITE -> "com.tibco.plugin.file.FileWriteActivity";
+                        case FILE_READ -> "com.tibco.plugin.file.FileReadActivity";
+                        case XML_RENDER_ACTIVITY -> "com.tibco.plugin.xml.XMLRendererActivity";
+                        case XML_PARSE_ACTIVITY -> "com.tibco.plugin.xml.XMLParseActivity";
+                        case XML_TRANSFORM_ACTIVITY -> "com.tibco.plugin.xml.XMLTransformActivity";
+                        case SOAP_SEND_RECEIVE -> "com.tibco.plugin.soap.SOAPSendReceiveActivity";
+                        case SOAP_SEND_REPLY -> "com.tibco.plugin.soap.SOAPSendReplyActivity";
+                        case LOOP_GROUP -> "com.tibco.pe.core.LoopGroup";
+                        case REST -> "com.tibco.plugin.rest.RestActivity";
+                        case CATCH -> "com.tibco.pe.core.CatchActivity";
+                        case JSON_PARSER_ACTIVITY -> "com.tibco.plugin.json.JSONParserActivity";
+                        case JSON_RENDER_ACTIVITY -> "com.tibco.plugin.json.JSONRenderActivity";
+                        case JDBC -> "com.tibco.plugin.jdbc.JDBCGeneralActivity";
+                        case JDBC_QUERY -> "com.tibco.plugin.jdbc.JDBCQueryActivity";
+                        case JDBC_UPDATE -> "com.tibco.plugin.jdbc.JDBCUpdateActivity";
+                        case MAPPER -> "com.tibco.plugin.mapper.MapperActivity";
+                        case JMS_QUEUE_EVENT_SOURCE -> "com.tibco.plugin.jms.JMSQueueEventSource";
+                        case JMS_QUEUE_SEND_ACTIVITY -> "com.tibco.plugin.jms.JMSQueueSendActivity";
+                        case JMS_QUEUE_GET_MESSAGE_ACTIVITY -> "com.tibco.plugin.jms.JMSQueueGetMessageActivity";
+                        case JMS_TOPIC_PUBLISH_ACTIVITY -> "com.tibco.plugin.jms.JMSTopicPublishActivity";
+                        case SLEEP -> "com.tibco.pe.core.SleepActivity";
+                        case GENERATE_ERROR -> "com.tibco.pe.core.GenerateErrorActivity";
+                        case GET_SHARED_VARIABLE -> "com.tibco.pe.core.GetSharedVariableActivity";
+                        case SET_SHARED_VARIABLE -> "com.tibco.pe.core.SetSharedVariableActivity";
+                        case FILE_EVENT_SOURCE -> "com.tibco.plugin.file.FileEventSource";
+                        case ON_STARTUP -> "com.tibco.pe.core.OnStartupEventSource";
+                        case LIST_FILES -> "com.tibco.plugin.file.ListFilesActivity";
+                    };
+                }
             }
 
             record JDBC(Element element, String name, InputBinding inputBinding,

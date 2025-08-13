@@ -75,9 +75,44 @@ public class TibcoProjectConversionTest {
         Assert.assertNotNull(result, "migrateTIBCO returned null");
         Assert.assertFalse(result.containsKey("error"), "Conversion failed with error: " + result.get("error"));
         Assert.assertTrue(result.containsKey("textEdits"), "Result does not contain 'textEdits'");
+        Assert.assertTrue(result.containsKey("report-json"), "Result does not contain 'report-json'");
         @SuppressWarnings("unchecked")
         var textEdits = (java.util.Map<String, String>) result.get("textEdits");
         Assert.assertNotNull(textEdits, "textEdits is null");
+
+        // Validate the report-json against expected JSON file
+        String reportJson = (String) result.get("report-json");
+        Assert.assertNotNull(reportJson, "report-json is null");
+        Assert.assertFalse(reportJson.isBlank(), "report-json should not be empty");
+
+        Path expectedJsonFile = Path.of("src/test/resources/tibco.projects.converted")
+                .resolve(expectedBallerinaProject.getFileName())
+                .resolve("expected-report.json");
+
+        if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
+            // Create parent directory if it doesn't exist
+            Files.createDirectories(expectedJsonFile.getParent());
+            // Write the generated JSON to expected file
+            Files.writeString(expectedJsonFile, reportJson);
+            
+            // Write all textEdits to the expected directory (like testProjectConversion does)
+            for (Map.Entry<String, String> entry : textEdits.entrySet()) {
+                Path filePath = expectedBallerinaProject.resolve(entry.getKey());
+                Files.createDirectories(filePath.getParent());
+                Files.writeString(filePath, entry.getValue());
+            }
+        }
+
+        Assert.assertTrue(Files.exists(expectedJsonFile),
+                "Expected JSON file must exist for project: " + expectedBallerinaProject.getFileName() +
+                        " at path: " + expectedJsonFile);
+
+        String expectedJson = Files.readString(expectedJsonFile);
+        // Normalize whitespace for comparison by removing all whitespace and comparing structure
+        String normalizedReportJson = reportJson.replaceAll("\\s+", "");
+        String normalizedExpectedJson = expectedJson.replaceAll("\\s+", "");
+        Assert.assertEquals(normalizedReportJson, normalizedExpectedJson,
+                "Report JSON does not match expected JSON for project: " + expectedBallerinaProject.getFileName());
 
         // Collect expected .bal files (except types.bal)
         try (Stream<Path> expectedFiles = Files.walk(expectedBallerinaProject)) {

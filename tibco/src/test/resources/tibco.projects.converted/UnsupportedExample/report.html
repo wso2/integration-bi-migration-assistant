@@ -327,28 +327,28 @@ table code {
           <!-- Overall Coverage -->
           <div class="metric">
             <div class="metric-left">
-              <span class="metric-value">100%</span>
+              <span class="metric-value">86%</span>
               <span class="metric-label">Overall Coverage</span>
               <div class="coverage-indicator">
-                <div class="coverage-bar" data-width="100" data-color="#4CAF50"></div>
+                <div class="coverage-bar" data-width="86" data-color="#FF9800"></div>
               </div>
               <div>
-                <span class="status-badge status-high">High Coverage</span>
+                <span class="status-badge status-medium">Medium Coverage</span>
               </div>
             </div>
             <div class="metric-right">
               <div class="coverage-breakdown">
                 <div>
                   <span class="breakdown-label">Total activity(s):</span>
-                  <span class="breakdown-value">6</span>
+                  <span class="breakdown-value">22</span>
                 </div>
                 <div>
                   <span class="breakdown-label">Migratable activity(s):</span>
-                  <span class="breakdown-value">6</span>
+                  <span class="breakdown-value">19</span>
                 </div>
                 <div>
                   <span class="breakdown-label">Non-migratable activity(s):</span>
-                  <span class="breakdown-value">0</span>
+                  <span class="breakdown-value">3</span>
                 </div>
               </div>
             </div>
@@ -365,18 +365,18 @@ table code {
             </tr>
             <tr>
                 <td>Best Case</td>
-                <td class="time-best">2 days</td>
-                <td class="time-best">1 week</td>
+                <td class="time-best">6 days</td>
+                <td class="time-best">2 weeks</td>
             </tr>
             <tr>
                 <td>Average Case</td>
-                <td class="time-avg">4 days</td>
-                <td class="time-avg">1 week</td>
+                <td class="time-avg">14 days</td>
+                <td class="time-avg">3 weeks</td>
             </tr>
             <tr>
                 <td>Worst Case</td>
-                <td class="time-worst">7 days</td>
-                <td class="time-worst">2 weeks</td>
+                <td class="time-worst">25 days</td>
+                <td class="time-worst">5 weeks</td>
             </tr>
         </table>
         <div class="estimation-notes">
@@ -412,24 +412,159 @@ table code {
 <div class="summary-container">
     <h2>Currently Unsupported Activities</h2>
     <div id="toolSupportSection">
-                                                                                                                                                                                                            <table class="hidden">
-    <tr><th>Activity name</th><th>Frequency</th></tr>
+        <table>
+            <tr><th>Activity name</th><th>Frequency</th></tr>
+        <tr>
+            <td><code>Unknown1</code></td>
+            <td>1</td>
+        </tr>
+        <tr>
+            <td><code>Unknown2</code></td>
+            <td>2</td>
+        </tr>
         </table>
-        <p class="empty-message visible" id="toolSupportEmpty">
+        <p class="empty-message hidden" id="toolSupportEmpty">
             No unsupported activities found
         </p>
-        <div class="estimation-notes hidden">
+        <div class="estimation-notes">
             <p><strong>Note:</strong> These activities are expected to be supported in future versions of the migration tool.</p>
         </div>
     </div>
 </div>
-<div class="summary-container">
+    <div class="summary-container unsupported-blocks">
+        <h2>Activities that required manual Conversion</h2>
+        <div class="block-item">
+            <div class="block-header">
+                <span class="block-number">Block #1</span>
+                <span class="file-name">other.process</span>
+                <span class="block-type">Unknown2</span>
+            </div>
+            <pre class="block-code"><code>&lt;pd:activity name="Log" xmlns:pd="http://xmlns.tibco.com/bw/process/2003"&gt;
+            
+    &lt;pd:type&gt;Unknown2&lt;/pd:type&gt;
+            
+    &lt;pd:resourceType&gt;ae.activities.log&lt;/pd:resourceType&gt;
+            
+    &lt;config&gt;
+                    
+        &lt;role&gt;User&lt;/role&gt;
+                
+    &lt;/config&gt;
+            
+    &lt;pd:inputBindings&gt;
+                    
+        &lt;ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes"&gt;
+                            
+            &lt;message&gt;
+                                    
+                &lt;xsl:value-of select="$Mapper" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/&gt;
+                                
+            &lt;/message&gt;
+                        
+        &lt;/ns:ActivityInput&gt;
+                
+    &lt;/pd:inputBindings&gt;
+        
+&lt;/pd:activity&gt;
+</code></pre>
+        </div>
+        <div class="block-item">
+            <div class="block-header">
+                <span class="block-number">Block #2</span>
+                <span class="file-name">proc.process</span>
+                <span class="block-type">Unknown2</span>
+            </div>
+            <pre class="block-code"><code>&lt;pd:activity name="Log" xmlns:pd="http://xmlns.tibco.com/bw/process/2003"&gt;
+            
+    &lt;pd:type&gt;Unknown2&lt;/pd:type&gt;
+            
+    &lt;pd:resourceType&gt;ae.activities.log&lt;/pd:resourceType&gt;
+            
+    &lt;config&gt;
+                    
+        &lt;role&gt;User&lt;/role&gt;
+                
+    &lt;/config&gt;
+            
+    &lt;pd:inputBindings&gt;
+                    
+        &lt;ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes"&gt;
+                            
+            &lt;message&gt;
+                                    
+                &lt;xsl:value-of select="$Mapper" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/&gt;
+                                
+            &lt;/message&gt;
+                        
+        &lt;/ns:ActivityInput&gt;
+                
+    &lt;/pd:inputBindings&gt;
+        
+&lt;/pd:activity&gt;
+</code></pre>
+        </div>
+        <div class="block-item">
+            <div class="block-header">
+                <span class="block-number">Block #3</span>
+                <span class="file-name">proc.process</span>
+                <span class="block-type">Unknown1</span>
+            </div>
+            <pre class="block-code"><code>&lt;pd:activity name="Write File" xmlns:pd="http://xmlns.tibco.com/bw/process/2003"&gt;
+            
+    &lt;pd:type&gt;Unknown1&lt;/pd:type&gt;
+            
+    &lt;pd:resourceType&gt;ae.activities.FileWriteActivity&lt;/pd:resourceType&gt;
+            
+    &lt;config&gt;
+                    
+        &lt;encoding&gt;text&lt;/encoding&gt;
+                    
+        &lt;compressFile&gt;None&lt;/compressFile&gt;
+                    
+        &lt;append&gt;true&lt;/append&gt;
+                
+    &lt;/config&gt;
+            
+    &lt;pd:inputBindings&gt;
+                    
+        &lt;ns0:WriteActivityInputTextClass xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/file"&gt;
+                            
+            &lt;fileName&gt;
+                                    
+                &lt;xsl:value-of select="&amp;quot;output.txt&amp;quot;" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/&gt;
+                                
+            &lt;/fileName&gt;
+                            
+            &lt;textContent&gt;
+                                    
+                &lt;xsl:value-of select="$Mapper" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/&gt;
+                                
+            &lt;/textContent&gt;
+                            
+            &lt;addLineSeparator&gt;
+                                    
+                &lt;xsl:value-of select="true()" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/&gt;
+                                
+            &lt;/addLineSeparator&gt;
+                        
+        &lt;/ns0:WriteActivityInputTextClass&gt;
+                
+    &lt;/pd:inputBindings&gt;
+        
+&lt;/pd:activity&gt;
+</code></pre>
+        </div>
+</div><div class="summary-container">
     <h2>Activities that need manual validation</h2>
     <div id="partiallySupportedSection">
         <table>
             <tr><th>Activity name</th><th>Frequency</th></tr>
         <tr>
             <td><code>com.tibco.plugin.jdbc.JDBCGeneralActivity</code></td>
+            <td>1</td>
+        </tr>
+        <tr>
+            <td><code>com.tibco.plugin.json.JSONParserActivity</code></td>
             <td>1</td>
         </tr>
         </table>
