@@ -18,6 +18,8 @@
 
 package tibco.analyzer;
 
+import org.jetbrains.annotations.NotNull;
+import tibco.converter.ProjectConverter;
 import tibco.model.Process;
 import tibco.model.Type;
 
@@ -35,9 +37,10 @@ public class ModelAnalyser {
         this.passes = passes;
     }
 
-    public Map<Process, AnalysisResult> analyseProject(ProjectAnalysisContext context,
-                                                       Collection<Process> processes,
-                                                       Collection<Type.Schema> schemas) {
+    public @NotNull Map<Process, AnalysisResult> analyseProject(ProjectAnalysisContext context,
+                                                               Collection<Process> processes,
+                                                       Collection<Type.Schema> schemas,
+                                                       ProjectConverter.ProjectResources resources) {
         schemas.stream().map(Type.Schema::xsdTypes).flatMap(Collection::stream).forEachOrdered(each -> {
             context.addXsdType(each.name(), each.type());
         });
@@ -46,8 +49,14 @@ public class ModelAnalyser {
 
     private Map<Process, AnalysisResult> analyseProcesses(ProjectAnalysisContext cx,
                                                           Collection<Process> processes) {
+        // Add all processes to the queue at the beginning
+        cx.addProcessesToQueue(processes);
+
         Map<Process, AnalysisResult> analysisResults = new HashMap<>();
-        for (Process process : processes) {
+
+        // Pull processes from the queue and analyze them
+        while (cx.hasMoreProcesses()) {
+            Process process = cx.getNextProcess();
             AnalysisResult combined = AnalysisResult.empty();
             for (AnalysisPass pass : passes) {
                 ProcessAnalysisContext analysisContext = new ProcessAnalysisContext(cx);
@@ -57,6 +66,7 @@ public class ModelAnalyser {
             }
             analysisResults.put(process, combined);
         }
+
         return Collections.unmodifiableMap(analysisResults);
     }
 

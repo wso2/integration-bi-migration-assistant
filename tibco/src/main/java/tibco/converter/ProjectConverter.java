@@ -20,6 +20,7 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import org.jetbrains.annotations.NotNull;
 import tibco.ProjectConversionContext;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.TibcoAnalysisReport;
@@ -34,24 +35,68 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public class ProjectConverter {
 
     public record ProjectResources(
             Collection<Resource.JDBCResource> jdbcResources,
             Collection<Resource.HTTPConnectionResource> httpConnectionResources,
-            Set<Resource.HTTPClientResource> httpClientResources,
-            Set<Resource.HTTPSharedResource> httpSharedResources,
-            Set<Resource.JDBCSharedResource> jdbcSharedResource,
-            Set<Resource.JMSSharedResource> jmsSharedResource,
-            Set<Resource.SharedVariable> sharedVariables
+            Collection<Resource.HTTPClientResource> httpClientResources,
+            Collection<Resource.HTTPSharedResource> httpSharedResources,
+            Collection<Resource.JDBCSharedResource> jdbcSharedResource,
+            Collection<Resource.JMSSharedResource> jmsSharedResource,
+            Collection<Resource.SharedVariable> sharedVariables
     ) {
 
+        /**
+         * Returns a stream of all resources in this ProjectResources instance.
+         *
+         * @return a stream containing all resources
+         */
+        public Stream<Resource> stream() {
+            return Stream.of(
+                    jdbcResources,
+                    httpConnectionResources,
+                    httpClientResources,
+                    httpSharedResources,
+                    jdbcSharedResource,
+                    jmsSharedResource,
+                    sharedVariables).flatMap(Collection::stream);
+        }
+
+        /**
+         * Merges two ProjectResources instances into a single one.
+         * Collections from both instances are combined using ArrayList.
+         *
+         * @param first  the first ProjectResources instance
+         * @param second the second ProjectResources instance
+         * @return a new ProjectResources instance containing merged collections
+         */
+        public static @NotNull ProjectResources merge(ProjectResources first, ProjectResources second) {
+            return new ProjectResources(
+                    mergeCollections(first.jdbcResources, second.jdbcResources),
+                    mergeCollections(first.httpConnectionResources, second.httpConnectionResources),
+                    mergeCollections(first.httpClientResources, second.httpClientResources),
+                    mergeCollections(first.httpSharedResources, second.httpSharedResources),
+                    mergeCollections(first.jdbcSharedResource, second.jdbcSharedResource),
+                    mergeCollections(first.jmsSharedResource, second.jmsSharedResource),
+                    mergeCollections(first.sharedVariables, second.sharedVariables));
+        }
+
+        private static <T> Collection<T> mergeCollections(Collection<T> first, Collection<T> second) {
+            Collection<T> result = new ArrayList<>();
+            if (first != null) {
+                result.addAll(first);
+            }
+            if (second != null) {
+                result.addAll(second);
+            }
+            return result;
+        }
     }
 
-    public static ConversionResult convertProject(
+    public static @NotNull ConversionResult convertProject(
             ProjectConversionContext conversionContext,
             Map<Process, AnalysisResult> analysisResult, Collection<Process> processes, Collection<Type.Schema> types,
             ProjectResources projectResources, tibco.parser.ProjectContext parserContext) {
@@ -61,8 +106,7 @@ public class ProjectConverter {
 
         List<ProcessResult> results =
                 processes.stream()
-                        .map(process -> convertServices(cx, process, projectResources))
-                        .filter(Predicate.not(ProcessResult::isEmpty))
+                        .map(process -> convertServices(cx, process))
                         .toList();
         List<Type.Schema> schemas = new ArrayList<>(types);
         for (Process each : processes) {
@@ -112,20 +156,17 @@ public class ProjectConverter {
             assert result != null : "Type conversion result cannot be null";
             assert process != null : "Process cannot be null";
         }
-        public static ProcessResult empty(Process process) {
+
+        public static @NotNull ProcessResult empty(Process process) {
             return new ProcessResult(process, ProcessConverter.TypeConversionResult.empty());
         }
 
-        public boolean isEmpty() {
-            return result.isEmpty();
-        }
     }
 
-    private static ProcessResult convertServices(ProjectContext cx, Process process,
-                                                 ProjectResources projectResources) {
+    private static ProcessResult convertServices(ProjectContext cx, Process process) {
         try {
             return switch (process) {
-                case Process5 process5 -> convertServices(cx, process5, projectResources);
+                case Process5 process5 -> convertServices(cx, process5);
                 case Process6 process6 -> convertServices(cx, process6);
             };
         } catch (Exception e) {
@@ -134,27 +175,30 @@ public class ProjectConverter {
         }
     }
 
-    private static ProcessResult convertServices(ProjectContext cx, Process5 process,
-                                                 ProjectResources projectResources) {
+    private static ProcessResult convertServices(ProjectContext cx, Process5 process) {
         List<BallerinaModel.Service> startService;
         Optional<BallerinaModel.Function> mainFn;
         if (isLifecycleProcess(process)) {
             startService = List.of();
             mainFn = Optional.of(ProcessConverter.createMainFunction(cx.getProcessContext(process), process));
         } else {
-            startService =
-                    List.of(ProcessConverter.convertStartActivityService(cx.getProcessContext(process),
-                            process.transitionGroup()));
+            // Check if the group has a start activity before attempting to convert it
+            startService = process.transitionGroup().startActivity()
+                    .map(startActivity -> ProcessConverter.convertStartActivityService(cx.getProcessContext(process),
+                            process.transitionGroup()))
+                    .map(List::of)
+                    .orElse(List.of());
             mainFn = Optional.empty();
         }
-        ProcessConverter.addProcessClient(cx.getProcessContext(process), process.transitionGroup(),
-                projectResources.httpSharedResources);
         return new ProcessResult(process, new ProcessConverter.TypeConversionResult(startService, mainFn));
     }
 
     private static boolean isLifecycleProcess(Process5 process) {
         return process.transitionGroup()
-                .startActivity() instanceof Process5.ExplicitTransitionGroup.InlineActivity.OnStartupEventSource;
+                .startActivity().map(
+                        startActivity -> startActivity instanceof
+                                Process5.ExplicitTransitionGroup.InlineActivity.OnStartupEventSource)
+                .orElse(false);
     }
 
     private static ProcessResult convertServices(ProjectContext cx, Process6 process) {

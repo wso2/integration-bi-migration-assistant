@@ -18,55 +18,103 @@
 
 package tibco.model;
 
+import tibco.util.PathMatcher;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public interface Resource {
+public sealed interface Resource {
 
     String name();
 
+    String path();
+
     Collection<SubstitutionBinding> substitutionBindings();
 
-    record JDBCSharedResource(String name, String location) implements Resource {
+    ResourceKind kind();
+
+    default boolean matches(ResourceIdentifier identifier) {
+        return kind().equals(identifier.kind()) && PathMatcher.matches(path(), identifier.path());
+    }
+
+    enum ResourceKind {
+        JDBC_SHARED,
+        JDBC,
+        HTTP_CONNECTION,
+        HTTP_SHARED,
+        HTTP_CLIENT,
+        JMS_SHARED,
+        SHARED_VARIABLE
+    }
+
+    record ResourceIdentifier(ResourceKind kind, String path) {
+
+    }
+
+    record JDBCSharedResource(String name, String path, Optional<String> location) implements Resource {
 
         @Override
         public Collection<SubstitutionBinding> substitutionBindings() {
             return List.of();
         }
+
+        @Override
+        public ResourceKind kind() {
+            return ResourceKind.JDBC_SHARED;
+        }
     }
 
-    record JDBCResource(String name, String userName, String password, String jdbcDriver, String dbUrl,
+    record JDBCResource(String name, String path, String userName, String password, String jdbcDriver, String dbUrl,
                         Collection<SubstitutionBinding> substitutionBindings) implements Resource {
 
+        @Override
+        public ResourceKind kind() {
+            return ResourceKind.JDBC;
+        }
     }
 
-    record HTTPConnectionResource(String name, String svcRegServiceName,
+    record HTTPConnectionResource(String name, String path, String svcRegServiceName,
                                   Collection<SubstitutionBinding> substitutionBindings) implements Resource {
 
+        @Override
+        public ResourceKind kind() {
+            return ResourceKind.HTTP_CONNECTION;
+        }
     }
 
-    record HTTPSharedResource(String name, String host, int port) implements Resource {
+    record HTTPSharedResource(String name, String path, Optional<String> host, Optional<Integer> port)
+            implements Resource {
 
         @Override
         public Collection<SubstitutionBinding> substitutionBindings() {
             return List.of();
         }
+
+        @Override
+        public ResourceKind kind() {
+            return ResourceKind.HTTP_SHARED;
+        }
     }
 
-    record HTTPClientResource(String name, Optional<Integer> port,
+    record HTTPClientResource(String name, String path, Optional<Integer> port,
                               Collection<SubstitutionBinding> substitutionBindings)
             implements Resource {
 
+        @Override
+        public ResourceKind kind() {
+            return ResourceKind.HTTP_CLIENT;
+        }
     }
 
     record SubstitutionBinding(String template, String propName) {
 
     }
 
-    record JMSSharedResource(String name, String fileName, NamingEnvironment namingEnvironment,
-            ConnectionAttributes connectionAttributes, Map<String, String> jndiProperties)
+    record JMSSharedResource(String name, String path, Optional<String> fileName,
+                             Optional<NamingEnvironment> namingEnvironment,
+                             Optional<ConnectionAttributes> connectionAttributes, Map<String, String> jndiProperties)
             implements Resource {
 
         @Override
@@ -74,21 +122,33 @@ public interface Resource {
             return List.of();
         }
 
-        public record NamingEnvironment(boolean useJNDI, String providerURL, String namingURL,
-                String namingInitialContextFactory, String topicFactoryName,
-                String queueFactoryName, String namingPrincipal, String namingCredential) {
+        @Override
+        public ResourceKind kind() {
+            return ResourceKind.JMS_SHARED;
+        }
+
+        public record NamingEnvironment(Optional<Boolean> useJNDI, Optional<String> providerURL,
+                                        Optional<String> namingURL,
+                                        Optional<String> namingInitialContextFactory, Optional<String> topicFactoryName,
+                                        Optional<String> queueFactoryName, Optional<String> namingPrincipal,
+                                        Optional<String> namingCredential) {
         }
 
         public record ConnectionAttributes(Optional<String> username, Optional<String> password,
-                Optional<String> clientID, boolean autoGenClientID) {
+                                           Optional<String> clientID, Optional<Boolean> autoGenClientID) {
         }
     }
 
-    record SharedVariable(String name, boolean persistent, String initialValue, boolean isShared, String relativePath)
+    record SharedVariable(String name, String path, boolean persistent, String initialValue, boolean isShared)
             implements Resource {
         @Override
         public Collection<SubstitutionBinding> substitutionBindings() {
             return List.of();
+        }
+
+        @Override
+        public ResourceKind kind() {
+            return ResourceKind.SHARED_VARIABLE;
         }
     }
 }

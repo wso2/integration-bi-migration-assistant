@@ -168,8 +168,8 @@ public class ActivityConversionTest {
         }
 
         @Override
-        BallerinaModel.Expression.VariableReference client(String sharedResourcePropertyName) {
-            return new BallerinaModel.Expression.VariableReference(sharedResourcePropertyName);
+        Optional<BallerinaModel.Expression.VariableReference> client(String sharedResourcePropertyName) {
+            return Optional.of(new BallerinaModel.Expression.VariableReference(sharedResourcePropertyName));
         }
 
         private static AnalysisResult initAnalysisResult(Scope.Flow.Activity activity) {
@@ -328,6 +328,11 @@ public class ActivityConversionTest {
                 @Override
                 public Set<String> getTypeNames() {
                     return Set.of();
+                }
+
+                @Override
+                public boolean isProcessCalled(Process process) {
+                    return false;
                 }
             };
         }

@@ -23,7 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-public record Process6(String name, Collection<NameSpace> nameSpaces,
+public record Process6(String name, String path, Collection<NameSpace> nameSpaces,
                        // BW 6 parts
                        Collection<Type> types,
                        ProcessInfo processInfo,

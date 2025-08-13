@@ -6,6 +6,6 @@
     <resourceType>ae.shared.jobSharedVariable</resourceType>
     <config xmlns:xsd="http://www.w3.org/2001/XMLSchema">
         <initialValue>byRef</initialValue>
-        <initialValueRef>/Resources/Data/sharedData.xml</initialValueRef>
+        <initialValueRef>/SharedVariables/Resources/Data/sharedData.xml</initialValueRef>
     </config>
 </BWSharedResource>

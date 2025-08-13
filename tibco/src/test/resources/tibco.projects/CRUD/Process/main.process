@@ -11,7 +11,7 @@
             <defaultEncoding>ISO8859_1</defaultEncoding>
             <inputOutputVersion>5.3.0</inputOutputVersion>
             <newMimeSupport>true</newMimeSupport>
-            <sharedChannel>/SharedResources/GeneralConnection.sharedhttp</sharedChannel>
+            <sharedChannel>/CRUD/SharedResources/GeneralConnection.sharedhttp</sharedChannel>
             <parsePostData>true</parsePostData>
             <customField>
                 <row>
@@ -68,19 +68,64 @@
         </pd:inputBindings>
     </pd:activity>
     <pd:activity name="SQL Direct">
-            <pd:type>com.tibco.plugin.jdbc.JDBCGeneralActivity</pd:type>
-            <pd:resourceType>ae.activities.JDBCGeneralActivity</pd:resourceType>
-            <config>
-                <jdbcSharedConfig>/Resources/JDBCConnection.sharedjdbc</jdbcSharedConfig>
-            </config>
-            <pd:inputBindings>
-                <jdbcGeneralActivityInput>
-                    <statement>
-                        SELECT * FROM DB WHERE USER_ID=<xsl:value-of select="$post//UserId"/>
-                    </statement>
-                </jdbcGeneralActivityInput>
-            </pd:inputBindings>
-        </pd:activity>
+        <pd:type>com.tibco.plugin.jdbc.JDBCGeneralActivity</pd:type>
+        <pd:resourceType>ae.activities.JDBCGeneralActivity</pd:resourceType>
+        <config>
+            <jdbcSharedConfig>/CRUD/SharedResources/JDBCConnection.sharedjdbc</jdbcSharedConfig>
+        </config>
+        <pd:inputBindings>
+            <jdbcGeneralActivityInput>
+                <statement>
+                    SELECT * FROM DB WHERE USER_ID=foo
+                </statement>
+            </jdbcGeneralActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="JDBC Query">
+        <pd:type>com.tibco.plugin.jdbc.JDBCQueryActivity</pd:type>
+        <pd:resourceType>ae.activities.JDBCQueryActivity</pd:resourceType>
+        <config>
+            <maxRows>100</maxRows>
+            <jdbcSharedConfig>/CRUD/SharedResources/JDBCConnection.sharedjdbc</jdbcSharedConfig>
+            <statement>select * FROM DB</statement>
+        </config>
+        <pd:inputBindings>
+            <jdbcQueryActivityInput/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="JDBC Delete">
+        <pd:type>com.tibco.plugin.jdbc.JDBCUpdateActivity</pd:type>
+        <pd:resourceType>ae.activities.JDBCUpdateActivity</pd:resourceType>
+        <config>
+            <jdbcSharedConfig>/CRUD/SharedResources/JDBCConnection.sharedjdbc</jdbcSharedConfig>
+            <statement>delete from DB where USER_ID=foo</statement>
+        </config>
+        <pd:inputBindings>
+            <jdbcUpdateActivityInput/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="JDBC Update">
+        <pd:type>com.tibco.plugin.jdbc.JDBCUpdateActivity</pd:type>
+        <pd:resourceType>ae.activities.JDBCUpdateActivity</pd:resourceType>
+        <config>
+            <jdbcSharedConfig>/CRUD/SharedResources/JDBCConnection.sharedjdbc</jdbcSharedConfig>
+            <statement>INSERT INTO DB (USER_ID) VALUES (?)</statement>
+            <Prepared_Param_DataType>
+                <parameter>
+                    <parameterName>UserId</parameterName>
+                    <dataType>VARCHAR</dataType>
+                </parameter>
+            </Prepared_Param_DataType>
+        </config>
+        <pd:inputBindings>
+            <jdbcUpdateActivityInput>
+                <UserId>
+                    <xsl:value-of select="$post//UserId"/>
+                </UserId>
+            </jdbcUpdateActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+
     <pd:activity name="Catch">
         <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
         <pd:resourceType>ae.activities.catch</pd:resourceType>
@@ -131,6 +176,27 @@
     </pd:transition>
     <pd:transition>
         <pd:from>SQL Direct</pd:from>
+        <pd:to>JDBC Query</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>JDBC Query</pd:from>
+        <pd:to>JDBC Delete</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>JDBC Delete</pd:from>
+        <pd:to>JDBC Update</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>JDBC Update</pd:from>
         <pd:to>End</pd:to>
         <pd:lineType>Default</pd:lineType>
         <pd:lineColor>-16777216</pd:lineColor>

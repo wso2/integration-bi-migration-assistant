@@ -48,6 +48,11 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
         }
 
+        public interface ActivityWithResources {
+
+            Collection<Resource.ResourceIdentifier> resources();
+        }
+
         public sealed interface Activity
                 permits Process5.ExplicitTransitionGroup.InlineActivity, FaultHandler, Activity.ActivityExtension,
                 Activity.ActivityWithName, Activity.ActivityWithOutput, Activity.ActivityWithScope,

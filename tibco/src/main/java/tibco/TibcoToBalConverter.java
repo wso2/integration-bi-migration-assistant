@@ -19,17 +19,13 @@
 package tibco;
 
 import common.LoggingUtils;
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
-import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.DefaultAnalysisPass;
 import tibco.analyzer.LoggingAnalysisPass;
 import tibco.analyzer.ModelAnalyser;
-import tibco.analyzer.ProjectAnalysisContext;
-import tibco.converter.ConversionResult;
-import tibco.converter.ProjectConverter;
-import tibco.converter.TibcoConverter;
 import tibco.model.Process;
 import tibco.model.Resource;
 import tibco.model.Type;
@@ -64,45 +60,35 @@ public class TibcoToBalConverter {
     private TibcoToBalConverter() {
     }
 
-    public static ConversionResult convertProject(ProjectConversionContext cx, String projectPath) {
-        Set<tibco.model.Process> processes;
-        Set<Type.Schema> types;
-        Set<Resource.JDBCResource> jdbcResources;
-        Set<Resource.HTTPConnectionResource> httpConnectionResources;
-        Set<Resource.HTTPClientResource> httpClientResources;
-        Set<Resource.HTTPSharedResource> httpSharedResources;
-        Set<Resource.JDBCSharedResource> jdbcSharedResource;
-        Set<Resource.JMSSharedResource> jmsSharedResource;
-        Set<Resource.SharedVariable> sharedVariables;
-        ProjectContext pcx = new ProjectContext(cx, projectPath);
-        try {
-            processes = PROCESS_PARSING_UNIT.parse(pcx);
-            types = XSD_PARSING_UNIT.parse(pcx);
-            jdbcResources = JDBC_RESOURCE_PARSING_UNIT.parse(pcx);
-            httpConnectionResources = HTTP_CONN_RESOURCE_PARSING_UNIT.parse(pcx);
-            httpClientResources = HTTP_CLIENT_RESOURCE_PARSING_UNIT.parse(pcx);
-            var httpSharedResourceParser = new HTTPSharedResourceParsingUnit();
-            httpSharedResources = httpSharedResourceParser.parse(pcx);
-            jdbcSharedResource = SHARED_JDBC_RESOURCE_PARSING_UNIT.parse(pcx);
-            var jmsSharedResourceParser = new JMSSharedResourceParsingUnit();
-            jmsSharedResource = jmsSharedResourceParser.parse(pcx);
-            sharedVariables = SHARED_VARIABLE_PARSING_UNIT.parse(pcx);
-        } catch (IOException | SAXException | ParserConfigurationException e) {
-            cx.log(LoggingUtils.Level.SEVERE, "Unrecoverable error while parsing project file: " + projectPath);
-            throw new RuntimeException("Error while parsing the XML file: ", e);
-        }
-        ModelAnalyser analyser = new ModelAnalyser(List.of(
-                new DefaultAnalysisPass(),
-                new LoggingAnalysisPass()));
-        Map<tibco.model.Process, AnalysisResult> analysisResult =
-                analyser.analyseProject(new ProjectAnalysisContext(cx), processes, types);
-
-        return ProjectConverter.convertProject(cx, analysisResult, processes, types,
-                new ProjectConverter.ProjectResources(jdbcResources,
-                        httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource,
-                        jmsSharedResource, sharedVariables),
-                pcx);
+    public static @NotNull java.util.Set<tibco.model.Process> parseProcesses(tibco.parser.ProjectContext pcx)
+            throws IOException, SAXException, ParserConfigurationException {
+        return PROCESS_PARSING_UNIT.parse(pcx);
     }
+
+    public static @NotNull java.util.Set<tibco.model.Type.Schema> parseTypes(tibco.parser.ProjectContext pcx)
+            throws IOException, SAXException, ParserConfigurationException {
+        return XSD_PARSING_UNIT.parse(pcx);
+    }
+
+    public static @NotNull tibco.converter.ProjectConverter.ProjectResources parseResources(
+            tibco.parser.ProjectContext pcx)
+            throws IOException, SAXException, ParserConfigurationException {
+        java.util.Set<Resource.JDBCResource> jdbcResources = JDBC_RESOURCE_PARSING_UNIT.parse(pcx);
+        java.util.Set<Resource.HTTPConnectionResource> httpConnectionResources =
+                HTTP_CONN_RESOURCE_PARSING_UNIT.parse(pcx);
+        java.util.Set<Resource.HTTPClientResource> httpClientResources = HTTP_CLIENT_RESOURCE_PARSING_UNIT.parse(pcx);
+        var httpSharedResourceParser = new HTTPSharedResourceParsingUnit();
+        java.util.Set<Resource.HTTPSharedResource> httpSharedResources = httpSharedResourceParser.parse(pcx);
+        java.util.Set<Resource.JDBCSharedResource> jdbcSharedResource = SHARED_JDBC_RESOURCE_PARSING_UNIT.parse(pcx);
+        var jmsSharedResourceParser = new JMSSharedResourceParsingUnit();
+        java.util.Set<Resource.JMSSharedResource> jmsSharedResource = jmsSharedResourceParser.parse(pcx);
+        java.util.Set<Resource.SharedVariable> sharedVariables = SHARED_VARIABLE_PARSING_UNIT.parse(pcx);
+
+        return new tibco.converter.ProjectConverter.ProjectResources(jdbcResources,
+                httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource,
+                jmsSharedResource, sharedVariables);
+    }
+
 
     private static final ParsingUnit<Process> PROCESS_PARSING_UNIT = pcx -> {
         Set<Process> elements = new HashSet<>();
@@ -151,7 +137,7 @@ public class TibcoToBalConverter {
                 String relativePath = "/" + Paths.get(pcx.projectPath()).relativize(Paths.get(s)).toString();
                 Optional<Resource.SharedVariable> var = XmlToTibcoModelParser.parseSharedVariable(
                         new ResourceContext(pcx, s),
-                        parseXmlFile(s), relativePath);
+                        parseXmlFile(s));
                 if (var.isPresent()) {
                     variables.add(var.get());
                 } else {
@@ -160,10 +146,9 @@ public class TibcoToBalConverter {
             }
 
             for (String s : getFilesWithExtension(pcx.projectPath(), "jobsharedvariable")) {
-                String relativePath = "/" + Paths.get(pcx.projectPath()).relativize(Paths.get(s)).toString();
                 Optional<Resource.SharedVariable> var = XmlToTibcoModelParser.parseJobSharedVariable(
                         new ResourceContext(pcx, s),
-                        parseXmlFile(s), relativePath);
+                        parseXmlFile(s));
                 if (var.isPresent()) {
                     variables.add(var.get());
                 } else {
@@ -314,51 +299,62 @@ public class TibcoToBalConverter {
         return document.getDocumentElement();
     }
 
-    public static Map<String, Object> migrateTIBCO(Map<String, Object> parameters) {
+    public static @NotNull Map<String, Object> migrateTIBCO(Map<String, Object> parameters) {
         try {
             String orgName = validateAndGetString(parameters, "orgName");
             String projectName = validateAndGetString(parameters, "projectName");
             String sourcePath = validateAndGetString(parameters, "sourcePath");
             Consumer<String> stateCallback = validateAndGetConsumer(parameters, "stateCallback");
             Consumer<String> logCallback = validateAndGetConsumer(parameters, "logCallback");
-            
+
             return migrateTIBCOInner(orgName, projectName, sourcePath, stateCallback, logCallback);
         } catch (IllegalArgumentException e) {
             return Map.of("error", e.getMessage());
         }
     }
 
-    private static Map<String, Object> migrateTIBCOInner(String orgName, String projectName, String sourcePath,
-                                                         Consumer<String> stateCallback, Consumer<String> logCallback) {
+    private static @NotNull Map<String, Object> migrateTIBCOInner(String orgName, String projectName, String sourcePath,
+            Consumer<String> stateCallback, Consumer<String> logCallback) {
         ProjectConversionContext cx = new ProjectConversionContext(
                 new ConversionContext(orgName, false, false, stateCallback, logCallback), projectName);
-        TibcoConverter.ConvertResult convertResult = TibcoConverter.convertProjectInner(cx, sourcePath);
-        if (convertResult.errorMessage().isPresent()) {
-            return Map.of("error", convertResult.errorMessage().get());
+        try {
+            tibco.converter.TibcoConverter.ParsedProject parsed =
+                    tibco.converter.TibcoConverter.parseProject(cx, sourcePath);
+            tibco.converter.TibcoConverter.AnalyzedProject analyzed =
+                    tibco.converter.TibcoConverter.analyzeProject(cx, parsed, new ModelAnalyser(List.of(
+                            new DefaultAnalysisPass(),
+                            new LoggingAnalysisPass())));
+            tibco.converter.TibcoConverter.GeneratedProject generated =
+                    tibco.converter.TibcoConverter.generateCode(cx, analyzed);
+            tibco.converter.TibcoConverter.SerializedProject serialized =
+                    tibco.converter.TibcoConverter.serializeProject(cx, generated);
+
+            return Map.of("textEdits", serialized.files(), "report", serialized.report().toHTML());
+        } catch (Exception e) {
+            return Map.of("error", e.getMessage());
         }
-        return Map.of("textEdits", convertResult.files(), "report", convertResult.reportHTML());
     }
 
-    private static String validateAndGetString(Map<String, Object> parameters, String key) {
+    private static @NotNull String validateAndGetString(Map<String, Object> parameters, String key) {
         if (!parameters.containsKey(key)) {
             throw new IllegalArgumentException("Missing required parameter: " + key);
         }
         Object value = parameters.get(key);
         if (!(value instanceof String)) {
-            throw new IllegalArgumentException("Parameter " + key + " must be a String, got: " + 
+            throw new IllegalArgumentException("Parameter " + key + " must be a String, got: " +
                     (value != null ? value.getClass().getSimpleName() : "null"));
         }
         return (String) value;
     }
 
     @SuppressWarnings("unchecked")
-    private static Consumer<String> validateAndGetConsumer(Map<String, Object> parameters, String key) {
+    private static @NotNull Consumer<String> validateAndGetConsumer(Map<String, Object> parameters, String key) {
         if (!parameters.containsKey(key)) {
             throw new IllegalArgumentException("Missing required parameter: " + key);
         }
         Object value = parameters.get(key);
         if (!(value instanceof Consumer)) {
-            throw new IllegalArgumentException("Parameter " + key + " must be a Consumer<String>, got: " + 
+            throw new IllegalArgumentException("Parameter " + key + " must be a Consumer<String>, got: " +
                     (value != null ? value.getClass().getSimpleName() : "null"));
         }
         return (Consumer<String>) value;

@@ -75,4 +75,8 @@ public final class ProjectConversionContext implements LoggingContext {
     public void addJavaDependency(TibcoToBalConverter.JavaDependencies dependencies) {
         javaDependencies.add(dependencies);
     }
+
+    public ConversionContext conversionContext() {
+        return cx;
+    }
 }

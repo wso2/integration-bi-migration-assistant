@@ -18,7 +18,6 @@
 
 package tibco.model;
 
-import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 
 import java.util.ArrayList;
@@ -28,7 +27,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public record Process5(String name, Collection<NameSpace> nameSpaces,
+public record Process5(String name, String path, Collection<NameSpace> nameSpaces,
                        ExplicitTransitionGroup transitionGroup) implements Process {
 
     @Override
@@ -38,15 +37,19 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
 
     public record ExplicitTransitionGroup(List<ExplicitTransitionGroup.InlineActivity> activities,
                                           List<ExplicitTransitionGroup.Transition> transitions,
-                                          ExplicitTransitionGroup.InlineActivity startActivity,
+                                          ExplicitTransitionGroup.InlineActivity start,
                                           Optional<Scope.Flow.Activity.Expression.XSLT> returnBindings) {
 
         public ExplicitTransitionGroup() {
             this(null);
         }
 
+        public Optional<InlineActivity> startActivity() {
+            return Optional.ofNullable(start);
+        }
+
         public boolean isEmpty() {
-            return activities.isEmpty() && transitions.isEmpty() && startActivity == null;
+            return activities.isEmpty() && transitions.isEmpty();
         }
 
         ExplicitTransitionGroup(ExplicitTransitionGroup.InlineActivity startActivity) {
@@ -61,13 +64,13 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
         public ExplicitTransitionGroup append(ExplicitTransitionGroup.InlineActivity activity) {
             List<ExplicitTransitionGroup.InlineActivity> newActivities = new ArrayList<>(activities);
             newActivities.add(activity);
-            return new ExplicitTransitionGroup(newActivities, transitions, startActivity, returnBindings);
+            return new ExplicitTransitionGroup(newActivities, transitions, start, returnBindings);
         }
 
         public ExplicitTransitionGroup append(ExplicitTransitionGroup.Transition transition) {
             List<ExplicitTransitionGroup.Transition> newTransitions = new ArrayList<>(transitions);
             newTransitions.add(transition);
-            return new ExplicitTransitionGroup(activities, newTransitions, startActivity, returnBindings);
+            return new ExplicitTransitionGroup(activities, newTransitions, start, returnBindings);
         }
 
         public ExplicitTransitionGroup setStartActivity(ExplicitTransitionGroup.InlineActivity startActivity) {
@@ -77,7 +80,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
         }
 
         public ExplicitTransitionGroup setReturnBindings(Scope.Flow.Activity.Expression.XSLT expression) {
-            return new ExplicitTransitionGroup(activities, transitions, startActivity, Optional.of(expression));
+            return new ExplicitTransitionGroup(activities, transitions, start, Optional.of(expression));
         }
 
         public sealed interface InlineActivityWithBody extends ExplicitTransitionGroup.InlineActivity {
@@ -119,24 +122,6 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
         }
 
-        public @NotNull ExplicitTransitionGroup resolve() {
-            if (startActivity != null) {
-                return this;
-            }
-            if (activities.isEmpty()) {
-                throw new IllegalStateException("Empty process without activities");
-            }
-            String startActivityName = transitions.stream()
-                    .filter(transition -> transition.from().equalsIgnoreCase("start"))
-                    .findFirst().map(ExplicitTransitionGroup.Transition::to)
-                    .orElseThrow(() -> new IllegalStateException("failed to find start activity"));
-            ExplicitTransitionGroup.InlineActivity startActivity = activities.stream()
-                    .filter(each -> each.name().equals(startActivityName))
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalStateException("no such activity" + startActivityName));
-            return this.setStartActivity(startActivity);
-        }
-
         public record Transition(String from, String to) {
 
         }
@@ -172,6 +157,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 JSON_PARSER_ACTIVITY,
                 JSON_RENDER_ACTIVITY,
                 JDBC,
+                JDBC_QUERY,
+                JDBC_UPDATE,
                 MAPPER,
                 JMS_QUEUE_EVENT_SOURCE,
                 JMS_QUEUE_SEND_ACTIVITY,
@@ -219,6 +206,8 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                     new LookUpData("SleepActivity", SLEEP),
                                     new LookUpData("GetSharedVariableActivity", GET_SHARED_VARIABLE),
                                     new LookUpData("SetSharedVariableActivity", SET_SHARED_VARIABLE),
+                                    new LookUpData("JDBCQueryActivity", JDBC_QUERY),
+                                    new LookUpData("JDBCUpdateActivity", JDBC_UPDATE),
                                     new LookUpData("FileEventSource", FILE_EVENT_SOURCE),
                             new LookUpData("OnStartupEventSource", ON_STARTUP),
                             new LookUpData("ListFilesActivity", LIST_FILES))
@@ -228,7 +217,13 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record JDBC(Element element, String name, InputBinding inputBinding,
-                        String connection, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+                        String connection, String fileName) implements ExplicitTransitionGroup.InlineActivity,
+                    Scope.Flow.ActivityWithResources {
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List.of(new Resource.ResourceIdentifier(Resource.ResourceKind.JDBC_SHARED, connection));
+                }
 
                 public JDBC {
                     assert inputBinding != null;
@@ -242,6 +237,47 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 @Override
                 public boolean hasInputBinding() {
                     return true;
+                }
+            }
+
+            record JDBCQuery(Element element, String name, String fileName, InputBinding inputBinding,
+                             String connection, Optional<Integer> timeout, Optional<Integer> maxRow,
+                             Optional<String> statement)
+                    implements ExplicitTransitionGroup.InlineActivity, Scope.Flow.ActivityWithResources {
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.JDBC_QUERY;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
+                }
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List.of(new Resource.ResourceIdentifier(Resource.ResourceKind.JDBC_SHARED, connection));
+                }
+            }
+
+            record JDBCUpdate(Element element, String name, String fileName, InputBinding inputBinding,
+                              String connection, Optional<String> statement, boolean hasPreparedData)
+                    implements ExplicitTransitionGroup.InlineActivity, Scope.Flow.ActivityWithResources {
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.JDBC_UPDATE;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
+                }
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List.of(new Resource.ResourceIdentifier(Resource.ResourceKind.JDBC_SHARED, connection));
                 }
             }
 
@@ -332,10 +368,6 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             record CallProcess(Element element, String name, InputBinding inputBinding,
                                String processName, String fileName) implements ExplicitTransitionGroup.InlineActivity {
 
-                public CallProcess {
-                    assert inputBinding != null;
-                }
-
                 @Override
                 public InlineActivityType type() {
                     return InlineActivityType.CALL_PROCESS;
@@ -343,7 +375,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
 
                 @Override
                 public boolean hasInputBinding() {
-                    return true;
+                    return inputBinding != null;
                 }
             }
 
@@ -607,7 +639,7 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
 
             record HttpEventSource(Element element, String name, String sharedChannel,
                     InputBinding inputBinding, String fileName)
-                    implements ExplicitTransitionGroup.InlineActivity {
+                    implements ExplicitTransitionGroup.InlineActivity, Scope.Flow.ActivityWithResources {
 
                 @Override
                 public InlineActivityType type() {
@@ -617,6 +649,11 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                 @Override
                 public boolean hasInputBinding() {
                     return inputBinding != null;
+                }
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List.of(new Resource.ResourceIdentifier(Resource.ResourceKind.HTTP_SHARED, sharedChannel));
                 }
             }
 
@@ -670,11 +707,19 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             record JMSQueueEventSource(Element element, String name, InputBinding inputBinding,
                                        String permittedMessageType, JMSActivityBase.SessionAttributes sessionAttributes,
                                        JMSActivityBase.ConfigurableHeaders configurableHeaders,
-                    String connectionReference, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+                                       String connectionReference, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity,
+                    Scope.Flow.ActivityWithResources {
 
                 public JMSQueueEventSource(JMSActivityBase base) {
                     this(base.element, base.name, base.inputBinding, base.permittedMessageType,
                             base.sessionAttributes, base.configurableHeaders, base.connectionReference, base.fileName);
+                }
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List
+                            .of(new Resource.ResourceIdentifier(Resource.ResourceKind.JMS_SHARED, connectionReference));
                 }
 
                 @Override
@@ -692,11 +737,19 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                         String permittedMessageType,
                                         JMSActivityBase.SessionAttributes sessionAttributes,
                                         JMSActivityBase.ConfigurableHeaders configurableHeaders,
-                    String connectionReference, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+                                        String connectionReference, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity,
+                    Scope.Flow.ActivityWithResources {
 
                 public JMSQueueSendActivity(JMSActivityBase base) {
                     this(base.element, base.name, base.inputBinding, base.permittedMessageType,
                             base.sessionAttributes, base.configurableHeaders, base.connectionReference, base.fileName);
+                }
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List
+                            .of(new Resource.ResourceIdentifier(Resource.ResourceKind.JMS_SHARED, connectionReference));
                 }
 
                 @Override
@@ -715,11 +768,17 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                               JMSActivityBase.SessionAttributes sessionAttributes,
                                               JMSActivityBase.ConfigurableHeaders configurableHeaders,
                     String connectionReference, String fileName)
-                    implements ExplicitTransitionGroup.InlineActivity {
+                    implements ExplicitTransitionGroup.InlineActivity, Scope.Flow.ActivityWithResources {
 
                 public JMSQueueGetMessageActivity(JMSActivityBase base) {
                     this(base.element, base.name, base.inputBinding, base.permittedMessageType,
                             base.sessionAttributes, base.configurableHeaders, base.connectionReference, base.fileName);
+                }
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List
+                            .of(new Resource.ResourceIdentifier(Resource.ResourceKind.JMS_SHARED, connectionReference));
                 }
 
                 @Override
@@ -739,11 +798,17 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
                                            JMSActivityBase.ConfigurableHeaders configurableHeaders,
                                            String connectionReference,
                                            String fileName)
-                    implements ExplicitTransitionGroup.InlineActivity {
+                    implements ExplicitTransitionGroup.InlineActivity, Scope.Flow.ActivityWithResources {
 
                 public JMSTopicPublishActivity(JMSActivityBase base) {
                     this(base.element, base.name, base.inputBinding, base.permittedMessageType,
                             base.sessionAttributes, base.configurableHeaders, base.connectionReference, base.fileName);
+                }
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List
+                            .of(new Resource.ResourceIdentifier(Resource.ResourceKind.JMS_SHARED, connectionReference));
                 }
 
                 @Override
@@ -786,7 +851,15 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record GetSharedVariable(Element element, String name, InputBinding inputBinding,
-                    String variableConfig, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+                                     String variableConfig, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity,
+                    Scope.Flow.ActivityWithResources {
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List
+                            .of(new Resource.ResourceIdentifier(Resource.ResourceKind.SHARED_VARIABLE, variableConfig));
+                }
 
                 @Override
                 public InlineActivityType type() {
@@ -800,10 +873,18 @@ public record Process5(String name, Collection<NameSpace> nameSpaces,
             }
 
             record SetSharedVariable(Element element, String name, InputBinding inputBinding,
-                    String variableConfig, String fileName) implements ExplicitTransitionGroup.InlineActivity {
+                                     String variableConfig, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity,
+                    Scope.Flow.ActivityWithResources {
 
                 public SetSharedVariable {
                     assert inputBinding != null;
+                }
+
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return List
+                            .of(new Resource.ResourceIdentifier(Resource.ResourceKind.SHARED_VARIABLE, variableConfig));
                 }
 
                 @Override

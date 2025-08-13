@@ -1,10 +1,10 @@
 import ballerina/http;
 
-public listener http:Listener BarConnection_sharedhttp = new (9092, {host: "localhost"});
-public listener http:Listener FooConnection_sharedhttp = new (9091, {host: "localhost"});
-public listener http:Listener MainConnection_sharedhttp = new (9090, {host: "localhost"});
+public listener http:Listener BarConnection = new (9092, {host: "localhost"});
+public listener http:Listener FooConnection = new (9091, {host: "localhost"});
+public listener http:Listener MainConnection = new (9090, {host: "localhost"});
 
-service on MainConnection_sharedhttp {
+service on MainConnection {
     resource function 'default [string... path](xml input) returns xml {
         map<SharedVariableContext> jobSharedVariables = {};
         xml inputVal = xml `<root>
@@ -20,7 +20,7 @@ service on MainConnection_sharedhttp {
     }
 }
 
-service on BarConnection_sharedhttp {
+service on BarConnection {
     resource function 'default [string... path](xml input) returns xml {
         map<SharedVariableContext> jobSharedVariables = {};
         xml inputVal = xml `<root>
@@ -36,7 +36,7 @@ service on BarConnection_sharedhttp {
     }
 }
 
-service on FooConnection_sharedhttp {
+service on FooConnection {
     resource function 'default [string... path](xml input) returns xml {
         map<SharedVariableContext> jobSharedVariables = {};
         xml inputVal = xml `<root>

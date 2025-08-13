@@ -19,6 +19,7 @@
 package tibco.analyzer;
 
 import common.BallerinaModel;
+import org.jetbrains.annotations.NotNull;
 import tibco.model.PartnerLink;
 import tibco.model.Process;
 import tibco.model.Process5.ExplicitTransitionGroup;
@@ -40,12 +41,12 @@ public interface AnalysisResult {
      *
      * @return an immutable, empty {@code AnalysisResult} instance
      */
-    static AnalysisResult empty() {
+    static @NotNull AnalysisResult empty() {
         return new AnalysisResultImpl(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
-                Collections.emptyMap(), TibcoAnalysisReport.empty());
+                Collections.emptyMap(), Collections.emptySet(), TibcoAnalysisReport.empty());
     }
 
     Collection<String> inputTypeName(Process process);
@@ -95,6 +96,8 @@ public interface AnalysisResult {
     XSD.XSDType getType(String name);
 
     Set<String> getTypeNames();
+
+    boolean isProcessCalled(Process process);
 
     record ActivityData(String functionName, BallerinaModel.TypeDesc argumentType,
             BallerinaModel.TypeDesc returnType) {

@@ -19,12 +19,26 @@
 package tibco;
 
 import common.LoggingUtils;
+import tibco.converter.ProjectConverter.ProjectResources;
+import tibco.model.Process;
+import tibco.model.Resource;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public record ConversionContext(String org, boolean dryRun, boolean keepStructure,
-                                Consumer<String> stateCallback, Consumer<String> logCallback)
+        Consumer<String> stateCallback, Consumer<String> logCallback,
+                                List<ProjectResources> projectResources, List<Set<Process>> projectProcesses)
         implements LoggingContext {
+
+    public ConversionContext(String org, boolean dryRun, boolean keepStructure,
+            Consumer<String> stateCallback, Consumer<String> logCallback) {
+        this(org, dryRun, keepStructure, stateCallback, logCallback, new ArrayList<>(), new ArrayList<>());
+    }
 
     @Override
     public void log(LoggingUtils.Level level, String message) {
@@ -34,5 +48,35 @@ public record ConversionContext(String org, boolean dryRun, boolean keepStructur
     @Override
     public void logState(String message) {
         stateCallback.accept(message);
+    }
+
+    public Optional<Resource> lookupResource(Resource.ResourceIdentifier identifier) {
+        return projectResources.stream()
+                .flatMap(ProjectResources::stream)
+                .filter(resource -> resource.matches(identifier))
+                .findFirst();
+    }
+
+    public void addProjectResources(ProjectResources resources) {
+        projectResources.add(resources);
+    }
+
+    public void addProjectResources(Collection<ProjectResources> resources) {
+        projectResources.addAll(resources);
+    }
+
+    public Optional<Process> lookupProcess(Process.ProcessIdentifier identifier) {
+        return projectProcesses.stream()
+                .flatMap(Set::stream)
+                .filter(identifier::matches)
+                .findFirst();
+    }
+
+    public void addProjectProcesses(Set<Process> processes) {
+        projectProcesses.add(processes);
+    }
+
+    public void addProjectProcesses(Collection<Set<Process>> processes) {
+        projectProcesses.addAll(processes);
     }
 }

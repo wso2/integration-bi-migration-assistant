@@ -13,7 +13,7 @@ function ErrorLog(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0">
-     <xsl:template name="Transform2" match="/">
+     <xsl:template name="Transform5" match="/">
         <ActivityInput>
                     
     <message>
@@ -35,6 +35,78 @@ function HTTP_Receiver(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
     addToContext(cx, "HTTP-Receiver", var1);
+}
+
+function JDBC_Delete(Context cx) returns error? {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0">
+     <xsl:template name="Transform3" match="/">
+        <jdbcUpdateActivityInput/>
+
+    </xsl:template>
+</xsl:stylesheet>`, cx.variables);
+    sql:ParameterizedQuery var2 = `delete from DB where USER_ID=foo`;
+    xml var3;
+    sql:ExecutionResult var4 = check JDBCConnection->execute(var2);
+    xml var5 = xml `<root></root>`;
+    var3 = var5;
+    // WARNING: validate jdbc update result mapping
+    addToContext(cx, "JDBC-Delete", var3);
+}
+
+function JDBC_Query(Context cx) returns error? {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0">
+     <xsl:template name="Transform2" match="/">
+        <jdbcQueryActivityInput/>
+
+    </xsl:template>
+</xsl:stylesheet>`, cx.variables);
+    sql:ParameterizedQuery var2 = `select * FROM DB`;
+    xml var3;
+    stream<record {|anydata...;|}, error?> var4 = JDBCConnection->query(var2);
+    xml var5 = xml ``;
+    int var6 = 0;
+    while var6 < 100 {
+        var each = var4.next();
+        if each is error? {
+            break;
+        }
+        var6 += 1;
+        xml var7 = check toXML(each);
+        var5 = var5 + xml `<Record>${var7}</Record>`;
+    }
+    xml var8 = xml `<root>${var5}</root>`;
+    var3 = var8;
+    addToContext(cx, "JDBC-Query", var3);
+}
+
+function JDBC_Update(Context cx) returns error? {
+    xml var0 = xml `<root></root>`;
+    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform4" match="/">
+        <jdbcUpdateActivityInput>
+                    
+    <UserId>
+                            
+        <xsl:value-of select="$post//UserId" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
+                        
+    </UserId>
+                
+</jdbcUpdateActivityInput>
+
+    </xsl:template>
+</xsl:stylesheet>`, cx.variables);
+    // WARNING: Prepared data is not supported, validate generated query
+    sql:ParameterizedQuery var2 = `INSERT INTO DB (USER_ID) VALUES (?)`;
+    xml var3;
+    sql:ExecutionResult var4 = check JDBCConnection->execute(var2);
+    xml var5 = xml `<root></root>`;
+    var3 = var5;
+    // WARNING: validate jdbc update result mapping
+    addToContext(cx, "JDBC-Update", var3);
 }
 
 function Log(Context cx) returns error? {
@@ -60,15 +132,14 @@ function Log(Context cx) returns error? {
 function SQL_Direct(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform1" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0">
+     <xsl:template name="Transform1" match="/">
         <jdbcGeneralActivityInput>
-                        
-    <statement>
-                                SELECT * FROM DB WHERE USER_ID=
-        <xsl:value-of select="$post//UserId" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
-                            
-    </statement>
                     
+    <statement>
+                    SELECT * FROM DB WHERE USER_ID=foo
+                </statement>
+                
 </jdbcGeneralActivityInput>
 
     </xsl:template>
@@ -101,6 +172,9 @@ function scope0ActivityRunner(Context cx) returns error? {
     check HTTP_Receiver(cx);
     check Log(cx);
     check SQL_Direct(cx);
+    check JDBC_Query(cx);
+    check JDBC_Delete(cx);
+    check JDBC_Update(cx);
 }
 
 function scope0FaultHandler(error err, Context cx) returns () {
