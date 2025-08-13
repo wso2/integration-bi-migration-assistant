@@ -43,6 +43,7 @@ import static mule.v4.model.MuleModel.DbOracleConnection;
 import static mule.v4.model.MuleModel.Enricher;
 import static mule.v4.model.MuleModel.ErrorHandler;
 import static mule.v4.model.MuleModel.ErrorHandlerRecord;
+import static mule.v4.model.MuleModel.Foreach;
 import static mule.v4.model.MuleModel.GlobalProperty;
 import static mule.v4.model.MuleModel.OnErrorContinue;
 import static mule.v4.model.MuleModel.OnErrorPropagate;
@@ -194,6 +195,9 @@ public class MuleConfigReader {
             }
             case MuleXMLTag.TRY -> {
                 return readTry(ctx, muleElement);
+            }
+            case MuleXMLTag.FOREACH -> {
+                return readForeach(ctx, muleElement);
             }
             case MuleXMLTag.ERROR_HANDLER -> {
                 return readErrorHandler(ctx, muleElement);
@@ -356,11 +360,31 @@ public class MuleConfigReader {
         return new Try(flowBlocks);
     }
 
+    private static Foreach readForeach(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String collection = element.getAttribute("collection");
+
+        // Default collection is payload if not specified
+        if (collection.isEmpty()) {
+            collection = "#[payload]";
+        }
+
+        List<MuleRecord> flowBlocks = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            MuleRecord muleRec = readBlock(ctx, child);
+            flowBlocks.add(muleRec);
+        }
+
+        return new Foreach(collection, flowBlocks);
+    }
+
     // Transformers
     private static Payload readSetPayload(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String muleExpr = element.getAttribute("value");
-        return new Payload(muleExpr);
+        String mimeType = element.getAttribute("mimeType");
+        return new Payload(muleExpr, mimeType);
     }
 
     private static SetVariable readSetVariable(Context ctx, MuleElement muleElement) {

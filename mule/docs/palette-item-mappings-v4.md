@@ -9,6 +9,7 @@
 - [Error Handler](palette-item-mappings-v4.md#error-handler)
 - [Expression Component](palette-item-mappings-v4.md#expression-component)
 - [Flow](palette-item-mappings-v4.md#flow)
+- [For Each](palette-item-mappings-v4.md#for-each)
 - [Http Listener](palette-item-mappings-v4.md#http-listener)
 - [Http Request](palette-item-mappings-v4.md#http-request)
 - [Logger](palette-item-mappings-v4.md#logger)
@@ -1077,6 +1078,70 @@ service /mule4 on config {
 
 public function demoPrivateFlow(Context ctx) {
     log:printInfo("xxx: private flow invoked");
+}
+
+```
+
+## For Each
+
+- ### Basic For Each
+
+**Input (basic_for_each.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="HTTP_Listener_config">
+        <http:listener-connection host="0.0.0.0" port="9090" />
+    </http:listener-config>
+    <flow name="muleDemoFlow">
+        <http:listener path="/demo" config-ref="HTTP_Listener_config" allowedMethods="POST"/>
+        <set-payload value='["Alice", "Bob", "Charlie"]' doc:name="Set Payload" doc:id="001d4ca9-4add-45e9-9c63-d4a70bbe7760" mimeType="application/json"/>
+        <foreach doc:name="For Each" doc:id="4810884b-2b96-4a39-a478-fb3a37ad5a63" >
+            <logger level="INFO" doc:name="Logger" doc:id="aa9fee20-cdaf-4649-8d9c-1eec98ec6a90" message="Current item: #[payload]"/>
+        </foreach>
+    </flow>
+</mule>
+
+```
+**Output (basic_for_each.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Attributes record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public listener http:Listener HTTP_Listener_config = new (9090);
+
+service / on HTTP_Listener_config {
+    resource function post demo(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+
+        // set payload
+        string payload0 = "[\"Alice\", \"Bob\", \"Charlie\"]";
+        ctx.payload = payload0;
+
+        // foreach loop
+        anydata originalPayload0 = ctx.payload;
+        foreach anydata item0 in ctx.payload {
+            ctx.payload = item0;
+            log:printInfo(string `Current item: ${ctx.payload.toString()}`);
+        }
+        ctx.payload = originalPayload0;
+
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
+    }
 }
 
 ```

@@ -31,6 +31,7 @@
             <class name="mule.v4.blocks.TransformMessageTest"/>
             <class name="mule.v4.blocks.RaiseErrorTest"/>
             <class name="mule.v4.blocks.TryTest"/>
+            <class name="mule.v4.blocks.ForEachTest"/>
         </classes>
     </test>
 </suite>

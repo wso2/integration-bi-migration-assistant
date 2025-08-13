@@ -148,6 +148,12 @@ public record MuleModel() {
         }
     }
 
+    public record Foreach(Kind kind, String collection, List<MuleRecord> flowBlocks) implements MuleRecord {
+        public Foreach(String collection, List<MuleRecord> flowBlocks) {
+            this(Kind.FOREACH, collection, flowBlocks);
+        }
+    }
+
     public record Enricher(Kind kind, String source, String target, Optional<MuleRecord> innerBlock)
             implements MuleRecord {
         public Enricher(String source, String target, Optional<MuleRecord> innerBlock) {
@@ -165,9 +171,9 @@ public record MuleModel() {
     public record RemoveVariable(Kind kind, String variableName) implements MuleRecord {
     }
 
-    public record Payload(Kind kind, String expr) implements MuleRecord {
-        public Payload(String expr) {
-            this(Kind.PAYLOAD, expr);
+    public record Payload(Kind kind, String expr, String mimeType) implements MuleRecord {
+        public Payload(String expr, String mimeType) {
+            this(Kind.PAYLOAD, expr, mimeType);
         }
     }
 
@@ -328,6 +334,7 @@ public record MuleModel() {
         SUB_FLOW,
         ASYNC,
         TRY,
+        FOREACH,
         MESSAGE_ENRICHER,
         ERROR_HANDLER,
         ON_ERROR_CONTINUE,

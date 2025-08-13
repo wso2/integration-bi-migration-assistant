@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="HTTP_Listener_config">
+        <http:listener-connection host="0.0.0.0" port="9090" />
+    </http:listener-config>
+    <flow name="muleDemoFlow">
+        <http:listener path="/demo" config-ref="HTTP_Listener_config" allowedMethods="POST"/>
+        <set-payload value='["Alice", "Bob", "Charlie"]' doc:name="Set Payload" doc:id="001d4ca9-4add-45e9-9c63-d4a70bbe7760" mimeType="application/json"/>
+        <foreach doc:name="For Each" doc:id="4810884b-2b96-4a39-a478-fb3a37ad5a63" >
+            <logger level="INFO" doc:name="Logger" doc:id="aa9fee20-cdaf-4649-8d9c-1eec98ec6a90" message="Current item: #[payload]"/>
+        </foreach>
+    </flow>
+</mule>

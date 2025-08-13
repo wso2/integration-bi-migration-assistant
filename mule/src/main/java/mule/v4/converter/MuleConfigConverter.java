@@ -17,6 +17,7 @@
  */
 package mule.v4.converter;
 
+import common.BallerinaModel.Statement.ForeachStatement;
 import common.BallerinaModel.Statement.PartialStatement;
 import mule.v4.Constants;
 import mule.v4.Context;
@@ -60,6 +61,7 @@ import static mule.v4.model.MuleModel.Database;
 import static mule.v4.model.MuleModel.Enricher;
 import static mule.v4.model.MuleModel.ErrorHandler;
 import static mule.v4.model.MuleModel.ErrorHandlerRecord;
+import static mule.v4.model.MuleModel.Foreach;
 import static mule.v4.model.MuleModel.OnErrorContinue;
 import static mule.v4.model.MuleModel.OnErrorPropagate;
 import static mule.v4.model.MuleModel.ExpressionComponent;
@@ -247,6 +249,9 @@ public class MuleConfigConverter {
             case Try tr -> {
                 return convertTry(ctx, tr);
             }
+            case Foreach foreach -> {
+                return convertForeach(ctx, foreach);
+            }
             case VMPublish vmPublish -> {
                 return convertVMPublish(ctx, vmPublish);
             }
@@ -308,10 +313,19 @@ public class MuleConfigConverter {
     }
 
     private static List<Statement> convertSetPayload(Context ctx, Payload payload) {
-        List<Statement> stmts = new ArrayList<>();
-        String pyld = convertMuleExprToBal(ctx, payload.expr());
-        String type = inferTypeFromBalExpr(pyld);
+        String pyld;
+        String type;
+        switch (payload.mimeType()) {
+            // TODO: handle other mime types
+            default -> {
+                pyld = convertMuleExprToBal(ctx, payload.expr());
+                type = inferTypeFromBalExpr(pyld);
+            }
+        }
+
         String payloadVar = String.format(Constants.VAR_PAYLOAD_TEMPLATE, ctx.projectCtx.counters.payloadVarCount++);
+
+        List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n\n// set payload\n"));
         stmts.add(stmtFrom(String.format("%s %s = %s;", type, payloadVar, pyld)));
         stmts.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE,
@@ -487,6 +501,38 @@ public class MuleConfigConverter {
 
     private static List<Statement> convertTry(Context ctx, Try tr) {
         return convertTopLevelMuleBlocks(ctx, tr.flowBlocks());
+    }
+
+    private static List<Statement> convertForeach(Context ctx, Foreach foreach) {
+        List<Statement> stmts = new ArrayList<>();
+        String collection = convertMuleExprToBal(ctx, foreach.collection());
+
+        // Generate unique variable names for the foreach loop
+        String iteratorVar = String.format(Constants.VAR_ITERATOR_TEMPLATE,
+                ctx.projectCtx.counters.foreachIteratorCount++);
+        String originalPayloadVar = String.format(Constants.VAR_ORIGINAL_PAYLOAD_TEMPLATE,
+                ctx.projectCtx.counters.originalPayloadVarCount++);
+
+        stmts.add(stmtFrom("\n\n// foreach loop\n"));
+
+        // Store original payload
+        stmts.add(stmtFrom(String.format("anydata %s = %s.payload;", originalPayloadVar, Constants.CONTEXT_REFERENCE)));
+
+        List<Statement> foreachBody = new ArrayList<>();
+        foreachBody.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE, iteratorVar)));
+        foreachBody.addAll(convertTopLevelMuleBlocks(ctx, foreach.flowBlocks()));
+
+        ForeachStatement foreachStmt = new ForeachStatement(
+                new TypeBindingPattern(typeFrom("anydata"), iteratorVar),
+                exprFrom(collection),
+                foreachBody
+        );
+        stmts.add(foreachStmt);
+
+        // Restore original payload after foreach
+        stmts.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE, originalPayloadVar)));
+
+        return stmts;
     }
 
     private static List<Statement> convertVMPublish(Context ctx, VMPublish vmPublish) {

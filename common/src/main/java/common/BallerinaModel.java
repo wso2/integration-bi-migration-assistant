@@ -855,6 +855,22 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
+
+        record ForeachStatement(TypeBindingPattern typeBindingPattern, Expression expression,
+                                List<Statement> body) implements Statement {
+
+            @Override
+            public String toString() {
+                StringBuilder sb = new StringBuilder();
+                sb.append("foreach ").append(typeBindingPattern).append(" in ").append(expression).append(" {\n");
+                for (Statement statement : body) {
+                    sb.append(statement).append("\n");
+                }
+                sb.append("}");
+                return sb.toString();
+            }
+        }
+
         record Comment(String comment) implements Statement {
 
             public Comment {

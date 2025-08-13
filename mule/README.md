@@ -92,6 +92,7 @@ The migration tool currently supports the following Mule 4.x components:
 - [Error Handler](docs/palette-item-mappings-v4.md#error-handler)
 - [Expression Component](docs/palette-item-mappings-v4.md#expression-component)
 - [Flow](docs/palette-item-mappings-v4.md#flow)
+- [For Each](docs/palette-item-mappings-v4.md#for-each)
 - [Http Listener](docs/palette-item-mappings-v4.md#http-listener)
 - [Http Request](docs/palette-item-mappings-v4.md#http-request)
 - [Logger](docs/palette-item-mappings-v4.md#logger)

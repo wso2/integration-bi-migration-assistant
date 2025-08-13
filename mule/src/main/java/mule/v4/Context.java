@@ -173,5 +173,7 @@ public class Context extends ContextBase {
         public int payloadVarCount = 0;
         public int clientResultVarCount = 0;
         public int vmReceiveFuncCount = 0;
+        public int foreachIteratorCount = 0;
+        public int originalPayloadVarCount = 0;
     }
 }
