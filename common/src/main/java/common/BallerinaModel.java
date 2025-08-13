@@ -877,6 +877,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
          *
          * @param statement the statement that is partially constructed
          */
+        // TODO: this is a temporary hack. Will be removed with wso2/integration-bi-migration-assistant#281
         record PartialStatement(Statement statement) implements Statement {
         }
     }
