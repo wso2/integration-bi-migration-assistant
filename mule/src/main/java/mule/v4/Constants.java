@@ -41,7 +41,7 @@ public class Constants {
     public static final String MODULE_TIME = "time";
     public static final String MODULE_INT = "lang.'int";
     public static final String MODULE_JAVA = "jballerina.java";
-    public static final String ON_FAIL_ERROR_VAR_REF = "e";
+    public static final String ON_FAIL_ERROR_VAR_REF = "err";
 
     // Context Type Def
     public static final String CONTEXT_RECORD_TYPE = "Context";
@@ -69,6 +69,8 @@ public class Constants {
     public static final String VAR_PAYLOAD_TEMPLATE = "payload%s";
     public static final String VAR_CLIENT_RESULT_TEMPLATE = "clientResult%s";
     public static final String FUNC_NAME_VM_RECEIVE_TEMPLATE = "vmReceive%s";
+    public static final String VAR_ITERATOR_TEMPLATE = "item%s";
+    public static final String VAR_ORIGINAL_PAYLOAD_TEMPLATE = "originalPayload%s";
 
     // Types
     public static final String HTTP_RESPONSE_TYPE = "http:Response";

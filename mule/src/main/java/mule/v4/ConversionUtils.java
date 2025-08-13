@@ -316,7 +316,7 @@ public class ConversionUtils {
     public static void addConfigVarEntry(Context ctx, String varName, String varValue) {
         String valueExpr = varValue == null ? "?" : "\"%s\"".formatted(varValue);
         var configVarDecl = new ModuleVar(varName, "string", Optional.of(exprFrom(valueExpr)), false, true);
-        ctx.currentFileCtx.configs.configurableVars.put(varName, configVarDecl);
+        ctx.currentFileCtx.balConstructs.configurableVars.put(varName, configVarDecl);
     }
 
     public static String getAttrVal(Context ctx, String propValue) {

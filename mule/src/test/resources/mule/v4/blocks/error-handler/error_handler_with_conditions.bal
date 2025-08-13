@@ -23,8 +23,8 @@ service /mule4 on listener_config {
             anydata payload0 = 1 / 0;
             ctx.payload = payload0;
             log:printInfo("xxx: log after exception");
-        } on fail error e {
-            my_error_handler(ctx, e);
+        } on fail error err {
+            my_error_handler(ctx, err);
         }
 
         ctx.attributes.response.setPayload(ctx.payload);
@@ -34,25 +34,25 @@ service /mule4 on listener_config {
 
 public function my_error_handler(Context ctx, error e) {
     // TODO: if conditions may require some manual adjustments
-    if e is "ANY" && e.message() == "#[error.description contains 'timeout']" {
+    if err is "ANY" && err.message() == "#[error.description contains 'timeout']" {
 
         // on-error-propagate
 
-        log:printError("Message: " + e.message());
-        log:printError("Trace: " + e.stackTrace().toString());
+        log:printError("Message: " + err.message());
+        log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("xxx: first error catch");
         ctx.attributes.response.statusCode = 500;
-    } else if e is "EXPRESSION" {
+    } else if err is "EXPRESSION" {
         // on-error-continue
-        log:printError("Message: " + e.message());
-        log:printError("Trace: " + e.stackTrace().toString());
+        log:printError("Message: " + err.message());
+        log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("xxx: second error catch");
-    } else if e.message() == "#[error.cause.'type' == 'java.lang.NullPointerException']" {
+    } else if err.message() == "#[error.cause.'type' == 'java.lang.NullPointerException']" {
         // on-error-continue
-        log:printError("Message: " + e.message());
-        log:printError("Trace: " + e.stackTrace().toString());
+        log:printError("Message: " + err.message());
+        log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("xxx: last error catch");
     }

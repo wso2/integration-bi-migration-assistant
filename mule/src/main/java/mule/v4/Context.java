@@ -78,7 +78,7 @@ public class Context extends ContextBase {
         FileContext(String filePath, ProjectContext projectContext) {
             this.filePath = filePath;
             this.configs = new GlobalConfigs(projectContext);
-            this.balConstructs = new BalConstructs();
+            this.balConstructs = new BalConstructs(projectContext);
         }
     }
 
@@ -89,39 +89,43 @@ public class Context extends ContextBase {
         public final LinkedHashMap<String, String> attributes = new LinkedHashMap<>();
         public final HashMap<String, String> vmQueueNameToBalFuncMap = new LinkedHashMap<>();
 
-        // Shared configs
+        // Shared mule configs
         List<HashMap<String, HTTPListenerConfig>> httpListenerConfigMaps = new ArrayList<>();
         List<HashMap<String, HTTPRequestConfig>> httpRequestConfigMaps = new ArrayList<>();
         List<HashMap<String, DbConfig>> dbConfigMaps = new ArrayList<>();
+
+        // Shared bal constructs
         List<HashMap<String, ModuleVar>> configurableVarMaps = new ArrayList<>();
+        List<HashMap<String, ModuleTypeDef>> typeDefMaps = new ArrayList<>();
 
         public HTTPListenerConfig getHttpListenerConfig(String key) {
-            for (HashMap<String, HTTPListenerConfig> configMap : httpListenerConfigMaps) {
-                HTTPListenerConfig config = configMap.get(key);
-                if (config != null) {
-                    return config;
-                }
-            }
-            return null;
+            return getValueFromMaps(httpListenerConfigMaps, key);
         }
 
         public HTTPRequestConfig getHttpRequestConfig(String key) {
-            for (HashMap<String, HTTPRequestConfig> configMap : httpRequestConfigMaps) {
-                HTTPRequestConfig config = configMap.get(key);
-                if (config != null) {
-                    return config;
+            return getValueFromMaps(httpRequestConfigMaps, key);
+        }
+
+        public boolean configurableVarExists(String key) {
+            return containsKeyInMaps(configurableVarMaps, key);
+        }
+
+        public boolean typeDefExists(String key) {
+            return containsKeyInMaps(typeDefMaps, key);
+        }
+
+        private <T> T getValueFromMaps(List<HashMap<String, T>> maps, String key) {
+            for (HashMap<String, T> map : maps) {
+                T value = map.get(key);
+                if (value != null) {
+                    return value;
                 }
             }
             return null;
         }
 
-        public boolean configurableVarExists(String key) {
-            for (HashMap<String, ModuleVar> configVarMap : configurableVarMaps) {
-                if (configVarMap.containsKey(key)) {
-                    return true;
-                }
-            }
-            return false;
+        private <T> boolean containsKeyInMaps(List<HashMap<String, T>> maps, String key) {
+            return maps.stream().anyMatch(map -> map.containsKey(key));
         }
     }
 
@@ -129,7 +133,6 @@ public class Context extends ContextBase {
         public final HashMap<String, HTTPListenerConfig> httpListenerConfigs = new LinkedHashMap<>();
         public final HashMap<String, HTTPRequestConfig> httpRequestConfigs = new LinkedHashMap<>();
         public final HashMap<String, DbConfig> dbConfigs = new LinkedHashMap<>();
-        public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
         public final List<ErrorHandler> globalErrorHandlers = new ArrayList<>();
         public final List<GlobalProperty> globalProperties = new ArrayList<>();
         public final List<UnsupportedBlock> unsupportedBlocks = new ArrayList<>();
@@ -138,16 +141,21 @@ public class Context extends ContextBase {
             projCtx.httpListenerConfigMaps.add(httpListenerConfigs);
             projCtx.httpRequestConfigMaps.add(httpRequestConfigs);
             projCtx.dbConfigMaps.add(dbConfigs);
-            projCtx.configurableVarMaps.add(configurableVars);
         }
     }
 
     public static class BalConstructs {
-        public HashSet<Import> imports = new LinkedHashSet<>();
-        public HashMap<String, ModuleTypeDef> typeDefs = new LinkedHashMap<>();
-        public HashMap<String, ModuleVar> moduleVars = new LinkedHashMap<>();
-        public List<Function> functions = new ArrayList<>();
-        public List<String> utilFunctions = new ArrayList<>();
+        public final HashSet<Import> imports = new LinkedHashSet<>();
+        public final HashMap<String, ModuleTypeDef> typeDefs = new LinkedHashMap<>();
+        public final HashMap<String, ModuleVar> moduleVars = new LinkedHashMap<>();
+        public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
+        public final List<Function> functions = new ArrayList<>();
+        public final List<String> utilFunctions = new ArrayList<>();
+
+        BalConstructs(ProjectContext projCtx) {
+            projCtx.configurableVarMaps.add(configurableVars);
+            projCtx.typeDefMaps.add(typeDefs);
+        }
     }
 
     public void addImport(Import imp) {
@@ -165,5 +173,7 @@ public class Context extends ContextBase {
         public int payloadVarCount = 0;
         public int clientResultVarCount = 0;
         public int vmReceiveFuncCount = 0;
+        public int foreachIteratorCount = 0;
+        public int originalPayloadVarCount = 0;
     }
 }

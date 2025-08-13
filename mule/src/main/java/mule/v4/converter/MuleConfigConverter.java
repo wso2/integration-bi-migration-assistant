@@ -17,6 +17,8 @@
  */
 package mule.v4.converter;
 
+import common.BallerinaModel.Statement.ForeachStatement;
+import common.BallerinaModel.Statement.PartialStatement;
 import mule.v4.Constants;
 import mule.v4.Context;
 import mule.v4.ConversionUtils;
@@ -59,6 +61,7 @@ import static mule.v4.model.MuleModel.Database;
 import static mule.v4.model.MuleModel.Enricher;
 import static mule.v4.model.MuleModel.ErrorHandler;
 import static mule.v4.model.MuleModel.ErrorHandlerRecord;
+import static mule.v4.model.MuleModel.Foreach;
 import static mule.v4.model.MuleModel.OnErrorContinue;
 import static mule.v4.model.MuleModel.OnErrorPropagate;
 import static mule.v4.model.MuleModel.ExpressionComponent;
@@ -71,9 +74,11 @@ import static mule.v4.model.MuleModel.MuleRecord;
 import static mule.v4.model.MuleModel.ObjectToJson;
 import static mule.v4.model.MuleModel.ObjectToString;
 import static mule.v4.model.MuleModel.Payload;
+import static mule.v4.model.MuleModel.RaiseError;
 import static mule.v4.model.MuleModel.RemoveVariable;
 import static mule.v4.model.MuleModel.SetVariable;
 import static mule.v4.model.MuleModel.TransformMessage;
+import static mule.v4.model.MuleModel.Try;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
 import static mule.v4.model.MuleModel.VMPublish;
 import static mule.v4.model.MuleModel.WhenInChoice;
@@ -94,7 +99,8 @@ public class MuleConfigConverter {
                 stmts.remove(namedWorkerDecl);
             }
 
-            if (stmts.size() == 1 && stmts.getFirst() instanceof DoStatement doStatement) {
+            if (stmts.size() == 1 && stmts.getFirst() instanceof PartialStatement(Statement statement)) {
+                DoStatement doStatement = (DoStatement) statement;
                 body = new ArrayList<>(Collections.singletonList(new DoStatement(body, doStatement.onFailClause())));
                 continue;
             }
@@ -222,6 +228,9 @@ public class MuleConfigConverter {
             case OnErrorPropagate onErrorPropagate -> {
                 return convertOnErrorPropagate(ctx, onErrorPropagate);
             }
+            case RaiseError raiseError -> {
+                return convertRaiseError(ctx, raiseError);
+            }
             case ExpressionComponent ec -> {
                 return convertExprComponent(ctx, ec);
             }
@@ -236,6 +245,12 @@ public class MuleConfigConverter {
             }
             case Async async -> {
                 return convertAsync(ctx, async);
+            }
+            case Try tr -> {
+                return convertTry(ctx, tr);
+            }
+            case Foreach foreach -> {
+                return convertForeach(ctx, foreach);
             }
             case VMPublish vmPublish -> {
                 return convertVMPublish(ctx, vmPublish);
@@ -298,10 +313,19 @@ public class MuleConfigConverter {
     }
 
     private static List<Statement> convertSetPayload(Context ctx, Payload payload) {
-        List<Statement> stmts = new ArrayList<>();
-        String pyld = convertMuleExprToBal(ctx, payload.expr());
-        String type = inferTypeFromBalExpr(pyld);
+        String pyld;
+        String type;
+        switch (payload.mimeType()) {
+            // TODO: handle other mime types
+            default -> {
+                pyld = convertMuleExprToBal(ctx, payload.expr());
+                type = inferTypeFromBalExpr(pyld);
+            }
+        }
+
         String payloadVar = String.format(Constants.VAR_PAYLOAD_TEMPLATE, ctx.projectCtx.counters.payloadVarCount++);
+
+        List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n\n// set payload\n"));
         stmts.add(stmtFrom(String.format("%s %s = %s;", type, payloadVar, pyld)));
         stmts.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE,
@@ -429,8 +453,11 @@ public class MuleConfigConverter {
     private static List<Statement> convertDatabase(Context ctx, Database database) {
         ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_SQL, Optional.empty()));
         String streamConstraintType = Constants.GENERIC_RECORD_TYPE_REF;
-        ctx.currentFileCtx.balConstructs.typeDefs.put(streamConstraintType,
-                new ModuleTypeDef(streamConstraintType, typeFrom(Constants.GENERIC_RECORD_TYPE)));
+
+        if (!ctx.projectCtx.typeDefExists(streamConstraintType)) {
+            ctx.currentFileCtx.balConstructs.typeDefs.put(streamConstraintType,
+                    new ModuleTypeDef(streamConstraintType, typeFrom(Constants.GENERIC_RECORD_TYPE)));
+        }
 
         List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n\n// database operation\n"));
@@ -469,6 +496,42 @@ public class MuleConfigConverter {
         List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n\n// async operation\n"));
         stmts.add(stmtFrom(String.format("_ = start %s(%s);", funcName, Constants.CONTEXT_REFERENCE)));
+        return stmts;
+    }
+
+    private static List<Statement> convertTry(Context ctx, Try tr) {
+        return convertTopLevelMuleBlocks(ctx, tr.flowBlocks());
+    }
+
+    private static List<Statement> convertForeach(Context ctx, Foreach foreach) {
+        List<Statement> stmts = new ArrayList<>();
+        String collection = convertMuleExprToBal(ctx, foreach.collection());
+
+        // Generate unique variable names for the foreach loop
+        String iteratorVar = String.format(Constants.VAR_ITERATOR_TEMPLATE,
+                ctx.projectCtx.counters.foreachIteratorCount++);
+        String originalPayloadVar = String.format(Constants.VAR_ORIGINAL_PAYLOAD_TEMPLATE,
+                ctx.projectCtx.counters.originalPayloadVarCount++);
+
+        stmts.add(stmtFrom("\n\n// foreach loop\n"));
+
+        // Store original payload
+        stmts.add(stmtFrom(String.format("anydata %s = %s.payload;", originalPayloadVar, Constants.CONTEXT_REFERENCE)));
+
+        List<Statement> foreachBody = new ArrayList<>();
+        foreachBody.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE, iteratorVar)));
+        foreachBody.addAll(convertTopLevelMuleBlocks(ctx, foreach.flowBlocks()));
+
+        ForeachStatement foreachStmt = new ForeachStatement(
+                new TypeBindingPattern(typeFrom("anydata"), iteratorVar),
+                exprFrom(collection),
+                foreachBody
+        );
+        stmts.add(foreachStmt);
+
+        // Restore original payload after foreach
+        stmts.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE, originalPayloadVar)));
+
         return stmts;
     }
 
@@ -527,7 +590,8 @@ public class MuleConfigConverter {
         TypeBindingPattern typeBindingPattern = new TypeBindingPattern(BAL_ERROR_TYPE, Constants.ON_FAIL_ERROR_VAR_REF);
         OnFailClause onFailClause = new OnFailClause(onFailBody, typeBindingPattern);
         DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
-        return List.of(doStatement);
+        PartialStatement partialStatement = new PartialStatement(doStatement);
+        return List.of(partialStatement);
     }
 
     private static List<Statement> convertOnErrorContinue(Context ctx, OnErrorContinue onErrorContinue) {
@@ -572,5 +636,16 @@ public class MuleConfigConverter {
         }
 
         return stmts;
+    }
+
+    private static List<Statement> convertRaiseError(Context ctx, RaiseError raiseError) {
+        String errorType = raiseError.type().replace(":", "__");
+        if (!ctx.projectCtx.typeDefExists(errorType)) {
+            ctx.currentFileCtx.balConstructs.typeDefs.put(
+                    errorType, new ModuleTypeDef(errorType, typeFrom("distinct error"))
+            );
+        }
+        BallerinaStatement stmt = stmtFrom("fail error %s(\"%s\");".formatted(errorType, raiseError.description()));
+        return List.of(stmt);
     }
 }

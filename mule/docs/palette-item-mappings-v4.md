@@ -9,6 +9,7 @@
 - [Error Handler](palette-item-mappings-v4.md#error-handler)
 - [Expression Component](palette-item-mappings-v4.md#expression-component)
 - [Flow](palette-item-mappings-v4.md#flow)
+- [For Each](palette-item-mappings-v4.md#for-each)
 - [Http Listener](palette-item-mappings-v4.md#http-listener)
 - [Http Request](palette-item-mappings-v4.md#http-request)
 - [Logger](palette-item-mappings-v4.md#logger)
@@ -17,9 +18,11 @@
 - [Object To String](palette-item-mappings-v4.md#object-to-string)
 - [On Error Continue](palette-item-mappings-v4.md#on-error-continue)
 - [On Error Propagate](palette-item-mappings-v4.md#on-error-propagate)
+- [Raise Error](palette-item-mappings-v4.md#raise-error)
 - [Set Payload](palette-item-mappings-v4.md#set-payload)
 - [Sub Flow](palette-item-mappings-v4.md#sub-flow)
 - [Transform Message](palette-item-mappings-v4.md#transform-message)
+- [Try](palette-item-mappings-v4.md#try)
 - [Variable](palette-item-mappings-v4.md#variable)
 - [Vm Connector](palette-item-mappings-v4.md#vm-connector)
 # Sample Input and Output (Mule 4.x)
@@ -705,22 +708,22 @@ public function demoFlow(Context ctx) {
         anydata payload0 = 1 / 0;
         ctx.payload = payload0;
         log:printInfo("xxx: log after exception");
-    } on fail error e {
-        my_error_handler(ctx, e);
+    } on fail error err {
+        my_error_handler(ctx, err);
     }
 }
 
 public function my_error_handler(Context ctx, error e) {
     // on-error-propagate
-    log:printError("Message: " + e.message());
-    log:printError("Trace: " + e.stackTrace().toString());
+    log:printError("Message: " + err.message());
+    log:printError("Trace: " + err.stackTrace().toString());
 
     log:printInfo("Error handled in on-error-propagate");
 
     // set payload
     string payload1 = "Custom error message: Something went wrong.";
     ctx.payload = payload1;
-    panic e;
+    panic err;
 }
 
 ```
@@ -789,8 +792,8 @@ service /mule4 on listener_config {
             anydata payload0 = 1 / 0;
             ctx.payload = payload0;
             log:printInfo("xxx: log after exception");
-        } on fail error e {
-            my_error_handler(ctx, e);
+        } on fail error err {
+            my_error_handler(ctx, err);
         }
 
         ctx.attributes.response.setPayload(ctx.payload);
@@ -800,25 +803,25 @@ service /mule4 on listener_config {
 
 public function my_error_handler(Context ctx, error e) {
     // TODO: if conditions may require some manual adjustments
-    if e is "ANY" && e.message() == "#[error.description contains 'timeout']" {
+    if err is "ANY" && err.message() == "#[error.description contains 'timeout']" {
 
         // on-error-propagate
 
-        log:printError("Message: " + e.message());
-        log:printError("Trace: " + e.stackTrace().toString());
+        log:printError("Message: " + err.message());
+        log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("xxx: first error catch");
         ctx.attributes.response.statusCode = 500;
-    } else if e is "EXPRESSION" {
+    } else if err is "EXPRESSION" {
         // on-error-continue
-        log:printError("Message: " + e.message());
-        log:printError("Trace: " + e.stackTrace().toString());
+        log:printError("Message: " + err.message());
+        log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("xxx: second error catch");
-    } else if e.message() == "#[error.cause.'type' == 'java.lang.NullPointerException']" {
+    } else if err.message() == "#[error.cause.'type' == 'java.lang.NullPointerException']" {
         // on-error-continue
-        log:printError("Message: " + e.message());
-        log:printError("Trace: " + e.stackTrace().toString());
+        log:printError("Message: " + err.message());
+        log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("xxx: last error catch");
     }
@@ -885,8 +888,8 @@ service /mule4 on listener_config {
             anydata payload0 = 1 / 0;
             ctx.payload = payload0;
             log:printInfo("xxx: log after exception");
-        } on fail error e {
-            my_error_handler(ctx, e);
+        } on fail error err {
+            my_error_handler(ctx, err);
         }
 
         ctx.attributes.response.setPayload(ctx.payload);
@@ -896,8 +899,8 @@ service /mule4 on listener_config {
 
 public function my_error_handler(Context ctx, error e) {
     // on-error-propagate
-    log:printError("Message: " + e.message());
-    log:printError("Trace: " + e.stackTrace().toString());
+    log:printError("Message: " + err.message());
+    log:printError("Trace: " + err.stackTrace().toString());
 
     log:printInfo("Error handled in on-error-propagate");
 
@@ -1075,6 +1078,70 @@ service /mule4 on config {
 
 public function demoPrivateFlow(Context ctx) {
     log:printInfo("xxx: private flow invoked");
+}
+
+```
+
+## For Each
+
+- ### Basic For Each
+
+**Input (basic_for_each.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="HTTP_Listener_config">
+        <http:listener-connection host="0.0.0.0" port="9090" />
+    </http:listener-config>
+    <flow name="muleDemoFlow">
+        <http:listener path="/demo" config-ref="HTTP_Listener_config" allowedMethods="POST"/>
+        <set-payload value='["Alice", "Bob", "Charlie"]' doc:name="Set Payload" doc:id="001d4ca9-4add-45e9-9c63-d4a70bbe7760" mimeType="application/json"/>
+        <foreach doc:name="For Each" doc:id="4810884b-2b96-4a39-a478-fb3a37ad5a63" >
+            <logger level="INFO" doc:name="Logger" doc:id="aa9fee20-cdaf-4649-8d9c-1eec98ec6a90" message="Current item: #[payload]"/>
+        </foreach>
+    </flow>
+</mule>
+
+```
+**Output (basic_for_each.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Attributes record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public listener http:Listener HTTP_Listener_config = new (9090);
+
+service / on HTTP_Listener_config {
+    resource function post demo(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+
+        // set payload
+        string payload0 = "[\"Alice\", \"Bob\", \"Charlie\"]";
+        ctx.payload = payload0;
+
+        // foreach loop
+        anydata originalPayload0 = ctx.payload;
+        foreach anydata item0 in ctx.payload {
+            ctx.payload = item0;
+            log:printInfo(string `Current item: ${ctx.payload.toString()}`);
+        }
+        ctx.payload = originalPayload0;
+
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
+    }
 }
 
 ```
@@ -2405,10 +2472,10 @@ public function demoFlow(Context ctx) {
         anydata payload0 = 1 / 0;
         ctx.payload = payload0;
         log:printInfo("xxx: log after exception");
-    } on fail error e {
+    } on fail error err {
         // on-error-continue
-        log:printError("Message: " + e.message());
-        log:printError("Trace: " + e.stackTrace().toString());
+        log:printError("Message: " + err.message());
+        log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("xxx: error handled in on-error-continue");
 
@@ -2478,10 +2545,10 @@ service /mule4 on listener_config {
             anydata payload0 = 1 / 0;
             ctx.payload = payload0;
             log:printInfo("xxx: log after exception");
-        } on fail error e {
+        } on fail error err {
             // on-error-continue
-            log:printError("Message: " + e.message());
-            log:printError("Trace: " + e.stackTrace().toString());
+            log:printError("Message: " + err.message());
+            log:printError("Trace: " + err.stackTrace().toString());
 
             log:printInfo("xxx: error handled in on-error-continue");
 
@@ -2541,17 +2608,17 @@ public function demoFlow(Context ctx) {
         anydata payload0 = 1 / 0;
         ctx.payload = payload0;
         log:printInfo("xxx: log after exception");
-    } on fail error e {
+    } on fail error err {
         // on-error-propagate
-        log:printError("Message: " + e.message());
-        log:printError("Trace: " + e.stackTrace().toString());
+        log:printError("Message: " + err.message());
+        log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("Error handled in on-error-propagate");
 
         // set payload
         string payload1 = "Custom error message: Something went wrong.";
         ctx.payload = payload1;
-        panic e;
+        panic err;
     }
 }
 
@@ -2615,10 +2682,10 @@ service /mule4 on listener_config {
             anydata payload0 = 1 / 0;
             ctx.payload = payload0;
             log:printInfo("xxx: log after exception");
-        } on fail error e {
+        } on fail error err {
             // on-error-propagate
-            log:printError("Message: " + e.message());
-            log:printError("Trace: " + e.stackTrace().toString());
+            log:printError("Message: " + err.message());
+            log:printError("Trace: " + err.stackTrace().toString());
 
             log:printInfo("Error handled in on-error-propagate");
 
@@ -2626,6 +2693,75 @@ service /mule4 on listener_config {
             string payload1 = "Custom error message: Something went wrong.";
             ctx.payload = payload1;
             ctx.attributes.response.statusCode = 500;
+        }
+
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
+    }
+}
+
+```
+
+## Raise Error
+
+- ### Basic Raise Error
+
+**Input (basic_raise_error.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="HTTP_Listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="raise-error-example-flow">
+        <http:listener config-ref="HTTP_Listener_config" path="/test"/>
+        <choice>
+            <when expression="#[message.attributes.queryParams.age &lt; 16]">
+                <raise-error type="PRECONDITIONS:INCORRECT_AGE" description="Minimum age of 16 required to drive" />
+            </when>
+            <otherwise >
+                <logger level="INFO" message="User age above 16 years. Allowed to drive"/>
+            </otherwise>
+        </choice>
+    </flow>
+</mule>
+
+```
+**Output (basic_raise_error.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Attributes record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public type PRECONDITIONS__INCORRECT_AGE distinct error;
+
+public listener http:Listener HTTP_Listener_config = new (8081);
+
+service / on HTTP_Listener_config {
+    resource function default test(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        if ctx.attributes.request.getQueryParamValue("age") < 16 {
+            fail error PRECONDITIONS__INCORRECT_AGE("Minimum age of 16 required to drive");
+        } else {
+            log:printInfo("User age above 16 years. Allowed to drive");
         }
 
         ctx.attributes.response.setPayload(ctx.payload);
@@ -3009,6 +3145,97 @@ function _dwMethod0_(json payload) returns json {
     // DATAWEAVE PARSING FAILED.
     // line 7:13 mismatched input 'map' expecting {<EOF>, NEWLINE}
 
+}
+
+```
+
+## Try
+
+- ### Basic Try Scope
+
+**Input (basic_try_scope.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="HTTP_Listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="muleDemoFlow">
+        <http:listener path="/checkAge" config-ref="HTTP_Listener_config" allowedMethods="POST"/>
+        <logger level="INFO" message="Start of flow - Payload received: #[payload]"/>
+        <try>
+            <choice>
+                <when expression="#[payload.age as Number &lt; 16]">
+                    <raise-error type="PRECONDITIONS:INCORRECT_AGE" description="Age is below minimum requirement"/>
+                </when>
+                <otherwise>
+                    <logger level="INFO" message="Age is acceptable: #[payload.age]"/>
+                </otherwise>
+            </choice>
+            <error-handler>
+                <on-error-continue logException="true">
+                    <set-payload value='{ "status": "error", "message": "#[error.description]" }' mimeType="application/json"/>
+                </on-error-continue>
+            </error-handler>
+        </try>
+
+        <logger level="INFO" message="End of flow"/>
+    </flow>
+</mule>
+
+```
+**Output (basic_try_scope.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Attributes record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public type PRECONDITIONS__INCORRECT_AGE distinct error;
+
+public listener http:Listener HTTP_Listener_config = new (8081);
+
+service / on HTTP_Listener_config {
+    resource function post checkAge(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        log:printInfo(string `Start of flow - Payload received: ${ctx.payload.toString()}`);
+        do {
+            if ctx.payload.age is Number < 16 {
+                fail error PRECONDITIONS__INCORRECT_AGE("Age is below minimum requirement");
+            } else {
+                log:printInfo(string `Age is acceptable: ${ctx.payload.age.toString()}`);
+            }
+        } on fail error err {
+            // on-error-continue
+            log:printError("Message: " + err.message());
+            log:printError("Trace: " + err.stackTrace().toString());
+
+            // set payload
+            anydata payload0 = string `{ "status": "error", "message": "${err.message()}" }`;
+            ctx.payload = payload0;
+        }
+        log:printInfo("End of flow");
+
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
+    }
 }
 
 ```

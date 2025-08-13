@@ -874,6 +874,22 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
+
+        record ForeachStatement(TypeBindingPattern typeBindingPattern, Expression expression,
+                                List<Statement> body) implements Statement {
+
+            @Override
+            public String toString() {
+                StringBuilder sb = new StringBuilder();
+                sb.append("foreach ").append(typeBindingPattern).append(" in ").append(expression).append(" {\n");
+                for (Statement statement : body) {
+                    sb.append(statement).append("\n");
+                }
+                sb.append("}");
+                return sb.toString();
+            }
+        }
+
         record Comment(String comment) implements Statement {
 
             public Comment {
@@ -889,6 +905,15 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                         comment.lines().filter(Predicate.not(String::isBlank)).collect(Collectors.joining("\n// ")) +
                         "\n";
             }
+        }
+
+        /**
+         * This is used to represent a statement that is not fully constructed yet.
+         *
+         * @param statement the statement that is partially constructed
+         */
+        // TODO: this is a temporary hack. Will be removed with wso2/integration-bi-migration-assistant#281
+        record PartialStatement(Statement statement) implements Statement {
         }
     }
 

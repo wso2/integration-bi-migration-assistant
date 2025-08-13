@@ -54,6 +54,8 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     FLOW_REFERENCE("flow-ref", 3),
     ENRICHER("enricher", 5),
     ASYNC("async", 4),
+    TRY("try", 2),
+    FOREACH("foreach", 3),
 
     // Transformers
     SET_VARIABLE("set-variable", 1),
@@ -67,6 +69,7 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     ERROR_HANDLER("error-handler", 2),
     ON_ERROR_CONTINUE("on-error-continue", 2),
     ON_ERROR_PROPAGATE("on-error-propagate", 2),
+    RAISE_ERROR("raise-error", 2),
 
     // HTTP Module
     HTTP_LISTENER("http:listener", 5),

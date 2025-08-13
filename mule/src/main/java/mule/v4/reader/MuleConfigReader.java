@@ -43,6 +43,7 @@ import static mule.v4.model.MuleModel.DbOracleConnection;
 import static mule.v4.model.MuleModel.Enricher;
 import static mule.v4.model.MuleModel.ErrorHandler;
 import static mule.v4.model.MuleModel.ErrorHandlerRecord;
+import static mule.v4.model.MuleModel.Foreach;
 import static mule.v4.model.MuleModel.GlobalProperty;
 import static mule.v4.model.MuleModel.OnErrorContinue;
 import static mule.v4.model.MuleModel.OnErrorPropagate;
@@ -60,6 +61,7 @@ import static mule.v4.model.MuleModel.MuleRecord;
 import static mule.v4.model.MuleModel.ObjectToJson;
 import static mule.v4.model.MuleModel.ObjectToString;
 import static mule.v4.model.MuleModel.Payload;
+import static mule.v4.model.MuleModel.RaiseError;
 import static mule.v4.model.MuleModel.RemoveVariable;
 import static mule.v4.model.MuleModel.SetPayloadElement;
 import static mule.v4.model.MuleModel.SetVariable;
@@ -67,6 +69,7 @@ import static mule.v4.model.MuleModel.SetVariableElement;
 import static mule.v4.model.MuleModel.SubFlow;
 import static mule.v4.model.MuleModel.TransformMessage;
 import static mule.v4.model.MuleModel.TransformMessageElement;
+import static mule.v4.model.MuleModel.Try;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
 import static mule.v4.model.MuleModel.VMConfig;
 import static mule.v4.model.MuleModel.VMConsume;
@@ -190,6 +193,12 @@ public class MuleConfigReader {
             case MuleXMLTag.ASYNC -> {
                 return readAsync(ctx, muleElement);
             }
+            case MuleXMLTag.TRY -> {
+                return readTry(ctx, muleElement);
+            }
+            case MuleXMLTag.FOREACH -> {
+                return readForeach(ctx, muleElement);
+            }
             case MuleXMLTag.ERROR_HANDLER -> {
                 return readErrorHandler(ctx, muleElement);
             }
@@ -198,6 +207,9 @@ public class MuleConfigReader {
             }
             case MuleXMLTag.ON_ERROR_PROPAGATE -> {
                 return readOnErrorPropagate(ctx, muleElement);
+            }
+            case MuleXMLTag.RAISE_ERROR -> {
+                return readRaiseError(ctx, muleElement);
             }
             case MuleXMLTag.VM_PUBLISH -> {
                 return readVMPublish(ctx, muleElement);
@@ -337,11 +349,42 @@ public class MuleConfigReader {
         return new Async(flowBlocks);
     }
 
+    private static Try readTry(Context ctx, MuleElement muleElement) {
+        List<MuleRecord> flowBlocks = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            MuleRecord muleRec = readBlock(ctx, child);
+            flowBlocks.add(muleRec);
+        }
+
+        return new Try(flowBlocks);
+    }
+
+    private static Foreach readForeach(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String collection = element.getAttribute("collection");
+
+        // Default collection is payload if not specified
+        if (collection.isEmpty()) {
+            collection = "#[payload]";
+        }
+
+        List<MuleRecord> flowBlocks = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            MuleRecord muleRec = readBlock(ctx, child);
+            flowBlocks.add(muleRec);
+        }
+
+        return new Foreach(collection, flowBlocks);
+    }
+
     // Transformers
     private static Payload readSetPayload(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String muleExpr = element.getAttribute("value");
-        return new Payload(muleExpr);
+        String mimeType = element.getAttribute("mimeType");
+        return new Payload(muleExpr, mimeType);
     }
 
     private static SetVariable readSetVariable(Context ctx, MuleElement muleElement) {
@@ -418,6 +461,13 @@ public class MuleConfigReader {
         }
 
         return new OnErrorPropagate(errorBlocks, type, when, enableNotifications, logException);
+    }
+
+    private static RaiseError readRaiseError(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String type = element.getAttribute("type");
+        String description = element.getAttribute("description");
+        return new RaiseError(type, description);
     }
 
     // HTTP Module
