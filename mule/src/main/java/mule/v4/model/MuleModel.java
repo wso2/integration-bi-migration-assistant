@@ -278,6 +278,13 @@ public record MuleModel() {
         }
     }
 
+    public record DbGenericConnection(Kind kind, String name, String url, String user, String password)
+            implements DbConnection {
+        public DbGenericConnection(String name, String url, String user, String password) {
+            this(Kind.DB_GENERIC_CONNECTION, name, url, user, password);
+        }
+    }
+
     // Database Connector
     public record Database(Kind kind, String configRef, String query, List<UnsupportedBlock> unsupportedBlocks)
             implements MuleRecord {
@@ -316,6 +323,7 @@ public record MuleModel() {
         DB_CONFIG,
         DB_MYSQL_CONNECTION,
         DB_ORACLE_CONNECTION,
+        DB_GENERIC_CONNECTION,
         DB_INSERT,
         DB_SELECT,
         DB_UPDATE,

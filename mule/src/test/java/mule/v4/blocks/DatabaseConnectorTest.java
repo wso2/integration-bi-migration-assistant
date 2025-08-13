@@ -32,6 +32,11 @@ public class DatabaseConnectorTest extends AbstractBlockTest {
     }
 
     @Test
+    public void testGenericDbSelect() {
+        testMule4ToBal("database-connector/generic_db_select.xml", "database-connector/generic_db_select.bal");
+    }
+
+    @Test
     public void testDbInputParameters() {
         // Note: this is yet to support. This is to check the TODO comment
         testMule4ToBal("database-connector/db_input_parameters.xml",

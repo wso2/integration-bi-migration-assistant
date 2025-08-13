@@ -24,6 +24,7 @@ import mule.v4.dataweave.converter.DWConstruct;
 import mule.v4.model.MuleModel.DbConfig;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -83,6 +84,7 @@ public class Context extends ContextBase {
     }
 
     public static class ProjectContext {
+        private final List<MuleToBalConverter.JavaDependencies> javaDependencies = new ArrayList<>();
         public final Counters counters = new Counters();
 
         public final LinkedHashMap<String, String> vars = new LinkedHashMap<>();
@@ -97,6 +99,14 @@ public class Context extends ContextBase {
         // Shared bal constructs
         List<HashMap<String, ModuleVar>> configurableVarMaps = new ArrayList<>();
         List<HashMap<String, ModuleTypeDef>> typeDefMaps = new ArrayList<>();
+
+        public void addJavaDependency(MuleToBalConverter.JavaDependencies dependencies) {
+            javaDependencies.add(dependencies);
+        }
+
+        public List<MuleToBalConverter.JavaDependencies> javaDependencies() {
+            return Collections.unmodifiableList(javaDependencies);
+        }
 
         public HTTPListenerConfig getHttpListenerConfig(String key) {
             return getValueFromMaps(httpListenerConfigMaps, key);

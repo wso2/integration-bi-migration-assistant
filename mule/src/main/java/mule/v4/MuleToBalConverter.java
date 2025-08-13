@@ -24,6 +24,7 @@ import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.common.MuleXMLNavigator;
 import mule.common.MuleXMLNavigator.MuleElement;
 import mule.v4.model.MuleModel.DbConfig;
+import mule.v4.model.MuleModel.DbGenericConnection;
 import mule.v4.model.MuleXMLTag;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -191,6 +192,14 @@ public class MuleToBalConverter {
                         getAttrVal(ctx, con.host()), getAttrVal(ctx, con.user()),
                         getAttrVal(ctx, con.password()), getAttrVal(ctx, database),
                         getAttrValInt(ctx, port)));
+            } else if (dbConnection.kind() == Kind.DB_GENERIC_CONNECTION) {
+                DbGenericConnection con = (DbGenericConnection) dbConnection;
+                dbClientType = typeFrom(Constants.JDBC_CLIENT_TYPE);
+                String url = getAttrVal(ctx, con.url());
+                JavaDependencies javaDependencies = determineJdbcDependencyFromUrl(url);
+                ctx.projectCtx.addJavaDependency(javaDependencies);
+                balExpr = exprFrom(String.format("check new (%s, %s, %s)",
+                        url, getAttrVal(ctx, con.user()), getAttrVal(ctx, con.password())));
             } else {
                 throw new IllegalStateException("Unsupported DB connection type: " + dbConnection.kind());
             }
@@ -434,5 +443,61 @@ public class MuleToBalConverter {
                                                     List<String> comments) {
         return new TextDocument(docName, imports, moduleTypeDefs, moduleVars, listeners,
                 services, functions, comments);
+    }
+
+    private static JavaDependencies determineJdbcDependencyFromUrl(String dbUrl) {
+        String url = dbUrl.trim();
+        if (url.startsWith("jdbc:h2:")) {
+            return JavaDependencies.JDBC_H2;
+        } else if (url.startsWith("jdbc:mysql:")) {
+            return JavaDependencies.JDBC_MYSQL;
+        } else if (url.startsWith("jdbc:postgresql:")) {
+            return JavaDependencies.JDBC_POSTGRESQL;
+        } else if (url.startsWith("jdbc:oracle:")) {
+            return JavaDependencies.JDBC_ORACLE;
+        } else if (url.startsWith("jdbc:mariadb:")) {
+            return JavaDependencies.JDBC_MARIADB;
+        }
+        // Default to H2 for unknown JDBC URLs
+        return JavaDependencies.JDBC_H2;
+    }
+
+    public enum JavaDependencies {
+        JDBC_H2("""
+                [[platform.java17.dependency]]
+                artifactId = "h2"
+                version = "2.0.206"
+                groupId = "com.h2database"
+                """),
+        JDBC_POSTGRESQL("""
+                [[platform.java17.dependency]]
+                artifactId = "postgresql"
+                version = "42.7.2"
+                groupId = "org.postgresql"
+                """),
+        JDBC_MYSQL("""
+                [[platform.java17.dependency]]
+                artifactId = "mysql-connector-java"
+                version = "8.0.33"
+                groupId = "mysql"
+                """),
+        JDBC_ORACLE("""
+                [[platform.java17.dependency]]
+                artifactId = "ojdbc8"
+                version = "21.9.0.0"
+                groupId = "com.oracle.database.jdbc"
+                """),
+        JDBC_MARIADB("""
+                [[platform.java17.dependency]]
+                artifactId = "mariadb-java-client"
+                version = "3.1.4"
+                groupId = "org.mariadb.jdbc"
+                """);
+
+        public final String dependencyParam;
+
+        JavaDependencies(String dependencyParam) {
+            this.dependencyParam = dependencyParam;
+        }
     }
 }
