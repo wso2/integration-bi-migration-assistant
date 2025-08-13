@@ -40,6 +40,7 @@ import static mule.v4.model.MuleModel.Choice;
 import static mule.v4.model.MuleModel.Database;
 import static mule.v4.model.MuleModel.DbMySqlConnection;
 import static mule.v4.model.MuleModel.DbOracleConnection;
+import static mule.v4.model.MuleModel.DbGenericConnection;
 import static mule.v4.model.MuleModel.Enricher;
 import static mule.v4.model.MuleModel.ErrorHandler;
 import static mule.v4.model.MuleModel.ErrorHandlerRecord;
@@ -79,6 +80,7 @@ import static mule.v4.model.MuleModel.VMQueue;
 import static mule.v4.model.MuleModel.WhenInChoice;
 import static mule.v4.model.MuleXMLTag.DB_MY_SQL_CONNECTION;
 import static mule.v4.model.MuleXMLTag.DB_ORACLE_CONNECTION;
+import static mule.v4.model.MuleXMLTag.DB_GENERIC_CONNECTION;
 import static mule.v4.model.MuleXMLTag.HTTP_LISTENER_CONNECTION;
 import static mule.v4.model.MuleXMLTag.HTTP_REQUEST_CONNECTION;
 
@@ -691,6 +693,9 @@ public class MuleConfigReader {
             } else if (childElement.getTagName().equals(DB_ORACLE_CONNECTION.tag())) {
                 connection = readDbOracleConnection(ctx, childElement, name);
                 return new DbConfig(name, connection);
+            } else if (childElement.getTagName().equals(DB_GENERIC_CONNECTION.tag())) {
+                connection = readDbGenericConnection(ctx, childElement, name);
+                return new DbConfig(name, connection);
             } else {
                 UnsupportedBlock unsupportedBlock = readUnsupportedBlock(ctx, child);
                 ctx.currentFileCtx.configs.unsupportedBlocks.add(unsupportedBlock);
@@ -713,7 +718,7 @@ public class MuleConfigReader {
     }
 
     private static DbOracleConnection readDbOracleConnection(Context ctx, Element childElement, String name) {
-        ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_ORACLEDB)); // TODO
+        ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_ORACLEDB));
         ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_ORACLEDB_DRIVER, Optional.of("_")));
         String host = childElement.getAttribute("host");
         String port = childElement.getAttribute("port");
@@ -722,6 +727,14 @@ public class MuleConfigReader {
         String instance = childElement.getAttribute("instance");
         String serviceName = childElement.getAttribute("serviceName");
         return new DbOracleConnection(name, host, port, user, password, instance, serviceName);
+    }
+
+    private static DbGenericConnection readDbGenericConnection(Context ctx, Element childElement, String name) {
+        ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_JAVA_JDBC));
+        String url = childElement.getAttribute("url");
+        String user = childElement.getAttribute("user");
+        String password = childElement.getAttribute("password");
+        return new DbGenericConnection(name, url, user, password);
     }
 
     private static TransformMessage readTransformMessage(Context ctx, MuleElement muleElement) {

@@ -578,6 +578,76 @@ service /mule4 on config {
 
 ```
 
+- ### Generic Db Select
+
+**Input (generic_db_select.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="config" doc:name="HTTP Listener config" doc:id="85b5665e-0d10-42d8-905e-5ffda86655de" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <db:config name="mySql_Config" doc:name="Database Config" doc:id="8d8c1f02-b6f9-4f64-851c-960f5fa27a58" >
+        <db:generic-connection url="jdbc:postgresql://localhost:5432/bookstore" user="root" password="admin"/>
+    </db:config>
+    <flow name="demoFlow" doc:id="49da2ab6-3074-48bb-b9fb-59ad876c4d6f" >
+        <http:listener doc:name="Listener" doc:id="d7c2c6e0-73d7-4778-928b-97cb261fd173" config-ref="config" path="/db" allowedMethods="GET"/>
+        <db:select doc:name="Select" doc:id="d8f552e7-25dd-46c0-a9e7-334b7ddea6d3" config-ref="mySql_Config">
+            <db:sql ><![CDATA[SELECT * FROM users;]]></db:sql>
+        </db:select>
+    </flow>
+</mule>
+
+```
+**Output (generic_db_select.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/sql;
+import ballerinax/java.jdbc;
+
+public type Attributes record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public type Record record {
+};
+
+jdbc:Client mySql_Config = check new ("jdbc:postgresql://localhost:5432/bookstore", "root", "admin");
+public listener http:Listener config = new (8081);
+
+service /mule4 on config {
+    resource function get db(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+
+        // database operation
+        sql:ParameterizedQuery dbQuery0 = `SELECT * FROM users;`;
+        stream<Record, sql:Error?> dbStream0 = mySql_Config->query(dbQuery0);
+        Record[] dbSelect0 = check from Record _iterator_ in dbStream0
+            select _iterator_;
+        ctx.payload = dbSelect0;
+
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
+    }
+}
+
+```
+
 - ### Oracle Db Select
 
 **Input (oracle_db_select.xml):**

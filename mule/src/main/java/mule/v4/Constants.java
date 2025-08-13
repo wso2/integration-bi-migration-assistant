@@ -38,6 +38,7 @@ public class Constants {
     public static final String MODULE_MYSQL_DRIVER = "mysql.driver";
     public static final String MODULE_ORACLEDB = "oracledb";
     public static final String MODULE_ORACLEDB_DRIVER = "oracledb.driver";
+    public static final String MODULE_JAVA_JDBC = "java.jdbc";
     public static final String MODULE_TIME = "time";
     public static final String MODULE_INT = "lang.'int";
     public static final String MODULE_JAVA = "jballerina.java";
@@ -78,6 +79,7 @@ public class Constants {
     public static final String HTTP_RESOURCE_RETURN_TYPE_DEFAULT = HTTP_RESPONSE_TYPE + "|error";
     public static final String MYSQL_CLIENT_TYPE = "mysql:Client";
     public static final String ORACLEDB_CLIENT_TYPE = "oracledb:Client";
+    public static final String JDBC_CLIENT_TYPE = "jdbc:Client";
     public static final String HTTP_RESOURCE_RETURN_TYPE_UPPER = "anydata|http:Response|http:StatusCodeResponse|" +
             "stream<http:SseEvent, error?>|stream<http:SseEvent, error>|error";
     public static final String DB_QUERY_DEFAULT_TEMPLATE = "stream<%s, sql:Error?>";

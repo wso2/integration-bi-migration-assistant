@@ -34,6 +34,7 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     DB_CONFIG("db:config", 1),
     DB_MY_SQL_CONNECTION("db:my-sql-connection", 3),
     DB_ORACLE_CONNECTION("db:oracle-connection", 3),
+    DB_GENERIC_CONNECTION("db:generic-connection", 3),
     VM_CONFIG("vm:config", 1),
     CONFIGURATION_PROPERTIES("configuration-properties", 1),
     GLOBAL_PROPERTY("global-property", 1),

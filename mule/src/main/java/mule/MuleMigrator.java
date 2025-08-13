@@ -457,7 +457,7 @@ public class MuleMigrator {
         // 3. Generate project artifacts and bal files
         logger.logState("Generate project artifacts and bal files...");
         Map<String, String> allFiles = new HashMap<>();
-        allFiles.putAll(genProjectArtifacts(logger, result.getOrgName(), result.getProjectName()));
+        allFiles.putAll(genProjectArtifacts(ctx, logger, result.getOrgName(), result.getProjectName()));
         allFiles.putAll(genBalFilesFromBir(logger, birTxtDocs));
         allFiles.putAll(genConfigTOMLFile(logger, yamlFiles, propertyFiles));
         allFiles = Collections.unmodifiableMap(allFiles);
@@ -544,12 +544,13 @@ public class MuleMigrator {
         return balFiles;
     }
 
-    private static Map<String, String> genProjectArtifacts(MuleLogger logger, String orgName, String projectName) {
+    private static Map<String, String> genProjectArtifacts(ContextBase ctx, MuleLogger logger, String orgName,
+                                                           String projectName) {
         logger.logState("Generating Ballerina.toml...");
         String version = "0.1.0";
         String distribution = "2201.12.3";
 
-        String tomlContent = """
+        StringBuilder tomlContent = new StringBuilder("""
                 [package]
                 org = "%s"
                 name = "%s"
@@ -558,9 +559,16 @@ public class MuleMigrator {
                 
                 [build-options]
                 observabilityIncluded = true
-                """.formatted(orgName, projectName, version, distribution);
+                """.formatted(orgName, projectName, version, distribution));
 
-        return Map.of("Ballerina.toml", tomlContent);
+        if (ctx instanceof mule.v4.Context v4Ctx) {
+            for (var each : v4Ctx.projectCtx.javaDependencies()) {
+                tomlContent.append("\n");
+                tomlContent.append(each.dependencyParam);
+            }
+        }
+
+        return Map.of("Ballerina.toml", tomlContent.toString());
     }
 
     private static Map<String, String> genConfigTOMLFile(MuleLogger logger, List<File> yamlFiles,
