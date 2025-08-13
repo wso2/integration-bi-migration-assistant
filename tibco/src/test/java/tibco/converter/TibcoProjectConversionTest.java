@@ -89,6 +89,20 @@ public class TibcoProjectConversionTest {
                 .resolve(expectedBallerinaProject.getFileName())
                 .resolve("expected-report.json");
 
+        if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
+            // Create parent directory if it doesn't exist
+            Files.createDirectories(expectedJsonFile.getParent());
+            // Write the generated JSON to expected file
+            Files.writeString(expectedJsonFile, reportJson);
+            
+            // Write all textEdits to the expected directory (like testProjectConversion does)
+            for (Map.Entry<String, String> entry : textEdits.entrySet()) {
+                Path filePath = expectedBallerinaProject.resolve(entry.getKey());
+                Files.createDirectories(filePath.getParent());
+                Files.writeString(filePath, entry.getValue());
+            }
+        }
+
         Assert.assertTrue(Files.exists(expectedJsonFile),
                 "Expected JSON file must exist for project: " + expectedBallerinaProject.getFileName() +
                         " at path: " + expectedJsonFile);
