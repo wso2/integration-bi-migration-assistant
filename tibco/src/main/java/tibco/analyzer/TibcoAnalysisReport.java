@@ -200,6 +200,33 @@ public final class TibcoAnalysisReport {
     }
 
     /**
+     * Creates JSON representation of blocks for a collection of unhandled elements.
+     * 
+     * @param elements Collection of unhandled elements to convert to blocks JSON
+     * @return String containing the JSON representation of blocks
+     */
+    private String createBlocksJson(Collection<AnalysisReport.UnhandledElement> elements) {
+        StringBuilder blocks = new StringBuilder();
+        boolean firstBlock = true;
+        for (AnalysisReport.UnhandledElement element : elements) {
+            if (!firstBlock) {
+                blocks.append(",\n                   ");
+            }
+            String block = """
+                            {
+                               "fileName":"%s",
+                               "code":"%s"
+                            }""".formatted(
+                    element.fileName().replace("\"", "\\\""),
+                    element.code().replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
+            );
+            blocks.append(block);
+            firstBlock = false;
+        }
+        return blocks.toString();
+    }
+
+    /**
      * Creates a map of unhandled activity elements using their kind as keys. - For named activities, they are grouped
      * by type - For unnamed activities, each one gets a unique key "unnamed-activity-#" as they are treated as unique
      *
@@ -389,7 +416,17 @@ public final class TibcoAnalysisReport {
             if (!firstUnsupported) {
                 unsupportedActivities.append(",\n");
             }
-            unsupportedActivities.append("      \"").append(activityType).append("\"");
+            Collection<AnalysisReport.UnhandledElement> elements = unhandledElementsMap.get(activityType);
+            String blocks = createBlocksJson(elements);
+            String unsupportedActivity = """
+                      {
+                         "activityName":"%s",
+                         "frequency":%d,
+                         "blocks":[
+                   %s
+                         ]
+                      }""".formatted(activityType, elements.size(), blocks);
+            unsupportedActivities.append(unsupportedActivity);
             firstUnsupported = false;
         }
         unsupportedActivities.append("\n   ]");
