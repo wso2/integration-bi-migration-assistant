@@ -19,6 +19,7 @@
 - [On Error Continue](palette-item-mappings-v4.md#on-error-continue)
 - [On Error Propagate](palette-item-mappings-v4.md#on-error-propagate)
 - [Raise Error](palette-item-mappings-v4.md#raise-error)
+- [Scatter Gather](palette-item-mappings-v4.md#scatter-gather)
 - [Set Payload](palette-item-mappings-v4.md#set-payload)
 - [Sub Flow](palette-item-mappings-v4.md#sub-flow)
 - [Transform Message](palette-item-mappings-v4.md#transform-message)
@@ -2837,6 +2838,119 @@ service / on HTTP_Listener_config {
         ctx.attributes.response.setPayload(ctx.payload);
         return ctx.attributes.response;
     }
+}
+
+```
+
+## Scatter Gather
+
+- ### Basic Scatter-Gather
+
+**Input (basic_scatter-gather.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <flow name="scatterGatherFlow">
+        <http:listener config-ref="HTTP_Listener_config"
+                       path="/scatter"
+                       doc:name="HTTP Listener"/>
+
+        <scatter-gather doc:name="Scatter-Gather">
+            <route>
+                <set-payload value='Route 1 completed' doc:name="Set Payload 1"/>
+            </route>
+            <route>
+                <set-payload value='Route 2 completed' doc:name="Set Payload 2"/>
+            </route>
+            <route>
+                <set-payload value='Route 3 completed' doc:name="Set Payload 3"/>
+            </route>
+        </scatter-gather>
+        <logger level="INFO" message="#[payload]" doc:name="Logger"/>
+    </flow>
+
+    <http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config">
+        <http:listener-connection host="0.0.0.0" port="9090"/>
+    </http:listener-config>
+</mule>
+
+```
+**Output (basic_scatter-gather.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Attributes record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public listener http:Listener HTTP_Listener_config = new (9090);
+
+service / on HTTP_Listener_config {
+    resource function default scatter(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+
+        // scatter-gather parallel execution
+        fork {
+            worker R0 returns anydata|error {
+                // Route 0
+
+                // set payload
+                string payload0 = "Route 1 completed";
+                ctx.payload = payload0;
+                return ctx.payload;
+            }
+            worker R1 returns anydata|error {
+                // Route 1
+
+                // set payload
+                string payload1 = "Route 2 completed";
+                ctx.payload = payload1;
+                return ctx.payload;
+            }
+            worker R2 returns anydata|error {
+                // Route 2
+
+                // set payload
+                string payload2 = "Route 3 completed";
+                ctx.payload = payload2;
+                return ctx.payload;
+            }
+        }
+
+        // wait for all workers to complete
+        map<anydata|error> workerResults0 = wait {R0, R1, R2};
+        map<anydata> scatterGatherResults0 = workerResults0.entries().'map(e => wrapRouteErrorIfExists(e[0], e[1])).'map(m => check m);
+        ctx.payload = scatterGatherResults0;
+
+        log:printInfo(ctx.payload.toString());
+
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
+    }
+}
+
+public function wrapRouteErrorIfExists(string key, anydata|error value) returns anydata|error {
+    if value is error {
+        return error(string `Error in Route ${key}: ${value.message()}`, value);
+    }
+    return value;
 }
 
 ```

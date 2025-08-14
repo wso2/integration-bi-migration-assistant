@@ -110,6 +110,7 @@ public record MuleModel() {
         }
     }
 
+    // Flow Control
     public record Choice(Kind kind, List<WhenInChoice> whens, List<MuleRecord> otherwiseProcess) implements MuleRecord {
         public Choice(List<WhenInChoice> whens, List<MuleRecord> otherwiseProcess) {
             this(Kind.CHOICE, whens, otherwiseProcess);
@@ -119,6 +120,18 @@ public record MuleModel() {
     public record WhenInChoice(Kind kind, String condition, List<MuleRecord> process) implements MuleRecord {
         public WhenInChoice(String condition, List<MuleRecord> process) {
             this(Kind.WHEN_IN_CHOICE, condition, process);
+        }
+    }
+
+    public record ScatterGather(Kind kind, List<Route> routes) implements MuleRecord {
+        public ScatterGather(List<Route> routes) {
+            this(Kind.SCATTER_GATHER, routes);
+        }
+    }
+
+    public record Route(Kind kind, List<MuleRecord> flowBlocks) implements MuleRecord {
+        public Route(List<MuleRecord> flowBlocks) {
+            this(Kind.ROUTE, flowBlocks);
         }
     }
 
@@ -318,6 +331,8 @@ public record MuleModel() {
         HTTP_REQUEST,
         CHOICE,
         WHEN_IN_CHOICE,
+        SCATTER_GATHER,
+        ROUTE,
         HTTP_LISTENER_CONFIG,
         HTTP_REQUEST_CONFIG,
         DB_CONFIG,

@@ -157,6 +157,7 @@ public class MuleToBalConverter {
         // Create functions for sub-flows
         genBalFuncsFromSubFlows(ctx, subFlows, functions);
         functions.addAll(ctx.currentFileCtx.balConstructs.functions);
+        functions.addAll(ctx.currentFileCtx.balConstructs.commonFunctions.values());
 
         // Create functions for global exception strategies
         for (ErrorHandler errorHandler : ctx.currentFileCtx.configs.globalErrorHandlers) {
@@ -325,7 +326,6 @@ public class MuleToBalConverter {
     private static void genBalFuncForPrivateOrSubFlow(Context ctx, Set<Function> functions, String flowName,
                                                       List<MuleRecord> flowBlocks) {
         List<Statement> body = convertTopLevelMuleBlocks(ctx, flowBlocks);
-
         String methodName = ConversionUtils.convertToBalIdentifier(flowName);
         Function function = Function.publicFunction(methodName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
         functions.add(function);

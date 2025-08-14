@@ -43,6 +43,8 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     CHOICE("choice", 3),
     WHEN("when", 2),
     OTHERWISE("otherwise", 2),
+    SCATTER_GATHER("scatter-gather", 4),
+    ROUTE("route", 2),
 
     // Components
     LOGGER("logger", 1),

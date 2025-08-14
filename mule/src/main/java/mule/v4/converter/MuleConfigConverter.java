@@ -18,6 +18,7 @@
 package mule.v4.converter;
 
 import common.BallerinaModel.Statement.ForeachStatement;
+import common.BallerinaModel.Statement.ForkStatement;
 import common.BallerinaModel.Statement.PartialStatement;
 import mule.v4.Constants;
 import mule.v4.Context;
@@ -37,6 +38,7 @@ import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.OnFailClause;
+import static common.BallerinaModel.Parameter;
 import static common.BallerinaModel.Statement;
 import static common.BallerinaModel.Statement.BallerinaStatement;
 import static common.BallerinaModel.Statement.DoStatement;
@@ -76,6 +78,8 @@ import static mule.v4.model.MuleModel.ObjectToString;
 import static mule.v4.model.MuleModel.Payload;
 import static mule.v4.model.MuleModel.RaiseError;
 import static mule.v4.model.MuleModel.RemoveVariable;
+import static mule.v4.model.MuleModel.Route;
+import static mule.v4.model.MuleModel.ScatterGather;
 import static mule.v4.model.MuleModel.SetVariable;
 import static mule.v4.model.MuleModel.TransformMessage;
 import static mule.v4.model.MuleModel.Try;
@@ -251,6 +255,9 @@ public class MuleConfigConverter {
             }
             case Foreach foreach -> {
                 return convertForeach(ctx, foreach);
+            }
+            case ScatterGather scatterGather -> {
+                return convertScatterGather(ctx, scatterGather);
             }
             case VMPublish vmPublish -> {
                 return convertVMPublish(ctx, vmPublish);
@@ -532,6 +539,72 @@ public class MuleConfigConverter {
         // Restore original payload after foreach
         stmts.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE, originalPayloadVar)));
 
+        return stmts;
+    }
+
+    private static List<Statement> convertScatterGather(Context ctx, ScatterGather scatterGather) {
+        List<Statement> stmts = new ArrayList<>();
+        stmts.add(stmtFrom("\n\n// scatter-gather parallel execution\n"));
+
+
+
+        // Create named workers for each route
+        List<NamedWorkerDecl> workers = new ArrayList<>();
+        String[] workerNames = new String[scatterGather.routes().size()];
+        for (int i = 0; i < scatterGather.routes().size(); i++) {
+            Route route = scatterGather.routes().get(i);
+            String workerName = Constants.WORKER_SCATTER_GATHER
+                    .formatted(ctx.projectCtx.counters.scatterGatherWorkerCount++);
+            workerNames[i] = workerName;
+
+            List<Statement> workerBody = new ArrayList<>();
+            workerBody.add(stmtFrom(String.format("\n// Route %d\n", i)));
+
+            // Convert route blocks to worker statements
+            List<Statement> routeStmts = convertMuleBlocks(ctx, route.flowBlocks());
+            workerBody.addAll(routeStmts);
+
+            // Send result back to main worker
+            workerBody.add(stmtFrom(String.format("return %s.payload;", Constants.CONTEXT_REFERENCE)));
+
+            NamedWorkerDecl workerDecl = new NamedWorkerDecl(workerName, Optional.of(typeFrom("anydata|error")),
+                    workerBody);
+            workers.add(workerDecl);
+        }
+
+        ForkStatement fork = new ForkStatement(workers);
+        stmts.add(fork);
+
+        // Collect results from all workers
+        stmts.add(stmtFrom("\n\n// wait for all workers to complete\n"));
+        String workerResultsVar =
+                Constants.VAR_WORKER_RESULT_TEMPLATE.formatted(ctx.projectCtx.counters.workerWaitVarCount++);
+        String scatterGatherResultsVar =
+                Constants.VAR_SCATTER_GATHER_TEMPLATE.formatted(ctx.projectCtx.counters.scatterGatherVarCount++);
+        stmts.add(stmtFrom(String.format("map<anydata|error> %s = wait {%s};",
+                workerResultsVar, String.join(",", workerNames))));
+        stmts.add(stmtFrom(String.format("map<anydata> %s = %s.entries().'map(e => %s(e[0], e[1])).'map(m => check m);",
+                scatterGatherResultsVar, workerResultsVar, Constants.FUNC_WRAP_ROUTE_ERR)));
+
+        if (!ctx.projectCtx.functionExists(Constants.FUNC_WRAP_ROUTE_ERR)) {
+            List<Parameter> params = new ArrayList<>();
+            params.add(new Parameter("key", typeFrom("string")));
+            params.add(new Parameter("value", typeFrom("anydata|error")));
+
+            List<Statement> body = new ArrayList<>();
+            body.add(stmtFrom(
+                    "if value is error { return error(string `Error in Route ${key}: ${value.message()}`, value); }"
+            ));
+            body.add(stmtFrom("return value;"));
+
+            Function errorWrapFunc = Function.publicFunction(Constants.FUNC_WRAP_ROUTE_ERR, params,
+                    typeFrom("anydata|error"), body);
+            ctx.currentFileCtx.balConstructs.commonFunctions.put(Constants.FUNC_WRAP_ROUTE_ERR, errorWrapFunc);
+        }
+
+        // Set the collected results as payload
+        stmts.add(stmtFrom(String.format("%s.payload = %s;\n\n", Constants.CONTEXT_REFERENCE,
+                scatterGatherResultsVar)));
         return stmts;
     }
 

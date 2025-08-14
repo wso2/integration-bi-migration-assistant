@@ -99,6 +99,7 @@ public class Context extends ContextBase {
         // Shared bal constructs
         List<HashMap<String, ModuleVar>> configurableVarMaps = new ArrayList<>();
         List<HashMap<String, ModuleTypeDef>> typeDefMaps = new ArrayList<>();
+        List<HashMap<String, Function>> functionMaps = new ArrayList<>();
 
         public void addJavaDependency(MuleToBalConverter.JavaDependencies dependencies) {
             javaDependencies.add(dependencies);
@@ -122,6 +123,10 @@ public class Context extends ContextBase {
 
         public boolean typeDefExists(String key) {
             return containsKeyInMaps(typeDefMaps, key);
+        }
+
+        public boolean functionExists(String key) {
+            return containsKeyInMaps(functionMaps, key);
         }
 
         private <T> T getValueFromMaps(List<HashMap<String, T>> maps, String key) {
@@ -159,12 +164,15 @@ public class Context extends ContextBase {
         public final HashMap<String, ModuleTypeDef> typeDefs = new LinkedHashMap<>();
         public final HashMap<String, ModuleVar> moduleVars = new LinkedHashMap<>();
         public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
+        public final HashMap<String, Function> commonFunctions = new LinkedHashMap<>();
+        // TODO: merge `commonFunctions` and `functions`
         public final List<Function> functions = new ArrayList<>();
         public final List<String> utilFunctions = new ArrayList<>();
 
         BalConstructs(ProjectContext projCtx) {
             projCtx.configurableVarMaps.add(configurableVars);
             projCtx.typeDefMaps.add(typeDefs);
+            projCtx.functionMaps.add(commonFunctions);
         }
     }
 
@@ -185,5 +193,8 @@ public class Context extends ContextBase {
         public int vmReceiveFuncCount = 0;
         public int foreachIteratorCount = 0;
         public int originalPayloadVarCount = 0;
+        public int scatterGatherVarCount = 0;
+        public int scatterGatherWorkerCount = 0;
+        public int workerWaitVarCount = 0;
     }
 }
