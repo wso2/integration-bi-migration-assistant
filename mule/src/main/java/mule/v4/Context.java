@@ -196,5 +196,7 @@ public class Context extends ContextBase {
         public int scatterGatherVarCount = 0;
         public int scatterGatherWorkerCount = 0;
         public int workerWaitVarCount = 0;
+        public int firstSuccessfulCount = 0;
+        public int firstSuccessfulFuncCount = 0;
     }
 }

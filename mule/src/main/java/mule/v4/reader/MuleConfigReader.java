@@ -44,6 +44,7 @@ import static mule.v4.model.MuleModel.DbGenericConnection;
 import static mule.v4.model.MuleModel.Enricher;
 import static mule.v4.model.MuleModel.ErrorHandler;
 import static mule.v4.model.MuleModel.ErrorHandlerRecord;
+import static mule.v4.model.MuleModel.FirstSuccessful;
 import static mule.v4.model.MuleModel.Foreach;
 import static mule.v4.model.MuleModel.GlobalProperty;
 import static mule.v4.model.MuleModel.OnErrorContinue;
@@ -205,6 +206,9 @@ public class MuleConfigReader {
             }
             case MuleXMLTag.SCATTER_GATHER -> {
                 return readScatterGather(ctx, muleElement);
+            }
+            case MuleXMLTag.FIRST_SUCCESSFUL -> {
+                return readFirstSuccessful(ctx, muleElement);
             }
             case MuleXMLTag.ERROR_HANDLER -> {
                 return readErrorHandler(ctx, muleElement);
@@ -400,6 +404,22 @@ public class MuleConfigReader {
             }
         }
         return new ScatterGather(routes);
+    }
+
+    private static FirstSuccessful readFirstSuccessful(Context ctx, MuleElement muleElement) {
+        List<Route> routes = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals(MuleXMLTag.ROUTE.tag())) {
+                Route route = readRoute(ctx, child);
+                routes.add(route);
+            } else {
+                throw new UnsupportedOperationException("Unsupported first-successful child: " +
+                        childElement.getTagName());
+            }
+        }
+        return new FirstSuccessful(routes);
     }
 
     private static Route readRoute(Context ctx, MuleElement muleElement) {

@@ -63,6 +63,7 @@ import static mule.v4.model.MuleModel.Database;
 import static mule.v4.model.MuleModel.Enricher;
 import static mule.v4.model.MuleModel.ErrorHandler;
 import static mule.v4.model.MuleModel.ErrorHandlerRecord;
+import static mule.v4.model.MuleModel.FirstSuccessful;
 import static mule.v4.model.MuleModel.Foreach;
 import static mule.v4.model.MuleModel.OnErrorContinue;
 import static mule.v4.model.MuleModel.OnErrorPropagate;
@@ -258,6 +259,9 @@ public class MuleConfigConverter {
             }
             case ScatterGather scatterGather -> {
                 return convertScatterGather(ctx, scatterGather);
+            }
+            case FirstSuccessful firstSuccessful -> {
+                return convertFirstSuccessful(ctx, firstSuccessful);
             }
             case VMPublish vmPublish -> {
                 return convertVMPublish(ctx, vmPublish);
@@ -543,10 +547,13 @@ public class MuleConfigConverter {
     }
 
     private static List<Statement> convertScatterGather(Context ctx, ScatterGather scatterGather) {
+        List<Route> routes = scatterGather.routes();
+        if (routes.isEmpty()) {
+            return List.of();
+        }
+
         List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n\n// scatter-gather parallel execution\n"));
-
-
 
         // Create named workers for each route
         List<NamedWorkerDecl> workers = new ArrayList<>();
@@ -605,6 +612,64 @@ public class MuleConfigConverter {
         // Set the collected results as payload
         stmts.add(stmtFrom(String.format("%s.payload = %s;\n\n", Constants.CONTEXT_REFERENCE,
                 scatterGatherResultsVar)));
+        return stmts;
+    }
+
+    private static List<Statement> convertFirstSuccessful(Context ctx, FirstSuccessful firstSuccessful) {
+        List<Route> routes = firstSuccessful.routes();
+        if (routes.isEmpty()) {
+            return List.of();
+        }
+
+        // Create a function for each route
+        String[] funcNames = new String[firstSuccessful.routes().size()];
+        for (int i = 0; i < firstSuccessful.routes().size(); i++) {
+            Route route = firstSuccessful.routes().get(i);
+            String funcName = Constants.FUNC_FIRST_SUCCESSFUL_ROUTE
+                    .formatted(ctx.projectCtx.counters.firstSuccessfulFuncCount++);
+            funcNames[i] = funcName;
+
+            List<Statement> funcBody = new ArrayList<>();
+            funcBody.add(stmtFrom("\n// Route %d\n".formatted(i)));
+
+            // Convert route blocks to worker statements
+            List<Statement> routeStmts = convertMuleBlocks(ctx, route.flowBlocks());
+            funcBody.addAll(routeStmts);
+
+            funcBody.add(stmtFrom("return %s.payload;".formatted(Constants.CONTEXT_REFERENCE)));
+
+            Function func = Function.publicFunction(funcName, Constants.FUNC_PARAMS_WITH_CONTEXT,
+                    typeFrom("anydata|error"), funcBody);
+            ctx.currentFileCtx.balConstructs.functions.add(func);
+        }
+
+        // Create a function that calls each function sequentially until one succeeds
+        List<Statement> firstSuccessfulBody = new ArrayList<>();
+        for (int i = 0; i < funcNames.length; i++) {
+            String funcName = funcNames[i];
+            firstSuccessfulBody.add(stmtFrom("anydata|error r%s = %s(%s);".formatted(i, funcName,
+                    Constants.CONTEXT_REFERENCE)));
+            firstSuccessfulBody.add(stmtFrom("if r%s !is error { return r%s; }".formatted(i, i)));
+        }
+
+        // If all routes fail, return an error with last error message
+        firstSuccessfulBody.add(stmtFrom("return error(\"All routes failed\", r%s);".formatted(funcNames.length - 1)));
+
+        int firstSuccessfulCount = ctx.projectCtx.counters.firstSuccessfulCount;
+        ctx.projectCtx.counters.firstSuccessfulCount++;
+
+        String firstSuccessfulFuncName = Constants.FUNC_FIRST_SUCCESSFUL.formatted(firstSuccessfulCount);
+        Function firstSuccessfulFunc = Function.publicFunction(
+                firstSuccessfulFuncName, Constants.FUNC_PARAMS_WITH_CONTEXT,
+                typeFrom("anydata|error"), firstSuccessfulBody);
+        ctx.currentFileCtx.balConstructs.functions.add(firstSuccessfulFunc);
+
+        List<Statement> stmts = new ArrayList<>();
+        stmts.add(stmtFrom("\n\n// first-successful sequential route execution\n"));
+        String firstSuccessfulResultVar = Constants.VAR_FIRST_SUCCESSFUL_RESULT.formatted(firstSuccessfulCount);
+        stmts.add(stmtFrom("anydata %s = check %s(%s);".formatted(firstSuccessfulResultVar, firstSuccessfulFuncName,
+                Constants.CONTEXT_REFERENCE)));
+        stmts.add(stmtFrom("%s.payload = %s;\n\n".formatted(Constants.CONTEXT_REFERENCE, firstSuccessfulResultVar)));
         return stmts;
     }
 

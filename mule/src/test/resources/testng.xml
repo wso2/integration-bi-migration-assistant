@@ -32,6 +32,8 @@
             <class name="mule.v4.blocks.RaiseErrorTest"/>
             <class name="mule.v4.blocks.TryTest"/>
             <class name="mule.v4.blocks.ForEachTest"/>
+            <class name="mule.v4.blocks.ScatterGatherTest"/>
+            <class name="mule.v4.blocks.FirstSuccessfulTest"/>
         </classes>
     </test>
 </suite>

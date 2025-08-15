@@ -129,6 +129,12 @@ public record MuleModel() {
         }
     }
 
+    public record FirstSuccessful(Kind kind, List<Route> routes) implements MuleRecord {
+        public FirstSuccessful(List<Route> routes) {
+            this(Kind.FIRST_SUCCESSFUL, routes);
+        }
+    }
+
     public record Route(Kind kind, List<MuleRecord> flowBlocks) implements MuleRecord {
         public Route(List<MuleRecord> flowBlocks) {
             this(Kind.ROUTE, flowBlocks);
@@ -332,6 +338,7 @@ public record MuleModel() {
         CHOICE,
         WHEN_IN_CHOICE,
         SCATTER_GATHER,
+        FIRST_SUCCESSFUL,
         ROUTE,
         HTTP_LISTENER_CONFIG,
         HTTP_REQUEST_CONFIG,

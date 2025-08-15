@@ -19,10 +19,10 @@ package mule.v4.blocks;
 
 import org.testng.annotations.Test;
 
-public class ScatterGatherTest extends AbstractBlockTest {
+public class FirstSuccessfulTest extends AbstractBlockTest {
 
     @Test
-    public void testBasicScatterGather() {
-        testMule4ToBal("scatter-gather/basic_scatter-gather.xml", "scatter-gather/basic_scatter-gather.bal");
+    public void testBasicFirstSuccessful() {
+        testMule4ToBal("first-successful/basic_first_successful.xml", "first-successful/basic_first_successful.bal");
     }
 }

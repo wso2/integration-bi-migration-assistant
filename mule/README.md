@@ -91,6 +91,7 @@ The migration tool currently supports the following Mule 4.x components:
 - [Database Connector](docs/palette-item-mappings-v4.md#database-connector)
 - [Error Handler](docs/palette-item-mappings-v4.md#error-handler)
 - [Expression Component](docs/palette-item-mappings-v4.md#expression-component)
+- [First Successful](docs/palette-item-mappings-v4.md#first-successful)
 - [Flow](docs/palette-item-mappings-v4.md#flow)
 - [For Each](docs/palette-item-mappings-v4.md#for-each)
 - [Http Listener](docs/palette-item-mappings-v4.md#http-listener)
