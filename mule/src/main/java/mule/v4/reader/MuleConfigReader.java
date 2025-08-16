@@ -44,6 +44,7 @@ import static mule.v4.model.MuleModel.DbGenericConnection;
 import static mule.v4.model.MuleModel.Enricher;
 import static mule.v4.model.MuleModel.ErrorHandler;
 import static mule.v4.model.MuleModel.ErrorHandlerRecord;
+import static mule.v4.model.MuleModel.FirstSuccessful;
 import static mule.v4.model.MuleModel.Foreach;
 import static mule.v4.model.MuleModel.GlobalProperty;
 import static mule.v4.model.MuleModel.OnErrorContinue;
@@ -64,6 +65,8 @@ import static mule.v4.model.MuleModel.ObjectToString;
 import static mule.v4.model.MuleModel.Payload;
 import static mule.v4.model.MuleModel.RaiseError;
 import static mule.v4.model.MuleModel.RemoveVariable;
+import static mule.v4.model.MuleModel.Route;
+import static mule.v4.model.MuleModel.ScatterGather;
 import static mule.v4.model.MuleModel.SetPayloadElement;
 import static mule.v4.model.MuleModel.SetVariable;
 import static mule.v4.model.MuleModel.SetVariableElement;
@@ -200,6 +203,12 @@ public class MuleConfigReader {
             }
             case MuleXMLTag.FOREACH -> {
                 return readForeach(ctx, muleElement);
+            }
+            case MuleXMLTag.SCATTER_GATHER -> {
+                return readScatterGather(ctx, muleElement);
+            }
+            case MuleXMLTag.FIRST_SUCCESSFUL -> {
+                return readFirstSuccessful(ctx, muleElement);
             }
             case MuleXMLTag.ERROR_HANDLER -> {
                 return readErrorHandler(ctx, muleElement);
@@ -379,6 +388,48 @@ public class MuleConfigReader {
         }
 
         return new Foreach(collection, flowBlocks);
+    }
+
+    private static ScatterGather readScatterGather(Context ctx, MuleElement muleElement) {
+        List<Route> routes = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals(MuleXMLTag.ROUTE.tag())) {
+                Route route = readRoute(ctx, child);
+                routes.add(route);
+            } else {
+                throw new UnsupportedOperationException("Unsupported scatter-gather child: " +
+                        childElement.getTagName());
+            }
+        }
+        return new ScatterGather(routes);
+    }
+
+    private static FirstSuccessful readFirstSuccessful(Context ctx, MuleElement muleElement) {
+        List<Route> routes = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals(MuleXMLTag.ROUTE.tag())) {
+                Route route = readRoute(ctx, child);
+                routes.add(route);
+            } else {
+                throw new UnsupportedOperationException("Unsupported first-successful child: " +
+                        childElement.getTagName());
+            }
+        }
+        return new FirstSuccessful(routes);
+    }
+
+    private static Route readRoute(Context ctx, MuleElement muleElement) {
+        List<MuleRecord> flowBlocks = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            MuleRecord muleRec = readBlock(ctx, child);
+            flowBlocks.add(muleRec);
+        }
+        return new Route(flowBlocks);
     }
 
     // Transformers

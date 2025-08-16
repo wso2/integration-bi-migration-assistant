@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+
+    <flow name="scatterGatherFlow">
+        <http:listener config-ref="http_listener" path="/first_successful" doc:name="HTTP Listener"/>
+        <first-successful doc:name="First Successful" doc:id="a756b895-8c82-469a-b10a-d622b379cf8d" >
+            <route >
+                <set-payload value="Route 0 completed" doc:name="Set Payload 1" />
+            </route>
+            <route >
+                <set-payload value="Route 1 completed" doc:name="Set Payload 2" />
+            </route>
+            <route >
+                <set-payload value="Route 2 completed" doc:name="Set Payload 3" />
+            </route>
+        </first-successful>
+        <logger level="INFO" message="#[payload]" doc:name="Logger"/>
+    </flow>
+
+    <http:listener-config name="http_listener" doc:name="HTTP Listener config">
+        <http:listener-connection host="0.0.0.0" port="9090"/>
+    </http:listener-config>
+</mule>
