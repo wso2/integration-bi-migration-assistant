@@ -480,6 +480,12 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             return new Function(Optional.of("public"), funcName, parameters, Optional.empty(),
                     new BlockFunctionBody(body));
         }
+
+        public static Function publicFunction(String funcName, List<Parameter> parameters, TypeDesc returnType,
+                                              List<Statement> body) {
+            return new Function(Optional.of("public"), funcName, parameters, Optional.of(returnType),
+                    new BlockFunctionBody(body));
+        }
     }
 
     public interface FunctionBody {
@@ -813,6 +819,14 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             public String toString() {
                 return String.format("worker %s returns %s { %s }", name, returnType.map(Object::toString).orElse(""),
                         String.join("", statements.stream().map(Object::toString).toList()));
+            }
+        }
+
+        record ForkStatement(List<NamedWorkerDecl> workers) implements Statement {
+            @Override
+            public String toString() {
+                return String.format("fork { %s }",
+                        String.join("", workers.stream().map(Object::toString).toList()));
             }
         }
 

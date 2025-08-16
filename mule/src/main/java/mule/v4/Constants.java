@@ -72,6 +72,13 @@ public class Constants {
     public static final String FUNC_NAME_VM_RECEIVE_TEMPLATE = "vmReceive%s";
     public static final String VAR_ITERATOR_TEMPLATE = "item%s";
     public static final String VAR_ORIGINAL_PAYLOAD_TEMPLATE = "originalPayload%s";
+    public static final String VAR_WORKER_RESULT_TEMPLATE = "workerResults%s";
+    public static final String VAR_SCATTER_GATHER_TEMPLATE = "scatterGatherResults%s";
+    public static final String WORKER_SCATTER_GATHER = "R%s";
+    public static final String FUNC_FIRST_SUCCESSFUL = "firstSuccessful%s";
+    public static final String VAR_FIRST_SUCCESSFUL_RESULT = "firstSuccessfulResult%s";
+    public static final String FUNC_FIRST_SUCCESSFUL_ROUTE = "route%s";
+    public static final String FUNC_WRAP_ROUTE_ERR = "wrapRouteErrorIfExists";
 
     // Types
     public static final String HTTP_RESPONSE_TYPE = "http:Response";
