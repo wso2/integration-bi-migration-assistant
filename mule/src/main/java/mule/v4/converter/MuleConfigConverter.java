@@ -19,7 +19,6 @@ package mule.v4.converter;
 
 import common.BallerinaModel.Statement.ForeachStatement;
 import common.BallerinaModel.Statement.ForkStatement;
-import common.BallerinaModel.Statement.PartialStatement;
 import mule.v4.Constants;
 import mule.v4.Context;
 import mule.v4.ConversionUtils;
@@ -57,6 +56,8 @@ import static mule.v4.ConversionUtils.convertToUnsupportedTODO;
 import static mule.v4.ConversionUtils.genQueryParam;
 import static mule.v4.ConversionUtils.getBallerinaClientResourcePath;
 import static mule.v4.ConversionUtils.inferTypeFromBalExpr;
+import static mule.v4.converter.MuleConfigConverter.ConversionResult.FailClauseResult;
+import static mule.v4.converter.MuleConfigConverter.ConversionResult.WorkerStatementResult;
 import static mule.v4.model.MuleModel.Async;
 import static mule.v4.model.MuleModel.Choice;
 import static mule.v4.model.MuleModel.Database;
@@ -90,6 +91,21 @@ import static mule.v4.model.MuleModel.WhenInChoice;
 
 public class MuleConfigConverter {
 
+    /**
+     * Result of converting a Mule record.
+     */
+    public sealed interface ConversionResult {
+        record WorkerStatementResult(List<Statement> statements,
+                                     List<NamedWorkerDecl> workers) implements ConversionResult {
+            public WorkerStatementResult(List<Statement> statements) {
+                this(statements, List.of());
+            }
+        }
+
+        record FailClauseResult(OnFailClause onFailClause) implements ConversionResult {
+        }
+    }
+
     public static List<Statement> convertTopLevelMuleBlocks(Context ctx, List<MuleRecord> flowBlocks) {
         // Add function body statements
         List<Statement> body = new ArrayList<>();
@@ -97,19 +113,15 @@ public class MuleConfigConverter {
 
         // Read flow blocks
         for (MuleRecord record : flowBlocks) {
-            List<Statement> stmts = convertMuleBlock(ctx, record);
-            // TODO: handle these properly
-            if (stmts.size() > 1 && stmts.getFirst() instanceof NamedWorkerDecl namedWorkerDecl) {
-                workers.add(namedWorkerDecl);
-                stmts.remove(namedWorkerDecl);
+            ConversionResult result = convertMuleBlock(ctx, record);
+            if (result instanceof WorkerStatementResult(List<Statement> stmtList, List<NamedWorkerDecl> workerList)) {
+                workers.addAll(workerList);
+                body.addAll(stmtList);
+            } else if (result instanceof FailClauseResult(OnFailClause onFailClause)) {
+                body = new ArrayList<>(Collections.singletonList(new DoStatement(body, onFailClause)));
+            } else {
+                throw new IllegalStateException("Unexpected conversion result: " + result);
             }
-
-            if (stmts.size() == 1 && stmts.getFirst() instanceof PartialStatement(Statement statement)) {
-                DoStatement doStatement = (DoStatement) statement;
-                body = new ArrayList<>(Collections.singletonList(new DoStatement(body, doStatement.onFailClause())));
-                continue;
-            }
-            body.addAll(stmts);
         }
 
         workers.addAll(body);
@@ -120,17 +132,17 @@ public class MuleConfigConverter {
         if (errHandlerRecords.isEmpty()) {
             return Collections.emptyList();
         } else if (errHandlerRecords.size() == 1) {
-            return convertMuleBlock(ctx, errHandlerRecords.getFirst());
+            return convertMuleRegularBlock(ctx, errHandlerRecords.getFirst()).statements();
         }
 
         ErrorHandlerRecord firstErrRec = errHandlerRecords.getFirst();
         BallerinaExpression ifCondition = getErrorHandlerRecCondition(ctx, firstErrRec);
-        List<Statement> ifBody = convertMuleBlock(ctx, firstErrRec);
+        List<Statement> ifBody = convertMuleRegularBlock(ctx, firstErrRec).statements();
 
         List<ElseIfClause> elseIfClauses = new ArrayList<>();
         for (int i = 1; i < errHandlerRecords.size() - 1; i++) {
             ErrorHandlerRecord errRec = errHandlerRecords.get(i);
-            List<Statement> elseIfBody = convertMuleBlock(ctx, errRec);
+            List<Statement> elseIfBody = convertMuleRegularBlock(ctx, errRec).statements();
             BallerinaExpression condition = getErrorHandlerRecCondition(ctx, errRec);
             ElseIfClause elseIfClause = new ElseIfClause(condition, elseIfBody);
             elseIfClauses.add(elseIfClause);
@@ -138,7 +150,7 @@ public class MuleConfigConverter {
 
         List<Statement> elseBody = new ArrayList<>();
         ErrorHandlerRecord lastErrRec = errHandlerRecords.getLast();
-        List<Statement> body = convertMuleBlock(ctx, lastErrRec);
+        List<Statement> body = convertMuleRegularBlock(ctx, lastErrRec).statements();
         if (lastErrRec.type().isEmpty() && lastErrRec.when().isEmpty()) {
             elseBody = body;
         } else {
@@ -188,17 +200,30 @@ public class MuleConfigConverter {
                 + "\"";
     }
 
-    public static <T extends MuleRecord> List<Statement> convertMuleBlocks(Context ctx, List<T> muleRecords) {
+    public static <T extends MuleRecord> WorkerStatementResult convertMuleRegularBlocks(Context ctx,
+                                                                                        List<T> muleRecords) {
         List<Statement> statements = new ArrayList<>();
+        List<NamedWorkerDecl> workers = new ArrayList<>();
         for (MuleRecord mr : muleRecords) {
-            List<Statement> stmts = convertMuleBlock(ctx, mr);
-            statements.addAll(stmts);
+            WorkerStatementResult workerStatementResult = convertMuleRegularBlock(ctx, mr);
+            statements.addAll(workerStatementResult.statements());
+            workers.addAll(workerStatementResult.workers());
         }
-        return statements;
+        return new WorkerStatementResult(statements, workers);
     }
 
-    public static List<Statement> convertMuleBlock(Context ctx,
-                                                   MuleRecord muleRec) {
+    public static ConversionResult convertMuleBlock(Context ctx, MuleRecord muleRec) {
+        switch (muleRec) {
+            case ErrorHandler errorHandler -> {
+                return convertErrorHandler(ctx, errorHandler);
+            }
+            default -> {
+                return convertMuleRegularBlock(ctx, muleRec);
+            }
+        }
+    }
+
+    public static WorkerStatementResult convertMuleRegularBlock(Context ctx, MuleRecord muleRec) {
         switch (muleRec) {
             case Logger lg -> {
                 return convertLogger(ctx, lg);
@@ -223,9 +248,6 @@ public class MuleConfigConverter {
             }
             case ObjectToString objectToString -> {
                 return convertObjectToString(ctx, objectToString);
-            }
-            case ErrorHandler errorHandler -> {
-                return convertErrorHandler(ctx, errorHandler);
             }
             case OnErrorContinue onErrorContinue -> {
                 return convertOnErrorContinue(ctx, onErrorContinue);
@@ -277,11 +299,11 @@ public class MuleConfigConverter {
         }
     }
 
-    private static List<Statement> convertLogger(Context ctx, Logger lg) {
+    private static WorkerStatementResult convertLogger(Context ctx, Logger lg) {
         String logFuncName = getBallerinaLogFunction(lg.level());
         String stringLiteral = convertMuleExprToBalStringLiteral(ctx, lg.message());
         BallerinaStatement stmt = stmtFrom("log:%s(%s);".formatted(logFuncName, stringLiteral));
-        return List.of(stmt);
+        return new WorkerStatementResult(List.of(stmt));
     }
 
     private static String getBallerinaLogFunction(LogLevel logLevel) {
@@ -293,7 +315,7 @@ public class MuleConfigConverter {
         };
     }
 
-    private static List<Statement> convertSetVariable(Context ctx, SetVariable setVariable) {
+    private static WorkerStatementResult convertSetVariable(Context ctx, SetVariable setVariable) {
         String varName = ConversionUtils.convertToBalIdentifier(setVariable.variableName());
         String balExpr = convertMuleExprToBal(ctx, setVariable.value());
         String type = inferTypeFromBalExpr(balExpr);
@@ -303,10 +325,10 @@ public class MuleConfigConverter {
         }
 
         var stmt = stmtFrom(String.format("%s.%s = %s;", Constants.VARS_FIELD_ACCESS, varName, balExpr));
-        return List.of(stmt);
+        return new WorkerStatementResult(List.of(stmt));
     }
 
-    private static List<Statement> convertRemoveVariable(Context ctx, RemoveVariable removeVariable) {
+    private static WorkerStatementResult convertRemoveVariable(Context ctx, RemoveVariable removeVariable) {
         String variableName = removeVariable.variableName();
         if (variableName.startsWith("#[vars.") && variableName.endsWith("]")) {
             variableName = variableName.substring(7, variableName.length() - 1);
@@ -318,12 +340,12 @@ public class MuleConfigConverter {
             stmt = stmtFrom(String.format("%s.%s = %s;", Constants.VARS_FIELD_ACCESS, varName, "()"));
         } else {
             // Removing undeclared variable in mule won't give error, so we just ignore it here
-            return Collections.emptyList();
+            return new WorkerStatementResult(Collections.emptyList());
         }
-        return List.of(stmt);
+        return new WorkerStatementResult(List.of(stmt));
     }
 
-    private static List<Statement> convertSetPayload(Context ctx, Payload payload) {
+    private static WorkerStatementResult convertSetPayload(Context ctx, Payload payload) {
         String pyld;
         String type;
         switch (payload.mimeType()) {
@@ -341,10 +363,10 @@ public class MuleConfigConverter {
         stmts.add(stmtFrom(String.format("%s %s = %s;", type, payloadVar, pyld)));
         stmts.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE,
                 payloadVar)));
-        return stmts;
+        return new WorkerStatementResult(stmts);
     }
 
-    private static List<Statement> convertChoice(Context ctx, Choice choice) {
+    private static WorkerStatementResult convertChoice(Context ctx, Choice choice) {
         List<WhenInChoice> whens = choice.whens();
         assert !whens.isEmpty(); // For valid mule config, there is at least one when
 
@@ -352,7 +374,7 @@ public class MuleConfigConverter {
         String ifCondition = convertMuleExprToBal(ctx, firstWhen.condition());
         List<Statement> ifBody = new ArrayList<>();
         for (MuleRecord mr : firstWhen.process()) {
-            List<Statement> statements = convertMuleBlock(ctx, mr);
+            List<Statement> statements = convertMuleRegularBlock(ctx, mr).statements();
             ifBody.addAll(statements);
         }
 
@@ -361,7 +383,7 @@ public class MuleConfigConverter {
             WhenInChoice when = whens.get(i);
             List<Statement> elseIfBody = new ArrayList<>();
             for (MuleRecord mr : when.process()) {
-                List<Statement> statements = convertMuleBlock(ctx, mr);
+                List<Statement> statements = convertMuleRegularBlock(ctx, mr).statements();
                 elseIfBody.addAll(statements);
             }
             ElseIfClause elseIfClause = new ElseIfClause(exprFrom(convertMuleExprToBal(ctx, when.condition())),
@@ -371,46 +393,46 @@ public class MuleConfigConverter {
 
         List<Statement> elseBody = new ArrayList<>(choice.otherwiseProcess().size());
         for (MuleRecord mr : choice.otherwiseProcess()) {
-            List<Statement> statements = convertMuleBlock(ctx, mr);
+            List<Statement> statements = convertMuleRegularBlock(ctx, mr).statements();
             elseBody.addAll(statements);
         }
 
         var ifElseStmt = new IfElseStatement(exprFrom(ifCondition), ifBody, elseIfClauses, elseBody);
-        return List.of(ifElseStmt);
+        return new WorkerStatementResult(List.of(ifElseStmt));
     }
 
-    private static List<Statement> convertFlowReference(Context ctx, FlowReference flowReference) {
+    private static WorkerStatementResult convertFlowReference(Context ctx, FlowReference flowReference) {
         String flowName = flowReference.flowName();
         String funcRef = ConversionUtils.convertToBalIdentifier(flowName);
         var stmt = stmtFrom(String.format("%s(%s);", funcRef, Constants.CONTEXT_REFERENCE));
-        return List.of(stmt);
+        return new WorkerStatementResult(List.of(stmt));
     }
 
-    private static List<Statement> convertObjectToJson(Context ctx, ObjectToJson objectToJson) {
+    private static WorkerStatementResult convertObjectToJson(Context ctx, ObjectToJson objectToJson) {
         List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n\n// json transformation\n"));
         // object to json transformer implicitly sets the payload
         stmts.add(stmtFrom("%s = %s.toJson();".formatted(Constants.PAYLOAD_FIELD_ACCESS,
                 Constants.PAYLOAD_FIELD_ACCESS)));
-        return stmts;
+        return new WorkerStatementResult(stmts);
     }
 
-    private static List<Statement> convertObjectToString(Context ctx, ObjectToString objectToString) {
+    private static WorkerStatementResult convertObjectToString(Context ctx, ObjectToString objectToString) {
         List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n\n// string transformation\n"));
         // object to string transformer implicitly sets the payload
         stmts.add(stmtFrom("%s = %s.toString();".formatted(Constants.PAYLOAD_FIELD_ACCESS,
                 Constants.PAYLOAD_FIELD_ACCESS)));
-        return stmts;
+        return new WorkerStatementResult(stmts);
     }
 
-    private static List<Statement> convertExprComponent(Context ctx, ExpressionComponent ec) {
+    private static WorkerStatementResult convertExprComponent(Context ctx, ExpressionComponent ec) {
         String convertedExpr = convertMuleExprToBal(ctx, String.format("#[%s]", ec.exprCompContent()));
         ConversionUtils.processExprCompContent(ctx, convertedExpr);
-        return List.of(stmtFrom(convertedExpr));
+        return new WorkerStatementResult(List.of(stmtFrom(convertedExpr)));
     }
 
-    private static List<Statement> convertEnricher(Context ctx, Enricher enricher) {
+    private static WorkerStatementResult convertEnricher(Context ctx, Enricher enricher) {
         // TODO: support no source
         String source = convertMuleExprToBal(ctx, enricher.source());
         String target = convertMuleExprToBal(ctx, enricher.target());
@@ -426,7 +448,8 @@ public class MuleConfigConverter {
         if (enricher.innerBlock().isEmpty()) {
             stmts.add(stmtFrom(String.format("%s = %s;", target, source)));
         } else {
-            List<Statement> enricherStmts = new ArrayList<>(convertMuleBlock(ctx, enricher.innerBlock().get()));
+            WorkerStatementResult workerStatementResult = convertMuleRegularBlock(ctx, enricher.innerBlock().get());
+            List<Statement> enricherStmts = new ArrayList<>(workerStatementResult.statements());
 
             String methodName = Constants.FUNC_NAME_ENRICHER_TEMPLATE
                     .formatted(ctx.projectCtx.counters.enricherFuncCount);
@@ -439,10 +462,10 @@ public class MuleConfigConverter {
                     Constants.FUNC_NAME_ENRICHER_TEMPLATE.formatted(ctx.projectCtx.counters.enricherFuncCount++),
                     Constants.CONTEXT_REFERENCE)));
         }
-        return stmts;
+        return new WorkerStatementResult(stmts);
     }
 
-    private static List<Statement> convertHttpRequest(Context ctx, HttpRequest httpRequest) {
+    private static WorkerStatementResult convertHttpRequest(Context ctx, HttpRequest httpRequest) {
         List<Statement> stmts = new ArrayList<>();
         String path = getBallerinaClientResourcePath(ctx, httpRequest.path());
         String method = httpRequest.method();
@@ -458,10 +481,10 @@ public class MuleConfigConverter {
                 genQueryParam(ctx, queryParams))));
         stmts.add(stmtFrom(String.format("%s.payload = check %s.getJsonPayload();",
                 Constants.CONTEXT_REFERENCE, clientResultVar)));
-        return stmts;
+        return new WorkerStatementResult(stmts);
     }
 
-    private static List<Statement> convertDatabase(Context ctx, Database database) {
+    private static WorkerStatementResult convertDatabase(Context ctx, Database database) {
         ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_SQL, Optional.empty()));
         String streamConstraintType = Constants.GENERIC_RECORD_TYPE_REF;
 
@@ -494,10 +517,10 @@ public class MuleConfigConverter {
             // db:select implicitly sets the payload
             stmts.add(stmtFrom("%s.payload = %s;".formatted(Constants.CONTEXT_REFERENCE, dbSelectVarName)));
         }
-        return stmts;
+        return new WorkerStatementResult(stmts);
     }
 
-    private static List<Statement> convertAsync(Context ctx, Async async) {
+    private static WorkerStatementResult convertAsync(Context ctx, Async async) {
         List<Statement> body = convertTopLevelMuleBlocks(ctx, async.flowBlocks());
         int asyncFuncId = ctx.projectCtx.counters.asyncFuncCount++;
         String funcName = String.format(FUNC_NAME_ASYC_TEMPLATE, asyncFuncId);
@@ -507,14 +530,15 @@ public class MuleConfigConverter {
         List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n\n// async operation\n"));
         stmts.add(stmtFrom(String.format("_ = start %s(%s);", funcName, Constants.CONTEXT_REFERENCE)));
-        return stmts;
+        return new WorkerStatementResult(stmts);
     }
 
-    private static List<Statement> convertTry(Context ctx, Try tr) {
-        return convertTopLevelMuleBlocks(ctx, tr.flowBlocks());
+    private static WorkerStatementResult convertTry(Context ctx, Try tr) {
+        List<Statement> stmts = convertTopLevelMuleBlocks(ctx, tr.flowBlocks());
+        return new WorkerStatementResult(stmts);
     }
 
-    private static List<Statement> convertForeach(Context ctx, Foreach foreach) {
+    private static WorkerStatementResult convertForeach(Context ctx, Foreach foreach) {
         List<Statement> stmts = new ArrayList<>();
         String collection = convertMuleExprToBal(ctx, foreach.collection());
 
@@ -543,13 +567,13 @@ public class MuleConfigConverter {
         // Restore original payload after foreach
         stmts.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE, originalPayloadVar)));
 
-        return stmts;
+        return new WorkerStatementResult(stmts);
     }
 
-    private static List<Statement> convertScatterGather(Context ctx, ScatterGather scatterGather) {
+    private static WorkerStatementResult convertScatterGather(Context ctx, ScatterGather scatterGather) {
         List<Route> routes = scatterGather.routes();
         if (routes.isEmpty()) {
-            return List.of();
+            return new WorkerStatementResult(List.of());
         }
 
         List<Statement> stmts = new ArrayList<>();
@@ -568,7 +592,7 @@ public class MuleConfigConverter {
             workerBody.add(stmtFrom(String.format("\n// Route %d\n", i)));
 
             // Convert route blocks to worker statements
-            List<Statement> routeStmts = convertMuleBlocks(ctx, route.flowBlocks());
+            List<Statement> routeStmts = convertMuleRegularBlocks(ctx, route.flowBlocks()).statements();
             workerBody.addAll(routeStmts);
 
             // Send result back to main worker
@@ -612,13 +636,13 @@ public class MuleConfigConverter {
         // Set the collected results as payload
         stmts.add(stmtFrom(String.format("%s.payload = %s;\n\n", Constants.CONTEXT_REFERENCE,
                 scatterGatherResultsVar)));
-        return stmts;
+        return new WorkerStatementResult(stmts);
     }
 
-    private static List<Statement> convertFirstSuccessful(Context ctx, FirstSuccessful firstSuccessful) {
+    private static WorkerStatementResult convertFirstSuccessful(Context ctx, FirstSuccessful firstSuccessful) {
         List<Route> routes = firstSuccessful.routes();
         if (routes.isEmpty()) {
-            return List.of();
+            return new WorkerStatementResult(List.of());
         }
 
         // Create a function for each route
@@ -633,7 +657,7 @@ public class MuleConfigConverter {
             funcBody.add(stmtFrom("\n// Route %d\n".formatted(i)));
 
             // Convert route blocks to worker statements
-            List<Statement> routeStmts = convertMuleBlocks(ctx, route.flowBlocks());
+            List<Statement> routeStmts = convertMuleRegularBlocks(ctx, route.flowBlocks()).statements();
             funcBody.addAll(routeStmts);
 
             funcBody.add(stmtFrom("return %s.payload;".formatted(Constants.CONTEXT_REFERENCE)));
@@ -670,10 +694,10 @@ public class MuleConfigConverter {
         stmts.add(stmtFrom("anydata %s = check %s(%s);".formatted(firstSuccessfulResultVar, firstSuccessfulFuncName,
                 Constants.CONTEXT_REFERENCE)));
         stmts.add(stmtFrom("%s.payload = %s;\n\n".formatted(Constants.CONTEXT_REFERENCE, firstSuccessfulResultVar)));
-        return stmts;
+        return new WorkerStatementResult(stmts);
     }
 
-    private static List<Statement> convertVMPublish(Context ctx, VMPublish vmPublish) {
+    private static WorkerStatementResult convertVMPublish(Context ctx, VMPublish vmPublish) {
         String queueName = vmPublish.queueName();
         String funcName = ctx.projectCtx.vmQueueNameToBalFuncMap.get(queueName);
         if (funcName == null) {
@@ -688,31 +712,32 @@ public class MuleConfigConverter {
         namedWorkerBody.add(stmtFrom("ctx.payload = receivedPayload;"));
         namedWorkerBody.add(stmtFrom(String.format("%s(ctx);", funcName)));
 
-        List<Statement> stmts = new ArrayList<>(3);
-        stmts.add(new NamedWorkerDecl("W", Optional.of(typeFrom("error?")), namedWorkerBody));
+        List<Statement> stmts = new ArrayList<>(2);
         stmts.add(stmtFrom("\n\n// VM Publish\n"));
         stmts.add(stmtFrom(String.format("%s.payload -> W;", Constants.CONTEXT_REFERENCE)));
-        return stmts;
+
+        NamedWorkerDecl worker = new NamedWorkerDecl("W", Optional.of(typeFrom("error?")), namedWorkerBody);
+        return new WorkerStatementResult(stmts, List.of(worker));
     }
 
-    private static List<Statement> convertTransformMessage(Context ctx, TransformMessage transformMsg) {
+    private static WorkerStatementResult convertTransformMessage(Context ctx, TransformMessage transformMsg) {
         List<Statement> stmts = new ArrayList<>();
         DWReader.processDWElements(transformMsg.children(), ctx, stmts);
         stmts.add(stmtFrom("%s.payload = %s;".formatted(Constants.CONTEXT_REFERENCE,
                 DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME)));
-        return stmts;
+        return new WorkerStatementResult(stmts);
     }
 
-    private static List<Statement> convertUnsupportedBlock(Context ctx, UnsupportedBlock unsupportedBlock) {
+    private static WorkerStatementResult convertUnsupportedBlock(Context ctx, UnsupportedBlock unsupportedBlock) {
         String comment = ConversionUtils.convertToUnsupportedTODO(ctx, unsupportedBlock);
         // TODO: comment is not a statement. Find a better way to handle this
         // This works for now because we concatenate and create a body block `{ stmts }`
         // before parsing.
-        return List.of(stmtFrom(comment));
+        return new WorkerStatementResult(List.of(stmtFrom(comment)));
     }
 
     // Mule 4.x Error Handling Converters
-    private static List<Statement> convertErrorHandler(Context ctx, ErrorHandler errorHandler) {
+    private static ConversionResult convertErrorHandler(Context ctx, ErrorHandler errorHandler) {
         List<Statement> onFailBody;
         if (errorHandler.ref().isEmpty()) {
             onFailBody = convertErrorHandlerRecords(ctx, errorHandler.errorHandlers());
@@ -727,12 +752,10 @@ public class MuleConfigConverter {
 
         TypeBindingPattern typeBindingPattern = new TypeBindingPattern(BAL_ERROR_TYPE, Constants.ON_FAIL_ERROR_VAR_REF);
         OnFailClause onFailClause = new OnFailClause(onFailBody, typeBindingPattern);
-        DoStatement doStatement = new DoStatement(Collections.emptyList(), onFailClause);
-        PartialStatement partialStatement = new PartialStatement(doStatement);
-        return List.of(partialStatement);
+        return new FailClauseResult(onFailClause);
     }
 
-    private static List<Statement> convertOnErrorContinue(Context ctx, OnErrorContinue onErrorContinue) {
+    private static WorkerStatementResult convertOnErrorContinue(Context ctx, OnErrorContinue onErrorContinue) {
         List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n// on-error-continue\n"));
 
@@ -744,13 +767,13 @@ public class MuleConfigConverter {
             stmts.add(stmtFrom("\n\n"));
         }
 
-        List<Statement> errorBlocks = convertMuleBlocks(ctx, onErrorContinue.errorBlocks());
+        List<Statement> errorBlocks = convertMuleRegularBlocks(ctx, onErrorContinue.errorBlocks()).statements();
         stmts.addAll(errorBlocks);
 
-        return stmts;
+        return new WorkerStatementResult(stmts);
     }
 
-    private static List<Statement> convertOnErrorPropagate(Context ctx, OnErrorPropagate onErrorPropagate) {
+    private static WorkerStatementResult convertOnErrorPropagate(Context ctx, OnErrorPropagate onErrorPropagate) {
         List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n// on-error-propagate\n"));
 
@@ -762,7 +785,7 @@ public class MuleConfigConverter {
             stmts.add(stmtFrom("\n\n"));
         }
 
-        List<Statement> errorBlocks = convertMuleBlocks(ctx, onErrorPropagate.errorBlocks());
+        List<Statement> errorBlocks = convertMuleRegularBlocks(ctx, onErrorPropagate.errorBlocks()).statements();
         stmts.addAll(errorBlocks);
 
         if (ctx.projectCtx.attributes.containsKey(Constants.HTTP_RESPONSE_REF)) {
@@ -773,10 +796,10 @@ public class MuleConfigConverter {
             stmts.add(stmtFrom("panic " + Constants.ON_FAIL_ERROR_VAR_REF + ";"));
         }
 
-        return stmts;
+        return new WorkerStatementResult(stmts);
     }
 
-    private static List<Statement> convertRaiseError(Context ctx, RaiseError raiseError) {
+    private static WorkerStatementResult convertRaiseError(Context ctx, RaiseError raiseError) {
         String errorType = raiseError.type().replace(":", "__");
         if (!ctx.projectCtx.typeDefExists(errorType)) {
             ctx.currentFileCtx.balConstructs.typeDefs.put(
@@ -784,6 +807,6 @@ public class MuleConfigConverter {
             );
         }
         BallerinaStatement stmt = stmtFrom("fail error %s(\"%s\");".formatted(errorType, raiseError.description()));
-        return List.of(stmt);
+        return new WorkerStatementResult(List.of(stmt));
     }
 }
