@@ -570,10 +570,10 @@ public class MuleConfigConverter {
         return new WorkerStatementResult(stmts);
     }
 
-    private static List<Statement> convertScatterGather(Context ctx, ScatterGather scatterGather) {
+    private static WorkerStatementResult convertScatterGather(Context ctx, ScatterGather scatterGather) {
         List<Route> routes = scatterGather.routes();
         if (routes.isEmpty()) {
-            return List.of();
+            return new WorkerStatementResult(List.of());
         }
 
         List<Statement> stmts = new ArrayList<>();
@@ -592,7 +592,7 @@ public class MuleConfigConverter {
             workerBody.add(stmtFrom(String.format("\n// Route %d\n", i)));
 
             // Convert route blocks to worker statements
-            List<Statement> routeStmts = convertMuleBlocks(ctx, route.flowBlocks());
+            List<Statement> routeStmts = convertMuleRegularBlocks(ctx, route.flowBlocks()).statements();
             workerBody.addAll(routeStmts);
 
             // Send result back to main worker
@@ -636,13 +636,13 @@ public class MuleConfigConverter {
         // Set the collected results as payload
         stmts.add(stmtFrom(String.format("%s.payload = %s;\n\n", Constants.CONTEXT_REFERENCE,
                 scatterGatherResultsVar)));
-        return stmts;
+        return new WorkerStatementResult(stmts);
     }
 
-    private static List<Statement> convertFirstSuccessful(Context ctx, FirstSuccessful firstSuccessful) {
+    private static WorkerStatementResult convertFirstSuccessful(Context ctx, FirstSuccessful firstSuccessful) {
         List<Route> routes = firstSuccessful.routes();
         if (routes.isEmpty()) {
-            return List.of();
+            return new WorkerStatementResult(List.of());
         }
 
         // Create a function for each route
@@ -657,7 +657,7 @@ public class MuleConfigConverter {
             funcBody.add(stmtFrom("\n// Route %d\n".formatted(i)));
 
             // Convert route blocks to worker statements
-            List<Statement> routeStmts = convertMuleBlocks(ctx, route.flowBlocks());
+            List<Statement> routeStmts = convertMuleRegularBlocks(ctx, route.flowBlocks()).statements();
             funcBody.addAll(routeStmts);
 
             funcBody.add(stmtFrom("return %s.payload;".formatted(Constants.CONTEXT_REFERENCE)));
@@ -694,7 +694,7 @@ public class MuleConfigConverter {
         stmts.add(stmtFrom("anydata %s = check %s(%s);".formatted(firstSuccessfulResultVar, firstSuccessfulFuncName,
                 Constants.CONTEXT_REFERENCE)));
         stmts.add(stmtFrom("%s.payload = %s;\n\n".formatted(Constants.CONTEXT_REFERENCE, firstSuccessfulResultVar)));
-        return stmts;
+        return new WorkerStatementResult(stmts);
     }
 
     private static WorkerStatementResult convertVMPublish(Context ctx, VMPublish vmPublish) {
