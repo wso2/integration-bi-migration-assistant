@@ -29,6 +29,9 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static common.BallerinaModel.Expression.BallerinaExpression;
+import static common.BallerinaModel.Expression.StringConstant;
+import static common.BallerinaModel.Expression.VariableReference;
 import static common.BallerinaModel.Statement.Comment;
 
 public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules) {
@@ -322,8 +325,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
 
         public static ModuleVar configurable(String name, TypeDesc typeDesc) {
-            return new ModuleVar(name, typeDesc.toString(), Optional.of(new Expression.BallerinaExpression("?")), true,
-                    true);
+            return new ModuleVar(name, typeDesc.toString(), Optional.of(new BallerinaExpression("?")), true, true);
         }
 
         @Override
@@ -404,7 +406,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
             public HTTPListener(String name, String port, String host) {
                 this(name, ConversionUtils.exprFrom(port),
-                        host.equals("0.0.0.0") ? Optional.empty() : Optional.of(new Expression.StringConstant(host)));
+                        host.equals("0.0.0.0") ? Optional.empty() : Optional.of(new StringConstant(host)));
             }
 
             @Override
@@ -498,9 +500,9 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                                      Optional<List<String>> paramTypes) implements FunctionBody {
     }
 
-    public record Parameter(String name, TypeDesc type, Optional<Expression.BallerinaExpression> defaultExpr) {
+    public record Parameter(String name, TypeDesc type, Optional<BallerinaExpression> defaultExpr) {
 
-        public Parameter(TypeDesc typeDesc, String name, Expression.BallerinaExpression defaultExpr) {
+        public Parameter(TypeDesc typeDesc, String name, BallerinaExpression defaultExpr) {
             this(name, typeDesc, Optional.of(defaultExpr));
         }
 
@@ -508,8 +510,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             this(name, type, Optional.empty());
         }
 
-        public Expression.VariableReference ref() {
-            return new Expression.VariableReference(name);
+        public VariableReference ref() {
+            return new VariableReference(name);
         }
 
         @Override
@@ -783,7 +785,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
-        record ElseIfClause(Expression.BallerinaExpression condition, List<Statement> elseIfBody) {
+        record ElseIfClause(BallerinaExpression condition, List<Statement> elseIfBody) {
 
             @Override
             public String toString() {
@@ -846,8 +848,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                         .orElseGet(() -> type + " " + varName + ";");
             }
 
-            public Expression.VariableReference ref() {
-                return new Expression.VariableReference(varName());
+            public VariableReference ref() {
+                return new VariableReference(varName());
             }
         }
 
@@ -919,15 +921,6 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                         comment.lines().filter(Predicate.not(String::isBlank)).collect(Collectors.joining("\n// ")) +
                         "\n";
             }
-        }
-
-        /**
-         * This is used to represent a statement that is not fully constructed yet.
-         *
-         * @param statement the statement that is partially constructed
-         */
-        // TODO: this is a temporary hack. Will be removed with wso2/integration-bi-migration-assistant#281
-        record PartialStatement(Statement statement) implements Statement {
         }
     }
 
