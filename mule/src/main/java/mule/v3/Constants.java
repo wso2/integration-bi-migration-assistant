@@ -79,6 +79,9 @@ public class Constants {
     public static final String FUNC_WRAP_ROUTE_ERR = "wrapRouteError";
     public static final String VAR_ITERATOR_TEMPLATE = "iterator%d";
     public static final String VAR_ORIGINAL_PAYLOAD_TEMPLATE = "originalPayload%d";
+    public static final String FUNC_FIRST_SUCCESSFUL_ROUTE = "firstSuccessfulRoute%d";
+    public static final String FUNC_FIRST_SUCCESSFUL = "firstSuccessful%d";
+    public static final String VAR_FIRST_SUCCESSFUL_RESULT = "firstSuccessfulResult%d";
 
     // Types
     public static final String HTTP_RESPONSE_TYPE = "http:Response";

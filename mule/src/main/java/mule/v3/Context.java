@@ -191,5 +191,7 @@ public class Context extends ContextBase {
         public int scatterGatherVarCount = 0;
         public int foreachIteratorCount = 0;
         public int originalPayloadVarCount = 0;
+        public int firstSuccessfulFuncCount = 0;
+        public int firstSuccessfulCount = 0;
     }
 }

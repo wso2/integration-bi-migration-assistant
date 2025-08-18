@@ -45,6 +45,7 @@ import static mule.v3.model.MuleModel.DbGenericConfig;
 import static mule.v3.model.MuleModel.DbTemplateQuery;
 import static mule.v3.model.MuleModel.Enricher;
 import static mule.v3.model.MuleModel.ExpressionComponent;
+import static mule.v3.model.MuleModel.FirstSuccessful;
 import static mule.v3.model.MuleModel.Flow;
 import static mule.v3.model.MuleModel.FlowReference;
 import static mule.v3.model.MuleModel.Foreach;
@@ -213,6 +214,9 @@ public class MuleConfigReader {
             case MuleXMLTag.FOREACH -> {
                 return readForeach(ctx, muleElement);
             }
+            case MuleXMLTag.FIRST_SUCCESSFUL -> {
+                return readFirstSuccessful(ctx, muleElement);
+            }
             default -> {
                 return readUnsupportedBlock(ctx, muleElement);
             }
@@ -378,6 +382,22 @@ public class MuleConfigReader {
             }
         }
         return new ScatterGather(processorChains);
+    }
+
+    private static FirstSuccessful readFirstSuccessful(Context ctx, MuleElement muleElement) {
+        List<ProcessorChain> processorChains = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals(MuleXMLTag.PROCESSOR_CHAIN.tag())) {
+                ProcessorChain processorChain = readProcessorChain(ctx, child);
+                processorChains.add(processorChain);
+            } else {
+                MuleRecord muleRecord = readBlock(ctx, child);
+                processorChains.add(new ProcessorChain(List.of(muleRecord)));
+            }
+        }
+        return new FirstSuccessful(processorChains);
     }
 
     private static ProcessorChain readProcessorChain(Context ctx, MuleElement muleElement) {

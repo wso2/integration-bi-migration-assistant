@@ -35,6 +35,7 @@ The migration tool currently supports the following Mule components:
 - [Choice Exception Strategy](docs/palette-item-mappings-v3.md#choice-exception-strategy)
 - [Database Connector](docs/palette-item-mappings-v3.md#database-connector)
 - [Expression Component](docs/palette-item-mappings-v3.md#expression-component)
+- [First Successful](docs/palette-item-mappings-v3.md#first-successful)
 - [Flow](docs/palette-item-mappings-v3.md#flow)
 - [For Each](docs/palette-item-mappings-v3.md#for-each)
 - [Http Listener](docs/palette-item-mappings-v3.md#http-listener)

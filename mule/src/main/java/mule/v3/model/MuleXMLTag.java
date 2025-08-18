@@ -38,6 +38,8 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     CHOICE("choice", 3),
     WHEN("when", 2),
     OTHERWISE("otherwise", 2),
+    SCATTER_GATHER("scatter-gather", 4),
+    FIRST_SUCCESSFUL("first-successful", 4),
 
     // Components
     LOGGER("logger", 1),
@@ -51,7 +53,6 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     FOREACH("foreach", 3),
     ENRICHER("enricher", 5),
     ASYNC("async", 4),
-    SCATTER_GATHER("scatter-gather", 4),
     PROCESSOR_CHAIN("processor-chain", 2),
 
     // Transformers

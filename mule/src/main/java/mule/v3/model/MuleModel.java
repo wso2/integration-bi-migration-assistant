@@ -164,6 +164,12 @@ public record MuleModel() {
         }
     }
 
+    public record FirstSuccessful(Kind kind, List<ProcessorChain> processorChains) implements MuleRecord {
+        public FirstSuccessful(List<ProcessorChain> processorChains) {
+            this(Kind.FIRST_SUCCESSFUL, processorChains);
+        }
+    }
+
     public record ProcessorChain(Kind kind, List<MuleRecord> flowBlocks) implements MuleRecord {
         public ProcessorChain(List<MuleRecord> flowBlocks) {
             this(Kind.PROCESSOR_CHAIN, flowBlocks);
@@ -334,6 +340,7 @@ public record MuleModel() {
         REFERENCE_EXCEPTION_STRATEGY,
         UNSUPPORTED_BLOCK,
         SCATTER_GATHER,
+        FIRST_SUCCESSFUL,
         PROCESSOR_CHAIN
     }
 

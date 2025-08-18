@@ -8,6 +8,7 @@
 - [Choice Exception Strategy](palette-item-mappings-v3.md#choice-exception-strategy)
 - [Database Connector](palette-item-mappings-v3.md#database-connector)
 - [Expression Component](palette-item-mappings-v3.md#expression-component)
+- [First Successful](palette-item-mappings-v3.md#first-successful)
 - [Flow](palette-item-mappings-v3.md#flow)
 - [For Each](palette-item-mappings-v3.md#for-each)
 - [Http Listener](palette-item-mappings-v3.md#http-listener)
@@ -835,6 +836,113 @@ public function combineFlowVarsAndPayloadFlow(Context ctx) {
     ctx.flowVars.name = "Alice";
     ctx.payload = "Hello " + ctx.flowVars.name;
     log:printInfo(string `Message: ${ctx.payload.toString()}`);
+}
+
+```
+
+## First Successful
+
+- ### Basic First Successful
+
+**Input (basic_first_successful.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.9/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.9/mule-http.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+
+    <http:listener-config name="http_listener" host="0.0.0.0" port="9090" doc:name="HTTP Listener config"/>
+
+    <flow name="scatterGatherFlow">
+        <http:listener config-ref="http_listener" path="/first_successful" doc:name="HTTP Listener"/>
+        <first-successful doc:name="First Successful">
+            <set-payload value="Route 0 completed" doc:name="Set Payload 1"/>
+            <set-payload value="Route 1 completed" doc:name="Set Payload 2"/>
+            <set-payload value="Route 2 completed" doc:name="Set Payload 3"/>
+        </first-successful>
+        <logger level="INFO" message="#[payload]" doc:name="Logger"/>
+    </flow>
+</mule>
+
+```
+**Output (basic_first_successful.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type InboundProperties record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    InboundProperties inboundProperties;
+|};
+
+public listener http:Listener http_listener = new (9090);
+
+service / on http_listener {
+    resource function default first_successful(http:Request request) returns http:Response|error {
+        Context ctx = {inboundProperties: {request, response: new}};
+
+        // first-successful sequential route execution
+        anydata firstSuccessfulResult0 = check firstSuccessful0(ctx);
+        ctx.payload = firstSuccessfulResult0;
+
+        log:printInfo(ctx.payload.toString());
+
+        ctx.inboundProperties.response.setPayload(ctx.payload);
+        return ctx.inboundProperties.response;
+    }
+}
+
+public function firstSuccessful0(Context ctx) returns anydata|error {
+    anydata|error r0 = firstSuccessfulRoute0(ctx);
+    if r0 !is error {
+        return r0;
+    }
+    anydata|error r1 = firstSuccessfulRoute1(ctx);
+    if r1 !is error {
+        return r1;
+    }
+    anydata|error r2 = firstSuccessfulRoute2(ctx);
+    if r2 !is error {
+        return r2;
+    }
+    return error("All routes failed", r2);
+}
+
+public function firstSuccessfulRoute2(Context ctx) returns anydata|error {
+    // Route 2
+
+    // set payload
+    string payload2 = "Route 2 completed";
+    ctx.payload = payload2;
+    return ctx.payload;
+}
+
+public function firstSuccessfulRoute1(Context ctx) returns anydata|error {
+    // Route 1
+
+    // set payload
+    string payload1 = "Route 1 completed";
+    ctx.payload = payload1;
+    return ctx.payload;
+}
+
+public function firstSuccessfulRoute0(Context ctx) returns anydata|error {
+    // Route 0
+
+    // set payload
+    string payload0 = "Route 0 completed";
+    ctx.payload = payload0;
+    return ctx.payload;
 }
 
 ```
