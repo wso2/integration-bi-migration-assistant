@@ -17,6 +17,7 @@
  */
 package common;
 
+import common.BallerinaModel.ClassDef;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
@@ -40,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
@@ -144,6 +146,21 @@ public class CodeGenerator {
             NodeList<Node> nodeList = NodeFactory.createNodeList(members);
             serviceDecl = serviceDecl.modify().withMembers(nodeList).apply();
             moduleMembers.add(serviceDecl);
+        }
+
+        for (ClassDef classDef : textDocument.classDefs()) {
+            String inclusionsStr = classDef.typeInclusions().stream().map("*%s;"::formatted)
+                    .collect(Collectors.joining());
+            String fieldsStr = classDef.fields().stream().map(ObjectField::toString).collect(Collectors.joining());
+            List<FunctionDefinitionNode> funcDefNode = new ArrayList<>(classDef.methods().size());
+            for (Function f : classDef.methods()) {
+                funcDefNode.add(genFunctionDefinitionNode(f));
+            }
+            String funcStr = funcDefNode.stream().map(FunctionDefinitionNode::toSourceCode)
+                    .collect(Collectors.joining());
+            String classDefStr = "class %s { %s %s %s }".formatted(classDef.className(), inclusionsStr, fieldsStr,
+                    funcStr);
+            moduleMembers.add(NodeParser.parseModuleMemberDeclaration(classDefStr));
         }
 
         for (Function f : textDocument.functions()) {

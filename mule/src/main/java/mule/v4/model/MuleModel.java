@@ -61,6 +61,12 @@ public record MuleModel() {
         }
     }
 
+    public record Scheduler(Kind kind, String frequency, String timeUnit) implements MuleRecord {
+        public Scheduler(String frequency, String timeUnit) {
+            this(Kind.SCHEDULER, frequency, timeUnit);
+        }
+    }
+
     public record ExpressionComponent(Kind kind, String exprCompContent) implements MuleRecord {
         public ExpressionComponent(String exprCompContent) {
             this(Kind.EXPRESSION_COMPONENT, exprCompContent);
@@ -331,6 +337,7 @@ public record MuleModel() {
         VM_PUBLISH,
         VM_CONSUME,
         LOGGER,
+        SCHEDULER,
         EXPRESSION_COMPONENT,
         PAYLOAD,
         FLOW_REFERENCE,

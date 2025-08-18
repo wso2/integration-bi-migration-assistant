@@ -454,6 +454,6 @@ public class MuleToBalConverter {
                                                     List<Service> services, List<Function> functions,
                                                     List<String> comments) {
         return new TextDocument(docName, imports, moduleTypeDefs, moduleVars, listeners,
-                services, functions, comments);
+                services, List.of(), functions, comments);
     }
 }

@@ -79,13 +79,13 @@ public final class BICodeConverter {
     private BallerinaModel.TextDocument configs(BallerinaModel.Module module) {
         List<BallerinaModel.ModuleVar> configs = extractConfigurable(module);
         return new BallerinaModel.TextDocument("configs.bal", List.of(), List.of(), configs,
-                List.of(), List.of(), List.of(), List.of());
+                List.of(), List.of(), List.of(), List.of(), List.of());
     }
 
     private BallerinaModel.TextDocument connections(BallerinaModel.Module module) {
         List<BallerinaModel.ModuleVar> connections = extractConnections(module);
         return new BallerinaModel.TextDocument("connections.bal", List.of(), List.of(), connections,
-                List.of(), List.of(), List.of(), List.of());
+                List.of(), List.of(), List.of(), List.of(), List.of());
     }
 
     private BallerinaModel.TextDocument mainFile(BallerinaModel.Module module) {
@@ -94,15 +94,16 @@ public final class BICodeConverter {
         List<String> intrinsics = extractNamespaceInrinsics(module);
         // uncategorized module vars are kept in main file.
         List<BallerinaModel.ModuleVar> moduleVars = extractUncategorizedModuleVars(module);
+        List<BallerinaModel.ClassDef> classes = extractClasses(module);
 
         return new BallerinaModel.TextDocument("main.bal", List.of(), List.of(), moduleVars,
-                listeners, services, List.of(), List.of(), intrinsics, List.of());
+                listeners, services, classes, List.of(), List.of(), intrinsics, List.of());
     }
 
     private BallerinaModel.TextDocument comments(BallerinaModel.Module module) {
         List<String> comments = extractDocComments(module);
         return new BallerinaModel.TextDocument("todo.bal", List.of(), List.of(), List.of(),
-                List.of(), List.of(), List.of(), comments);
+                List.of(), List.of(), List.of(), List.of(), comments);
     }
 
     private BallerinaModel.TextDocument types(BallerinaModel.Module module) {
@@ -242,6 +243,11 @@ public final class BICodeConverter {
 
     private List<BallerinaModel.Listener> extractListeners(BallerinaModel.Module module) {
         return getTextDocumentStream(module).flatMap(doc -> doc.listeners().stream())
+                .toList();
+    }
+
+    private List<BallerinaModel.ClassDef> extractClasses(BallerinaModel.Module module) {
+        return getTextDocumentStream(module).flatMap(doc -> doc.classDefs().stream())
                 .toList();
     }
 

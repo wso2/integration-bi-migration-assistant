@@ -21,6 +21,7 @@
 - [On Error Propagate](palette-item-mappings-v4.md#on-error-propagate)
 - [Raise Error](palette-item-mappings-v4.md#raise-error)
 - [Scatter Gather](palette-item-mappings-v4.md#scatter-gather)
+- [Scheduler](palette-item-mappings-v4.md#scheduler)
 - [Set Payload](palette-item-mappings-v4.md#set-payload)
 - [Sub Flow](palette-item-mappings-v4.md#sub-flow)
 - [Transform Message](palette-item-mappings-v4.md#transform-message)
@@ -3068,6 +3069,53 @@ public function wrapRouteErrorIfExists(string key, anydata|error value) returns 
         return error(string `Error in Route ${key}: ${value.message()}`, value);
     }
     return value;
+}
+
+```
+
+## Scheduler
+
+- ### Basic Scheduler
+
+**Input (basic_scheduler.xml):**
+```xml
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:scheduler="http://www.mulesoft.org/schema/mule/scheduler"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/scheduler http://www.mulesoft.org/schema/mule/scheduler/current/mule-scheduler.xsd">
+    <flow name="schedulerFlow">
+        <scheduler>
+            <scheduling-strategy>
+                <fixed-frequency frequency="5" timeUnit="SECONDS"/>
+            </scheduling-strategy>
+        </scheduler>
+        <logger level="INFO" message="Scheduler triggered]"/>
+    </flow>
+</mule>
+
+```
+**Output (basic_scheduler.bal):**
+```ballerina
+import ballerina/log;
+import ballerina/task;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+class Job {
+    *task:Job;
+
+    public function execute() {
+        log:printInfo("Scheduler triggered]");
+    }
+}
+
+public function main() returns error? {
+    task:JobId id = check task:scheduleJobRecurByFrequency(new Job(), 5.0);
 }
 
 ```

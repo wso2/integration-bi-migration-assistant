@@ -80,6 +80,7 @@ public class TestIRCodeGen {
                 Collections.singletonList(httpListener),
                 Collections.singletonList(service),
                 Collections.emptyList(),
+                Collections.emptyList(),
                 comments);
 
         SyntaxTree syntaxTree = new CodeGenerator(textDocument).generateSyntaxTree();
