@@ -43,6 +43,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import static common.BallerinaModel.BlockFunctionBody;
+import static common.BallerinaModel.Expression.BallerinaExpression;
 import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.Listener;
@@ -73,6 +74,7 @@ import static mule.v3.model.MuleModel.CatchExceptionStrategy;
 import static mule.v3.model.MuleModel.ChoiceExceptionStrategy;
 import static mule.v3.model.MuleModel.DbMSQLConfig;
 import static mule.v3.model.MuleModel.DbOracleConfig;
+import static mule.v3.model.MuleModel.DbGenericConfig;
 import static mule.v3.model.MuleModel.DbTemplateQuery;
 import static mule.v3.model.MuleModel.Flow;
 import static mule.v3.model.MuleModel.HTTPListenerConfig;
@@ -187,6 +189,21 @@ public class MuleToBalConverter {
                     getAttrVal(ctx, dbOracleConfig.password()), getAttrVal(ctx, dbOracleConfig.instance()),
                     getAttrValInt(ctx, dbOracleConfig.port())));
             moduleVars.add(new ModuleVar(dbOracleConfig.name(), typeFrom(Constants.ORACLEDB_CLIENT_TYPE), balExpr));
+        }
+
+        for (DbGenericConfig dbGenericConfig : ctx.currentFileCtx.configs.dbGenericConfigs.values()) {
+            String url = getAttrVal(ctx, dbGenericConfig.url());
+            JavaDependencies javaDependencies = determineJdbcDependencyFromUrl(url);
+            ctx.projectCtx.addJavaDependency(javaDependencies);
+            BallerinaExpression balExpr;
+            if (dbGenericConfig.user().isEmpty()) {
+                balExpr = exprFrom(String.format("check new (%s)", url));
+            } else {
+                balExpr = exprFrom(String.format("check new (%s, %s, %s)",
+                        url, getAttrVal(ctx, dbGenericConfig.user()),
+                        getAttrVal(ctx, dbGenericConfig.password())));
+            }
+            moduleVars.add(new ModuleVar(dbGenericConfig.name(), typeFrom(Constants.JDBC_CLIENT_TYPE), balExpr));
         }
 
         for (DbTemplateQuery dbTemplateQuery : ctx.currentFileCtx.configs.dbTemplateQueries.values()) {
@@ -455,5 +472,61 @@ public class MuleToBalConverter {
                                                     List<String> comments) {
         return new TextDocument(docName, imports, moduleTypeDefs, moduleVars, listeners,
                 services, List.of(), functions, comments);
+    }
+
+    private static JavaDependencies determineJdbcDependencyFromUrl(String dbUrl) {
+        String url = dbUrl.trim();
+        if (url.startsWith("jdbc:h2:")) {
+            return JavaDependencies.JDBC_H2;
+        } else if (url.startsWith("jdbc:mysql:")) {
+            return JavaDependencies.JDBC_MYSQL;
+        } else if (url.startsWith("jdbc:postgresql:")) {
+            return JavaDependencies.JDBC_POSTGRESQL;
+        } else if (url.startsWith("jdbc:oracle:")) {
+            return JavaDependencies.JDBC_ORACLE;
+        } else if (url.startsWith("jdbc:mariadb:")) {
+            return JavaDependencies.JDBC_MARIADB;
+        }
+        // Default to H2 for unknown JDBC URLs
+        return JavaDependencies.JDBC_H2;
+    }
+
+    public enum JavaDependencies {
+        JDBC_H2("""
+                [[platform.java17.dependency]]
+                artifactId = "h2"
+                version = "2.0.206"
+                groupId = "com.h2database"
+                """),
+        JDBC_POSTGRESQL("""
+                [[platform.java17.dependency]]
+                artifactId = "postgresql"
+                version = "42.7.2"
+                groupId = "org.postgresql"
+                """),
+        JDBC_MYSQL("""
+                [[platform.java17.dependency]]
+                artifactId = "mysql-connector-java"
+                version = "8.0.33"
+                groupId = "mysql"
+                """),
+        JDBC_ORACLE("""
+                [[platform.java17.dependency]]
+                artifactId = "ojdbc8"
+                version = "21.9.0.0"
+                groupId = "com.oracle.database.jdbc"
+                """),
+        JDBC_MARIADB("""
+                [[platform.java17.dependency]]
+                artifactId = "mariadb-java-client"
+                version = "3.1.4"
+                groupId = "org.mariadb.jdbc"
+                """);
+
+        public final String dependencyParam;
+
+        JavaDependencies(String dependencyParam) {
+            this.dependencyParam = dependencyParam;
+        }
     }
 }

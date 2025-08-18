@@ -23,6 +23,7 @@ import mule.common.MigrationMetrics;
 import mule.v3.dataweave.converter.DWConstruct;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -35,6 +36,7 @@ import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
 import static mule.v3.model.MuleModel.DbMSQLConfig;
 import static mule.v3.model.MuleModel.DbOracleConfig;
+import static mule.v3.model.MuleModel.DbGenericConfig;
 import static mule.v3.model.MuleModel.DbTemplateQuery;
 import static mule.v3.model.MuleModel.HTTPListenerConfig;
 import static mule.v3.model.MuleModel.HTTPRequestConfig;
@@ -84,6 +86,7 @@ public class Context extends ContextBase {
     }
 
     public static class ProjectContext {
+        private final List<MuleToBalConverter.JavaDependencies> javaDependencies = new ArrayList<>();
         public final Counters counters = new Counters();
 
         public final LinkedHashMap<String, String> flowVars = new LinkedHashMap<>();
@@ -96,8 +99,17 @@ public class Context extends ContextBase {
         List<HashMap<String, HTTPRequestConfig>> httpRequestConfigMaps = new ArrayList<>();
         List<HashMap<String, DbMSQLConfig>> dbMySQLConfigMaps = new ArrayList<>();
         List<HashMap<String, DbOracleConfig>> dbOracleConfigMaps = new ArrayList<>();
+        List<HashMap<String, DbGenericConfig>> dbGenericConfigMaps = new ArrayList<>();
         List<HashMap<String, DbTemplateQuery>> dbTemplateQueryMaps = new ArrayList<>();
         List<HashMap<String, ModuleVar>> configurableVarMaps = new ArrayList<>();
+
+        public void addJavaDependency(MuleToBalConverter.JavaDependencies dependencies) {
+            javaDependencies.add(dependencies);
+        }
+
+        public List<MuleToBalConverter.JavaDependencies> javaDependencies() {
+            return Collections.unmodifiableList(javaDependencies);
+        }
 
         public HTTPListenerConfig getHttpListenerConfig(String key) {
             for (HashMap<String, HTTPListenerConfig> configMap : httpListenerConfigMaps) {
@@ -134,6 +146,7 @@ public class Context extends ContextBase {
         public final HashMap<String, HTTPRequestConfig> httpRequestConfigs = new LinkedHashMap<>();
         public final HashMap<String, DbMSQLConfig> dbMySQLConfigs = new LinkedHashMap<>();
         public final HashMap<String, DbOracleConfig> dbOracleConfigs = new LinkedHashMap<>();
+        public final HashMap<String, DbGenericConfig> dbGenericConfigs = new LinkedHashMap<>();
         public final HashMap<String, DbTemplateQuery> dbTemplateQueries = new LinkedHashMap<>();
         public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
         public final List<MuleRecord> globalExceptionStrategies = new ArrayList<>();
@@ -144,6 +157,7 @@ public class Context extends ContextBase {
             projCtx.httpRequestConfigMaps.add(httpRequestConfigs);
             projCtx.dbMySQLConfigMaps.add(dbMySQLConfigs);
             projCtx.dbOracleConfigMaps.add(dbOracleConfigs);
+            projCtx.dbGenericConfigMaps.add(dbGenericConfigs);
             projCtx.dbTemplateQueryMaps.add(dbTemplateQueries);
             projCtx.configurableVarMaps.add(configurableVars);
         }

@@ -647,6 +647,74 @@ service /mule3 on config {
 
 ```
 
+- ### Generic Db Select
+
+**Input (generic_db_select.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="config" host="localhost" port="8081" basePath="/mule3" doc:name="HTTP Listener Configuration"/>
+    <db:generic-config name="Generic_Database_Configuration" url="jdbc:postgresql://localhost:5432/bookstore" user="root" password="admin" doc:name="Generic Database Configuration"/>
+    <flow name="demoFlow">
+        <http:listener config-ref="config" path="/demo" allowedMethods="GET" doc:name="HTTP"/>
+        <logger message="xxx: logger invoked" level="INFO" doc:name="Logger"/>
+        <db:select config-ref="Generic_Database_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[SELECT * FROM users;]]></db:parameterized-query>
+        </db:select>
+    </flow>
+</mule>
+
+```
+**Output (generic_db_select.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+import ballerina/sql;
+import ballerinax/java.jdbc;
+
+public type InboundProperties record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    InboundProperties inboundProperties;
+|};
+
+public type Record record {
+};
+
+jdbc:Client Generic_Database_Configuration = check new ("jdbc:postgresql://localhost:5432/bookstore", "root", "admin");
+public listener http:Listener config = new (8081, {host: "localhost"});
+
+service /mule3 on config {
+    resource function get demo(http:Request request) returns http:Response|error {
+        Context ctx = {inboundProperties: {request, response: new}};
+        log:printInfo("xxx: logger invoked");
+
+        // database operation
+        sql:ParameterizedQuery dbQuery0 = `SELECT * FROM users;`;
+        stream<Record, sql:Error?> dbStream0 = Generic_Database_Configuration->query(dbQuery0);
+        Record[] dbSelect0 = check from Record _iterator_ in dbStream0
+            select _iterator_;
+        ctx.payload = dbSelect0;
+
+        ctx.inboundProperties.response.setPayload(ctx.payload);
+        return ctx.inboundProperties.response;
+    }
+}
+
+```
+
 - ### Oracle Db Select
 
 **Input (oracle_db_select.xml):**

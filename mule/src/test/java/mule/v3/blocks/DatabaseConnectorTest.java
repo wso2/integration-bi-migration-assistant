@@ -36,4 +36,9 @@ public class DatabaseConnectorTest extends AbstractBlockTest {
     public void testOracleDbSelect() {
         testMule3ToBal("database-connector/oracle_db_select.xml", "database-connector/oracle_db_select.bal");
     }
+
+    @Test
+    public void testGenericDbSelect() {
+        testMule3ToBal("database-connector/generic_db_select.xml", "database-connector/generic_db_select.bal");
+    }
 }

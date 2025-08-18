@@ -566,6 +566,13 @@ public class MuleMigrator {
                 tomlContent.append("\n");
                 tomlContent.append(each.dependencyParam);
             }
+        } else if (ctx instanceof mule.v3.Context v3Ctx) {
+            for (var each : v3Ctx.projectCtx.javaDependencies()) {
+                tomlContent.append("\n");
+                tomlContent.append(each.dependencyParam);
+            }
+        } else {
+            throw new IllegalStateException();
         }
 
         return Map.of("Ballerina.toml", tomlContent.toString());

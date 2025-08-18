@@ -238,6 +238,13 @@ public record MuleModel() {
         }
     }
 
+    public record DbGenericConfig(Kind kind, String name, String url, String user, String password)
+            implements MuleRecord {
+        public DbGenericConfig(String name, String url, String user, String password) {
+            this(Kind.DB_GENERIC_CONFIG, name, url, user, password);
+        }
+    }
+
     public record DbTemplateQuery(Kind kind, String name, String parameterizedQuery,
                                   List<DbInParam> dbInParams) implements MuleRecord {
         public DbTemplateQuery(String name, String parameterizedQuery, List<DbInParam> dbInParams) {
@@ -281,6 +288,7 @@ public record MuleModel() {
         HTTP_REQUEST_CONFIG,
         DB_MYSQL_CONFIG,
         DB_ORACLE_CONFIG,
+        DB_GENERIC_CONFIG,
         DB_TEMPLATE_QUERY,
         DB_INSERT,
         DB_SELECT,
