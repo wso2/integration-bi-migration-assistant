@@ -525,7 +525,7 @@ public class ProjectContext implements LoggingContext {
         String name;
         if (activity instanceof InlineActivity inlineActivity) {
             name = inlineActivity.name();
-            String type = inlineActivity.type().name();
+            String type = inlineActivity.type().toTibcoType();
             Element element = inlineActivity.element();
             unhandledActivities.add(new NamedUnhandledActivityElement(name, type, element, fileName));
         } else {
@@ -557,7 +557,7 @@ public class ProjectContext implements LoggingContext {
         String name;
         if (activity instanceof InlineActivity inlineActivity) {
             name = inlineActivity.name();
-            String type = inlineActivity.type().name();
+            String type = inlineActivity.type().toTibcoType();
             Element element = inlineActivity.element();
             partiallySupportedActivities.add(new NamedPartiallySupportedActivityElement(name, type, element, fileName));
         } else {
