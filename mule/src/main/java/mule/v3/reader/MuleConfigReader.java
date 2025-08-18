@@ -41,6 +41,7 @@ import static mule.v3.model.MuleModel.Database;
 import static mule.v3.model.MuleModel.DbInParam;
 import static mule.v3.model.MuleModel.DbMSQLConfig;
 import static mule.v3.model.MuleModel.DbOracleConfig;
+import static mule.v3.model.MuleModel.DbGenericConfig;
 import static mule.v3.model.MuleModel.DbTemplateQuery;
 import static mule.v3.model.MuleModel.Enricher;
 import static mule.v3.model.MuleModel.ExpressionComponent;
@@ -112,6 +113,9 @@ public class MuleConfigReader {
         } else if (MuleXMLTag.DB_ORACLE_CONFIG.tag().equals(elementTagName)) {
             DbOracleConfig dbOracleConfig = readDbOracleConfig(ctx, muleElement);
             ctx.currentFileCtx.configs.dbOracleConfigs.put(dbOracleConfig.name(), dbOracleConfig);
+        } else if (MuleXMLTag.DB_GENERIC_CONFIG.tag().equals(elementTagName)) {
+            DbGenericConfig dbGenericConfig = readDbGenericConfig(ctx, muleElement);
+            ctx.currentFileCtx.configs.dbGenericConfigs.put(dbGenericConfig.name(), dbGenericConfig);
         } else if (MuleXMLTag.DB_TEMPLATE_QUERY.tag().equals(elementTagName)) {
             DbTemplateQuery dbTemplateQuery = readDbTemplateQuery(ctx, muleElement);
             ctx.currentFileCtx.configs.dbTemplateQueries.put(dbTemplateQuery.name(), dbTemplateQuery);
@@ -596,6 +600,16 @@ public class MuleConfigReader {
         String password = element.getAttribute("password");
         String instance = element.getAttribute("instance");
         return new DbOracleConfig(name, host, port, user, password, instance);
+    }
+
+    private static DbGenericConfig readDbGenericConfig(Context ctx, MuleElement muleElement) {
+        ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_JAVA_JDBC));
+        Element element = muleElement.getElement();
+        String name = element.getAttribute("name");
+        String url = element.getAttribute("url");
+        String user = element.getAttribute("user");
+        String password = element.getAttribute("password");
+        return new DbGenericConfig(name, url, user, password);
     }
 
     private static DbTemplateQuery readDbTemplateQuery(Context ctx, MuleElement muleElement) {
