@@ -88,8 +88,8 @@ public class TibcoAnalysisReportTest {
         Assert.assertEquals(summary.projectName(), "TestProject");
         Assert.assertEquals(summary.projectPath(), "/path/to/project");
         Assert.assertEquals(summary.reportPath(), "report.html");
-        Assert.assertEquals(summary.activityEstimation().totalActivityCount(), 10);
-        Assert.assertEquals(summary.activityEstimation().unhandledActivityCount(), 3);
+        Assert.assertEquals(summary.totalActivityCount(), 10);
+        Assert.assertEquals(summary.unhandledActivityCount(), 3);
         Assert.assertEquals(summary.successfulConversionPercentage(), 70.0); // 70% success rate
     }
 
@@ -106,8 +106,8 @@ public class TibcoAnalysisReportTest {
         Assert.assertEquals(summary.unhandledActivities().size(), 0);
 
         // Verify other fields
-        Assert.assertEquals(summary.activityEstimation().totalActivityCount(), 5);
-        Assert.assertEquals(summary.activityEstimation().unhandledActivityCount(), 0);
+        Assert.assertEquals(summary.totalActivityCount(), 5);
+        Assert.assertEquals(summary.unhandledActivityCount(), 0);
         Assert.assertEquals(summary.successfulConversionPercentage(), 100.0); // 100% success rate
     }
 }

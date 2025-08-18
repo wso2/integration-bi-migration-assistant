@@ -447,7 +447,7 @@ public class AnalysisReport {
         }
 
         // Generate estimation notes
-        html.append(generateEstimationNotes(elementType));
+        html.append(ReportUtils.generateEstimationScenarios(elementType));
 
         // Generate unsupported elements section
         html.append(generateUnsupportedElements(typeFrequencyMap));
@@ -570,9 +570,9 @@ public class AnalysisReport {
                             </tr>
                         </table>
                 """.formatted(
-                toDays(estimation.bestCaseDaysAsInt()), toWeeks(bestCaseWeeks),
-                toDays(estimation.averageCaseDaysAsInt()), toWeeks(avgCaseWeeks),
-                toDays(estimation.worstCaseDaysAsInt()), toWeeks(worstCaseWeeks)
+                ReportUtils.toDays(estimation.bestCaseDaysAsInt()), ReportUtils.toWeeks(bestCaseWeeks),
+                ReportUtils.toDays(estimation.averageCaseDaysAsInt()), ReportUtils.toWeeks(avgCaseWeeks),
+                ReportUtils.toDays(estimation.worstCaseDaysAsInt()), ReportUtils.toWeeks(worstCaseWeeks)
         );
     }
 
@@ -630,62 +630,18 @@ public class AnalysisReport {
                             </tr>
                         </table>
                 """.formatted(
-                toDays(conversionEstimation.bestCaseDaysAsInt()),
-                toDays(conversionEstimation.averageCaseDaysAsInt()),
-                toDays(conversionEstimation.worstCaseDaysAsInt()),
-                toDays(validationEstimation.bestCaseDaysAsInt()),
-                toDays(validationEstimation.averageCaseDaysAsInt()),
-                toDays(validationEstimation.worstCaseDaysAsInt()),
-                toDays(totalEstimation.bestCaseDaysAsInt()),
-                toDays(totalEstimation.averageCaseDaysAsInt()),
-                toDays(totalEstimation.worstCaseDaysAsInt())
+                ReportUtils.toDays(conversionEstimation.bestCaseDaysAsInt()),
+                ReportUtils.toDays(conversionEstimation.averageCaseDaysAsInt()),
+                ReportUtils.toDays(conversionEstimation.worstCaseDaysAsInt()),
+                ReportUtils.toDays(validationEstimation.bestCaseDaysAsInt()),
+                ReportUtils.toDays(validationEstimation.averageCaseDaysAsInt()),
+                ReportUtils.toDays(validationEstimation.worstCaseDaysAsInt()),
+                ReportUtils.toDays(totalEstimation.bestCaseDaysAsInt()),
+                ReportUtils.toDays(totalEstimation.averageCaseDaysAsInt()),
+                ReportUtils.toDays(totalEstimation.worstCaseDaysAsInt())
         );
     }
 
-    /**
-     * Generates the estimation notes section HTML.
-     *
-     * @param elementType The type of elements being analyzed
-     * @return HTML string for the estimation notes section
-     */
-    private static String generateEstimationNotes(String elementType) {
-        return """
-                        <div class="estimation-notes">
-                            <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
-                            <ul>
-                                <li>Best case scenario:
-                                  <ul>
-                                    <li>1.0 day per each new unsupported %s for analysis, implementation, and testing</li>
-                                    <li>1.0 hour per each repeated unsupported %s for implementation</li>
-                                    <li>2 minutes per each line of code generated</li>
-                                    <li>Assumes minimal complexity and straightforward implementations</li>
-                                  </ul>
-                                </li>
-                                <li>Average case scenario:
-                                  <ul>
-                                    <li>2.0 days per each new unsupported %s for analysis, implementation, and testing</li>
-                                    <li>2.0 hour per each repeated unsupported %s for implementation</li>
-                                    <li>5 minutes per each line of code generated</li>
-                                    <li>Assumes medium complexity with moderate implementation challenges</li>
-                                  </ul>
-                                </li>
-                                <li>Worst case scenario:
-                                  <ul>
-                                    <li>3.0 days per each new unsupported %s for analysis, implementation, and testing</li>
-                                    <li>4.0 hour per each repeated unsupported %s for implementation</li>
-                                    <li>10 minutes per each line of code generated</li>
-                                    <li>Assumes high complexity with significant implementation challenges</li>
-                                  </ul>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                """.formatted(
-                elementType.toLowerCase(), elementType.toLowerCase(),
-                elementType.toLowerCase(), elementType.toLowerCase(),
-                elementType.toLowerCase(), elementType.toLowerCase()
-        );
-    }
 
     /**
      * Generates the unsupported elements section HTML.
@@ -903,7 +859,7 @@ public class AnalysisReport {
                             </div>
                             <pre class="block-code"><code>%s</code></pre>
                         </div>
-                """.formatted(name, fileName, kind, escapeHtml(code)));
+                """.formatted(name, fileName, kind, ReportUtils.escapeHtml(code)));
     }
 
     /**
@@ -920,41 +876,6 @@ public class AnalysisReport {
         return Math.round(((double) part / total) * 1000) / 10.0; // Round to 1 decimal place
     }
 
-    /**
-     * Format a number as a day string with correct singular/plural form.
-     *
-     * @param number The number of days
-     * @return A string with the number and "day" or "days"
-     */
-    private static String toDays(int number) {
-        return number + " " + (number == 1 ? "day" : "days");
-    }
-
-    /**
-     * Format a number as a week string with correct singular/plural form.
-     *
-     * @param number The number of weeks
-     * @return A string with the number and "week" or "weeks"
-     */
-    private static String toWeeks(int number) {
-        return number + " " + (number == 1 ? "week" : "weeks");
-    }
-
-    /**
-     * Escape special HTML characters in a string.
-     *
-     * @param input The input string to escape
-     * @return The escaped string
-     */
-    private static String escapeHtml(String input) {
-        if (input == null) {
-            return "";
-        }
-
-        return input.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;");
-    }
 
     public record UnhandledElement(String code, Optional<String> name, String fileName) {
 

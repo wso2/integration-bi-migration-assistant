@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Collection;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.stream.Stream;
 
 /**
  * A class to generate combined summary reports that link to individual project reports.
@@ -611,10 +612,10 @@ public class CombinedSummaryReport {
     private void appendOverallStatistics(StringBuilder html) {
         int totalProjects = projectSummaries.size();
         int totalActivities = projectSummaries.stream()
-                .mapToInt(p -> p.activityEstimation().totalActivityCount())
+                .mapToInt(ProjectSummary::totalActivityCount)
                 .sum();
         int totalUnhandledActivities = projectSummaries.stream()
-                .mapToInt(p -> p.activityEstimation().unhandledActivityCount())
+                .mapToInt(ProjectSummary::unhandledActivityCount)
                 .sum();
         double averageConversionPercentage = projectSummaries.stream()
                 .mapToDouble(ProjectSummary::successfulConversionPercentage)
@@ -668,34 +669,44 @@ public class CombinedSummaryReport {
                         totalActivities,
                         totalActivities - totalUnhandledActivities,
                         totalUnhandledActivities));
-        TimeEstimation totalEstimation = projectSummaries.stream()
-                .map(ProjectSummary::activityEstimation)
-                .map(ProjectSummary.ActivityEstimation::timeEstimation)
+        TimeEstimation totalManualConversionEstimation = projectSummaries.stream()
+                .map(ProjectSummary::manualConversionEstimation)
                 .reduce(new TimeEstimation(0, 0, 0), TimeEstimation::sum);
+        
+        TimeEstimation totalValidationEstimation = projectSummaries.stream()
+                .map(ProjectSummary::validationEstimation)
+                .reduce(new TimeEstimation(0, 0, 0), TimeEstimation::sum);
+        
+        TimeEstimation totalEstimation = TimeEstimation.sum(totalManualConversionEstimation, totalValidationEstimation);
 
         html.append(
                 """
-                                            <div class="time-estimate best-case">
-                                                <div class="time-label">Best Case</div>
-                                                <div class="time-value time-best">
-                                                    <span class="time-days">%dd</span>
-                                                    <span class="time-weeks">(~%dw)</span>
-                                                </div>
-                                            </div>
-                                            <div class="time-estimate avg-case">
-                                                <div class="time-label">Average Case</div>
-                                                <div class="time-value time-avg">
-                                                    <span class="time-days">%dd</span>
-                                                    <span class="time-weeks">(~%dw)</span>
-                                                </div>
-                                            </div>
-                                            <div class="time-estimate worst-case">
-                                                <div class="time-label">Worst Case</div>
-                                                <div class="time-value time-worst">
-                                                    <span class="time-days">%dd</span>
-                                                    <span class="time-weeks">(~%dw)</span>
-                                                </div>
-                                            </div>
+                                            <table>
+                                                <tr>
+                                                    <th>Work Type</th>
+                                                    <th>Best Case</th>
+                                                    <th>Average Case</th>
+                                                    <th>Worst Case</th>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Manual Conversion</strong></td>
+                                                    <td class="time-best">%s</td>
+                                                    <td class="time-avg">%s</td>
+                                                    <td class="time-worst">%s</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Code Validation</strong></td>
+                                                    <td class="time-best">%s</td>
+                                                    <td class="time-avg">%s</td>
+                                                    <td class="time-worst">%s</td>
+                                                </tr>
+                                                <tr style="border-top: 2px solid #4682B4;">
+                                                    <td><strong>Total</strong></td>
+                                                    <td class="time-best"><strong>%s</strong></td>
+                                                    <td class="time-avg"><strong>%s</strong></td>
+                                                    <td class="time-worst"><strong>%s</strong></td>
+                                                </tr>
+                                            </table>
                                 </div>
                             </div>
 
@@ -715,6 +726,7 @@ public class CombinedSummaryReport {
                                       <ul>
                                         <li>1.0 day per each new unsupported activity for analysis, implementation, and testing</li>
                                         <li>1.0 hour per each repeated unsupported activity for implementation</li>
+                                        <li>2 minutes per each line of code generated</li>
                                         <li>Assumes minimal complexity and straightforward implementations</li>
                                       </ul>
                                     </li>
@@ -722,6 +734,7 @@ public class CombinedSummaryReport {
                                       <ul>
                                         <li>2.0 days per each new unsupported activity for analysis, implementation, and testing</li>
                                         <li>2.0 hour per each repeated unsupported activity for implementation</li>
+                                        <li>5 minutes per each line of code generated</li>
                                         <li>Assumes medium complexity with moderate implementation challenges</li>
                                       </ul>
                                     </li>
@@ -729,6 +742,7 @@ public class CombinedSummaryReport {
                                       <ul>
                                         <li>3.0 days per each new unsupported activity for analysis, implementation, and testing</li>
                                         <li>4.0 hour per each repeated unsupported activity for implementation</li>
+                                        <li>10 minutes per each line of code generated</li>
                                         <li>Assumes high complexity with significant implementation challenges</li>
                                       </ul>
                                     </li>
@@ -737,9 +751,15 @@ public class CombinedSummaryReport {
                         </div>
                         """
                         .formatted(
-                                totalEstimation.bestCaseDaysAsInt(), totalEstimation.bestCaseWeeks(),
-                                totalEstimation.averageCaseDaysAsInt(), totalEstimation.averageCaseWeeks(),
-                                totalEstimation.worstCaseDaysAsInt(), totalEstimation.worstCaseWeeks(),
+                                ReportUtils.toDays(totalManualConversionEstimation.bestCaseDaysAsInt()),
+                                ReportUtils.toDays(totalManualConversionEstimation.averageCaseDaysAsInt()),
+                                ReportUtils.toDays(totalManualConversionEstimation.worstCaseDaysAsInt()),
+                                ReportUtils.toDays(totalValidationEstimation.bestCaseDaysAsInt()),
+                                ReportUtils.toDays(totalValidationEstimation.averageCaseDaysAsInt()),
+                                ReportUtils.toDays(totalValidationEstimation.worstCaseDaysAsInt()),
+                                ReportUtils.toDays(totalEstimation.bestCaseDaysAsInt()),
+                                ReportUtils.toDays(totalEstimation.averageCaseDaysAsInt()),
+                                ReportUtils.toDays(totalEstimation.worstCaseDaysAsInt()),
                                 totalProjects, averageConversionPercentage));
     }
 
@@ -755,8 +775,12 @@ public class CombinedSummaryReport {
                     coveragePercentage >= 70 ? "status-medium" : "status-low";
             String statusText = coveragePercentage >= 90 ? "High Coverage" :
                     coveragePercentage >= 70 ? "Medium Coverage" : "Low Coverage";
+            int totalActivityCount = project.totalActivityCount();
+            int unhandledActivityCount = project.unhandledActivityCount();
+            int convertedActivityCont = totalActivityCount - unhandledActivityCount;
+            TimeEstimation timeEstimation =
+                    TimeEstimation.sum(project.manualConversionEstimation(), project.validationEstimation());
 
-            ProjectSummary.ActivityEstimation projectEstimation = project.activityEstimation();
             html.append("""
                         <div class="project-card">
                             <div class="project-left">
@@ -830,15 +854,15 @@ public class CombinedSummaryReport {
                     coveragePercentage,
                     coveragePercentage,
                     coveragePercentage >= 90 ? "#4CAF50" : coveragePercentage >= 70 ? "#FF9800" : "#F44336",
-                    projectEstimation.totalActivityCount(),
-                    projectEstimation.totalActivityCount() - projectEstimation.unhandledActivityCount(),
-                    projectEstimation.unhandledActivityCount(),
-                    projectEstimation.timeEstimation().bestCaseDaysAsInt(),
-                    projectEstimation.timeEstimation().bestCaseWeeks(),
-                    projectEstimation.timeEstimation().averageCaseDaysAsInt(),
-                    projectEstimation.timeEstimation().averageCaseWeeks(),
-                    projectEstimation.timeEstimation().worstCaseDaysAsInt(),
-                    projectEstimation.timeEstimation().worstCaseWeeks()
+                    totalActivityCount,
+                    convertedActivityCont,
+                    unhandledActivityCount,
+                    timeEstimation.bestCaseDaysAsInt(),
+                    timeEstimation.bestCaseWeeks(),
+                    timeEstimation.averageCaseDaysAsInt(),
+                    timeEstimation.averageCaseWeeks(),
+                    timeEstimation.worstCaseDaysAsInt(),
+                    timeEstimation.worstCaseWeeks()
             ));
         }
 
@@ -911,7 +935,7 @@ public class CombinedSummaryReport {
                                     <td>%d</td>
                                     <td>%s</td>
                                 </tr>
-                                """, escapeHtml(elementType), frequency, escapeHtml(projectsList)));
+                                """, ReportUtils.escapeHtml(elementType), frequency, ReportUtils.escapeHtml(projectsList)));
                     });
 
             html.append(
@@ -926,19 +950,4 @@ public class CombinedSummaryReport {
         }
     }
 
-    /**
-     * Escape special HTML characters in a string.
-     *
-     * @param input The input string to escape
-     * @return The escaped string
-     */
-    private String escapeHtml(String input) {
-        if (input == null) {
-            return "";
-        }
-
-        return input.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;");
-    }
 }

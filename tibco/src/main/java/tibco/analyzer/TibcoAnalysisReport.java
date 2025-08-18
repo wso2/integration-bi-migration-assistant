@@ -300,13 +300,9 @@ public final class TibcoAnalysisReport {
         // Create a map of unhandled elements grouped by their kind
         Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
 
-        // FIXME:
         // Get time estimation using the separate methods
         TimeEstimation manualConversionEstimation = getManualConversionTimeEstimation(unhandledElementsMap);
         TimeEstimation validationEstimation = getValidationTimeEstimation(lineCount);
-        TimeEstimation timeEstimation = TimeEstimation.sum(manualConversionEstimation, validationEstimation);
-        ProjectSummary.ActivityEstimation activityEstimation = new ProjectSummary.ActivityEstimation(
-                totalActivityCount, unhandledActivityCount, timeEstimation);
 
         Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap =
                 createPartiallySupportedElementsMap();
@@ -315,7 +311,10 @@ public final class TibcoAnalysisReport {
                 projectName,
                 projectPath,
                 reportPath,
-                activityEstimation,
+                totalActivityCount,
+                unhandledActivityCount,
+                manualConversionEstimation,
+                validationEstimation,
                 conversionPercentage,
                 unhandledElementsMap,
                 partiallySupportedElementsMap

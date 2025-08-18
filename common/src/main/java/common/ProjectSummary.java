@@ -27,7 +27,10 @@ import java.util.Map;
  * @param projectName                    The name of the project
  * @param projectPath                    The path to the project
  * @param reportPath                     The path to the report
- * @param activityEstimation             The activity estimation data
+ * @param totalActivityCount             Total number of activities in the project
+ * @param unhandledActivityCount         Number of unhandled activities
+ * @param manualConversionEstimation     Time estimation for manual conversion work
+ * @param validationEstimation           Time estimation for validation work
  * @param successfulConversionPercentage The percentage of successful
  *                                       conversions
  * @param unhandledActivities            Map of unhandled activity types to
@@ -39,38 +42,12 @@ public record ProjectSummary(
         String projectName,
         String projectPath,
         String reportPath,
-        ActivityEstimation activityEstimation,
+        int totalActivityCount,
+        int unhandledActivityCount,
+        TimeEstimation manualConversionEstimation,
+        TimeEstimation validationEstimation,
         double successfulConversionPercentage,
         Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledActivities,
         Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedActivities) {
-    /**
-     * Record to hold activity count and time estimation data.
-     *
-     * @param totalActivityCount     The total number of activities
-     * @param unhandledActivityCount The number of unhandled activities
-     * @param timeEstimation         The time estimation data
-     */
-    public record ActivityEstimation(
-            int totalActivityCount,
-            int unhandledActivityCount,
-            TimeEstimation timeEstimation) {
-    }
 
-    /**
-     * Calculate the successful conversion percentage.
-     *
-     * @return The percentage of successful conversions (0-100)
-     */
-    public double getSuccessfulConversionPercentage() {
-        return successfulConversionPercentage;
-    }
-
-    /**
-     * Get the number of unique unhandled element types for time estimation.
-     *
-     * @return The number of unique unhandled element types
-     */
-    public int getUniqueUnhandledElementCount() {
-        return unhandledActivities != null ? unhandledActivities.size() : 0;
-    }
 }
