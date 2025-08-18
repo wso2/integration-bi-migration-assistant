@@ -17,12 +17,15 @@
  */
 package mule.v3;
 
+import common.BallerinaModel.Statement.BallerinaStatement;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.common.MuleXMLNavigator;
 import mule.common.MuleXMLNavigator.MuleElement;
+import mule.v3.converter.MuleConfigConverter;
+import mule.v3.model.MuleModel;
 import mule.v3.model.MuleXMLTag;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -43,6 +46,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import static common.BallerinaModel.BlockFunctionBody;
+import static common.BallerinaModel.ClassDef;
 import static common.BallerinaModel.Expression.BallerinaExpression;
 import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
@@ -69,6 +73,7 @@ import static mule.v3.ConversionUtils.insertLeadingSlash;
 import static mule.v3.converter.MuleConfigConverter.convertTopLevelMuleBlocks;
 import static mule.v3.converter.MuleConfigConverter.getCatchExceptionBody;
 import static mule.v3.converter.MuleConfigConverter.getChoiceExceptionBody;
+import static mule.v3.model.MuleModel.QuartzInboundEndpoint;
 import static mule.v3.reader.MuleConfigReader.readMuleConfigFromRoot;
 import static mule.v3.model.MuleModel.CatchExceptionStrategy;
 import static mule.v3.model.MuleModel.ChoiceExceptionStrategy;
@@ -135,6 +140,7 @@ public class MuleToBalConverter {
                                                      List<Flow> flows, List<SubFlow> subFlows) {
         List<Service> services = new ArrayList<>();
         Set<Function> functions = new HashSet<>();
+        List<ClassDef> classDefs = new ArrayList<>();
         List<Flow> privateFlows = new ArrayList<>();
 
         for (Flow flow : flows) {
@@ -147,6 +153,8 @@ public class MuleToBalConverter {
             MuleRecord src = source.get();
             if (src.kind() == Kind.VM_INBOUND_ENDPOINT) {
                 genVMInboundEndpointSource(ctx, flow, (VMInboundEndpoint) src, functions);
+            } else if (src.kind() == Kind.QUARTZ_INBOUND_ENDPOINT) {
+                genSchedulerSource(ctx, flow, (QuartzInboundEndpoint) src, functions, classDefs);
             } else {
                 assert src.kind() == Kind.HTTP_LISTENER;
                 genHttpSource(ctx, flow, (HttpListener) src, services, functions);
@@ -234,7 +242,7 @@ public class MuleToBalConverter {
         ArrayList<ModuleVar> orderedModuleVars = new ArrayList<>(ctx.currentFileCtx.configs.configurableVars.values());
         orderedModuleVars.addAll(moduleVars);
         return createTextDocument(balFileName + ".bal", new ArrayList<>(ctx.currentFileCtx.balConstructs.imports),
-                typeDefs, orderedModuleVars, listeners, services, functions.stream().toList(), comments);
+                typeDefs, orderedModuleVars, listeners, services, classDefs, functions.stream().toList(), comments);
     }
 
     private static void genVMInboundEndpointSource(Context ctx, Flow flow, VMInboundEndpoint vmInboundEndpoint,
@@ -248,6 +256,50 @@ public class MuleToBalConverter {
         } else {
             genBalFunc(ctx, functions, funcName, flow.flowBlocks());
         }
+    }
+
+    private static void genSchedulerSource(Context ctx, Flow flow, QuartzInboundEndpoint quartzEp,
+                                           Set<Function> functions, List<ClassDef> classDefs) {
+        String jobClassName = quartzEp.jobName().isEmpty() ? "Job" : quartzEp.jobName();
+        ClassDef classDef = genBalJobClass(ctx, jobClassName, flow.flowBlocks());
+        classDefs.add(classDef);
+
+        List<Statement> stmts = new ArrayList<>();
+        if (!quartzEp.cronExpression().isEmpty()) {
+            // TODO: Cron expression conversion is complex and may need manual adjustment
+            stmts.add(stmtFrom("// TODO: Convert cron expression to Ballerina task scheduling"));
+            stmts.add(stmtFrom("// Original cron expression: " + quartzEp.cronExpression()));
+        }
+
+        // Convert time unit to seconds for Ballerina's task:IntervalTimer;
+        double intervalInSeconds = convertIntervalToSeconds(quartzEp.repeatInterval());
+
+        BallerinaStatement stmt = stmtFrom("task:JobId id = check task:scheduleJobRecurByFrequency(new %s(), %s);"
+                        .formatted(jobClassName, intervalInSeconds));
+        stmts.add(stmt);
+        Function mainFunc = Function.publicFunction("main", List.of(), typeFrom("error?"), stmts);
+        functions.add(mainFunc);
+    }
+
+    private static double convertIntervalToSeconds(String interval) {
+        if (interval.isEmpty()) {
+            return 5.0; // Default 5 seconds
+        }
+
+        try {
+            // Try to parse as milliseconds (common in Mule 3.x)
+            long millis = Long.parseLong(interval);
+            return millis / 1000.0;
+        } catch (NumberFormatException e) {
+            // If parsing fails, return default
+            return 5.0;
+        }
+    }
+
+    private static ClassDef genBalJobClass(mule.v3.Context ctx, String jobName, List<MuleModel.MuleRecord> flowBlocks) {
+        List<Statement> bodyCoreStmts = MuleConfigConverter.convertTopLevelMuleBlocks(ctx, flowBlocks);
+        Function executeFunc = Function.publicFunction("execute", List.of(), bodyCoreStmts);
+        return new ClassDef(jobName, List.of(typeFrom("task:Job")), List.of(), List.of(executeFunc));
     }
 
     private static void genHttpSource(Context ctx, Flow flow, HttpListener src, List<Service> services,
@@ -466,12 +518,12 @@ public class MuleToBalConverter {
     }
 
     public static TextDocument createTextDocument(String docName, List<Import> imports,
-                                                  List<ModuleTypeDef> moduleTypeDefs,
-                                                    List<ModuleVar> moduleVars, List<Listener> listeners,
-                                                    List<Service> services, List<Function> functions,
-                                                    List<String> comments) {
+                                                  List<ModuleTypeDef> moduleTypeDefs, List<ModuleVar> moduleVars,
+                                                  List<Listener> listeners, List<Service> services,
+                                                  List<ClassDef> classDefs, List<Function> functions,
+                                                  List<String> comments) {
         return new TextDocument(docName, imports, moduleTypeDefs, moduleVars, listeners,
-                services, List.of(), functions, comments);
+                services, classDefs, functions, comments);
     }
 
     private static JavaDependencies determineJdbcDependencyFromUrl(String dbUrl) {

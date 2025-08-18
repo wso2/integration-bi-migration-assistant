@@ -33,6 +33,7 @@ public class Constants {
     public static final String ORG_BALLERINAX = "ballerinax";
     public static final String MODULE_HTTP = "http";
     public static final String MODULE_LOG = "log";
+    public static final String MODULE_TASK = "task";
     public static final String MODULE_SQL = "sql";
     public static final String MODULE_MYSQL = "mysql";
     public static final String MODULE_MYSQL_DRIVER = "mysql.driver";

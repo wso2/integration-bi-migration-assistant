@@ -76,6 +76,7 @@ import static mule.v3.model.MuleModel.Type;
 import static mule.v3.model.MuleModel.UnsupportedBlock;
 import static mule.v3.model.MuleModel.VMInboundEndpoint;
 import static mule.v3.model.MuleModel.VMOutboundEndpoint;
+import static mule.v3.model.MuleModel.QuartzInboundEndpoint;
 import static mule.v3.model.MuleModel.WhenInChoice;
 import static mule.v3.model.MuleModel.ScatterGather;
 import static mule.v3.model.MuleModel.ProcessorChain;
@@ -142,9 +143,11 @@ public class MuleConfigReader {
             case MuleXMLTag.HTTP_LISTENER -> {
                 return readHttpListener(ctx, muleElement);
             }
-
             case MuleXMLTag.VM_INBOUND_ENDPOINT -> {
                 return readVMInboundEndpoint(ctx, muleElement);
+            }
+            case MuleXMLTag.QUARTZ_INBOUND_ENDPOINT -> {
+                return readQuartzInboundEndpoint(ctx, muleElement);
             }
 
             // Process Items
@@ -291,6 +294,9 @@ public class MuleConfigReader {
                 assert source == null;
                 source = readBlock(ctx, child);
             } else if (element.getTagName().equals(MuleXMLTag.VM_INBOUND_ENDPOINT.tag())) {
+                assert source == null;
+                source = readBlock(ctx, child);
+            } else if (element.getTagName().equals(MuleXMLTag.QUARTZ_INBOUND_ENDPOINT.tag())) {
                 assert source == null;
                 source = readBlock(ctx, child);
             } else {
@@ -559,6 +565,17 @@ public class MuleConfigReader {
         String path = element.getAttribute("path");
         String exchangePattern = element.getAttribute("exchange-pattern");
         return new VMOutboundEndpoint(path, exchangePattern);
+    }
+
+    // Quartz Connector
+    private static QuartzInboundEndpoint readQuartzInboundEndpoint(Context ctx, MuleElement muleElement) {
+        ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_TASK));
+        Element element = muleElement.getElement();
+        String jobName = element.getAttribute("jobName");
+        String cronExpression = element.getAttribute("cronExpression");
+        String repeatCount = element.getAttribute("repeatCount");
+        String repeatInterval = element.getAttribute("repeatInterval");
+        return new QuartzInboundEndpoint(jobName, cronExpression, repeatCount, repeatInterval);
     }
 
     // Database Connector

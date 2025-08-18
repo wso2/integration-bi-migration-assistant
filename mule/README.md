@@ -45,6 +45,7 @@ The migration tool currently supports the following Mule components:
 - [Misc](docs/palette-item-mappings-v3.md#misc)
 - [Object To Json](docs/palette-item-mappings-v3.md#object-to-json)
 - [Object To String](docs/palette-item-mappings-v3.md#object-to-string)
+- [Quartz Connector](docs/palette-item-mappings-v3.md#quartz-connector)
 - [Reference Exception Strategy](docs/palette-item-mappings-v3.md#reference-exception-strategy)
 - [Scatter Gather](docs/palette-item-mappings-v3.md#scatter-gather)
 - [Session Variable](docs/palette-item-mappings-v3.md#session-variable)

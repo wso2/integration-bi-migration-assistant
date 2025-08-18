@@ -44,6 +44,13 @@ public record MuleModel() {
         }
     }
 
+    public record QuartzInboundEndpoint(Kind kind, String jobName, String cronExpression,
+                                      String repeatCount, String repeatInterval) implements MuleRecord {
+        public QuartzInboundEndpoint(String jobName, String cronExpression, String repeatCount, String repeatInterval) {
+            this(Kind.QUARTZ_INBOUND_ENDPOINT, jobName, cronExpression, repeatCount, repeatInterval);
+        }
+    }
+
     public record Logger(Kind kind, String message, LogLevel level) implements MuleRecord {
         public Logger(String message, LogLevel level) {
             this(Kind.LOGGER, message, level);
@@ -301,6 +308,7 @@ public record MuleModel() {
         HTTP_LISTENER,
         VM_INBOUND_ENDPOINT,
         VM_OUTBOUND_ENDPOINT,
+        QUARTZ_INBOUND_ENDPOINT,
         LOGGER,
         EXPRESSION_COMPONENT,
         PAYLOAD,

@@ -18,6 +18,7 @@
 - [Misc](palette-item-mappings-v3.md#misc)
 - [Object To Json](palette-item-mappings-v3.md#object-to-json)
 - [Object To String](palette-item-mappings-v3.md#object-to-string)
+- [Quartz Connector](palette-item-mappings-v3.md#quartz-connector)
 - [Reference Exception Strategy](palette-item-mappings-v3.md#reference-exception-strategy)
 - [Scatter Gather](palette-item-mappings-v3.md#scatter-gather)
 - [Session Variable](palette-item-mappings-v3.md#session-variable)
@@ -2485,6 +2486,51 @@ service /mule3 on config {
         ctx.inboundProperties.response.setPayload(ctx.payload);
         return ctx.inboundProperties.response;
     }
+}
+
+```
+
+## Quartz Connector
+
+- ### Basic Quartz-Connector
+
+**Input (basic_quartz-connector.xml):**
+```xml
+<mule xmlns:spring="http://www.springframework.org/schema/beans" xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.9/mule.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/3.9/mule-quartz.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+    <flow name="schedulerFlow">
+        <quartz:inbound-endpoint jobName="schedulerJob" repeatInterval="5000" doc:name="Quartz">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger level="INFO" message="Scheduler triggered]" doc:name="Logger"/>
+    </flow>
+</mule>
+
+```
+**Output (basic_quartz-connector.bal):**
+```ballerina
+import ballerina/log;
+import ballerina/task;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+class schedulerJob {
+    *task:Job;
+
+    public function execute() {
+        log:printInfo("Scheduler triggered]");
+    }
+}
+
+public function main() returns error? {
+    task:JobId id = check task:scheduleJobRecurByFrequency(new schedulerJob(), 5.0);
 }
 
 ```

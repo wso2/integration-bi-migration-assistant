@@ -79,6 +79,9 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     VM_INBOUND_ENDPOINT("vm:inbound-endpoint", 5),
     VM_OUTBOUND_ENDPOINT("vm:outbound-endpoint", 5),
 
+    // Quartz connector
+    QUARTZ_INBOUND_ENDPOINT("quartz:inbound-endpoint", 5),
+
     // Database Connector
     DB_INSERT("db:insert", 2),
     DB_SELECT("db:select", 2),
