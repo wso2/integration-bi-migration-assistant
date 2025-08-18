@@ -21,6 +21,8 @@ package tibco.analyzer;
 import common.AnalysisReport;
 import common.ProjectSummary;
 import org.w3c.dom.Element;
+
+import common.TimeEstimation;
 import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
 import tibco.converter.ConversionUtils;
 
@@ -210,6 +212,44 @@ public final class TibcoAnalysisReport {
         return new TibcoAnalysisReport(0, 0, Collections.emptyList(), 0, Collections.emptyList());
     }
 
+    private static TimeEstimation timeEstimationPerElement(AnalysisReport.UnhandledElement element,
+                                                           int count) {
+        assert count > 0;
+        TimeEstimation estimation = new TimeEstimation(1, 2, 3);
+        if (count == 1) {
+            return estimation;
+        }
+        int repeatedCount = count - 1;
+        TimeEstimation repeatedEstimation = new TimeEstimation(
+                1.0 / 8.0, // 1 hour = 1/8 day
+                2.0 / 8.0, // 2 hours = 2/8 day
+                4.0 / 8.0 // 4 hours = 4/8 day
+        ).prod(repeatedCount);
+        return TimeEstimation.sum(estimation, repeatedEstimation);
+    }
+
+    private static TimeEstimation getTimeEstimation(
+            Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap, long lineCount) {
+        TimeEstimation estimation = new TimeEstimation(0, 0, 0);
+
+        for (Collection<AnalysisReport.UnhandledElement> elements : unhandledElementsMap.values()) {
+            int count = elements.size();
+            if (count > 0) {
+                estimation =
+                        TimeEstimation.sum(estimation, timeEstimationPerElement(elements.iterator().next(), count));
+            }
+        }
+
+        // Add line-based time estimation
+        double bestCaseLineDays = (lineCount * 2.0) / 60.0 / 8.0; // 2 min/line
+        double averageCaseLineDays = (lineCount * 5.0) / 60.0 / 8.0; // 5 min/line
+        double worstCaseLineDays = (lineCount * 10.0) / 60.0 / 8.0; // 10 min/line
+        TimeEstimation lineEstimation = new TimeEstimation(
+                bestCaseLineDays, averageCaseLineDays, worstCaseLineDays
+        );
+        return TimeEstimation.sum(estimation, lineEstimation);
+    }
+
     /**
      * Generates an HTML report of the TIBCO analysis. Delegates the HTML generation to the generic AnalysisReport
      * class.
@@ -220,40 +260,7 @@ public final class TibcoAnalysisReport {
         // Create a map of unhandled elements grouped by their kind
         Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
 
-        // Calculate time estimates based on the estimation scenarios:
-        // - New unsupported activities: 1.0 day (best), 2.0 days (avg), 3.0 days
-        // (worst)
-        // - Repeated unsupported activities: 1.0 hour (best), 2.0 hours (avg), 4.0
-        // hours (worst)
-        double bestCaseDays = 0.0;
-        double averageCaseDays = 0.0;
-        double worstCaseDays = 0.0;
-
-        for (Collection<AnalysisReport.UnhandledElement> elements : unhandledElementsMap.values()) {
-            int count = elements.size();
-            if (count > 0) {
-                // First instance (new activity) gets full day estimate
-                bestCaseDays += 1.0;
-                averageCaseDays += 2.0;
-                worstCaseDays += 3.0;
-
-                // Additional instances (repeated activities) get hour estimates
-                if (count > 1) {
-                    int repeatedCount = count - 1;
-                    bestCaseDays += repeatedCount * (1.0 / 8.0); // 1 hour = 1/8 day
-                    averageCaseDays += repeatedCount * (2.0 / 8.0); // 2 hours = 2/8 day
-                    worstCaseDays += repeatedCount * (4.0 / 8.0); // 4 hours = 4/8 day
-                }
-            }
-        }
-
-        // Add line-based time estimation
-        double bestCaseLineDays = (lineCount * 2.0) / 60.0 / 8.0; // 2 min/line
-        double averageCaseLineDays = (lineCount * 5.0) / 60.0 / 8.0; // 5 min/line
-        double worstCaseLineDays = (lineCount * 10.0) / 60.0 / 8.0; // 10 min/line
-        bestCaseDays += bestCaseLineDays;
-        averageCaseDays += averageCaseLineDays;
-        worstCaseDays += worstCaseLineDays;
+        TimeEstimation estimation = getTimeEstimation(unhandledElementsMap, lineCount);
 
         // Create maps for partially supported activities
         Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap =
@@ -268,9 +275,9 @@ public final class TibcoAnalysisReport {
                 unhandledElementsMap,
                 partiallySupportedActivityCount,
                 partiallySupportedElementsMap,
-                (int) Math.ceil(bestCaseDays),
-                (int) Math.ceil(averageCaseDays),
-                (int) Math.ceil(worstCaseDays)
+                (int) Math.ceil(estimation.bestCaseDays()),
+                (int) Math.ceil(estimation.averageCaseDays()),
+                (int) Math.ceil(estimation.worstCaseDays())
         );
 
         return report.toHTML();
@@ -289,45 +296,11 @@ public final class TibcoAnalysisReport {
                 - (totalActivityCount > 0 ?
                 (double) unhandledActivityCount / totalActivityCount * 100.0 : 0.0);
 
-        // Calculate time estimation based on the estimation scenarios:
-        // - New unsupported activities: 1.0 day (best), 2.0 days (avg), 3.0 days
-        // (worst)
-        // - Repeated unsupported activities: 1.0 hour (best), 2.0 hours (avg), 4.0
-        // hours (worst)
+        // Create a map of unhandled elements grouped by their kind
         Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
-        double bestCaseDays = 0.0;
-        double averageCaseDays = 0.0;
-        double worstCaseDays = 0.0;
 
-        for (Collection<AnalysisReport.UnhandledElement> elements : unhandledElementsMap.values()) {
-            int count = elements.size();
-            if (count > 0) {
-                // First instance (new activity) gets full day estimate
-                bestCaseDays += 1.0;
-                averageCaseDays += 2.0;
-                worstCaseDays += 3.0;
-
-                // Additional instances (repeated activities) get hour estimates
-                if (count > 1) {
-                    int repeatedCount = count - 1;
-                    bestCaseDays += repeatedCount * (1.0 / 8.0); // 1 hour = 1/8 day
-                    averageCaseDays += repeatedCount * (2.0 / 8.0); // 2 hours = 2/8 day
-                    worstCaseDays += repeatedCount * (4.0 / 8.0); // 4 hours = 4/8 day
-                }
-            }
-        }
-
-        // Add line-based time estimation
-        double bestCaseLineDays = (lineCount * 2.0) / 60.0 / 8.0; // 2 min/line
-        double averageCaseLineDays = (lineCount * 5.0) / 60.0 / 8.0; // 5 min/line
-        double worstCaseLineDays = (lineCount * 10.0) / 60.0 / 8.0; // 10 min/line
-        bestCaseDays += bestCaseLineDays;
-        averageCaseDays += averageCaseLineDays;
-        worstCaseDays += worstCaseLineDays;
-
-        ProjectSummary.TimeEstimation timeEstimation = new ProjectSummary.TimeEstimation(
-                (int) Math.ceil(bestCaseDays), (int) Math.ceil(averageCaseDays), (int) Math.ceil(worstCaseDays)
-        );
+        // Get time estimation using the shared method
+        TimeEstimation timeEstimation = getTimeEstimation(unhandledElementsMap, lineCount);
         ProjectSummary.ActivityEstimation activityEstimation = new ProjectSummary.ActivityEstimation(
                 totalActivityCount, unhandledActivityCount, timeEstimation);
 

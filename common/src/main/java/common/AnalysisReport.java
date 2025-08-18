@@ -430,13 +430,49 @@ public class AnalysisReport {
         // Calculate automated migration coverage percentage
         double coveragePercentage = 100 - calculatePercentage(unhandledElementCount, totalElementCount);
 
+        // Generate summary container
+        html.append(
+                generateSummaryContainer(coveragePercentage, totalElementCount, unhandledElementCount, elementType));
+
+        // Generate manual work estimation section
+        html.append(generateManualWorkEstimation(bestCaseDays, averageCaseDays, worstCaseDays, elementType));
+
+        // Generate estimation notes
+        html.append(generateEstimationNotes(elementType));
+
+        // Generate unsupported elements section
+        html.append(generateUnsupportedElements(typeFrequencyMap));
+
+        // Generate unsupported elements blocks
+        html.append(generateUnsupportedElementsBlocks(unhandledElements));
+
+        // Generate partially supported elements section
+        html.append(generatePartiallySupportedElements(partiallySupportedElements));
+
+        // Generate footer
+        html.append(generateFooter());
+
+        return html.toString();
+    }
+
+    /**
+     * Generates the summary container section HTML.
+     *
+     * @param coveragePercentage    The percentage of automated migration coverage
+     * @param totalElementCount     Total count of elements analyzed
+     * @param unhandledElementCount Count of unhandled elements
+     * @param elementType           The type of elements being analyzed
+     * @return HTML string for the summary container section
+     */
+    private static String generateSummaryContainer(double coveragePercentage, int totalElementCount,
+            int unhandledElementCount, String elementType) {
         // Determine status badge based on coverage
         String statusClass = coveragePercentage >= 90 ? "status-high"
                 : coveragePercentage >= 70 ? "status-medium" : "status-low";
         String statusText = coveragePercentage >= 90 ? "High Coverage"
                 : coveragePercentage >= 70 ? "Medium Coverage" : "Low Coverage";
 
-        html.append("""
+        return """
                     <div class="summary-container">
                         <h2>Migration Coverage Overview</h2>
                         <div class="metrics">
@@ -484,10 +520,25 @@ public class AnalysisReport {
                         elementType.toLowerCase(),
                         totalElementCount - unhandledElementCount,
                         elementType.toLowerCase(),
-                        unhandledElementCount));
+                        unhandledElementCount);
+    }
 
-        // Manual Work Estimation section
-        html.append("""
+    /**
+     * Generates the manual work estimation section HTML.
+     *
+     * @param bestCaseDays    Best case scenario days
+     * @param averageCaseDays Average case scenario days
+     * @param worstCaseDays   Worst case scenario days
+     * @param elementType     The type of elements being analyzed
+     * @return HTML string for the manual work estimation section
+     */
+    private static String generateManualWorkEstimation(int bestCaseDays, int averageCaseDays,
+            int worstCaseDays, String elementType) {
+        int bestCaseWeeks = (int) Math.ceil(bestCaseDays / 5.0);
+        int avgCaseWeeks = (int) Math.ceil(averageCaseDays / 5.0);
+        int worstCaseWeeks = (int) Math.ceil(worstCaseDays / 5.0);
+
+        return """
                     <div class="summary-container">
                         <h2>Manual Work Estimation</h2>
                         <table>
@@ -496,14 +547,6 @@ public class AnalysisReport {
                                 <th>Working Days</th>
                                 <th>Weeks (approx.)</th>
                             </tr>
-                """);
-
-        // Use the passed-in time estimates
-        int bestCaseWeeks = (int) Math.ceil(bestCaseDays / 5.0);
-        int avgCaseWeeks = (int) Math.ceil(averageCaseDays / 5.0);
-        int worstCaseWeeks = (int) Math.ceil(worstCaseDays / 5.0);
-
-        html.append("""
                             <tr>
                                 <td>Best Case</td>
                                 <td class="time-best">%s</td>
@@ -524,10 +567,17 @@ public class AnalysisReport {
                 toDays(bestCaseDays), toWeeks(bestCaseWeeks),
                 toDays(averageCaseDays), toWeeks(avgCaseWeeks),
                 toDays(worstCaseDays), toWeeks(worstCaseWeeks)
-        ));
+        );
+    }
 
-        // Estimation notes
-        html.append("""
+    /**
+     * Generates the estimation notes section HTML.
+     *
+     * @param elementType The type of elements being analyzed
+     * @return HTML string for the estimation notes section
+     */
+    private static String generateEstimationNotes(String elementType) {
+        return """
                         <div class="estimation-notes">
                             <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
                             <ul>
@@ -562,10 +612,18 @@ public class AnalysisReport {
                 elementType.toLowerCase(), elementType.toLowerCase(),
                 elementType.toLowerCase(), elementType.toLowerCase(),
                 elementType.toLowerCase(), elementType.toLowerCase()
-        ));
+        );
+    }
 
-        // Unsupported elements frequency table
+    /**
+     * Generates the unsupported elements section HTML.
+     *
+     * @param typeFrequencyMap Map containing element types and their frequencies
+     * @return HTML string for the unsupported elements section
+     */
+    private static String generateUnsupportedElements(Map<String, Integer> typeFrequencyMap) {
         if (!typeFrequencyMap.isEmpty()) {
+            StringBuilder html = new StringBuilder();
             html.append("""
                     <div class="summary-container">
                         <h2>Currently Unsupported Activities</h2>
@@ -595,15 +653,15 @@ public class AnalysisReport {
                         </div>
                     </div>
                     """);
+            return html.toString();
         } else {
             // No unsupported elements
-            html.append(
-                    """
+            return """
                     <div class="summary-container">
                         <h2>Currently Unsupported Activities</h2>
                         <div id="toolSupportSection">
-                                                                                                                                                                                                                                <table class="hidden">
-                        <tr><th>Activity name</th><th>Frequency</th></tr>
+                            <table class="hidden">
+                                <tr><th>Activity name</th><th>Frequency</th></tr>
                             </table>
                             <p class="empty-message visible" id="toolSupportEmpty">
                                 No unsupported activities found
@@ -613,11 +671,22 @@ public class AnalysisReport {
                             </div>
                         </div>
                     </div>
-                    """);
+                    """;
         }
+    }
+
+    /**
+     * Generates the unsupported elements blocks section HTML.
+     *
+     * @param unhandledElements Map containing unhandled elements
+     * @return HTML string for the unsupported elements blocks section
+     */
+    private static String generateUnsupportedElementsBlocks(
+            Map<String, Collection<UnhandledElement>> unhandledElements) {
         int blockCounter = 1;
         boolean hasUnhandledBlocks = false;
         StringBuilder blocksSection = new StringBuilder();
+
         for (Map.Entry<String, Collection<UnhandledElement>> entry : unhandledElements.entrySet()) {
             String kind = entry.getKey();
             for (UnhandledElement elem : entry.getValue()) {
@@ -632,19 +701,31 @@ public class AnalysisReport {
                 appendElement(blocksSection, kind, blockName, elem.code(), elem.fileName());
             }
         }
+
         if (hasUnhandledBlocks) {
             blocksSection.append("</div>");
-            html.append(blocksSection);
+            return blocksSection.toString();
         }
 
+        return "";
+    }
+
+    /**
+     * Generates the partially supported elements section HTML.
+     *
+     * @param partiallySupportedElements Map containing partially supported elements
+     * @return HTML string for the partially supported elements section
+     */
+    private static String generatePartiallySupportedElements(
+            Map<String, Collection<UnhandledElement>> partiallySupportedElements) {
         // Calculate frequencies for partially supported elements
         Map<String, Integer> partiallySupportedFrequencyMap = new HashMap<>();
         for (Map.Entry<String, Collection<UnhandledElement>> entry : partiallySupportedElements.entrySet()) {
             partiallySupportedFrequencyMap.put(entry.getKey(), entry.getValue().size());
         }
 
-        // Partially supported elements frequency table
         if (!partiallySupportedFrequencyMap.isEmpty()) {
+            StringBuilder html = new StringBuilder();
             html.append("""
                     <div class="summary-container">
                         <h2>Activities that need manual validation</h2>
@@ -674,9 +755,10 @@ public class AnalysisReport {
                         </div>
                     </div>
                     """);
+            return html.toString();
         } else {
             // No partially supported elements
-            html.append("""
+            return """
                     <div class="summary-container">
                         <h2>Activities that may require manual changes</h2>
                         <div id="partiallySupportedSection">
@@ -691,11 +773,17 @@ public class AnalysisReport {
                             </div>
                         </div>
                     </div>
-                    """);
+                    """;
         }
+    }
 
-        // Footer with date
-        html.append("""
+    /**
+     * Generates the footer section HTML.
+     *
+     * @return HTML string for the footer section
+     */
+    private static String generateFooter() {
+        return """
                     <footer><p>Report generated on: <span id="datetime"></span></p></footer>
                     <script>
                       document.addEventListener('DOMContentLoaded', function() {
@@ -730,12 +818,10 @@ public class AnalysisReport {
                     <script>document.getElementById("datetime").innerHTML = new Date().toLocaleString();</script>
                 </body>
                 </html>
-                """);
-
-        return html.toString();
+                """;
     }
 
-    private void appendElement(StringBuilder sb, String kind, String name, String code, String fileName) {
+    private static void appendElement(StringBuilder sb, String kind, String name, String code, String fileName) {
         sb.append("""
                         <div class="block-item">
                             <div class="block-header">
@@ -768,7 +854,7 @@ public class AnalysisReport {
      * @param number The number of days
      * @return A string with the number and "day" or "days"
      */
-    private String toDays(int number) {
+    private static String toDays(int number) {
         return number + " " + (number == 1 ? "day" : "days");
     }
 
@@ -778,7 +864,7 @@ public class AnalysisReport {
      * @param number The number of weeks
      * @return A string with the number and "week" or "weeks"
      */
-    private String toWeeks(int number) {
+    private static String toWeeks(int number) {
         return number + " " + (number == 1 ? "week" : "weeks");
     }
 
@@ -788,7 +874,7 @@ public class AnalysisReport {
      * @param input The input string to escape
      * @return The escaped string
      */
-    private String escapeHtml(String input) {
+    private static String escapeHtml(String input) {
         if (input == null) {
             return "";
         }

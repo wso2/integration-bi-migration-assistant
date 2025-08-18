@@ -46,9 +46,9 @@ public class CombinedSummaryReportTest {
         ));
 
         ProjectSummary.ActivityEstimation activityEstimation1 = new ProjectSummary.ActivityEstimation(
-                10, 3, new ProjectSummary.TimeEstimation(2, 4, 6));
+                10, 3, new TimeEstimation(2, 4, 6));
         ProjectSummary.ActivityEstimation activityEstimation2 = new ProjectSummary.ActivityEstimation(
-                5, 1, new ProjectSummary.TimeEstimation(1, 2, 3));
+                5, 1, new TimeEstimation(1, 2, 3));
 
         ProjectSummary summary1 = new ProjectSummary(
                 "Project1", "/path/to/project1", "report1.html",
@@ -78,9 +78,9 @@ public class CombinedSummaryReportTest {
     public void testCombinedSummaryReportWithNoUnhandledActivities() {
         // Create test project summaries with no unhandled activities
         ProjectSummary.ActivityEstimation activityEstimation1 = new ProjectSummary.ActivityEstimation(
-                10, 0, new ProjectSummary.TimeEstimation(0, 0, 0));
+                10, 0, new TimeEstimation(0, 0, 0));
         ProjectSummary.ActivityEstimation activityEstimation2 = new ProjectSummary.ActivityEstimation(
-                5, 0, new ProjectSummary.TimeEstimation(0, 0, 0));
+                5, 0, new TimeEstimation(0, 0, 0));
 
         ProjectSummary summary1 = new ProjectSummary(
                 "Project1", "/path/to/project1", "report1.html",

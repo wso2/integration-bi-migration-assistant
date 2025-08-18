@@ -57,31 +57,6 @@ public record ProjectSummary(
     }
 
     /**
-     * Record to hold time estimation data.
-     *
-     * @param bestCaseDays    The best case scenario in days
-     * @param averageCaseDays The average case scenario in days
-     * @param worstCaseDays   The worst case scenario in days
-     */
-    public record TimeEstimation(
-            int bestCaseDays,
-            int averageCaseDays,
-            int worstCaseDays
-    ) {
-        public int bestCaseWeeks() {
-            return (int) Math.ceil(bestCaseDays / 5.0);
-        }
-
-        public int averageCaseWeeks() {
-            return (int) Math.ceil(averageCaseDays / 5.0);
-        }
-
-        public int worstCaseWeeks() {
-            return (int) Math.ceil(worstCaseDays / 5.0);
-        }
-    }
-
-    /**
      * Calculate the successful conversion percentage.
      *
      * @return The percentage of successful conversions (0-100)

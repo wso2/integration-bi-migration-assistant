@@ -668,21 +668,10 @@ public class CombinedSummaryReport {
                         totalActivities,
                         totalActivities - totalUnhandledActivities,
                         totalUnhandledActivities));
-
-        // Calculate total time estimates
-        int totalBestCaseDays = projectSummaries.stream()
-                .mapToInt(p -> p.activityEstimation().timeEstimation().bestCaseDays())
-                .sum();
-        int totalAverageCaseDays = projectSummaries.stream()
-                .mapToInt(p -> p.activityEstimation().timeEstimation().averageCaseDays())
-                .sum();
-        int totalWorstCaseDays = projectSummaries.stream()
-                .mapToInt(p -> p.activityEstimation().timeEstimation().worstCaseDays())
-                .sum();
-
-        int totalBestCaseWeeks = (int) Math.ceil(totalBestCaseDays / 5.0);
-        int totalAverageCaseWeeks = (int) Math.ceil(totalAverageCaseDays / 5.0);
-        int totalWorstCaseWeeks = (int) Math.ceil(totalWorstCaseDays / 5.0);
+        TimeEstimation totalEstimation = projectSummaries.stream()
+                .map(ProjectSummary::activityEstimation)
+                .map(ProjectSummary.ActivityEstimation::timeEstimation)
+                .reduce(new TimeEstimation(0, 0, 0), TimeEstimation::sum);
 
         html.append(
                 """
@@ -748,11 +737,10 @@ public class CombinedSummaryReport {
                         </div>
                         """
                         .formatted(
-                                totalBestCaseDays, totalBestCaseWeeks,
-                                totalAverageCaseDays, totalAverageCaseWeeks,
-                                totalWorstCaseDays, totalWorstCaseWeeks,
-                                totalProjects,
-                                averageConversionPercentage));
+                                totalEstimation.bestCaseDaysAsInt(), totalEstimation.bestCaseWeeks(),
+                                totalEstimation.averageCaseDaysAsInt(), totalEstimation.averageCaseWeeks(),
+                                totalEstimation.worstCaseDaysAsInt(), totalEstimation.worstCaseWeeks(),
+                                totalProjects, averageConversionPercentage));
     }
 
     private void appendProjectSummaries(StringBuilder html) {
@@ -768,6 +756,7 @@ public class CombinedSummaryReport {
             String statusText = coveragePercentage >= 90 ? "High Coverage" :
                     coveragePercentage >= 70 ? "Medium Coverage" : "Low Coverage";
 
+            ProjectSummary.ActivityEstimation projectEstimation = project.activityEstimation();
             html.append("""
                         <div class="project-card">
                             <div class="project-left">
@@ -841,16 +830,15 @@ public class CombinedSummaryReport {
                     coveragePercentage,
                     coveragePercentage,
                     coveragePercentage >= 90 ? "#4CAF50" : coveragePercentage >= 70 ? "#FF9800" : "#F44336",
-                    project.activityEstimation().totalActivityCount(),
-                    project.activityEstimation().totalActivityCount() -
-                            project.activityEstimation().unhandledActivityCount(),
-                    project.activityEstimation().unhandledActivityCount(),
-                    project.activityEstimation().timeEstimation().bestCaseDays(),
-                    (int) Math.ceil(project.activityEstimation().timeEstimation().bestCaseDays() / 5.0),
-                    project.activityEstimation().timeEstimation().averageCaseDays(),
-                    (int) Math.ceil(project.activityEstimation().timeEstimation().averageCaseDays() / 5.0),
-                    project.activityEstimation().timeEstimation().worstCaseDays(),
-                    (int) Math.ceil(project.activityEstimation().timeEstimation().worstCaseDays() / 5.0)
+                    projectEstimation.totalActivityCount(),
+                    projectEstimation.totalActivityCount() - projectEstimation.unhandledActivityCount(),
+                    projectEstimation.unhandledActivityCount(),
+                    projectEstimation.timeEstimation().bestCaseDaysAsInt(),
+                    projectEstimation.timeEstimation().bestCaseWeeks(),
+                    projectEstimation.timeEstimation().averageCaseDaysAsInt(),
+                    projectEstimation.timeEstimation().averageCaseWeeks(),
+                    projectEstimation.timeEstimation().worstCaseDaysAsInt(),
+                    projectEstimation.timeEstimation().worstCaseWeeks()
             ));
         }
 
