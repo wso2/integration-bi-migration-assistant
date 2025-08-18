@@ -44,6 +44,7 @@ The migration tool currently supports the following Mule components:
 - [Object To Json](docs/palette-item-mappings-v3.md#object-to-json)
 - [Object To String](docs/palette-item-mappings-v3.md#object-to-string)
 - [Reference Exception Strategy](docs/palette-item-mappings-v3.md#reference-exception-strategy)
+- [Scatter Gather](docs/palette-item-mappings-v3.md#scatter-gather)
 - [Session Variable](docs/palette-item-mappings-v3.md#session-variable)
 - [Set Payload](docs/palette-item-mappings-v3.md#set-payload)
 - [Sub Flow](docs/palette-item-mappings-v3.md#sub-flow)

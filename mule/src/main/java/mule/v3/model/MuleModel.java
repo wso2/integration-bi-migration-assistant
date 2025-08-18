@@ -152,6 +152,18 @@ public record MuleModel() {
         }
     }
 
+    public record ScatterGather(Kind kind, List<ProcessorChain> processorChains) implements MuleRecord {
+        public ScatterGather(List<ProcessorChain> processorChains) {
+            this(Kind.SCATTER_GATHER, processorChains);
+        }
+    }
+
+    public record ProcessorChain(Kind kind, List<MuleRecord> flowBlocks) implements MuleRecord {
+        public ProcessorChain(List<MuleRecord> flowBlocks) {
+            this(Kind.PROCESSOR_CHAIN, flowBlocks);
+        }
+    }
+
     public record Enricher(Kind kind, String source, String target, Optional<MuleRecord> innerBlock)
             implements MuleRecord {
         public Enricher(String source, String target, Optional<MuleRecord> innerBlock) {
@@ -313,7 +325,9 @@ public record MuleModel() {
         CATCH_EXCEPTION_STRATEGY,
         CHOICE_EXCEPTION_STRATEGY,
         REFERENCE_EXCEPTION_STRATEGY,
-        UNSUPPORTED_BLOCK
+        UNSUPPORTED_BLOCK,
+        SCATTER_GATHER,
+        PROCESSOR_CHAIN
     }
 
     public enum Type {

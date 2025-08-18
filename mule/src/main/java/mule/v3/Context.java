@@ -186,5 +186,8 @@ public class Context extends ContextBase {
         public int payloadVarCount = 0;
         public int clientResultVarCount = 0;
         public int vmReceiveFuncCount = 0;
+        public int scatterGatherWorkerCount = 0;
+        public int workerWaitVarCount = 0;
+        public int scatterGatherVarCount = 0;
     }
 }

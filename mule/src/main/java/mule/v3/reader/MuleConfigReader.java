@@ -75,6 +75,8 @@ import static mule.v3.model.MuleModel.UnsupportedBlock;
 import static mule.v3.model.MuleModel.VMInboundEndpoint;
 import static mule.v3.model.MuleModel.VMOutboundEndpoint;
 import static mule.v3.model.MuleModel.WhenInChoice;
+import static mule.v3.model.MuleModel.ScatterGather;
+import static mule.v3.model.MuleModel.ProcessorChain;
 
 public class MuleConfigReader {
 
@@ -191,6 +193,9 @@ public class MuleConfigReader {
             }
             case MuleXMLTag.ASYNC -> {
                 return readAsync(ctx, muleElement);
+            }
+            case MuleXMLTag.SCATTER_GATHER -> {
+                return readScatterGather(ctx, muleElement);
             }
             case MuleXMLTag.CATCH_EXCEPTION_STRATEGY -> {
                 return readCatchExceptionStrategy(ctx, muleElement);
@@ -334,6 +339,32 @@ public class MuleConfigReader {
         }
 
         return new Async(flowBlocks);
+    }
+
+    private static ScatterGather readScatterGather(Context ctx, MuleElement muleElement) {
+        List<ProcessorChain> processorChains = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals(MuleXMLTag.PROCESSOR_CHAIN.tag())) {
+                ProcessorChain processorChain = readProcessorChain(ctx, child);
+                processorChains.add(processorChain);
+            } else {
+                MuleRecord muleRecord = readBlock(ctx, child);
+                processorChains.add(new ProcessorChain(List.of(muleRecord)));
+            }
+        }
+        return new ScatterGather(processorChains);
+    }
+
+    private static ProcessorChain readProcessorChain(Context ctx, MuleElement muleElement) {
+        List<MuleRecord> flowBlocks = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            MuleRecord muleRec = readBlock(ctx, child);
+            flowBlocks.add(muleRec);
+        }
+        return new ProcessorChain(flowBlocks);
     }
 
     // Transformers

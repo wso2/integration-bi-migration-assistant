@@ -17,6 +17,7 @@
 - [Object To Json](palette-item-mappings-v3.md#object-to-json)
 - [Object To String](palette-item-mappings-v3.md#object-to-string)
 - [Reference Exception Strategy](palette-item-mappings-v3.md#reference-exception-strategy)
+- [Scatter Gather](palette-item-mappings-v3.md#scatter-gather)
 - [Session Variable](palette-item-mappings-v3.md#session-variable)
 - [Set Payload](palette-item-mappings-v3.md#set-payload)
 - [Sub Flow](palette-item-mappings-v3.md#sub-flow)
@@ -2416,6 +2417,104 @@ service / on httpConfig {
 
 public function catch\-exception\-strategy(Context ctx, error e) {
     log:printInfo("xxx: inside catch exception strategy");
+}
+
+```
+
+## Scatter Gather
+
+- ### Basic Scatter-Gather
+
+**Input (basic_scatter-gather.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:spring="http://www.springframework.org/schema/beans" xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.9/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.9/mule-http.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+    <http:listener-config name="HTTP_Listener_config" host="0.0.0.0" port="9090" doc:name="HTTP Listener config"/>
+    <flow name="scatterGatherFlow">
+        <http:listener config-ref="HTTP_Listener_config" path="/scatter" doc:name="HTTP Listener"/>
+        <scatter-gather doc:name="Scatter-Gather">
+            <set-payload value="Route 1 completed" doc:name="Set Payload 1"/>
+            <set-payload value="Route 2 completed" doc:name="Set Payload 2"/>
+            <set-payload value="Route 3 completed" doc:name="Set Payload 3"/>
+        </scatter-gather>
+        <logger level="INFO" message="#[payload]" doc:name="Logger"/>
+    </flow>
+</mule>
+
+```
+**Output (basic_scatter-gather.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type InboundProperties record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    InboundProperties inboundProperties;
+|};
+
+public listener http:Listener HTTP_Listener_config = new (9090);
+
+service / on HTTP_Listener_config {
+    resource function default scatter(http:Request request) returns http:Response|error {
+        Context ctx = {inboundProperties: {request, response: new}};
+
+        // scatter-gather parallel execution
+        fork {
+            worker R0 returns anydata|error {
+                // Route 0
+
+                // set payload
+                string payload0 = "Route 1 completed";
+                ctx.payload = payload0;
+                return ctx.payload;
+            }
+            worker R1 returns anydata|error {
+                // Route 1
+
+                // set payload
+                string payload1 = "Route 2 completed";
+                ctx.payload = payload1;
+                return ctx.payload;
+            }
+            worker R2 returns anydata|error {
+                // Route 2
+
+                // set payload
+                string payload2 = "Route 3 completed";
+                ctx.payload = payload2;
+                return ctx.payload;
+            }
+        }
+
+        // wait for all workers to complete
+        map<anydata|error> workerResults0 = wait {R0, R1, R2};
+        map<anydata> scatterGatherResults0 = workerResults0.entries().'map(e => wrapRouteError(e[0], e[1])).'map(m => check m);
+        ctx.payload = scatterGatherResults0;
+
+        log:printInfo(ctx.payload.toString());
+
+        ctx.inboundProperties.response.setPayload(ctx.payload);
+        return ctx.inboundProperties.response;
+    }
+}
+
+public function wrapRouteError(string key, anydata|error value) returns anydata|error {
+    if value is error {
+        return error(string `Error in Route ${key}: ${value.message()}`, value);
+    }
+    return value;
 }
 
 ```

@@ -22,6 +22,7 @@ import mule.v3.Context;
 import mule.v3.ConversionUtils;
 import mule.v3.dataweave.converter.DWReader;
 import mule.v3.dataweave.converter.DWUtils;
+import mule.v3.model.MuleModel;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -77,6 +78,7 @@ import static mule.v3.model.MuleModel.TransformMessage;
 import static mule.v3.model.MuleModel.UnsupportedBlock;
 import static mule.v3.model.MuleModel.VMOutboundEndpoint;
 import static mule.v3.model.MuleModel.WhenInChoice;
+import static mule.v3.model.MuleModel.ScatterGather;
 
 public class MuleConfigConverter {
 
@@ -176,6 +178,9 @@ public class MuleConfigConverter {
             }
             case UnsupportedBlock unsupportedBlock -> {
                 return convertUnsupportedBlock(ctx, unsupportedBlock);
+            }
+            case ScatterGather scatterGather -> {
+                return convertScatterGather(ctx, scatterGather);
             }
             case null -> throw new IllegalStateException();
             default -> throw new UnsupportedOperationException();
@@ -519,5 +524,80 @@ public class MuleConfigConverter {
         // This works for now because we concatenate and create a body block `{ stmts }`
         // before parsing.
         return List.of(stmtFrom(comment));
+    }
+
+    private static List<Statement> convertScatterGather(Context ctx, ScatterGather scatterGather) {
+        List<MuleModel.ProcessorChain> routes = scatterGather.processorChains();
+        if (routes.isEmpty()) {
+            return List.of();
+        }
+
+        List<Statement> stmts = new ArrayList<>();
+        stmts.add(stmtFrom("\n\n// scatter-gather parallel execution\n"));
+
+        // Create named workers for each route
+        List<NamedWorkerDecl> workers = new ArrayList<>();
+        String[] workerNames = new String[scatterGather.processorChains().size()];
+        for (int i = 0; i < scatterGather.processorChains().size(); i++) {
+            MuleModel.ProcessorChain route = scatterGather.processorChains().get(i);
+            String workerName = Constants.WORKER_SCATTER_GATHER
+                    .formatted(ctx.projectCtx.counters.scatterGatherWorkerCount++);
+            workerNames[i] = workerName;
+
+            List<Statement> workerBody = new ArrayList<>();
+            workerBody.add(stmtFrom(String.format("\n// Route %d\n", i)));
+
+            // Convert route blocks to worker statements
+            List<Statement> routeStmts = convertMuleBlocks(ctx, route.flowBlocks());
+            workerBody.addAll(routeStmts);
+
+            // Send result back to main worker
+            workerBody.add(stmtFrom(String.format("return %s.payload;", Constants.CONTEXT_REFERENCE)));
+
+            NamedWorkerDecl workerDecl = new NamedWorkerDecl(workerName, Optional.of(typeFrom("anydata|error")),
+                    workerBody);
+            workers.add(workerDecl);
+        }
+
+        Statement.ForkStatement fork = new Statement.ForkStatement(workers);
+        stmts.add(fork);
+
+        // Collect results from all workers
+        stmts.add(stmtFrom("\n\n// wait for all workers to complete\n"));
+        String workerResultsVar =
+                Constants.VAR_WORKER_RESULT_TEMPLATE.formatted(ctx.projectCtx.counters.workerWaitVarCount++);
+        String scatterGatherResultsVar =
+                Constants.VAR_SCATTER_GATHER_TEMPLATE.formatted(ctx.projectCtx.counters.scatterGatherVarCount++);
+        stmts.add(stmtFrom(String.format("map<anydata|error> %s = wait {%s};",
+                workerResultsVar, String.join(",", workerNames))));
+        stmts.add(stmtFrom(String.format("map<anydata> %s = %s.entries().'map(e => %s(e[0], e[1])).'map(m => check m);",
+                scatterGatherResultsVar, workerResultsVar, Constants.FUNC_WRAP_ROUTE_ERR)));
+
+        // Add the error wrapper function if not already added
+        if (!ctx.currentFileCtx.balConstructs.utilFunctions.contains(Constants.FUNC_WRAP_ROUTE_ERR)) {
+            addRouteErrorWrapperFunction(ctx);
+            ctx.currentFileCtx.balConstructs.utilFunctions.add(Constants.FUNC_WRAP_ROUTE_ERR);
+        }
+
+        // Set the collected results as payload
+        stmts.add(stmtFrom(String.format("%s.payload = %s;\n\n", Constants.CONTEXT_REFERENCE,
+                scatterGatherResultsVar)));
+        return stmts;
+    }
+
+    private static void addRouteErrorWrapperFunction(Context ctx) {
+        List<common.BallerinaModel.Parameter> params = new ArrayList<>();
+        params.add(new common.BallerinaModel.Parameter("key", typeFrom("string")));
+        params.add(new common.BallerinaModel.Parameter("value", typeFrom("anydata|error")));
+
+        List<Statement> body = new ArrayList<>();
+        body.add(stmtFrom(
+                "if value is error { return error(string `Error in Route ${key}: ${value.message()}`, value); }"
+        ));
+        body.add(stmtFrom("return value;"));
+
+        Function errorWrapFunc = Function.publicFunction(Constants.FUNC_WRAP_ROUTE_ERR, params,
+                typeFrom("anydata|error"), body);
+        ctx.currentFileCtx.balConstructs.functions.add(errorWrapFunc);
     }
 }
