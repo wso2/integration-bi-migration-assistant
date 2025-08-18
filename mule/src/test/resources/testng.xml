@@ -34,6 +34,7 @@
             <class name="mule.v4.blocks.ForEachTest"/>
             <class name="mule.v4.blocks.ScatterGatherTest"/>
             <class name="mule.v4.blocks.FirstSuccessfulTest"/>
+            <class name="mule.v4.blocks.SchedulerTest"/>
         </classes>
     </test>
 </suite>

@@ -48,13 +48,22 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
     public record TextDocument(String documentName, List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
                                List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
-                               List<Function> functions, List<String> Comments, List<String> intrinsics,
-                               List<ModuleMemberDeclarationNode> astNodes) {
+                               List<ClassDef> classDefs, List<Function> functions, List<String> Comments,
+                               List<String> intrinsics, List<ModuleMemberDeclarationNode> astNodes) {
 
         public TextDocument(String documentName, List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
                             List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
+                            List<Function> functions, List<String> comments, List<String> intrinsics,
+                            List<ModuleMemberDeclarationNode> astNodes) {
+            this(documentName, imports, moduleTypeDefs, moduleVars, listeners, services, Collections.emptyList(),
+                    functions, comments, intrinsics, astNodes);
+        }
+
+        public TextDocument(String documentName, List<Import> imports, List<ModuleTypeDef> moduleTypeDefs,
+                            List<ModuleVar> moduleVars, List<Listener> listeners, List<Service> services,
+                            List<ClassDef> classDefs,
                             List<Function> functions, List<String> comments) {
-            this(documentName, imports, moduleTypeDefs, moduleVars, listeners, services, functions, comments,
+            this(documentName, imports, moduleTypeDefs, moduleVars, listeners, services, classDefs, functions, comments,
                     List.of(), List.of());
         }
     }
@@ -369,7 +378,11 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record ObjectField(TypeDesc type, String name) {
-
+        @Override
+        @NotNull
+        public String toString() {
+            return "public %s %s;".formatted(type, name);
+        }
     }
 
     public sealed interface Listener {
@@ -488,6 +501,10 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             return new Function(Optional.of("public"), funcName, parameters, Optional.of(returnType),
                     new BlockFunctionBody(body));
         }
+    }
+
+    public record ClassDef(String className, List<TypeDesc> typeInclusions, List<ObjectField> fields,
+                        List<Function> methods) {
     }
 
     public interface FunctionBody {

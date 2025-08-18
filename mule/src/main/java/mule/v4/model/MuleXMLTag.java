@@ -49,6 +49,9 @@ public enum MuleXMLTag implements MuleXMLTagBase {
 
     // Components
     LOGGER("logger", 1),
+    SCHEDULER("scheduler", 1),
+    SCHEDULING_STRATEGY("scheduling-strategy", 1),
+    FIXED_FREQUENCY("fixed-frequency", 1),
     TRANSFORM_MESSAGE("ee:transform", 3),
     EXPRESSION_COMPONENT("expression-component", 3),
 

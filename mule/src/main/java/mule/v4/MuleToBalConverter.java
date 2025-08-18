@@ -17,6 +17,7 @@
  */
 package mule.v4;
 
+import common.BallerinaModel.Statement.BallerinaStatement;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.CodeGenerator;
@@ -25,6 +26,7 @@ import mule.common.MuleXMLNavigator;
 import mule.common.MuleXMLNavigator.MuleElement;
 import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.MuleModel.DbGenericConnection;
+import mule.v4.model.MuleModel.Scheduler;
 import mule.v4.model.MuleXMLTag;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -45,6 +47,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import static common.BallerinaModel.BlockFunctionBody;
+import static common.BallerinaModel.ClassDef;
 import static common.BallerinaModel.Expression;
 import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
@@ -133,6 +136,7 @@ public class MuleToBalConverter {
                                                      List<Flow> flows, List<SubFlow> subFlows) {
         List<Service> services = new ArrayList<>();
         Set<Function> functions = new HashSet<>();
+        List<ClassDef> classDefs = new ArrayList<>();
         List<Flow> privateFlows = new ArrayList<>();
 
         for (Flow flow : flows) {
@@ -145,6 +149,8 @@ public class MuleToBalConverter {
             MuleRecord src = source.get();
             if (src.kind() == Kind.VM_LISTENER) {
                 genVMListenerSource(ctx, flow, (VMListener) src, functions);
+            } else if (src.kind() == Kind.SCHEDULER) {
+                genSchedulerSource(ctx, flow, (Scheduler) src, functions, classDefs);
             } else {
                 assert src.kind() == Kind.HTTP_LISTENER;
                 genHttpSource(ctx, flow, (HttpListener) src, services, functions);
@@ -236,7 +242,7 @@ public class MuleToBalConverter {
         );
         orderedModuleVars.addAll(moduleVars);
         return createTextDocument(balFileName + ".bal", new ArrayList<>(ctx.currentFileCtx.balConstructs.imports),
-                typeDefs, orderedModuleVars, listeners, services, functions.stream().toList(), comments);
+                typeDefs, orderedModuleVars, listeners, services, classDefs, functions.stream().toList(), comments);
     }
 
     private static void genVMListenerSource(Context ctx, Flow flow, VMListener vmListener, Set<Function> functions) {
@@ -248,6 +254,38 @@ public class MuleToBalConverter {
             ctx.projectCtx.vmQueueNameToBalFuncMap.put(queueName, funcName);
         }
         genBalFunc(ctx, functions, funcName, flow.flowBlocks());
+    }
+
+    private static void genSchedulerSource(Context ctx, Flow flow, Scheduler scheduler, Set<Function> functions,
+                                           List<ClassDef> classDefs) {
+        String jobClassName = "Job";
+        ClassDef classDef = genBalJobClass(ctx, jobClassName, flow.flowBlocks());
+        classDefs.add(classDef);
+
+        // Convert time unit to seconds for Ballerina's task:IntervalTimer
+        double intervalInSeconds = convertToSeconds(scheduler.frequency(), scheduler.timeUnit());
+        BallerinaStatement stmt = stmtFrom("task:JobId id = check task:scheduleJobRecurByFrequency(new %s(), %s);"
+                .formatted(jobClassName, intervalInSeconds));
+        Function mainFunc = Function.publicFunction("main", List.of(), typeFrom("error?"), List.of(stmt));
+        functions.add(mainFunc);
+    }
+
+    private static double convertToSeconds(String frequency, String timeUnit) {
+        double freq = Double.parseDouble(frequency);
+        return switch (timeUnit.toLowerCase()) {
+            case "milliseconds", "millis" -> freq / 1000.0;
+            case "seconds", "s" -> freq;
+            case "minutes", "mins", "m" -> freq * 60.0;
+            case "hours", "h" -> freq * 3600.0;
+            case "days", "d" -> freq * 86400.0;
+            default -> freq; // Default to seconds if unknown
+        };
+    }
+
+    private static ClassDef genBalJobClass(Context ctx, String jobName, List<MuleRecord> flowBlocks) {
+        List<Statement> bodyCoreStmts = convertTopLevelMuleBlocks(ctx, flowBlocks);
+        Function executeFunc = Function.publicFunction("execute", List.of(), bodyCoreStmts);
+        return new ClassDef(jobName, List.of(typeFrom("task:Job")), List.of(), List.of(executeFunc));
     }
 
     private static void genHttpSource(Context ctx, Flow flow, HttpListener src, List<Service> services,
@@ -438,11 +476,11 @@ public class MuleToBalConverter {
 
     public static TextDocument createTextDocument(String docName, List<Import> imports,
                                                   List<ModuleTypeDef> moduleTypeDefs,
-                                                    List<ModuleVar> moduleVars, List<Listener> listeners,
-                                                    List<Service> services, List<Function> functions,
-                                                    List<String> comments) {
+                                                  List<ModuleVar> moduleVars, List<Listener> listeners,
+                                                  List<Service> services, List<ClassDef> classDefs,
+                                                  List<Function> functions, List<String> comments) {
         return new TextDocument(docName, imports, moduleTypeDefs, moduleVars, listeners,
-                services, functions, comments);
+                services, classDefs, functions, comments);
     }
 
     private static JavaDependencies determineJdbcDependencyFromUrl(String dbUrl) {
