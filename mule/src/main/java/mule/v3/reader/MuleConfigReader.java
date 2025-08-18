@@ -47,6 +47,7 @@ import static mule.v3.model.MuleModel.Enricher;
 import static mule.v3.model.MuleModel.ExpressionComponent;
 import static mule.v3.model.MuleModel.Flow;
 import static mule.v3.model.MuleModel.FlowReference;
+import static mule.v3.model.MuleModel.Foreach;
 import static mule.v3.model.MuleModel.HTTPListenerConfig;
 import static mule.v3.model.MuleModel.HTTPRequestConfig;
 import static mule.v3.model.MuleModel.HttpListener;
@@ -209,6 +210,9 @@ public class MuleConfigReader {
             case MuleXMLTag.VM_OUTBOUND_ENDPOINT -> {
                 return readVMOutboundEndpoint(ctx, muleElement);
             }
+            case MuleXMLTag.FOREACH -> {
+                return readForeach(ctx, muleElement);
+            }
             default -> {
                 return readUnsupportedBlock(ctx, muleElement);
             }
@@ -339,6 +343,25 @@ public class MuleConfigReader {
         }
 
         return new Async(flowBlocks);
+    }
+
+    private static Foreach readForeach(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String collection = element.getAttribute("collection");
+
+        // Default collection is payload if not specified
+        if (collection.isEmpty()) {
+            collection = "#[payload]";
+        }
+
+        List<MuleRecord> flowBlocks = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            MuleRecord muleRec = readBlock(ctx, child);
+            flowBlocks.add(muleRec);
+        }
+
+        return new Foreach(collection, flowBlocks);
     }
 
     private static ScatterGather readScatterGather(Context ctx, MuleElement muleElement) {

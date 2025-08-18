@@ -61,6 +61,7 @@ import static mule.v3.model.MuleModel.Database;
 import static mule.v3.model.MuleModel.Enricher;
 import static mule.v3.model.MuleModel.ExpressionComponent;
 import static mule.v3.model.MuleModel.FlowReference;
+import static mule.v3.model.MuleModel.Foreach;
 import static mule.v3.model.MuleModel.HttpRequest;
 import static mule.v3.model.MuleModel.Kind;
 import static mule.v3.model.MuleModel.LogLevel;
@@ -181,6 +182,9 @@ public class MuleConfigConverter {
             }
             case ScatterGather scatterGather -> {
                 return convertScatterGather(ctx, scatterGather);
+            }
+            case Foreach foreach -> {
+                return convertForeach(ctx, foreach);
             }
             case null -> throw new IllegalStateException();
             default -> throw new UnsupportedOperationException();
@@ -599,5 +603,35 @@ public class MuleConfigConverter {
         Function errorWrapFunc = Function.publicFunction(Constants.FUNC_WRAP_ROUTE_ERR, params,
                 typeFrom("anydata|error"), body);
         ctx.currentFileCtx.balConstructs.functions.add(errorWrapFunc);
+    }
+
+    private static List<Statement> convertForeach(Context ctx, Foreach foreach) {
+        List<Statement> stmts = new ArrayList<>();
+        String collection = convertMuleExprToBal(ctx, foreach.collection());
+
+        // Generate unique variable names for the foreach loop
+        String iteratorVar = String.format(Constants.VAR_ITERATOR_TEMPLATE,
+                ctx.projectCtx.counters.foreachIteratorCount++);
+        String originalPayloadVar = String.format(Constants.VAR_ORIGINAL_PAYLOAD_TEMPLATE,
+                ctx.projectCtx.counters.originalPayloadVarCount++);
+
+        stmts.add(stmtFrom("\n\n// foreach loop\n"));
+
+        // Store original payload
+        stmts.add(stmtFrom(String.format("anydata %s = %s.payload;", originalPayloadVar, Constants.CONTEXT_REFERENCE)));
+
+        List<Statement> foreachBody = new ArrayList<>();
+        foreachBody.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE, iteratorVar)));
+        foreachBody.addAll(convertMuleBlocks(ctx, foreach.flowBlocks()));
+
+        // Create foreach statement using Ballerina syntax
+        stmts.add(stmtFrom(String.format("foreach anydata %s in %s {", iteratorVar, collection)));
+        stmts.addAll(foreachBody);
+        stmts.add(stmtFrom("}"));
+
+        // Restore original payload after foreach
+        stmts.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE, originalPayloadVar)));
+
+        return stmts;
     }
 }

@@ -36,6 +36,7 @@ The migration tool currently supports the following Mule components:
 - [Database Connector](docs/palette-item-mappings-v3.md#database-connector)
 - [Expression Component](docs/palette-item-mappings-v3.md#expression-component)
 - [Flow](docs/palette-item-mappings-v3.md#flow)
+- [For Each](docs/palette-item-mappings-v3.md#for-each)
 - [Http Listener](docs/palette-item-mappings-v3.md#http-listener)
 - [Http Request](docs/palette-item-mappings-v3.md#http-request)
 - [Logger](docs/palette-item-mappings-v3.md#logger)

@@ -152,6 +152,12 @@ public record MuleModel() {
         }
     }
 
+    public record Foreach(Kind kind, String collection, List<MuleRecord> flowBlocks) implements MuleRecord {
+        public Foreach(String collection, List<MuleRecord> flowBlocks) {
+            this(Kind.FOREACH, collection, flowBlocks);
+        }
+    }
+
     public record ScatterGather(Kind kind, List<ProcessorChain> processorChains) implements MuleRecord {
         public ScatterGather(List<ProcessorChain> processorChains) {
             this(Kind.SCATTER_GATHER, processorChains);
@@ -321,6 +327,7 @@ public record MuleModel() {
         FLOW,
         SUB_FLOW,
         ASYNC,
+        FOREACH,
         MESSAGE_ENRICHER,
         CATCH_EXCEPTION_STRATEGY,
         CHOICE_EXCEPTION_STRATEGY,

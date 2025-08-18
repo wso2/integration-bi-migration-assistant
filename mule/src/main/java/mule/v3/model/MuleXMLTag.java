@@ -48,6 +48,7 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     FLOW("flow", 3),
     SUB_FLOW("sub-flow", 3),
     FLOW_REFERENCE("flow-ref", 3),
+    FOREACH("foreach", 3),
     ENRICHER("enricher", 5),
     ASYNC("async", 4),
     SCATTER_GATHER("scatter-gather", 4),

@@ -189,5 +189,7 @@ public class Context extends ContextBase {
         public int scatterGatherWorkerCount = 0;
         public int workerWaitVarCount = 0;
         public int scatterGatherVarCount = 0;
+        public int foreachIteratorCount = 0;
+        public int originalPayloadVarCount = 0;
     }
 }
