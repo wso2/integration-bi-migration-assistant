@@ -35,9 +35,7 @@ public class AnalysisReport {
     private final Map<String, Collection<UnhandledElement>> unhandledElements;
     private final int partiallySupportedElementCount;
     private final Map<String, Collection<UnhandledElement>> partiallySupportedElements;
-    private final int bestCaseDays;
-    private final int averageCaseDays;
-    private final int worstCaseDays;
+    private final TimeEstimation estimation;
 
     // CSS styles as a constant to avoid format specifier issues
     private static final String CSS_STYLES = """
@@ -371,8 +369,8 @@ public class AnalysisReport {
      */
     public AnalysisReport(String reportTitle, int totalElementCount, int unhandledElementCount, String elementType,
                           Map<String, Collection<UnhandledElement>> unhandledElements, int partiallySupportedElementCount,
-                          Map<String, Collection<UnhandledElement>> partiallySupportedElements, int bestCaseDays,
-                          int averageCaseDays, int worstCaseDays) {
+            Map<String, Collection<UnhandledElement>> partiallySupportedElements,
+            TimeEstimation timeEstimation) {
         assert totalElementCount >= unhandledElementCount;
         this.reportTitle = reportTitle;
         this.totalElementCount = totalElementCount;
@@ -381,9 +379,7 @@ public class AnalysisReport {
         this.unhandledElements = unhandledElements;
         this.partiallySupportedElementCount = partiallySupportedElementCount;
         this.partiallySupportedElements = partiallySupportedElements;
-        this.bestCaseDays = bestCaseDays;
-        this.averageCaseDays = averageCaseDays;
-        this.worstCaseDays = worstCaseDays;
+        this.estimation = timeEstimation;
     }
 
     /**
@@ -435,7 +431,7 @@ public class AnalysisReport {
                 generateSummaryContainer(coveragePercentage, totalElementCount, unhandledElementCount, elementType));
 
         // Generate manual work estimation section
-        html.append(generateManualWorkEstimation(bestCaseDays, averageCaseDays, worstCaseDays, elementType));
+        html.append(generateManualWorkEstimation(estimation, elementType));
 
         // Generate estimation notes
         html.append(generateEstimationNotes(elementType));
@@ -526,17 +522,14 @@ public class AnalysisReport {
     /**
      * Generates the manual work estimation section HTML.
      *
-     * @param bestCaseDays    Best case scenario days
-     * @param averageCaseDays Average case scenario days
-     * @param worstCaseDays   Worst case scenario days
-     * @param elementType     The type of elements being analyzed
+     * @param estimation  Time estimation
+     * @param elementType The type of elements being analyzed
      * @return HTML string for the manual work estimation section
      */
-    private static String generateManualWorkEstimation(int bestCaseDays, int averageCaseDays,
-            int worstCaseDays, String elementType) {
-        int bestCaseWeeks = (int) Math.ceil(bestCaseDays / 5.0);
-        int avgCaseWeeks = (int) Math.ceil(averageCaseDays / 5.0);
-        int worstCaseWeeks = (int) Math.ceil(worstCaseDays / 5.0);
+    private static String generateManualWorkEstimation(TimeEstimation estimation, String elementType) {
+        int bestCaseWeeks = estimation.bestCaseWeeks();
+        int avgCaseWeeks = estimation.averageCaseWeeks();
+        int worstCaseWeeks = estimation.worstCaseWeeks();
 
         return """
                     <div class="summary-container">
@@ -564,9 +557,9 @@ public class AnalysisReport {
                             </tr>
                         </table>
                 """.formatted(
-                toDays(bestCaseDays), toWeeks(bestCaseWeeks),
-                toDays(averageCaseDays), toWeeks(avgCaseWeeks),
-                toDays(worstCaseDays), toWeeks(worstCaseWeeks)
+                toDays(estimation.bestCaseDaysAsInt()), toWeeks(bestCaseWeeks),
+                toDays(estimation.averageCaseDaysAsInt()), toWeeks(avgCaseWeeks),
+                toDays(estimation.worstCaseDaysAsInt()), toWeeks(worstCaseWeeks)
         );
     }
 

@@ -275,9 +275,7 @@ public final class TibcoAnalysisReport {
                 unhandledElementsMap,
                 partiallySupportedActivityCount,
                 partiallySupportedElementsMap,
-                (int) Math.ceil(estimation.bestCaseDays()),
-                (int) Math.ceil(estimation.averageCaseDays()),
-                (int) Math.ceil(estimation.worstCaseDays())
+                estimation
         );
 
         return report.toHTML();
