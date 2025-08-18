@@ -8,7 +8,9 @@
 - [Choice Exception Strategy](palette-item-mappings-v3.md#choice-exception-strategy)
 - [Database Connector](palette-item-mappings-v3.md#database-connector)
 - [Expression Component](palette-item-mappings-v3.md#expression-component)
+- [First Successful](palette-item-mappings-v3.md#first-successful)
 - [Flow](palette-item-mappings-v3.md#flow)
+- [For Each](palette-item-mappings-v3.md#for-each)
 - [Http Listener](palette-item-mappings-v3.md#http-listener)
 - [Http Request](palette-item-mappings-v3.md#http-request)
 - [Logger](palette-item-mappings-v3.md#logger)
@@ -17,6 +19,7 @@
 - [Object To Json](palette-item-mappings-v3.md#object-to-json)
 - [Object To String](palette-item-mappings-v3.md#object-to-string)
 - [Reference Exception Strategy](palette-item-mappings-v3.md#reference-exception-strategy)
+- [Scatter Gather](palette-item-mappings-v3.md#scatter-gather)
 - [Session Variable](palette-item-mappings-v3.md#session-variable)
 - [Set Payload](palette-item-mappings-v3.md#set-payload)
 - [Sub Flow](palette-item-mappings-v3.md#sub-flow)
@@ -647,6 +650,74 @@ service /mule3 on config {
 
 ```
 
+- ### Generic Db Select
+
+**Input (generic_db_select.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="config" host="localhost" port="8081" basePath="/mule3" doc:name="HTTP Listener Configuration"/>
+    <db:generic-config name="Generic_Database_Configuration" url="jdbc:postgresql://localhost:5432/bookstore" user="root" password="admin" doc:name="Generic Database Configuration"/>
+    <flow name="demoFlow">
+        <http:listener config-ref="config" path="/demo" allowedMethods="GET" doc:name="HTTP"/>
+        <logger message="xxx: logger invoked" level="INFO" doc:name="Logger"/>
+        <db:select config-ref="Generic_Database_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[SELECT * FROM users;]]></db:parameterized-query>
+        </db:select>
+    </flow>
+</mule>
+
+```
+**Output (generic_db_select.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+import ballerina/sql;
+import ballerinax/java.jdbc;
+
+public type InboundProperties record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    InboundProperties inboundProperties;
+|};
+
+public type Record record {
+};
+
+jdbc:Client Generic_Database_Configuration = check new ("jdbc:postgresql://localhost:5432/bookstore", "root", "admin");
+public listener http:Listener config = new (8081, {host: "localhost"});
+
+service /mule3 on config {
+    resource function get demo(http:Request request) returns http:Response|error {
+        Context ctx = {inboundProperties: {request, response: new}};
+        log:printInfo("xxx: logger invoked");
+
+        // database operation
+        sql:ParameterizedQuery dbQuery0 = `SELECT * FROM users;`;
+        stream<Record, sql:Error?> dbStream0 = Generic_Database_Configuration->query(dbQuery0);
+        Record[] dbSelect0 = check from Record _iterator_ in dbStream0
+            select _iterator_;
+        ctx.payload = dbSelect0;
+
+        ctx.inboundProperties.response.setPayload(ctx.payload);
+        return ctx.inboundProperties.response;
+    }
+}
+
+```
+
 - ### Oracle Db Select
 
 **Input (oracle_db_select.xml):**
@@ -769,6 +840,113 @@ public function combineFlowVarsAndPayloadFlow(Context ctx) {
 
 ```
 
+## First Successful
+
+- ### Basic First Successful
+
+**Input (basic_first_successful.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.9/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.9/mule-http.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+
+    <http:listener-config name="http_listener" host="0.0.0.0" port="9090" doc:name="HTTP Listener config"/>
+
+    <flow name="scatterGatherFlow">
+        <http:listener config-ref="http_listener" path="/first_successful" doc:name="HTTP Listener"/>
+        <first-successful doc:name="First Successful">
+            <set-payload value="Route 0 completed" doc:name="Set Payload 1"/>
+            <set-payload value="Route 1 completed" doc:name="Set Payload 2"/>
+            <set-payload value="Route 2 completed" doc:name="Set Payload 3"/>
+        </first-successful>
+        <logger level="INFO" message="#[payload]" doc:name="Logger"/>
+    </flow>
+</mule>
+
+```
+**Output (basic_first_successful.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type InboundProperties record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    InboundProperties inboundProperties;
+|};
+
+public listener http:Listener http_listener = new (9090);
+
+service / on http_listener {
+    resource function default first_successful(http:Request request) returns http:Response|error {
+        Context ctx = {inboundProperties: {request, response: new}};
+
+        // first-successful sequential route execution
+        anydata firstSuccessfulResult0 = check firstSuccessful0(ctx);
+        ctx.payload = firstSuccessfulResult0;
+
+        log:printInfo(ctx.payload.toString());
+
+        ctx.inboundProperties.response.setPayload(ctx.payload);
+        return ctx.inboundProperties.response;
+    }
+}
+
+public function firstSuccessful0(Context ctx) returns anydata|error {
+    anydata|error r0 = firstSuccessfulRoute0(ctx);
+    if r0 !is error {
+        return r0;
+    }
+    anydata|error r1 = firstSuccessfulRoute1(ctx);
+    if r1 !is error {
+        return r1;
+    }
+    anydata|error r2 = firstSuccessfulRoute2(ctx);
+    if r2 !is error {
+        return r2;
+    }
+    return error("All routes failed", r2);
+}
+
+public function firstSuccessfulRoute2(Context ctx) returns anydata|error {
+    // Route 2
+
+    // set payload
+    string payload2 = "Route 2 completed";
+    ctx.payload = payload2;
+    return ctx.payload;
+}
+
+public function firstSuccessfulRoute1(Context ctx) returns anydata|error {
+    // Route 1
+
+    // set payload
+    string payload1 = "Route 1 completed";
+    ctx.payload = payload1;
+    return ctx.payload;
+}
+
+public function firstSuccessfulRoute0(Context ctx) returns anydata|error {
+    // Route 0
+
+    // set payload
+    string payload0 = "Route 0 completed";
+    ctx.payload = payload0;
+    return ctx.payload;
+}
+
+```
+
 ## Flow
 
 - ### Basic Flow
@@ -880,6 +1058,75 @@ service /mule3 on config {
 
 public function demoPrivateFlow(Context ctx) {
     log:printInfo("xxx: private flow invoked");
+}
+
+```
+
+## For Each
+
+- ### Basic For Each
+
+**Input (basic_for_each.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.9/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.9/mule-http.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+
+    <http:listener-config name="HTTP_Listener_config" host="0.0.0.0" port="9090" doc:name="HTTP Listener Configuration"/>
+
+    <flow name="muleDemoFlow">
+        <http:listener path="/demo" config-ref="HTTP_Listener_config" allowedMethods="POST" doc:name="HTTP"/>
+        <set-payload value='["Alice", "Bob", "Charlie"]' doc:name="Set Payload" mimeType="application/json"/>
+        <foreach doc:name="For Each">
+            <logger level="INFO" doc:name="Logger" message="Current item: #[payload]"/>
+        </foreach>
+    </flow>
+</mule>
+
+```
+**Output (basic_for_each.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type InboundProperties record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    InboundProperties inboundProperties;
+|};
+
+public listener http:Listener HTTP_Listener_config = new (9090);
+
+service / on HTTP_Listener_config {
+    resource function post demo(http:Request request) returns http:Response|error {
+        Context ctx = {inboundProperties: {request, response: new}};
+
+        // set payload
+        string payload0 = "[\"Alice\", \"Bob\", \"Charlie\"]";
+        ctx.payload = payload0;
+
+        // foreach loop
+        anydata originalPayload0 = ctx.payload;
+        foreach anydata iterator0 in ctx.payload {
+            ctx.payload = iterator0;
+            log:printInfo(string `Current item: ${ctx.payload.toString()}`);
+        }
+        ctx.payload = originalPayload0;
+
+        ctx.inboundProperties.response.setPayload(ctx.payload);
+        return ctx.inboundProperties.response;
+    }
 }
 
 ```
@@ -2348,6 +2595,104 @@ service / on httpConfig {
 
 public function catch\-exception\-strategy(Context ctx, error e) {
     log:printInfo("xxx: inside catch exception strategy");
+}
+
+```
+
+## Scatter Gather
+
+- ### Basic Scatter-Gather
+
+**Input (basic_scatter-gather.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:spring="http://www.springframework.org/schema/beans" xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.9/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.9/mule-http.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+    <http:listener-config name="HTTP_Listener_config" host="0.0.0.0" port="9090" doc:name="HTTP Listener config"/>
+    <flow name="scatterGatherFlow">
+        <http:listener config-ref="HTTP_Listener_config" path="/scatter" doc:name="HTTP Listener"/>
+        <scatter-gather doc:name="Scatter-Gather">
+            <set-payload value="Route 1 completed" doc:name="Set Payload 1"/>
+            <set-payload value="Route 2 completed" doc:name="Set Payload 2"/>
+            <set-payload value="Route 3 completed" doc:name="Set Payload 3"/>
+        </scatter-gather>
+        <logger level="INFO" message="#[payload]" doc:name="Logger"/>
+    </flow>
+</mule>
+
+```
+**Output (basic_scatter-gather.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type InboundProperties record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    InboundProperties inboundProperties;
+|};
+
+public listener http:Listener HTTP_Listener_config = new (9090);
+
+service / on HTTP_Listener_config {
+    resource function default scatter(http:Request request) returns http:Response|error {
+        Context ctx = {inboundProperties: {request, response: new}};
+
+        // scatter-gather parallel execution
+        fork {
+            worker R0 returns anydata|error {
+                // Route 0
+
+                // set payload
+                string payload0 = "Route 1 completed";
+                ctx.payload = payload0;
+                return ctx.payload;
+            }
+            worker R1 returns anydata|error {
+                // Route 1
+
+                // set payload
+                string payload1 = "Route 2 completed";
+                ctx.payload = payload1;
+                return ctx.payload;
+            }
+            worker R2 returns anydata|error {
+                // Route 2
+
+                // set payload
+                string payload2 = "Route 3 completed";
+                ctx.payload = payload2;
+                return ctx.payload;
+            }
+        }
+
+        // wait for all workers to complete
+        map<anydata|error> workerResults0 = wait {R0, R1, R2};
+        map<anydata> scatterGatherResults0 = workerResults0.entries().'map(e => wrapRouteError(e[0], e[1])).'map(m => check m);
+        ctx.payload = scatterGatherResults0;
+
+        log:printInfo(ctx.payload.toString());
+
+        ctx.inboundProperties.response.setPayload(ctx.payload);
+        return ctx.inboundProperties.response;
+    }
+}
+
+public function wrapRouteError(string key, anydata|error value) returns anydata|error {
+    if value is error {
+        return error(string `Error in Route ${key}: ${value.message()}`, value);
+    }
+    return value;
 }
 
 ```

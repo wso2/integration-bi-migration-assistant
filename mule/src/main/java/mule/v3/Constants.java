@@ -38,6 +38,7 @@ public class Constants {
     public static final String MODULE_MYSQL_DRIVER = "mysql.driver";
     public static final String MODULE_ORACLEDB = "oracledb";
     public static final String MODULE_ORACLEDB_DRIVER = "oracledb.driver";
+    public static final String MODULE_JAVA_JDBC = "java.jdbc";
     public static final String MODULE_TIME = "time";
     public static final String MODULE_INT = "lang.'int";
     public static final String MODULE_JAVA = "jballerina.java";
@@ -72,6 +73,15 @@ public class Constants {
     public static final String VAR_PAYLOAD_TEMPLATE = "payload%s";
     public static final String VAR_CLIENT_RESULT_TEMPLATE = "clientResult%s";
     public static final String FUNC_NAME_VM_RECEIVE_TEMPLATE = "vmReceive%s";
+    public static final String WORKER_SCATTER_GATHER = "R%s";
+    public static final String VAR_WORKER_RESULT_TEMPLATE = "workerResults%s";
+    public static final String VAR_SCATTER_GATHER_TEMPLATE = "scatterGatherResults%s";
+    public static final String FUNC_WRAP_ROUTE_ERR = "wrapRouteError";
+    public static final String VAR_ITERATOR_TEMPLATE = "iterator%d";
+    public static final String VAR_ORIGINAL_PAYLOAD_TEMPLATE = "originalPayload%d";
+    public static final String FUNC_FIRST_SUCCESSFUL_ROUTE = "firstSuccessfulRoute%d";
+    public static final String FUNC_FIRST_SUCCESSFUL = "firstSuccessful%d";
+    public static final String VAR_FIRST_SUCCESSFUL_RESULT = "firstSuccessfulResult%d";
 
     // Types
     public static final String HTTP_RESPONSE_TYPE = "http:Response";
@@ -79,6 +89,7 @@ public class Constants {
     public static final String HTTP_RESOURCE_RETURN_TYPE_DEFAULT = HTTP_RESPONSE_TYPE + "|error";
     public static final String MYSQL_CLIENT_TYPE = "mysql:Client";
     public static final String ORACLEDB_CLIENT_TYPE = "oracledb:Client";
+    public static final String JDBC_CLIENT_TYPE = "jdbc:Client";
     public static final String HTTP_RESOURCE_RETURN_TYPE_UPPER = "anydata|http:Response|http:StatusCodeResponse|" +
             "stream<http:SseEvent, error?>|stream<http:SseEvent, error>|error";
     public static final String DB_QUERY_DEFAULT_TEMPLATE = "stream<%s, sql:Error?>";

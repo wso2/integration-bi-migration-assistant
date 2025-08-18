@@ -152,6 +152,30 @@ public record MuleModel() {
         }
     }
 
+    public record Foreach(Kind kind, String collection, List<MuleRecord> flowBlocks) implements MuleRecord {
+        public Foreach(String collection, List<MuleRecord> flowBlocks) {
+            this(Kind.FOREACH, collection, flowBlocks);
+        }
+    }
+
+    public record ScatterGather(Kind kind, List<ProcessorChain> processorChains) implements MuleRecord {
+        public ScatterGather(List<ProcessorChain> processorChains) {
+            this(Kind.SCATTER_GATHER, processorChains);
+        }
+    }
+
+    public record FirstSuccessful(Kind kind, List<ProcessorChain> processorChains) implements MuleRecord {
+        public FirstSuccessful(List<ProcessorChain> processorChains) {
+            this(Kind.FIRST_SUCCESSFUL, processorChains);
+        }
+    }
+
+    public record ProcessorChain(Kind kind, List<MuleRecord> flowBlocks) implements MuleRecord {
+        public ProcessorChain(List<MuleRecord> flowBlocks) {
+            this(Kind.PROCESSOR_CHAIN, flowBlocks);
+        }
+    }
+
     public record Enricher(Kind kind, String source, String target, Optional<MuleRecord> innerBlock)
             implements MuleRecord {
         public Enricher(String source, String target, Optional<MuleRecord> innerBlock) {
@@ -238,6 +262,13 @@ public record MuleModel() {
         }
     }
 
+    public record DbGenericConfig(Kind kind, String name, String url, String user, String password)
+            implements MuleRecord {
+        public DbGenericConfig(String name, String url, String user, String password) {
+            this(Kind.DB_GENERIC_CONFIG, name, url, user, password);
+        }
+    }
+
     public record DbTemplateQuery(Kind kind, String name, String parameterizedQuery,
                                   List<DbInParam> dbInParams) implements MuleRecord {
         public DbTemplateQuery(String name, String parameterizedQuery, List<DbInParam> dbInParams) {
@@ -281,6 +312,7 @@ public record MuleModel() {
         HTTP_REQUEST_CONFIG,
         DB_MYSQL_CONFIG,
         DB_ORACLE_CONFIG,
+        DB_GENERIC_CONFIG,
         DB_TEMPLATE_QUERY,
         DB_INSERT,
         DB_SELECT,
@@ -301,11 +333,15 @@ public record MuleModel() {
         FLOW,
         SUB_FLOW,
         ASYNC,
+        FOREACH,
         MESSAGE_ENRICHER,
         CATCH_EXCEPTION_STRATEGY,
         CHOICE_EXCEPTION_STRATEGY,
         REFERENCE_EXCEPTION_STRATEGY,
-        UNSUPPORTED_BLOCK
+        UNSUPPORTED_BLOCK,
+        SCATTER_GATHER,
+        FIRST_SUCCESSFUL,
+        PROCESSOR_CHAIN
     }
 
     public enum Type {

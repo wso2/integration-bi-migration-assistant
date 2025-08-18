@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.9/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.9/mule-http.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+
+    <http:listener-config name="http_listener" host="0.0.0.0" port="9090" doc:name="HTTP Listener config"/>
+
+    <flow name="scatterGatherFlow">
+        <http:listener config-ref="http_listener" path="/first_successful" doc:name="HTTP Listener"/>
+        <first-successful doc:name="First Successful">
+            <set-payload value="Route 0 completed" doc:name="Set Payload 1"/>
+            <set-payload value="Route 1 completed" doc:name="Set Payload 2"/>
+            <set-payload value="Route 2 completed" doc:name="Set Payload 3"/>
+        </first-successful>
+        <logger level="INFO" message="#[payload]" doc:name="Logger"/>
+    </flow>
+</mule>

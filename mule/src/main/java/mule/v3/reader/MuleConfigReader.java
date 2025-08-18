@@ -41,11 +41,14 @@ import static mule.v3.model.MuleModel.Database;
 import static mule.v3.model.MuleModel.DbInParam;
 import static mule.v3.model.MuleModel.DbMSQLConfig;
 import static mule.v3.model.MuleModel.DbOracleConfig;
+import static mule.v3.model.MuleModel.DbGenericConfig;
 import static mule.v3.model.MuleModel.DbTemplateQuery;
 import static mule.v3.model.MuleModel.Enricher;
 import static mule.v3.model.MuleModel.ExpressionComponent;
+import static mule.v3.model.MuleModel.FirstSuccessful;
 import static mule.v3.model.MuleModel.Flow;
 import static mule.v3.model.MuleModel.FlowReference;
+import static mule.v3.model.MuleModel.Foreach;
 import static mule.v3.model.MuleModel.HTTPListenerConfig;
 import static mule.v3.model.MuleModel.HTTPRequestConfig;
 import static mule.v3.model.MuleModel.HttpListener;
@@ -74,6 +77,8 @@ import static mule.v3.model.MuleModel.UnsupportedBlock;
 import static mule.v3.model.MuleModel.VMInboundEndpoint;
 import static mule.v3.model.MuleModel.VMOutboundEndpoint;
 import static mule.v3.model.MuleModel.WhenInChoice;
+import static mule.v3.model.MuleModel.ScatterGather;
+import static mule.v3.model.MuleModel.ProcessorChain;
 
 public class MuleConfigReader {
 
@@ -112,6 +117,9 @@ public class MuleConfigReader {
         } else if (MuleXMLTag.DB_ORACLE_CONFIG.tag().equals(elementTagName)) {
             DbOracleConfig dbOracleConfig = readDbOracleConfig(ctx, muleElement);
             ctx.currentFileCtx.configs.dbOracleConfigs.put(dbOracleConfig.name(), dbOracleConfig);
+        } else if (MuleXMLTag.DB_GENERIC_CONFIG.tag().equals(elementTagName)) {
+            DbGenericConfig dbGenericConfig = readDbGenericConfig(ctx, muleElement);
+            ctx.currentFileCtx.configs.dbGenericConfigs.put(dbGenericConfig.name(), dbGenericConfig);
         } else if (MuleXMLTag.DB_TEMPLATE_QUERY.tag().equals(elementTagName)) {
             DbTemplateQuery dbTemplateQuery = readDbTemplateQuery(ctx, muleElement);
             ctx.currentFileCtx.configs.dbTemplateQueries.put(dbTemplateQuery.name(), dbTemplateQuery);
@@ -188,6 +196,9 @@ public class MuleConfigReader {
             case MuleXMLTag.ASYNC -> {
                 return readAsync(ctx, muleElement);
             }
+            case MuleXMLTag.SCATTER_GATHER -> {
+                return readScatterGather(ctx, muleElement);
+            }
             case MuleXMLTag.CATCH_EXCEPTION_STRATEGY -> {
                 return readCatchExceptionStrategy(ctx, muleElement);
             }
@@ -199,6 +210,12 @@ public class MuleConfigReader {
             }
             case MuleXMLTag.VM_OUTBOUND_ENDPOINT -> {
                 return readVMOutboundEndpoint(ctx, muleElement);
+            }
+            case MuleXMLTag.FOREACH -> {
+                return readForeach(ctx, muleElement);
+            }
+            case MuleXMLTag.FIRST_SUCCESSFUL -> {
+                return readFirstSuccessful(ctx, muleElement);
             }
             default -> {
                 return readUnsupportedBlock(ctx, muleElement);
@@ -330,6 +347,67 @@ public class MuleConfigReader {
         }
 
         return new Async(flowBlocks);
+    }
+
+    private static Foreach readForeach(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String collection = element.getAttribute("collection");
+
+        // Default collection is payload if not specified
+        if (collection.isEmpty()) {
+            collection = "#[payload]";
+        }
+
+        List<MuleRecord> flowBlocks = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            MuleRecord muleRec = readBlock(ctx, child);
+            flowBlocks.add(muleRec);
+        }
+
+        return new Foreach(collection, flowBlocks);
+    }
+
+    private static ScatterGather readScatterGather(Context ctx, MuleElement muleElement) {
+        List<ProcessorChain> processorChains = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals(MuleXMLTag.PROCESSOR_CHAIN.tag())) {
+                ProcessorChain processorChain = readProcessorChain(ctx, child);
+                processorChains.add(processorChain);
+            } else {
+                MuleRecord muleRecord = readBlock(ctx, child);
+                processorChains.add(new ProcessorChain(List.of(muleRecord)));
+            }
+        }
+        return new ScatterGather(processorChains);
+    }
+
+    private static FirstSuccessful readFirstSuccessful(Context ctx, MuleElement muleElement) {
+        List<ProcessorChain> processorChains = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals(MuleXMLTag.PROCESSOR_CHAIN.tag())) {
+                ProcessorChain processorChain = readProcessorChain(ctx, child);
+                processorChains.add(processorChain);
+            } else {
+                MuleRecord muleRecord = readBlock(ctx, child);
+                processorChains.add(new ProcessorChain(List.of(muleRecord)));
+            }
+        }
+        return new FirstSuccessful(processorChains);
+    }
+
+    private static ProcessorChain readProcessorChain(Context ctx, MuleElement muleElement) {
+        List<MuleRecord> flowBlocks = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            MuleRecord muleRec = readBlock(ctx, child);
+            flowBlocks.add(muleRec);
+        }
+        return new ProcessorChain(flowBlocks);
     }
 
     // Transformers
@@ -596,6 +674,16 @@ public class MuleConfigReader {
         String password = element.getAttribute("password");
         String instance = element.getAttribute("instance");
         return new DbOracleConfig(name, host, port, user, password, instance);
+    }
+
+    private static DbGenericConfig readDbGenericConfig(Context ctx, MuleElement muleElement) {
+        ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_JAVA_JDBC));
+        Element element = muleElement.getElement();
+        String name = element.getAttribute("name");
+        String url = element.getAttribute("url");
+        String user = element.getAttribute("user");
+        String password = element.getAttribute("password");
+        return new DbGenericConfig(name, url, user, password);
     }
 
     private static DbTemplateQuery readDbTemplateQuery(Context ctx, MuleElement muleElement) {

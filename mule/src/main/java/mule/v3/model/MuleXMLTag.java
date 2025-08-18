@@ -31,12 +31,15 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     HTTP_REQUEST_CONFIG("http:request-config", 5),
     DB_MYSQL_CONFIG("db:mysql-config", 4),
     DB_ORACLE_CONFIG("db:oracle-config", 4),
+    DB_GENERIC_CONFIG("db:generic-config", 4),
     DB_TEMPLATE_QUERY("db:template-query", 3),
 
     // Flow Control
     CHOICE("choice", 3),
     WHEN("when", 2),
     OTHERWISE("otherwise", 2),
+    SCATTER_GATHER("scatter-gather", 4),
+    FIRST_SUCCESSFUL("first-successful", 4),
 
     // Components
     LOGGER("logger", 1),
@@ -47,8 +50,10 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     FLOW("flow", 3),
     SUB_FLOW("sub-flow", 3),
     FLOW_REFERENCE("flow-ref", 3),
+    FOREACH("foreach", 3),
     ENRICHER("enricher", 5),
     ASYNC("async", 4),
+    PROCESSOR_CHAIN("processor-chain", 2),
 
     // Transformers
     SET_VARIABLE("set-variable", 1),

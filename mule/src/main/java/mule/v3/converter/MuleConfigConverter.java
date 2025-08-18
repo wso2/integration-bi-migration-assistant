@@ -59,7 +59,9 @@ import static mule.v3.model.MuleModel.ChoiceExceptionStrategy;
 import static mule.v3.model.MuleModel.Database;
 import static mule.v3.model.MuleModel.Enricher;
 import static mule.v3.model.MuleModel.ExpressionComponent;
+import static mule.v3.model.MuleModel.FirstSuccessful;
 import static mule.v3.model.MuleModel.FlowReference;
+import static mule.v3.model.MuleModel.Foreach;
 import static mule.v3.model.MuleModel.HttpRequest;
 import static mule.v3.model.MuleModel.Kind;
 import static mule.v3.model.MuleModel.LogLevel;
@@ -68,6 +70,7 @@ import static mule.v3.model.MuleModel.MuleRecord;
 import static mule.v3.model.MuleModel.ObjectToJson;
 import static mule.v3.model.MuleModel.ObjectToString;
 import static mule.v3.model.MuleModel.Payload;
+import static mule.v3.model.MuleModel.ProcessorChain;
 import static mule.v3.model.MuleModel.QueryType;
 import static mule.v3.model.MuleModel.ReferenceExceptionStrategy;
 import static mule.v3.model.MuleModel.RemoveVariable;
@@ -77,6 +80,7 @@ import static mule.v3.model.MuleModel.TransformMessage;
 import static mule.v3.model.MuleModel.UnsupportedBlock;
 import static mule.v3.model.MuleModel.VMOutboundEndpoint;
 import static mule.v3.model.MuleModel.WhenInChoice;
+import static mule.v3.model.MuleModel.ScatterGather;
 
 public class MuleConfigConverter {
 
@@ -173,6 +177,15 @@ public class MuleConfigConverter {
             }
             case TransformMessage transformMessage -> {
                 return convertTransformMessage(ctx, transformMessage);
+            }
+            case ScatterGather scatterGather -> {
+                return convertScatterGather(ctx, scatterGather);
+            }
+            case FirstSuccessful firstSuccessful -> {
+                return convertFirstSuccessful(ctx, firstSuccessful);
+            }
+            case Foreach foreach -> {
+                return convertForeach(ctx, foreach);
             }
             case UnsupportedBlock unsupportedBlock -> {
                 return convertUnsupportedBlock(ctx, unsupportedBlock);
@@ -519,5 +532,169 @@ public class MuleConfigConverter {
         // This works for now because we concatenate and create a body block `{ stmts }`
         // before parsing.
         return List.of(stmtFrom(comment));
+    }
+
+    private static List<Statement> convertScatterGather(Context ctx, ScatterGather scatterGather) {
+        List<ProcessorChain> routes = scatterGather.processorChains();
+        if (routes.isEmpty()) {
+            return List.of();
+        }
+
+        List<Statement> stmts = new ArrayList<>();
+        stmts.add(stmtFrom("\n\n// scatter-gather parallel execution\n"));
+
+        // Create named workers for each route
+        List<NamedWorkerDecl> workers = new ArrayList<>();
+        String[] workerNames = new String[scatterGather.processorChains().size()];
+        for (int i = 0; i < scatterGather.processorChains().size(); i++) {
+            ProcessorChain route = scatterGather.processorChains().get(i);
+            String workerName = Constants.WORKER_SCATTER_GATHER
+                    .formatted(ctx.projectCtx.counters.scatterGatherWorkerCount++);
+            workerNames[i] = workerName;
+
+            List<Statement> workerBody = new ArrayList<>();
+            workerBody.add(stmtFrom(String.format("\n// Route %d\n", i)));
+
+            // Convert route blocks to worker statements
+            List<Statement> routeStmts = convertMuleBlocks(ctx, route.flowBlocks());
+            workerBody.addAll(routeStmts);
+
+            // Send result back to main worker
+            workerBody.add(stmtFrom(String.format("return %s.payload;", Constants.CONTEXT_REFERENCE)));
+
+            NamedWorkerDecl workerDecl = new NamedWorkerDecl(workerName, Optional.of(typeFrom("anydata|error")),
+                    workerBody);
+            workers.add(workerDecl);
+        }
+
+        Statement.ForkStatement fork = new Statement.ForkStatement(workers);
+        stmts.add(fork);
+
+        // Collect results from all workers
+        stmts.add(stmtFrom("\n\n// wait for all workers to complete\n"));
+        String workerResultsVar =
+                Constants.VAR_WORKER_RESULT_TEMPLATE.formatted(ctx.projectCtx.counters.workerWaitVarCount++);
+        String scatterGatherResultsVar =
+                Constants.VAR_SCATTER_GATHER_TEMPLATE.formatted(ctx.projectCtx.counters.scatterGatherVarCount++);
+        stmts.add(stmtFrom(String.format("map<anydata|error> %s = wait {%s};",
+                workerResultsVar, String.join(",", workerNames))));
+        stmts.add(stmtFrom(String.format("map<anydata> %s = %s.entries().'map(e => %s(e[0], e[1])).'map(m => check m);",
+                scatterGatherResultsVar, workerResultsVar, Constants.FUNC_WRAP_ROUTE_ERR)));
+
+        // Add the error wrapper function if not already added
+        if (!ctx.currentFileCtx.balConstructs.utilFunctions.contains(Constants.FUNC_WRAP_ROUTE_ERR)) {
+            addRouteErrorWrapperFunction(ctx);
+            ctx.currentFileCtx.balConstructs.utilFunctions.add(Constants.FUNC_WRAP_ROUTE_ERR);
+        }
+
+        // Set the collected results as payload
+        stmts.add(stmtFrom(String.format("%s.payload = %s;\n\n", Constants.CONTEXT_REFERENCE,
+                scatterGatherResultsVar)));
+        return stmts;
+    }
+
+    private static void addRouteErrorWrapperFunction(Context ctx) {
+        List<common.BallerinaModel.Parameter> params = new ArrayList<>();
+        params.add(new common.BallerinaModel.Parameter("key", typeFrom("string")));
+        params.add(new common.BallerinaModel.Parameter("value", typeFrom("anydata|error")));
+
+        List<Statement> body = new ArrayList<>();
+        body.add(stmtFrom(
+                "if value is error { return error(string `Error in Route ${key}: ${value.message()}`, value); }"
+        ));
+        body.add(stmtFrom("return value;"));
+
+        Function errorWrapFunc = Function.publicFunction(Constants.FUNC_WRAP_ROUTE_ERR, params,
+                typeFrom("anydata|error"), body);
+        ctx.currentFileCtx.balConstructs.functions.add(errorWrapFunc);
+    }
+
+    private static List<Statement> convertFirstSuccessful(Context ctx, FirstSuccessful firstSuccessful) {
+        List<ProcessorChain> processorChains = firstSuccessful.processorChains();
+        if (processorChains.isEmpty()) {
+            return List.of();
+        }
+
+        // Create a function for each route
+        String[] funcNames = new String[firstSuccessful.processorChains().size()];
+        for (int i = 0; i < firstSuccessful.processorChains().size(); i++) {
+            ProcessorChain processorChain = firstSuccessful.processorChains().get(i);
+            String funcName = Constants.FUNC_FIRST_SUCCESSFUL_ROUTE
+                    .formatted(ctx.projectCtx.counters.firstSuccessfulFuncCount++);
+            funcNames[i] = funcName;
+
+            List<Statement> funcBody = new ArrayList<>();
+            funcBody.add(stmtFrom("\n// Route %d\n".formatted(i)));
+
+            // Convert route blocks to worker statements
+            List<Statement> routeStmts = convertMuleBlocks(ctx, processorChain.flowBlocks());
+            funcBody.addAll(routeStmts);
+
+            funcBody.add(stmtFrom("return %s.payload;".formatted(Constants.CONTEXT_REFERENCE)));
+
+            Function func = Function.publicFunction(funcName, Constants.FUNC_PARAMS_WITH_CONTEXT,
+                    typeFrom("anydata|error"), funcBody);
+            ctx.currentFileCtx.balConstructs.functions.add(func);
+        }
+
+        // Create a function that calls each function sequentially until one succeeds
+        List<Statement> firstSuccessfulBody = new ArrayList<>();
+        for (int i = 0; i < funcNames.length; i++) {
+            String funcName = funcNames[i];
+            firstSuccessfulBody.add(stmtFrom("anydata|error r%s = %s(%s);".formatted(i, funcName,
+                    mule.v3.Constants.CONTEXT_REFERENCE)));
+            firstSuccessfulBody.add(stmtFrom("if r%s !is error { return r%s; }".formatted(i, i)));
+        }
+
+        // If all routes fail, return an error with last error message
+        firstSuccessfulBody.add(stmtFrom("return error(\"All routes failed\", r%s);".formatted(funcNames.length - 1)));
+
+        int firstSuccessfulCount = ctx.projectCtx.counters.firstSuccessfulCount;
+        ctx.projectCtx.counters.firstSuccessfulCount++;
+
+        String firstSuccessfulFuncName = Constants.FUNC_FIRST_SUCCESSFUL.formatted(firstSuccessfulCount);
+        Function firstSuccessfulFunc = Function.publicFunction(
+                firstSuccessfulFuncName, Constants.FUNC_PARAMS_WITH_CONTEXT,
+                typeFrom("anydata|error"), firstSuccessfulBody);
+        ctx.currentFileCtx.balConstructs.functions.add(firstSuccessfulFunc);
+
+        List<Statement> stmts = new ArrayList<>();
+        stmts.add(stmtFrom("\n\n// first-successful sequential route execution\n"));
+        String firstSuccessfulResultVar = Constants.VAR_FIRST_SUCCESSFUL_RESULT.formatted(firstSuccessfulCount);
+        stmts.add(stmtFrom("anydata %s = check %s(%s);".formatted(firstSuccessfulResultVar, firstSuccessfulFuncName,
+                Constants.CONTEXT_REFERENCE)));
+        stmts.add(stmtFrom("%s.payload = %s;\n\n".formatted(Constants.CONTEXT_REFERENCE,
+                firstSuccessfulResultVar)));
+        return stmts;
+    }
+
+    private static List<Statement> convertForeach(Context ctx, Foreach foreach) {
+        List<Statement> stmts = new ArrayList<>();
+        String collection = convertMuleExprToBal(ctx, foreach.collection());
+
+        // Generate unique variable names for the foreach loop
+        String iteratorVar = String.format(Constants.VAR_ITERATOR_TEMPLATE,
+                ctx.projectCtx.counters.foreachIteratorCount++);
+        String originalPayloadVar = String.format(Constants.VAR_ORIGINAL_PAYLOAD_TEMPLATE,
+                ctx.projectCtx.counters.originalPayloadVarCount++);
+
+        stmts.add(stmtFrom("\n\n// foreach loop\n"));
+
+        // Store original payload
+        stmts.add(stmtFrom(String.format("anydata %s = %s.payload;", originalPayloadVar, Constants.CONTEXT_REFERENCE)));
+
+        List<Statement> foreachBody = new ArrayList<>();
+        foreachBody.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE, iteratorVar)));
+        foreachBody.addAll(convertMuleBlocks(ctx, foreach.flowBlocks()));
+
+        // Create foreach statement using Ballerina syntax
+        stmts.add(stmtFrom(String.format("foreach anydata %s in %s {", iteratorVar, collection)));
+        stmts.addAll(foreachBody);
+        stmts.add(stmtFrom("}"));
+
+        // Restore original payload after foreach
+        stmts.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE, originalPayloadVar)));
+
+        return stmts;
     }
 }
