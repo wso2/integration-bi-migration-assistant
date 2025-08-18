@@ -546,8 +546,23 @@ public class CombinedSummaryReport {
     public String toHTML() {
         StringBuilder html = new StringBuilder();
 
-        // Start HTML document
-        html.append("""
+        html.append(generateHtmlHeader());
+
+        if (projectSummaries.isEmpty()) {
+            html.append(generateEmptyProjectsMessage());
+        } else {
+            html.append(generateOverallStatistics());
+            html.append(generateProjectSummaries());
+            html.append(generateOverallTimeEstimation());
+        }
+
+        html.append(generateHtmlFooter());
+
+        return html.toString();
+    }
+
+    private String generateHtmlHeader() {
+        return """
                 <!DOCTYPE html>
                 <html>
                 <head>
@@ -557,27 +572,11 @@ public class CombinedSummaryReport {
                 <body>
                     <div class="container">
                         <h1>%s</h1>
-                """.formatted(reportTitle, CSS_STYLES, reportTitle));
+                """.formatted(reportTitle, CSS_STYLES, reportTitle);
+    }
 
-        if (projectSummaries.isEmpty()) {
-            html.append("""
-                    <div class="summary-container">
-                        <div class="no-projects" style="text-align: center; color: #666; font-style: italic;">No projects found for analysis.</div>
-                    </div>
-                    """);
-        } else {
-            // Overall statistics
-            appendOverallStatistics(html);
-
-            // Project summaries
-            appendProjectSummaries(html);
-
-            // Overall time estimation
-            appendOverallTimeEstimation(html);
-        }
-
-        // Footer with date
-        html.append("""
+    private String generateHtmlFooter() {
+        return """
                     </div>
                     <footer>
                         <p>Report generated on: <span id="datetime"></span></p>
@@ -604,12 +603,18 @@ public class CombinedSummaryReport {
                     <script>document.getElementById("datetime").innerHTML = new Date().toLocaleString();</script>
                 </body>
                 </html>
-                """);
-
-        return html.toString();
+                """;
     }
 
-    private void appendOverallStatistics(StringBuilder html) {
+    private String generateEmptyProjectsMessage() {
+        return """
+                <div class="summary-container">
+                    <div class="no-projects" style="text-align: center; color: #666; font-style: italic;">No projects found for analysis.</div>
+                </div>
+                """;
+    }
+
+    private String generateOverallStatistics() {
         int totalProjects = projectSummaries.size();
         int totalActivities = projectSummaries.stream()
                 .mapToInt(ProjectSummary::totalActivityCount)
@@ -622,19 +627,31 @@ public class CombinedSummaryReport {
                 .average()
                 .orElse(0.0);
 
-        html.append("""
+        TimeEstimation totalManualConversionEstimation = projectSummaries.stream()
+                .map(ProjectSummary::manualConversionEstimation)
+                .reduce(new TimeEstimation(0, 0, 0), TimeEstimation::sum);
+        
+        TimeEstimation totalValidationEstimation = projectSummaries.stream()
+                .map(ProjectSummary::validationEstimation)
+                .reduce(new TimeEstimation(0, 0, 0), TimeEstimation::sum);
+        
+        TimeEstimation totalEstimation = TimeEstimation.sum(totalManualConversionEstimation, totalValidationEstimation);
+
+        return """
                 <div class="summary-container">
                     <h2>Overview</h2>
-                                        <div class="metrics overview-metrics">
+                    <div class="metrics overview-metrics">
                         <div class="metric overview-metric">
                             <span class="metric-value">%d</span>
                             <span class="metric-label">Projects Analyzed</span>
                         </div>
-                        <div class="metric overview-metric">
-                            <div class="metric-left">
-                                <span class="metric-value">%.0f%%</span>
-                                <span class="metric-label">Average Automated Migration Coverage</span>
-                                <div class="coverage-indicator overview-indicator">
+                        <div class="metric overview-metric" style="justify-content: space-around">
+                            <div class="metric-left" style="display: flex; flex-direction: column;">
+                                <div>
+                                    <span class="metric-value">%.0f%%</span>
+                                    <span class="metric-label">Average Automated Migration Coverage</span>
+                                </div>
+                                <div class="coverage-indicator overview-indicator" style="width: 100%%">
                                     <div class="coverage-bar" data-width="%.0f" data-color="%s"></div>
                                 </div>
                             </div>
@@ -658,7 +675,75 @@ public class CombinedSummaryReport {
                     </div>
 
                     <div class="time-estimates-container">
-                        <div class="time-estimates overview-time-estimates">
+                        <div class="time-estimates overview-time-estimates" style="display: flex">
+                            <table>
+                                <tr>
+                                    <th>Work Type</th>
+                                    <th>Best Case</th>
+                                    <th>Average Case</th>
+                                    <th>Worst Case</th>
+                                </tr>
+                                <tr>
+                                    <td><strong>Manual Conversion</strong></td>
+                                    <td class="time-best">%s</td>
+                                    <td class="time-avg">%s</td>
+                                    <td class="time-worst">%s</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Code Validation</strong></td>
+                                    <td class="time-best">%s</td>
+                                    <td class="time-avg">%s</td>
+                                    <td class="time-worst">%s</td>
+                                </tr>
+                                <tr style="border-top: 2px solid #4682B4;">
+                                    <td><strong>Total</strong></td>
+                                    <td class="time-best"><strong>%s</strong></td>
+                                    <td class="time-avg"><strong>%s</strong></td>
+                                    <td class="time-worst"><strong>%s</strong></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="estimation-notes">
+                        <p><strong>Note:</strong></p>
+                        <ul>
+                            <li>%d TIBCO BW projects analyzed for migration to Ballerina</li>
+                            <li>%.0f%% average automated conversion rate across all projects</li>
+                            <li>Time estimates shown above represents manual work required to complete migration for all projects combined</li>
+                        </ul>
+                    </div>
+
+                    <div class="estimation-notes">
+                        <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
+                        <ul>
+                            <li>Best case scenario:
+                              <ul>
+                                <li>1.0 day per each new unsupported activity for analysis, implementation, and testing</li>
+                                <li>1.0 hour per each repeated unsupported activity for implementation</li>
+                                <li>2 minutes per each line of code generated</li>
+                                <li>Assumes minimal complexity and straightforward implementations</li>
+                              </ul>
+                            </li>
+                            <li>Average case scenario:
+                              <ul>
+                                <li>2.0 days per each new unsupported activity for analysis, implementation, and testing</li>
+                                <li>2.0 hour per each repeated unsupported activity for implementation</li>
+                                <li>5 minutes per each line of code generated</li>
+                                <li>Assumes medium complexity with moderate implementation challenges</li>
+                              </ul>
+                            </li>
+                            <li>Worst case scenario:
+                              <ul>
+                                <li>3.0 days per each new unsupported activity for analysis, implementation, and testing</li>
+                                <li>4.0 hour per each repeated unsupported activity for implementation</li>
+                                <li>10 minutes per each line of code generated</li>
+                                <li>Assumes high complexity with significant implementation challenges</li>
+                              </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
                 """
                 .formatted(
                         totalProjects,
@@ -668,211 +753,132 @@ public class CombinedSummaryReport {
                                 : averageConversionPercentage >= 70 ? "#FF9800" : "#F44336",
                         totalActivities,
                         totalActivities - totalUnhandledActivities,
-                        totalUnhandledActivities));
-        TimeEstimation totalManualConversionEstimation = projectSummaries.stream()
-                .map(ProjectSummary::manualConversionEstimation)
-                .reduce(new TimeEstimation(0, 0, 0), TimeEstimation::sum);
-        
-        TimeEstimation totalValidationEstimation = projectSummaries.stream()
-                .map(ProjectSummary::validationEstimation)
-                .reduce(new TimeEstimation(0, 0, 0), TimeEstimation::sum);
-        
-        TimeEstimation totalEstimation = TimeEstimation.sum(totalManualConversionEstimation, totalValidationEstimation);
-
-        html.append(
-                """
-                                            <table>
-                                                <tr>
-                                                    <th>Work Type</th>
-                                                    <th>Best Case</th>
-                                                    <th>Average Case</th>
-                                                    <th>Worst Case</th>
-                                                </tr>
-                                                <tr>
-                                                    <td><strong>Manual Conversion</strong></td>
-                                                    <td class="time-best">%s</td>
-                                                    <td class="time-avg">%s</td>
-                                                    <td class="time-worst">%s</td>
-                                                </tr>
-                                                <tr>
-                                                    <td><strong>Code Validation</strong></td>
-                                                    <td class="time-best">%s</td>
-                                                    <td class="time-avg">%s</td>
-                                                    <td class="time-worst">%s</td>
-                                                </tr>
-                                                <tr style="border-top: 2px solid #4682B4;">
-                                                    <td><strong>Total</strong></td>
-                                                    <td class="time-best"><strong>%s</strong></td>
-                                                    <td class="time-avg"><strong>%s</strong></td>
-                                                    <td class="time-worst"><strong>%s</strong></td>
-                                                </tr>
-                                            </table>
-                                </div>
-                            </div>
-
-                            <div class="estimation-notes">
-                                <p><strong>Note:</strong></p>
-                                <ul>
-                                    <li>%d TIBCO BW projects analyzed for migration to Ballerina</li>
-                                    <li>%.0f%% average automated conversion rate across all projects</li>
-                                    <li>Time estimates shown above represents manual work required to complete migration for all projects combined</li>
-                                </ul>
-                            </div>
-
-                            <div class="estimation-notes">
-                                <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
-                                <ul>
-                                    <li>Best case scenario:
-                                      <ul>
-                                        <li>1.0 day per each new unsupported activity for analysis, implementation, and testing</li>
-                                        <li>1.0 hour per each repeated unsupported activity for implementation</li>
-                                        <li>2 minutes per each line of code generated</li>
-                                        <li>Assumes minimal complexity and straightforward implementations</li>
-                                      </ul>
-                                    </li>
-                                    <li>Average case scenario:
-                                      <ul>
-                                        <li>2.0 days per each new unsupported activity for analysis, implementation, and testing</li>
-                                        <li>2.0 hour per each repeated unsupported activity for implementation</li>
-                                        <li>5 minutes per each line of code generated</li>
-                                        <li>Assumes medium complexity with moderate implementation challenges</li>
-                                      </ul>
-                                    </li>
-                                    <li>Worst case scenario:
-                                      <ul>
-                                        <li>3.0 days per each new unsupported activity for analysis, implementation, and testing</li>
-                                        <li>4.0 hour per each repeated unsupported activity for implementation</li>
-                                        <li>10 minutes per each line of code generated</li>
-                                        <li>Assumes high complexity with significant implementation challenges</li>
-                                      </ul>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                        """
-                        .formatted(
-                                ReportUtils.toDays(totalManualConversionEstimation.bestCaseDaysAsInt()),
-                                ReportUtils.toDays(totalManualConversionEstimation.averageCaseDaysAsInt()),
-                                ReportUtils.toDays(totalManualConversionEstimation.worstCaseDaysAsInt()),
-                                ReportUtils.toDays(totalValidationEstimation.bestCaseDaysAsInt()),
-                                ReportUtils.toDays(totalValidationEstimation.averageCaseDaysAsInt()),
-                                ReportUtils.toDays(totalValidationEstimation.worstCaseDaysAsInt()),
-                                ReportUtils.toDays(totalEstimation.bestCaseDaysAsInt()),
-                                ReportUtils.toDays(totalEstimation.averageCaseDaysAsInt()),
-                                ReportUtils.toDays(totalEstimation.worstCaseDaysAsInt()),
-                                totalProjects, averageConversionPercentage));
+                        totalUnhandledActivities,
+                        ReportUtils.toDays(totalManualConversionEstimation.bestCaseDaysAsInt()),
+                        ReportUtils.toDays(totalManualConversionEstimation.averageCaseDaysAsInt()),
+                        ReportUtils.toDays(totalManualConversionEstimation.worstCaseDaysAsInt()),
+                        ReportUtils.toDays(totalValidationEstimation.bestCaseDaysAsInt()),
+                        ReportUtils.toDays(totalValidationEstimation.averageCaseDaysAsInt()),
+                        ReportUtils.toDays(totalValidationEstimation.worstCaseDaysAsInt()),
+                        ReportUtils.toDays(totalEstimation.bestCaseDaysAsInt()),
+                        ReportUtils.toDays(totalEstimation.averageCaseDaysAsInt()),
+                        ReportUtils.toDays(totalEstimation.worstCaseDaysAsInt()),
+                        totalProjects, averageConversionPercentage);
     }
 
-    private void appendProjectSummaries(StringBuilder html) {
-        html.append("""
-                <div class="projects-container">
-                """);
-
+    private String generateProjectSummaries() {
+        StringBuilder projectCards = new StringBuilder();
+        
         for (ProjectSummary project : projectSummaries) {
-            // Determine status badge based on coverage
-            double coveragePercentage = project.successfulConversionPercentage();
-            String statusClass = coveragePercentage >= 90 ? "status-high" :
-                    coveragePercentage >= 70 ? "status-medium" : "status-low";
-            String statusText = coveragePercentage >= 90 ? "High Coverage" :
-                    coveragePercentage >= 70 ? "Medium Coverage" : "Low Coverage";
-            int totalActivityCount = project.totalActivityCount();
-            int unhandledActivityCount = project.unhandledActivityCount();
-            int convertedActivityCont = totalActivityCount - unhandledActivityCount;
-            TimeEstimation timeEstimation =
-                    TimeEstimation.sum(project.manualConversionEstimation(), project.validationEstimation());
+            projectCards.append(generateProjectCard(project));
+        }
 
-            html.append("""
-                        <div class="project-card">
-                            <div class="project-left">
-                                <div class="project-header">
-                                    <div class="project-name">
-                                        <a href="%s" class="project-link">%s</a>
-                                    </div>
-                                    <span class="status-badge %s">%s</span>
-                                </div>
+        return """
+                <div class="projects-container">
+                %s
+                </div>
+                """.formatted(projectCards.toString());
+    }
+    
+    private String generateProjectCard(ProjectSummary project) {
+        double coveragePercentage = project.successfulConversionPercentage();
+        String statusClass = coveragePercentage >= 90 ? "status-high" :
+                coveragePercentage >= 70 ? "status-medium" : "status-low";
+        String statusText = coveragePercentage >= 90 ? "High Coverage" :
+                coveragePercentage >= 70 ? "Medium Coverage" : "Low Coverage";
+        int totalActivityCount = project.totalActivityCount();
+        int unhandledActivityCount = project.unhandledActivityCount();
+        int convertedActivityCount = totalActivityCount - unhandledActivityCount;
+        TimeEstimation timeEstimation =
+                TimeEstimation.sum(project.manualConversionEstimation(), project.validationEstimation());
 
-                                <div class="project-details">
-                                    <div class="project-metrics">
-                                        <div class="metric">
-                                            <div class="metric-left">
-                                                <span class="metric-value">%.0f%%</span>
-                                                <span class="metric-label">Automated Coverage</span>
-                                                <div class="coverage-indicator">
-                                                    <div class="coverage-bar" style="width: %.0f%%; background-color: %s;"></div>
-                                                </div>
+        return """
+                <div class="project-card" style="display: flex; flex-direction: column; align-items: stretch;">
+                    <div class="project-header">
+                        <div class="project-name">
+                            <a href="%s" class="project-link">%s</a>
+                        </div>
+                        <span class="status-badge %s">%s</span>
+                    </div>
+                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; margin-right: 2%%;">
+                        <div class="project-left" style="flex: 2;">
+                            <div class="project-details">
+                                <div class="project-metrics">
+                                    <div class="metric">
+                                        <div class="metric-left">
+                                            <span class="metric-value">%.0f%%</span>
+                                            <span class="metric-label">Automated Coverage</span>
+                                            <div class="coverage-indicator">
+                                                <div class="coverage-bar" style="width: %.0f%%; background-color: %s;"></div>
                                             </div>
-                                            <div class="metric-right">
-                                                <div class="coverage-breakdown">
-                                                    <div>
-                                                        <span class="breakdown-label">Total Activities:</span>
-                                                        <span class="breakdown-value">%d</span>
-                                                    </div>
-                                                    <div>
-                                                        <span class="breakdown-label">Migratable Activities:</span>
-                                                        <span class="breakdown-value">%d</span>
-                                                    </div>
-                                                    <div>
-                                                        <span class="breakdown-label">Non-migratable Activities:</span>
-                                                        <span class="breakdown-value">%d</span>
-                                                    </div>
+                                        </div>
+                                        <div class="metric-right">
+                                            <div class="coverage-breakdown">
+                                                <div>
+                                                    <span class="breakdown-label">Total Activities:</span>
+                                                    <span class="breakdown-value">%d</span>
+                                                </div>
+                                                <div>
+                                                    <span class="breakdown-label">Migratable Activities:</span>
+                                                    <span class="breakdown-value">%d</span>
+                                                </div>
+                                                <div>
+                                                    <span class="breakdown-label">Non-migratable Activities:</span>
+                                                    <span class="breakdown-value">%d</span>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="time-estimates">
-                                <div class="time-estimate best-case">
-                                    <div class="time-label">Best Case</div>
-                                    <div class="time-value time-best">
-                                        <span class="time-days">%dd</span>
-                                        <span class="time-weeks">(~%dw)</span>
-                                    </div>
+                        <div class="time-estimates" style="flex: 1; margin-left: 2%%;">
+                            <div class="time-estimate best-case">
+                                <div class="time-label">Best Case</div>
+                                <div class="time-value time-best">
+                                    <span class="time-days">%dd</span>
+                                    <span class="time-weeks">(~%dw)</span>
                                 </div>
-                                <div class="time-estimate avg-case">
-                                    <div class="time-label">Average Case</div>
-                                    <div class="time-value time-avg">
-                                        <span class="time-days">%dd</span>
-                                        <span class="time-weeks">(~%dw)</span>
-                                    </div>
+                            </div>
+                            <div class="time-estimate avg-case">
+                                <div class="time-label">Average Case</div>
+                                <div class="time-value time-avg">
+                                    <span class="time-days">%dd</span>
+                                    <span class="time-weeks">(~%dw)</span>
                                 </div>
-                                <div class="time-estimate worst-case">
-                                    <div class="time-label">Worst Case</div>
-                                    <div class="time-value time-worst">
-                                        <span class="time-days">%dd</span>
-                                        <span class="time-weeks">(~%dw)</span>
-                                    </div>
+                            </div>
+                            <div class="time-estimate worst-case">
+                                <div class="time-label">Worst Case</div>
+                                <div class="time-value time-worst">
+                                    <span class="time-days">%dd</span>
+                                    <span class="time-weeks">(~%dw)</span>
                                 </div>
                             </div>
                         </div>
-                    """.formatted(
-                    project.reportPath(),
-                    project.projectName(),
-                    statusClass,
-                    statusText,
-                    coveragePercentage,
-                    coveragePercentage,
-                    coveragePercentage >= 90 ? "#4CAF50" : coveragePercentage >= 70 ? "#FF9800" : "#F44336",
-                    totalActivityCount,
-                    convertedActivityCont,
-                    unhandledActivityCount,
-                    timeEstimation.bestCaseDaysAsInt(),
-                    timeEstimation.bestCaseWeeks(),
-                    timeEstimation.averageCaseDaysAsInt(),
-                    timeEstimation.averageCaseWeeks(),
-                    timeEstimation.worstCaseDaysAsInt(),
-                    timeEstimation.worstCaseWeeks()
-            ));
-        }
-
-        html.append("""
+                    </div>
                 </div>
-                """);
+                """.formatted(
+                project.reportPath(),
+                project.projectName(),
+                statusClass,
+                statusText,
+                coveragePercentage,
+                coveragePercentage,
+                coveragePercentage >= 90 ? "#4CAF50" : coveragePercentage >= 70 ? "#FF9800" : "#F44336",
+                totalActivityCount,
+                convertedActivityCount,
+                unhandledActivityCount,
+                timeEstimation.bestCaseDaysAsInt(),
+                timeEstimation.bestCaseWeeks(),
+                timeEstimation.averageCaseDaysAsInt(),
+                timeEstimation.averageCaseWeeks(),
+                timeEstimation.worstCaseDaysAsInt(),
+                timeEstimation.worstCaseWeeks()
+        );
     }
 
-    private void appendOverallTimeEstimation(StringBuilder html) {
-        // Collect all unique unsupported element types across all projects
+    private String generateOverallTimeEstimation() {
         Map<String, Integer> allUnsupportedTypes = new HashMap<>();
         Map<String, List<String>> projectsAffected = new HashMap<>();
 
@@ -883,71 +889,75 @@ public class CombinedSummaryReport {
                             : project.unhandledActivities().entrySet()) {
                 String elementType = entry.getKey();
                 int frequency = entry.getValue().size();
-                // Update frequency count
                 allUnsupportedTypes.merge(elementType, frequency, Integer::sum);
-                // Track which projects are affected
                 projectsAffected.computeIfAbsent(elementType, k -> new ArrayList<>())
                         .add(project.projectName());
             }
         }
 
         if (allUnsupportedTypes.isEmpty()) {
-            html.append(
-                    """
-                            <div class="summary-container">
-                                <h2>Currently Unsupported Elements</h2>
-                                <div id="toolSupportSection">
-                                    <p class="empty-message" style="text-align: center; padding: 20px; color: #666;">
-                                        No unsupported elements found
-                                    </p>
-                                    <div class="estimation-notes">
-                                        <p><strong>Note:</strong> All elements in the analyzed projects are currently supported by the migration tool.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            """);
+            return generateEmptyUnsupportedElementsSection();
         } else {
-            html.append("""
-                    <div class="summary-container">
-                        <h2>Currently Unsupported Elements</h2>
-                        <div id="toolSupportSection">
-                            <table>
-                                <tr>
-                                    <th>Element Type</th>
-                                    <th>Frequency</th>
-                                    <th>Projects Affected</th>
-                                </tr>
-                    """);
-
-            // Sort by frequency (descending) and then by element type
-            allUnsupportedTypes.entrySet().stream()
-                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed()
-                            .thenComparing(Map.Entry.comparingByKey()))
-                    .forEach(entry -> {
-                        String elementType = entry.getKey();
-                        int frequency = entry.getValue();
-                        List<String> affectedProjects = projectsAffected.get(elementType);
-                        String projectsList = String.join(", ", affectedProjects);
-
-                        html.append(String.format("""
-                                <tr>
-                                    <td>%s</td>
-                                    <td>%d</td>
-                                    <td>%s</td>
-                                </tr>
-                                """, ReportUtils.escapeHtml(elementType), frequency, ReportUtils.escapeHtml(projectsList)));
-                    });
-
-            html.append(
-                    """
-                                    </table>
-                                    <div class="estimation-notes">
-                                        <p><strong>Note:</strong> These elements are expected to be supported in future versions of the migration tool.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            """);
+            return generateUnsupportedElementsTable(allUnsupportedTypes, projectsAffected);
         }
+    }
+    
+    private String generateEmptyUnsupportedElementsSection() {
+        return """
+                <div class="summary-container">
+                    <h2>Currently Unsupported Elements</h2>
+                    <div id="toolSupportSection">
+                        <p class="empty-message" style="text-align: center; padding: 20px; color: #666;">
+                            No unsupported elements found
+                        </p>
+                        <div class="estimation-notes">
+                            <p><strong>Note:</strong> All elements in the analyzed projects are currently supported by the migration tool.</p>
+                        </div>
+                    </div>
+                </div>
+                """;
+    }
+    
+    private String generateUnsupportedElementsTable(Map<String, Integer> allUnsupportedTypes, 
+                                                   Map<String, List<String>> projectsAffected) {
+        StringBuilder tableRows = new StringBuilder();
+        
+        allUnsupportedTypes.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed()
+                        .thenComparing(Map.Entry.comparingByKey()))
+                .forEach(entry -> {
+                    String elementType = entry.getKey();
+                    int frequency = entry.getValue();
+                    List<String> affectedProjects = projectsAffected.get(elementType);
+                    String projectsList = String.join(", ", affectedProjects);
+
+                    tableRows.append("""
+                            <tr>
+                                <td>%s</td>
+                                <td>%d</td>
+                                <td>%s</td>
+                            </tr>
+                            """.formatted(ReportUtils.escapeHtml(elementType), frequency, ReportUtils.escapeHtml(projectsList)));
+                });
+
+        return """
+                <div class="summary-container">
+                    <h2>Currently Unsupported Elements</h2>
+                    <div id="toolSupportSection">
+                        <table>
+                            <tr>
+                                <th>Element Type</th>
+                                <th>Frequency</th>
+                                <th>Projects Affected</th>
+                            </tr>
+                            %s
+                        </table>
+                        <div class="estimation-notes">
+                            <p><strong>Note:</strong> These elements are expected to be supported in future versions of the migration tool.</p>
+                        </div>
+                    </div>
+                </div>
+                """.formatted(tableRows.toString());
     }
 
 }

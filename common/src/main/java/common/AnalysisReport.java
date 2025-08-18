@@ -486,7 +486,6 @@ public class AnalysisReport {
                         <h2>Migration Coverage Overview</h2>
                         <div class="metrics">
 
-                          <!-- Overall Coverage -->
                           <div class="metric">
                             <div class="metric-left">
                               <span class="metric-value">%.0f%%</span>
@@ -498,19 +497,21 @@ public class AnalysisReport {
                                 <span class="status-badge %s">%s</span>
                               </div>
                             </div>
-                            <div class="metric-right">
-                              <div class="coverage-breakdown">
-                                <div>
-                                  <span class="breakdown-label">Total %s(s):</span>
-                                  <span class="breakdown-value">%d</span>
-                                </div>
-                                <div>
-                                  <span class="breakdown-label">Migratable %s(s):</span>
-                                  <span class="breakdown-value">%d</span>
-                                </div>
-                                <div>
-                                  <span class="breakdown-label">Non-migratable %s(s):</span>
-                                  <span class="breakdown-value">%d</span>
+                            <div class="metric-right" style="display: flex; justify-content: center; align-items: center;">
+                              <div>
+                                <div class="coverage-breakdown">
+                                  <div>
+                                    <span class="breakdown-label">Total %s(s):</span>
+                                    <span class="breakdown-value">%d</span>
+                                  </div>
+                                  <div>
+                                    <span class="breakdown-label">Migratable %s(s):</span>
+                                    <span class="breakdown-value">%d</span>
+                                  </div>
+                                  <div>
+                                    <span class="breakdown-label">Non-migratable %s(s):</span>
+                                    <span class="breakdown-value">%d</span>
+                                  </div>
                                 </div>
                               </div>
                             </div>

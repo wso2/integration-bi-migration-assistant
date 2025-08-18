@@ -498,16 +498,18 @@ footer {
         <h1>Combined Migration Assessment</h1>
 <div class="summary-container">
     <h2>Overview</h2>
-                        <div class="metrics overview-metrics">
+    <div class="metrics overview-metrics">
         <div class="metric overview-metric">
             <span class="metric-value">2</span>
             <span class="metric-label">Projects Analyzed</span>
         </div>
-        <div class="metric overview-metric">
-            <div class="metric-left">
-                <span class="metric-value">100%</span>
-                <span class="metric-label">Average Automated Migration Coverage</span>
-                <div class="coverage-indicator overview-indicator">
+        <div class="metric overview-metric" style="justify-content: space-around">
+            <div class="metric-left" style="display: flex; flex-direction: column;">
+                <div>
+                    <span class="metric-value">100%</span>
+                    <span class="metric-label">Average Automated Migration Coverage</span>
+                </div>
+                <div class="coverage-indicator overview-indicator" style="width: 100%">
                     <div class="coverage-bar" data-width="100" data-color="#4CAF50"></div>
                 </div>
             </div>
@@ -531,33 +533,33 @@ footer {
     </div>
 
     <div class="time-estimates-container">
-        <div class="time-estimates overview-time-estimates">
-                    <table>
-                        <tr>
-                            <th>Work Type</th>
-                            <th>Best Case</th>
-                            <th>Average Case</th>
-                            <th>Worst Case</th>
-                        </tr>
-                        <tr>
-                            <td><strong>Manual Conversion</strong></td>
-                            <td class="time-best">0 days</td>
-                            <td class="time-avg">0 days</td>
-                            <td class="time-worst">0 days</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Code Validation</strong></td>
-                            <td class="time-best">2 days</td>
-                            <td class="time-avg">5 days</td>
-                            <td class="time-worst">9 days</td>
-                        </tr>
-                        <tr style="border-top: 2px solid #4682B4;">
-                            <td><strong>Total</strong></td>
-                            <td class="time-best"><strong>2 days</strong></td>
-                            <td class="time-avg"><strong>5 days</strong></td>
-                            <td class="time-worst"><strong>9 days</strong></td>
-                        </tr>
-                    </table>
+        <div class="time-estimates overview-time-estimates" style="display: flex">
+            <table>
+                <tr>
+                    <th>Work Type</th>
+                    <th>Best Case</th>
+                    <th>Average Case</th>
+                    <th>Worst Case</th>
+                </tr>
+                <tr>
+                    <td><strong>Manual Conversion</strong></td>
+                    <td class="time-best">0 days</td>
+                    <td class="time-avg">0 days</td>
+                    <td class="time-worst">0 days</td>
+                </tr>
+                <tr>
+                    <td><strong>Code Validation</strong></td>
+                    <td class="time-best">2 days</td>
+                    <td class="time-avg">5 days</td>
+                    <td class="time-worst">9 days</td>
+                </tr>
+                <tr style="border-top: 2px solid #4682B4;">
+                    <td><strong>Total</strong></td>
+                    <td class="time-best"><strong>2 days</strong></td>
+                    <td class="time-avg"><strong>5 days</strong></td>
+                    <td class="time-worst"><strong>9 days</strong></td>
+                </tr>
+            </table>
         </div>
     </div>
 
@@ -601,15 +603,15 @@ footer {
     </div>
 </div>
 <div class="projects-container">
-    <div class="project-card">
-        <div class="project-left">
-            <div class="project-header">
-                <div class="project-name">
-                    <a href="helloWorld_converted/report.html" class="project-link">helloWorld</a>
-                </div>
-                <span class="status-badge status-high">High Coverage</span>
-            </div>
-
+<div class="project-card" style="display: flex; flex-direction: column; align-items: stretch;">
+    <div class="project-header">
+        <div class="project-name">
+            <a href="helloWorld_converted/report.html" class="project-link">helloWorld</a>
+        </div>
+        <span class="status-badge status-high">High Coverage</span>
+    </div>
+    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; margin-right: 2%;">
+        <div class="project-left" style="flex: 2;">
             <div class="project-details">
                 <div class="project-metrics">
                     <div class="metric">
@@ -641,7 +643,7 @@ footer {
             </div>
         </div>
 
-        <div class="time-estimates">
+        <div class="time-estimates" style="flex: 1; margin-left: 2%;">
             <div class="time-estimate best-case">
                 <div class="time-label">Best Case</div>
                 <div class="time-value time-best">
@@ -665,15 +667,16 @@ footer {
             </div>
         </div>
     </div>
-    <div class="project-card">
-        <div class="project-left">
-            <div class="project-header">
-                <div class="project-name">
-                    <a href="lib_converted/report.html" class="project-link">lib</a>
-                </div>
-                <span class="status-badge status-high">High Coverage</span>
-            </div>
-
+</div>
+<div class="project-card" style="display: flex; flex-direction: column; align-items: stretch;">
+    <div class="project-header">
+        <div class="project-name">
+            <a href="lib_converted/report.html" class="project-link">lib</a>
+        </div>
+        <span class="status-badge status-high">High Coverage</span>
+    </div>
+    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; margin-right: 2%;">
+        <div class="project-left" style="flex: 2;">
             <div class="project-details">
                 <div class="project-metrics">
                     <div class="metric">
@@ -705,7 +708,7 @@ footer {
             </div>
         </div>
 
-        <div class="time-estimates">
+        <div class="time-estimates" style="flex: 1; margin-left: 2%;">
             <div class="time-estimate best-case">
                 <div class="time-label">Best Case</div>
                 <div class="time-value time-best">
@@ -729,6 +732,8 @@ footer {
             </div>
         </div>
     </div>
+</div>
+
 </div>
 <div class="summary-container">
     <h2>Currently Unsupported Elements</h2>
