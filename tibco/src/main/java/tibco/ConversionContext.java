@@ -18,31 +18,66 @@
 
 package tibco;
 
+import common.BallerinaModel;
 import common.LoggingUtils;
+import common.TimeEstimation;
+import tibco.analyzer.CombinedSummaryReport;
 import tibco.converter.ProjectConverter.ProjectResources;
 import tibco.model.Process;
 import tibco.model.Resource;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
-public record ConversionContext(String org, boolean dryRun, boolean keepStructure,
-        Consumer<String> stateCallback, Consumer<String> logCallback,
-                                List<ProjectResources> projectResources, List<Set<Process>> projectProcesses)
-        implements LoggingContext {
+import org.jetbrains.annotations.Nullable;
+
+public final class ConversionContext implements LoggingContext {
+
+    private final String org;
+    private final boolean dryRun;
+    private final boolean keepStructure;
+    private final Consumer<String> stateCallback;
+    private final Consumer<String> logCallback;
+    private final List<ProjectResources> projectResources;
+    private final List<Set<Process>> projectProcesses;
+    private final Map<Process, Collection<ProcessCodeGenData>> processCodeGenData;
 
     public ConversionContext(String org, boolean dryRun, boolean keepStructure,
-            Consumer<String> stateCallback, Consumer<String> logCallback) {
-        this(org, dryRun, keepStructure, stateCallback, logCallback, new ArrayList<>(), new ArrayList<>());
+                             Consumer<String> stateCallback, Consumer<String> logCallback) {
+        this.org = org;
+        this.dryRun = dryRun;
+        this.keepStructure = keepStructure;
+        this.stateCallback = stateCallback;
+        this.logCallback = logCallback;
+        this.projectResources = new ArrayList<>();
+        this.projectProcesses = new ArrayList<>();
+        processCodeGenData = new IdentityHashMap<>();
     }
 
     @Override
     public void log(LoggingUtils.Level level, String message) {
         logCallback.accept("[" + level + "] " + message);
+    }
+
+    public String org() {
+        return org;
+    }
+
+    public boolean dryRun() {
+        return dryRun;
+    }
+
+    public boolean keepStructure() {
+        return keepStructure;
     }
 
     @Override
@@ -61,10 +96,6 @@ public record ConversionContext(String org, boolean dryRun, boolean keepStructur
         projectResources.add(resources);
     }
 
-    public void addProjectResources(Collection<ProjectResources> resources) {
-        projectResources.addAll(resources);
-    }
-
     public Optional<Process> lookupProcess(Process.ProcessIdentifier identifier) {
         return projectProcesses.stream()
                 .flatMap(Set::stream)
@@ -76,7 +107,46 @@ public record ConversionContext(String org, boolean dryRun, boolean keepStructur
         projectProcesses.add(processes);
     }
 
-    public void addProjectProcesses(Collection<Set<Process>> processes) {
-        projectProcesses.addAll(processes);
+    public void registerProcessTextDocument(String projectName, Process process,
+                                            BallerinaModel.TextDocument textdocument) {
+        processCodeGenData.computeIfAbsent(process, k -> new ArrayList<>())
+                .add(new ProcessCodeGenData(projectName, textdocument.getLineCount()));
     }
+
+    record ProcessCodeGenData(String projectName, long lineCount) {
+
+    }
+
+    public Collection<CombinedSummaryReport.DuplicateProcessData> getDuplicateProcessData() {
+        List<CombinedSummaryReport.DuplicateProcessData> duplicates = new ArrayList<>();
+        for (Map.Entry<Process, Collection<ProcessCodeGenData>> entry : processCodeGenData.entrySet()) {
+            getDuplicateProcessDataInner(entry).ifPresent(duplicates::add);
+        }
+        return Collections.unmodifiableCollection(duplicates);
+    }
+
+    private static Optional<CombinedSummaryReport.DuplicateProcessData> getDuplicateProcessDataInner(
+            Map.Entry<Process, Collection<ProcessCodeGenData>> entry) {
+        Process process = entry.getKey();
+        Collection<ProcessCodeGenData> codeGenData = entry.getValue();
+        if (codeGenData == null || codeGenData.isEmpty()) {
+            return Optional.empty();
+        }
+        String processName = process.name();
+        Map<String, Long> projectLineCounts = new HashMap<>();
+        for (ProcessCodeGenData data : codeGenData) {
+            projectLineCounts.merge(data.projectName(), data.lineCount(), Long::sum);
+        }
+        return Optional.of(new CombinedSummaryReport.DuplicateProcessData(processName,
+                Collections.unmodifiableMap(projectLineCounts)));
+    }
+
+    @Override
+    public String toString() {
+        return "ConversionContext[" +
+                "org=" + org + ", " +
+                "dryRun=" + dryRun + ", " +
+                "keepStructure=" + keepStructure + "]";
+    }
+
 }

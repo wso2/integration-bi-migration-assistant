@@ -31,6 +31,14 @@ public record TimeEstimation(
         double worstCaseDays
 ) {
 
+    public static TimeEstimation zero() {
+        return new TimeEstimation(0, 0, 0);
+    }
+
+    public boolean isZero() {
+        return bestCaseDays == 0 && averageCaseDays == 0 && worstCaseDays == 0;
+    }
+
     public int bestCaseDaysAsInt() {
         return (int) Math.ceil(bestCaseDays);
     }

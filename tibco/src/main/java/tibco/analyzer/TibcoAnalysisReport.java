@@ -243,13 +243,6 @@ public final class TibcoAnalysisReport {
         return estimation;
     }
 
-    private static TimeEstimation getValidationTimeEstimation(long lineCount) {
-        double bestCaseLineDays = (lineCount * 2.0) / 60.0 / 8.0; // 2 min/line
-        double averageCaseLineDays = (lineCount * 5.0) / 60.0 / 8.0; // 5 min/line
-        double worstCaseLineDays = (lineCount * 10.0) / 60.0 / 8.0; // 10 min/line
-        return new TimeEstimation(bestCaseLineDays, averageCaseLineDays, worstCaseLineDays);
-    }
-
     /**
      * Generates an HTML report of the TIBCO analysis. Delegates the HTML generation to the generic AnalysisReport
      * class.
@@ -261,7 +254,7 @@ public final class TibcoAnalysisReport {
         Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
 
         TimeEstimation manualConversionEstimation = getManualConversionTimeEstimation(unhandledElementsMap);
-        TimeEstimation validationEstimation = getValidationTimeEstimation(lineCount);
+        TimeEstimation validationEstimation = ReportEstimationUtils.getValidationTimeEstimation(lineCount);
         TimeEstimation totalEstimation = TimeEstimation.sum(manualConversionEstimation, validationEstimation);
 
         // Create maps for partially supported activities
@@ -302,7 +295,7 @@ public final class TibcoAnalysisReport {
 
         // Get time estimation using the separate methods
         TimeEstimation manualConversionEstimation = getManualConversionTimeEstimation(unhandledElementsMap);
-        TimeEstimation validationEstimation = getValidationTimeEstimation(lineCount);
+        TimeEstimation validationEstimation = ReportEstimationUtils.getValidationTimeEstimation(lineCount);
 
         Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap =
                 createPartiallySupportedElementsMap();

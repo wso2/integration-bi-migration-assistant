@@ -115,7 +115,12 @@ public class ProjectConverter {
             }
         }
         List<BallerinaModel.TextDocument> textDocuments = results.stream()
-                .map(result -> convertBody(cx, result, result.process())).toList();
+                .map(result -> {
+                    Process process = result.process();
+                    var textdocument = convertBody(cx, result, process);
+                    conversionContext.registerProcessTextDocument(process, textdocument);
+                    return textdocument;
+                }).toList();
         schemas.addAll(cx.getXSDSchemas());
         SyntaxTree typeSyntaxTree = convertTypes(cx, schemas);
         cx.logState("CodeGeneration completed for project");

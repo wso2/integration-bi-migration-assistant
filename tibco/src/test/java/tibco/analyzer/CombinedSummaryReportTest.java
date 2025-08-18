@@ -16,7 +16,11 @@
  *  under the License.
  */
 
-package common;
+package tibco.analyzer;
+
+import common.AnalysisReport;
+import common.ProjectSummary;
+import common.TimeEstimation;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -56,7 +60,7 @@ public class CombinedSummaryReportTest {
 
         // Create combined summary report
         CombinedSummaryReport combinedReport = new CombinedSummaryReport(
-                "Test Combined Report", List.of(summary1, summary2));
+                "Test Combined Report", List.of(summary1, summary2), List.of());
 
         // Generate HTML
         String html = combinedReport.toHTML();
@@ -85,7 +89,7 @@ public class CombinedSummaryReportTest {
 
         // Create combined summary report
         CombinedSummaryReport combinedReport = new CombinedSummaryReport(
-                "Test Combined Report", List.of(summary1, summary2));
+                "Test Combined Report", List.of(summary1, summary2), List.of());
 
         // Generate HTML
         String html = combinedReport.toHTML();

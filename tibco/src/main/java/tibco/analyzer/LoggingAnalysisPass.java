@@ -18,11 +18,23 @@
 
 package tibco.analyzer;
 
+import common.AnalysisReport;
 import common.LoggingUtils;
 import org.jetbrains.annotations.NotNull;
+
+import common.ProjectSummary;
+import common.ReportUtils;
+import common.TimeEstimation;
 import tibco.model.Process;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.model.Scope;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class LoggingAnalysisPass extends AnalysisPass {
     private int totalActivityCount = 0;
@@ -44,4 +56,5 @@ public class LoggingAnalysisPass extends AnalysisPass {
                 process.name(), totalActivityCount, unhandledActivityCount));
         return AnalysisResult.empty();
     }
+
 }

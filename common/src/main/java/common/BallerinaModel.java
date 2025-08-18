@@ -18,6 +18,7 @@
 package common;
 
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -65,6 +66,12 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                             List<Function> functions, List<String> comments) {
             this(documentName, imports, moduleTypeDefs, moduleVars, listeners, services, classDefs, functions, comments,
                     List.of(), List.of());
+        }
+
+        // TODO: we need a better way to do this
+        public long getLineCount() {
+            SyntaxTree st = new CodeGenerator(this).generateSyntaxTree();
+            return st.toSourceCode().lines().count();
         }
     }
 

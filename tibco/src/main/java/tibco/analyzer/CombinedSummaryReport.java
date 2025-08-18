@@ -16,23 +16,32 @@
  *  under the License.
  */
 
-package common;
+package tibco.analyzer;
 
+import common.AnalysisReport;
+import common.ProjectSummary;
+import common.ReportUtils;
+import common.TimeEstimation;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
-import java.util.Collection;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.stream.Stream;
 
 /**
  * A class to generate combined summary reports that link to individual project reports.
  */
 public class CombinedSummaryReport {
 
+    public record DuplicateProcessData(String processName, Map<String, Long> lineCountPerProject) {
+
+    }
+
     private final String reportTitle;
     private final List<ProjectSummary> projectSummaries;
+    private final Collection<DuplicateProcessData> duplicateProcessData;
 
     // CSS styles as a constant to avoid format specifier issues
     private static final String CSS_STYLES = """
@@ -44,17 +53,17 @@ public class CombinedSummaryReport {
                 margin: 0;
                 padding: 20px;
             }
-
+            
             .container {
                 max-width: 1200px;
                 margin: 0 auto;
             }
-
+            
             h1, h2 {
                 text-align: center;
                 color: #333;
             }
-
+            
             /* Container styling */
             .summary-container {
                 background-color: #fff;
@@ -64,11 +73,11 @@ public class CombinedSummaryReport {
                 margin: 25px 0;
                 transition: box-shadow 0.3s;
             }
-
+            
             .summary-container:hover {
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
             }
-
+            
             .summary-container h2 {
                 margin-top: 0;
                 color: #4682B4;
@@ -76,7 +85,7 @@ public class CombinedSummaryReport {
                 padding-bottom: 10px;
                 margin-bottom: 20px;
             }
-
+            
             /* Centered title with subtle border */
             .container > h1 {
                 color: #4682B4;
@@ -88,7 +97,7 @@ public class CombinedSummaryReport {
                 position: relative;
                 border-bottom: 1px solid rgba(70, 130, 180, 0.2);
             }
-
+            
             .container > h1::after {
                 content: "";
                 position: absolute;
@@ -99,7 +108,7 @@ public class CombinedSummaryReport {
                 height: 3px;
                 background-color: rgba(70, 130, 180, 0.8);
             }
-
+            
             /* Metrics styling */
             .metrics {
                 display: flex;
@@ -108,7 +117,7 @@ public class CombinedSummaryReport {
                 margin: 25px 0;
                 justify-content: space-around;
             }
-
+            
             .metric {
                 display: flex;
                 flex-direction: column;
@@ -119,39 +128,39 @@ public class CombinedSummaryReport {
                 min-width: 150px;
                 transition: transform 0.2s, box-shadow 0.2s;
             }
-
+            
             .metric:hover {
                 transform: translateY(-3px);
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             }
-
+            
             .metric-value {
                 font-weight: bold;
                 font-size: 1.8em;
                 color: #4682B4;
                 margin-bottom: 5px;
             }
-
+            
             .metric-label {
                 font-size: 0.9em;
                 color: #666;
                 text-align: center;
             }
-
+            
             /* Project card metrics adjustments */
             .project-card .metrics {
                 margin-top: 10px;
                 justify-content: flex-start;
             }
-
+            
             .project-card .metric-value {
                 font-size: 1.4em;
             }
-
+            
             .project-card .metric-label {
                 font-size: 0.9em;
             }
-
+            
             .project-card .metric {
                 display: flex;
                 flex-direction: row;
@@ -159,19 +168,19 @@ public class CombinedSummaryReport {
                 width: 100%;
                 gap: 20px;
             }
-
+            
             .project-card .metric-left {
                 flex: 1;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
             }
-
+            
             .project-card .metric-right {
                 flex: 1;
                 padding-top: 10px;
             }
-
+            
             .project-card .metric .coverage-indicator {
                 width: 80%;
                 height: 6px;
@@ -181,32 +190,32 @@ public class CombinedSummaryReport {
                 box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
                 margin-top: 8px;
             }
-
+            
             .project-card .metric .coverage-bar {
                 height: 100%;
                 border-radius: 3px;
                 transition: width 0.5s ease-in-out;
             }
-
+            
             .project-card .metric .coverage-breakdown {
                 font-size: 0.85em;
                 color: #666;
             }
-
+            
             .project-card .metric .coverage-breakdown div {
                 display: flex;
                 justify-content: space-between;
                 margin-bottom: 4px;
             }
-
+            
             .project-card .metric .coverage-breakdown .breakdown-label {
                 margin-right: 8px;
             }
-
+            
             .project-card .metric .coverage-breakdown .breakdown-value {
                 font-weight: 600;
             }
-
+            
             /* Project cards */
             .project-card {
                 background-color: #fff;
@@ -220,32 +229,32 @@ public class CombinedSummaryReport {
                 transition: transform 0.2s, box-shadow 0.2s;
                 align-items: center;
             }
-
+            
             .project-card:hover {
                 transform: translateY(-2px);
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
             }
-
+            
             .project-header {
                 display: flex;
                 align-items: center;
                 margin-bottom: 15px;
                 gap: 12px;
             }
-
+            
             .project-name {
                 font-size: 1.2em;
                 font-weight: 600;
                 margin-right: 10px;
             }
-
+            
             .project-link {
                 color: #4682B4;
                 text-decoration: none;
                 position: relative;
                 padding-bottom: 2px;
             }
-
+            
             .project-link:after {
                 content: '';
                 position: absolute;
@@ -256,28 +265,28 @@ public class CombinedSummaryReport {
                 background-color: #4682B4;
                 transition: width 0.3s;
             }
-
+            
             .project-link:hover:after {
                 width: 100%;
             }
-
+            
             .project-details {
                 display: flex;
                 flex-direction: column;
                 gap: 15px;
             }
-
+            
             .project-metrics {
                 display: flex;
                 align-items: flex-start;
                 gap: 20px;
             }
-
+            
             /* Project coverage indicators */
             .project-coverage {
                 margin-top: 10px;
             }
-
+            
             .coverage-indicator {
                 width: 100%;
                 height: 12px;
@@ -286,20 +295,20 @@ public class CombinedSummaryReport {
                 overflow: hidden;
                 box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
             }
-
+            
             .coverage-bar {
                 height: 100%;
                 border-radius: 6px;
                 transition: width 0.5s ease-in-out;
             }
-
+            
             /* Project left column styling */
             .project-left {
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
             }
-
+            
             /* Time estimates styling */
             .time-estimates {
                 display: grid;
@@ -314,12 +323,12 @@ public class CombinedSummaryReport {
                 position: relative;
                 transition: transform 0.2s, box-shadow 0.2s;
             }
-
+            
             .time-estimates:hover {
                 transform: translateY(-3px);
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             }
-
+            
             .time-estimates::before {
                 content: "Manual Work Estimation";
                 position: absolute;
@@ -331,19 +340,19 @@ public class CombinedSummaryReport {
                 font-size: 0.9em;
                 color: #666;
             }
-
+            
             .time-estimate {
                 display: flex;
                 flex-direction: column;
                 align-items: center;
             }
-
+            
             .time-label {
                 font-size: 0.8em;
                 color: #666;
                 margin-bottom: 5px;
             }
-
+            
             .time-value {
                 font-weight: bold;
                 color: #4682B4;
@@ -351,25 +360,25 @@ public class CombinedSummaryReport {
                 flex-direction: column;
                 align-items: center;
             }
-
+            
             .time-days {
                 font-size: 1.1em;
             }
-
+            
             .time-weeks {
                 font-size: 0.75em;
                 color: #777;
                 margin-top: 2px;
             }
-
+            
             .time-best {
                 color: #4CAF50;
             }
-
+            
             .time-worst {
                 color: #FF5722;
             }
-
+            
             /* Status badges */
             .status-badge {
                 padding: 6px 12px;
@@ -381,25 +390,25 @@ public class CombinedSummaryReport {
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
                 display: inline-block;
             }
-
+            
             .status-high {
                 background-color: #e8f5e9;
                 color: #2e7d32;
                 border: 1px solid rgba(46, 125, 50, 0.2);
             }
-
+            
             .status-medium {
                 background-color: #fff8e1;
                 color: #f57c00;
                 border: 1px solid rgba(245, 124, 0, 0.2);
             }
-
+            
             .status-low {
                 background-color: #ffebee;
                 color: #c62828;
                 border: 1px solid rgba(198, 40, 40, 0.2);
             }
-
+            
             /* Estimation notes */
             .estimation-notes {
                 margin-top: 25px;
@@ -409,47 +418,47 @@ public class CombinedSummaryReport {
                 border-left: 4px solid #4682B4;
                 box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             }
-
+            
             .estimation-notes p {
                 margin-top: 0;
             }
-
+            
             .estimation-notes ul {
                 margin: 15px 0 5px 25px;
                 padding-left: 0;
             }
-
+            
             .estimation-notes li {
                 margin-bottom: 8px;
                 line-height: 1.4;
             }
-
+            
             /* Table styling */
             table {
                 width: 100%;
                 border-collapse: collapse;
                 margin: 20px 0;
             }
-
+            
             th, td {
                 border: 1px solid #ddd;
                 padding: 12px;
                 text-align: left;
             }
-
+            
             th {
                 background-color: #4682B4;
                 color: white;
             }
-
+            
             tr:nth-child(even) {
                 background-color: #f2f2f2;
             }
-
+            
             tr:hover {
                 background-color: #ddd;
             }
-
+            
             /* Footer */
             footer {
                 text-align: center;
@@ -457,27 +466,27 @@ public class CombinedSummaryReport {
                 font-size: 0.9em;
                 color: #666;
             }
-
+            
             /* Overview specific styles */
             .overview-metrics {
                 flex-direction: column;
                 align-items: center;
                 width: 100%;
             }
-
+            
             .overview-metric {
                 width: 100%;
                 box-sizing: border-box;
                 padding: 15px 20px;
             }
-
+            
             .overview-metric:nth-child(2) {
                 display: flex;
                 flex-direction: row;
                 align-items: flex-start;
                 gap: 20px;
             }
-
+            
             .overview-indicator {
                 width: 80%;
                 height: 6px;
@@ -487,24 +496,24 @@ public class CombinedSummaryReport {
                 box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
                 margin-top: 8px;
             }
-
+            
             .breakdown-row {
                 display: flex;
                 justify-content: space-between;
                 margin-bottom: 4px;
             }
-
+            
             .time-estimates-container {
                 display: flex;
                 justify-content: center;
                 margin: 20px 0;
             }
-
+            
             .overview-time-estimates {
                 width: 100%;
                 box-sizing: border-box;
             }
-
+            
             /* Responsive design */
             @media (max-width: 768px) {
                 .metrics {
@@ -512,15 +521,15 @@ public class CombinedSummaryReport {
                     align-items: center;
                     gap: 15px;
                 }
-
+            
                 .metric {
                     width: 80%;
                 }
-
+            
                 .project-card {
                     grid-template-columns: 1fr;
                 }
-
+            
                 .time-estimates {
                     margin-top: 15px;
                 }
@@ -533,9 +542,11 @@ public class CombinedSummaryReport {
      * @param reportTitle      The title of the combined report
      * @param projectSummaries List of project summaries to include in the report
      */
-    public CombinedSummaryReport(String reportTitle, List<ProjectSummary> projectSummaries) {
+    public CombinedSummaryReport(String reportTitle, List<ProjectSummary> projectSummaries,
+                                 Collection<DuplicateProcessData> duplicateProcessData) {
         this.reportTitle = reportTitle;
         this.projectSummaries = projectSummaries;
+        this.duplicateProcessData = duplicateProcessData;
     }
 
     /**
@@ -591,7 +602,7 @@ public class CombinedSummaryReport {
                                 bar.style.width = width + '%';
                                 bar.style.backgroundColor = color;
                             });
-
+                
                             const toolSupportTable = document.querySelector('#toolSupportSection table');
                             if (toolSupportTable.rows.length <= 1) {
                                 toolSupportTable.style.display = 'none';
@@ -614,6 +625,16 @@ public class CombinedSummaryReport {
                 """;
     }
 
+    private TimeEstimation repeatedValidationEstimate() {
+        return duplicateProcessData.stream().map(each -> {
+            Collection<Long> lineCounts = each.lineCountPerProject.values();
+            assert !lineCounts.isEmpty();
+            long max = lineCounts.stream().max(Long::compareTo).get();
+            long sum = lineCounts.stream().reduce(Long::sum).get();
+            return sum - max;
+        }).map(ReportEstimationUtils::getValidationTimeEstimation).reduce(TimeEstimation.zero(), TimeEstimation::sum);
+    }
+
     private String generateOverallStatistics() {
         int totalProjects = projectSummaries.size();
         int totalActivities = projectSummaries.stream()
@@ -630,12 +651,18 @@ public class CombinedSummaryReport {
         TimeEstimation totalManualConversionEstimation = projectSummaries.stream()
                 .map(ProjectSummary::manualConversionEstimation)
                 .reduce(new TimeEstimation(0, 0, 0), TimeEstimation::sum);
-        
+
         TimeEstimation totalValidationEstimation = projectSummaries.stream()
                 .map(ProjectSummary::validationEstimation)
                 .reduce(new TimeEstimation(0, 0, 0), TimeEstimation::sum);
-        
-        TimeEstimation totalEstimation = TimeEstimation.sum(totalManualConversionEstimation, totalValidationEstimation);
+
+        TimeEstimation repeatedValidationEstimation = repeatedValidationEstimate();
+
+        totalValidationEstimation = TimeEstimation.sum(totalValidationEstimation,
+                repeatedValidationEstimation.prod(-1));
+
+        TimeEstimation totalEstimation =
+                TimeEstimation.sum(totalManualConversionEstimation, totalValidationEstimation);
 
         return """
                 <div class="summary-container">
@@ -673,7 +700,7 @@ public class CombinedSummaryReport {
                             </div>
                         </div>
                     </div>
-
+                
                     <div class="time-estimates-container">
                         <div class="time-estimates overview-time-estimates" style="display: flex">
                             <table>
@@ -704,16 +731,16 @@ public class CombinedSummaryReport {
                             </table>
                         </div>
                     </div>
-
+                
                     <div class="estimation-notes">
                         <p><strong>Note:</strong></p>
                         <ul>
                             <li>%d TIBCO BW projects analyzed for migration to Ballerina</li>
                             <li>%.0f%% average automated conversion rate across all projects</li>
-                            <li>Time estimates shown above represents manual work required to complete migration for all projects combined</li>
+                            <li>Time estimates shown above represents manual work required to complete migration for all projects combined</li>%s
                         </ul>
                     </div>
-
+                
                     <div class="estimation-notes">
                         <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
                         <ul>
@@ -763,12 +790,15 @@ public class CombinedSummaryReport {
                         ReportUtils.toDays(totalEstimation.bestCaseDaysAsInt()),
                         ReportUtils.toDays(totalEstimation.averageCaseDaysAsInt()),
                         ReportUtils.toDays(totalEstimation.worstCaseDaysAsInt()),
-                        totalProjects, averageConversionPercentage);
+                        totalProjects, averageConversionPercentage,
+                        !repeatedValidationEstimation.isZero() ?
+                                "\n                            <li><em>Experimental: Corrected for repeated code generations</em></li>" :
+                                "");
     }
 
     private String generateProjectSummaries() {
         StringBuilder projectCards = new StringBuilder();
-        
+
         for (ProjectSummary project : projectSummaries) {
             projectCards.append(generateProjectCard(project));
         }
@@ -779,7 +809,7 @@ public class CombinedSummaryReport {
                 </div>
                 """.formatted(projectCards.toString());
     }
-    
+
     private String generateProjectCard(ProjectSummary project) {
         double coveragePercentage = project.successfulConversionPercentage();
         String statusClass = coveragePercentage >= 90 ? "status-high" :
@@ -832,7 +862,7 @@ public class CombinedSummaryReport {
                                 </div>
                             </div>
                         </div>
-
+                
                         <div class="time-estimates" style="flex: 1; margin-left: 2%%;">
                             <div class="time-estimate best-case">
                                 <div class="time-label">Best Case</div>
@@ -885,8 +915,8 @@ public class CombinedSummaryReport {
         for (ProjectSummary project : projectSummaries) {
             for (Map.Entry<String, Collection<AnalysisReport.UnhandledElement>> entry : project
                     .unhandledActivities() == null
-                            ? Collections.<String, Collection<AnalysisReport.UnhandledElement>>emptyMap().entrySet()
-                            : project.unhandledActivities().entrySet()) {
+                    ? Collections.<String, Collection<AnalysisReport.UnhandledElement>>emptyMap().entrySet()
+                    : project.unhandledActivities().entrySet()) {
                 String elementType = entry.getKey();
                 int frequency = entry.getValue().size();
                 allUnsupportedTypes.merge(elementType, frequency, Integer::sum);
@@ -901,7 +931,7 @@ public class CombinedSummaryReport {
             return generateUnsupportedElementsTable(allUnsupportedTypes, projectsAffected);
         }
     }
-    
+
     private String generateEmptyUnsupportedElementsSection() {
         return """
                 <div class="summary-container">
@@ -917,11 +947,11 @@ public class CombinedSummaryReport {
                 </div>
                 """;
     }
-    
-    private String generateUnsupportedElementsTable(Map<String, Integer> allUnsupportedTypes, 
-                                                   Map<String, List<String>> projectsAffected) {
+
+    private String generateUnsupportedElementsTable(Map<String, Integer> allUnsupportedTypes,
+                                                    Map<String, List<String>> projectsAffected) {
         StringBuilder tableRows = new StringBuilder();
-        
+
         allUnsupportedTypes.entrySet().stream()
                 .sorted(Map.Entry.<String, Integer>comparingByValue().reversed()
                         .thenComparing(Map.Entry.comparingByKey()))
@@ -937,7 +967,8 @@ public class CombinedSummaryReport {
                                 <td>%d</td>
                                 <td>%s</td>
                             </tr>
-                            """.formatted(ReportUtils.escapeHtml(elementType), frequency, ReportUtils.escapeHtml(projectsList)));
+                            """.formatted(ReportUtils.escapeHtml(elementType), frequency,
+                            ReportUtils.escapeHtml(projectsList)));
                 });
 
         return """
