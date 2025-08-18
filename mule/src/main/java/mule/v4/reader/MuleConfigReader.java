@@ -59,6 +59,7 @@ import static mule.v4.model.MuleModel.HttpRequest;
 import static mule.v4.model.MuleModel.Kind;
 import static mule.v4.model.MuleModel.LogLevel;
 import static mule.v4.model.MuleModel.Logger;
+import static mule.v4.model.MuleModel.Scheduler;
 import static mule.v4.model.MuleModel.MuleRecord;
 import static mule.v4.model.MuleModel.ObjectToJson;
 import static mule.v4.model.MuleModel.ObjectToString;
@@ -147,9 +148,11 @@ public class MuleConfigReader {
             case MuleXMLTag.HTTP_LISTENER -> {
                 return readHttpListener(ctx, muleElement);
             }
-
             case MuleXMLTag.VM_LISTENER -> {
                 return readVMListener(ctx, muleElement);
+            }
+            case MuleXMLTag.SCHEDULER -> {
+                return readScheduler(ctx, muleElement);
             }
 
             // Process Items
@@ -251,6 +254,30 @@ public class MuleConfigReader {
         return new Logger(message, logLevel);
     }
 
+    private static Scheduler readScheduler(Context ctx, MuleElement muleElement) {
+        ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_TASK));
+
+        String frequency = "5";
+        String timeUnit = "SECONDS";
+
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals(MuleXMLTag.SCHEDULING_STRATEGY.tag())) {
+                while (child.peekChild() != null) {
+                    MuleElement strategyChild = child.consumeChild();
+                    Element strategyElement = strategyChild.getElement();
+                    if (strategyElement.getTagName().equals(MuleXMLTag.FIXED_FREQUENCY.tag())) {
+                        frequency = strategyElement.getAttribute("frequency");
+                        timeUnit = strategyElement.getAttribute("timeUnit");
+                    }
+                }
+            }
+        }
+
+        return new Scheduler(frequency, timeUnit);
+    }
+
     private static MuleRecord readExpressionComponent(Context ctx, MuleElement muleElement) {
         return new ExpressionComponent(muleElement.getElement().getTextContent());
     }
@@ -302,6 +329,9 @@ public class MuleConfigReader {
                 assert source == null;
                 source = readBlock(ctx, child);
             } else if (element.getTagName().equals(MuleXMLTag.VM_LISTENER.tag())) {
+                assert source == null;
+                source = readBlock(ctx, child);
+            } else if (element.getTagName().equals(MuleXMLTag.SCHEDULER.tag())) {
                 assert source == null;
                 source = readBlock(ctx, child);
             } else {

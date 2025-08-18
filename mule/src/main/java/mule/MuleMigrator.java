@@ -523,7 +523,7 @@ public class MuleMigrator {
 
         return createTextDocument(INTERNAL_TYPES_FILE_NAME, contextImports, contextTypeDefns,
                 Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
-                Collections.emptyList());
+                Collections.emptyList(), Collections.emptyList());
     }
 
     private static Map<String, String> genBalFilesFromBir(MuleLogger logger, List<TextDocument> birTxtDocs) {

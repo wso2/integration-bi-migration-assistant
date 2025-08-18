@@ -104,6 +104,7 @@ The migration tool currently supports the following Mule 4.x components:
 - [On Error Propagate](docs/palette-item-mappings-v4.md#on-error-propagate)
 - [Raise Error](docs/palette-item-mappings-v4.md#raise-error)
 - [Scatter Gather](docs/palette-item-mappings-v4.md#scatter-gather)
+- [Scheduler](docs/palette-item-mappings-v4.md#scheduler)
 - [Set Payload](docs/palette-item-mappings-v4.md#set-payload)
 - [Sub Flow](docs/palette-item-mappings-v4.md#sub-flow)
 - [Transform Message](docs/palette-item-mappings-v4.md#transform-message)
