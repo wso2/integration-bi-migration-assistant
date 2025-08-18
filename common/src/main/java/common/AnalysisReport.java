@@ -36,6 +36,8 @@ public class AnalysisReport {
     private final int partiallySupportedElementCount;
     private final Map<String, Collection<UnhandledElement>> partiallySupportedElements;
     private final TimeEstimation estimation;
+    private final TimeEstimation manualConversionEstimation;
+    private final TimeEstimation validationEstimation;
 
     // CSS styles as a constant to avoid format specifier issues
     private static final String CSS_STYLES = """
@@ -355,7 +357,7 @@ public class AnalysisReport {
             """;
 
     /**
-     * Create a new generic analysis report.
+     * Create a new generic analysis report with separate manual conversion and validation estimations.
      *
      * @param reportTitle           The title of the report
      * @param totalElementCount     Total count of elements analyzed
@@ -366,11 +368,15 @@ public class AnalysisReport {
      * @param partiallySupportedElementCount Count of partially supported elements
      * @param partiallySupportedElements Map containing partially supported elements with their type as key and collection of string
      *                              representations as value
+     * @param manualConversionEstimation Manual conversion time estimation
+     * @param validationEstimation  Validation time estimation
      */
     public AnalysisReport(String reportTitle, int totalElementCount, int unhandledElementCount, String elementType,
-                          Map<String, Collection<UnhandledElement>> unhandledElements, int partiallySupportedElementCount,
-            Map<String, Collection<UnhandledElement>> partiallySupportedElements,
-            TimeEstimation timeEstimation) {
+                          Map<String, Collection<UnhandledElement>> unhandledElements,
+                          int partiallySupportedElementCount,
+                          Map<String, Collection<UnhandledElement>> partiallySupportedElements,
+                          TimeEstimation manualConversionEstimation,
+                          TimeEstimation validationEstimation) {
         assert totalElementCount >= unhandledElementCount;
         this.reportTitle = reportTitle;
         this.totalElementCount = totalElementCount;
@@ -379,7 +385,9 @@ public class AnalysisReport {
         this.unhandledElements = unhandledElements;
         this.partiallySupportedElementCount = partiallySupportedElementCount;
         this.partiallySupportedElements = partiallySupportedElements;
-        this.estimation = timeEstimation;
+        this.estimation = TimeEstimation.sum(manualConversionEstimation, validationEstimation);
+        this.manualConversionEstimation = manualConversionEstimation;
+        this.validationEstimation = validationEstimation;
     }
 
     /**
@@ -431,7 +439,12 @@ public class AnalysisReport {
                 generateSummaryContainer(coveragePercentage, totalElementCount, unhandledElementCount, elementType));
 
         // Generate manual work estimation section
-        html.append(generateManualWorkEstimation(estimation, elementType));
+        if (manualConversionEstimation != null && validationEstimation != null) {
+            html.append(generateSeparateManualWorkEstimation(manualConversionEstimation, validationEstimation,
+                    elementType));
+        } else {
+            html.append(generateManualWorkEstimation(estimation, elementType));
+        }
 
         // Generate estimation notes
         html.append(generateEstimationNotes(elementType));
@@ -560,6 +573,72 @@ public class AnalysisReport {
                 toDays(estimation.bestCaseDaysAsInt()), toWeeks(bestCaseWeeks),
                 toDays(estimation.averageCaseDaysAsInt()), toWeeks(avgCaseWeeks),
                 toDays(estimation.worstCaseDaysAsInt()), toWeeks(worstCaseWeeks)
+        );
+    }
+
+    /**
+     * Generates a consolidated manual work estimation section showing breakdown and total.
+     *
+     * @param conversionEstimation Manual conversion time estimation
+     * @param validationEstimation Validation time estimation
+     * @param elementType The type of elements being analyzed
+     * @return HTML string for the consolidated manual work estimation section
+     */
+    private static String generateSeparateManualWorkEstimation(TimeEstimation conversionEstimation,
+                                                               TimeEstimation validationEstimation,
+                                                               String elementType) {
+        int conversionBestWeeks = conversionEstimation.bestCaseWeeks();
+        int conversionAvgWeeks = conversionEstimation.averageCaseWeeks();
+        int conversionWorstWeeks = conversionEstimation.worstCaseWeeks();
+
+        int validationBestWeeks = validationEstimation.bestCaseWeeks();
+        int validationAvgWeeks = validationEstimation.averageCaseWeeks();
+        int validationWorstWeeks = validationEstimation.worstCaseWeeks();
+
+        TimeEstimation totalEstimation = TimeEstimation.sum(conversionEstimation, validationEstimation);
+        int totalBestWeeks = totalEstimation.bestCaseWeeks();
+        int totalAvgWeeks = totalEstimation.averageCaseWeeks();
+        int totalWorstWeeks = totalEstimation.worstCaseWeeks();
+
+        return """
+                    <div class="summary-container">
+                        <h2>Manual Work Estimation</h2>
+                        <table>
+                            <tr>
+                                <th>Work Type</th>
+                                <th>Best Case</th>
+                                <th>Average Case</th>
+                                <th>Worst Case</th>
+                            </tr>
+                            <tr>
+                                <td><strong>Manual Conversion</strong></td>
+                                <td class="time-best">%s</td>
+                                <td class="time-avg">%s</td>
+                                <td class="time-worst">%s</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Code Validation</strong></td>
+                                <td class="time-best">%s</td>
+                                <td class="time-avg">%s</td>
+                                <td class="time-worst">%s</td>
+                            </tr>
+                            <tr style="border-top: 2px solid #4682B4;">
+                                <td><strong>Total</strong></td>
+                                <td class="time-best"><strong>%s</strong></td>
+                                <td class="time-avg"><strong>%s</strong></td>
+                                <td class="time-worst"><strong>%s</strong></td>
+                            </tr>
+                        </table>
+                """.formatted(
+                toDays(conversionEstimation.bestCaseDaysAsInt()),
+                toDays(conversionEstimation.averageCaseDaysAsInt()),
+                toDays(conversionEstimation.worstCaseDaysAsInt()),
+                toDays(validationEstimation.bestCaseDaysAsInt()),
+                toDays(validationEstimation.averageCaseDaysAsInt()),
+                toDays(validationEstimation.worstCaseDaysAsInt()),
+                toDays(totalEstimation.bestCaseDaysAsInt()),
+                toDays(totalEstimation.averageCaseDaysAsInt()),
+                toDays(totalEstimation.worstCaseDaysAsInt())
         );
     }
 

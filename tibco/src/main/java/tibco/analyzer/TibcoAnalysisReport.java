@@ -228,8 +228,8 @@ public final class TibcoAnalysisReport {
         return TimeEstimation.sum(estimation, repeatedEstimation);
     }
 
-    private static TimeEstimation getTimeEstimation(
-            Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap, long lineCount) {
+    private static TimeEstimation getManualConversionTimeEstimation(
+            Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap) {
         TimeEstimation estimation = new TimeEstimation(0, 0, 0);
 
         for (Collection<AnalysisReport.UnhandledElement> elements : unhandledElementsMap.values()) {
@@ -240,14 +240,14 @@ public final class TibcoAnalysisReport {
             }
         }
 
-        // Add line-based time estimation
+        return estimation;
+    }
+
+    private static TimeEstimation getValidationTimeEstimation(long lineCount) {
         double bestCaseLineDays = (lineCount * 2.0) / 60.0 / 8.0; // 2 min/line
         double averageCaseLineDays = (lineCount * 5.0) / 60.0 / 8.0; // 5 min/line
         double worstCaseLineDays = (lineCount * 10.0) / 60.0 / 8.0; // 10 min/line
-        TimeEstimation lineEstimation = new TimeEstimation(
-                bestCaseLineDays, averageCaseLineDays, worstCaseLineDays
-        );
-        return TimeEstimation.sum(estimation, lineEstimation);
+        return new TimeEstimation(bestCaseLineDays, averageCaseLineDays, worstCaseLineDays);
     }
 
     /**
@@ -260,7 +260,9 @@ public final class TibcoAnalysisReport {
         // Create a map of unhandled elements grouped by their kind
         Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
 
-        TimeEstimation estimation = getTimeEstimation(unhandledElementsMap, lineCount);
+        TimeEstimation manualConversionEstimation = getManualConversionTimeEstimation(unhandledElementsMap);
+        TimeEstimation validationEstimation = getValidationTimeEstimation(lineCount);
+        TimeEstimation totalEstimation = TimeEstimation.sum(manualConversionEstimation, validationEstimation);
 
         // Create maps for partially supported activities
         Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap =
@@ -275,7 +277,8 @@ public final class TibcoAnalysisReport {
                 unhandledElementsMap,
                 partiallySupportedActivityCount,
                 partiallySupportedElementsMap,
-                estimation
+                manualConversionEstimation,
+                validationEstimation
         );
 
         return report.toHTML();
@@ -297,8 +300,11 @@ public final class TibcoAnalysisReport {
         // Create a map of unhandled elements grouped by their kind
         Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
 
-        // Get time estimation using the shared method
-        TimeEstimation timeEstimation = getTimeEstimation(unhandledElementsMap, lineCount);
+        // FIXME:
+        // Get time estimation using the separate methods
+        TimeEstimation manualConversionEstimation = getManualConversionTimeEstimation(unhandledElementsMap);
+        TimeEstimation validationEstimation = getValidationTimeEstimation(lineCount);
+        TimeEstimation timeEstimation = TimeEstimation.sum(manualConversionEstimation, validationEstimation);
         ProjectSummary.ActivityEstimation activityEstimation = new ProjectSummary.ActivityEstimation(
                 totalActivityCount, unhandledActivityCount, timeEstimation);
 
