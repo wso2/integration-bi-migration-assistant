@@ -20,9 +20,8 @@ package tibco.analyzer;
 
 import common.AnalysisReport;
 import common.ProjectSummary;
-import org.w3c.dom.Element;
-
 import common.TimeEstimation;
+import org.w3c.dom.Element;
 import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
 import tibco.converter.ConversionUtils;
 

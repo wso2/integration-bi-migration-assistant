@@ -20,7 +20,6 @@ package tibco;
 
 import common.BallerinaModel;
 import common.LoggingUtils;
-import common.TimeEstimation;
 import tibco.analyzer.CombinedSummaryReport;
 import tibco.converter.ProjectConverter.ProjectResources;
 import tibco.model.Process;
@@ -33,12 +32,9 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
-
-import org.jetbrains.annotations.Nullable;
 
 public final class ConversionContext implements LoggingContext {
 

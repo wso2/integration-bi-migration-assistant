@@ -71,35 +71,35 @@ public final class ReportUtils {
      */
     public static String generateEstimationScenarios(String elementType) {
         return """
-                            <div class="estimation-notes">
-                                <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
-                                <ul>
-                                    <li>Best case scenario:
-                                      <ul>
-                                        <li>1.0 day per each new unsupported %s for analysis, implementation, and testing</li>
-                                        <li>1.0 hour per each repeated unsupported %s for implementation</li>
-                                        <li>2 minutes per each line of code generated</li>
-                                        <li>Assumes minimal complexity and straightforward implementations</li>
-                                      </ul>
-                                    </li>
-                                    <li>Average case scenario:
-                                      <ul>
-                                        <li>2.0 days per each new unsupported %s for analysis, implementation, and testing</li>
-                                        <li>2.0 hour per each repeated unsupported %s for implementation</li>
-                                        <li>5 minutes per each line of code generated</li>
-                                        <li>Assumes medium complexity with moderate implementation challenges</li>
-                                      </ul>
-                                    </li>
-                                    <li>Worst case scenario:
-                                      <ul>
-                                        <li>3.0 days per each new unsupported %s for analysis, implementation, and testing</li>
-                                        <li>4.0 hour per each repeated unsupported %s for implementation</li>
-                                        <li>10 minutes per each line of code generated</li>
-                                        <li>Assumes high complexity with significant implementation challenges</li>
-                                      </ul>
-                                    </li>
-                                </ul>
-                            </div>
+                <div class="estimation-notes">
+                    <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
+                    <ul>
+                        <li>Best case scenario:
+                          <ul>
+                            <li>1.0 day per each new unsupported %s for analysis, implementation, and testing</li>
+                            <li>1.0 hour per each repeated unsupported %s for implementation</li>
+                            <li>2 minutes per each line of code generated</li>
+                            <li>Assumes minimal complexity and straightforward implementations</li>
+                          </ul>
+                        </li>
+                        <li>Average case scenario:
+                          <ul>
+                            <li>2.0 days per each new unsupported %s for analysis, implementation, and testing</li>
+                            <li>2.0 hour per each repeated unsupported %s for implementation</li>
+                            <li>5 minutes per each line of code generated</li>
+                            <li>Assumes medium complexity with moderate implementation challenges</li>
+                          </ul>
+                        </li>
+                        <li>Worst case scenario:
+                          <ul>
+                            <li>3.0 days per each new unsupported %s for analysis, implementation, and testing</li>
+                            <li>4.0 hour per each repeated unsupported %s for implementation</li>
+                            <li>10 minutes per each line of code generated</li>
+                            <li>Assumes high complexity with significant implementation challenges</li>
+                          </ul>
+                        </li>
+                    </ul>
+                </div>
                 """.formatted(
                 elementType.toLowerCase(), elementType.toLowerCase(),
                 elementType.toLowerCase(), elementType.toLowerCase(),
