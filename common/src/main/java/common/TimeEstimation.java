@@ -71,15 +71,6 @@ public record TimeEstimation(
         );
     }
 
-    // FIXME: remove this and use sum instead
-    public TimeEstimation add(TimeEstimation other) {
-        return new TimeEstimation(
-                this.bestCaseDays + other.bestCaseDays,
-                this.averageCaseDays + other.averageCaseDays,
-                this.worstCaseDays + other.worstCaseDays
-        );
-    }
-
     public static TimeEstimation sum(TimeEstimation t1, TimeEstimation t2) {
         return new TimeEstimation(
                 t1.bestCaseDays + t2.bestCaseDays,

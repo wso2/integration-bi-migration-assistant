@@ -214,7 +214,7 @@ public final class TibcoAnalysisReport {
 
     private static TimeEstimation timeEstimationPerElement(AnalysisReport.UnhandledElement element,
                                                            int count) {
-        assert count > 0;
+        assert count > 0 : "There should be at least one element to estimate time";
         TimeEstimation estimation = new TimeEstimation(1, 2, 3);
         if (count == 1) {
             return estimation;

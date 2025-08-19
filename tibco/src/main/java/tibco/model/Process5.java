@@ -239,8 +239,8 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                         case SOAP_SEND_REPLY -> "com.tibco.plugin.soap.SOAPSendReplyActivity";
                         case JMS_QUEUE_EVENT_SOURCE -> "com.tibco.plugin.jms.JMSQueueEventSource";
                         case JMS_QUEUE_SEND_ACTIVITY -> "com.tibco.plugin.jms.JMSQueueSendActivity";
-                        case JMS_QUEUE_GET_MESSAGE_ACTIVITY -> "JMSQueueGetMessageActivity";
-                        case JMS_TOPIC_PUBLISH_ACTIVITY -> "com.tibco.plugin.jms.JMSQueueGetMessageActivity";
+                        case JMS_QUEUE_GET_MESSAGE_ACTIVITY -> "com.tibco.plugin.jms.JMSQueueGetMessageActivity";
+                        case JMS_TOPIC_PUBLISH_ACTIVITY -> "com.tibco.plugin.jms.JMSTopicPublishActivity";
                         case GENERATE_ERROR -> "com.tibco.pe.core.GenerateErrorActivity";
                         case SLEEP -> "com.tibco.plugin.timer.SleepActivity";
                         case GET_SHARED_VARIABLE -> "com.tibco.pe.core.GetSharedVariableActivity";
