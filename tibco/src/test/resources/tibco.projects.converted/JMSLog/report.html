@@ -373,46 +373,46 @@ table code {
             </tr>
             <tr>
                 <td><strong>Code Validation</strong></td>
-                <td class="time-best">2 days</td>
-                <td class="time-avg">4 days</td>
-                <td class="time-worst">7 days</td>
+                <td class="time-best">1 day</td>
+                <td class="time-avg">2 days</td>
+                <td class="time-worst">4 days</td>
             </tr>
             <tr style="border-top: 2px solid #4682B4;">
                 <td><strong>Total</strong></td>
-                <td class="time-best"><strong>2 days</strong></td>
-                <td class="time-avg"><strong>4 days</strong></td>
-                <td class="time-worst"><strong>7 days</strong></td>
+                <td class="time-best"><strong>1 day</strong></td>
+                <td class="time-avg"><strong>2 days</strong></td>
+                <td class="time-worst"><strong>4 days</strong></td>
             </tr>
         </table>
-            <div class="estimation-notes">
-                <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
-                <ul>
-                    <li>Best case scenario:
-                      <ul>
-                        <li>1.0 day per each new unsupported activity for analysis, implementation, and testing</li>
-                        <li>1.0 hour per each repeated unsupported activity for implementation</li>
-                        <li>2 minutes per each line of code generated</li>
-                        <li>Assumes minimal complexity and straightforward implementations</li>
-                      </ul>
-                    </li>
-                    <li>Average case scenario:
-                      <ul>
-                        <li>2.0 days per each new unsupported activity for analysis, implementation, and testing</li>
-                        <li>2.0 hour per each repeated unsupported activity for implementation</li>
-                        <li>5 minutes per each line of code generated</li>
-                        <li>Assumes medium complexity with moderate implementation challenges</li>
-                      </ul>
-                    </li>
-                    <li>Worst case scenario:
-                      <ul>
-                        <li>3.0 days per each new unsupported activity for analysis, implementation, and testing</li>
-                        <li>4.0 hour per each repeated unsupported activity for implementation</li>
-                        <li>10 minutes per each line of code generated</li>
-                        <li>Assumes high complexity with significant implementation challenges</li>
-                      </ul>
-                    </li>
-                </ul>
-            </div>
+<div class="estimation-notes">
+    <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
+    <ul>
+        <li>Best case scenario:
+          <ul>
+            <li>1.0 day per each new unsupported activity for analysis, implementation, and testing</li>
+            <li>1.0 hour per each repeated unsupported activity for implementation</li>
+            <li>1 minutes per each line of code generated</li>
+            <li>Assumes minimal complexity and straightforward implementations</li>
+          </ul>
+        </li>
+        <li>Average case scenario:
+          <ul>
+            <li>2.0 days per each new unsupported activity for analysis, implementation, and testing</li>
+            <li>2.0 hour per each repeated unsupported activity for implementation</li>
+            <li>3 minutes per each line of code generated</li>
+            <li>Assumes medium complexity with moderate implementation challenges</li>
+          </ul>
+        </li>
+        <li>Worst case scenario:
+          <ul>
+            <li>3.0 days per each new unsupported activity for analysis, implementation, and testing</li>
+            <li>4.0 hour per each repeated unsupported activity for implementation</li>
+            <li>5 minutes per each line of code generated</li>
+            <li>Assumes high complexity with significant implementation challenges</li>
+          </ul>
+        </li>
+    </ul>
+</div>
 <div class="summary-container">
     <h2>Currently Unsupported Activities</h2>
     <div id="toolSupportSection">
@@ -433,15 +433,15 @@ table code {
         <table>
             <tr><th>Activity name</th><th>Frequency</th></tr>
         <tr>
-            <td><code>JMSQueueGetMessageActivity</code></td>
-            <td>1</td>
-        </tr>
-        <tr>
             <td><code>com.tibco.plugin.jms.JMSQueueGetMessageActivity</code></td>
             <td>1</td>
         </tr>
         <tr>
             <td><code>com.tibco.plugin.jms.JMSQueueSendActivity</code></td>
+            <td>1</td>
+        </tr>
+        <tr>
+            <td><code>com.tibco.plugin.jms.JMSTopicPublishActivity</code></td>
             <td>1</td>
         </tr>
         </table>

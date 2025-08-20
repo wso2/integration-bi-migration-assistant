@@ -254,7 +254,6 @@ public final class TibcoAnalysisReport {
 
         TimeEstimation manualConversionEstimation = getManualConversionTimeEstimation(unhandledElementsMap);
         TimeEstimation validationEstimation = ReportEstimationUtils.getValidationTimeEstimation(lineCount);
-        TimeEstimation totalEstimation = TimeEstimation.sum(manualConversionEstimation, validationEstimation);
 
         // Create maps for partially supported activities
         Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap =

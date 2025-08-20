@@ -23,9 +23,9 @@ import common.TimeEstimation;
 public class ReportEstimationUtils {
 
     static TimeEstimation getValidationTimeEstimation(long lineCount) {
-        double bestCaseLineDays = (lineCount * 2.0) / 60.0 / 8.0; // 2 min/line
-        double averageCaseLineDays = (lineCount * 5.0) / 60.0 / 8.0; // 5 min/line
-        double worstCaseLineDays = (lineCount * 10.0) / 60.0 / 8.0; // 10 min/line
+        double bestCaseLineDays = (lineCount * 1.0) / 60.0 / 8.0; // 1 min/line
+        double averageCaseLineDays = (lineCount * 3.0) / 60.0 / 8.0; // 3 min/line
+        double worstCaseLineDays = (lineCount * 5.0) / 60.0 / 8.0; // 5 min/line
         return new TimeEstimation(bestCaseLineDays, averageCaseLineDays, worstCaseLineDays);
     }
 }
