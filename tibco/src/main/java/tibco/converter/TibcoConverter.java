@@ -152,9 +152,11 @@ public class TibcoConverter {
         files.put("Ballerina.toml", ballerinaToml(cx));
 
         TibcoAnalysisReport report = result.report();
-        report.lineCount(files.values().stream().
-                mapToInt(content -> content.split("\r?\n").length)
-                .sum());
+        report.lineCount(
+                files.values().stream()
+                        .map(ConversionUtils::lineCount)
+                        .mapToLong(ConversionUtils.LineCount::normalize)
+                        .sum());
 
         return new SerializedProject(files, report);
     }

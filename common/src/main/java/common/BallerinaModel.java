@@ -68,10 +68,9 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                     List.of(), List.of());
         }
 
-        // TODO: we need a better way to do this
-        public long getLineCount() {
+        public String toSource() {
             SyntaxTree st = new CodeGenerator(this).generateSyntaxTree();
-            return st.toSourceCode().lines().count();
+            return st.toSourceCode();
         }
     }
 

@@ -21,6 +21,7 @@ package tibco;
 import common.BallerinaModel;
 import common.LoggingUtils;
 import tibco.analyzer.CombinedSummaryReport;
+import tibco.converter.ConversionUtils;
 import tibco.converter.ProjectConverter.ProjectResources;
 import tibco.model.Process;
 import tibco.model.Resource;
@@ -106,10 +107,10 @@ public final class ConversionContext implements LoggingContext {
     public void registerProcessTextDocument(String projectName, Process process,
                                             BallerinaModel.TextDocument textdocument) {
         processCodeGenData.computeIfAbsent(process, k -> new ArrayList<>())
-                .add(new ProcessCodeGenData(projectName, textdocument.getLineCount()));
+                .add(new ProcessCodeGenData(projectName, ConversionUtils.lineCount(textdocument.toSource())));
     }
 
-    record ProcessCodeGenData(String projectName, long lineCount) {
+    record ProcessCodeGenData(String projectName, ConversionUtils.LineCount lineCount) {
 
     }
 
@@ -129,9 +130,9 @@ public final class ConversionContext implements LoggingContext {
             return Optional.empty();
         }
         String processName = process.name();
-        Map<String, Long> projectLineCounts = new HashMap<>();
+        Map<String, ConversionUtils.LineCount> projectLineCounts = new HashMap<>();
         for (ProcessCodeGenData data : codeGenData) {
-            projectLineCounts.merge(data.projectName(), data.lineCount(), Long::sum);
+            projectLineCounts.merge(data.projectName(), data.lineCount(), ConversionUtils.LineCount::sum);
         }
         return Optional.of(new CombinedSummaryReport.DuplicateProcessData(processName,
                 Collections.unmodifiableMap(projectLineCounts)));

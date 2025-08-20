@@ -22,6 +22,7 @@ import common.AnalysisReport;
 import common.ProjectSummary;
 import common.ReportUtils;
 import common.TimeEstimation;
+import tibco.converter.ConversionUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,7 +36,7 @@ import java.util.Map;
  */
 public class CombinedSummaryReport {
 
-    public record DuplicateProcessData(String processName, Map<String, Long> lineCountPerProject) {
+    public record DuplicateProcessData(String processName, Map<String, ConversionUtils.LineCount> lineCountPerProject) {
 
     }
 
@@ -627,7 +628,8 @@ public class CombinedSummaryReport {
 
     private TimeEstimation repeatedValidationEstimate() {
         return duplicateProcessData.stream().map(each -> {
-            Collection<Long> lineCounts = each.lineCountPerProject.values();
+            Collection<Long> lineCounts =
+                    each.lineCountPerProject.values().stream().map(ConversionUtils.LineCount::normalize).toList();
             assert !lineCounts.isEmpty();
             long max = lineCounts.stream().max(Long::compareTo).get();
             long sum = lineCounts.stream().reduce(Long::sum).get();
