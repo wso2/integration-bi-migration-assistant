@@ -588,18 +588,7 @@ public class AnalysisReport {
     private static String generateSeparateManualWorkEstimation(TimeEstimation conversionEstimation,
                                                                TimeEstimation validationEstimation,
                                                                String elementType) {
-        int conversionBestWeeks = conversionEstimation.bestCaseWeeks();
-        int conversionAvgWeeks = conversionEstimation.averageCaseWeeks();
-        int conversionWorstWeeks = conversionEstimation.worstCaseWeeks();
-
-        int validationBestWeeks = validationEstimation.bestCaseWeeks();
-        int validationAvgWeeks = validationEstimation.averageCaseWeeks();
-        int validationWorstWeeks = validationEstimation.worstCaseWeeks();
-
         TimeEstimation totalEstimation = TimeEstimation.sum(conversionEstimation, validationEstimation);
-        int totalBestWeeks = totalEstimation.bestCaseWeeks();
-        int totalAvgWeeks = totalEstimation.averageCaseWeeks();
-        int totalWorstWeeks = totalEstimation.worstCaseWeeks();
 
         return """
                     <div class="summary-container">
