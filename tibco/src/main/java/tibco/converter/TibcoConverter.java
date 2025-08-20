@@ -21,7 +21,6 @@ package tibco.converter;
 import common.BICodeConverter;
 import common.BallerinaModel;
 import common.CodeGenerator;
-import common.CombinedSummaryReport;
 import common.LoggingUtils;
 import common.ProjectSummary;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
@@ -31,6 +30,7 @@ import tibco.LoggingContext;
 import tibco.ProjectConversionContext;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
+import tibco.analyzer.CombinedSummaryReport;
 import tibco.analyzer.DefaultAnalysisPass;
 import tibco.analyzer.LoggingAnalysisPass;
 import tibco.analyzer.ModelAnalyser;
@@ -81,7 +81,7 @@ public class TibcoConverter {
 
     }
 
-    public record SerializedProject(java.util.Map<String, String> files, tibco.analyzer.TibcoAnalysisReport report) {
+    public record SerializedProject(Map<String, String> files, tibco.analyzer.TibcoAnalysisReport report) {
 
     }
 
@@ -152,9 +152,11 @@ public class TibcoConverter {
         files.put("Ballerina.toml", ballerinaToml(cx));
 
         TibcoAnalysisReport report = result.report();
-        report.lineCount(files.values().stream().
-                mapToInt(content -> content.split("\r?\n").length)
-                .sum());
+        report.lineCount(
+                files.values().stream()
+                        .map(ConversionUtils::lineCount)
+                        .mapToLong(ConversionUtils.LineCount::normalize)
+                        .sum());
 
         return new SerializedProject(files, report);
     }
@@ -453,8 +455,9 @@ public class TibcoConverter {
     private static void writeCombinedSummaryReport(ConversionContext context, Path targetDir,
                                                    List<ProjectSummary> projectSummaries) throws IOException {
         Path reportFilePath = targetDir.resolve("combined_summary_report.html");
-        CombinedSummaryReport combinedReport = new CombinedSummaryReport("Combined Migration Assessment",
-                projectSummaries);
+        CombinedSummaryReport combinedReport =
+                new CombinedSummaryReport("Combined Migration Assessment",
+                        projectSummaries, context.getDuplicateProcessData());
         String htmlContent = combinedReport.toHTML();
         Files.writeString(reportFilePath, htmlContent);
         context.log(

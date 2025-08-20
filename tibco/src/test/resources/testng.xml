@@ -4,6 +4,7 @@
         <classes>
             <class name="tibco.converter.TibcoProjectConversionTest"/>
             <class name="tibco.converter.ActivityConversionTest"/>
+            <class name="tibco.converter.ConversionUtilsTest"/>
             <class name="tibco.parser.XmlToModelTests"/>
             <class name="tibco.analyzer.ResourceLookupTest"/>
         </classes>

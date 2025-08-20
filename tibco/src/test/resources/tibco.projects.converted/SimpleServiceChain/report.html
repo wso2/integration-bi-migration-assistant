@@ -324,7 +324,6 @@ table code {
         <h2>Migration Coverage Overview</h2>
         <div class="metrics">
 
-          <!-- Overall Coverage -->
           <div class="metric">
             <div class="metric-left">
               <span class="metric-value">100%</span>
@@ -336,19 +335,21 @@ table code {
                 <span class="status-badge status-high">High Coverage</span>
               </div>
             </div>
-            <div class="metric-right">
-              <div class="coverage-breakdown">
-                <div>
-                  <span class="breakdown-label">Total activity(s):</span>
-                  <span class="breakdown-value">12</span>
-                </div>
-                <div>
-                  <span class="breakdown-label">Migratable activity(s):</span>
-                  <span class="breakdown-value">12</span>
-                </div>
-                <div>
-                  <span class="breakdown-label">Non-migratable activity(s):</span>
-                  <span class="breakdown-value">0</span>
+            <div class="metric-right" style="display: flex; justify-content: center; align-items: center;">
+              <div>
+                <div class="coverage-breakdown">
+                  <div>
+                    <span class="breakdown-label">Total activity(s):</span>
+                    <span class="breakdown-value">12</span>
+                  </div>
+                  <div>
+                    <span class="breakdown-label">Migratable activity(s):</span>
+                    <span class="breakdown-value">12</span>
+                  </div>
+                  <div>
+                    <span class="breakdown-label">Non-migratable activity(s):</span>
+                    <span class="breakdown-value">0</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -359,61 +360,64 @@ table code {
         <h2>Manual Work Estimation</h2>
         <table>
             <tr>
-                <th>Scenario</th>
-                <th>Working Days</th>
-                <th>Weeks (approx.)</th>
+                <th>Work Type</th>
+                <th>Best Case</th>
+                <th>Average Case</th>
+                <th>Worst Case</th>
             </tr>
             <tr>
-                <td>Best Case</td>
-                <td class="time-best">2 days</td>
-                <td class="time-best">1 week</td>
+                <td><strong>Manual Conversion</strong></td>
+                <td class="time-best">0 days</td>
+                <td class="time-avg">0 days</td>
+                <td class="time-worst">0 days</td>
             </tr>
             <tr>
-                <td>Average Case</td>
-                <td class="time-avg">5 days</td>
-                <td class="time-avg">1 week</td>
+                <td><strong>Code Validation</strong></td>
+                <td class="time-best">1 day</td>
+                <td class="time-avg">3 days</td>
+                <td class="time-worst">5 days</td>
             </tr>
-            <tr>
-                <td>Worst Case</td>
-                <td class="time-worst">10 days</td>
-                <td class="time-worst">2 weeks</td>
+            <tr style="border-top: 2px solid #4682B4;">
+                <td><strong>Total</strong></td>
+                <td class="time-best"><strong>1 day</strong></td>
+                <td class="time-avg"><strong>3 days</strong></td>
+                <td class="time-worst"><strong>5 days</strong></td>
             </tr>
         </table>
-        <div class="estimation-notes">
-            <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
-            <ul>
-                <li>Best case scenario:
-                  <ul>
-                    <li>1.0 day per each new unsupported activity for analysis, implementation, and testing</li>
-                    <li>1.0 hour per each repeated unsupported activity for implementation</li>
-                    <li>2 minutes per each line of code generated</li>
-                    <li>Assumes minimal complexity and straightforward implementations</li>
-                  </ul>
-                </li>
-                <li>Average case scenario:
-                  <ul>
-                    <li>2.0 days per each new unsupported activity for analysis, implementation, and testing</li>
-                    <li>2.0 hour per each repeated unsupported activity for implementation</li>
-                    <li>5 minutes per each line of code generated</li>
-                    <li>Assumes medium complexity with moderate implementation challenges</li>
-                  </ul>
-                </li>
-                <li>Worst case scenario:
-                  <ul>
-                    <li>3.0 days per each new unsupported activity for analysis, implementation, and testing</li>
-                    <li>4.0 hour per each repeated unsupported activity for implementation</li>
-                    <li>10 minutes per each line of code generated</li>
-                    <li>Assumes high complexity with significant implementation challenges</li>
-                  </ul>
-                </li>
-            </ul>
-        </div>
-    </div>
+<div class="estimation-notes">
+    <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
+    <ul>
+        <li>Best case scenario:
+          <ul>
+            <li>1.0 day per each new unsupported activity for analysis, implementation, and testing</li>
+            <li>1.0 hour per each repeated unsupported activity for implementation</li>
+            <li>1 minutes per each line of code generated</li>
+            <li>Assumes minimal complexity and straightforward implementations</li>
+          </ul>
+        </li>
+        <li>Average case scenario:
+          <ul>
+            <li>2.0 days per each new unsupported activity for analysis, implementation, and testing</li>
+            <li>2.0 hour per each repeated unsupported activity for implementation</li>
+            <li>3 minutes per each line of code generated</li>
+            <li>Assumes medium complexity with moderate implementation challenges</li>
+          </ul>
+        </li>
+        <li>Worst case scenario:
+          <ul>
+            <li>3.0 days per each new unsupported activity for analysis, implementation, and testing</li>
+            <li>4.0 hour per each repeated unsupported activity for implementation</li>
+            <li>5 minutes per each line of code generated</li>
+            <li>Assumes high complexity with significant implementation challenges</li>
+          </ul>
+        </li>
+    </ul>
+</div>
 <div class="summary-container">
     <h2>Currently Unsupported Activities</h2>
     <div id="toolSupportSection">
-                                                                                                                                                                                                            <table class="hidden">
-    <tr><th>Activity name</th><th>Frequency</th></tr>
+        <table class="hidden">
+            <tr><th>Activity name</th><th>Frequency</th></tr>
         </table>
         <p class="empty-message visible" id="toolSupportEmpty">
             No unsupported activities found

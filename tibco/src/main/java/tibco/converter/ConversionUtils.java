@@ -362,4 +362,67 @@ public final class ConversionUtils {
     public static @NotNull String processFunctionName(String processName) {
         return "start_" + sanitizes(processName);
     }
+
+    public record LineCount(long ballerina, long xml) {
+
+        public static LineCount sum(LineCount a, LineCount b) {
+            return new LineCount(a.ballerina + b.ballerina, a.xml + b.xml);
+        }
+
+        public long normalize() {
+            // Normalize the line count to a single value for reporting
+            return ballerina + (long) Math.ceil(xml * 0.5);
+        }
+    }
+
+    public static LineCount lineCount(String source) {
+        String[] lines = source.split("\n");
+        long ballerinaLines = 0;
+        long xmlLines = 0;
+        
+        enum State { IN_BALLERINA, IN_XML }
+        State currentState = State.IN_BALLERINA;
+        
+        // Pattern to match XML template literal start (xml `)
+        java.util.regex.Pattern xmlStartPattern = java.util.regex.Pattern.compile(".*xml\\s*`");
+        // Pattern to match XML template literal end (`)
+        java.util.regex.Pattern xmlEndPattern = java.util.regex.Pattern.compile(".*`");
+        
+        for (String line : lines) {
+            String trimmedLine = line.trim();
+            
+            if (trimmedLine.isEmpty()) {
+                // Empty lines don't count toward either category
+                continue;
+            }
+            
+            // Check for state transitions within the line
+            if (currentState == State.IN_BALLERINA) {
+                if (xmlStartPattern.matcher(line).find()) {
+                    // Found start of XML template literal
+                    currentState = State.IN_XML;
+                    xmlLines++;
+                    
+                    // Check if the XML template also ends on the same line
+                    String afterXmlStart = line.substring(line.indexOf("`") + 1);
+                    if (afterXmlStart.contains("`")) {
+                        // XML template ends on the same line
+                        currentState = State.IN_BALLERINA;
+                    }
+                } else {
+                    // Regular Ballerina line
+                    ballerinaLines++;
+                }
+            } else { // currentState == State.IN_XML
+                xmlLines++;
+                
+                // Check if XML template ends on this line
+                if (xmlEndPattern.matcher(line).find()) {
+                    currentState = State.IN_BALLERINA;
+                }
+            }
+        }
+        
+        return new LineCount(ballerinaLines, xmlLines);
+    }
 }

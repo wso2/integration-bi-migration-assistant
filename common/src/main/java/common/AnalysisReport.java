@@ -35,9 +35,9 @@ public class AnalysisReport {
     private final Map<String, Collection<UnhandledElement>> unhandledElements;
     private final int partiallySupportedElementCount;
     private final Map<String, Collection<UnhandledElement>> partiallySupportedElements;
-    private final int bestCaseDays;
-    private final int averageCaseDays;
-    private final int worstCaseDays;
+    private final TimeEstimation estimation;
+    private final TimeEstimation manualConversionEstimation;
+    private final TimeEstimation validationEstimation;
 
     // CSS styles as a constant to avoid format specifier issues
     private static final String CSS_STYLES = """
@@ -357,7 +357,7 @@ public class AnalysisReport {
             """;
 
     /**
-     * Create a new generic analysis report.
+     * Create a new generic analysis report with separate manual conversion and validation estimations.
      *
      * @param reportTitle           The title of the report
      * @param totalElementCount     Total count of elements analyzed
@@ -368,11 +368,15 @@ public class AnalysisReport {
      * @param partiallySupportedElementCount Count of partially supported elements
      * @param partiallySupportedElements Map containing partially supported elements with their type as key and collection of string
      *                              representations as value
+     * @param manualConversionEstimation Manual conversion time estimation
+     * @param validationEstimation  Validation time estimation
      */
     public AnalysisReport(String reportTitle, int totalElementCount, int unhandledElementCount, String elementType,
-                          Map<String, Collection<UnhandledElement>> unhandledElements, int partiallySupportedElementCount,
-                          Map<String, Collection<UnhandledElement>> partiallySupportedElements, int bestCaseDays,
-                          int averageCaseDays, int worstCaseDays) {
+                          Map<String, Collection<UnhandledElement>> unhandledElements,
+                          int partiallySupportedElementCount,
+                          Map<String, Collection<UnhandledElement>> partiallySupportedElements,
+                          TimeEstimation manualConversionEstimation,
+                          TimeEstimation validationEstimation) {
         assert totalElementCount >= unhandledElementCount;
         this.reportTitle = reportTitle;
         this.totalElementCount = totalElementCount;
@@ -381,9 +385,9 @@ public class AnalysisReport {
         this.unhandledElements = unhandledElements;
         this.partiallySupportedElementCount = partiallySupportedElementCount;
         this.partiallySupportedElements = partiallySupportedElements;
-        this.bestCaseDays = bestCaseDays;
-        this.averageCaseDays = averageCaseDays;
-        this.worstCaseDays = worstCaseDays;
+        this.estimation = TimeEstimation.sum(manualConversionEstimation, validationEstimation);
+        this.manualConversionEstimation = manualConversionEstimation;
+        this.validationEstimation = validationEstimation;
     }
 
     /**
@@ -430,18 +434,58 @@ public class AnalysisReport {
         // Calculate automated migration coverage percentage
         double coveragePercentage = 100 - calculatePercentage(unhandledElementCount, totalElementCount);
 
+        // Generate summary container
+        html.append(
+                generateSummaryContainer(coveragePercentage, totalElementCount, unhandledElementCount, elementType));
+
+        // Generate manual work estimation section
+        if (manualConversionEstimation != null && validationEstimation != null) {
+            html.append(generateSeparateManualWorkEstimation(manualConversionEstimation, validationEstimation,
+                    elementType));
+        } else {
+            html.append(generateManualWorkEstimation(estimation, elementType));
+        }
+
+        // Generate estimation notes
+        html.append(ReportUtils.generateEstimationScenarios(elementType));
+
+        // Generate unsupported elements section
+        html.append(generateUnsupportedElements(typeFrequencyMap));
+
+        // Generate unsupported elements blocks
+        html.append(generateUnsupportedElementsBlocks(unhandledElements));
+
+        // Generate partially supported elements section
+        html.append(generatePartiallySupportedElements(partiallySupportedElements));
+
+        // Generate footer
+        html.append(generateFooter());
+
+        return html.toString();
+    }
+
+    /**
+     * Generates the summary container section HTML.
+     *
+     * @param coveragePercentage    The percentage of automated migration coverage
+     * @param totalElementCount     Total count of elements analyzed
+     * @param unhandledElementCount Count of unhandled elements
+     * @param elementType           The type of elements being analyzed
+     * @return HTML string for the summary container section
+     */
+    private static String generateSummaryContainer(double coveragePercentage, int totalElementCount,
+            int unhandledElementCount, String elementType) {
         // Determine status badge based on coverage
         String statusClass = coveragePercentage >= 90 ? "status-high"
                 : coveragePercentage >= 70 ? "status-medium" : "status-low";
         String statusText = coveragePercentage >= 90 ? "High Coverage"
                 : coveragePercentage >= 70 ? "Medium Coverage" : "Low Coverage";
 
-        html.append("""
+        return """
                     <div class="summary-container">
                         <h2>Migration Coverage Overview</h2>
                         <div class="metrics">
 
-                          <!-- Overall Coverage -->
                           <div class="metric">
                             <div class="metric-left">
                               <span class="metric-value">%.0f%%</span>
@@ -453,19 +497,21 @@ public class AnalysisReport {
                                 <span class="status-badge %s">%s</span>
                               </div>
                             </div>
-                            <div class="metric-right">
-                              <div class="coverage-breakdown">
-                                <div>
-                                  <span class="breakdown-label">Total %s(s):</span>
-                                  <span class="breakdown-value">%d</span>
-                                </div>
-                                <div>
-                                  <span class="breakdown-label">Migratable %s(s):</span>
-                                  <span class="breakdown-value">%d</span>
-                                </div>
-                                <div>
-                                  <span class="breakdown-label">Non-migratable %s(s):</span>
-                                  <span class="breakdown-value">%d</span>
+                            <div class="metric-right" style="display: flex; justify-content: center; align-items: center;">
+                              <div>
+                                <div class="coverage-breakdown">
+                                  <div>
+                                    <span class="breakdown-label">Total %s(s):</span>
+                                    <span class="breakdown-value">%d</span>
+                                  </div>
+                                  <div>
+                                    <span class="breakdown-label">Migratable %s(s):</span>
+                                    <span class="breakdown-value">%d</span>
+                                  </div>
+                                  <div>
+                                    <span class="breakdown-label">Non-migratable %s(s):</span>
+                                    <span class="breakdown-value">%d</span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -484,10 +530,22 @@ public class AnalysisReport {
                         elementType.toLowerCase(),
                         totalElementCount - unhandledElementCount,
                         elementType.toLowerCase(),
-                        unhandledElementCount));
+                        unhandledElementCount);
+    }
 
-        // Manual Work Estimation section
-        html.append("""
+    /**
+     * Generates the manual work estimation section HTML.
+     *
+     * @param estimation  Time estimation
+     * @param elementType The type of elements being analyzed
+     * @return HTML string for the manual work estimation section
+     */
+    private static String generateManualWorkEstimation(TimeEstimation estimation, String elementType) {
+        int bestCaseWeeks = estimation.bestCaseWeeks();
+        int avgCaseWeeks = estimation.averageCaseWeeks();
+        int worstCaseWeeks = estimation.worstCaseWeeks();
+
+        return """
                     <div class="summary-container">
                         <h2>Manual Work Estimation</h2>
                         <table>
@@ -496,14 +554,6 @@ public class AnalysisReport {
                                 <th>Working Days</th>
                                 <th>Weeks (approx.)</th>
                             </tr>
-                """);
-
-        // Use the passed-in time estimates
-        int bestCaseWeeks = (int) Math.ceil(bestCaseDays / 5.0);
-        int avgCaseWeeks = (int) Math.ceil(averageCaseDays / 5.0);
-        int worstCaseWeeks = (int) Math.ceil(worstCaseDays / 5.0);
-
-        html.append("""
                             <tr>
                                 <td>Best Case</td>
                                 <td class="time-best">%s</td>
@@ -521,51 +571,77 @@ public class AnalysisReport {
                             </tr>
                         </table>
                 """.formatted(
-                toDays(bestCaseDays), toWeeks(bestCaseWeeks),
-                toDays(averageCaseDays), toWeeks(avgCaseWeeks),
-                toDays(worstCaseDays), toWeeks(worstCaseWeeks)
-        ));
+                ReportUtils.toDays(estimation.bestCaseDaysAsInt()), ReportUtils.toWeeks(bestCaseWeeks),
+                ReportUtils.toDays(estimation.averageCaseDaysAsInt()), ReportUtils.toWeeks(avgCaseWeeks),
+                ReportUtils.toDays(estimation.worstCaseDaysAsInt()), ReportUtils.toWeeks(worstCaseWeeks)
+        );
+    }
 
-        // Estimation notes
-        html.append("""
-                        <div class="estimation-notes">
-                            <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
-                            <ul>
-                                <li>Best case scenario:
-                                  <ul>
-                                    <li>1.0 day per each new unsupported %s for analysis, implementation, and testing</li>
-                                    <li>1.0 hour per each repeated unsupported %s for implementation</li>
-                                    <li>2 minutes per each line of code generated</li>
-                                    <li>Assumes minimal complexity and straightforward implementations</li>
-                                  </ul>
-                                </li>
-                                <li>Average case scenario:
-                                  <ul>
-                                    <li>2.0 days per each new unsupported %s for analysis, implementation, and testing</li>
-                                    <li>2.0 hour per each repeated unsupported %s for implementation</li>
-                                    <li>5 minutes per each line of code generated</li>
-                                    <li>Assumes medium complexity with moderate implementation challenges</li>
-                                  </ul>
-                                </li>
-                                <li>Worst case scenario:
-                                  <ul>
-                                    <li>3.0 days per each new unsupported %s for analysis, implementation, and testing</li>
-                                    <li>4.0 hour per each repeated unsupported %s for implementation</li>
-                                    <li>10 minutes per each line of code generated</li>
-                                    <li>Assumes high complexity with significant implementation challenges</li>
-                                  </ul>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
+    /**
+     * Generates a consolidated manual work estimation section showing breakdown and total.
+     *
+     * @param conversionEstimation Manual conversion time estimation
+     * @param validationEstimation Validation time estimation
+     * @param elementType The type of elements being analyzed
+     * @return HTML string for the consolidated manual work estimation section
+     */
+    private static String generateSeparateManualWorkEstimation(TimeEstimation conversionEstimation,
+                                                               TimeEstimation validationEstimation,
+                                                               String elementType) {
+        TimeEstimation totalEstimation = TimeEstimation.sum(conversionEstimation, validationEstimation);
+
+        return """
+                    <div class="summary-container">
+                        <h2>Manual Work Estimation</h2>
+                        <table>
+                            <tr>
+                                <th>Work Type</th>
+                                <th>Best Case</th>
+                                <th>Average Case</th>
+                                <th>Worst Case</th>
+                            </tr>
+                            <tr>
+                                <td><strong>Manual Conversion</strong></td>
+                                <td class="time-best">%s</td>
+                                <td class="time-avg">%s</td>
+                                <td class="time-worst">%s</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Code Validation</strong></td>
+                                <td class="time-best">%s</td>
+                                <td class="time-avg">%s</td>
+                                <td class="time-worst">%s</td>
+                            </tr>
+                            <tr style="border-top: 2px solid #4682B4;">
+                                <td><strong>Total</strong></td>
+                                <td class="time-best"><strong>%s</strong></td>
+                                <td class="time-avg"><strong>%s</strong></td>
+                                <td class="time-worst"><strong>%s</strong></td>
+                            </tr>
+                        </table>
                 """.formatted(
-                elementType.toLowerCase(), elementType.toLowerCase(),
-                elementType.toLowerCase(), elementType.toLowerCase(),
-                elementType.toLowerCase(), elementType.toLowerCase()
-        ));
+                ReportUtils.toDays(conversionEstimation.bestCaseDaysAsInt()),
+                ReportUtils.toDays(conversionEstimation.averageCaseDaysAsInt()),
+                ReportUtils.toDays(conversionEstimation.worstCaseDaysAsInt()),
+                ReportUtils.toDays(validationEstimation.bestCaseDaysAsInt()),
+                ReportUtils.toDays(validationEstimation.averageCaseDaysAsInt()),
+                ReportUtils.toDays(validationEstimation.worstCaseDaysAsInt()),
+                ReportUtils.toDays(totalEstimation.bestCaseDaysAsInt()),
+                ReportUtils.toDays(totalEstimation.averageCaseDaysAsInt()),
+                ReportUtils.toDays(totalEstimation.worstCaseDaysAsInt())
+        );
+    }
 
-        // Unsupported elements frequency table
+
+    /**
+     * Generates the unsupported elements section HTML.
+     *
+     * @param typeFrequencyMap Map containing element types and their frequencies
+     * @return HTML string for the unsupported elements section
+     */
+    private static String generateUnsupportedElements(Map<String, Integer> typeFrequencyMap) {
         if (!typeFrequencyMap.isEmpty()) {
+            StringBuilder html = new StringBuilder();
             html.append("""
                     <div class="summary-container">
                         <h2>Currently Unsupported Activities</h2>
@@ -595,15 +671,15 @@ public class AnalysisReport {
                         </div>
                     </div>
                     """);
+            return html.toString();
         } else {
             // No unsupported elements
-            html.append(
-                    """
+            return """
                     <div class="summary-container">
                         <h2>Currently Unsupported Activities</h2>
                         <div id="toolSupportSection">
-                                                                                                                                                                                                                                <table class="hidden">
-                        <tr><th>Activity name</th><th>Frequency</th></tr>
+                            <table class="hidden">
+                                <tr><th>Activity name</th><th>Frequency</th></tr>
                             </table>
                             <p class="empty-message visible" id="toolSupportEmpty">
                                 No unsupported activities found
@@ -613,11 +689,22 @@ public class AnalysisReport {
                             </div>
                         </div>
                     </div>
-                    """);
+                    """;
         }
+    }
+
+    /**
+     * Generates the unsupported elements blocks section HTML.
+     *
+     * @param unhandledElements Map containing unhandled elements
+     * @return HTML string for the unsupported elements blocks section
+     */
+    private static String generateUnsupportedElementsBlocks(
+            Map<String, Collection<UnhandledElement>> unhandledElements) {
         int blockCounter = 1;
         boolean hasUnhandledBlocks = false;
         StringBuilder blocksSection = new StringBuilder();
+
         for (Map.Entry<String, Collection<UnhandledElement>> entry : unhandledElements.entrySet()) {
             String kind = entry.getKey();
             for (UnhandledElement elem : entry.getValue()) {
@@ -632,19 +719,31 @@ public class AnalysisReport {
                 appendElement(blocksSection, kind, blockName, elem.code(), elem.fileName());
             }
         }
+
         if (hasUnhandledBlocks) {
             blocksSection.append("</div>");
-            html.append(blocksSection);
+            return blocksSection.toString();
         }
 
+        return "";
+    }
+
+    /**
+     * Generates the partially supported elements section HTML.
+     *
+     * @param partiallySupportedElements Map containing partially supported elements
+     * @return HTML string for the partially supported elements section
+     */
+    private static String generatePartiallySupportedElements(
+            Map<String, Collection<UnhandledElement>> partiallySupportedElements) {
         // Calculate frequencies for partially supported elements
         Map<String, Integer> partiallySupportedFrequencyMap = new HashMap<>();
         for (Map.Entry<String, Collection<UnhandledElement>> entry : partiallySupportedElements.entrySet()) {
             partiallySupportedFrequencyMap.put(entry.getKey(), entry.getValue().size());
         }
 
-        // Partially supported elements frequency table
         if (!partiallySupportedFrequencyMap.isEmpty()) {
+            StringBuilder html = new StringBuilder();
             html.append("""
                     <div class="summary-container">
                         <h2>Activities that need manual validation</h2>
@@ -674,9 +773,10 @@ public class AnalysisReport {
                         </div>
                     </div>
                     """);
+            return html.toString();
         } else {
             // No partially supported elements
-            html.append("""
+            return """
                     <div class="summary-container">
                         <h2>Activities that may require manual changes</h2>
                         <div id="partiallySupportedSection">
@@ -691,11 +791,17 @@ public class AnalysisReport {
                             </div>
                         </div>
                     </div>
-                    """);
+                    """;
         }
+    }
 
-        // Footer with date
-        html.append("""
+    /**
+     * Generates the footer section HTML.
+     *
+     * @return HTML string for the footer section
+     */
+    private static String generateFooter() {
+        return """
                     <footer><p>Report generated on: <span id="datetime"></span></p></footer>
                     <script>
                       document.addEventListener('DOMContentLoaded', function() {
@@ -730,12 +836,10 @@ public class AnalysisReport {
                     <script>document.getElementById("datetime").innerHTML = new Date().toLocaleString();</script>
                 </body>
                 </html>
-                """);
-
-        return html.toString();
+                """;
     }
 
-    private void appendElement(StringBuilder sb, String kind, String name, String code, String fileName) {
+    private static void appendElement(StringBuilder sb, String kind, String name, String code, String fileName) {
         sb.append("""
                         <div class="block-item">
                             <div class="block-header">
@@ -745,7 +849,7 @@ public class AnalysisReport {
                             </div>
                             <pre class="block-code"><code>%s</code></pre>
                         </div>
-                """.formatted(name, fileName, kind, escapeHtml(code)));
+                """.formatted(name, fileName, kind, ReportUtils.escapeHtml(code)));
     }
 
     /**
@@ -762,41 +866,6 @@ public class AnalysisReport {
         return Math.round(((double) part / total) * 1000) / 10.0; // Round to 1 decimal place
     }
 
-    /**
-     * Format a number as a day string with correct singular/plural form.
-     *
-     * @param number The number of days
-     * @return A string with the number and "day" or "days"
-     */
-    private String toDays(int number) {
-        return number + " " + (number == 1 ? "day" : "days");
-    }
-
-    /**
-     * Format a number as a week string with correct singular/plural form.
-     *
-     * @param number The number of weeks
-     * @return A string with the number and "week" or "weeks"
-     */
-    private String toWeeks(int number) {
-        return number + " " + (number == 1 ? "week" : "weeks");
-    }
-
-    /**
-     * Escape special HTML characters in a string.
-     *
-     * @param input The input string to escape
-     * @return The escaped string
-     */
-    private String escapeHtml(String input) {
-        if (input == null) {
-            return "";
-        }
-
-        return input.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;");
-    }
 
     public record UnhandledElement(String code, Optional<String> name, String fileName) {
 
