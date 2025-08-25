@@ -78,8 +78,6 @@ public final class ReportUtils {
                           <ul>
                             <li>1.0 day per each new unsupported %s for analysis, implementation, and testing</li>
                             <li>1.0 hour per each repeated unsupported %s for implementation</li>
-                            <li>1 minutes per each line of ballerina code generated</li>
-                            <li>0.5 minutes per each line of xml code generated</li>
                             <li>Assumes minimal complexity and straightforward implementations</li>
                           </ul>
                         </li>
@@ -87,8 +85,6 @@ public final class ReportUtils {
                           <ul>
                             <li>2.0 days per each new unsupported %s for analysis, implementation, and testing</li>
                             <li>2.0 hour per each repeated unsupported %s for implementation</li>
-                            <li>3 minutes per each line of ballerina code generated</li>
-                            <li>1.5 minutes per each line of xml code generated</li>
                             <li>Assumes medium complexity with moderate implementation challenges</li>
                           </ul>
                         </li>
@@ -96,8 +92,6 @@ public final class ReportUtils {
                           <ul>
                             <li>3.0 days per each new unsupported %s for analysis, implementation, and testing</li>
                             <li>4.0 hour per each repeated unsupported %s for implementation</li>
-                            <li>5 minutes per each line of ballerina code generated</li>
-                            <li>2.5 minutes per each line of xml code generated</li>
                             <li>Assumes high complexity with significant implementation challenges</li>
                           </ul>
                         </li>
@@ -157,4 +151,5 @@ public final class ReportUtils {
                 toDays(estimation.worstCaseDaysAsInt()), toWeeks(worstCaseWeeks)
         );
     }
+
 }

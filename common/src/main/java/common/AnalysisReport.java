@@ -37,7 +37,7 @@ public class AnalysisReport {
     private final Map<String, Collection<UnhandledElement>> partiallySupportedElements;
     private final TimeEstimation estimation;
     private final TimeEstimation manualConversionEstimation;
-    private final TimeEstimation validationEstimation;
+    private final long generatedLineCount;
 
     // CSS styles as a constant to avoid format specifier issues
     private static final String CSS_STYLES = """
@@ -408,7 +408,7 @@ public class AnalysisReport {
             """;
 
     /**
-     * Create a new generic analysis report with separate manual conversion and validation estimations.
+     * Create a new generic analysis report with manual conversion estimation and generated line count.
      *
      * @param reportTitle           The title of the report
      * @param totalElementCount     Total count of elements analyzed
@@ -420,14 +420,14 @@ public class AnalysisReport {
      * @param partiallySupportedElements Map containing partially supported elements with their type as key and collection of string
      *                              representations as value
      * @param manualConversionEstimation Manual conversion time estimation
-     * @param validationEstimation  Validation time estimation
+     * @param generatedLineCount    Number of lines of code generated
      */
     public AnalysisReport(String reportTitle, int totalElementCount, int unhandledElementCount, String elementType,
                           Map<String, Collection<UnhandledElement>> unhandledElements,
                           int partiallySupportedElementCount,
                           Map<String, Collection<UnhandledElement>> partiallySupportedElements,
                           TimeEstimation manualConversionEstimation,
-                          TimeEstimation validationEstimation) {
+                          long generatedLineCount) {
         assert totalElementCount >= unhandledElementCount;
         this.reportTitle = reportTitle;
         this.totalElementCount = totalElementCount;
@@ -436,9 +436,9 @@ public class AnalysisReport {
         this.unhandledElements = unhandledElements;
         this.partiallySupportedElementCount = partiallySupportedElementCount;
         this.partiallySupportedElements = partiallySupportedElements;
-        this.estimation = TimeEstimation.sum(manualConversionEstimation, validationEstimation);
+        this.estimation = manualConversionEstimation;
         this.manualConversionEstimation = manualConversionEstimation;
-        this.validationEstimation = validationEstimation;
+        this.generatedLineCount = generatedLineCount;
     }
 
     /**
@@ -487,17 +487,11 @@ public class AnalysisReport {
 
         // Generate summary container
         html.append(
-                generateSummaryContainer(coveragePercentage, totalElementCount, unhandledElementCount, elementType));
+                generateSummaryContainer(coveragePercentage, totalElementCount, unhandledElementCount, elementType, generatedLineCount));
 
-        // Generate separate manual work and code validation estimation sections
-        if (manualConversionEstimation != null && validationEstimation != null) {
-            html.append(ReportUtils.generateEstimateView("Manual Work Estimation", manualConversionEstimation,
-                    elementType));
-            html.append(ReportUtils.generateEstimateView("Time estimation to manually validate generated code",
-                    validationEstimation, elementType));
-        } else {
-            html.append(ReportUtils.generateEstimateView("Manual Work Estimation", estimation, elementType));
-        }
+        // Generate manual work estimation and generated code statistics sections
+        html.append(ReportUtils.generateEstimateView("Manual Work Estimation", manualConversionEstimation,
+                elementType));
 
         // Generate estimation notes
         html.append(ReportUtils.generateEstimationScenarios(elementType));
@@ -524,10 +518,11 @@ public class AnalysisReport {
      * @param totalElementCount     Total count of elements analyzed
      * @param unhandledElementCount Count of unhandled elements
      * @param elementType           The type of elements being analyzed
+     * @param generatedLineCount    Number of lines of code generated
      * @return HTML string for the summary container section
      */
     private static String generateSummaryContainer(double coveragePercentage, int totalElementCount,
-            int unhandledElementCount, String elementType) {
+            int unhandledElementCount, String elementType, long generatedLineCount) {
         // Determine status badge based on coverage
         String statusClass = coveragePercentage >= 90 ? "status-high"
                 : coveragePercentage >= 70 ? "status-medium" : "status-low";
@@ -565,6 +560,10 @@ public class AnalysisReport {
                                     <span class="breakdown-label">Non-migratable %s(s):</span>
                                     <span class="breakdown-value">%d</span>
                                   </div>
+                                  <div>
+                                    <span class="breakdown-label">Lines Generated:</span>
+                                    <span class="breakdown-value">%,d</span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -583,7 +582,8 @@ public class AnalysisReport {
                         elementType.toLowerCase(),
                         totalElementCount - unhandledElementCount,
                         elementType.toLowerCase(),
-                        unhandledElementCount);
+                        unhandledElementCount,
+                        generatedLineCount);
     }
 
     /**
@@ -799,7 +799,7 @@ public class AnalysisReport {
             StringBuilder html = new StringBuilder();
             html.append("""
                     <div class="summary-container">
-                        <h2>Activities that need manual validation</h2>
+                        <h2>Activities that may require manual adjustments</h2>
                         <div id="partiallySupportedSection">
                             <table>
                                 <tr><th>Activity name</th><th>Frequency</th></tr>

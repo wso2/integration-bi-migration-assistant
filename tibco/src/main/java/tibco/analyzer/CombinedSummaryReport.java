@@ -677,16 +677,6 @@ public class CombinedSummaryReport {
                 """;
     }
 
-    private TimeEstimation repeatedValidationEstimate() {
-        return duplicateProcessData.stream().map(each -> {
-            Collection<Long> lineCounts =
-                    each.lineCountPerProject.values().stream().map(ConversionUtils.LineCount::normalize).toList();
-            assert !lineCounts.isEmpty();
-            long max = lineCounts.stream().max(Long::compareTo).get();
-            long sum = lineCounts.stream().reduce(Long::sum).get();
-            return sum - max;
-        }).map(ReportEstimationUtils::getValidationTimeEstimation).reduce(TimeEstimation.zero(), TimeEstimation::sum);
-    }
 
     private String generateOverallStatistics() {
         int totalProjects = projectSummaries.size();
@@ -705,28 +695,24 @@ public class CombinedSummaryReport {
                 .map(ProjectSummary::manualConversionEstimation)
                 .reduce(new TimeEstimation(0, 0, 0), TimeEstimation::sum);
 
-        TimeEstimation totalValidationEstimation = projectSummaries.stream()
-                .map(ProjectSummary::validationEstimation)
-                .reduce(new TimeEstimation(0, 0, 0), TimeEstimation::sum);
-
-        TimeEstimation repeatedValidationEstimation = repeatedValidationEstimate();
-
-        // Check if time correction should be disabled via environment variable
-        boolean disableTimeCorrection = "true".equalsIgnoreCase(System.getenv("TIBCO_NO_TIME_CORRECTION"));
-
-        if (!disableTimeCorrection) {
-            totalValidationEstimation = TimeEstimation.sum(totalValidationEstimation,
-                    repeatedValidationEstimation.prod(-1));
-        }
+        long totalGeneratedLines = projectSummaries.stream()
+                .mapToLong(ProjectSummary::generatedLineCount)
+                .sum();
 
         // Generate overview metrics section
         String color = averageConversionPercentage >= 90 ? "#4CAF50" :
                 averageConversionPercentage >= 70 ? "#FF9800" : "#F44336";
         String overviewMetrics = """
                 <div class="metrics overview-metrics">
-                    <div class="metric overview-metric">
-                        <span class="metric-value">%d</span>
-                        <span class="metric-label">Projects Analyzed</span>
+                    <div class="metric overview-metric" style="display: flex; flex-direction: row; align-items: center; gap: 40px; width: 100%%; box-sizing: border-box; padding: 20px; justify-content: center;">
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <span class="metric-value">%d</span>
+                            <span class="metric-label">Projects Analyzed</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <span class="metric-value">%,d</span>
+                            <span class="metric-label">Lines Generated</span>
+                        </div>
                     </div>
                     <div class="metric overview-metric" style="justify-content: space-around">
                         <div class="metric-left" style="display: flex; flex-direction: column;">
@@ -758,6 +744,7 @@ public class CombinedSummaryReport {
                 </div>
                 """.formatted(
                 totalProjects,
+                totalGeneratedLines,
                 averageConversionPercentage,
                 averageConversionPercentage,
                 color,
@@ -772,15 +759,14 @@ public class CombinedSummaryReport {
                     <ul>
                         <li>%d TIBCO BW projects analyzed for migration to Ballerina</li>
                         <li>%.0f%% average automated conversion rate across all projects</li>
-                        <li>Time estimates shown below represents manual work required to complete migration for all projects combined</li>%s
+                        <li>Time estimates shown below represents manual work required to complete migration for all projects combined</li>
+                        <li>%,d lines of code generated across all projects</li>
                     </ul>
                 </div>
                 """.formatted(
                 totalProjects,
                 averageConversionPercentage,
-                !repeatedValidationEstimation.isZero() ?
-                        "\n                        <li><em>Experimental: Corrected for repeated code generations</em></li>" :
-                        "");
+                totalGeneratedLines);
 
         // Generate estimation scenarios section
         String estimationScenarios = ReportUtils.generateEstimationScenarios("activity");
@@ -788,9 +774,6 @@ public class CombinedSummaryReport {
         // Generate time estimation sections
         String manualWorkEstimation = ReportUtils.generateEstimateView("Manual Work Estimation",
                 totalManualConversionEstimation, "activity");
-        String codeValidationEstimation =
-                ReportUtils.generateEstimateView("Time estimation to manually validate generated code",
-                        totalValidationEstimation, "activity");
 
         // Combine all parts into the final overview HTML
         return """
@@ -800,12 +783,10 @@ public class CombinedSummaryReport {
                     %s
                     %s
                     %s
-                    %s
                 </div>
                 """.formatted(
                 overviewMetrics,
                 manualWorkEstimation,
-                codeValidationEstimation,
                 estimationNotes,
                 estimationScenarios
         );

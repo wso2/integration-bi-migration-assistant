@@ -30,7 +30,7 @@ import java.util.Map;
  * @param totalActivityCount             Total number of activities in the project
  * @param unhandledActivityCount         Number of unhandled activities
  * @param manualConversionEstimation     Time estimation for manual conversion work
- * @param validationEstimation           Time estimation for validation work
+ * @param generatedLineCount             Number of lines of code generated
  * @param successfulConversionPercentage The percentage of successful
  *                                       conversions
  * @param unhandledActivities            Map of unhandled activity types to
@@ -45,7 +45,7 @@ public record ProjectSummary(
         int totalActivityCount,
         int unhandledActivityCount,
         TimeEstimation manualConversionEstimation,
-        TimeEstimation validationEstimation,
+        long generatedLineCount,
         double successfulConversionPercentage,
         Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledActivities,
         Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedActivities) {

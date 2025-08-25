@@ -401,6 +401,10 @@ table code {
                     <span class="breakdown-label">Non-migratable activity(s):</span>
                     <span class="breakdown-value">0</span>
                   </div>
+                  <div>
+                    <span class="breakdown-label">Lines Generated:</span>
+                    <span class="breakdown-value">214</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -433,32 +437,6 @@ table code {
         </div>
     </div>
 </div>
-<div class="summary-container">
-    <h2>Time estimation to manually validate generated code</h2>
-    <div class="time-estimates-horizontal">
-        <div class="time-estimate">
-            <div class="time-label">Best Case</div>
-            <div class="time-value time-best">
-                <span class="time-days">1 day</span>
-                <span class="time-weeks">(1 week)</span>
-            </div>
-        </div>
-        <div class="time-estimate">
-            <div class="time-label">Average Case</div>
-            <div class="time-value time-avg">
-                <span class="time-days">2 days</span>
-                <span class="time-weeks">(1 week)</span>
-            </div>
-        </div>
-        <div class="time-estimate">
-            <div class="time-label">Worst Case</div>
-            <div class="time-value time-worst">
-                <span class="time-days">3 days</span>
-                <span class="time-weeks">(1 week)</span>
-            </div>
-        </div>
-    </div>
-</div>
 <div class="estimation-notes">
     <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
     <ul>
@@ -466,8 +444,6 @@ table code {
           <ul>
             <li>1.0 day per each new unsupported activity for analysis, implementation, and testing</li>
             <li>1.0 hour per each repeated unsupported activity for implementation</li>
-            <li>1 minutes per each line of ballerina code generated</li>
-            <li>0.5 minutes per each line of xml code generated</li>
             <li>Assumes minimal complexity and straightforward implementations</li>
           </ul>
         </li>
@@ -475,8 +451,6 @@ table code {
           <ul>
             <li>2.0 days per each new unsupported activity for analysis, implementation, and testing</li>
             <li>2.0 hour per each repeated unsupported activity for implementation</li>
-            <li>3 minutes per each line of ballerina code generated</li>
-            <li>1.5 minutes per each line of xml code generated</li>
             <li>Assumes medium complexity with moderate implementation challenges</li>
           </ul>
         </li>
@@ -484,8 +458,6 @@ table code {
           <ul>
             <li>3.0 days per each new unsupported activity for analysis, implementation, and testing</li>
             <li>4.0 hour per each repeated unsupported activity for implementation</li>
-            <li>5 minutes per each line of ballerina code generated</li>
-            <li>2.5 minutes per each line of xml code generated</li>
             <li>Assumes high complexity with significant implementation challenges</li>
           </ul>
         </li>
