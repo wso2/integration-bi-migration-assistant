@@ -296,6 +296,57 @@ table code {
     font-weight: 600;
 }
 
+/* Time estimates horizontal layout styling */
+.time-estimates-horizontal {
+    display: flex;
+    justify-content: space-around;
+    align-items: stretch;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.time-estimates-horizontal:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.time-estimate {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    text-align: center;
+}
+
+.time-label {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.time-value {
+    font-weight: bold;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.time-days {
+    font-size: 1.4em;
+    margin-bottom: 2px;
+}
+
+.time-weeks {
+    font-size: 0.8em;
+    color: #777;
+    font-weight: normal;
+}
+
 .drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
 .drawer.open { max-height: 500px; }
 .empty-message { text-align: center; padding: 20px; color: #666; }
@@ -356,34 +407,58 @@ table code {
           </div>
         </div>
     </div>
-    <div class="summary-container">
-        <h2>Manual Work Estimation</h2>
-        <table>
-            <tr>
-                <th>Work Type</th>
-                <th>Best Case</th>
-                <th>Average Case</th>
-                <th>Worst Case</th>
-            </tr>
-            <tr>
-                <td><strong>Manual Conversion</strong></td>
-                <td class="time-best">0 days</td>
-                <td class="time-avg">0 days</td>
-                <td class="time-worst">0 days</td>
-            </tr>
-            <tr>
-                <td><strong>Code Validation</strong></td>
-                <td class="time-best">1 day</td>
-                <td class="time-avg">1 day</td>
-                <td class="time-worst">2 days</td>
-            </tr>
-            <tr style="border-top: 2px solid #4682B4;">
-                <td><strong>Total</strong></td>
-                <td class="time-best"><strong>1 day</strong></td>
-                <td class="time-avg"><strong>1 day</strong></td>
-                <td class="time-worst"><strong>2 days</strong></td>
-            </tr>
-        </table>
+<div class="summary-container">
+    <h2>Manual Work Estimation</h2>
+    <div class="time-estimates-horizontal">
+        <div class="time-estimate">
+            <div class="time-label">Best Case</div>
+            <div class="time-value time-best">
+                <span class="time-days">0 days</span>
+                <span class="time-weeks">(0 weeks)</span>
+            </div>
+        </div>
+        <div class="time-estimate">
+            <div class="time-label">Average Case</div>
+            <div class="time-value time-avg">
+                <span class="time-days">0 days</span>
+                <span class="time-weeks">(0 weeks)</span>
+            </div>
+        </div>
+        <div class="time-estimate">
+            <div class="time-label">Worst Case</div>
+            <div class="time-value time-worst">
+                <span class="time-days">0 days</span>
+                <span class="time-weeks">(0 weeks)</span>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="summary-container">
+    <h2>Time estimation to manually validate generated code</h2>
+    <div class="time-estimates-horizontal">
+        <div class="time-estimate">
+            <div class="time-label">Best Case</div>
+            <div class="time-value time-best">
+                <span class="time-days">1 day</span>
+                <span class="time-weeks">(1 week)</span>
+            </div>
+        </div>
+        <div class="time-estimate">
+            <div class="time-label">Average Case</div>
+            <div class="time-value time-avg">
+                <span class="time-days">1 day</span>
+                <span class="time-weeks">(1 week)</span>
+            </div>
+        </div>
+        <div class="time-estimate">
+            <div class="time-label">Worst Case</div>
+            <div class="time-value time-worst">
+                <span class="time-days">2 days</span>
+                <span class="time-weeks">(1 week)</span>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="estimation-notes">
     <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
     <ul>
@@ -391,7 +466,8 @@ table code {
           <ul>
             <li>1.0 day per each new unsupported activity for analysis, implementation, and testing</li>
             <li>1.0 hour per each repeated unsupported activity for implementation</li>
-            <li>1 minutes per each line of code generated</li>
+            <li>1 minutes per each line of ballerina code generated</li>
+            <li>0.5 minutes per each line of xml code generated</li>
             <li>Assumes minimal complexity and straightforward implementations</li>
           </ul>
         </li>
@@ -399,7 +475,8 @@ table code {
           <ul>
             <li>2.0 days per each new unsupported activity for analysis, implementation, and testing</li>
             <li>2.0 hour per each repeated unsupported activity for implementation</li>
-            <li>3 minutes per each line of code generated</li>
+            <li>3 minutes per each line of ballerina code generated</li>
+            <li>1.5 minutes per each line of xml code generated</li>
             <li>Assumes medium complexity with moderate implementation challenges</li>
           </ul>
         </li>
@@ -407,7 +484,8 @@ table code {
           <ul>
             <li>3.0 days per each new unsupported activity for analysis, implementation, and testing</li>
             <li>4.0 hour per each repeated unsupported activity for implementation</li>
-            <li>5 minutes per each line of code generated</li>
+            <li>5 minutes per each line of ballerina code generated</li>
+            <li>2.5 minutes per each line of xml code generated</li>
             <li>Assumes high complexity with significant implementation challenges</li>
           </ul>
         </li>

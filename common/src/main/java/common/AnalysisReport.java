@@ -335,6 +335,57 @@ public class AnalysisReport {
                 font-weight: 600;
             }
 
+            /* Time estimates horizontal layout styling */
+            .time-estimates-horizontal {
+                display: flex;
+                justify-content: space-around;
+                align-items: stretch;
+                background-color: #f8f9fa;
+                border-radius: 8px;
+                padding: 20px;
+                margin: 20px 0;
+                transition: transform 0.2s, box-shadow 0.2s;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            }
+            
+            .time-estimates-horizontal:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            }
+            
+            .time-estimate {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                flex: 1;
+                text-align: center;
+            }
+            
+            .time-label {
+                font-size: 0.9em;
+                color: #666;
+                margin-bottom: 10px;
+                font-weight: 500;
+            }
+            
+            .time-value {
+                font-weight: bold;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .time-days {
+                font-size: 1.4em;
+                margin-bottom: 2px;
+            }
+            
+            .time-weeks {
+                font-size: 0.8em;
+                color: #777;
+                font-weight: normal;
+            }
+            
             .drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
             .drawer.open { max-height: 500px; }
             .empty-message { text-align: center; padding: 20px; color: #666; }
@@ -438,12 +489,14 @@ public class AnalysisReport {
         html.append(
                 generateSummaryContainer(coveragePercentage, totalElementCount, unhandledElementCount, elementType));
 
-        // Generate manual work estimation section
+        // Generate separate manual work and code validation estimation sections
         if (manualConversionEstimation != null && validationEstimation != null) {
-            html.append(generateSeparateManualWorkEstimation(manualConversionEstimation, validationEstimation,
+            html.append(ReportUtils.generateEstimateView("Manual Work Estimation", manualConversionEstimation,
                     elementType));
+            html.append(ReportUtils.generateEstimateView("Time estimation to manually validate generated code",
+                    validationEstimation, elementType));
         } else {
-            html.append(generateManualWorkEstimation(estimation, elementType));
+            html.append(ReportUtils.generateEstimateView("Manual Work Estimation", estimation, elementType));
         }
 
         // Generate estimation notes

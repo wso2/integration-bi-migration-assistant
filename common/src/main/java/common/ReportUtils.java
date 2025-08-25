@@ -109,4 +109,52 @@ public final class ReportUtils {
                 elementType.toLowerCase(), elementType.toLowerCase()
         );
     }
+
+    /**
+     * Generates a horizontal estimation view section HTML.
+     *
+     * @param sectionTitle The title of the estimation section
+     * @param estimation   The time estimation to display
+     * @param elementType  The type of elements being analyzed (e.g., "activity", "component")
+     * @return HTML string for the estimation section
+     */
+    public static String generateEstimateView(String sectionTitle, TimeEstimation estimation, String elementType) {
+        int bestCaseWeeks = estimation.bestCaseWeeks();
+        int avgCaseWeeks = estimation.averageCaseWeeks();
+        int worstCaseWeeks = estimation.worstCaseWeeks();
+
+        return """
+                <div class="summary-container">
+                    <h2>%s</h2>
+                    <div class="time-estimates-horizontal">
+                        <div class="time-estimate">
+                            <div class="time-label">Best Case</div>
+                            <div class="time-value time-best">
+                                <span class="time-days">%s</span>
+                                <span class="time-weeks">(%s)</span>
+                            </div>
+                        </div>
+                        <div class="time-estimate">
+                            <div class="time-label">Average Case</div>
+                            <div class="time-value time-avg">
+                                <span class="time-days">%s</span>
+                                <span class="time-weeks">(%s)</span>
+                            </div>
+                        </div>
+                        <div class="time-estimate">
+                            <div class="time-label">Worst Case</div>
+                            <div class="time-value time-worst">
+                                <span class="time-days">%s</span>
+                                <span class="time-weeks">(%s)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                """.formatted(
+                sectionTitle,
+                toDays(estimation.bestCaseDaysAsInt()), toWeeks(bestCaseWeeks),
+                toDays(estimation.averageCaseDaysAsInt()), toWeeks(avgCaseWeeks),
+                toDays(estimation.worstCaseDaysAsInt()), toWeeks(worstCaseWeeks)
+        );
+    }
 }

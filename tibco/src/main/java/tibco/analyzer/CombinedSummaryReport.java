@@ -515,6 +515,57 @@ public class CombinedSummaryReport {
                 box-sizing: border-box;
             }
 
+            /* Time estimates horizontal layout styling */
+            .time-estimates-horizontal {
+                display: flex;
+                justify-content: space-around;
+                align-items: stretch;
+                background-color: #f8f9fa;
+                border-radius: 8px;
+                padding: 20px;
+                margin: 20px 0;
+                transition: transform 0.2s, box-shadow 0.2s;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            }
+            
+            .time-estimates-horizontal:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            }
+            
+            .time-estimate {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                flex: 1;
+                text-align: center;
+            }
+            
+            .time-label {
+                font-size: 0.9em;
+                color: #666;
+                margin-bottom: 10px;
+                font-weight: 500;
+            }
+            
+            .time-value {
+                font-weight: bold;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .time-days {
+                font-size: 1.4em;
+                margin-bottom: 2px;
+            }
+            
+            .time-weeks {
+                font-size: 0.8em;
+                color: #777;
+                font-weight: normal;
+            }
+            
             /* Responsive design */
             @media (max-width: 768px) {
                 .metrics {
@@ -668,112 +719,96 @@ public class CombinedSummaryReport {
                     repeatedValidationEstimation.prod(-1));
         }
 
-        TimeEstimation totalEstimation =
-                TimeEstimation.sum(totalManualConversionEstimation, totalValidationEstimation);
+        // Generate overview metrics section
+        String color = averageConversionPercentage >= 90 ? "#4CAF50" :
+                averageConversionPercentage >= 70 ? "#FF9800" : "#F44336";
+        String overviewMetrics = """
+                <div class="metrics overview-metrics">
+                    <div class="metric overview-metric">
+                        <span class="metric-value">%d</span>
+                        <span class="metric-label">Projects Analyzed</span>
+                    </div>
+                    <div class="metric overview-metric" style="justify-content: space-around">
+                        <div class="metric-left" style="display: flex; flex-direction: column;">
+                            <div>
+                                <span class="metric-value">%.0f%%</span>
+                                <span class="metric-label">Average Automated Migration Coverage</span>
+                            </div>
+                            <div class="coverage-indicator overview-indicator" style="width: 100%%">
+                                <div class="coverage-bar" data-width="%.0f" data-color="%s"></div>
+                            </div>
+                        </div>
+                        <div class="metric-right">
+                            <div class="coverage-breakdown">
+                                <div class="breakdown-row">
+                                    <span class="breakdown-label">Total Activities:</span>
+                                    <span class="breakdown-value">%d</span>
+                                </div>
+                                <div class="breakdown-row">
+                                    <span class="breakdown-label">Migratable Activities:</span>
+                                    <span class="breakdown-value">%d</span>
+                                </div>
+                                <div class="breakdown-row">
+                                    <span class="breakdown-label">Non-migratable Activities:</span>
+                                    <span class="breakdown-value">%d</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                """.formatted(
+                totalProjects,
+                averageConversionPercentage,
+                averageConversionPercentage,
+                color,
+                totalActivities,
+                totalActivities - totalUnhandledActivities,
+                totalUnhandledActivities);
 
+        // Generate estimation notes section
+        String estimationNotes = """
+                <div class="estimation-notes">
+                    <p><strong>Note:</strong></p>
+                    <ul>
+                        <li>%d TIBCO BW projects analyzed for migration to Ballerina</li>
+                        <li>%.0f%% average automated conversion rate across all projects</li>
+                        <li>Time estimates shown below represents manual work required to complete migration for all projects combined</li>%s
+                    </ul>
+                </div>
+                """.formatted(
+                totalProjects,
+                averageConversionPercentage,
+                !repeatedValidationEstimation.isZero() ?
+                        "\n                        <li><em>Experimental: Corrected for repeated code generations</em></li>" :
+                        "");
+
+        // Generate estimation scenarios section
+        String estimationScenarios = ReportUtils.generateEstimationScenarios("activity");
+
+        // Generate time estimation sections
+        String manualWorkEstimation = ReportUtils.generateEstimateView("Manual Work Estimation",
+                totalManualConversionEstimation, "activity");
+        String codeValidationEstimation =
+                ReportUtils.generateEstimateView("Time estimation to manually validate generated code",
+                        totalValidationEstimation, "activity");
+
+        // Combine all parts into the final overview HTML
         return """
                 <div class="summary-container">
                     <h2>Overview</h2>
-                    <div class="metrics overview-metrics">
-                        <div class="metric overview-metric">
-                            <span class="metric-value">%d</span>
-                            <span class="metric-label">Projects Analyzed</span>
-                        </div>
-                        <div class="metric overview-metric" style="justify-content: space-around">
-                            <div class="metric-left" style="display: flex; flex-direction: column;">
-                                <div>
-                                    <span class="metric-value">%.0f%%</span>
-                                    <span class="metric-label">Average Automated Migration Coverage</span>
-                                </div>
-                                <div class="coverage-indicator overview-indicator" style="width: 100%%">
-                                    <div class="coverage-bar" data-width="%.0f" data-color="%s"></div>
-                                </div>
-                            </div>
-                            <div class="metric-right">
-                                <div class="coverage-breakdown">
-                                    <div class="breakdown-row">
-                                        <span class="breakdown-label">Total Activities:</span>
-                                        <span class="breakdown-value">%d</span>
-                                    </div>
-                                    <div class="breakdown-row">
-                                        <span class="breakdown-label">Migratable Activities:</span>
-                                        <span class="breakdown-value">%d</span>
-                                    </div>
-                                    <div class="breakdown-row">
-                                        <span class="breakdown-label">Non-migratable Activities:</span>
-                                        <span class="breakdown-value">%d</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="time-estimates-container">
-                        <div class="time-estimates overview-time-estimates" style="display: flex">
-                            <table>
-                                <tr>
-                                    <th>Work Type</th>
-                                    <th>Best Case</th>
-                                    <th>Average Case</th>
-                                    <th>Worst Case</th>
-                                </tr>
-                                <tr>
-                                    <td><strong>Manual Conversion</strong></td>
-                                    <td class="time-best">%s</td>
-                                    <td class="time-avg">%s</td>
-                                    <td class="time-worst">%s</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Code Validation</strong></td>
-                                    <td class="time-best">%s</td>
-                                    <td class="time-avg">%s</td>
-                                    <td class="time-worst">%s</td>
-                                </tr>
-                                <tr style="border-top: 2px solid #4682B4;">
-                                    <td><strong>Total</strong></td>
-                                    <td class="time-best"><strong>%s</strong></td>
-                                    <td class="time-avg"><strong>%s</strong></td>
-                                    <td class="time-worst"><strong>%s</strong></td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="estimation-notes">
-                        <p><strong>Note:</strong></p>
-                        <ul>
-                            <li>%d TIBCO BW projects analyzed for migration to Ballerina</li>
-                            <li>%.0f%% average automated conversion rate across all projects</li>
-                            <li>Time estimates shown above represents manual work required to complete migration for all projects combined</li>%s
-                        </ul>
-                    </div>
-
+                    %s
+                    %s
+                    %s
+                    %s
                     %s
                 </div>
-                """
-                .formatted(
-                        totalProjects,
-                        averageConversionPercentage,
-                        averageConversionPercentage,
-                        averageConversionPercentage >= 90 ? "#4CAF50"
-                                : averageConversionPercentage >= 70 ? "#FF9800" : "#F44336",
-                        totalActivities,
-                        totalActivities - totalUnhandledActivities,
-                        totalUnhandledActivities,
-                        ReportUtils.toDays(totalManualConversionEstimation.bestCaseDaysAsInt()),
-                        ReportUtils.toDays(totalManualConversionEstimation.averageCaseDaysAsInt()),
-                        ReportUtils.toDays(totalManualConversionEstimation.worstCaseDaysAsInt()),
-                        ReportUtils.toDays(totalValidationEstimation.bestCaseDaysAsInt()),
-                        ReportUtils.toDays(totalValidationEstimation.averageCaseDaysAsInt()),
-                        ReportUtils.toDays(totalValidationEstimation.worstCaseDaysAsInt()),
-                        ReportUtils.toDays(totalEstimation.bestCaseDaysAsInt()),
-                        ReportUtils.toDays(totalEstimation.averageCaseDaysAsInt()),
-                        ReportUtils.toDays(totalEstimation.worstCaseDaysAsInt()),
-                        totalProjects, averageConversionPercentage,
-                        !repeatedValidationEstimation.isZero() ?
-                                "\n                            <li><em>Experimental: Corrected for repeated code generations</em></li>" :
-                                "",
-                        ReportUtils.generateEstimationScenarios("activity"));
+                """.formatted(
+                overviewMetrics,
+                manualWorkEstimation,
+                codeValidationEstimation,
+                estimationNotes,
+                estimationScenarios
+        );
     }
 
     private String generateProjectSummaries() {
@@ -799,8 +834,7 @@ public class CombinedSummaryReport {
         int totalActivityCount = project.totalActivityCount();
         int unhandledActivityCount = project.unhandledActivityCount();
         int convertedActivityCount = totalActivityCount - unhandledActivityCount;
-        TimeEstimation timeEstimation =
-                TimeEstimation.sum(project.manualConversionEstimation(), project.validationEstimation());
+        TimeEstimation timeEstimation = project.manualConversionEstimation();
 
         return """
                 <div class="project-card" style="display: flex; flex-direction: column; align-items: stretch;">
