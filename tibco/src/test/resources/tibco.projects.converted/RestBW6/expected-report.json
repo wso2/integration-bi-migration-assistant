@@ -7,19 +7,19 @@
 },
     "manualWorkEstimation":[
 {
-   "scenario":"Best Case",
-   "workingDays":"2 days",
-   "weeks":"1 week"
+  "scenario":"Best Case",
+  "workingDays":"2 days",
+  "weeks":"1 week"
 },
 {
-   "scenario":"Average Case",
-   "workingDays":"4 days",
-   "weeks":"1 week"
-},
+  "scenario":"Average Case",
+  "workingDays":"4 days",
+  "weeks":"1 week"
+ },
 {
-   "scenario":"Worst Case",
-   "workingDays":"8 days",
-   "weeks":"2 weeks"
+  "scenario":"Worst Case",
+  "workingDays":"7 days",
+  "weeks":"2 weeks"
 }
     ],
        "elementType":"Activity",

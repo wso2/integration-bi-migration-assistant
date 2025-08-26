@@ -38,31 +38,6 @@ public final class TibcoAnalysisReport {
 
     private static final String REPORT_TITLE = "Migration Assessment";
 
-    public record TimeEstimation(double bestCaseDays, double averageCaseDays, double worstCaseDays) {
-        public int bestCaseDaysRounded() {
-            return (int) Math.ceil(bestCaseDays);
-        }
-        
-        public int averageCaseDaysRounded() {
-            return (int) Math.ceil(averageCaseDays);
-        }
-        
-        public int worstCaseDaysRounded() {
-            return (int) Math.ceil(worstCaseDays);
-        }
-        
-        public int bestCaseWeeks() {
-            return (int) Math.ceil(bestCaseDays / 5.0);
-        }
-        
-        public int averageCaseWeeks() {
-            return (int) Math.ceil(averageCaseDays / 5.0);
-        }
-        
-        public int worstCaseWeeks() {
-            return (int) Math.ceil(worstCaseDays / 5.0);
-        }
-    }
     private final int totalActivityCount;
     private final int unhandledActivityCount;
     private final Collection<UnhandledActivityElement> unhandledActivityElements;
@@ -160,12 +135,13 @@ public final class TibcoAnalysisReport {
 
     /**
      * Calculates time estimation based on unhandled activities and line count.
-     * 
-     * @return TimeEstimation record containing best, average, and worst case estimates
+     *
+     * @return TimeEstimation record containing best, average, and worst case
+     *         estimates
      */
     private TimeEstimation calculateTimeEstimation() {
         Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
-        
+
         double bestCaseDays = 0.0;
         double averageCaseDays = 0.0;
         double worstCaseDays = 0.0;
@@ -201,7 +177,7 @@ public final class TibcoAnalysisReport {
 
     /**
      * Creates JSON representation of blocks for a collection of unhandled elements.
-     * 
+     *
      * @param elements Collection of unhandled elements to convert to blocks JSON
      * @return String containing the JSON representation of blocks
      */
@@ -343,12 +319,13 @@ public final class TibcoAnalysisReport {
      */
     public String toJSON() {
         Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
-        Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap = 
+        Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap =
                 createPartiallySupportedElementsMap();
-        
-        double coveragePercentage = 100.0 - (totalActivityCount > 0 ? 
+
+        double coveragePercentage = 100.0
+                - (totalActivityCount > 0 ?
                 (double) unhandledActivityCount / totalActivityCount * 100.0 : 0.0);
-        
+
         TimeEstimation timeEstimation = calculateTimeEstimation();
 
         String coverageOverview = """
@@ -366,38 +343,32 @@ public final class TibcoAnalysisReport {
 
         String bestCaseEstimation = """
                   {
-                     "scenario":"Best Case",
-                     "workingDays":"%d day%s",
-                     "weeks":"%d week%s"
+                    "scenario":"Best Case",
+                    "workingDays":"%s",
+                    "weeks":"%s"
                   }""".formatted(
-                timeEstimation.bestCaseDaysRounded(),
-                timeEstimation.bestCaseDaysRounded() != 1 ? "s" : "",
-                timeEstimation.bestCaseWeeks(),
-                timeEstimation.bestCaseWeeks() != 1 ? "s" : ""
+                toDays(timeEstimation.bestCaseDaysAsInt()),
+                toWeeks(timeEstimation.bestCaseWeeks())
         );
 
         String averageCaseEstimation = """
                   {
-                     "scenario":"Average Case",
-                     "workingDays":"%d day%s",
-                     "weeks":"%d week%s"
-                  }""".formatted(
-                timeEstimation.averageCaseDaysRounded(),
-                timeEstimation.averageCaseDaysRounded() != 1 ? "s" : "",
-                timeEstimation.averageCaseWeeks(),
-                timeEstimation.averageCaseWeeks() != 1 ? "s" : ""
+                    "scenario":"Average Case",
+                    "workingDays":"%s",
+                    "weeks":"%s"
+                   }""".formatted(
+                toDays(timeEstimation.averageCaseDaysAsInt()),
+                        toWeeks(timeEstimation.averageCaseWeeks())
         );
 
         String worstCaseEstimation = """
                   {
-                     "scenario":"Worst Case",
-                     "workingDays":"%d day%s",
-                     "weeks":"%d week%s"
+                    "scenario":"Worst Case",
+                    "workingDays":"%s",
+                    "weeks":"%s"
                   }""".formatted(
-                timeEstimation.worstCaseDaysRounded(),
-                timeEstimation.worstCaseDaysRounded() != 1 ? "s" : "",
-                timeEstimation.worstCaseWeeks(),
-                timeEstimation.worstCaseWeeks() != 1 ? "s" : ""
+                toDays(timeEstimation.worstCaseDaysAsInt()),
+                        toWeeks(timeEstimation.worstCaseWeeks())
         );
 
         String manualWorkEstimation = """

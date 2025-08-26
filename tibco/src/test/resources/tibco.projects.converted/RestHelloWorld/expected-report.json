@@ -7,19 +7,19 @@
 },
     "manualWorkEstimation":[
 {
-   "scenario":"Best Case",
-   "workingDays":"4 days",
-   "weeks":"1 week"
+  "scenario":"Best Case",
+  "workingDays":"3 days",
+  "weeks":"1 week"
 },
 {
-   "scenario":"Average Case",
-   "workingDays":"9 days",
-   "weeks":"2 weeks"
-},
+  "scenario":"Average Case",
+  "workingDays":"6 days",
+  "weeks":"2 weeks"
+ },
 {
-   "scenario":"Worst Case",
-   "workingDays":"17 days",
-   "weeks":"4 weeks"
+  "scenario":"Worst Case",
+  "workingDays":"11 days",
+  "weeks":"3 weeks"
 }
     ],
        "elementType":"Activity",
@@ -32,7 +32,7 @@
    "frequency":1
 },
 {
-   "activityName":"com.tibco.plugin.json.JSONParserActivity",
+   "activityName":"com.tibco.plugin.json.activities.JSONParserActivity",
    "frequency":1
 }
    ]
