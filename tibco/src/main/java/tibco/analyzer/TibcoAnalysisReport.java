@@ -253,7 +253,6 @@ public final class TibcoAnalysisReport {
         Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
 
         TimeEstimation manualConversionEstimation = getManualConversionTimeEstimation(unhandledElementsMap);
-        TimeEstimation validationEstimation = ReportEstimationUtils.getValidationTimeEstimation(lineCount);
 
         // Create maps for partially supported activities
         Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap =
@@ -269,7 +268,7 @@ public final class TibcoAnalysisReport {
                 partiallySupportedActivityCount,
                 partiallySupportedElementsMap,
                 manualConversionEstimation,
-                validationEstimation
+                lineCount
         );
 
         return report.toHTML();
@@ -293,7 +292,6 @@ public final class TibcoAnalysisReport {
 
         // Get time estimation using the separate methods
         TimeEstimation manualConversionEstimation = getManualConversionTimeEstimation(unhandledElementsMap);
-        TimeEstimation validationEstimation = ReportEstimationUtils.getValidationTimeEstimation(lineCount);
 
         Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap =
                 createPartiallySupportedElementsMap();
@@ -305,7 +303,7 @@ public final class TibcoAnalysisReport {
                 totalActivityCount,
                 unhandledActivityCount,
                 manualConversionEstimation,
-                validationEstimation,
+                lineCount,
                 conversionPercentage,
                 unhandledElementsMap,
                 partiallySupportedElementsMap

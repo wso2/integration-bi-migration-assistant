@@ -50,11 +50,11 @@ public class CombinedSummaryReportTest {
 
         ProjectSummary summary1 = new ProjectSummary(
                 "Project1", "/path/to/project1", "report1.html",
-                        10, 3, new TimeEstimation(2, 4, 6), new TimeEstimation(1, 2, 3),
+                        10, 3, new TimeEstimation(2, 4, 6), 150L,
                         70.0, unhandledActivities1, new HashMap<>());
         ProjectSummary summary2 = new ProjectSummary(
                 "Project2", "/path/to/project2", "report2.html",
-                        5, 1, new TimeEstimation(1, 2, 3), new TimeEstimation(0.5, 1, 1.5),
+                        5, 1, new TimeEstimation(1, 2, 3), 75L,
                         80.0, unhandledActivities2, new HashMap<>());
 
         // Create combined summary report
@@ -79,11 +79,11 @@ public class CombinedSummaryReportTest {
             // Create test project summaries with no unhandled activities
         ProjectSummary summary1 = new ProjectSummary(
                 "Project1", "/path/to/project1", "report1.html",
-                        10, 0, new TimeEstimation(0, 0, 0), new TimeEstimation(0, 0, 0),
+                        10, 0, new TimeEstimation(0, 0, 0), 100L,
                         100.0, new HashMap<>(), new HashMap<>());
         ProjectSummary summary2 = new ProjectSummary(
                 "Project2", "/path/to/project2", "report2.html",
-                        5, 0, new TimeEstimation(0, 0, 0), new TimeEstimation(0, 0, 0),
+                        5, 0, new TimeEstimation(0, 0, 0), 50L,
                         100.0, new HashMap<>(), new HashMap<>());
 
         // Create combined summary report
