@@ -1,32 +1,10 @@
-    {
-"coverageOverview":{
-   "coveragePercentage":100,
-   "totalActivities":2,
-   "migratableActivities":2,
-   "nonMigratableActivities":0
-},
-    "manualWorkEstimation":[
 {
-  "scenario":"Best Case",
-  "workingDays":"1 day",
-  "weeks":"1 week"
-},
-{
-  "scenario":"Average Case",
-  "workingDays":"2 days",
-  "weeks":"1 week"
- },
-{
-  "scenario":"Worst Case",
-  "workingDays":"3 days",
-  "weeks":"1 week"
-}
-    ],
-       "elementType":"Activity",
-   "unsupportedActivities":[
-
-   ],
-   "manualValidationActivities":[
-
-   ]
+    "coverageOverview": {
+        "unitName": "activity",
+        "coveragePercentage": 100,
+        "coverageLevel": "high",
+        "totalElements": 2,
+        "migratableElements": 2,
+        "nonMigratableElements": 0
     }
+}

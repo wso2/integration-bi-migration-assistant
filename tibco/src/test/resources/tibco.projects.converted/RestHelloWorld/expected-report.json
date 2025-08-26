@@ -1,39 +1,10 @@
-    {
-"coverageOverview":{
-   "coveragePercentage":100,
-   "totalActivities":22,
-   "migratableActivities":22,
-   "nonMigratableActivities":0
-},
-    "manualWorkEstimation":[
 {
-  "scenario":"Best Case",
-  "workingDays":"3 days",
-  "weeks":"1 week"
-},
-{
-  "scenario":"Average Case",
-  "workingDays":"6 days",
-  "weeks":"2 weeks"
- },
-{
-  "scenario":"Worst Case",
-  "workingDays":"11 days",
-  "weeks":"3 weeks"
-}
-    ],
-       "elementType":"Activity",
-   "unsupportedActivities":[
-
-   ],
-   "manualValidationActivities":[
-{
-   "activityName":"com.tibco.plugin.jdbc.JDBCGeneralActivity",
-   "frequency":1
-},
-{
-   "activityName":"com.tibco.plugin.json.activities.JSONParserActivity",
-   "frequency":1
-}
-   ]
+    "coverageOverview": {
+        "unitName": "activity",
+        "coveragePercentage": 100,
+        "coverageLevel": "high",
+        "totalElements": 22,
+        "migratableElements": 22,
+        "nonMigratableElements": 0
     }
+}

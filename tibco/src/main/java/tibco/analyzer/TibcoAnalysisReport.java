@@ -134,75 +134,6 @@ public final class TibcoAnalysisReport {
     }
 
     /**
-     * Calculates time estimation based on unhandled activities and line count.
-     *
-     * @return TimeEstimation record containing best, average, and worst case
-     *         estimates
-     */
-    private TimeEstimation calculateTimeEstimation() {
-        Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
-
-        double bestCaseDays = 0.0;
-        double averageCaseDays = 0.0;
-        double worstCaseDays = 0.0;
-
-        for (Collection<AnalysisReport.UnhandledElement> elements : unhandledElementsMap.values()) {
-            int count = elements.size();
-            if (count > 0) {
-                // First instance (new activity) gets full day estimate
-                bestCaseDays += 1.0;
-                averageCaseDays += 2.0;
-                worstCaseDays += 3.0;
-
-                // Additional instances (repeated activities) get hour estimates
-                if (count > 1) {
-                    int repeatedCount = count - 1;
-                    bestCaseDays += repeatedCount * (1.0 / 8.0); // 1 hour = 1/8 day
-                    averageCaseDays += repeatedCount * (2.0 / 8.0); // 2 hours = 2/8 day
-                    worstCaseDays += repeatedCount * (4.0 / 8.0); // 4 hours = 4/8 day
-                }
-            }
-        }
-
-        // Add line-based time estimation
-        double bestCaseLineDays = (lineCount * 2.0) / 60.0 / 8.0; // 2 min/line
-        double averageCaseLineDays = (lineCount * 5.0) / 60.0 / 8.0; // 5 min/line
-        double worstCaseLineDays = (lineCount * 10.0) / 60.0 / 8.0; // 10 min/line
-        bestCaseDays += bestCaseLineDays;
-        averageCaseDays += averageCaseLineDays;
-        worstCaseDays += worstCaseLineDays;
-
-        return new TimeEstimation(bestCaseDays, averageCaseDays, worstCaseDays);
-    }
-
-    /**
-     * Creates JSON representation of blocks for a collection of unhandled elements.
-     *
-     * @param elements Collection of unhandled elements to convert to blocks JSON
-     * @return String containing the JSON representation of blocks
-     */
-    private String createBlocksJson(Collection<AnalysisReport.UnhandledElement> elements) {
-        StringBuilder blocks = new StringBuilder();
-        boolean firstBlock = true;
-        for (AnalysisReport.UnhandledElement element : elements) {
-            if (!firstBlock) {
-                blocks.append(",\n                   ");
-            }
-            String block = """
-                            {
-                               "fileName":"%s",
-                               "code":"%s"
-                            }""".formatted(
-                    element.fileName().replace("\"", "\\\""),
-                    element.code().replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
-            );
-            blocks.append(block);
-            firstBlock = false;
-        }
-        return blocks.toString();
-    }
-
-    /**
      * Creates a map of unhandled activity elements using their kind as keys. - For named activities, they are grouped
      * by type - For unnamed activities, each one gets a unique key "unnamed-activity-#" as they are treated as unique
      *
@@ -318,123 +249,35 @@ public final class TibcoAnalysisReport {
      * @return A string containing the JSON report
      */
     public String toJSON() {
-        Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
-        Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap =
-                createPartiallySupportedElementsMap();
-
         double coveragePercentage = 100.0
                 - (totalActivityCount > 0 ?
                 (double) unhandledActivityCount / totalActivityCount * 100.0 : 0.0);
 
-        TimeEstimation timeEstimation = calculateTimeEstimation();
+        String coverageLevel;
+        if (coveragePercentage >= 90) {
+            coverageLevel = "high";
+        } else if (coveragePercentage >= 75) {
+            coverageLevel = "medium";
+        } else {
+            coverageLevel = "low";
+        }
 
-        String coverageOverview = """
-               "coverageOverview":{
-                  "coveragePercentage":%d,
-                  "totalActivities":%d,
-                  "migratableActivities":%d,
-                  "nonMigratableActivities":%d
-               }""".formatted(
+        return """
+                {
+                    "coverageOverview": {
+                        "unitName": "activity",
+                        "coveragePercentage": %d,
+                        "coverageLevel": "%s",
+                        "totalElements": %d,
+                        "migratableElements": %d,
+                        "nonMigratableElements": %d
+                    }
+                }""".formatted(
                 Math.round(coveragePercentage),
+                coverageLevel,
                 totalActivityCount,
                 totalActivityCount - unhandledActivityCount,
                 unhandledActivityCount
-        );
-
-        String bestCaseEstimation = """
-                  {
-                    "scenario":"Best Case",
-                    "workingDays":"%s",
-                    "weeks":"%s"
-                  }""".formatted(
-                toDays(timeEstimation.bestCaseDaysAsInt()),
-                toWeeks(timeEstimation.bestCaseWeeks())
-        );
-
-        String averageCaseEstimation = """
-                  {
-                    "scenario":"Average Case",
-                    "workingDays":"%s",
-                    "weeks":"%s"
-                   }""".formatted(
-                toDays(timeEstimation.averageCaseDaysAsInt()),
-                        toWeeks(timeEstimation.averageCaseWeeks())
-        );
-
-        String worstCaseEstimation = """
-                  {
-                    "scenario":"Worst Case",
-                    "workingDays":"%s",
-                    "weeks":"%s"
-                  }""".formatted(
-                toDays(timeEstimation.worstCaseDaysAsInt()),
-                        toWeeks(timeEstimation.worstCaseWeeks())
-        );
-
-        String manualWorkEstimation = """
-               "manualWorkEstimation":[
-           %s,
-           %s,
-           %s
-               ]""".formatted(bestCaseEstimation, averageCaseEstimation, worstCaseEstimation);
-
-        StringBuilder unsupportedActivities = new StringBuilder();
-        unsupportedActivities.append("   \"unsupportedActivities\":[\n");
-        boolean firstUnsupported = true;
-        // Sort keys for deterministic ordering
-        var sortedUnsupportedKeys = unhandledElementsMap.keySet().stream().sorted().toList();
-        for (String activityType : sortedUnsupportedKeys) {
-            if (!firstUnsupported) {
-                unsupportedActivities.append(",\n");
-            }
-            Collection<AnalysisReport.UnhandledElement> elements = unhandledElementsMap.get(activityType);
-            String blocks = createBlocksJson(elements);
-            String unsupportedActivity = """
-                      {
-                         "activityName":"%s",
-                         "frequency":%d,
-                         "blocks":[
-                   %s
-                         ]
-                      }""".formatted(activityType, elements.size(), blocks);
-            unsupportedActivities.append(unsupportedActivity);
-            firstUnsupported = false;
-        }
-        unsupportedActivities.append("\n   ]");
-
-        StringBuilder manualValidationActivities = new StringBuilder();
-        manualValidationActivities.append("   \"manualValidationActivities\":[\n");
-        boolean firstPartial = true;
-        // Sort entries by key for deterministic ordering
-        var sortedPartialEntries = partiallySupportedElementsMap.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .toList();
-        for (Map.Entry<String, Collection<AnalysisReport.UnhandledElement>> entry : sortedPartialEntries) {
-            if (!firstPartial) {
-                manualValidationActivities.append(",\n");
-            }
-            String validationActivity = """
-                      {
-                         "activityName":"%s",
-                         "frequency":%d
-                      }""".formatted(entry.getKey(), entry.getValue().size());
-            manualValidationActivities.append(validationActivity);
-            firstPartial = false;
-        }
-        manualValidationActivities.append("\n   ]");
-
-        return """
-               {
-           %s,
-           %s,
-                  "elementType":"Activity",
-           %s,
-           %s
-               }""".formatted(
-                coverageOverview,
-                manualWorkEstimation,
-                unsupportedActivities.toString(),
-                manualValidationActivities.toString()
         );
     }
 

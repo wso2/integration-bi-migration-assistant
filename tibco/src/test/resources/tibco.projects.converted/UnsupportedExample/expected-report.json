@@ -1,62 +1,10 @@
-    {
-"coverageOverview":{
-   "coveragePercentage":86,
-   "totalActivities":22,
-   "migratableActivities":19,
-   "nonMigratableActivities":3
-},
-    "manualWorkEstimation":[
 {
-  "scenario":"Best Case",
-  "workingDays":"5 days",
-  "weeks":"1 week"
-},
-{
-  "scenario":"Average Case",
-  "workingDays":"11 days",
-  "weeks":"3 weeks"
- },
-{
-  "scenario":"Worst Case",
-  "workingDays":"19 days",
-  "weeks":"4 weeks"
-}
-    ],
-       "elementType":"Activity",
-   "unsupportedActivities":[
-   {
-      "activityName":"Unknown1",
-      "frequency":1,
-      "blocks":[
-{
-   "fileName":"proc.process",
-   "code":"<pd:activity name=\"Write File\" xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n            \n    <pd:type>Unknown1</pd:type>\n            \n    <pd:resourceType>ae.activities.FileWriteActivity</pd:resourceType>\n            \n    <config>\n                    \n        <encoding>text</encoding>\n                    \n        <compressFile>None</compressFile>\n                    \n        <append>true</append>\n                \n    </config>\n            \n    <pd:inputBindings>\n                    \n        <ns0:WriteActivityInputTextClass xmlns:ns0=\"http://www.tibco.com/namespaces/tnt/plugins/file\">\n                            \n            <fileName>\n                                    \n                <xsl:value-of select=\"&quot;output.txt&quot;\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"/>\n                                \n            </fileName>\n                            \n            <textContent>\n                                    \n                <xsl:value-of select=\"$Mapper\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"/>\n                                \n            </textContent>\n                            \n            <addLineSeparator>\n                                    \n                <xsl:value-of select=\"true()\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"/>\n                                \n            </addLineSeparator>\n                        \n        </ns0:WriteActivityInputTextClass>\n                \n    </pd:inputBindings>\n        \n</pd:activity>\n"
-}
-      ]
-   },
-   {
-      "activityName":"Unknown2",
-      "frequency":2,
-      "blocks":[
-{
-   "fileName":"other.process",
-   "code":"<pd:activity name=\"Log\" xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n            \n    <pd:type>Unknown2</pd:type>\n            \n    <pd:resourceType>ae.activities.log</pd:resourceType>\n            \n    <config>\n                    \n        <role>User</role>\n                \n    </config>\n            \n    <pd:inputBindings>\n                    \n        <ns:ActivityInput xmlns:ns=\"http://www.tibco.com/pe/EngineTypes\">\n                            \n            <message>\n                                    \n                <xsl:value-of select=\"$Mapper\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"/>\n                                \n            </message>\n                        \n        </ns:ActivityInput>\n                \n    </pd:inputBindings>\n        \n</pd:activity>\n"
-},
-                   {
-   "fileName":"proc.process",
-   "code":"<pd:activity name=\"Log\" xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n            \n    <pd:type>Unknown2</pd:type>\n            \n    <pd:resourceType>ae.activities.log</pd:resourceType>\n            \n    <config>\n                    \n        <role>User</role>\n                \n    </config>\n            \n    <pd:inputBindings>\n                    \n        <ns:ActivityInput xmlns:ns=\"http://www.tibco.com/pe/EngineTypes\">\n                            \n            <message>\n                                    \n                <xsl:value-of select=\"$Mapper\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"/>\n                                \n            </message>\n                        \n        </ns:ActivityInput>\n                \n    </pd:inputBindings>\n        \n</pd:activity>\n"
-}
-      ]
-   }
-   ],
-   "manualValidationActivities":[
-{
-   "activityName":"com.tibco.plugin.jdbc.JDBCGeneralActivity",
-   "frequency":1
-},
-{
-   "activityName":"com.tibco.plugin.json.activities.JSONParserActivity",
-   "frequency":1
-}
-   ]
+    "coverageOverview": {
+        "unitName": "activity",
+        "coveragePercentage": 86,
+        "coverageLevel": "medium",
+        "totalElements": 22,
+        "migratableElements": 19,
+        "nonMigratableElements": 3
     }
+}
