@@ -37,6 +37,7 @@ import java.util.Optional;
 public final class TibcoAnalysisReport {
 
     private static final String REPORT_TITLE = "Migration Assessment";
+
     private final int totalActivityCount;
     private final int unhandledActivityCount;
     private final Collection<UnhandledActivityElement> unhandledActivityElements;
@@ -240,6 +241,44 @@ public final class TibcoAnalysisReport {
         }
 
         return estimation;
+    }
+
+    /**
+     * Generates a JSON report of the TIBCO analysis.
+     *
+     * @return A string containing the JSON report
+     */
+    public String toJSON() {
+        double coveragePercentage = 100.0
+                - (totalActivityCount > 0 ?
+                (double) unhandledActivityCount / totalActivityCount * 100.0 : 0.0);
+
+        String coverageLevel;
+        if (coveragePercentage >= 90) {
+            coverageLevel = "high";
+        } else if (coveragePercentage >= 75) {
+            coverageLevel = "medium";
+        } else {
+            coverageLevel = "low";
+        }
+
+        return """
+                {
+                    "coverageOverview": {
+                        "unitName": "activity",
+                        "coveragePercentage": %d,
+                        "coverageLevel": "%s",
+                        "totalElements": %d,
+                        "migratableElements": %d,
+                        "nonMigratableElements": %d
+                    }
+                }""".formatted(
+                Math.round(coveragePercentage),
+                coverageLevel,
+                totalActivityCount,
+                totalActivityCount - unhandledActivityCount,
+                unhandledActivityCount
+        );
     }
 
     /**
