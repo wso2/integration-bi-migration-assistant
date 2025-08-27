@@ -113,7 +113,11 @@ public class MuleMigrator {
         }
 
         ProjectMigrationResult projResult = (ProjectMigrationResult) result;
-        return Map.of("textEdits", projResult.getFiles(), "report", projResult.getHtmlReport());
+        return Map.of(
+                "textEdits", projResult.getFiles(),
+                "report", projResult.getHtmlReport(),
+                "report-json", projResult.getJsonReport()
+        );
     }
 
     private static String validateAndGetString(Map<String, Object> parameters, String key) {
@@ -457,9 +461,12 @@ public class MuleMigrator {
         ProjectMigrationStats migrationStats = getProjectMigrationStats(muleVersion, ctx.getMigrationMetrics());
         result.setMigrationStats(migrationStats);
 
-        String individualReport = IndividualReportGenerator.generateHtmlReport(logger, migrationStats, muleVersion,
+        String individualReportHtml = IndividualReportGenerator.generateHtmlReport(logger, migrationStats, muleVersion,
                 dryRun, sourceName);
-        result.setHtmlReport(individualReport);
+        result.setHtmlReport(individualReportHtml);
+
+        String individualReportJson = IndividualReportGenerator.generateJsonReport(migrationStats);
+        result.setJsonReport(individualReportJson);
 
         if (dryRun) {
             logger.logState("Dry run completed for project: " + sourceName);
