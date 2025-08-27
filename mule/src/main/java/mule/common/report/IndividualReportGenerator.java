@@ -51,6 +51,44 @@ public class IndividualReportGenerator {
     public static final String MIGRATION_SUMMARY_TITLE = "Migration Summary";
     public static final String MIGRATION_ASSESSMENT_TITLE = "Migration Assessment";
 
+    public static String generateJsonReport(ProjectMigrationStats pms) {
+        int migrationCoverage = pms.migrationCoverage();
+        String coverageStatus = getCoverageStatus(migrationCoverage);
+
+        int totalXmlElements = calculateTotalXmlElements(pms);
+        int migratableXmlElements = calculateMigratableXmlElements(pms);
+        int nonMigratableXmlElements = totalXmlElements - migratableXmlElements;
+
+        // DataWeave metrics
+        DWConversionStats<? extends DWConstructBase> dwStats = pms.dwConversionStats();
+        int totalDwConstructs = dwStats.getTotalEncounteredCount();
+        int migratableDwConstructs = dwStats.getConvertedCount();
+        int nonMigratableDwConstructs = totalDwConstructs - migratableDwConstructs;
+
+        // Calculate total items, migratable items, and non-migratable items
+        int totalItems = totalXmlElements + totalDwConstructs;
+        int migratableItems = migratableXmlElements + migratableDwConstructs;
+        int nonMigratableItems = nonMigratableXmlElements + nonMigratableDwConstructs;
+
+        return """
+                {
+                    "coverageOverview": {
+                        "unitName": "code lines",
+                        "coveragePercentage": %d,
+                        "coverageLevel": "%s",
+                        "totalElements": %d,
+                        "migratableElements": %d,
+                        "nonMigratableElements": %d
+                    }
+                }""".formatted(
+                migrationCoverage,
+                coverageStatus,
+                totalItems,
+                migratableItems,
+                nonMigratableItems
+        );
+    }
+
     public static String generateHtmlReport(MuleLogger logger, ProjectMigrationStats pms, MuleVersion muleVersion,
                                             boolean dryRun, String sourceProjectName) {
         logger.logState("Generating individual migration report...");

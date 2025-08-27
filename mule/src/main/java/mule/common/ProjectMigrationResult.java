@@ -36,6 +36,7 @@ public final class ProjectMigrationResult implements MigrationResult {
     private String projectName;
     private Map<String, String> files;
     private String htmlReport;
+    private String jsonReport;
     private Path targetPath;
 
     @Override
@@ -43,10 +44,7 @@ public final class ProjectMigrationResult implements MigrationResult {
         return "ProjectMigrationResult[" +
                 "sourceProjectName=" + sourceName + ", " +
                 "muleVersion=" + muleVersion + ", " +
-                "projectName=" + projectName + ", " +
-                "files=" + files + ", " +
-                "htmlReport=" + htmlReport + ", " +
-                "summary=" + migrationStats + ']';
+                "projectName=" + projectName + ']';
     }
 
     @Override
@@ -105,6 +103,14 @@ public final class ProjectMigrationResult implements MigrationResult {
 
     public void setHtmlReport(String htmlReport) {
         this.htmlReport = htmlReport;
+    }
+
+    public String getJsonReport() {
+        return jsonReport;
+    }
+
+    public void setJsonReport(String jsonReport) {
+        this.jsonReport = jsonReport;
     }
 
     public String getProjectName() {
