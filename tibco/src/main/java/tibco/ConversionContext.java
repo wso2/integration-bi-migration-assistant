@@ -50,8 +50,6 @@ public final class ConversionContext implements LoggingContext {
     private final Consumer<String> logCallback;
     private final Map<Resource.ResourceIdentifier, ProjectResource> projectResourceMap = new HashMap<>();
     private final Map<Process.ProcessIdentifier, ProjectProcess> projectProcessMap = new HashMap<>();
-    private final Map<ProjectConversionContext, Set<ProjectResource>> crossProjectResourceRefs = new HashMap<>();
-    private final Map<ProjectConversionContext, Set<ProjectProcess>> crossProjectProcessRefs = new HashMap<>();
     private final Map<Process, Collection<ProcessCodeGenData>> processCodeGenData;
 
     public ConversionContext(String org, boolean dryRun, boolean keepStructure,
@@ -89,11 +87,12 @@ public final class ConversionContext implements LoggingContext {
     public Optional<Resource> lookupResource(Resource.ResourceIdentifier identifier,
                                            ProjectConversionContext requestingProject) {
         ProjectResource projectResource = projectResourceMap.get(identifier);
-        if (projectResource != null) {
-            crossProjectResourceRefs.computeIfAbsent(requestingProject, k -> new HashSet<>()).add(projectResource);
-            return Optional.of(projectResource.resource);
+        if (projectResource == null) {
+            return Optional.empty();
         }
-        return Optional.empty();
+        // Mark the resource as shared in its origin project
+        projectResource.originProject().markResourceAsShared(projectResource.resource());
+        return Optional.of(projectResource.resource());
     }
 
     public void addProjectResources(ProjectResources resources, ProjectConversionContext originProject) {
@@ -107,11 +106,12 @@ public final class ConversionContext implements LoggingContext {
     public Optional<Process> lookupProcess(Process.ProcessIdentifier identifier,
                                          ProjectConversionContext requestingProject) {
         ProjectProcess projectProcess = projectProcessMap.get(identifier);
-        if (projectProcess != null) {
-            crossProjectProcessRefs.computeIfAbsent(requestingProject, k -> new HashSet<>()).add(projectProcess);
-            return Optional.of(projectProcess.process);
+        if (projectProcess == null) {
+            return Optional.empty();
         }
-        return Optional.empty();
+        // Mark the process as shared in its origin project
+        projectProcess.originProject().markProcessAsShared(projectProcess.process());
+        return Optional.of(projectProcess.process());
     }
 
     public void addProjectProcesses(Set<Process> processes, ProjectConversionContext originProject) {
@@ -132,13 +132,6 @@ public final class ConversionContext implements LoggingContext {
 
     }
 
-    public Set<ProjectResource> getCrossProjectResourceRefs(ProjectConversionContext project) {
-        return crossProjectResourceRefs.getOrDefault(project, Collections.emptySet());
-    }
-
-    public Set<ProjectProcess> getCrossProjectProcessRefs(ProjectConversionContext project) {
-        return crossProjectProcessRefs.getOrDefault(project, Collections.emptySet());
-    }
 
     public Collection<CombinedSummaryReport.DuplicateProcessData> getDuplicateProcessData() {
         List<CombinedSummaryReport.DuplicateProcessData> duplicates = new ArrayList<>();
