@@ -45,7 +45,7 @@ public final class ConversionContext implements LoggingContext {
     private final Consumer<String> stateCallback;
     private final Consumer<String> logCallback;
     private final List<ProjectResources> projectResources;
-    private final List<Set<Process>> projectProcesses;
+    private final List<Process> projectProcesses;
     private final Map<Process, Collection<ProcessCodeGenData>> processCodeGenData;
 
     public ConversionContext(String org, boolean dryRun, boolean keepStructure,
@@ -95,13 +95,12 @@ public final class ConversionContext implements LoggingContext {
 
     public Optional<Process> lookupProcess(Process.ProcessIdentifier identifier) {
         return projectProcesses.stream()
-                .flatMap(Set::stream)
                 .filter(identifier::matches)
                 .findFirst();
     }
 
     public void addProjectProcesses(Set<Process> processes) {
-        projectProcesses.add(processes);
+        projectProcesses.addAll(processes);
     }
 
     public void registerProcessTextDocument(String projectName, Process process,
