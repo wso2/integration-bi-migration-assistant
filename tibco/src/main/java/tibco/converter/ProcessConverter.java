@@ -314,6 +314,7 @@ public class ProcessConverter {
                 .collect(Collectors.toCollection(ArrayList::new));
         result.mainFn.ifPresent(functions::add);
         functions.addAll(convertExplicitTransitionGroup(cx, process.transitionGroup()));
+        functions.add(generateProcessFunction(cx, process));
         AnalysisResult analysisResult = cx.getAnalysisResult();
         analysisResult.scopes(process).stream().map(scope -> generateControlFlowFunctionsForScope(cx, scope))
                 .flatMap(Collection::stream).forEach(functions::add);
@@ -348,7 +349,7 @@ public class ProcessConverter {
             functions.add(generateStartFunction(cx));
             functions.add(generateActivityFlowFunction(cx, process));
             functions.add(generateErrorFlowFunction(cx, process));
-            functions.add(generateProcessFunction(cx));
+            functions.add(generateProcessFunction(cx, process));
         } catch (Exception e) {
             cx.registerControlFlowFunctionGenerationError(process, e);
         }
@@ -357,9 +358,7 @@ public class ProcessConverter {
 
     private static Collection<BallerinaModel.Function> convertExplicitTransitionGroup(
             ProcessContext cx, ExplicitTransitionGroup group) {
-        return Stream.concat(convertExplicitTransitionGroupInner(cx, group),
-                        Stream.of(generateExplicitTransitionBlockStartFunction(cx, group)))
-                .collect(Collectors.toList());
+        return convertExplicitTransitionGroupInner(cx, group).collect(Collectors.toList());
     }
 
     private static Stream<BallerinaModel.Function> convertExplicitTransitionGroupInner(
@@ -490,13 +489,13 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
 
     }
 
-    private static BallerinaModel.Function generateExplicitTransitionBlockStartFunction(
-            ProcessContext cx, ExplicitTransitionGroup group) {
+    private static BallerinaModel.Function generateProcessFunction(ProcessContext cx, Process5 process) {
         TypeDesc.FunctionTypeDesc scopeFnType = ConversionUtils.scopeFnType(cx);
         List<Parameter> parameters = scopeFnType.parameters();
         assert parameters.size() == 1 : "Scope function type should have exactly one parameter";
 
-        AnalysisResult.ControlFlowFunctions controlFn = cx.getAnalysisResult().getControlFlowFunctions(group);
+        AnalysisResult.ControlFlowFunctions controlFn =
+                cx.getAnalysisResult().getControlFlowFunctions(process.transitionGroup());
         String scopeFn = controlFn.scopeFn();
         List<Statement> body = List.of(new Return<>(new FunctionCall(scopeFn, List.of(parameters.getFirst().ref()))));
         return new BallerinaModel.Function(cx.getProcessStartFunction().name(), parameters, scopeFnType.returnType(),
@@ -567,16 +566,11 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                 List.of(new Parameter(params.varName(), cx.contextType())), NIL, body);
     }
 
-    private static BallerinaModel.Function generateProcessFunction(ProcessContext cx) {
-        Process process = cx.process;
+    private static BallerinaModel.Function generateProcessFunction(ProcessContext cx, Process6 process) {
 
         AnalysisResult.ControlFlowFunctions controlFlowFunctions =
-                switch (process) {
-                    case Process5 process5 -> cx.getAnalysisResult().getControlFlowFunctions(
-                            process5.transitionGroup());
-                    case Process6 process6 -> cx.getAnalysisResult().getControlFlowFunctions(
-                            process6.scope());
-                };
+                cx.getAnalysisResult().getControlFlowFunctions(
+                        process.scope());
         String name = controlFlowFunctions.scopeFn();
         List<Statement> body = new ArrayList<>();
         TypeDesc.FunctionTypeDesc processFunctionType = ConversionUtils.processFunctionType(cx);
