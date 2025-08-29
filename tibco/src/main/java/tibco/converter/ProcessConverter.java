@@ -498,8 +498,9 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                 cx.getAnalysisResult().getControlFlowFunctions(process.transitionGroup());
         String scopeFn = controlFn.scopeFn();
         List<Statement> body = List.of(new Return<>(new FunctionCall(scopeFn, List.of(parameters.getFirst().ref()))));
-        return new BallerinaModel.Function(cx.getProcessStartFunction().name(), parameters, scopeFnType.returnType(),
-                body);
+        Optional<String> visibility = cx.isShared(process) ? Optional.of("public") : Optional.empty();
+        return new BallerinaModel.Function(visibility, cx.getProcessStartFunction().name(), parameters,
+                Optional.of(scopeFnType.returnType()), new BallerinaModel.BlockFunctionBody(body));
     }
 
 
@@ -578,7 +579,9 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         assert parameters.size() == 1 : "Process function type should have exactly one parameter";
 
         generateScopeFnBody(controlFlowFunctions, parameters.getFirst().ref(), body);
-        return new BallerinaModel.Function(name, parameters, processFunctionType.returnType(), body);
+        Optional<String> visibility = cx.isShared(process) ? Optional.of("public") : Optional.empty();
+        return new BallerinaModel.Function(visibility, name, parameters, Optional.of(processFunctionType.returnType()),
+                new BallerinaModel.BlockFunctionBody(body));
     }
 
     private static Collection<BallerinaModel.Function> generateControlFlowFunctionsForScope(

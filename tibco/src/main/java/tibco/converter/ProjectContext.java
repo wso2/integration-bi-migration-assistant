@@ -833,4 +833,8 @@ public class ProjectContext implements LoggingContext {
     public Set<PartiallySupportedActivityElement> getPartiallySupportedActivities() {
         return new HashSet<>(partiallySupportedActivities);
     }
+
+    public boolean isShared(Process process) {
+        return conversionContext.isShared(process);
+    }
 }

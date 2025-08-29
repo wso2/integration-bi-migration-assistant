@@ -106,7 +106,7 @@ public final class ProjectConversionContext implements LoggingContext {
         return sharedResources.contains(resource);
     }
 
-    public boolean isProcessShared(Process process) {
+    public boolean isShared(Process process) {
         return sharedProcesses.contains(process);
     }
 }

@@ -26,6 +26,7 @@ import tibco.LoggingContext;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.NameSpace;
 import tibco.model.Process;
+import tibco.model.Process5;
 import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.Variable;
@@ -386,6 +387,10 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
 
     public void registerPartiallySupportedActivity(tibco.model.Scope.Flow.Activity activity) {
         projectContext.registerPartiallySupportedActivity(activity);
+    }
+
+    public boolean isShared(Process process) {
+        return projectContext.isShared(process);
     }
 
     static final class DefaultClientDetails {
