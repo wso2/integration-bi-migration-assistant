@@ -31,10 +31,18 @@ public final class ProjectConversionContext implements LoggingContext {
     private final String name;
     private final List<TibcoToBalConverter.JavaDependencies> javaDependencies = new ArrayList<>();
     private final ConversionContext cx;
+    private final boolean isSharedLibrary;
 
     public ProjectConversionContext(ConversionContext cx, String name) {
         this.cx = cx;
         this.name = name;
+        this.isSharedLibrary = false;
+    }
+
+    public ProjectConversionContext(ConversionContext cx, String name, boolean isSharedLibrary) {
+        this.cx = cx;
+        this.name = name;
+        this.isSharedLibrary = isSharedLibrary;
     }
 
     public void log(LoggingUtils.Level level, String message) {
@@ -71,6 +79,10 @@ public final class ProjectConversionContext implements LoggingContext {
 
     public ConversionContext conversionContext() {
         return cx;
+    }
+
+    public boolean isSharedLibrary() {
+        return isSharedLibrary;
     }
 
     public void registerProcessTextDocument(Process process, BallerinaModel.TextDocument textdocument) {

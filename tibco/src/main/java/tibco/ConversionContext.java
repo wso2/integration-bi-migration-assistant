@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,13 +40,18 @@ import java.util.function.Consumer;
 
 public final class ConversionContext implements LoggingContext {
 
+    record ProjectResource(Resource resource, ProjectConversionContext originProject) {}
+    record ProjectProcess(Process process, ProjectConversionContext originProject) {}
+
     private final String org;
     private final boolean dryRun;
     private final boolean keepStructure;
     private final Consumer<String> stateCallback;
     private final Consumer<String> logCallback;
-    private final List<ProjectResources> projectResources;
-    private final List<Process> projectProcesses;
+    private final Map<Resource.ResourceIdentifier, ProjectResource> projectResourceMap = new HashMap<>();
+    private final Map<Process.ProcessIdentifier, ProjectProcess> projectProcessMap = new HashMap<>();
+    private final Map<ProjectConversionContext, Set<ProjectResource>> crossProjectResourceRefs = new HashMap<>();
+    private final Map<ProjectConversionContext, Set<ProjectProcess>> crossProjectProcessRefs = new HashMap<>();
     private final Map<Process, Collection<ProcessCodeGenData>> processCodeGenData;
 
     public ConversionContext(String org, boolean dryRun, boolean keepStructure,
@@ -55,8 +61,6 @@ public final class ConversionContext implements LoggingContext {
         this.keepStructure = keepStructure;
         this.stateCallback = stateCallback;
         this.logCallback = logCallback;
-        this.projectResources = new ArrayList<>();
-        this.projectProcesses = new ArrayList<>();
         processCodeGenData = new IdentityHashMap<>();
     }
 
@@ -82,25 +86,40 @@ public final class ConversionContext implements LoggingContext {
         stateCallback.accept(message);
     }
 
-    public Optional<Resource> lookupResource(Resource.ResourceIdentifier identifier) {
-        return projectResources.stream()
-                .flatMap(ProjectResources::stream)
-                .filter(resource -> resource.matches(identifier))
-                .findFirst();
+    public Optional<Resource> lookupResource(Resource.ResourceIdentifier identifier,
+                                           ProjectConversionContext requestingProject) {
+        ProjectResource projectResource = projectResourceMap.get(identifier);
+        if (projectResource != null) {
+            crossProjectResourceRefs.computeIfAbsent(requestingProject, k -> new HashSet<>()).add(projectResource);
+            return Optional.of(projectResource.resource);
+        }
+        return Optional.empty();
     }
 
-    public void addProjectResources(ProjectResources resources) {
-        projectResources.add(resources);
+    public void addProjectResources(ProjectResources resources, ProjectConversionContext originProject) {
+        resources.stream().forEach(resource -> {
+            ProjectResource projectResource = new ProjectResource(resource, originProject);
+            Resource.ResourceIdentifier identifier = new Resource.ResourceIdentifier(resource.kind(), resource.path());
+            projectResourceMap.put(identifier, projectResource);
+        });
     }
 
-    public Optional<Process> lookupProcess(Process.ProcessIdentifier identifier) {
-        return projectProcesses.stream()
-                .filter(identifier::matches)
-                .findFirst();
+    public Optional<Process> lookupProcess(Process.ProcessIdentifier identifier,
+                                         ProjectConversionContext requestingProject) {
+        ProjectProcess projectProcess = projectProcessMap.get(identifier);
+        if (projectProcess != null) {
+            crossProjectProcessRefs.computeIfAbsent(requestingProject, k -> new HashSet<>()).add(projectProcess);
+            return Optional.of(projectProcess.process);
+        }
+        return Optional.empty();
     }
 
-    public void addProjectProcesses(Set<Process> processes) {
-        projectProcesses.addAll(processes);
+    public void addProjectProcesses(Set<Process> processes, ProjectConversionContext originProject) {
+        processes.forEach(process -> {
+            ProjectProcess projectProcess = new ProjectProcess(process, originProject);
+            Process.ProcessIdentifier identifier = new Process.ProcessIdentifier(process.path());
+            projectProcessMap.put(identifier, projectProcess);
+        });
     }
 
     public void registerProcessTextDocument(String projectName, Process process,
@@ -111,6 +130,14 @@ public final class ConversionContext implements LoggingContext {
 
     record ProcessCodeGenData(String projectName, ConversionUtils.LineCount lineCount) {
 
+    }
+
+    public Set<ProjectResource> getCrossProjectResourceRefs(ProjectConversionContext project) {
+        return crossProjectResourceRefs.getOrDefault(project, Collections.emptySet());
+    }
+
+    public Set<ProjectProcess> getCrossProjectProcessRefs(ProjectConversionContext project) {
+        return crossProjectProcessRefs.getOrDefault(project, Collections.emptySet());
     }
 
     public Collection<CombinedSummaryReport.DuplicateProcessData> getDuplicateProcessData() {

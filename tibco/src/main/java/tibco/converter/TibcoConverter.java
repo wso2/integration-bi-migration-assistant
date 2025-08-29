@@ -93,10 +93,10 @@ public class TibcoConverter {
             ProjectResources resources = TibcoToBalConverter.parseResources(pcx);
 
             // Add all parsed resources to the ConversionContext for global lookup
-            cx.conversionContext().addProjectResources(resources);
+            cx.conversionContext().addProjectResources(resources, cx);
 
             // Add all parsed processes to the ConversionContext for global lookup
-            cx.conversionContext().addProjectProcesses(processes);
+            cx.conversionContext().addProjectProcesses(processes, cx);
 
             return new ParsedProject(processes, types, resources, pcx);
         } catch (Exception e) {
@@ -400,6 +400,7 @@ public class TibcoConverter {
             cx.log(SEVERE, "Error creating combined summary report");
         }
     }
+
 
     private static Optional<MigrationResult> migrateTibcoInner(ConversionContext cx, String sourcePath,
                                                                String outputPath, Optional<String> projectName) {
