@@ -30,7 +30,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-public class ResourceAnalysisPass extends AnalysisPass {
+public class DependencyAnalysisPass extends AnalysisPass {
 
     private final Set<Process> calledProcesses = new HashSet<>();
 

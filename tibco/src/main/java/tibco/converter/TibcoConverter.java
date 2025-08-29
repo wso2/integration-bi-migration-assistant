@@ -32,10 +32,10 @@ import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
 import tibco.analyzer.CombinedSummaryReport;
 import tibco.analyzer.DefaultAnalysisPass;
+import tibco.analyzer.DependencyAnalysisPass;
 import tibco.analyzer.LoggingAnalysisPass;
 import tibco.analyzer.ModelAnalyser;
 import tibco.analyzer.ProjectAnalysisContext;
-import tibco.analyzer.ResourceAnalysisPass;
 import tibco.analyzer.TibcoAnalysisReport;
 import tibco.converter.ProjectConverter.ProjectResources;
 import tibco.model.Process;
@@ -306,7 +306,7 @@ public class TibcoConverter {
                 ModelAnalyser modelAnalyser = new ModelAnalyser(List.of(
                         new DefaultAnalysisPass(),
                         new LoggingAnalysisPass(),
-                        new ResourceAnalysisPass()));
+                        new DependencyAnalysisPass()));
                 AnalyzedProject analyzed = analyzeProject(parsedInfo.info().context(), parsedInfo.parsed(),
                         modelAnalyser);
                 analyzedProjects.add(new AnalyzedProjectInfo(
