@@ -374,11 +374,6 @@ public class ProjectContext implements LoggingContext {
         return initContext.functionName();
     }
 
-    public String getPredicateTestFunction() {
-        utilityIntrinsics.add(Intrinsics.XPATH_PREDICATE);
-        return Intrinsics.XPATH_PREDICATE.name;
-    }
-
     public void addTypeAstNode(String name, ModuleMemberDeclarationNode node) {
         typeCx.addTypeAstNode(name, node);
     }
