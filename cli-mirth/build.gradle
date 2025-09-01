@@ -1,0 +1,45 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'baltool.mirth'
+version = '0.1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.google.code.gson:gson:2.10'
+    implementation 'org.apache.httpcomponents.client5:httpclient5:5.2'
+
+    testImplementation platform('org.junit:junit-bom:5.9.1')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    // Dev dependencies
+    implementation "info.picocli:picocli:${picocliVersion}"
+    implementation "org.jetbrains:annotations:${jetbrainsAnnotationsVersion}"
+    testImplementation "org.testng:testng:${testngVersion}"
+//    spotbugs "com.github.spotbugs:spotbugs:${spotbugsVersion}"
+
+    // LogicApps specific dependencies
+    implementation "com.google.code.gson:gson:${gsonVersion}"
+    implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
+}
+
+application {
+    mainClass = 'baltool.mirth.Main'
+}
+
+test {
+    useTestNG() {
+        suites 'src/test/resources/testng.xml'
+    }
+}
+
+// Keep this for backward compatibility
+application {
+    mainClassName = 'cli.Main'
+}
