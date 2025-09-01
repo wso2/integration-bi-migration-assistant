@@ -46,6 +46,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,6 +93,10 @@ public class TibcoConverter {
             Set<Schema> types = TibcoToBalConverter.parseTypes(pcx);
             ProjectResources resources = TibcoToBalConverter.parseResources(pcx);
 
+            // Add processes and resources to the ProjectConversionContext
+            processes.forEach(cx::addProcess);
+            resources.stream().forEach(cx::addResource);
+
             // Add all parsed resources to the ConversionContext for global lookup
             cx.conversionContext().addProjectResources(resources, cx);
 
@@ -127,12 +132,15 @@ public class TibcoConverter {
         return new GeneratedProject(result);
     }
 
-    public static @NotNull SerializedProject serializeProject(ProjectConversionContext cx, GeneratedProject generated) {
+    public static @NotNull SerializedProject serializeProject(ProjectConversionContext cx, GeneratedProject generated,
+                                                              Collection<BallerinaModel.Import> allProjectImports) {
         Map<String, String> files = new HashMap<>();
         ConversionResult result = generated.conversionResult();
 
-        BallerinaModel.Module module =
-                cx.keepStructure() ? result.module() : new BICodeConverter().convert(result.module());
+        BallerinaModel.Module module = cx.keepStructure() ? result.module() :
+                new BICodeConverter(BICodeConverter.DEFAULT_IS_CONFIGURABLE_PREDICATE,
+                        BICodeConverter.DEFAULT_IS_CONNECTION_PREDICATE,
+                        BICodeConverter.DEFAULT_SKIP_CONVERSION_PREDICATE, allProjectImports).convert(result.module());
         for (BallerinaModel.TextDocument textDocument : module.textDocuments()) {
             SyntaxTree st = new CodeGenerator(textDocument).generateSyntaxTree();
             files.put(textDocument.documentName(), st.toSourceCode());
@@ -168,7 +176,7 @@ public class TibcoConverter {
                 new DefaultAnalysisPass(),
                 new LoggingAnalysisPass())));
         GeneratedProject generated = generateCode(cx, analyzed);
-        SerializedProject serialized = serializeProject(cx, generated);
+        SerializedProject serialized = serializeProject(cx, generated, List.of());
         writeProjectFiles(cx, serialized, targetPath, false);
     }
 
@@ -357,8 +365,12 @@ public class TibcoConverter {
         for (GeneratedProjectInfo generatedInfo : generatedProjects) {
             cx.logState("Serializing project: " + generatedInfo.info().childName());
             try {
-                SerializedProject serialized = serializeProject(generatedInfo.info().context(),
-                        generatedInfo.generated());
+                SerializedProject serialized =
+                        serializeProject(generatedInfo.info().context(), generatedInfo.generated(),
+                                projectInfoList.stream()
+                                        .map(ProjectInfo::context)
+                                        .map(ProjectConversionContext::getImport)
+                                        .collect(Collectors.toList()));
                 serializedProjects.add(new SerializedProjectInfo(
                         generatedInfo.info(),
                         generatedInfo.parsed(),
@@ -435,7 +447,7 @@ public class TibcoConverter {
                     new DefaultAnalysisPass(),
                     new LoggingAnalysisPass())));
             GeneratedProject generated = generateCode(context, analyzed);
-            SerializedProject serialized = serializeProject(context, generated);
+            SerializedProject serialized = serializeProject(context, generated, List.of());
             writeProjectFiles(context, serialized, targetPath, context.dryRun());
 
             return Optional.of(new MigrationResult(serialized.report()));

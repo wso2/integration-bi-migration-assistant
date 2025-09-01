@@ -992,7 +992,14 @@ final class ActivityConverter {
             ActivityContext cx, VariableReference input, InlineActivity.CallProcess callProcess) {
         List<Statement> body = new ArrayList<>();
         body.add(addToContext(cx, input, "$Start"));
-        String processFn = ConversionUtils.processFunctionName(callProcess.processName());
+        String processFn = cx.getProcessFunction(callProcess.processName())
+                .orElseGet(() -> {
+                            body.add(new Comment(
+                                    "FIXME: failed to find process for %s using placeholder".formatted(
+                                            callProcess.processName())));
+                            return "placeholder_process_for_" + ConversionUtils.sanitizes(callProcess.processName());
+                        }
+                );
 
         body.add(new CallStatement(new FunctionCall(processFn, List.of(cx.contextVarRef()))));
 

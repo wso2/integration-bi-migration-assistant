@@ -27,6 +27,7 @@ import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.LoggingContext;
+import tibco.LookupResult;
 import tibco.ProjectConversionContext;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
@@ -566,6 +567,13 @@ public class ProjectContext implements LoggingContext {
                     new UnNamedPartiallySupportedActivityElement(activity.element(), fileName));
         }
         log(LoggingUtils.Level.WARN, "Partially supported activity: " + name);
+    }
+
+    public Optional<String> getProcessFunction(String processName) {
+        return conversionContext.processFunction(processName).map(result -> result.importIdentifier().map(imp -> {
+            utilityFunctionImports.add(imp);
+            return imp.moduleName() + ":" + ConversionUtils.processFunctionName(processName);
+        }).orElseGet(() -> ConversionUtils.processFunctionName(processName)));
     }
 
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {

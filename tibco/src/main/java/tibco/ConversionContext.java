@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,8 +83,7 @@ public final class ConversionContext implements LoggingContext {
         stateCallback.accept(message);
     }
 
-    public Optional<Resource> lookupResource(Resource.ResourceIdentifier identifier,
-                                           ProjectConversionContext requestingProject) {
+    public Optional<Resource> lookupResource(Resource.ResourceIdentifier identifier) {
         ProjectResource projectResource = projectResourceMap.get(identifier);
         if (projectResource == null) {
             return Optional.empty();
@@ -103,8 +101,7 @@ public final class ConversionContext implements LoggingContext {
         });
     }
 
-    public Optional<Process> lookupProcess(Process.ProcessIdentifier identifier,
-                                         ProjectConversionContext requestingProject) {
+    public Optional<Process> lookupProcess(Process.ProcessIdentifier identifier) {
         ProjectProcess projectProcess = projectProcessMap.get(identifier);
         if (projectProcess == null) {
             return Optional.empty();
@@ -156,6 +153,16 @@ public final class ConversionContext implements LoggingContext {
         return Optional.of(new CombinedSummaryReport.DuplicateProcessData(processName,
                 Collections.unmodifiableMap(projectLineCounts)));
     }
+
+    public Optional<LookupResult> processFunction(String processName) {
+        ProjectProcess process = projectProcessMap.get(new Process.ProcessIdentifier(processName));
+        if (process == null) {
+            return Optional.empty();
+        }
+        return Optional.of(new LookupResult(Optional.of(process.originProject.getImport()),
+                ConversionUtils.processFunctionName(processName)));
+    }
+
 
     @Override
     public String toString() {

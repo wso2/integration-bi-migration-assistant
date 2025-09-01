@@ -103,12 +103,10 @@ public class ProjectAnalysisContext implements LoggingContext {
         }
 
         // If not found locally, look in ConversionContext
-        Optional<Resource> globalResource = cx.conversionContext().lookupResource(identifier, cx);
+        Optional<Resource> globalResource = cx.conversionContext().lookupResource(identifier);
 
         // If found in ConversionContext, capture it for this project
-        if (globalResource.isPresent()) {
-            captureResource(globalResource.get());
-        }
+        globalResource.ifPresent(this::captureResource);
 
         return globalResource;
     }
@@ -175,16 +173,8 @@ public class ProjectAnalysisContext implements LoggingContext {
         }
 
         // If not found locally, look in ConversionContext
-        Optional<Process> globalProcess = cx.conversionContext().lookupProcess(identifier, cx);
 
-        // If found in ConversionContext, capture it for this project
-        if (globalProcess.isPresent()) {
-            var process = globalProcess.get();
-            processQueue.add(process);
-            capturedProcesses.add(process);
-        }
-
-        return globalProcess;
+        return cx.conversionContext().lookupProcess(identifier);
     }
 
     private Optional<Process> findProcessInProject(Process.ProcessIdentifier identifier) {

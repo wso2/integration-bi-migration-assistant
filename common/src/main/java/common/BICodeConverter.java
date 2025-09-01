@@ -25,6 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -39,6 +40,7 @@ public final class BICodeConverter {
     public static final Predicate<BallerinaModel.ModuleVar> DEFAULT_IS_CONNECTION_PREDICATE = new TypeNamePredicate(
             Set.of("http:Client", "jdbc:Client", "mysql:Client", "oracledb:Client", "jms:Connection"));
     public static final Predicate<BallerinaModel.TextDocument> DEFAULT_SKIP_CONVERSION_PREDICATE = ignored -> false;
+    private final Map<String, BallerinaModel.Import> toolImports;
 
     private final Predicate<BallerinaModel.ModuleVar> isConfigurable;
     private final Predicate<BallerinaModel.ModuleVar> isConnection;
@@ -50,6 +52,21 @@ public final class BICodeConverter {
         this.isConfigurable = isConfigurable;
         this.isConnection = isConnection;
         this.skipConversion = skipConversion;
+        this.toolImports = Map.of();
+    }
+
+    public BICodeConverter(Predicate<BallerinaModel.ModuleVar> isConfigurable,
+            Predicate<BallerinaModel.ModuleVar> isConnection,
+            Predicate<BallerinaModel.TextDocument> skipConversion,
+            Collection<BallerinaModel.Import> toolImports) {
+        this.isConfigurable = isConfigurable;
+        this.isConnection = isConnection;
+        this.skipConversion = skipConversion;
+        this.toolImports = toolImports.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        BallerinaModel.Import::moduleName,
+                        importItem -> importItem,
+                        (existing, replacement) -> existing));
     }
 
     public BICodeConverter() {
@@ -163,6 +180,9 @@ public final class BICodeConverter {
     }
 
     private List<BallerinaModel.Import> prefixToImport(String prefix) {
+        if (toolImports.containsKey(prefix)) {
+            return List.of(toolImports.get(prefix));
+        }
         return switch (prefix) {
             case "http" -> List.of(new BallerinaModel.Import("ballerina", "http"));
             case "xslt" -> List.of(new BallerinaModel.Import("ballerina", "xslt"));
