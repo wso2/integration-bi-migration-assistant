@@ -20,6 +20,7 @@ include ':mule'
 include ':cli-mule'
 include ':cli-tibco'
 include 'cli-logicapps'
+include 'cli-mirth'
 
 project(':checkstyle').projectDir = file("build-config${File.separator}checkstyle")
 project(':common').projectDir = file('common')
@@ -28,3 +29,4 @@ project(':tibco').projectDir = file('tibco')
 project(':cli-mule').projectDir = file('cli-mule')
 project(':cli-tibco').projectDir = file('cli-tibco')
 project(':cli-logicapps').projectDir = file('cli-logicapps')
+project(':cli-mirth').projectDir = file('cli-mirth')
