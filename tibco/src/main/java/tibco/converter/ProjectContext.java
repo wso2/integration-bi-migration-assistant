@@ -27,7 +27,6 @@ import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.LoggingContext;
-import tibco.LookupResult;
 import tibco.ProjectConversionContext;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;

@@ -26,7 +26,6 @@ import tibco.LoggingContext;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.NameSpace;
 import tibco.model.Process;
-import tibco.model.Process5;
 import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.Variable;

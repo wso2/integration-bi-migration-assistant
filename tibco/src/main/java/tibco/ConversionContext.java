@@ -39,8 +39,8 @@ import java.util.function.Consumer;
 
 public final class ConversionContext implements LoggingContext {
 
-    record ProjectResource(Resource resource, ProjectConversionContext originProject) {}
-    record ProjectProcess(Process process, ProjectConversionContext originProject) {}
+    record ProjectResource(Resource resource, ProjectConversionContext originProject) { }
+    record ProjectProcess(Process process, ProjectConversionContext originProject) { }
 
     private final String org;
     private final boolean dryRun;
