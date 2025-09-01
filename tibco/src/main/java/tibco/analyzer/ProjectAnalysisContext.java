@@ -55,7 +55,6 @@ public class ProjectAnalysisContext implements LoggingContext {
             new HashSet<>(),
             new HashSet<>(),
             new HashSet<>());
-    private final Set<Process> capturedProcesses = new HashSet<>();
     private Set<Process> currentProcesses = new HashSet<>();
 
     // Queue to hold processes for analysis
@@ -178,14 +177,9 @@ public class ProjectAnalysisContext implements LoggingContext {
     }
 
     private Optional<Process> findProcessInProject(Process.ProcessIdentifier identifier) {
-        return Stream.of(currentProcesses, capturedProcesses)
-                .flatMap(Set::stream)
+        return currentProcesses.stream()
                 .filter(identifier::matches)
                 .findFirst();
-    }
-
-    public Set<Process> capturedProcesses() {
-        return capturedProcesses;
     }
 
     /**

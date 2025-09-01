@@ -48,6 +48,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -119,10 +120,7 @@ public class TibcoConverter {
         Map<Process, AnalysisResult> analysisResults =
                 modelAnalyser.analyseProject(analysisContext, parsed.processes(), parsed.types(), parsed.resources());
         ProjectResources resources = ProjectResources.merge(parsed.resources(), analysisContext.capturedResources());
-        Set<Process> process = Stream.of(parsed.processes(), analysisContext.capturedProcesses())
-                .flatMap(Set::stream)
-                .collect(Collectors.toSet());
-        return new AnalyzedProject(process, parsed.types(), resources, parsed.parserContext(),
+        return new AnalyzedProject(parsed.processes(), parsed.types(), resources, parsed.parserContext(),
                 analysisResults);
     }
 
