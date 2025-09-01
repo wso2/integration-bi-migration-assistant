@@ -39,13 +39,16 @@ import java.util.function.Consumer;
 
 public final class ConversionContext implements LoggingContext {
 
+    record ProjectResource(Resource resource, ProjectConversionContext originProject) { }
+    record ProjectProcess(Process process, ProjectConversionContext originProject) { }
+
     private final String org;
     private final boolean dryRun;
     private final boolean keepStructure;
     private final Consumer<String> stateCallback;
     private final Consumer<String> logCallback;
-    private final List<ProjectResources> projectResources;
-    private final List<Set<Process>> projectProcesses;
+    private final Map<Resource.ResourceIdentifier, ProjectResource> projectResourceMap = new HashMap<>();
+    private final Map<Process.ProcessIdentifier, ProjectProcess> projectProcessMap = new HashMap<>();
     private final Map<Process, Collection<ProcessCodeGenData>> processCodeGenData;
 
     public ConversionContext(String org, boolean dryRun, boolean keepStructure,
@@ -55,8 +58,6 @@ public final class ConversionContext implements LoggingContext {
         this.keepStructure = keepStructure;
         this.stateCallback = stateCallback;
         this.logCallback = logCallback;
-        this.projectResources = new ArrayList<>();
-        this.projectProcesses = new ArrayList<>();
         processCodeGenData = new IdentityHashMap<>();
     }
 
@@ -83,25 +84,39 @@ public final class ConversionContext implements LoggingContext {
     }
 
     public Optional<Resource> lookupResource(Resource.ResourceIdentifier identifier) {
-        return projectResources.stream()
-                .flatMap(ProjectResources::stream)
-                .filter(resource -> resource.matches(identifier))
-                .findFirst();
+        ProjectResource projectResource = projectResourceMap.get(identifier);
+        if (projectResource == null) {
+            return Optional.empty();
+        }
+        // Mark the resource as shared in its origin project
+        projectResource.originProject().markResourceAsShared(projectResource.resource());
+        return Optional.of(projectResource.resource());
     }
 
-    public void addProjectResources(ProjectResources resources) {
-        projectResources.add(resources);
+    public void addProjectResources(ProjectResources resources, ProjectConversionContext originProject) {
+        resources.stream().forEach(resource -> {
+            ProjectResource projectResource = new ProjectResource(resource, originProject);
+            Resource.ResourceIdentifier identifier = new Resource.ResourceIdentifier(resource.kind(), resource.path());
+            projectResourceMap.put(identifier, projectResource);
+        });
     }
 
     public Optional<Process> lookupProcess(Process.ProcessIdentifier identifier) {
-        return projectProcesses.stream()
-                .flatMap(Set::stream)
-                .filter(identifier::matches)
-                .findFirst();
+        ProjectProcess projectProcess = projectProcessMap.get(identifier);
+        if (projectProcess == null) {
+            return Optional.empty();
+        }
+        // Mark the process as shared in its origin project
+        projectProcess.originProject().markProcessAsShared(projectProcess.process());
+        return Optional.of(projectProcess.process());
     }
 
-    public void addProjectProcesses(Set<Process> processes) {
-        projectProcesses.add(processes);
+    public void addProjectProcesses(Set<Process> processes, ProjectConversionContext originProject) {
+        processes.forEach(process -> {
+            ProjectProcess projectProcess = new ProjectProcess(process, originProject);
+            Process.ProcessIdentifier identifier = new Process.ProcessIdentifier(process.path());
+            projectProcessMap.put(identifier, projectProcess);
+        });
     }
 
     public void registerProcessTextDocument(String projectName, Process process,
@@ -113,6 +128,7 @@ public final class ConversionContext implements LoggingContext {
     record ProcessCodeGenData(String projectName, ConversionUtils.LineCount lineCount) {
 
     }
+
 
     public Collection<CombinedSummaryReport.DuplicateProcessData> getDuplicateProcessData() {
         List<CombinedSummaryReport.DuplicateProcessData> duplicates = new ArrayList<>();
@@ -137,6 +153,16 @@ public final class ConversionContext implements LoggingContext {
         return Optional.of(new CombinedSummaryReport.DuplicateProcessData(processName,
                 Collections.unmodifiableMap(projectLineCounts)));
     }
+
+    public Optional<LookupResult> processFunction(String processName) {
+        ProjectProcess process = projectProcessMap.get(new Process.ProcessIdentifier(processName));
+        if (process == null) {
+            return Optional.empty();
+        }
+        return Optional.of(new LookupResult(Optional.of(process.originProject.getImport()),
+                ConversionUtils.processFunctionName(processName)));
+    }
+
 
     @Override
     public String toString() {

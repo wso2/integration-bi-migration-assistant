@@ -55,7 +55,6 @@ public class ProjectAnalysisContext implements LoggingContext {
             new HashSet<>(),
             new HashSet<>(),
             new HashSet<>());
-    private final Set<Process> capturedProcesses = new HashSet<>();
     private Set<Process> currentProcesses = new HashSet<>();
 
     // Queue to hold processes for analysis
@@ -106,9 +105,7 @@ public class ProjectAnalysisContext implements LoggingContext {
         Optional<Resource> globalResource = cx.conversionContext().lookupResource(identifier);
 
         // If found in ConversionContext, capture it for this project
-        if (globalResource.isPresent()) {
-            captureResource(globalResource.get());
-        }
+        globalResource.ifPresent(this::captureResource);
 
         return globalResource;
     }
@@ -175,27 +172,14 @@ public class ProjectAnalysisContext implements LoggingContext {
         }
 
         // If not found locally, look in ConversionContext
-        Optional<Process> globalProcess = cx.conversionContext().lookupProcess(identifier);
 
-        // If found in ConversionContext, capture it for this project
-        if (globalProcess.isPresent()) {
-            var process = globalProcess.get();
-            processQueue.add(process);
-            capturedProcesses.add(process);
-        }
-
-        return globalProcess;
+        return cx.conversionContext().lookupProcess(identifier);
     }
 
     private Optional<Process> findProcessInProject(Process.ProcessIdentifier identifier) {
-        return Stream.of(currentProcesses, capturedProcesses)
-                .flatMap(Set::stream)
+        return currentProcesses.stream()
                 .filter(identifier::matches)
                 .findFirst();
-    }
-
-    public Set<Process> capturedProcesses() {
-        return capturedProcesses;
     }
 
     /**

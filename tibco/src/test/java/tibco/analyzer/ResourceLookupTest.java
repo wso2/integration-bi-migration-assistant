@@ -69,10 +69,11 @@ public class ResourceLookupTest {
         ProjectResources globalProjectResources = new ProjectResources(
                 new ArrayList<>(), new ArrayList<>(), List.of(globalResource),
                 new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
-        conversionContext.addProjectResources(globalProjectResources);
 
         ProjectConversionContext projectConversionContext =
                 new ProjectConversionContext(conversionContext, "test-project");
+        conversionContext.addProjectResources(globalProjectResources, projectConversionContext);
+
         ProjectAnalysisContext analysisContext = new ProjectAnalysisContext(projectConversionContext,
                 new ProjectResources(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
                         new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));

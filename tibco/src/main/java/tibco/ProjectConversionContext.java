@@ -20,17 +20,26 @@ package tibco;
 
 import common.BallerinaModel;
 import common.LoggingUtils;
+import tibco.converter.ConversionUtils;
 import tibco.model.Process;
+import tibco.model.Resource;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 public final class ProjectConversionContext implements LoggingContext {
 
     private final String name;
     private final List<TibcoToBalConverter.JavaDependencies> javaDependencies = new ArrayList<>();
     private final ConversionContext cx;
+    private final Set<Resource> sharedResources = new HashSet<>();
+    private final Set<Process> sharedProcesses = new HashSet<>();
+    private final Set<Resource> resources = new HashSet<>();
+    private final Set<Process> processes = new HashSet<>();
 
     public ProjectConversionContext(ConversionContext cx, String name) {
         this.cx = cx;
@@ -75,5 +84,42 @@ public final class ProjectConversionContext implements LoggingContext {
 
     public void registerProcessTextDocument(Process process, BallerinaModel.TextDocument textdocument) {
         cx.registerProcessTextDocument(name, process, textdocument);
+    }
+
+    public void markResourceAsShared(Resource resource) {
+        sharedResources.add(resource);
+    }
+
+    public void markProcessAsShared(Process process) {
+        sharedProcesses.add(process);
+    }
+
+    public boolean isResourceShared(Resource resource) {
+        return sharedResources.contains(resource);
+    }
+
+    public boolean isShared(Process process) {
+        return sharedProcesses.contains(process);
+    }
+
+    public Optional<LookupResult> processFunction(String processName) {
+        assert processName != null;
+        boolean localProcess = processes.stream().map(Process::name).anyMatch(name -> name.equals(processName));
+        if (localProcess) {
+            return Optional.of(new LookupResult(Optional.empty(), ConversionUtils.processFunctionName(processName)));
+        }
+        return conversionContext().processFunction(processName);
+    }
+
+    public BallerinaModel.Import getImport() {
+        return new BallerinaModel.Import(org(), name());
+    }
+
+    public void addResource(Resource resource) {
+        resources.add(resource);
+    }
+
+    public void addProcess(Process process) {
+        processes.add(process);
     }
 }

@@ -327,9 +327,9 @@ public class TibcoToBalConverter {
             tibco.converter.TibcoConverter.GeneratedProject generated =
                     tibco.converter.TibcoConverter.generateCode(cx, analyzed);
             tibco.converter.TibcoConverter.SerializedProject serialized =
-                    tibco.converter.TibcoConverter.serializeProject(cx, generated);
+                    tibco.converter.TibcoConverter.serializeProject(cx, generated, List.of());
 
-            return Map.of("textEdits", serialized.files(), "report", serialized.report().toHTML(), 
+            return Map.of("textEdits", serialized.files(), "report", serialized.report().toHTML(),
                     "report-json", serialized.report().toJSON());
         } catch (Exception e) {
             return Map.of("error", e.getMessage());

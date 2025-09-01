@@ -568,6 +568,13 @@ public class ProjectContext implements LoggingContext {
         log(LoggingUtils.Level.WARN, "Partially supported activity: " + name);
     }
 
+    public Optional<String> getProcessFunction(String processName) {
+        return conversionContext.processFunction(processName).map(result -> result.importIdentifier().map(imp -> {
+            utilityFunctionImports.add(imp);
+            return imp.moduleName() + ":" + ConversionUtils.processFunctionName(processName);
+        }).orElseGet(() -> ConversionUtils.processFunctionName(processName)));
+    }
+
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
 
         FunctionData {
@@ -832,5 +839,9 @@ public class ProjectContext implements LoggingContext {
 
     public Set<PartiallySupportedActivityElement> getPartiallySupportedActivities() {
         return new HashSet<>(partiallySupportedActivities);
+    }
+
+    public boolean isShared(Process process) {
+        return conversionContext.isShared(process);
     }
 }
