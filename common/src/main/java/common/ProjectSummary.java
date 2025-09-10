@@ -27,7 +27,10 @@ import java.util.Map;
  * @param projectName                    The name of the project
  * @param projectPath                    The path to the project
  * @param reportPath                     The path to the report
- * @param activityEstimation             The activity estimation data
+ * @param totalActivityCount             Total number of activities in the project
+ * @param unhandledActivityCount         Number of unhandled activities
+ * @param manualConversionEstimation     Time estimation for manual conversion work
+ * @param generatedLineCount             Number of lines of code generated
  * @param successfulConversionPercentage The percentage of successful
  *                                       conversions
  * @param unhandledActivities            Map of unhandled activity types to
@@ -39,63 +42,12 @@ public record ProjectSummary(
         String projectName,
         String projectPath,
         String reportPath,
-        ActivityEstimation activityEstimation,
+        int totalActivityCount,
+        int unhandledActivityCount,
+        TimeEstimation manualConversionEstimation,
+        long generatedLineCount,
         double successfulConversionPercentage,
         Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledActivities,
         Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedActivities) {
-    /**
-     * Record to hold activity count and time estimation data.
-     *
-     * @param totalActivityCount     The total number of activities
-     * @param unhandledActivityCount The number of unhandled activities
-     * @param timeEstimation         The time estimation data
-     */
-    public record ActivityEstimation(
-            int totalActivityCount,
-            int unhandledActivityCount,
-            TimeEstimation timeEstimation) {
-    }
 
-    /**
-     * Record to hold time estimation data.
-     *
-     * @param bestCaseDays    The best case scenario in days
-     * @param averageCaseDays The average case scenario in days
-     * @param worstCaseDays   The worst case scenario in days
-     */
-    public record TimeEstimation(
-            int bestCaseDays,
-            int averageCaseDays,
-            int worstCaseDays
-    ) {
-        public int bestCaseWeeks() {
-            return (int) Math.ceil(bestCaseDays / 5.0);
-        }
-
-        public int averageCaseWeeks() {
-            return (int) Math.ceil(averageCaseDays / 5.0);
-        }
-
-        public int worstCaseWeeks() {
-            return (int) Math.ceil(worstCaseDays / 5.0);
-        }
-    }
-
-    /**
-     * Calculate the successful conversion percentage.
-     *
-     * @return The percentage of successful conversions (0-100)
-     */
-    public double getSuccessfulConversionPercentage() {
-        return successfulConversionPercentage;
-    }
-
-    /**
-     * Get the number of unique unhandled element types for time estimation.
-     *
-     * @return The number of unique unhandled element types
-     */
-    public int getUniqueUnhandledElementCount() {
-        return unhandledActivities != null ? unhandledActivities.size() : 0;
-    }
 }

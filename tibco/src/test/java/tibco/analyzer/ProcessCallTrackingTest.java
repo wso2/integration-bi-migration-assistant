@@ -24,7 +24,7 @@ import java.util.Collections;
 
 /**
  * Simple test to validate process call tracking functionality.
- * Tests that ResourceAnalysisPass can track called processes in AnalysisResult.
+ * Tests that DependencyAnalysisPass can track called processes in AnalysisResult.
  */
 public class ProcessCallTrackingTest {
 
@@ -50,8 +50,8 @@ public class ProcessCallTrackingTest {
     }
 
     private void testBasicAnalysisResultCreation() {
-        // Create a simple ResourceAnalysisPass and get result
-        ResourceAnalysisPass analysisPass = new ResourceAnalysisPass();
+        // Create a simple DependencyAnalysisPass and get result
+        DependencyAnalysisPass analysisPass = new DependencyAnalysisPass();
         AnalysisResult result = analysisPass.getResult(null, null);
 
         // Verify the isProcessCalled method exists and works
@@ -59,8 +59,8 @@ public class ProcessCallTrackingTest {
     }
 
     private void testProcessCallTrackingFunctionality() {
-        // Create a ResourceAnalysisPass and test with real Process instances
-        ResourceAnalysisPass analysisPass = new ResourceAnalysisPass();
+        // Create a DependencyAnalysisPass and test with real Process instances
+        DependencyAnalysisPass analysisPass = new DependencyAnalysisPass();
 
         // Create real Process instances using the existing process creation pattern
         Process5 process1 = new Process5("TestProcess1", "/TestProcess1", Collections.emptyList(),

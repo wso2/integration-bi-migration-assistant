@@ -388,6 +388,14 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         projectContext.registerPartiallySupportedActivity(activity);
     }
 
+    public boolean isShared(Process process) {
+        return projectContext.isShared(process);
+    }
+
+    public Optional<String> getProcessFunction(String processName) {
+        return projectContext.getProcessFunction(processName);
+    }
+
     static final class DefaultClientDetails {
         final BallerinaModel.ModuleVar varDecl;
         final String method;

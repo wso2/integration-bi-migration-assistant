@@ -185,4 +185,8 @@ public class ActivityContext implements LoggingContext {
     public void registerPartiallySupportedActivity(tibco.model.Scope.Flow.Activity activity) {
         processContext.registerPartiallySupportedActivity(activity);
     }
+
+    public Optional<String> getProcessFunction(String processName) {
+        return processContext.getProcessFunction(processName);
+    }
 }

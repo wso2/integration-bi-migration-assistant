@@ -36,6 +36,7 @@ checkstyle {
 tasks.withType(Checkstyle) {
     exclude '**/XmlToTibcoModelConverter.java'
     exclude '**/XmlToModelTests.java'
+    exclude '**/CombinedSummaryReport.java'
 }
 
 spotbugs {

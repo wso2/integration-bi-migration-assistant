@@ -471,6 +471,57 @@ footer {
     box-sizing: border-box;
 }
 
+/* Time estimates horizontal layout styling */
+.time-estimates-horizontal {
+    display: flex;
+    justify-content: space-around;
+    align-items: stretch;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.time-estimates-horizontal:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.time-estimate {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    text-align: center;
+}
+
+.time-label {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.time-value {
+    font-weight: bold;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.time-days {
+    font-size: 1.4em;
+    margin-bottom: 2px;
+}
+
+.time-weeks {
+    font-size: 0.8em;
+    color: #777;
+    font-weight: normal;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
     .metrics {
@@ -498,110 +549,121 @@ footer {
         <h1>Combined Migration Assessment</h1>
 <div class="summary-container">
     <h2>Overview</h2>
-                        <div class="metrics overview-metrics">
-        <div class="metric overview-metric">
+    <div class="metrics overview-metrics">
+    <div class="metric overview-metric" style="display: flex; flex-direction: row; align-items: center; gap: 40px; width: 100%; box-sizing: border-box; padding: 20px; justify-content: center;">
+        <div style="display: flex; flex-direction: column; align-items: center;">
             <span class="metric-value">2</span>
             <span class="metric-label">Projects Analyzed</span>
         </div>
-        <div class="metric overview-metric">
-            <div class="metric-left">
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            <span class="metric-value">264</span>
+            <span class="metric-label">Lines Generated</span>
+        </div>
+    </div>
+    <div class="metric overview-metric" style="justify-content: space-around">
+        <div class="metric-left" style="display: flex; flex-direction: column;">
+            <div>
                 <span class="metric-value">100%</span>
                 <span class="metric-label">Average Automated Migration Coverage</span>
-                <div class="coverage-indicator overview-indicator">
-                    <div class="coverage-bar" data-width="100" data-color="#4CAF50"></div>
-                </div>
             </div>
-            <div class="metric-right">
-                <div class="coverage-breakdown">
-                    <div class="breakdown-row">
-                        <span class="breakdown-label">Total Activities:</span>
-                        <span class="breakdown-value">7</span>
-                    </div>
-                    <div class="breakdown-row">
-                        <span class="breakdown-label">Migratable Activities:</span>
-                        <span class="breakdown-value">7</span>
-                    </div>
-                    <div class="breakdown-row">
-                        <span class="breakdown-label">Non-migratable Activities:</span>
-                        <span class="breakdown-value">0</span>
-                    </div>
+            <div class="coverage-indicator overview-indicator" style="width: 100%">
+                <div class="coverage-bar" data-width="100" data-color="#4CAF50"></div>
+            </div>
+        </div>
+        <div class="metric-right">
+            <div class="coverage-breakdown">
+                <div class="breakdown-row">
+                    <span class="breakdown-label">Total Activities:</span>
+                    <span class="breakdown-value">7</span>
+                </div>
+                <div class="breakdown-row">
+                    <span class="breakdown-label">Migratable Activities:</span>
+                    <span class="breakdown-value">7</span>
+                </div>
+                <div class="breakdown-row">
+                    <span class="breakdown-label">Non-migratable Activities:</span>
+                    <span class="breakdown-value">0</span>
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="time-estimates-container">
-        <div class="time-estimates overview-time-estimates">
-                    <div class="time-estimate best-case">
-                        <div class="time-label">Best Case</div>
-                        <div class="time-value time-best">
-                            <span class="time-days">3d</span>
-                            <span class="time-weeks">(~1w)</span>
-                        </div>
-                    </div>
-                    <div class="time-estimate avg-case">
-                        <div class="time-label">Average Case</div>
-                        <div class="time-value time-avg">
-                            <span class="time-days">6d</span>
-                            <span class="time-weeks">(~2w)</span>
-                        </div>
-                    </div>
-                    <div class="time-estimate worst-case">
-                        <div class="time-label">Worst Case</div>
-                        <div class="time-value time-worst">
-                            <span class="time-days">10d</span>
-                            <span class="time-weeks">(~2w)</span>
-                        </div>
-                    </div>
-        </div>
-    </div>
-
-    <div class="estimation-notes">
-        <p><strong>Note:</strong></p>
-        <ul>
-            <li>2 TIBCO BW projects analyzed for migration to Ballerina</li>
-            <li>100% average automated conversion rate across all projects</li>
-            <li>Time estimates shown above represents manual work required to complete migration for all projects combined</li>
-        </ul>
-    </div>
-
-    <div class="estimation-notes">
-        <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
-        <ul>
-            <li>Best case scenario:
-              <ul>
-                <li>1.0 day per each new unsupported activity for analysis, implementation, and testing</li>
-                <li>1.0 hour per each repeated unsupported activity for implementation</li>
-                <li>Assumes minimal complexity and straightforward implementations</li>
-              </ul>
-            </li>
-            <li>Average case scenario:
-              <ul>
-                <li>2.0 days per each new unsupported activity for analysis, implementation, and testing</li>
-                <li>2.0 hour per each repeated unsupported activity for implementation</li>
-                <li>Assumes medium complexity with moderate implementation challenges</li>
-              </ul>
-            </li>
-            <li>Worst case scenario:
-              <ul>
-                <li>3.0 days per each new unsupported activity for analysis, implementation, and testing</li>
-                <li>4.0 hour per each repeated unsupported activity for implementation</li>
-                <li>Assumes high complexity with significant implementation challenges</li>
-              </ul>
-            </li>
-        </ul>
     </div>
 </div>
+
+    <div class="summary-container">
+    <h2>Manual Work Estimation</h2>
+    <div class="time-estimates-horizontal">
+        <div class="time-estimate">
+            <div class="time-label">Best Case</div>
+            <div class="time-value time-best">
+                <span class="time-days">0 days</span>
+                <span class="time-weeks">(0 weeks)</span>
+            </div>
+        </div>
+        <div class="time-estimate">
+            <div class="time-label">Average Case</div>
+            <div class="time-value time-avg">
+                <span class="time-days">0 days</span>
+                <span class="time-weeks">(0 weeks)</span>
+            </div>
+        </div>
+        <div class="time-estimate">
+            <div class="time-label">Worst Case</div>
+            <div class="time-value time-worst">
+                <span class="time-days">0 days</span>
+                <span class="time-weeks">(0 weeks)</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div class="estimation-notes">
+    <p><strong>Note:</strong></p>
+    <ul>
+        <li>2 TIBCO BW projects analyzed for migration to Ballerina</li>
+        <li>100% average automated conversion rate across all projects</li>
+        <li>Time estimates shown below represents manual work required to complete migration for all projects combined</li>
+        <li>264 lines of code generated across all projects</li>
+    </ul>
+</div>
+
+    <div class="estimation-notes">
+    <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
+    <ul>
+        <li>Best case scenario:
+          <ul>
+            <li>1.0 day per each new unsupported activity for analysis, implementation, and testing</li>
+            <li>1.0 hour per each repeated unsupported activity for implementation</li>
+            <li>Assumes minimal complexity and straightforward implementations</li>
+          </ul>
+        </li>
+        <li>Average case scenario:
+          <ul>
+            <li>2.0 days per each new unsupported activity for analysis, implementation, and testing</li>
+            <li>2.0 hour per each repeated unsupported activity for implementation</li>
+            <li>Assumes medium complexity with moderate implementation challenges</li>
+          </ul>
+        </li>
+        <li>Worst case scenario:
+          <ul>
+            <li>3.0 days per each new unsupported activity for analysis, implementation, and testing</li>
+            <li>4.0 hour per each repeated unsupported activity for implementation</li>
+            <li>Assumes high complexity with significant implementation challenges</li>
+          </ul>
+        </li>
+    </ul>
+</div>
+
+</div>
 <div class="projects-container">
-    <div class="project-card">
-        <div class="project-left">
-            <div class="project-header">
-                <div class="project-name">
-                    <a href="helloWorld_converted/report.html" class="project-link">helloWorld</a>
-                </div>
-                <span class="status-badge status-high">High Coverage</span>
-            </div>
-
+<div class="project-card" style="display: flex; flex-direction: column; align-items: stretch;">
+    <div class="project-header">
+        <div class="project-name">
+            <a href="helloWorld_converted/report.html" class="project-link">helloWorld</a>
+        </div>
+        <span class="status-badge status-high">High Coverage</span>
+    </div>
+    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; margin-right: 2%;">
+        <div class="project-left" style="flex: 2;">
             <div class="project-details">
                 <div class="project-metrics">
                     <div class="metric">
@@ -633,39 +695,40 @@ footer {
             </div>
         </div>
 
-        <div class="time-estimates">
+        <div class="time-estimates" style="flex: 1; margin-left: 2%;">
             <div class="time-estimate best-case">
                 <div class="time-label">Best Case</div>
                 <div class="time-value time-best">
-                    <span class="time-days">2d</span>
-                    <span class="time-weeks">(~1w)</span>
+                    <span class="time-days">0d</span>
+                    <span class="time-weeks">(~0w)</span>
                 </div>
             </div>
             <div class="time-estimate avg-case">
                 <div class="time-label">Average Case</div>
                 <div class="time-value time-avg">
-                    <span class="time-days">4d</span>
-                    <span class="time-weeks">(~1w)</span>
+                    <span class="time-days">0d</span>
+                    <span class="time-weeks">(~0w)</span>
                 </div>
             </div>
             <div class="time-estimate worst-case">
                 <div class="time-label">Worst Case</div>
                 <div class="time-value time-worst">
-                    <span class="time-days">7d</span>
-                    <span class="time-weeks">(~2w)</span>
+                    <span class="time-days">0d</span>
+                    <span class="time-weeks">(~0w)</span>
                 </div>
             </div>
         </div>
     </div>
-    <div class="project-card">
-        <div class="project-left">
-            <div class="project-header">
-                <div class="project-name">
-                    <a href="lib_converted/report.html" class="project-link">lib</a>
-                </div>
-                <span class="status-badge status-high">High Coverage</span>
-            </div>
-
+</div>
+<div class="project-card" style="display: flex; flex-direction: column; align-items: stretch;">
+    <div class="project-header">
+        <div class="project-name">
+            <a href="lib_converted/report.html" class="project-link">lib</a>
+        </div>
+        <span class="status-badge status-high">High Coverage</span>
+    </div>
+    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; margin-right: 2%;">
+        <div class="project-left" style="flex: 2;">
             <div class="project-details">
                 <div class="project-metrics">
                     <div class="metric">
@@ -697,30 +760,32 @@ footer {
             </div>
         </div>
 
-        <div class="time-estimates">
+        <div class="time-estimates" style="flex: 1; margin-left: 2%;">
             <div class="time-estimate best-case">
                 <div class="time-label">Best Case</div>
                 <div class="time-value time-best">
-                    <span class="time-days">1d</span>
-                    <span class="time-weeks">(~1w)</span>
+                    <span class="time-days">0d</span>
+                    <span class="time-weeks">(~0w)</span>
                 </div>
             </div>
             <div class="time-estimate avg-case">
                 <div class="time-label">Average Case</div>
                 <div class="time-value time-avg">
-                    <span class="time-days">2d</span>
-                    <span class="time-weeks">(~1w)</span>
+                    <span class="time-days">0d</span>
+                    <span class="time-weeks">(~0w)</span>
                 </div>
             </div>
             <div class="time-estimate worst-case">
                 <div class="time-label">Worst Case</div>
                 <div class="time-value time-worst">
-                    <span class="time-days">3d</span>
-                    <span class="time-weeks">(~1w)</span>
+                    <span class="time-days">0d</span>
+                    <span class="time-weeks">(~0w)</span>
                 </div>
             </div>
         </div>
     </div>
+</div>
+
 </div>
 <div class="summary-container">
     <h2>Currently Unsupported Elements</h2>

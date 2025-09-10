@@ -21,7 +21,6 @@ package tibco.converter;
 import common.BICodeConverter;
 import common.BallerinaModel;
 import common.CodeGenerator;
-import common.CombinedSummaryReport;
 import common.LoggingUtils;
 import common.ProjectSummary;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
@@ -31,11 +30,12 @@ import tibco.LoggingContext;
 import tibco.ProjectConversionContext;
 import tibco.TibcoToBalConverter;
 import tibco.analyzer.AnalysisResult;
+import tibco.analyzer.CombinedSummaryReport;
 import tibco.analyzer.DefaultAnalysisPass;
+import tibco.analyzer.DependencyAnalysisPass;
 import tibco.analyzer.LoggingAnalysisPass;
 import tibco.analyzer.ModelAnalyser;
 import tibco.analyzer.ProjectAnalysisContext;
-import tibco.analyzer.ResourceAnalysisPass;
 import tibco.analyzer.TibcoAnalysisReport;
 import tibco.converter.ProjectConverter.ProjectResources;
 import tibco.model.Process;
@@ -46,6 +46,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +56,6 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static common.LoggingUtils.Level.SEVERE;
 
@@ -81,7 +81,7 @@ public class TibcoConverter {
 
     }
 
-    public record SerializedProject(java.util.Map<String, String> files, tibco.analyzer.TibcoAnalysisReport report) {
+    public record SerializedProject(Map<String, String> files, tibco.analyzer.TibcoAnalysisReport report) {
 
     }
 
@@ -92,11 +92,15 @@ public class TibcoConverter {
             Set<Schema> types = TibcoToBalConverter.parseTypes(pcx);
             ProjectResources resources = TibcoToBalConverter.parseResources(pcx);
 
+            // Add processes and resources to the ProjectConversionContext
+            processes.forEach(cx::addProcess);
+            resources.stream().forEach(cx::addResource);
+
             // Add all parsed resources to the ConversionContext for global lookup
-            cx.conversionContext().addProjectResources(resources);
+            cx.conversionContext().addProjectResources(resources, cx);
 
             // Add all parsed processes to the ConversionContext for global lookup
-            cx.conversionContext().addProjectProcesses(processes);
+            cx.conversionContext().addProjectProcesses(processes, cx);
 
             return new ParsedProject(processes, types, resources, pcx);
         } catch (Exception e) {
@@ -114,10 +118,7 @@ public class TibcoConverter {
         Map<Process, AnalysisResult> analysisResults =
                 modelAnalyser.analyseProject(analysisContext, parsed.processes(), parsed.types(), parsed.resources());
         ProjectResources resources = ProjectResources.merge(parsed.resources(), analysisContext.capturedResources());
-        Set<Process> process = Stream.of(parsed.processes(), analysisContext.capturedProcesses())
-                .flatMap(Set::stream)
-                .collect(Collectors.toSet());
-        return new AnalyzedProject(process, parsed.types(), resources, parsed.parserContext(),
+        return new AnalyzedProject(parsed.processes(), parsed.types(), resources, parsed.parserContext(),
                 analysisResults);
     }
 
@@ -127,12 +128,15 @@ public class TibcoConverter {
         return new GeneratedProject(result);
     }
 
-    public static @NotNull SerializedProject serializeProject(ProjectConversionContext cx, GeneratedProject generated) {
+    public static @NotNull SerializedProject serializeProject(ProjectConversionContext cx, GeneratedProject generated,
+                                                              Collection<BallerinaModel.Import> allProjectImports) {
         Map<String, String> files = new HashMap<>();
         ConversionResult result = generated.conversionResult();
 
-        BallerinaModel.Module module =
-                cx.keepStructure() ? result.module() : new BICodeConverter().convert(result.module());
+        BallerinaModel.Module module = cx.keepStructure() ? result.module() :
+                new BICodeConverter(BICodeConverter.DEFAULT_IS_CONFIGURABLE_PREDICATE,
+                        BICodeConverter.DEFAULT_IS_CONNECTION_PREDICATE,
+                        BICodeConverter.DEFAULT_SKIP_CONVERSION_PREDICATE, allProjectImports).convert(result.module());
         for (BallerinaModel.TextDocument textDocument : module.textDocuments()) {
             SyntaxTree st = new CodeGenerator(textDocument).generateSyntaxTree();
             files.put(textDocument.documentName(), st.toSourceCode());
@@ -152,9 +156,11 @@ public class TibcoConverter {
         files.put("Ballerina.toml", ballerinaToml(cx));
 
         TibcoAnalysisReport report = result.report();
-        report.lineCount(files.values().stream().
-                mapToInt(content -> content.split("\r?\n").length)
-                .sum());
+        report.lineCount(
+                files.values().stream()
+                        .map(ConversionUtils::lineCount)
+                        .mapToLong(ConversionUtils.LineCount::normalize)
+                        .sum());
 
         return new SerializedProject(files, report);
     }
@@ -166,7 +172,7 @@ public class TibcoConverter {
                 new DefaultAnalysisPass(),
                 new LoggingAnalysisPass())));
         GeneratedProject generated = generateCode(cx, analyzed);
-        SerializedProject serialized = serializeProject(cx, generated);
+        SerializedProject serialized = serializeProject(cx, generated, List.of());
         writeProjectFiles(cx, serialized, targetPath, false);
     }
 
@@ -304,7 +310,7 @@ public class TibcoConverter {
                 ModelAnalyser modelAnalyser = new ModelAnalyser(List.of(
                         new DefaultAnalysisPass(),
                         new LoggingAnalysisPass(),
-                        new ResourceAnalysisPass()));
+                        new DependencyAnalysisPass()));
                 AnalyzedProject analyzed = analyzeProject(parsedInfo.info().context(), parsedInfo.parsed(),
                         modelAnalyser);
                 analyzedProjects.add(new AnalyzedProjectInfo(
@@ -355,8 +361,12 @@ public class TibcoConverter {
         for (GeneratedProjectInfo generatedInfo : generatedProjects) {
             cx.logState("Serializing project: " + generatedInfo.info().childName());
             try {
-                SerializedProject serialized = serializeProject(generatedInfo.info().context(),
-                        generatedInfo.generated());
+                SerializedProject serialized =
+                        serializeProject(generatedInfo.info().context(), generatedInfo.generated(),
+                                projectInfoList.stream()
+                                        .map(ProjectInfo::context)
+                                        .map(ProjectConversionContext::getImport)
+                                        .collect(Collectors.toList()));
                 serializedProjects.add(new SerializedProjectInfo(
                         generatedInfo.info(),
                         generatedInfo.parsed(),
@@ -399,6 +409,7 @@ public class TibcoConverter {
         }
     }
 
+
     private static Optional<MigrationResult> migrateTibcoInner(ConversionContext cx, String sourcePath,
                                                                String outputPath, Optional<String> projectName) {
         Path inputPath;
@@ -432,7 +443,7 @@ public class TibcoConverter {
                     new DefaultAnalysisPass(),
                     new LoggingAnalysisPass())));
             GeneratedProject generated = generateCode(context, analyzed);
-            SerializedProject serialized = serializeProject(context, generated);
+            SerializedProject serialized = serializeProject(context, generated, List.of());
             writeProjectFiles(context, serialized, targetPath, context.dryRun());
 
             return Optional.of(new MigrationResult(serialized.report()));
@@ -453,8 +464,9 @@ public class TibcoConverter {
     private static void writeCombinedSummaryReport(ConversionContext context, Path targetDir,
                                                    List<ProjectSummary> projectSummaries) throws IOException {
         Path reportFilePath = targetDir.resolve("combined_summary_report.html");
-        CombinedSummaryReport combinedReport = new CombinedSummaryReport("Combined Migration Assessment",
-                projectSummaries);
+        CombinedSummaryReport combinedReport =
+                new CombinedSummaryReport("Combined Migration Assessment",
+                        projectSummaries, context.getDuplicateProcessData());
         String htmlContent = combinedReport.toHTML();
         Files.writeString(reportFilePath, htmlContent);
         context.log(

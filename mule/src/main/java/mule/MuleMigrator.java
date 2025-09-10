@@ -95,23 +95,29 @@ public class MuleMigrator {
             String sourcePath = validateAndGetString(parameters, "sourcePath");
             Consumer<String> stateCallback = validateAndGetConsumer(parameters, "stateCallback");
             Consumer<String> logCallback = validateAndGetConsumer(parameters, "logCallback");
-            return migrateMuleInner(orgName, projectName, sourcePath, stateCallback, logCallback);
+            Integer muleVersion = validateAndGetForceVersion(parameters);
+            return migrateMuleInner(orgName, projectName, sourcePath, muleVersion, stateCallback, logCallback);
         } catch (IllegalArgumentException e) {
             return Map.of("error", e.getMessage());
         }
     }
 
     private static Map<String, Object> migrateMuleInner(String orgName, String projectName, String sourcePath,
-                                                        Consumer<String> stateCallback, Consumer<String> logCallback) {
+                                                        Integer muleVersion, Consumer<String> stateCallback,
+                                                        Consumer<String> logCallback) {
         MuleLogger logger = new MuleLogger(stateCallback, logCallback);
-        MigrationResult result = migrateMuleSourceInMemory(logger, sourcePath, null, orgName, projectName, null,
+        MigrationResult result = migrateMuleSourceInMemory(logger, sourcePath, null, orgName, projectName, muleVersion,
                 false, false, false, false);
         if (result.getFatalError().isPresent()) {
             return Map.of("error", result.getFatalError().get());
         }
 
         ProjectMigrationResult projResult = (ProjectMigrationResult) result;
-        return Map.of("textEdits", projResult.getFiles(), "report", projResult.getHtmlReport());
+        return Map.of(
+                "textEdits", projResult.getFiles(),
+                "report", projResult.getHtmlReport(),
+                "report-json", projResult.getJsonReport()
+        );
     }
 
     private static String validateAndGetString(Map<String, Object> parameters, String key) {
@@ -137,6 +143,22 @@ public class MuleMigrator {
                     (value != null ? value.getClass().getSimpleName() : "null"));
         }
         return (Consumer<String>) value;
+    }
+
+    private static Integer validateAndGetForceVersion(Map<String, Object> parameters) {
+        String key = "forceVersion";
+        if (!parameters.containsKey(key)) {
+            return null;
+        }
+        Object value = parameters.get(key);
+        if (!(value instanceof Integer)) {
+            throw new IllegalArgumentException("Parameter " + key + " must be a Integer, got: " +
+                    (value != null ? value.getClass().getSimpleName() : "null"));
+        }
+        if (!(Integer.valueOf(3).equals(value) || Integer.valueOf(4).equals(value))) {
+            throw new IllegalArgumentException("Parameter " + key + " must be either 3 or 4, got: " + value);
+        }
+        return (Integer) value;
     }
 
     public static void migrateAndExportMuleSource(String inputPathArg, String outputPathArg, String orgName,
@@ -439,9 +461,12 @@ public class MuleMigrator {
         ProjectMigrationStats migrationStats = getProjectMigrationStats(muleVersion, ctx.getMigrationMetrics());
         result.setMigrationStats(migrationStats);
 
-        String individualReport = IndividualReportGenerator.generateHtmlReport(logger, migrationStats, muleVersion,
+        String individualReportHtml = IndividualReportGenerator.generateHtmlReport(logger, migrationStats, muleVersion,
                 dryRun, sourceName);
-        result.setHtmlReport(individualReport);
+        result.setHtmlReport(individualReportHtml);
+
+        String individualReportJson = IndividualReportGenerator.generateJsonReport(migrationStats);
+        result.setJsonReport(individualReportJson);
 
         if (dryRun) {
             logger.logState("Dry run completed for project: " + sourceName);

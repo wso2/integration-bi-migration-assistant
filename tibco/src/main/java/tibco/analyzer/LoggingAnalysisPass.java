@@ -24,6 +24,7 @@ import tibco.model.Process;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity;
 import tibco.model.Scope;
 
+
 public class LoggingAnalysisPass extends AnalysisPass {
     private int totalActivityCount = 0;
     private int unhandledActivityCount = 0;
@@ -44,4 +45,5 @@ public class LoggingAnalysisPass extends AnalysisPass {
                 process.name(), totalActivityCount, unhandledActivityCount));
         return AnalysisResult.empty();
     }
+
 }

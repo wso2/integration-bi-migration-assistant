@@ -525,7 +525,7 @@ public class ProjectContext implements LoggingContext {
         String name;
         if (activity instanceof InlineActivity inlineActivity) {
             name = inlineActivity.name();
-            String type = inlineActivity.type().name();
+            String type = inlineActivity.type().toTibcoType();
             Element element = inlineActivity.element();
             unhandledActivities.add(new NamedUnhandledActivityElement(name, type, element, fileName));
         } else {
@@ -557,7 +557,7 @@ public class ProjectContext implements LoggingContext {
         String name;
         if (activity instanceof InlineActivity inlineActivity) {
             name = inlineActivity.name();
-            String type = inlineActivity.type().name();
+            String type = inlineActivity.type().toTibcoType();
             Element element = inlineActivity.element();
             partiallySupportedActivities.add(new NamedPartiallySupportedActivityElement(name, type, element, fileName));
         } else {
@@ -566,6 +566,13 @@ public class ProjectContext implements LoggingContext {
                     new UnNamedPartiallySupportedActivityElement(activity.element(), fileName));
         }
         log(LoggingUtils.Level.WARN, "Partially supported activity: " + name);
+    }
+
+    public Optional<String> getProcessFunction(String processName) {
+        return conversionContext.processFunction(processName).map(result -> result.importIdentifier().map(imp -> {
+            utilityFunctionImports.add(imp);
+            return imp.moduleName() + ":" + ConversionUtils.processFunctionName(processName);
+        }).orElseGet(() -> ConversionUtils.processFunctionName(processName)));
     }
 
     record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
@@ -832,5 +839,9 @@ public class ProjectContext implements LoggingContext {
 
     public Set<PartiallySupportedActivityElement> getPartiallySupportedActivities() {
         return new HashSet<>(partiallySupportedActivities);
+    }
+
+    public boolean isShared(Process process) {
+        return conversionContext.isShared(process);
     }
 }

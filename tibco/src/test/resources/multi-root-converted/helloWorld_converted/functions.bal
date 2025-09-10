@@ -3,6 +3,8 @@ import ballerina/log;
 import ballerina/sql;
 import ballerina/xslt;
 
+import testOrg/lib;
+
 function Call_shared_process(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
@@ -20,7 +22,7 @@ function Call_shared_process(Context cx) returns error? {
     </xsl:template>
 </xsl:stylesheet>`, cx.variables);
     addToContext(cx, "$Start", var1);
-    start_lib_Process_shared_process(cx);
+    lib:start_lib_Process_shared_process(cx);
     xml var2 = cx.result;
     addToContext(cx, "Call-shared-process", var2);
 }
@@ -144,42 +146,6 @@ function storeSharedVariable(Context cx) returns error? {
 </xsl:stylesheet>`, cx.variables);
     setSharedVariable(cx, "shared", var1);
     addToContext(cx, "storeSharedVariable", var1);
-}
-
-function Log(Context cx) returns error? {
-    xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0">
-     <xsl:template name="Transform0" match="/">
-        <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
-                    
-    <message>Called shared process</message>
-                
-</ns:ActivityInput>
-
-    </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = var1/**/<message>/*;
-    log:printInfo(var2.toString());
-    addToContext(cx, "Log", var2);
-}
-
-function scope0_1ActivityRunner(Context cx) returns error? {
-}
-
-function scope0_1FaultHandler(error err, Context cx) returns () {
-    panic err;
-}
-
-function scope0_1ScopeFn(Context cx) returns () {
-    error? result = scope0_1ActivityRunner(cx);
-    if result is error {
-        scope0_1FaultHandler(result, cx);
-    }
-}
-
-function start_lib_Process_shared_process(Context cx) returns () {
-    return scope0_1ScopeFn(cx);
 }
 
 function toXML(map<anydata> data) returns error|xml {
