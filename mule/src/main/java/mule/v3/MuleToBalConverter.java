@@ -74,6 +74,7 @@ import static mule.v3.converter.MuleConfigConverter.convertTopLevelMuleBlocks;
 import static mule.v3.converter.MuleConfigConverter.getCatchExceptionBody;
 import static mule.v3.converter.MuleConfigConverter.getChoiceExceptionBody;
 import static mule.v3.model.MuleModel.QuartzInboundEndpoint;
+import static mule.v3.model.MuleModel.Poll;
 import static mule.v3.reader.MuleConfigReader.readMuleConfigFromRoot;
 import static mule.v3.model.MuleModel.CatchExceptionStrategy;
 import static mule.v3.model.MuleModel.ChoiceExceptionStrategy;
@@ -155,6 +156,8 @@ public class MuleToBalConverter {
                 genVMInboundEndpointSource(ctx, flow, (VMInboundEndpoint) src, functions);
             } else if (src.kind() == Kind.QUARTZ_INBOUND_ENDPOINT) {
                 genSchedulerSource(ctx, flow, (QuartzInboundEndpoint) src, functions, classDefs);
+            } else if (src.kind() == Kind.POLL) {
+                genPollSource(ctx, flow, (Poll) src, functions, classDefs);
             } else {
                 assert src.kind() == Kind.HTTP_LISTENER;
                 genHttpSource(ctx, flow, (HttpListener) src, services, functions);
@@ -281,6 +284,31 @@ public class MuleToBalConverter {
         functions.add(mainFunc);
     }
 
+    private static void genPollSource(Context ctx, Flow flow, Poll poll, Set<Function> functions,
+                                      List<ClassDef> classDefs) {
+        String jobClassName = "PollJob";
+        ClassDef classDef = genBalJobClass(ctx, jobClassName, flow.flowBlocks());
+        classDefs.add(classDef);
+
+        // Convert poll frequency and time unit to seconds for Ballerina's task scheduling
+        double intervalInSeconds = convertPollToSeconds(poll.frequency(), poll.timeUnit());
+
+        List<Statement> stmts = new ArrayList<>();
+        String startDelay = poll.startDelay();
+        if (!startDelay.isEmpty()) {
+            ctx.currentFileCtx.balConstructs.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_RUNTIME));
+            double startDelayInSeconds = convertPollToSeconds(startDelay, poll.timeUnit());
+            BallerinaStatement stmt = stmtFrom("runtime:sleep(%s);".formatted(startDelayInSeconds));
+            stmts.add(stmt);
+        }
+
+        BallerinaStatement stmt = stmtFrom("task:JobId id = check task:scheduleJobRecurByFrequency(new %s(), %s);"
+                        .formatted(jobClassName, intervalInSeconds));
+        stmts.add(stmt);
+        Function mainFunc = Function.publicFunction("main", List.of(), typeFrom("error?"), stmts);
+        functions.add(mainFunc);
+    }
+
     private static double convertIntervalToSeconds(String interval) {
         if (interval.isEmpty()) {
             return 5.0; // Default 5 seconds
@@ -290,6 +318,26 @@ public class MuleToBalConverter {
             // Try to parse as milliseconds (common in Mule 3.x)
             long millis = Long.parseLong(interval);
             return millis / 1000.0;
+        } catch (NumberFormatException e) {
+            // If parsing fails, return default
+            return 5.0;
+        }
+    }
+
+    private static double convertPollToSeconds(String frequency, String timeUnit) {
+        if (frequency.isEmpty()) {
+            return 5.0; // Default 5 seconds
+        }
+
+        try {
+            double freq = Double.parseDouble(frequency);
+            return switch (timeUnit.toLowerCase()) {
+                case "millisecond", "milliseconds" -> freq / 1000.0;
+                case "second", "seconds" -> freq;
+                case "minute", "minutes" -> freq * 60;
+                case "hour", "hours" -> freq * 3600;
+                default -> 5.0; // Unknown unit, fallback to default
+            };
         } catch (NumberFormatException e) {
             // If parsing fails, return default
             return 5.0;

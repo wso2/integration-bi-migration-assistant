@@ -61,6 +61,7 @@ import static mule.v3.model.MuleModel.MuleRecord;
 import static mule.v3.model.MuleModel.ObjectToJson;
 import static mule.v3.model.MuleModel.ObjectToString;
 import static mule.v3.model.MuleModel.Payload;
+import static mule.v3.model.MuleModel.Poll;
 import static mule.v3.model.MuleModel.QueryType;
 import static mule.v3.model.MuleModel.ReferenceExceptionStrategy;
 import static mule.v3.model.MuleModel.RemoveVariable;
@@ -145,6 +146,9 @@ public class MuleConfigReader {
             }
             case MuleXMLTag.VM_INBOUND_ENDPOINT -> {
                 return readVMInboundEndpoint(ctx, muleElement);
+            }
+            case MuleXMLTag.POLL -> {
+                return readPoll(ctx, muleElement);
             }
             case MuleXMLTag.QUARTZ_INBOUND_ENDPOINT -> {
                 return readQuartzInboundEndpoint(ctx, muleElement);
@@ -299,6 +303,9 @@ public class MuleConfigReader {
             } else if (element.getTagName().equals(MuleXMLTag.QUARTZ_INBOUND_ENDPOINT.tag())) {
                 assert source == null;
                 source = readBlock(ctx, child);
+            } else if (element.getTagName().equals(MuleXMLTag.POLL.tag())) {
+                assert source == null;
+                source = readBlock(ctx, child);
             } else {
                 MuleRecord muleRec = readBlock(ctx, child);
                 flowBlocks.add(muleRec);
@@ -374,6 +381,43 @@ public class MuleConfigReader {
         return new Foreach(collection, flowBlocks);
     }
 
+    private static ProcessorChain readProcessorChain(Context ctx, MuleElement muleElement) {
+        List<MuleRecord> flowBlocks = new ArrayList<>();
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            MuleRecord muleRec = readBlock(ctx, child);
+            flowBlocks.add(muleRec);
+        }
+        return new ProcessorChain(flowBlocks);
+    }
+
+    private static Poll readPoll(Context ctx, MuleElement muleElement) {
+        ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_TASK));
+        String frequency = "";
+        String startDelay = "";
+        String timeUnit = "";
+
+        while (muleElement.peekChild() != null) {
+            Element muleChildElement = muleElement.consumeChild().getElement();
+            if (muleChildElement.getTagName().equals(MuleXMLTag.FIXED_FREQUENCY_SCHEDULER.tag())) {
+                frequency = muleChildElement.getAttribute("frequency");
+                startDelay = muleChildElement.getAttribute("startDelay");
+                timeUnit = muleChildElement.getAttribute("timeUnit");
+            }
+        }
+
+        // Default values if not specified
+        if (frequency.isEmpty()) {
+            frequency = "1000"; // Default to 1000 milliseconds
+        }
+        if (timeUnit.isEmpty()) {
+            timeUnit = "MILLISECONDS"; // Default time unit
+        }
+
+        return new Poll(frequency, startDelay, timeUnit);
+    }
+
+    // Flow Control
     private static ScatterGather readScatterGather(Context ctx, MuleElement muleElement) {
         List<ProcessorChain> processorChains = new ArrayList<>();
         while (muleElement.peekChild() != null) {
@@ -404,16 +448,6 @@ public class MuleConfigReader {
             }
         }
         return new FirstSuccessful(processorChains);
-    }
-
-    private static ProcessorChain readProcessorChain(Context ctx, MuleElement muleElement) {
-        List<MuleRecord> flowBlocks = new ArrayList<>();
-        while (muleElement.peekChild() != null) {
-            MuleElement child = muleElement.consumeChild();
-            MuleRecord muleRec = readBlock(ctx, child);
-            flowBlocks.add(muleRec);
-        }
-        return new ProcessorChain(flowBlocks);
     }
 
     // Transformers

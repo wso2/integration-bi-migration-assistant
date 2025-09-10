@@ -54,6 +54,8 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     ENRICHER("enricher", 5),
     ASYNC("async", 4),
     PROCESSOR_CHAIN("processor-chain", 2),
+    POLL("poll", 3),
+    FIXED_FREQUENCY_SCHEDULER("fixed-frequency-scheduler", 2),
 
     // Transformers
     SET_VARIABLE("set-variable", 1),
