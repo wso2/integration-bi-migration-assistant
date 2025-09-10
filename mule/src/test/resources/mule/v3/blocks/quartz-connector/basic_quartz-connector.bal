@@ -1,3 +1,4 @@
+import ballerina/lang.runtime;
 import ballerina/log;
 import ballerina/task;
 
@@ -14,5 +15,6 @@ class schedulerJob {
 }
 
 public function main() returns error? {
-    task:JobId id = check task:scheduleJobRecurByFrequency(new schedulerJob(), 5.0);
+    runtime:sleep(1.0);
+    task:JobId id = check task:scheduleJobRecurByFrequency(new schedulerJob(), 4.0);
 }

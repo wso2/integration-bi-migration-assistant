@@ -274,6 +274,13 @@ public class MuleToBalConverter {
             stmts.add(stmtFrom("// Original cron expression: " + quartzEp.cronExpression()));
         }
 
+        if (!quartzEp.startDelay().isEmpty()) {
+            ctx.currentFileCtx.balConstructs.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_RUNTIME));
+            double startDelayInSeconds = convertIntervalToSeconds(quartzEp.startDelay());
+            BallerinaStatement stmt = stmtFrom("runtime:sleep(%s);".formatted(startDelayInSeconds));
+            stmts.add(stmt);
+        }
+
         // Convert time unit to seconds for Ballerina's task:IntervalTimer;
         double intervalInSeconds = convertIntervalToSeconds(quartzEp.repeatInterval());
 

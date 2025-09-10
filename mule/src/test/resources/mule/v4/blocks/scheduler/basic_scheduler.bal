@@ -1,3 +1,4 @@
+import ballerina/lang.runtime;
 import ballerina/log;
 import ballerina/task;
 
@@ -14,5 +15,6 @@ class Job {
 }
 
 public function main() returns error? {
+    runtime:sleep(1.0);
     task:JobId id = check task:scheduleJobRecurByFrequency(new Job(), 5.0);
 }

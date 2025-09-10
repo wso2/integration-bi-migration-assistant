@@ -3089,7 +3089,7 @@ public function wrapRouteErrorIfExists(string key, anydata|error value) returns 
     <flow name="schedulerFlow">
         <scheduler>
             <scheduling-strategy>
-                <fixed-frequency frequency="5" timeUnit="SECONDS"/>
+                <fixed-frequency frequency="5" timeUnit="SECONDS" startDelay="1"/>
             </scheduling-strategy>
         </scheduler>
         <logger level="INFO" message="Scheduler triggered]"/>
@@ -3099,6 +3099,7 @@ public function wrapRouteErrorIfExists(string key, anydata|error value) returns 
 ```
 **Output (basic_scheduler.bal):**
 ```ballerina
+import ballerina/lang.runtime;
 import ballerina/log;
 import ballerina/task;
 
@@ -3115,6 +3116,7 @@ class Job {
 }
 
 public function main() returns error? {
+    runtime:sleep(1.0);
     task:JobId id = check task:scheduleJobRecurByFrequency(new Job(), 5.0);
 }
 

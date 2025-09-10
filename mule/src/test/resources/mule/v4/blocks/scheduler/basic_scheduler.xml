@@ -8,7 +8,7 @@
     <flow name="schedulerFlow">
         <scheduler>
             <scheduling-strategy>
-                <fixed-frequency frequency="5" timeUnit="SECONDS"/>
+                <fixed-frequency frequency="5" timeUnit="SECONDS" startDelay="1"/>
             </scheduling-strategy>
         </scheduler>
         <logger level="INFO" message="Scheduler triggered]"/>

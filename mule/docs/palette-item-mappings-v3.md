@@ -2511,7 +2511,7 @@ http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mu
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
     <flow name="pollFlow">
         <poll doc:name="Poll">
-            <fixed-frequency-scheduler frequency="5000"/>
+            <fixed-frequency-scheduler frequency="5000" startDelay="2000"/>
         </poll>
         <logger level="INFO" doc:name="Logger" message="xxx: polling triggered"/>
     </flow>
@@ -2520,6 +2520,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 ```
 **Output (simple-poll.bal):**
 ```ballerina
+import ballerina/lang.runtime;
 import ballerina/log;
 import ballerina/task;
 
@@ -2536,7 +2537,8 @@ class PollJob {
 }
 
 public function main() returns error? {
-    task:JobId id = check task:scheduleJobRecurByFrequency(new PollJob(), 1.0);
+    runtime:sleep(2.0);
+    task:JobId id = check task:scheduleJobRecurByFrequency(new PollJob(), 5.0);
 }
 
 ```
@@ -2555,7 +2557,7 @@ public function main() returns error? {
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/3.9/mule-quartz.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
     <flow name="schedulerFlow">
-        <quartz:inbound-endpoint jobName="schedulerJob" repeatInterval="5000" doc:name="Quartz">
+        <quartz:inbound-endpoint jobName="schedulerJob" repeatInterval="4000" doc:name="Quartz" responseTimeout="10000" startDelay="1000">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <logger level="INFO" message="Scheduler triggered]" doc:name="Logger"/>
@@ -2565,6 +2567,7 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 ```
 **Output (basic_quartz-connector.bal):**
 ```ballerina
+import ballerina/lang.runtime;
 import ballerina/log;
 import ballerina/task;
 
@@ -2581,7 +2584,8 @@ class schedulerJob {
 }
 
 public function main() returns error? {
-    task:JobId id = check task:scheduleJobRecurByFrequency(new schedulerJob(), 5.0);
+    runtime:sleep(1.0);
+    task:JobId id = check task:scheduleJobRecurByFrequency(new schedulerJob(), 4.0);
 }
 
 ```

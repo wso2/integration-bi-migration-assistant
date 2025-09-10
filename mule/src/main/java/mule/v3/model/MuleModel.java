@@ -44,10 +44,11 @@ public record MuleModel() {
         }
     }
 
-    public record QuartzInboundEndpoint(Kind kind, String jobName, String cronExpression,
-                                      String repeatCount, String repeatInterval) implements MuleRecord {
-        public QuartzInboundEndpoint(String jobName, String cronExpression, String repeatCount, String repeatInterval) {
-            this(Kind.QUARTZ_INBOUND_ENDPOINT, jobName, cronExpression, repeatCount, repeatInterval);
+    public record QuartzInboundEndpoint(Kind kind, String jobName, String cronExpression, String repeatCount,
+                                        String repeatInterval, String startDelay) implements MuleRecord {
+        public QuartzInboundEndpoint(String jobName, String cronExpression, String repeatCount, String repeatInterval,
+                                     String startDelay) {
+            this(Kind.QUARTZ_INBOUND_ENDPOINT, jobName, cronExpression, repeatCount, repeatInterval, startDelay);
         }
     }
 

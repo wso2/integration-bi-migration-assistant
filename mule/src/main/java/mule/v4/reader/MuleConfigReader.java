@@ -259,6 +259,7 @@ public class MuleConfigReader {
 
         String frequency = "5";
         String timeUnit = "SECONDS";
+        String startDelay = "";
 
         while (muleElement.peekChild() != null) {
             MuleElement child = muleElement.consumeChild();
@@ -270,12 +271,20 @@ public class MuleConfigReader {
                     if (strategyElement.getTagName().equals(MuleXMLTag.FIXED_FREQUENCY.tag())) {
                         frequency = strategyElement.getAttribute("frequency");
                         timeUnit = strategyElement.getAttribute("timeUnit");
+                        startDelay = strategyElement.getAttribute("startDelay");
                     }
                 }
             }
         }
 
-        return new Scheduler(frequency, timeUnit);
+        if (frequency.isEmpty()) {
+            frequency = "5";
+        }
+        if (timeUnit.isEmpty()) {
+            timeUnit = "MILLISECONDS";
+        }
+
+        return new Scheduler(frequency, timeUnit, startDelay);
     }
 
     private static MuleRecord readExpressionComponent(Context ctx, MuleElement muleElement) {

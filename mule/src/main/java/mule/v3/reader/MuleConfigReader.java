@@ -609,7 +609,8 @@ public class MuleConfigReader {
         String cronExpression = element.getAttribute("cronExpression");
         String repeatCount = element.getAttribute("repeatCount");
         String repeatInterval = element.getAttribute("repeatInterval");
-        return new QuartzInboundEndpoint(jobName, cronExpression, repeatCount, repeatInterval);
+        String startDelay = element.getAttribute("startDelay");
+        return new QuartzInboundEndpoint(jobName, cronExpression, repeatCount, repeatInterval, startDelay);
     }
 
     // Database Connector

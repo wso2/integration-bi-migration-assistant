@@ -6,7 +6,7 @@
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/3.9/mule-quartz.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
     <flow name="schedulerFlow">
-        <quartz:inbound-endpoint jobName="schedulerJob" repeatInterval="5000" doc:name="Quartz">
+        <quartz:inbound-endpoint jobName="schedulerJob" repeatInterval="4000" doc:name="Quartz" responseTimeout="10000" startDelay="1000">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <logger level="INFO" message="Scheduler triggered]" doc:name="Logger"/>

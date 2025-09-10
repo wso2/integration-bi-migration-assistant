@@ -262,11 +262,20 @@ public class MuleToBalConverter {
         ClassDef classDef = genBalJobClass(ctx, jobClassName, flow.flowBlocks());
         classDefs.add(classDef);
 
+        List<Statement> stmts = new ArrayList<>(2);
+        if (!scheduler.startDelay().isEmpty()) {
+            ctx.currentFileCtx.balConstructs.imports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_RUNTIME));
+            double startDelayInSeconds = convertToSeconds(scheduler.startDelay(), scheduler.timeUnit());
+            BallerinaStatement stmt = stmtFrom("runtime:sleep(%s);".formatted(startDelayInSeconds));
+            stmts.add(stmt);
+        }
+
         // Convert time unit to seconds for Ballerina's task:IntervalTimer
         double intervalInSeconds = convertToSeconds(scheduler.frequency(), scheduler.timeUnit());
         BallerinaStatement stmt = stmtFrom("task:JobId id = check task:scheduleJobRecurByFrequency(new %s(), %s);"
                 .formatted(jobClassName, intervalInSeconds));
-        Function mainFunc = Function.publicFunction("main", List.of(), typeFrom("error?"), List.of(stmt));
+        stmts.add(stmt);
+        Function mainFunc = Function.publicFunction("main", List.of(), typeFrom("error?"), stmts);
         functions.add(mainFunc);
     }
 
