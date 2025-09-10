@@ -8,6 +8,7 @@ public function sampleFlow(Context ctx) {
 }
 
 function _dwMethod0_(Context ctx) returns json|error {
+    json payload = check ctx.payload.ensureType(json);
     json _var_0;
     if check payload.country == "USA" {
         _var_0 = "USD";

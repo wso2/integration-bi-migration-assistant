@@ -32,7 +32,7 @@ service /mule4 on listener_config {
     }
 }
 
-public function my_error_handler(Context ctx, error e) {
+public function my_error_handler(Context ctx, error err) {
     // TODO: if conditions may require some manual adjustments
     if err is "ANY" && err.message() == "#[error.description contains 'timeout']" {
 

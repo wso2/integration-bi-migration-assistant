@@ -149,11 +149,20 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     @Override
     public Void visitMultiFieldObject(DataWeaveParser.MultiFieldObjectContext ctx) {
         List<String> keyValuePairs = new ArrayList<>();
+        int checkCount = 0;
         for (var field : ctx.objectField()) {
             visit(field);
-            keyValuePairs.add(dwContext.getExpression());
+            String expr = dwContext.getExpression();
+            if (expr.contains("check")) {
+                checkCount++;
+            }
+            keyValuePairs.add(expr);
         }
-        dwContext.append("{ ").append(String.join(", ", keyValuePairs)).append(" }");
+        String delimiter = ",";
+        if (checkCount > 1) {
+            delimiter = delimiter + System.lineSeparator();
+        }
+        dwContext.append("{ ").append(String.join(delimiter, keyValuePairs)).append(" }");
         dwContext.currentScriptContext.currentType = DWUtils.OBJECT;
         stats.record(DWConstruct.OBJECT, true);
         return null;
@@ -221,7 +230,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     private boolean isBasicType(String currentType) {
         return currentType == null || currentType.equals(DWUtils.STRING) || currentType.equals(DWUtils.NUMBER) ||
-                currentType.equals(DWUtils.BOOLEAN);
+                currentType.equals(DWUtils.BOOLEAN) || currentType.equals(DWUtils.PAYLOAD);
     }
 
     @Override
@@ -728,6 +737,10 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     @Override
     public Void visitUpperExpression(DataWeaveParser.UpperExpressionContext ctx) {
         visit(ctx.expression());
+        if (this.dwContext.currentScriptContext.exprBuilder.toString().startsWith("check payload")) {
+            this.dwContext.currentScriptContext.exprBuilder.insert(0, "(");
+            this.dwContext.append(").toString()");
+        }
         this.dwContext.append(".toUpperAscii()");
         this.dwContext.currentScriptContext.currentType = DWUtils.STRING;
         stats.record(DWConstruct.UPPER, true);
@@ -870,6 +883,10 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         if (this.dwContext.currentScriptContext.varNames.containsKey(identifier)) {
             this.dwContext.append(this.dwContext.currentScriptContext.varNames.get(identifier));
             return null;
+        }
+        if (identifier.equals(DWUtils.DW_PAYLOAD_IDENTIFIER)) {
+            this.dwContext.currentScriptContext.currentType = DWUtils.PAYLOAD;
+            this.dwContext.referringToPayload = true;
         }
         this.dwContext.append(identifier);
         return null;

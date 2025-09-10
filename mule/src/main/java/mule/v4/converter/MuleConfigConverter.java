@@ -778,6 +778,7 @@ public class MuleConfigConverter {
         stmts.add(stmtFrom("\n// on-error-propagate\n"));
 
         if (onErrorPropagate.logException().equals("true")) {
+            ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_LOG));
             stmts.add(stmtFrom("log:printError(\"Message: \" + %s.message());"
                     .formatted(Constants.ON_FAIL_ERROR_VAR_REF)));
             stmts.add(stmtFrom("log:printError(\"Trace: \" + %s.stackTrace().toString());"

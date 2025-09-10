@@ -40,6 +40,7 @@ public class DWUtils {
     public static final String DW_INDEX_IDENTIFIER = "$$";
     public static final String DW_VALUE_IDENTIFIER = "$";
     public static final String DW_NOW_IDENTIFIER = "now";
+    public static final String DW_PAYLOAD_IDENTIFIER = "payload";
 
     // IO Types
     public static final String APPLICATION_JAVA = "application/java";
@@ -67,6 +68,7 @@ public class DWUtils {
     public static final String TIME_ZONE = "timeZone";
     public static final String PERIOD = "Period";
     public static final String IDENTIFIER = "identifier";
+    public static final String PAYLOAD = "payload";
 
     // DataWeave Built-in functions
     public static final String DW_FUNCTION_MAP = "map";

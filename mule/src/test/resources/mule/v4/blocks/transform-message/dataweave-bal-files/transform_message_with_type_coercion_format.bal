@@ -21,10 +21,6 @@ public function parseInstant(handle instant) returns handle = @java:Method {
     name: "parse"
 } external;
 
-function _dwMethod0_(Context ctx) returns json|error {
-    return {"a": intToString(1, "##,#"), "b": check getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd").ensureType(json), "c": true.toString()};
-}
-
 public function formatDateTime(handle dateTime, handle formatter) returns handle = @java:Method {
     'class: "java.time.LocalDateTime"
 } external;
@@ -46,6 +42,10 @@ public function getZoneId(handle zoneId) returns handle = @java:Method {
     name: "of",
     paramTypes: ["java.lang.String"]
 } external;
+
+function _dwMethod0_(Context ctx) returns json|error {
+    return {"a": intToString(1, "##,#"), "b": check getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd").ensureType(json), "c": true.toString()};
+}
 
 public function getFormattedStringFromNumber(handle formatObject, int value) returns handle = @java:Method {
     'class: "java.text.NumberFormat",

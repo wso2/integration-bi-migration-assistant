@@ -786,7 +786,7 @@ public function demoFlow(Context ctx) {
     }
 }
 
-public function my_error_handler(Context ctx, error e) {
+public function my_error_handler(Context ctx, error err) {
     // on-error-propagate
     log:printError("Message: " + err.message());
     log:printError("Trace: " + err.stackTrace().toString());
@@ -874,7 +874,7 @@ service /mule4 on listener_config {
     }
 }
 
-public function my_error_handler(Context ctx, error e) {
+public function my_error_handler(Context ctx, error err) {
     // TODO: if conditions may require some manual adjustments
     if err is "ANY" && err.message() == "#[error.description contains 'timeout']" {
 
@@ -970,7 +970,7 @@ service /mule4 on listener_config {
     }
 }
 
-public function my_error_handler(Context ctx, error e) {
+public function my_error_handler(Context ctx, error err) {
     // on-error-propagate
     log:printError("Message: " + err.message());
     log:printError("Trace: " + err.stackTrace().toString());
@@ -3438,7 +3438,14 @@ service /foo on config {
 }
 
 function _dwMethod0_(Context ctx) returns json|error {
-    return {"s1": "Hello World", "s2": "Hello World", "n": 1.23, "b": true, "a": check [1, 2, 3].ensureType(json), "o": check {"name": "Anne"}.ensureType(json)};
+    return {
+        "s1": "Hello World",
+        "s2": "Hello World",
+        "n": 1.23,
+        "b": true,
+        "a": check [1, 2, 3].ensureType(json),
+        "o": check {"name": "Anne"}.ensureType(json)
+    };
 }
 
 ```

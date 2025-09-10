@@ -157,6 +157,8 @@ public class MuleToBalConverter {
             }
         }
 
+        services = normalizeServices(services);
+
         // Create functions for private flows
         genBalFuncsFromPrivateFlows(ctx, privateFlows, functions);
 
@@ -168,6 +170,7 @@ public class MuleToBalConverter {
         // Create functions for global exception strategies
         for (ErrorHandler errorHandler : ctx.currentFileCtx.configs.globalErrorHandlers) {
             genBalFuncForGlobalErrorHandler(ctx, errorHandler, functions);
+            functions.addAll(ctx.currentFileCtx.balConstructs.functions); // TODO: this is a  hack.
         }
 
         // Add global listeners
@@ -243,6 +246,20 @@ public class MuleToBalConverter {
         orderedModuleVars.addAll(moduleVars);
         return createTextDocument(balFileName + ".bal", new ArrayList<>(ctx.currentFileCtx.balConstructs.imports),
                 typeDefs, orderedModuleVars, listeners, services, classDefs, functions.stream().toList(), comments);
+    }
+
+    private static List<Service> normalizeServices(List<Service> services) {
+        Map<String, Service> serviceMap = new LinkedHashMap<>();
+
+        for (Service service : services) {
+            String key = service.basePath() + "|" + service.listenerRefs();
+            serviceMap.merge(key, service, (existing, current) -> {
+                existing.resources().addAll(current.resources());
+                return existing;
+            });
+        }
+
+        return new ArrayList<>(serviceMap.values());
     }
 
     private static void genVMListenerSource(Context ctx, Flow flow, VMListener vmListener, Set<Function> functions) {
@@ -353,11 +370,12 @@ public class MuleToBalConverter {
     private static void genBalFuncForGlobalErrorHandler(Context ctx, ErrorHandler errorHandler,
                                                         Set<Function> functions) {
         String name = errorHandler.name();
-        String methodName = ConversionUtils.convertToBalIdentifier(name);
+        String methodName = errorHandler.name().isEmpty() ? "errorHandler" :
+                ConversionUtils.convertToBalIdentifier(name); // Ideally field will not be empty
 
         List<Parameter> parameters = new ArrayList<>();
         parameters.add(Constants.CONTEXT_FUNC_PARAM);
-        parameters.add(new Parameter("e", Constants.BAL_ERROR_TYPE));
+        parameters.add(new Parameter(Constants.ON_FAIL_ERROR_VAR_REF, Constants.BAL_ERROR_TYPE));
 
         List<Statement> body = convertErrorHandlerRecords(ctx, errorHandler.errorHandlers());
         Function function = Function.publicFunction(methodName, parameters.stream().toList(), body);

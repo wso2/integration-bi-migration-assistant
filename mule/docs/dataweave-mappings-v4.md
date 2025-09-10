@@ -147,13 +147,19 @@ public type Context record {|
     anydata payload = ();
 |};
 
-function _dwMethod0_(Context ctx) returns json|error {
-    return {"date": check time:civilFromString("2021-01-01").ensureType(json), "time": check time:civilFromString("23:59:56").ensureType(json), "timeZone": check time:civilFromString("-08:00").ensureType(json), "dateTime": check time:civilFromString("2003-10-01T23:57:59-03:00").ensureType(json), "localDateTime": check time:civilFromString("2003-10-01T23:57:59").ensureType(json)};
-}
-
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_(ctx);
     ctx.payload = _dwOutput_;
+}
+
+function _dwMethod0_(Context ctx) returns json|error {
+    return {
+        "date": check time:civilFromString("2021-01-01").ensureType(json),
+        "time": check time:civilFromString("23:59:56").ensureType(json),
+        "timeZone": check time:civilFromString("-08:00").ensureType(json),
+        "dateTime": check time:civilFromString("2003-10-01T23:57:59-03:00").ensureType(json),
+        "localDateTime": check time:civilFromString("2003-10-01T23:57:59").ensureType(json)
+    };
 }
 
 ```
@@ -419,7 +425,8 @@ public function sampleFlow(Context ctx) {
 }
 
 function _dwMethod0_(Context ctx) returns json|error {
-    return {"hail1": check payload.resultSet1.ensureType(json)};
+    json payload = check ctx.payload.ensureType(json);
+    return {"hail1": check payload.resultSet1};
 }
 
 ```
@@ -508,7 +515,11 @@ public type Context record {|
 
 function _dwMethod0_(Context ctx) returns json|error {
     time:Utc _utcValue_ = check time:utcFromCivil(check time:civilFromString("2005-06-02T15:10:16Z"));
-    return {"mydate1": check (check time:utcFromCivil(check time:civilFromString("2005-06-02T15:10:16Z")))[0].ensureType(json), "mydate2": check (_utcValue_[0] * 1000 + <int>(_utcValue_[1] * 1000)).ensureType(json), "mydate3": check (check time:utcFromCivil(check time:civilFromString("2005-06-02T15:10:16Z")))[0].ensureType(json)};
+    return {
+        "mydate1": check (check time:utcFromCivil(check time:civilFromString("2005-06-02T15:10:16Z")))[0].ensureType(json),
+        "mydate2": check (_utcValue_[0] * 1000 + <int>(_utcValue_[1] * 1000)).ensureType(json),
+        "mydate3": check (check time:utcFromCivil(check time:civilFromString("2005-06-02T15:10:16Z")))[0].ensureType(json)
+    };
 }
 
 public function sampleFlow(Context ctx) {
@@ -558,10 +569,6 @@ public function parseInstant(handle instant) returns handle = @java:Method {
     name: "parse"
 } external;
 
-function _dwMethod0_(Context ctx) returns json|error {
-    return {"a": intToString(1, "##,#"), "b": check getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd").ensureType(json), "c": true.toString()};
-}
-
 public function formatDateTime(handle dateTime, handle formatter) returns handle = @java:Method {
     'class: "java.time.LocalDateTime"
 } external;
@@ -583,6 +590,10 @@ public function getZoneId(handle zoneId) returns handle = @java:Method {
     name: "of",
     paramTypes: ["java.lang.String"]
 } external;
+
+function _dwMethod0_(Context ctx) returns json|error {
+    return {"a": intToString(1, "##,#"), "b": check getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd").ensureType(json), "c": true.toString()};
+}
 
 public function getFormattedStringFromNumber(handle formatObject, int value) returns handle = @java:Method {
     'class: "java.text.NumberFormat",
@@ -690,10 +701,6 @@ public function UTC() returns handle = @java:FieldGet {
     name: "UTC"
 } external;
 
-function _dwMethod0_(Context ctx) returns json|error {
-    return {"a": time:utcToString([1436287232, 0]), "b": check getDateFromFormattedString("2015-10-07 16:40:32.000", "yyyy-MM-dd HH:mm:ss.SSS")};
-}
-
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_(ctx);
     ctx.payload = _dwOutput_;
@@ -708,6 +715,10 @@ public function parseDateTime(handle date, handle formatter) returns handle = @j
 public function getDateFromFormattedString(string dateString, string format) returns time:Utc|error {
     handle localDateTime = parseDateTime(java:fromString(dateString), getDateTimeFormatter(java:fromString(format)));
     return check time:utcFromString(toInstant(localDateTime, UTC()).toString());
+}
+
+function _dwMethod0_(Context ctx) returns json|error {
+    return {"a": time:utcToString([1436287232, 0]), "b": check getDateFromFormattedString("2015-10-07 16:40:32.000", "yyyy-MM-dd HH:mm:ss.SSS")};
 }
 
 public function getDateTimeFormatter(handle format) returns handle = @java:Method {
@@ -772,7 +783,13 @@ public type Context record {|
     anydata payload = ();
 |};
 
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_(ctx);
+    ctx.payload = _dwOutput_;
+}
+
 function _dwMethod0_(Context ctx) returns json|error {
+    json payload = check ctx.payload.ensureType(json);
     json _var_0;
     if check payload.country == "USA" {
         _var_0 = {"currency": "USD"};
@@ -780,11 +797,6 @@ function _dwMethod0_(Context ctx) returns json|error {
         _var_0 = {"currency": "EUR"};
     }
     return _var_0;
-}
-
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
-    ctx.payload = _dwOutput_;
 }
 
 ```
@@ -816,6 +828,7 @@ public function sampleFlow(Context ctx) {
 }
 
 function _dwMethod0_(Context ctx) returns json|error {
+    json payload = check ctx.payload.ensureType(json);
     json _var_0;
     if check payload.country == "USA" {
         _var_0 = "USD";
