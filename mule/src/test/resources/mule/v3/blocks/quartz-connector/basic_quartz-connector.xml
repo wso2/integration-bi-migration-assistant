@@ -1,0 +1,14 @@
+<mule xmlns:spring="http://www.springframework.org/schema/beans" xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.9/mule.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/3.9/mule-quartz.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+    <flow name="schedulerFlow">
+        <quartz:inbound-endpoint jobName="schedulerJob" repeatInterval="4000" doc:name="Quartz" responseTimeout="10000" startDelay="1000">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger level="INFO" message="Scheduler triggered]" doc:name="Logger"/>
+    </flow>
+</mule>

@@ -54,6 +54,8 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     ENRICHER("enricher", 5),
     ASYNC("async", 4),
     PROCESSOR_CHAIN("processor-chain", 2),
+    POLL("poll", 3),
+    FIXED_FREQUENCY_SCHEDULER("fixed-frequency-scheduler", 2),
 
     // Transformers
     SET_VARIABLE("set-variable", 1),
@@ -78,6 +80,9 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     // VM connector
     VM_INBOUND_ENDPOINT("vm:inbound-endpoint", 5),
     VM_OUTBOUND_ENDPOINT("vm:outbound-endpoint", 5),
+
+    // Quartz connector
+    QUARTZ_INBOUND_ENDPOINT("quartz:inbound-endpoint", 5),
 
     // Database Connector
     DB_INSERT("db:insert", 2),

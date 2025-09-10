@@ -33,6 +33,7 @@ public class Constants {
     public static final String ORG_BALLERINAX = "ballerinax";
     public static final String MODULE_HTTP = "http";
     public static final String MODULE_LOG = "log";
+    public static final String MODULE_TASK = "task";
     public static final String MODULE_SQL = "sql";
     public static final String MODULE_MYSQL = "mysql";
     public static final String MODULE_MYSQL_DRIVER = "mysql.driver";
@@ -42,7 +43,7 @@ public class Constants {
     public static final String MODULE_TIME = "time";
     public static final String MODULE_INT = "lang.'int";
     public static final String MODULE_JAVA = "jballerina.java";
-    public static final String ON_FAIL_ERROR_VAR_REF = "e";
+    public static final String MODULE_RUNTIME = "lang.runtime";
 
     // Context Type Def
     public static final String CONTEXT_RECORD_TYPE = "Context";
@@ -63,6 +64,7 @@ public class Constants {
     public static final String PAYLOAD_FIELD_ACCESS = CONTEXT_REFERENCE + "." + PAYLOAD_REF;
 
     // Variable/Func Names
+    public static final String ON_FAIL_ERROR_VAR_REF = "e";
     public static final String VAR_ITERATOR = "_iterator_";
     public static final String FUNC_NAME_HTTP_ENDPOINT_TEMPLATE = "invokeEndPoint%s";
     public static final String VAR_DB_STREAM_TEMPLATE = "dbStream%s";

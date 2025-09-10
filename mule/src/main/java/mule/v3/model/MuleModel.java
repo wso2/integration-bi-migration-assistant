@@ -44,6 +44,14 @@ public record MuleModel() {
         }
     }
 
+    public record QuartzInboundEndpoint(Kind kind, String jobName, String cronExpression, String repeatCount,
+                                        String repeatInterval, String startDelay) implements MuleRecord {
+        public QuartzInboundEndpoint(String jobName, String cronExpression, String repeatCount, String repeatInterval,
+                                     String startDelay) {
+            this(Kind.QUARTZ_INBOUND_ENDPOINT, jobName, cronExpression, repeatCount, repeatInterval, startDelay);
+        }
+    }
+
     public record Logger(Kind kind, String message, LogLevel level) implements MuleRecord {
         public Logger(String message, LogLevel level) {
             this(Kind.LOGGER, message, level);
@@ -158,18 +166,6 @@ public record MuleModel() {
         }
     }
 
-    public record ScatterGather(Kind kind, List<ProcessorChain> processorChains) implements MuleRecord {
-        public ScatterGather(List<ProcessorChain> processorChains) {
-            this(Kind.SCATTER_GATHER, processorChains);
-        }
-    }
-
-    public record FirstSuccessful(Kind kind, List<ProcessorChain> processorChains) implements MuleRecord {
-        public FirstSuccessful(List<ProcessorChain> processorChains) {
-            this(Kind.FIRST_SUCCESSFUL, processorChains);
-        }
-    }
-
     public record ProcessorChain(Kind kind, List<MuleRecord> flowBlocks) implements MuleRecord {
         public ProcessorChain(List<MuleRecord> flowBlocks) {
             this(Kind.PROCESSOR_CHAIN, flowBlocks);
@@ -180,6 +176,25 @@ public record MuleModel() {
             implements MuleRecord {
         public Enricher(String source, String target, Optional<MuleRecord> innerBlock) {
             this(Kind.MESSAGE_ENRICHER, source, target, innerBlock);
+        }
+    }
+
+    public record Poll(Kind kind, String frequency, String startDelay, String timeUnit) implements MuleRecord {
+        public Poll(String frequency, String startDelay, String timeUnit) {
+            this(Kind.POLL, frequency, startDelay, timeUnit);
+        }
+    }
+
+    // Flow Control
+    public record ScatterGather(Kind kind, List<ProcessorChain> processorChains) implements MuleRecord {
+        public ScatterGather(List<ProcessorChain> processorChains) {
+            this(Kind.SCATTER_GATHER, processorChains);
+        }
+    }
+
+    public record FirstSuccessful(Kind kind, List<ProcessorChain> processorChains) implements MuleRecord {
+        public FirstSuccessful(List<ProcessorChain> processorChains) {
+            this(Kind.FIRST_SUCCESSFUL, processorChains);
         }
     }
 
@@ -301,6 +316,7 @@ public record MuleModel() {
         HTTP_LISTENER,
         VM_INBOUND_ENDPOINT,
         VM_OUTBOUND_ENDPOINT,
+        QUARTZ_INBOUND_ENDPOINT,
         LOGGER,
         EXPRESSION_COMPONENT,
         PAYLOAD,
@@ -335,6 +351,7 @@ public record MuleModel() {
         ASYNC,
         FOREACH,
         MESSAGE_ENRICHER,
+        POLL,
         CATCH_EXCEPTION_STRATEGY,
         CHOICE_EXCEPTION_STRATEGY,
         REFERENCE_EXCEPTION_STRATEGY,

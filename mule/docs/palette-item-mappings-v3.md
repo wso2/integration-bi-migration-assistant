@@ -18,6 +18,8 @@
 - [Misc](palette-item-mappings-v3.md#misc)
 - [Object To Json](palette-item-mappings-v3.md#object-to-json)
 - [Object To String](palette-item-mappings-v3.md#object-to-string)
+- [Poll](palette-item-mappings-v3.md#poll)
+- [Quartz Connector](palette-item-mappings-v3.md#quartz-connector)
 - [Reference Exception Strategy](palette-item-mappings-v3.md#reference-exception-strategy)
 - [Scatter Gather](palette-item-mappings-v3.md#scatter-gather)
 - [Session Variable](palette-item-mappings-v3.md#session-variable)
@@ -2485,6 +2487,105 @@ service /mule3 on config {
         ctx.inboundProperties.response.setPayload(ctx.payload);
         return ctx.inboundProperties.response;
     }
+}
+
+```
+
+## Poll
+
+- ### Simple-Poll
+
+**Input (simple-poll.xml):**
+```xml
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:schedulers="http://www.mulesoft.org/schema/mule/schedulers" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.9/mule.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/3.9/mule-quartz.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <flow name="pollFlow">
+        <poll doc:name="Poll">
+            <fixed-frequency-scheduler frequency="5000" startDelay="2000"/>
+        </poll>
+        <logger level="INFO" doc:name="Logger" message="xxx: polling triggered"/>
+    </flow>
+</mule>
+
+```
+**Output (simple-poll.bal):**
+```ballerina
+import ballerina/lang.runtime;
+import ballerina/log;
+import ballerina/task;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+class PollJob {
+    *task:Job;
+
+    public function execute() {
+        log:printInfo("xxx: polling triggered");
+    }
+}
+
+public function main() returns error? {
+    runtime:sleep(2.0);
+    task:JobId id = check task:scheduleJobRecurByFrequency(new PollJob(), 5.0);
+}
+
+```
+
+## Quartz Connector
+
+- ### Basic Quartz-Connector
+
+**Input (basic_quartz-connector.xml):**
+```xml
+<mule xmlns:spring="http://www.springframework.org/schema/beans" xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.9/mule.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/3.9/mule-quartz.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+    <flow name="schedulerFlow">
+        <quartz:inbound-endpoint jobName="schedulerJob" repeatInterval="4000" doc:name="Quartz" responseTimeout="10000" startDelay="1000">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger level="INFO" message="Scheduler triggered]" doc:name="Logger"/>
+    </flow>
+</mule>
+
+```
+**Output (basic_quartz-connector.bal):**
+```ballerina
+import ballerina/lang.runtime;
+import ballerina/log;
+import ballerina/task;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+class schedulerJob {
+    *task:Job;
+
+    public function execute() {
+        log:printInfo("Scheduler triggered]");
+    }
+}
+
+public function main() returns error? {
+    runtime:sleep(1.0);
+    task:JobId id = check task:scheduleJobRecurByFrequency(new schedulerJob(), 4.0);
 }
 
 ```
