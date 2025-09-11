@@ -36,6 +36,7 @@ public class DWContext {
     public Map<String, String> commonArgs = new HashMap<>();
     final Map<String, DWScriptContext> scriptCache = new HashMap<>();
     public boolean isOutputVarSet = false;
+    public boolean referringToPayload = false;
 
     public DWContext(Context toolContext, List<BallerinaModel.Statement> statementList) {
         this.parentStatements = statementList;
@@ -58,6 +59,11 @@ public class DWContext {
     public void finalizeFunction() {
         if (this.currentScriptContext.exprBuilder.isEmpty()) {
             return;
+        }
+        if (this.referringToPayload) {
+            this.currentScriptContext.statements.add(0,
+                    new BallerinaStatement("json %s = check ctx.%s.ensureType(json);"
+                            .formatted(DWUtils.DW_PAYLOAD_IDENTIFIER, DWUtils.DW_PAYLOAD_IDENTIFIER)));
         }
         this.currentScriptContext.statements.add(
                 new BallerinaStatement("return " + (this.currentScriptContext.exprBuilder + ";")));

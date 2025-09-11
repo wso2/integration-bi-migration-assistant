@@ -25,5 +25,12 @@ service /foo on config {
 }
 
 function _dwMethod0_(Context ctx) returns json|error {
-    return {"s1": "Hello World", "s2": "Hello World", "n": 1.23, "b": true, "a": check [1, 2, 3].ensureType(json), "o": check {"name": "Anne"}.ensureType(json)};
+    return {
+        "s1": "Hello World",
+        "s2": "Hello World",
+        "n": 1.23,
+        "b": true,
+        "a": check [1, 2, 3].ensureType(json),
+        "o": check {"name": "Anne"}.ensureType(json)
+    };
 }

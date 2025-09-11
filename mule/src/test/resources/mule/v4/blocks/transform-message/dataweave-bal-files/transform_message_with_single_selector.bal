@@ -8,5 +8,6 @@ public function sampleFlow(Context ctx) {
 }
 
 function _dwMethod0_(Context ctx) returns json|error {
-    return {"hail1": check payload.resultSet1.ensureType(json)};
+    json payload = check ctx.payload.ensureType(json);
+    return {"hail1": check payload.resultSet1};
 }

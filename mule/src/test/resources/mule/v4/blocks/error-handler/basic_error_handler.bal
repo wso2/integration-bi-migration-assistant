@@ -16,7 +16,7 @@ public function demoFlow(Context ctx) {
     }
 }
 
-public function my_error_handler(Context ctx, error e) {
+public function my_error_handler(Context ctx, error err) {
     // on-error-propagate
     log:printError("Message: " + err.message());
     log:printError("Trace: " + err.stackTrace().toString());

@@ -10,10 +10,6 @@ public function UTC() returns handle = @java:FieldGet {
     name: "UTC"
 } external;
 
-function _dwMethod0_(Context ctx) returns json|error {
-    return {"a": time:utcToString([1436287232, 0]), "b": check getDateFromFormattedString("2015-10-07 16:40:32.000", "yyyy-MM-dd HH:mm:ss.SSS")};
-}
-
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod0_(ctx);
     ctx.payload = _dwOutput_;
@@ -28,6 +24,10 @@ public function parseDateTime(handle date, handle formatter) returns handle = @j
 public function getDateFromFormattedString(string dateString, string format) returns time:Utc|error {
     handle localDateTime = parseDateTime(java:fromString(dateString), getDateTimeFormatter(java:fromString(format)));
     return check time:utcFromString(toInstant(localDateTime, UTC()).toString());
+}
+
+function _dwMethod0_(Context ctx) returns json|error {
+    return {"a": time:utcToString([1436287232, 0]), "b": check getDateFromFormattedString("2015-10-07 16:40:32.000", "yyyy-MM-dd HH:mm:ss.SSS")};
 }
 
 public function getDateTimeFormatter(handle format) returns handle = @java:Method {
