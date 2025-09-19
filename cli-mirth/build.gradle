@@ -1,6 +1,8 @@
 plugins {
     id 'java'
     id 'application'
+    id 'checkstyle'
+    id 'com.github.spotbugs' version '5.1.3'
 }
 
 group = 'baltool.mirth'
@@ -20,7 +22,7 @@ dependencies {
     implementation "info.picocli:picocli:${picocliVersion}"
     implementation "org.jetbrains:annotations:${jetbrainsAnnotationsVersion}"
     testImplementation "org.testng:testng:${testngVersion}"
-//    spotbugs "com.github.spotbugs:spotbugs:${spotbugsVersion}"
+    spotbugs "com.github.spotbugs:spotbugs:${spotbugsVersion}"
 
     // LogicApps specific dependencies
     implementation "com.google.code.gson:gson:${gsonVersion}"
@@ -29,8 +31,38 @@ dependencies {
     implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
 }
 
+//application {
+////    mainClass = 'cli.MirthConnectCli'
+//    mainClass = 'baltool.mirth.codegenerator.MirthChannelMigrationExecutor'
+//}
+
 application {
-    mainClass = 'baltool.mirth.Main'
+    mainClass = 'codegenerator.MirthChannelMigrationExecutor'
+}
+
+
+
+//application {
+//    mainClass.set('cli.MirthConnectCli')  // Updated to use the correct main class
+//}
+
+checkstyle {
+    toolVersion = '10.12.5'
+    config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
+}
+
+
+spotbugs {
+    reportLevel = 'high'
+    excludeFilter = file("${rootProject.projectDir}/spotbugs-exclude.xml")
+}
+
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+    reports {
+        html.required = true
+        xml.required = false
+    }
 }
 
 test {
@@ -39,7 +71,34 @@ test {
     }
 }
 
-// Keep this for backward compatibility
-application {
-    mainClassName = 'cli.Main'
+task copyDependencies(type: Copy) {
+    from configurations.runtimeClasspath
+    into "${buildDir}/libs/lib"
 }
+
+jar {
+    dependsOn copyDependencies
+    manifest {
+        attributes(
+                'Main-Class': 'codegenerator.MirthChannelMigrationExecutor',
+                'Class-Path': configurations.runtimeClasspath.files.collect { "lib/${it.name}" }.join(' ')
+        )
+    }
+    from {
+        sourceSets.main.output
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveBaseName = 'cli-mirth'
+    archiveVersion = project.version
+}
+
+build {
+//    dependsOn checkstyleMain
+//    dependsOn spotbugsMain
+}
+
+
+// Keep this for backward compatibility
+//application {
+//    mainClassName = 'cli.Main'
+//}

@@ -75,7 +75,7 @@ public class MigrateMirthChannelCommand implements BLauncherCmd {
 
             if (outputPath != null) {
                 Path outputDir = Path.of(outputPath).toAbsolutePath();
-                MirthChannelMigrationExecutor.migrateChannelToBallerina(channelFilePath, outputDir, verbose,
+                MirthChannelMigrationExecutor.migrateChannelToBallerina(channelFilePath, outputDir, "",verbose,
                         new VerboseLogger(verbose));
             } else {
                 MirthChannelMigrationExecutor.migrateChannelToBallerina(channelFilePath, verbose,
