@@ -1,5 +1,6 @@
 package baltool.mirth.codegenerator;
 
+import baltool.mirth.auth.CLIAuthenticator;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -14,21 +15,59 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 import static baltool.mirth.Constants.*;
 
 public class MirthChannelMigrationExecutor {
 
     private static final String BALLERINA_PROJECT_SUFFIX = "_ballerina";
-    public static void migrateChannelToBallerina(Path channelFilePath, Path outputDir, boolean verbose, VerboseLogger verboseLogger) {
+    private static final int TOTAL_STEPS = 3;
+
+
+    public static void main(String[] args) {
+
+        Path sourceFile = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/mirth_channel.xml");
+//        Path sourceFile = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/Hl7_Conversion.xml");
+        Path outputDirectory = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/output");
+        migrateChannelToBallerina(sourceFile, outputDirectory, "",false, new VerboseLogger(false));
+
+    }
+
+    public static void migrateChannelToBallerina(Path channelFilePath, Path outputDir, String additionalInstructions, boolean verbose, VerboseLogger logger) {
+        try {
+            logger.printVerboseInfo("Starting migration with specified output directory: " +
+                    outputDir.toString());
+
+            logger.printVerboseInfo("Obtaining access token");
+            String copilotAccessToken = getAccessToken(logger);
+            if (copilotAccessToken == null) {
+                logger.printVerboseInfo("Access token is null, terminating migration");
+                return;
+            }
+            logger.printVerboseInfo("Access token obtained successfully");
+
+            String fileName = channelFilePath.getFileName().toString();
+            VerboseLoggerFactory loggerFactory = VerboseLoggerFactory.getInstance(verbose);
+            loggerFactory.addProcess(fileName, TOTAL_STEPS);
+            logger.printVerboseInfo("Single file mode, processing: " + channelFilePath);
+            processMirthChannel(channelFilePath, additionalInstructions, outputDir, copilotAccessToken,
+                    false, loggerFactory, fileName);
+            loggerFactory.setProgressBarActive(false);
+
+            System.exit(0);
+        } catch (Exception e) {
+            logger.printError("Error during migration process: " + e.getMessage());
+            logger.printStackTrace(e.getStackTrace());
+        }
     }
 
     public static void migrateChannelToBallerina(Path channelFilePath, boolean verbose, VerboseLogger verboseLogger) {
     }
 
     private static void processMirthChannel(Path mirthChannelFilePath, String additionalInstructions, Path targetDir,
-                                              String copilotAccessToken, boolean isMultiThreaded,
-                                              VerboseLoggerFactory logger, String fileName) {
+                                            String copilotAccessToken, boolean isMultiThreaded,
+                                            VerboseLoggerFactory logger, String fileName) {
         try {
             if (!isMultiThreaded) {
                 logger.printVerboseInfo(fileName, "SINGLE FILE PROCESSING MODE");
@@ -43,13 +82,13 @@ public class MirthChannelMigrationExecutor {
             logger.printVerboseInfo(fileName, "File validation successful");
             logger.printVerboseInfo(fileName, "File size: " + Files.size(mirthChannelFilePath) + " bytes");
 
-            String projectName = mirthChannelFilePath.getFileName().toString().replace(".json", BALLERINA_PROJECT_SUFFIX);
+            String projectName = mirthChannelFilePath.getFileName().toString().replace(".xml", BALLERINA_PROJECT_SUFFIX);
             String packageName = URLEncoder.encode(projectName, StandardCharsets.UTF_8).replace("-", "_");
             logger.printVerboseInfo(fileName, "Package name: " + packageName);
 
             ModuleDescriptor moduleDescriptor = getModuleDescriptor(packageName);
 
-            JsonArray generatedSourceFiles = CodeGenerationUtils.generateCodeForLogicApp(copilotAccessToken,
+            JsonArray generatedSourceFiles = CodeGenerationUtils.generateCodeForMirthChannel(copilotAccessToken,
                     mirthChannelFilePath, packageName, additionalInstructions, moduleDescriptor, logger, fileName);
             logger.printVerboseInfo(fileName, "Code generation completed. Generated " +
                     generatedSourceFiles.size() + " source files");
@@ -99,11 +138,11 @@ public class MirthChannelMigrationExecutor {
         File balTomlFile = Files.createFile(ballerinaTomlPath).toFile();
 
         String tomlContent = String.format("""
-                [package]
-                org = "%s"
-                name = "%s"
-                version = "%s"
-                """,
+                        [package]
+                        org = "%s"
+                        name = "%s"
+                        version = "%s"
+                        """,
                 moduleDescriptor.org().value(),
                 moduleDescriptor.packageName().value(),
                 moduleDescriptor.version().value());
@@ -113,5 +152,18 @@ public class MirthChannelMigrationExecutor {
         }
         logger.printVerboseInfo(fileName, BALLERINA_TOML_FILE + " file written successfully");
         logger.printInfo(fileName, "Ballerina project created successfully at: " + projectDir.toAbsolutePath());
+    }
+
+    private static String getAccessToken(VerboseLogger logger) {
+        try {
+            logger.printVerboseInfo("Attempting to retrieve access token via CLI authentication");
+            String token = CLIAuthenticator.getValidAccessToken(logger);
+            logger.printVerboseInfo("Access token retrieved successfully");
+            return token;
+        } catch (Exception e) {
+            logger.printError("Error retrieving access token: " + e.getMessage());
+            logger.printVerboseError("Stack trace: \n" + Arrays.toString(e.getStackTrace()));
+            return null;
+        }
     }
 }
