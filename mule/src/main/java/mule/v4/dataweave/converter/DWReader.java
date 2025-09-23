@@ -21,8 +21,10 @@ import common.BallerinaModel.Statement.BallerinaStatement;
 import mule.v4.Constants;
 import mule.v4.Context;
 import mule.v4.ConversionUtils;
+import mule.v4.converter.MuleConfigConverter;
 import mule.v4.dataweave.parser.DataWeaveLexer;
 import mule.v4.dataweave.parser.DataWeaveParser;
+import mule.v4.model.MuleModel.UnsupportedMessageElement;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -50,8 +52,9 @@ public class DWReader {
         InputStream inputStream = DWReader.class.getClassLoader().getResourceAsStream(filePath);
         if (inputStream != null) {
             return parseFromStream(inputStream, filePath, context);
+        } else {
+            return null;
         }
-        throw new RuntimeException("File not found: " + filePath);
     }
 
     private static ParseTree parseFromFile(Path path, DWContext context) {
@@ -90,7 +93,9 @@ public class DWReader {
         ParseTree tree = parser.script();
 
         if (errorListener.hasErrors()) {
-            context.currentScriptContext.errors.add(errorListener.getErrors());
+            context.currentScriptContext.dwProcessResult.errors.add(errorListener.getErrors());
+            context.currentScriptContext.dwProcessResult.filePathOrScript =
+                    context.filePath != null ? context.filePath : script;
         }
         return tree;
     }
@@ -110,8 +115,13 @@ public class DWReader {
                     addStatementToList(setVariableElement.script(), setVariableElement.resource(),
                             context, ctx, setVariableElement.variableName(), statementList);
                     break;
+                case DW_UNSUPPORTED_ELEMENT:
+                    List<Statement> stmts = MuleConfigConverter.convertUnsupportedBlockInner(ctx,
+                            ((UnsupportedMessageElement) child).unsupportedBlock());
+                    statementList.addAll(stmts);
+                    break;
                 default:
-                    // TODO: add this to unsupported blocks in report?
+                    assert false; // ideally we should not reach here
                     statementList.add(new BallerinaStatement(
                             ConversionUtils.wrapElementInUnsupportedBlockComment(child.toString())));
                     break;
@@ -134,22 +144,38 @@ public class DWReader {
         if (script != null) {
             ParseTree tree = parseScript(script, context);
             BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);
-            visitor.visit(tree);
+            visitTree(visitor, tree, context);
             context.currentScriptContext.funcName = context.functionNames.getLast();
             return buildStatement(context, varName);
         }
+        context.filePath = resourcePath;
         if (context.scriptCache.containsKey(resourcePath)) {
             context.currentScriptContext = context.scriptCache.get(resourcePath);
             return buildStatement(context, varName);
         }
-        ParseTree tree = readDWScriptFromFile(resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR),
-                context);
+        String filePath = resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR);
+        ParseTree tree = readDWScriptFromFile(filePath, context);
+        if (tree == null) {
+            return "\n// TODO: DataWeave script not found in path: " + filePath + "\n";
+        }
         BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);
-        visitor.visit(tree);
+        visitTree(visitor, tree, context);
         context.currentScriptContext.funcName = context.functionNames.getLast();
         context.scriptCache.put(resourcePath, context.currentScriptContext);
         return buildStatement(context, varName);
+    }
 
+    private static void visitTree(BallerinaVisitor visitor, ParseTree tree, DWContext context) {
+        try {
+            visitor.visit(tree);
+        } catch (Exception e) {
+            DWContext.DWProcessResult dwProcessResult = context.currentScriptContext.dwProcessResult;
+            dwProcessResult.errors.add(
+                    "DATAWEAVE PROCESSING FAILED DUE TO: " + e.getMessage() + "\n"
+            );
+            context.markAsFailedDWExpr(dwProcessResult.filePathOrScript);
+            visitor.defineFunction();
+        }
     }
 
     private static String buildStatement(DWContext context, String varName) {

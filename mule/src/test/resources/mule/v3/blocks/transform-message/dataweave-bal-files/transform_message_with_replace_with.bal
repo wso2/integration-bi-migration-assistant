@@ -7,7 +7,7 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod0_() returns json {
+function _dwMethod0_(Context ctx) returns json {
     string:RegExp _pattern_ = re `/(\d+)/`;
     var _var_0 = "admin123";
     return {"b": _pattern_.replace(_var_0, "ID")};

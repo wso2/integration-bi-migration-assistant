@@ -22,6 +22,7 @@ import common.BallerinaModel.Statement.BallerinaStatement;
 import mule.v3.Constants;
 import mule.v3.Context;
 import mule.v3.ConversionUtils;
+import mule.v3.converter.MuleConfigConverter;
 import mule.v3.dataweave.parser.DataWeaveLexer;
 import mule.v3.dataweave.parser.DataWeaveParser;
 import org.antlr.v4.runtime.CharStreams;
@@ -42,6 +43,7 @@ import static mule.v3.model.MuleModel.SetPayloadElement;
 import static mule.v3.model.MuleModel.SetSessionVariableElement;
 import static mule.v3.model.MuleModel.SetVariableElement;
 import static mule.v3.model.MuleModel.TransformMessageElement;
+import static mule.v3.model.MuleModel.UnsupportedMessageElement;
 
 public class DWReader {
 
@@ -94,7 +96,9 @@ public class DWReader {
         ParseTree tree = parser.script();
 
         if (errorListener.hasErrors()) {
-            context.currentScriptContext.errors.add(errorListener.getErrors());
+            context.currentScriptContext.dwProcessResult.errors.add(errorListener.getErrors());
+            context.currentScriptContext.dwProcessResult.filePathOrScript =
+                    context.filePath != null ? context.filePath : script;
         }
         return tree;
     }
@@ -123,7 +127,13 @@ public class DWReader {
                 case DW_INPUT_PAYLOAD:
                     context.setMimeType(((InputPayloadElement) child).mimeType());
                     break;
+                case DW_UNSUPPORTED_ELEMENT:
+                    List<Statement> stmts = MuleConfigConverter.convertUnsupportedBlock(ctx,
+                            ((UnsupportedMessageElement) child).unsupportedBlock());
+                    statementList.addAll(stmts);
+                    break;
                 default:
+                    assert false; // ideally we should not reach here
                     statementList.add(new BallerinaStatement(
                             ConversionUtils.wrapElementInUnsupportedBlockComment(child.toString())));
                     break;
@@ -146,10 +156,11 @@ public class DWReader {
         if (script != null) {
             ParseTree tree = parseScript(script, context);
             BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);
-            visitor.visit(tree);
+            visitTree(visitor, tree, context);
             context.currentScriptContext.funcName = context.functionNames.getLast();
             return buildStatement(context, varName);
         }
+        context.filePath = resourcePath;
         if (context.scriptCache.containsKey(resourcePath)) {
             context.currentScriptContext = context.scriptCache.get(resourcePath);
             return buildStatement(context, varName);
@@ -157,15 +168,26 @@ public class DWReader {
         String filePath = resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR);
         ParseTree tree = readDWScriptFromFile(filePath, context);
         if (tree == null) {
-            // TODO: Avoid null return from readDWScriptFromFile()
             return "\n// TODO: DataWeave script not found in path: " + filePath + "\n";
         }
         BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);
-        visitor.visit(tree);
+        visitTree(visitor, tree, context);
         context.currentScriptContext.funcName = context.functionNames.getLast();
         context.scriptCache.put(resourcePath, context.currentScriptContext);
         return buildStatement(context, varName);
+    }
 
+    private static void visitTree(BallerinaVisitor visitor, ParseTree tree, DWContext context) {
+        try {
+            visitor.visit(tree);
+        } catch (Exception e) {
+            DWContext.DWProcessResult dwProcessResult = context.currentScriptContext.dwProcessResult;
+            dwProcessResult.errors.add(
+                    "DATAWEAVE PROCESSING FAILED DUE TO: " + e.getMessage() + "\n"
+            );
+            context.markAsFailedDWExpr(dwProcessResult.filePathOrScript);
+            visitor.defineFunction();
+        }
     }
 
     private static String buildStatement(DWContext context, String varName) {

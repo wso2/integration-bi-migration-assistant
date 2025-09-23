@@ -23,6 +23,7 @@ import mule.v4.Context;
 import mule.v4.ConversionUtils;
 import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.MuleModel.DbConnection;
+import mule.v4.model.MuleModel.UnsupportedMessageElement;
 import mule.v4.model.MuleXMLTag;
 import org.w3c.dom.Element;
 
@@ -843,7 +844,11 @@ public class MuleConfigReader {
                 case MuleXMLTag.EE_VARIABLES -> {
                     processVariablesElement(child, transformMessageElements);
                 }
-                default -> throw new UnsupportedOperationException("Unsupported ee:transform child: " + muleXMLTag);
+                default -> {
+                    UnsupportedBlock unsupportedBlock = readUnsupportedBlock(ctx, child);
+                    var e = new UnsupportedMessageElement(unsupportedBlock);
+                    transformMessageElements.add(e);
+                }
             }
         }
         return new TransformMessage(transformMessageElements);

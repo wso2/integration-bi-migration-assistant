@@ -75,6 +75,7 @@ import static mule.v3.model.MuleModel.TransformMessage;
 import static mule.v3.model.MuleModel.TransformMessageElement;
 import static mule.v3.model.MuleModel.Type;
 import static mule.v3.model.MuleModel.UnsupportedBlock;
+import static mule.v3.model.MuleModel.UnsupportedMessageElement;
 import static mule.v3.model.MuleModel.VMInboundEndpoint;
 import static mule.v3.model.MuleModel.VMOutboundEndpoint;
 import static mule.v3.model.MuleModel.QuartzInboundEndpoint;
@@ -812,8 +813,11 @@ public class MuleConfigReader {
                     transformMessageElements.add(new SetSessionVariableElement(
                             resource, script, variableName));
                 }
-
-                default -> throw new UnsupportedOperationException();
+                default -> {
+                    UnsupportedBlock unsupportedBlock = readUnsupportedBlock(ctx, child);
+                    var e = new UnsupportedMessageElement(unsupportedBlock);
+                    transformMessageElements.add(e);
+                }
             }
         }
         return new TransformMessage(transformMessageElements);

@@ -93,6 +93,13 @@ public record MuleModel() {
         }
     }
 
+    public record UnsupportedMessageElement(Kind kind, UnsupportedBlock unsupportedBlock)
+            implements TransformMessageElement {
+        public UnsupportedMessageElement(UnsupportedBlock unsupportedBlock) {
+            this(Kind.DW_UNSUPPORTED_ELEMENT, unsupportedBlock);
+        }
+    }
+
     public record InputPayloadElement(Kind kind, String mimeType, String samplePath)
             implements TransformMessageElement {
         // TODO - add support for reader property
@@ -346,6 +353,7 @@ public record MuleModel() {
         DW_SET_VARIABLE,
         DW_SET_SESSION_VARIABLE,
         DW_INPUT_PAYLOAD,
+        DW_UNSUPPORTED_ELEMENT,
         FLOW,
         SUB_FLOW,
         ASYNC,

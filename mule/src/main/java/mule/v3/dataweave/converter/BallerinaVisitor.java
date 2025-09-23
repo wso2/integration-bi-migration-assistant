@@ -130,18 +130,24 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitBody(DataWeaveParser.BodyContext ctx) {
-        String methodName = String.format(DWUtils.DW_FUNCTION_NAME, this.ctx.projectCtx.counters.dwMethodCount++);
         visitChildren(ctx);
         dwContext.finalizeFunction();
+        defineFunction();
+        return null;
+    }
+
+    public void defineFunction() {
         String outputType = dwContext.currentScriptContext.outputType;
+        if (outputType == null) {
+            outputType = "any";
+        }
         if (dwContext.currentScriptContext.containsCheck) {
             outputType = dwContext.currentScriptContext.outputType + "| error";
         }
+        String methodName = String.format(DWUtils.DW_FUNCTION_NAME, this.ctx.projectCtx.counters.dwMethodCount++);
         this.dwContext.functionNames.add(methodName);
         this.ctx.currentFileCtx.balConstructs.functions.add(new Function(methodName,
-                dwContext.currentScriptContext.params, typeFrom(outputType),
-                dwContext.currentScriptContext.statements));
-        return null;
+                Constants.FUNC_PARAMS_WITH_CONTEXT, typeFrom(outputType), dwContext.currentScriptContext.statements));
     }
 
     @Override
