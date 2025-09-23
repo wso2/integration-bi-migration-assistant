@@ -2,7 +2,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-function _dwMethod0_() returns string {
+function _dwMethod0_(Context ctx) returns string {
     return 10.toString();
 }
 

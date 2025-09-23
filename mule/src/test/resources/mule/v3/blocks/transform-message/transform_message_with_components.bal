@@ -26,6 +26,6 @@ service /foo on config {
     }
 }
 
-function _dwMethod0_(json payload) returns json {
+function _dwMethod0_(Context ctx) returns json {
     return "apple".toUpperAscii();
 }

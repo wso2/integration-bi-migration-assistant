@@ -68,6 +68,7 @@ public class DWUtils {
     public static final String TIME_ZONE = "timeZone";
     public static final String PERIOD = "period";
     public static final String IDENTIFIER = "identifier";
+    public static final String UNKNOWN = "unknown";
 
     // DataWeave Built-in functions
     public static final String DW_FUNCTION_MAP = "map";
@@ -140,7 +141,7 @@ public class DWUtils {
                 expression.endsWith(DWUtils.CURLY_END_BRACKET)) {
             return DWUtils.OBJECT;
         }
-        throw new BallerinaDWException("Unsupported type: " + expression);
+        return DWUtils.UNKNOWN;
     }
 
     public static String getBallerinaType(String dwType, Context ctx) {

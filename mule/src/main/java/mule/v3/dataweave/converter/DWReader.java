@@ -96,8 +96,8 @@ public class DWReader {
         ParseTree tree = parser.script();
 
         if (errorListener.hasErrors()) {
-            context.currentScriptContext.dwParseResult.errors.add(errorListener.getErrors());
-            context.currentScriptContext.dwParseResult.filePathOrScript =
+            context.currentScriptContext.dwProcessResult.errors.add(errorListener.getErrors());
+            context.currentScriptContext.dwProcessResult.filePathOrScript =
                     context.filePath != null ? context.filePath : script;
         }
         return tree;
@@ -156,7 +156,7 @@ public class DWReader {
         if (script != null) {
             ParseTree tree = parseScript(script, context);
             BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);
-            visitor.visit(tree);
+            visitTree(visitor, tree, context);
             context.currentScriptContext.funcName = context.functionNames.getLast();
             return buildStatement(context, varName);
         }
@@ -171,11 +171,23 @@ public class DWReader {
             return "\n// TODO: DataWeave script not found in path: " + filePath + "\n";
         }
         BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);
-        visitor.visit(tree);
+        visitTree(visitor, tree, context);
         context.currentScriptContext.funcName = context.functionNames.getLast();
         context.scriptCache.put(resourcePath, context.currentScriptContext);
         return buildStatement(context, varName);
+    }
 
+    private static void visitTree(BallerinaVisitor visitor, ParseTree tree, DWContext context) {
+        try {
+            visitor.visit(tree);
+        } catch (Exception e) {
+            DWContext.DWProcessResult dwProcessResult = context.currentScriptContext.dwProcessResult;
+            dwProcessResult.errors.add(
+                    "DATAWEAVE PROCESSING FAILED DUE TO: " + e.getMessage() + "\n"
+            );
+            context.markAsFailedDWExpr(dwProcessResult.filePathOrScript);
+            visitor.defineFunction();
+        }
     }
 
     private static String buildStatement(DWContext context, String varName) {

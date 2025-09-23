@@ -7,7 +7,7 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod0_() returns json|error {
+function _dwMethod0_(Context ctx) returns json|error {
     var _var_0 = {"aa": "a"};
     return {"concat": check {_var_0, "cc": "c"}.ensureType(json)};
 }

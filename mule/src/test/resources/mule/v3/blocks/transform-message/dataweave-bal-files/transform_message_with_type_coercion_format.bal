@@ -16,6 +16,10 @@ public function parseInstant(handle instant) returns handle = @java:Method {
     name: "parse"
 } external;
 
+function _dwMethod0_(Context ctx) returns json|error {
+    return {"a": intToString(1, "##,#"), "b": check getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd").ensureType(json), "c": true.toString()};
+}
+
 public function formatDateTime(handle dateTime, handle formatter) returns handle = @java:Method {
     'class: "java.time.LocalDateTime"
 } external;
@@ -43,10 +47,6 @@ public function getFormattedStringFromNumber(handle formatObject, int value) ret
     name: "format",
     paramTypes: ["long"]
 } external;
-
-function _dwMethod0_() returns json|error {
-    return {"a": intToString(1, "##,#"), "b": check getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd").ensureType(json), "c": true.toString()};
-}
 
 public function intToString(int intValue, string format) returns string {
     handle formatObj = newDecimalFormat(java:fromString(format));

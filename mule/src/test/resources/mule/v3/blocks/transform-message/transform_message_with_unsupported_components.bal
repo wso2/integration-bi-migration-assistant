@@ -2,15 +2,11 @@ public type Context record {|
     anydata payload = ();
 |};
 
-function _dwMethod1_(xml payload) returns json {
+function _dwMethod1_(Context ctx) returns json {
     //TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'map$+1' OF TYPE 'xml' FOUND. MANUAL CONVERSION REQUIRED.
 }
 
-function _dwMethod2_(json payload) returns json {
-    //TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'groupBy$.language' FOUND. MANUAL CONVERSION REQUIRED.
-}
-
-function _dwMethod0_(json payload) returns json {
+function _dwMethod0_(Context ctx) returns json {
     float conversionRate = 13.15;
     return [1, 2, 3, 4];
     // TODO: DATAWEAVE PARSING FAILED. MANUAL CONVERSION REQUIRED.
@@ -32,4 +28,8 @@ public function sampleFlow(Context ctx) {
     _dwOutput_ = _dwMethod1_(ctx.payload.toJson());
     _dwOutput_ = _dwMethod2_(ctx.payload.toJson());
     ctx.payload = _dwOutput_;
+}
+
+function _dwMethod2_(Context ctx) returns json {
+    //TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'groupBy$.language' FOUND. MANUAL CONVERSION REQUIRED.
 }

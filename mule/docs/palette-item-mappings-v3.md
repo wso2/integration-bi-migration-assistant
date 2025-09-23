@@ -3259,7 +3259,7 @@ service /foo on config {
     }
 }
 
-function _dwMethod0_(json payload) returns json {
+function _dwMethod0_(Context ctx) returns json {
     return "apple".toUpperAscii();
 }
 
@@ -3322,7 +3322,7 @@ service /foo on config {
     }
 }
 
-function _dwMethod0_(json payload) returns json|error {
+function _dwMethod0_(Context ctx) returns json|error {
     float conversionRate = 13.15;
     return {"s1": "Hello World", "s2": "Hello World", "n": 1.23, "b": true, "a": check [1, 2, 3].ensureType(json), "o": check {"name": "Anne"}.ensureType(json)};
 }
@@ -3377,12 +3377,25 @@ public type Context record {|
     anydata payload = ();
 |};
 
-function _dwMethod1_(xml payload) returns json {
+function _dwMethod1_(Context ctx) returns json {
     //TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'map$+1' OF TYPE 'xml' FOUND. MANUAL CONVERSION REQUIRED.
 }
 
-function _dwMethod2_(json payload) returns json {
-    //TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'groupBy$.language' FOUND. MANUAL CONVERSION REQUIRED.
+function _dwMethod0_(Context ctx) returns json {
+    float conversionRate = 13.15;
+    return [1, 2, 3, 4];
+    // TODO: DATAWEAVE PARSING FAILED. MANUAL CONVERSION REQUIRED.
+    // ------------------------------------------------------------------------
+    // line 7:13 mismatched input 'map' expecting {<EOF>, NEWLINE}
+    // ------------------------------------------------------------------------
+    // %dw 1.0
+    // %dw 1.0
+    // %output application/json
+    // %input payload application/json
+    // %var conversionRate=13.15
+    // ---
+    // [1, 2, 3, 4] map ,
+    // ------------------------------------------------------------------------
 }
 
 public function sampleFlow(Context ctx) {
@@ -3392,12 +3405,8 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod0_(json payload) returns json {
-    float conversionRate = 13.15;
-    return [1, 2, 3, 4];
-    // DATAWEAVE PARSING FAILED.
-    // line 7:13 mismatched input 'map' expecting {<EOF>, NEWLINE}
-
+function _dwMethod2_(Context ctx) returns json {
+    //TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'groupBy$.language' FOUND. MANUAL CONVERSION REQUIRED.
 }
 
 ```

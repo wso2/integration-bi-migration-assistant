@@ -48,19 +48,19 @@ public class DWContext {
     }
 
     public void clearScript() {
-        DWParseResult dwParseResult = this.currentScriptContext.dwParseResult;
-        if (!dwParseResult.errors.isEmpty() && !this.currentScriptContext.visited) {
+        DWProcessResult dwProcessResult = this.currentScriptContext.dwProcessResult;
+        if (!dwProcessResult.errors.isEmpty() && !this.currentScriptContext.visited) {
             StringBuilder sb = new StringBuilder();
             sb.append("\n// TODO: DATAWEAVE PARSING FAILED. MANUAL CONVERSION REQUIRED.\n");
             sb.append("// ------------------------------------------------------------------------\n");
-            for (String error : dwParseResult.errors) {
+            for (String error : dwProcessResult.errors) {
                 sb.append("// ").append(error);
             }
             sb.append("// ------------------------------------------------------------------------\n");
-            sb.append(ConversionUtils.convertToAComment(dwParseResult.filePathOrScript));
+            sb.append(ConversionUtils.convertToAComment(dwProcessResult.filePathOrScript));
             sb.append("// ------------------------------------------------------------------------\n");
             this.currentScriptContext.statements.add(new BallerinaStatement(sb.toString()));
-            this.markAsFailedDWExpr(dwParseResult.filePathOrScript);
+            this.markAsFailedDWExpr(dwProcessResult.filePathOrScript);
             this.currentScriptContext.visited = true;
         }
         this.currentScriptContext = new DWScriptContext();
@@ -111,7 +111,7 @@ public class DWContext {
                 String.format(DWUtils.UNSUPPORTED_DW_NODE_WITH_TYPE, context, type)));
     }
 
-    private void markAsFailedDWExpr(String dwExpr) {
+    void markAsFailedDWExpr(String dwExpr) {
         this.toolContext.migrationMetrics.dwConversionStats.failedDWExpressions.add(dwExpr);
     }
 
@@ -127,11 +127,11 @@ public class DWContext {
         public Map<String, String> varNames = new HashMap<>();
         public String funcName;
         public String currentType;
-        public DWParseResult dwParseResult = new DWParseResult();
+        public DWProcessResult dwProcessResult = new DWProcessResult();
         public boolean visited = false;
     }
 
-    public static class DWParseResult {
+    public static class DWProcessResult {
         public List<String> errors = new ArrayList<>();
         public String filePathOrScript;
     }
