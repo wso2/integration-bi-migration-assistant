@@ -105,7 +105,6 @@ public class DWUtils {
     public static final String GET_DATE_FROM_FORMATTED_STRING = "getDateFromFormattedString";
     public static final String UNSUPPORTED_DW_NODE = "\n//TODO: UNSUPPORTED DATAWEAVE EXPRESSION '%s' FOUND. " +
             "MANUAL CONVERSION REQUIRED.\n";
-    public static final String PARSER_ERROR_COMMENT = "\n// DATAWEAVE PARSING FAILED.\n";
     public static final String UNSUPPORTED_DW_NODE_WITH_TYPE = "\n//TODO: UNSUPPORTED DATAWEAVE EXPRESSION " +
             "'%s' OF TYPE '%s' FOUND. MANUAL CONVERSION REQUIRED.\n";
 

@@ -96,7 +96,9 @@ public class DWReader {
         ParseTree tree = parser.script();
 
         if (errorListener.hasErrors()) {
-            context.currentScriptContext.errors.add(errorListener.getErrors());
+            context.currentScriptContext.dwParseResult.errors.add(errorListener.getErrors());
+            context.currentScriptContext.dwParseResult.filePathOrScript =
+                    context.filePath != null ? context.filePath : script;
         }
         return tree;
     }
@@ -158,6 +160,7 @@ public class DWReader {
             context.currentScriptContext.funcName = context.functionNames.getLast();
             return buildStatement(context, varName);
         }
+        context.filePath = resourcePath;
         if (context.scriptCache.containsKey(resourcePath)) {
             context.currentScriptContext = context.scriptCache.get(resourcePath);
             return buildStatement(context, varName);
@@ -165,7 +168,6 @@ public class DWReader {
         String filePath = resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR);
         ParseTree tree = readDWScriptFromFile(filePath, context);
         if (tree == null) {
-            // TODO: Avoid null return from readDWScriptFromFile()
             return "\n// TODO: DataWeave script not found in path: " + filePath + "\n";
         }
         BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);

@@ -52,8 +52,9 @@ public class DWReader {
         InputStream inputStream = DWReader.class.getClassLoader().getResourceAsStream(filePath);
         if (inputStream != null) {
             return parseFromStream(inputStream, filePath, context);
+        } else {
+            return null;
         }
-        throw new RuntimeException("File not found: " + filePath);
     }
 
     private static ParseTree parseFromFile(Path path, DWContext context) {
@@ -92,7 +93,9 @@ public class DWReader {
         ParseTree tree = parser.script();
 
         if (errorListener.hasErrors()) {
-            context.currentScriptContext.errors.add(errorListener.getErrors());
+            context.currentScriptContext.dwParseResult.errors.add(errorListener.getErrors());
+            context.currentScriptContext.dwParseResult.filePathOrScript =
+                    context.filePath != null ? context.filePath : script;
         }
         return tree;
     }
@@ -145,12 +148,16 @@ public class DWReader {
             context.currentScriptContext.funcName = context.functionNames.getLast();
             return buildStatement(context, varName);
         }
+        context.filePath = resourcePath;
         if (context.scriptCache.containsKey(resourcePath)) {
             context.currentScriptContext = context.scriptCache.get(resourcePath);
             return buildStatement(context, varName);
         }
-        ParseTree tree = readDWScriptFromFile(resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR),
-                context);
+        String filePath = resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR);
+        ParseTree tree = readDWScriptFromFile(filePath, context);
+        if (tree == null) {
+            return "\n// TODO: DataWeave script not found in path: " + filePath + "\n";
+        }
         BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);
         visitor.visit(tree);
         context.currentScriptContext.funcName = context.functionNames.getLast();

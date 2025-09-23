@@ -20,6 +20,7 @@ package mule.v4.dataweave.converter;
 import common.BallerinaModel;
 import common.BallerinaModel.Statement.BallerinaStatement;
 import mule.v4.Context;
+import mule.v4.ConversionUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,6 +32,7 @@ public class DWContext {
     public final List<BallerinaModel.Statement> parentStatements;
     public DWScriptContext currentScriptContext;
     public final Context toolContext;
+    public String filePath;
 
     public List<String> functionNames;
     public Map<String, String> commonArgs = new HashMap<>();
@@ -46,11 +48,19 @@ public class DWContext {
     }
 
     public void clearScript() {
-        if (!this.currentScriptContext.errors.isEmpty() && !this.currentScriptContext.visited) {
-            this.currentScriptContext.statements.add(new BallerinaStatement(DWUtils.PARSER_ERROR_COMMENT));
-            for (String error : this.currentScriptContext.errors) {
-                this.currentScriptContext.statements.add(new BallerinaStatement("// " + error + "\n"));
+        DWParseResult dwParseResult = this.currentScriptContext.dwParseResult;
+        if (!dwParseResult.errors.isEmpty() && !this.currentScriptContext.visited) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("\n// TODO: DATAWEAVE PARSING FAILED. MANUAL CONVERSION REQUIRED.\n");
+            sb.append("// ------------------------------------------------------------------------\n");
+            for (String error : dwParseResult.errors) {
+                sb.append("// ").append(error);
             }
+            sb.append("// ------------------------------------------------------------------------\n");
+            sb.append(ConversionUtils.convertToAComment(dwParseResult.filePathOrScript));
+            sb.append("// ------------------------------------------------------------------------\n");
+            this.currentScriptContext.statements.add(new BallerinaStatement(sb.toString()));
+            this.markAsFailedDWExpr(dwParseResult.filePathOrScript);
             this.currentScriptContext.visited = true;
         }
         this.currentScriptContext = new DWScriptContext();
@@ -114,7 +124,12 @@ public class DWContext {
         public Map<String, String> varNames = new HashMap<>();
         public String funcName;
         public String currentType;
-        public List<String> errors = new ArrayList<>();
+        public DWParseResult dwParseResult = new DWParseResult();
         public boolean visited = false;
+    }
+
+    public static class DWParseResult {
+        public List<String> errors = new ArrayList<>();
+        public String filePathOrScript;
     }
 }
