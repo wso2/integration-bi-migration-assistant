@@ -21,8 +21,10 @@ import common.BallerinaModel.Statement.BallerinaStatement;
 import mule.v4.Constants;
 import mule.v4.Context;
 import mule.v4.ConversionUtils;
+import mule.v4.converter.MuleConfigConverter;
 import mule.v4.dataweave.parser.DataWeaveLexer;
 import mule.v4.dataweave.parser.DataWeaveParser;
+import mule.v4.model.MuleModel.UnsupportedMessageElement;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -110,8 +112,13 @@ public class DWReader {
                     addStatementToList(setVariableElement.script(), setVariableElement.resource(),
                             context, ctx, setVariableElement.variableName(), statementList);
                     break;
+                case DW_UNSUPPORTED_ELEMENT:
+                    List<Statement> stmts = MuleConfigConverter.convertUnsupportedBlockInner(ctx,
+                            ((UnsupportedMessageElement) child).unsupportedBlock());
+                    statementList.addAll(stmts);
+                    break;
                 default:
-                    // TODO: add this to unsupported blocks in report?
+                    assert false; // ideally we should not reach here
                     statementList.add(new BallerinaStatement(
                             ConversionUtils.wrapElementInUnsupportedBlockComment(child.toString())));
                     break;

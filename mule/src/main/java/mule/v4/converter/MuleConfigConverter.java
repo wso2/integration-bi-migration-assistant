@@ -728,12 +728,17 @@ public class MuleConfigConverter {
         return new WorkerStatementResult(stmts);
     }
 
-    private static WorkerStatementResult convertUnsupportedBlock(Context ctx, UnsupportedBlock unsupportedBlock) {
+    public static WorkerStatementResult convertUnsupportedBlock(Context ctx, UnsupportedBlock unsupportedBlock) {
+        List<Statement> stmts = convertUnsupportedBlockInner(ctx, unsupportedBlock);
+        return new WorkerStatementResult(stmts);
+    }
+
+    public static List<Statement> convertUnsupportedBlockInner(Context ctx, UnsupportedBlock unsupportedBlock) {
         String comment = ConversionUtils.convertToUnsupportedTODO(ctx, unsupportedBlock);
         // TODO: comment is not a statement. Find a better way to handle this
         // This works for now because we concatenate and create a body block `{ stmts }`
         // before parsing.
-        return new WorkerStatementResult(List.of(stmtFrom(comment)));
+        return List.of(stmtFrom(comment));
     }
 
     // Mule 4.x Error Handling Converters

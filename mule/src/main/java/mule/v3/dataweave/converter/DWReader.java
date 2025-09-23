@@ -22,6 +22,7 @@ import common.BallerinaModel.Statement.BallerinaStatement;
 import mule.v3.Constants;
 import mule.v3.Context;
 import mule.v3.ConversionUtils;
+import mule.v3.converter.MuleConfigConverter;
 import mule.v3.dataweave.parser.DataWeaveLexer;
 import mule.v3.dataweave.parser.DataWeaveParser;
 import org.antlr.v4.runtime.CharStreams;
@@ -42,6 +43,7 @@ import static mule.v3.model.MuleModel.SetPayloadElement;
 import static mule.v3.model.MuleModel.SetSessionVariableElement;
 import static mule.v3.model.MuleModel.SetVariableElement;
 import static mule.v3.model.MuleModel.TransformMessageElement;
+import static mule.v3.model.MuleModel.UnsupportedMessageElement;
 
 public class DWReader {
 
@@ -123,7 +125,13 @@ public class DWReader {
                 case DW_INPUT_PAYLOAD:
                     context.setMimeType(((InputPayloadElement) child).mimeType());
                     break;
+                case DW_UNSUPPORTED_ELEMENT:
+                    List<Statement> stmts = MuleConfigConverter.convertUnsupportedBlock(ctx,
+                            ((UnsupportedMessageElement) child).unsupportedBlock());
+                    statementList.addAll(stmts);
+                    break;
                 default:
+                    assert false; // ideally we should not reach here
                     statementList.add(new BallerinaStatement(
                             ConversionUtils.wrapElementInUnsupportedBlockComment(child.toString())));
                     break;
