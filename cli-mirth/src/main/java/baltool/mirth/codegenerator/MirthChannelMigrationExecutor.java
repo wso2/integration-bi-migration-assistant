@@ -27,8 +27,8 @@ public class MirthChannelMigrationExecutor {
 
     public static void main(String[] args) {
 
-        Path sourceFile = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/mirth_channel.xml");
-//        Path sourceFile = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/Hl7_Conversion.xml");
+//        Path sourceFile = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/mirth_channel.xml");
+        Path sourceFile = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/Hl7_Conversion.xml");
         Path outputDirectory = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/output");
         migrateChannelToBallerina(sourceFile, outputDirectory, "",false, new VerboseLogger(false));
 
@@ -52,7 +52,7 @@ public class MirthChannelMigrationExecutor {
             loggerFactory.addProcess(fileName, TOTAL_STEPS);
             logger.printVerboseInfo("Single file mode, processing: " + channelFilePath);
             processMirthChannel(channelFilePath, additionalInstructions, outputDir, copilotAccessToken,
-                    false, loggerFactory, fileName);
+                    loggerFactory, fileName);
             loggerFactory.setProgressBarActive(false);
 
             System.exit(0);
@@ -66,12 +66,9 @@ public class MirthChannelMigrationExecutor {
     }
 
     private static void processMirthChannel(Path mirthChannelFilePath, String additionalInstructions, Path targetDir,
-                                            String copilotAccessToken, boolean isMultiThreaded,
-                                            VerboseLoggerFactory logger, String fileName) {
+                                            String copilotAccessToken, VerboseLoggerFactory logger, String fileName) {
         try {
-            if (!isMultiThreaded) {
-                logger.printVerboseInfo(fileName, "SINGLE FILE PROCESSING MODE");
-            }
+
             logger.printVerboseInfo(fileName, "Processing file: " + mirthChannelFilePath.toAbsolutePath());
             if (!Files.exists(mirthChannelFilePath)) {
                 throw new IOException("Logic App file does not exist: " + mirthChannelFilePath);
