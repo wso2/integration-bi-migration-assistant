@@ -79,7 +79,7 @@ public class CodeGenerationUtils {
             logger.startProgress(fileName, "Generating execution plan");
             String executionPlan = CodeGenerationUtils.generateMirthChannelExecutionPlan(copilotAccessToken, sourceFiles,
                     fileAttachmentContents, packageName, additionalInstructions, logger, fileName);
-            String generatedPrompt = constructMigrateUserPrompt(additionalInstructions, executionPlan);
+            String generatedPrompt = constructMigrateUserPrompt(additionalInstructions, "");
             logger.printInfo(fileName, "✓ Execution plan generated");
 
             // Step 2: Generate code
@@ -90,11 +90,11 @@ public class CodeGenerationUtils {
             logger.printInfo(fileName, "✓ Code generation completed");
 
             // Step 3: Repair code
-//            logger.updateProgress(fileName, 3, "Repairing code");
-//            GeneratedCode repairedCode = repairCode(copilotAccessToken, sourceFiles, fileAttachmentContents,
-//                    packageName, generatedPrompt, moduleDescriptor, generatedCode, logger, fileName);
-//            logger.printVerboseInfo(fileName, "Repaired files count: " + repairedCode.codeMap.size());
-//            logger.printInfo(fileName, "✓ Code repair completed");
+            logger.updateProgress(fileName, 3, "Repairing code");
+            GeneratedCode repairedCode = repairCode(copilotAccessToken, sourceFiles, fileAttachmentContents,
+                    packageName, generatedPrompt, moduleDescriptor, generatedCode, logger, fileName);
+            logger.printVerboseInfo(fileName, "Repaired files count: " + repairedCode.codeMap.size());
+            logger.printInfo(fileName, "✓ Code repair completed");
 
             return sourceFiles;
         } catch (URISyntaxException e) {
@@ -152,60 +152,9 @@ public class CodeGenerationUtils {
             throws URISyntaxException, IOException, InterruptedException {
 
         //for demo purposes, returning a static execution plan
-        return Files.readString(Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/static_plan_2.md"), StandardCharsets.UTF_8);
+        return Files.readString(Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/instructions_v2.md"), StandardCharsets.UTF_8);
 //        return Files.readString(Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/static_plan.md"), StandardCharsets.UTF_8);
-        /**
-         * System Message:
-         * text: "You are an expert assistant in migrating Mirth Connect Channel to Ballerina integration project.",
-         * 'type: "text"
-         *
-         * # Prompt: Generate a Migration Plan from Mirth Connect Channel to Ballerina Project
-         *
-         * You are an expert in migrating healthcare integrations from Mirth Connect to Ballerina. Your task is to analyze a provided Mirth Connect Channel and produce a comprehensive migration plan, which will serve as a detailed technical guide for another LLM to convert the Mirth Connect Channel into a Ballerina integration project.
-         *
-         * ## Specific Instructions
-         *
-         * 1. **Component Identification:**
-         *     - Identify and list the **Source Connector**.
-         *     - Identify and list all **Destination Connectors**.
-         *     - Map out the **entire message flow**, including:
-         *         - **Parallel** sections.
-         *         - **Sequential** sections.
-         *
-         * 2. **Component Classification:**
-         *     - For each connector, distinguish between:
-         *         - **Standard Mirth components** (e.g., Transformers, Filters, built-in processors).
-         *         - **Custom JavaScript components** (e.g., user scripts, custom logic).
-         *
-         * 3. **Categorize Processing Phases:**
-         *     - Group all connectors and components into **no more than 5 processing phases** (fewer is acceptable).
-         *     - The phases must **follow the logical message flow order** as it would occur at runtime.
-         *
-         * 4. **Document Each Phase:**
-         *     - For each phase:
-         *         - **Name** the phase.
-         *         - **List all actions** performed in the phase.
-         *         - Clearly indicate which actions are standard and which are custom (e.g., via a table with columns for "Type" and "Task Description").
-         *         - Specify any parallel or sequential execution within the phase.
-         *
-         * 5. **Output Format:**
-         *     - Provide the migration plan in **Markdown (.md) file format**.
-         *     - Use tables where appropriate for clarity.
-         *     - Structure the document so it directly supports a downstream LLM or engineer in converting the channel to Ballerina.
-         *
-         * ## Example Table Structure
-         *
-         * | Phase Name   | Action/Component                | Type (Standard/Custom) | Execution (Parallel/Sequential) | Description                    |
-         * |--------------|---------------------------------|------------------------|-------------------------------|--------------------------------|
-         * | Inbound      | Source HL7 Listener             | Standard               | Sequential                    | Receives incoming HL7 messages |
-         * | Pre-Process  | Filter Script                   | Custom (JavaScript)    | Sequential                    | Validates message fields       |
-         * | ...          | ...                             | ...                    | ...                           | ...                            |
-         *
-         * ---
-         *
-         * **Please analyze the provided Mirth Connect Channel and produce the required migration plan as described above, ensuring the output is suitable as a technical reference for an LLM-driven Ballerina migration.**
-         *
-         **/
+
 
         //Replace this with Mirth Channel specific execution plan generation endpoint
 //        URI uri = new URI(getCopilotBackendURL() + "/logicapps/executionplan");
@@ -258,7 +207,7 @@ public class CodeGenerationUtils {
         return BALLERINA_DEV_UPDATE ? DEV_COPILOT_BACKEND_URL : COPILOT_BACKEND_URL;
     }
 
-    private static String constructMigrateUserPrompt(String additionalInstructions, String executionPlan) {
+    private static String constructMigrateUserPrompt(String additionalInstructions, String executionPlan) throws IOException {
         StringBuilder prompt = new StringBuilder();
 
         prompt.append("# Role\n")
@@ -273,108 +222,31 @@ public class CodeGenerationUtils {
         if (additionalInstructions != null && !additionalInstructions.isEmpty()) {
             prompt.append(additionalInstructions).append("\n\n");
         }
-        prompt.append("# Instructions for Mirth Connect to Ballerina Migration\n\n")
-                .append("## Ballerina Language Equivalents for Mirth Connect Components\n\n")
-                .append("Refer to the following Ballerina language equivalents for Mirth Connect components with examples:\n\n")
-                .append("| Mirth Connect Component | Ballerina Language Equivalent | Example |\n")
-                .append("|--------|-------------------------------------------------|---------|\n")
-                .append("| TCP Listener (MLLP) | TCP listener with MLLP framing | `import ballerina/tcp; tcp:Listener tcpListener = check new(6662);` |\n")
-                .append("| Transformer - Mapper Step (HL7 field extraction and concatenation) | Data mapping function that reads HL7v2/custom records and returns string/record | `function concatFields(hl7v23:ADT_A01 m) returns string => string ${m.msh.msh9.msg1}|${m.msh.msh9.msg2}|${m.pid.pid5[0].xpn2}|${m.pid.pid5[0].xpn1}|${m.pid.pid7.ts1};` |\n")
-                .append("| Transformer - JavaScript Step | Ballerina function implementing the same logic; return values instead of channelMap side-effects | `function convertToJson(HL7Message msg) returns json { ... }` |\n")
-                .append("| Destination - JavaScript Writer | Custom processing function | `function validateFields(json data) returns boolean { ... }` |\n")
-                .append("| Destination - Database Writer | SQL client operations | `import ballerinax/mysql; mysql:Client dbClient = check new(host, user, password, dbName, port);` |\n")
-                .append("| Channel Maps / Global Maps | Record/map variable | `map<anydata> channelMap = {};` |\n")
-                .append("| Filter (JavaScript condition) | Conditional logic | `if (condition) { processMessage(); }` |\n")
-                .append("| CodeTemplate (With custom JS code) | Ballerina function (utility function, possibly in utils.bal or similar)  | `import ballerina/time; function convertToISO8601(string dateStr) returns string\\|error { time:Utc date = check time:parse(dateStr, \"yyyyMMdd\"); return date.toString();}`This function replaces a custom JS code template (like moment.js) and provides similar functionality using Ballerina's built-in libraries.  |\n")
-                .append("| HL7 Message Parsing | HL7 library operations | `import ballerinax/health.hl7v2; hl7v2:Message parsedMsg = check hl7v2:parse(rawMessage);` |\n")
-                .append("| Date Transformation | Time library operations | `import ballerina/time; time:Civil dateTime = time:utcToCivil(time:utcFromString(dateStr));` |\n")
-                .append("| Validation (Regex) | Regular expressions | `import ballerina/regex; boolean isValid = regex:matches(input, pattern);` |\n")
-                .append("| Logging | Log module | `import ballerina/log; log:printInfo(\"Processing message\");` |\n\n")
-                .append("## Migration Guidelines\n\n")
-                .append("When converting Mirth Connect channel processing phases in the migration plan into Ballerina integration, follow these instructions:\n\n")
-                .append("1. **File Structure:** Use existing file structure in the Ballerina integration project to avoid bal files with large numbers of lines as well as to write user readable code.\n")
-                .append("2. **Component Hierarchy:** Identify processing phase hierarchy and group related transformations into functions. (Usually Source Transformers, Destination connectors have multiple sub-components).\n")
-                .append("3. **Variable Naming:** Use variable names in the Ballerina integration similar to the channel variables and field mappings used in Mirth Connect.\n")
-                .append("4. **Code Documentation:** Add comments in the Ballerina integration code describing that \"this line execution related to that Mirth Connect component\".\n")
-                .append("5. **Reserved Keywords:** Do not use reserved keywords such as \"resource\", \"service\", \"client\" as identifiers in the Ballerina integration code.\n")
-                .append("6. **Execution Order:** Maintain the sequential execution order as defined in the Mirth Connect channel flow. Refer sequence number in transformer elements.\n")
-                .append("7. **HL7 Handling:** Handle HL7 message structure appropriately using Ballerina HL7 libraries.\n")
-                .append("8. **Error Handling:** Implement proper error handling for database connections and message processing.\n\n")
-                .append("## Action Plan\n\n")
-                .append("1. **Analysis:** Analyze the Mirth Connect Channel XML configuration with its source connectors, destination connectors, and transformation components.\n")
-                .append("2. **Execution Order:** Identify the execution order accurately by following the message flow from source through transformations to destinations.\n")
-                .append("3. **Code Generation:** Generate completed code for all the processing phases listed in the migration plan.\n")
-                .append("4. **Complete Implementation:** **Crucially:** Output the entire Ballerina equivalent code implementation for each Mirth Connect component (Do not put comments in the generated code to let user know that he needs to complete the implementation manually).\n")
-                .append("5. **Function Implementation:** Give the complete implementation for each function you define in the code.\n")
-                .append("6. **HL7 Processing:** Ensure HL7 message parsing, data extraction, validation, and database operations are fully implemented. Use Ballerina HL7 data types and libraries.\n")
-                .append("7. **Configuration Management:** Include proper configuration management for database connections and network settings.\n")
-                .append("8. **MLLP Protocol:** Implement MLLP protocol handling for TCP communication as required by HL7 standards.\n\n")
-                .append("---\n");
+        prompt.append(Files.readString(Path.of(
+                "/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/instructions_v2.md"), StandardCharsets.UTF_8));
 
-//        prompt.append("# Instructions for Mirth Connect to Ballerina Migration\n\n")
-//                .append("## Ballerina Language Equivalents for Mirth Connect Components\n\n")
-//                .append("Refer to the following Ballerina language equivalents for Mirth Connect components with examples:\n\n")
-//                .append("| Mirth Connect Component | Ballerina Language Equivalent | Example |\n")
-//                .append("|--------|------|---------------|\n")
-//                .append("| TCP Listener (MLLP) | TCP listener with MLLP framing | ")
-//                .append("`import ballerina/tcp; tcp:Listener tcpListener = check new(6662);`\n")
-//                .append("| Source Transformer - Mapper | Variable assignment/extraction | ")
-//                .append("`string firstName = hl7Message.PID.PID_5.PID_5_2.toString();`\n")
-//                .append("| Source Transformer - JavaScript | Custom function | ")
-//                .append("`function convertToJson(HL7Message msg) returns json { ... }`\n")
-//                .append("| Destination - JavaScript Writer | Custom processing function | ")
-//                .append("`function validateFields(json data) returns boolean { ... }`\n")
-//                .append("| Destination - Database Writer | SQL client operations | ")
-//                .append("`import ballerinax/mysql; mysql:Client dbClient = check new(host, user, password, dbName, port);`\n")
-//                .append("| Channel Map | Record/map variable | `map<anydata> channelMap = {};`\n")
-//                .append("| Filter | Conditional logic | `if (condition) { processMessage(); }`\n")
-//                .append("| HL7 Message Parsing | HL7 library operations | ")
-//                .append("`import ballerinax/health.hl7v2; hl7v2:Message parsedMsg = check hl7v2:parse(rawMessage);`\n")
-//                .append("| Date Transformation | Time library operations | ")
-//                .append("`import ballerina/time; time:Civil dateTime = time:utcToCivil(time:utcFromString(dateStr));`\n")
-//                .append("| Validation (Regex) | Regular expressions | ")
-//                .append("`import ballerina/regex; boolean isValid = regex:matches(input, pattern);`\n")
-//                .append("| Logging | Log module | `import ballerina/log; log:printInfo(\"Processing message\");`\n\n")
-//                .append("## Migration Guidelines\n\n")
-//                .append("When converting Mirth Connect channel processing phases in the migration plan ")
-//                .append("into Ballerina integration, follow these instructions:\n\n")
-//                .append("1. **File Structure:** Use existing file structure in the Ballerina integration project ")
-//                .append("to avoid bal files with large numbers of lines as well as to write user readable code.\n\n")
-//                .append("2. **Component Hierarchy:** Identify processing phase hierarchy and group related ")
-//                .append("transformations into functions. (Usually Source Transformers, Destination connectors ")
-//                .append("have multiple sub-components).\n\n")
-//                .append("3. **Variable Naming:** Use variable names in the Ballerina integration similar to the ")
-//                .append("channel variables and field mappings used in Mirth Connect.\n\n")
-//                .append("4. **Code Documentation:** Add comments in the Ballerina integration code describing that ")
-//                .append("\"this line execution related to that Mirth Connect component\".\n\n")
-//                .append("5. **Reserved Keywords:** Do not use reserved keywords such as \"resource\", \"service\", ")
-//                .append("\"client\" as identifiers in the Ballerina integration code.\n\n")
-//                .append("6. **Execution Order:** Maintain the sequential execution order as defined in the ")
-//                .append("Mirth Connect channel flow.\n\n")
-//                .append("7. **HL7 Handling:** Handle HL7 message structure appropriately using Ballerina HL7 libraries.\n\n")
-//                .append("8. **Error Handling:** Implement proper error handling for database connections ")
-//                .append("and message processing.\n\n")
-//                .append("## Action Plan\n\n")
-//                .append("1. **Analysis:** Analyze the Mirth Connect Channel XML configuration with its source ")
-//                .append("connectors, destination connectors, and transformation components.\n\n")
-//                .append("2. **Execution Order:** Identify the execution order accurately by following the ")
-//                .append("message flow from source through transformations to destinations.\n\n")
-//                .append("3. **Code Generation:** Generate completed code for all the processing phases ")
-//                .append("listed in the migration plan.\n\n")
-//                .append("4. **Complete Implementation:** **Crucially:** Output the entire Ballerina equivalent ")
-//                .append("code implementation for each Mirth Connect component (Do not put comments in the ")
-//                .append("generated code to let user know that he needs to complete the implementation manually).\n\n")
-//                .append("5. **Function Implementation:** Give the complete implementation for each function ")
-//                .append("you define in the code.\n\n")
-//                .append("6. **HL7 Processing:** Ensure HL7 message parsing, data extraction, validation, ")
-//                .append("and database operations are fully implemented.\n\n")
-//                .append("7. **Configuration Management:** Include proper configuration management for ")
-//                .append("database connections and network settings.\n\n")
-//                .append("8. **MLLP Protocol:** Implement MLLP protocol handling for TCP communication ")
-//                .append("as required by HL7 standards.\n\n")
-//                .append("---\n\n")
-//                .append("*Migration instructions prepared for converting Mirth Connect healthcare integration ")
-//                .append("channels to Ballerina microservices architecture.*\n");
+//        prompt.append("## General Guidelines\n\n")
+//                .append("When you are converting the Mirth Connect channel processing phase in the execution plan ")
+//                .append("into Ballerina integration, follow the instructions given below.\n\n")
+//                .append("1. Use existing file structure in the Ballerina integration project to avoid ")
+//                .append("bal files with large numbers of lines as well as to write user readable code.\n")
+//                .append("2. Identify message flow and group each connector, code template into functions. ")
+//                .append("3. Use variable names in the Ballerina integration similar to the variables ")
+//                .append("initialized in the Mirth Connect channel.\n")
+//                .append("4. Add comments in the Ballerina integration code describing that ")
+//                .append("\"this line execution related to the that Mirth Connect component\".\n")
+//                .append("5. Do not use reserved keywords such as \"resource\" as identifiers ")
+//                .append("in the Ballerina integration code.\n\n")
+//                .append("# Action Plan\n")
+//                .append("1. Analyze the Mirth Connect channel in the attached xml file with its channel ")
+//                .append("connectors and their components.\n")
+//                .append("2. Identify the message flow accurately by referring the xml file ")
+//                .append("with the field 'sequenceNumber'.\n")
+//                .append("3. Generate completed code for all the Mirth Connect components listed in the ")
+//                .append("given execution plan.\n")
+//                .append("4. **Crucially:** Output the entire Ballerina equivalent code implementation ")
+//                .append("for each Mirth Connect component. \n")
+//                .append("5. Give the complete implementation for each function you define in the code.\n");
 
         return prompt.toString();
     }
@@ -389,8 +261,8 @@ public class CodeGenerationUtils {
                 fileAttachmentContents, packageName);
         logger.printVerboseInfo(fileName, "Payload size: " + codeGenerationPayload.toString().length() + " characters");
 
-//        URI uri = new URI(getCopilotBackendURL() + "/code");
-        URI uri = new URI(getCopilotBackendURL() + "/healthcare");
+        URI uri = new URI(getCopilotBackendURL() + "/code");
+//        URI uri = new URI(getCopilotBackendURL() + "/healthcare");
         HttpRequest codeGenerationRequest = HttpRequest.newBuilder()
                 .uri(uri)
                 .version(HttpClient.Version.HTTP_1_1)
@@ -436,6 +308,67 @@ public class CodeGenerationUtils {
         return payload;
     }
 
+    private static GeneratedCode extractGeneratedCode(Stream<String> lines, VerboseLoggerFactory logger,
+                                                      String fileName) {
+        logger.printVerboseInfo(fileName, "Processing streamed response lines");
+        String[] linesArr = lines.toArray(String[]::new);
+        int length = linesArr.length;
+
+        if (length == 1) {
+            JsonObject jsonObject = JsonParser.parseString(linesArr[0]).getAsJsonObject();
+            if (jsonObject.has("error_message")) {
+                String errorMsg = jsonObject.get("error_message").getAsString();
+                logger.printVerboseError(fileName, errorMsg);
+                throw new RuntimeException(errorMsg);
+            }
+        }
+
+        StringBuilder responseBody = new StringBuilder();
+        JsonArray functions = null;
+        int contentBlocks = 0;
+        int functionBlocks = 0;
+
+        logger.printVerboseInfo(fileName, "Parsing response stream");
+        int index = 0;
+        while (index < length) {
+            String line = linesArr[index];
+
+            if (line.isBlank()) {
+                index++;
+                continue;
+            }
+
+            if ("event: content_block_delta".equals(line)) {
+                line = linesArr[++index].substring(6);
+                String textContent = JsonParser.parseString(line).getAsJsonObject()
+                        .getAsJsonPrimitive("text").getAsString();
+                responseBody.append(textContent);
+                contentBlocks++;
+                continue;
+            }
+
+            if ("event: functions".equals(line)) {
+                line = linesArr[++index].substring(6);
+                functions = JsonParser.parseString(line).getAsJsonArray();
+                functionBlocks++;
+                continue;
+            }
+
+            index++;
+        }
+
+        logger.printVerboseInfo(fileName, "Response parsing completed");
+        logger.printVerboseInfo(fileName, "Content blocks processed: " + contentBlocks);
+        logger.printVerboseInfo(fileName, "Function blocks processed: " + functionBlocks);
+
+        String responseBodyString = responseBody.toString();
+        Map<String, String> codeMap = extractGeneratedCodeFromResponse(responseBodyString);
+
+        logger.printVerboseInfo(fileName, "Code extraction completed");
+        logger.printVerboseInfo(fileName, "Extracted files: " + codeMap.size());
+
+        return new GeneratedCode(codeMap, functions);
+    }
     private static GeneratedCode extractGeneratedCode(InputStream lines, VerboseLoggerFactory logger,
                                                       String fileName) {
         logger.printVerboseInfo(fileName, "Processing streamed response lines");
@@ -455,6 +388,7 @@ public class CodeGenerationUtils {
                 } catch (IOException e) {
                     // treat premature close as end-of-stream
                     logger.printVerboseInfo(fileName, "Stream ended unexpectedly, treating as EOF");
+                    System.out.println("warn");
                     break;
                 }
 
@@ -787,7 +721,7 @@ public class CodeGenerationUtils {
 
         logger.printVerboseInfo(fileName, "Processing streamed response for code reparation");
 
-        return extractGeneratedCode((InputStream) response.body(), logger, fileName);
+        return extractGeneratedCode(response.body(), logger, fileName);
     }
 
     private static JsonObject constructCodeReparationPayload(String generatedPrompt, JsonArray sourceFiles,
