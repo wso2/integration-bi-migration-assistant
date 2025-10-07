@@ -5,8 +5,14 @@ plugins {
     id 'com.github.spotbugs' version '5.1.3'
 }
 
-group = 'baltool.mirth'
+def ballerinaToolDir = "${projectDir}/src/main/ballerina/tool-bi-migrate-mirthchannel"
+def balToolVersion = "${mirthConnectVersion}"
+def ballerinaVersion = "${ballerinaLangVersion}"
+
+group 'com.wso2'
 version = '0.1.0-SNAPSHOT'
+
+def libJarPath = "../../../../build/libs/mirthchannel-migration-assistant-${project.version}.jar"
 
 repositories {
     mavenCentral()
@@ -31,13 +37,26 @@ dependencies {
     implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
 }
 
-//application {
-////    mainClass = 'cli.MirthConnectCli'
-//    mainClass = 'baltool.mirth.codegenerator.MirthChannelMigrationExecutor'
-//}
-
 application {
     mainClass = 'codegenerator.MirthChannelMigrationExecutor'
+}
+
+task updateTomlFile {
+    def balToml = file("${ballerinaToolDir}/Ballerina.toml")
+    def toolToml = file("${ballerinaToolDir}/BalTool.toml")
+    doLast {
+        if (balToml.exists()) {
+            def text = balToml.text
+            text = text.replaceAll('version\\s*=\\s*"[^"]*"', 'version = "' + balToolVersion + '"')
+            text = text.replaceAll('distribution\\s*=\\s*"[^"]*"', 'distribution = "' + ballerinaVersion + '"')
+            balToml.text = text
+        }
+        if (toolToml.exists()) {
+            def text = toolToml.text
+            text = text.replaceAll('path\\s*=\\s*"[^"]*"', 'path = "' + libJarPath + '"')
+            toolToml.text = text
+        }
+    }
 }
 
 
@@ -88,17 +107,50 @@ jar {
         sourceSets.main.output
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    archiveBaseName = 'cli-mirth'
+    archiveBaseName = 'integration-bi-migration-assistant.jar'
     archiveVersion = project.version
+}
+
+// Create a separate JAR for LogicApp migrations
+task mirthChannelJar(type: Jar) {
+    dependsOn copyDependencies
+    manifest {
+        attributes(
+                'Main-Class': 'cli.MirthConnectCli',
+                'Class-Path': configurations.runtimeClasspath.files.collect { "lib/${it.name}" }.join(' ')
+        )
+    }
+    from {
+        sourceSets.main.output
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveBaseName = 'mirthchannel-migration-assistant'
+    archiveVersion = project.version
+}
+
+tasks.register('mirthChannelPack', Exec) {
+    dependsOn mirthChannelJar, updateTomlFile
+    workingDir ballerinaToolDir
+    commandLine 'bal', 'pack'
+    group = 'build'
+}
+
+tasks.register('mirthChannelRelease', Exec) {
+    dependsOn mirthChannelPack
+    workingDir ballerinaToolDir
+    commandLine 'bal', 'push'
+    group = 'build'
+}
+
+tasks.register('mirthChannelReleaseLocal', Exec) {
+    dependsOn mirthChannelPack
+    workingDir ballerinaToolDir
+    commandLine 'bal', 'push', '--repository=local'
+    group = 'build'
 }
 
 build {
 //    dependsOn checkstyleMain
 //    dependsOn spotbugsMain
+    dependsOn mirthChannelJar
 }
-
-
-// Keep this for backward compatibility
-//application {
-//    mainClassName = 'cli.Main'
-//}

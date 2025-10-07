@@ -79,7 +79,7 @@ public class CodeGenerationUtils {
             logger.startProgress(fileName, "Generating execution plan");
             String executionPlan = CodeGenerationUtils.generateMirthChannelExecutionPlan(copilotAccessToken, sourceFiles,
                     fileAttachmentContents, packageName, additionalInstructions, logger, fileName);
-            String generatedPrompt = constructMigrateUserPrompt(additionalInstructions, "");
+            String generatedPrompt = constructMigrateUserPrompt(additionalInstructions, executionPlan);
             logger.printInfo(fileName, "✓ Execution plan generated");
 
             // Step 2: Generate code
@@ -152,8 +152,8 @@ public class CodeGenerationUtils {
             throws URISyntaxException, IOException, InterruptedException {
 
         //for demo purposes, returning a static execution plan
-        return Files.readString(Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/instructions_v2.md"), StandardCharsets.UTF_8);
-//        return Files.readString(Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/static_plan.md"), StandardCharsets.UTF_8);
+        return Files.readString(Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/plans/plan_v23_v24.md"), StandardCharsets.UTF_8);
+//        return Files.readString(Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/plans/plan_http_file_v1.md"), StandardCharsets.UTF_8);
 
 
         //Replace this with Mirth Channel specific execution plan generation endpoint
@@ -265,11 +265,8 @@ public class CodeGenerationUtils {
 //        URI uri = new URI(getCopilotBackendURL() + "/healthcare");
         HttpRequest codeGenerationRequest = HttpRequest.newBuilder()
                 .uri(uri)
-                .version(HttpClient.Version.HTTP_1_1)
-                .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + copilotAccessToken)
                 .header("User-Agent", "PostmanRuntime/7.32.3")
-                .header("Accept", "*/*")  // Add explicit Accept header
                 .POST(HttpRequest.BodyPublishers.ofString(codeGenerationPayload.toString()))
                 .timeout(Duration.ofMinutes(10))
                 .build();
@@ -277,6 +274,8 @@ public class CodeGenerationUtils {
         logger.printVerboseInfo(fileName, "Sending HTTP request to get generated code");
         HttpResponse<InputStream> response = getHttpClient().send(codeGenerationRequest,
                 HttpResponse.BodyHandlers.ofInputStream());
+//        HttpResponse<Stream<String>> response = getHttpClient().send(codeGenerationRequest,
+//                HttpResponse.BodyHandlers.ofLines());
 
         logger.printVerboseInfo(fileName, "Code generation response received");
         logger.printVerboseInfo(fileName, "Response status: " + response.statusCode());
@@ -388,14 +387,14 @@ public class CodeGenerationUtils {
                 } catch (IOException e) {
                     // treat premature close as end-of-stream
                     logger.printVerboseInfo(fileName, "Stream ended unexpectedly, treating as EOF");
-                    System.out.println("warn");
+                    System.out.println("Stream ended unexpectedly, treating as EOF");
                     break;
                 }
 
                 responseContent.append(line).append(System.lineSeparator());
                 totalBytesRead += line.getBytes(StandardCharsets.UTF_8).length;
 
-                System.out.println("Chunk: " + line);
+//                System.out.println("Chunk: " + line);
 
                 if (totalBytesRead % (1024 * 1024) == 0) {
                     logger.printVerboseInfo(fileName,
@@ -522,6 +521,7 @@ public class CodeGenerationUtils {
             GeneratedCode repairedCodeIteration = repairIfDiagnosticsExist(copilotAccessToken, sourceFiles,
                     fileAttachmentContents, packageName, generatedPrompt, moduleDescriptor, generatedCode, logger,
                     fileName);
+
             if (repairedCodeIteration == null) {
                 logger.printVerboseInfo(fileName, "No code generated in iteration " + (iteration + 1));
                 break;
