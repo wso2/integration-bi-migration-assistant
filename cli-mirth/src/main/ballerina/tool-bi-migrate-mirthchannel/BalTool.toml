@@ -1,0 +1,5 @@
+[tool]
+id = "migrate-mirthchannel"
+
+[[dependency]]
+path = "../../../../build/libs/mirthchannel-migration-assistant-0.1.0.jar"

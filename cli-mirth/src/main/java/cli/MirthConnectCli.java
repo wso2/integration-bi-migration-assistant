@@ -11,14 +11,19 @@ public class MirthConnectCli {
     private static final Logger logger = Logger.getLogger(MirthConnectCli.class.getName());
 
 
+    // For testing jar
     public static void main(String[] args) {
-        Path sourceFile = Path.of(args[0]);
 
-//        Path sourceFile = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/Hl7_Conversion.xml");
+        if (args.length < 1 || args.length > 3) {
+            logger.severe("Usage: java -jar mirthconnect-migration-assistant.jar <source-file> " +
+                    "[-o|--out <output-directory>] [-v|--verbose] [-m|--multi-root]");
+            System.exit(1);
+        }
+        Path sourceFile = Path.of(args[0]);
         // Default to empty path if not provided
         Path outputDirectory = args.length > 1 ? Path.of(args[1]) : Path.of("");
-//        Path outputDirectory = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/output");
 
-        MirthChannelMigrationExecutor.migrateChannelToBallerina(sourceFile, outputDirectory, "",false, new VerboseLogger(false));
+        MirthChannelMigrationExecutor.migrateChannelToBallerina(sourceFile, outputDirectory, "",
+                false, new VerboseLogger(false));
     }
 }
