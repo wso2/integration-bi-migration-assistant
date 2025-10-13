@@ -23,7 +23,7 @@ public class MigrateMirthChannelCommand implements BLauncherCmd {
 
     private final PrintStream errStream;
     private final PrintStream outStream;
-    private static final String USAGE = "bal migrate-mirth-channel <source-channel-file> " +
+    private static final String USAGE = "bal migrate-mirthchannel <source-channel-file> " +
             "[-v|--verbose] [-o|--out <output-directory>]";
 
     public MigrateMirthChannelCommand() {

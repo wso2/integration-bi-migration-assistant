@@ -27,14 +27,27 @@ public class MirthChannelMigrationExecutor {
 
     public static void main(String[] args) {
 
-//        Path sourceFile = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/mirth_channel.xml");
-        Path sourceFile = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/Hl7_Conversion.xml");
-        Path outputDirectory = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/output");
-        migrateChannelToBallerina(sourceFile, outputDirectory, "",false, new VerboseLogger(false));
+        Path sourceFile = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/channels/HL7_Conversion.xml");
+//        Path sourceFile = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/file_handle_channel.xml");
+        Path outputDirectory = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/gen");
+        migrateChannelToBallerina(sourceFile, outputDirectory, "", false, new VerboseLogger(false));
 
     }
 
     public static void migrateChannelToBallerina(Path channelFilePath, Path outputDir, String additionalInstructions, boolean verbose, VerboseLogger logger) {
+        executeMigration(channelFilePath, outputDir, additionalInstructions, verbose, logger);
+    }
+
+    public static void migrateChannelToBallerina(Path channelFilePath, boolean verbose, VerboseLogger logger) {
+        Path targetDir = Files.isDirectory(channelFilePath) ? channelFilePath :
+                channelFilePath.getParent();
+        logger.printVerboseInfo("Project root directory: " + targetDir.toAbsolutePath());
+        executeMigration(channelFilePath, targetDir, "", verbose, logger);
+
+    }
+
+    private static void executeMigration(Path channelFilePath, Path outputDir, String additionalInstructions,
+                                         boolean verbose, VerboseLogger logger) {
         try {
             logger.printVerboseInfo("Starting migration with specified output directory: " +
                     outputDir.toString());
@@ -60,9 +73,6 @@ public class MirthChannelMigrationExecutor {
             logger.printError("Error during migration process: " + e.getMessage());
             logger.printStackTrace(e.getStackTrace());
         }
-    }
-
-    public static void migrateChannelToBallerina(Path channelFilePath, boolean verbose, VerboseLogger verboseLogger) {
     }
 
     private static void processMirthChannel(Path mirthChannelFilePath, String additionalInstructions, Path targetDir,

@@ -11,6 +11,10 @@ import java.time.Duration;
 import java.util.concurrent.*;
 import java.util.stream.Stream;
 
+/**
+ * Utility class for sending HTTP requests and handling responses.
+ *
+ */
 public class HttpUtils {
 
     static HttpResponse<Stream<String>> sendStreamRequestAsync(URI uri, JsonObject payload, String accessToken,
@@ -59,6 +63,7 @@ public class HttpUtils {
                 .uri(uri)
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + accessToken)
+                .header("User-Agent", "PostmanRuntime/7.32.3")
                 .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
                 .timeout(Duration.ofMinutes(5))
                 .build();
