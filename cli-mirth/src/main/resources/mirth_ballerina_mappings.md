@@ -8,23 +8,23 @@ This guide can be fed into an LLM along with a Mirth channel XML file to generat
 
 ## Ballerina Language Equivalents for Mirth Connect Components
 
-| Mirth Connect Component | Ballerina Equivalent                     | Description |
-|-------------------------|------------------------------------------|-------------|
-| **Channel** | `pipeline:HandlerChain`                  | A complete message processing unit that handles the flow of messages through various components |
-| **Source Connector** | HTTP Service, TCP Listener, File Watcher | Entry point for messages into the pipeline |
-| **Filter** | `@pipeline:FilterConfig` function              | Functions that determine whether messages should continue processing |
-| **Transformer** | `@pipeline:TransformerConfig` function         | Functions that modify message content or structure |
-| **Preprocessor** | `@pipeline:ProcessorConfig` function     | Generic processing steps that can be applied before main transformation |
-| **Destination Connector** | `@pipeline:DestinationConfig` function         | Functions that send messages to external systems |
+| Mirth Connect Component | Ballerina Equivalent                      | Description |
+|-------------------------|-------------------------------------------|-------------|
+| **Channel** | `pipeline:HandlerChain`                   | A complete message processing unit that handles the flow of messages through various components |
+| **Source Connector** | HTTP Service, TCP Listener, File Watcher  | Entry point for messages into the pipeline |
+| **Filter** | `@pipeline:FilterConfig` function         | Functions that determine whether messages should continue processing |
+| **Transformer** | `@pipeline:TransformerConfig` function          | Functions that modify message content or structure |
+| **Preprocessor** | `@pipeline:ProcessorConfig` function            | Generic processing steps that can be applied before main transformation |
+| **Destination Connector** | `@pipeline:DestinationConfig` function          | Functions that send messages to external systems |
 | **Response Transformer** | Response handling in destination function | Logic to handle and transform responses from destination systems |
-| **Channel Scripts** | Ballerina functions                      | Custom code for specialized logic |
-| **Code Templates** | Ballerina functions, modules             | Reusable code components |
-| **Variable Maps** | `MessageContext` properties              | Key-value store for sharing data between processors |
-| **Message Storage** | `rabbitmq:MessageStore`        | Storage for messages that fail processing |
-| **Attachment Handler** | Custom processors using byte[] handling  | Handling binary attachments in messages |
-| **Queuing** | Retry configuration in destinations      | Automatic retries for failed message deliveries |
+| **Channel Scripts** | Ballerina functions                       | Custom code for specialized logic |
+| **Code Templates** | Ballerina functions, modules              | Reusable code components |
+| **Variable Maps** | `MessageContext` properties               | Key-value store for sharing data between processors |
+| **Message Storage** | `rabbitmq:MessageStore`                   | Storage for messages that fail processing |
+| **Attachment Handler** | Custom processors using byte[] handling   | Handling binary attachments in messages |
+| **Queuing** | Retry configuration in destinations       | Automatic retries for failed message deliveries |
 | **Batch Processing** | Array/collection processing in processors | Breaking down large messages into individual messages |
-| **Error Handling** | Error return types, try-catch blocks     | Managing errors during message processing |
+| **Error Handling** | Error return types, try-catch blocks      | Managing errors during message processing |
 
 ### Mirth Connect Protocol Connectors to Ballerina Equivalents
 
@@ -136,7 +136,7 @@ This guide can be fed into an LLM along with a Mirth channel XML file to generat
 
 1. **Filter Function** (equivalent to Mirth Filter):
    ```ballerina
-   @pipeline:FilterConfig {id: "patientFilter"}
+   @pipeline:Filter {id: "patientFilter"}
    isolated function filterByPatientType(pipeline:MessageContext context) returns boolean|error {
        json message = check context.getContentWithType();
        string patientType = check message.patientType;
@@ -279,19 +279,14 @@ This guide can be fed into an LLM along with a Mirth channel XML file to generat
 2. Implement replay mechanism for failed messages
 3. Add logging and monitoring
 
-### 5. Test
-
-1. Test pipeline with sample messages matching Mirth test cases
-2. Verify transformations and routing logic
-
 ## Example Migration Pattern (HL7 Processing)
 
 For a typical HL7 processing channel:
 
 1. Replace Mirth HL7 listener with Ballerina TCP listener with MLLP handling
 2. Create record types representing HL7 message structures
-3. Implement filters using `@pipeline:Filter` functions
-4. Create transformers using `@pipeline:Transformer` functions
+3. Implement filters using `@pipeline:FilterConfig` functions
+4. Create transformers using `@pipeline:TransformerConfig` functions
 5. Configure destinations for each target system
 6. Set up failure handling with appropriate retry logic
 

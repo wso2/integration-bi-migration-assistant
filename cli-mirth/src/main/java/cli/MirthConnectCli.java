@@ -16,7 +16,7 @@ public class MirthConnectCli {
 
         if (args.length < 1 || args.length > 3) {
             logger.severe("Usage: java -jar mirthconnect-migration-assistant.jar <source-file> " +
-                    "[-o|--out <output-directory>] [-v|--verbose] [-m|--multi-root]");
+                    "[-o|--out <output-directory>] [-v|--verbose]");
             System.exit(1);
         }
         Path sourceFile = Path.of(args[0]);

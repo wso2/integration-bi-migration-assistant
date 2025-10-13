@@ -13,29 +13,45 @@ import io.ballerina.projects.util.ProjectUtils;
 import io.ballerina.tools.diagnostics.Diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticInfo;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
+import org.xml.sax.InputSource;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.StringReader;
+import java.util.stream.Collectors;
 
-import javax.swing.*;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.ConnectException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static baltool.mirth.Constants.*;
-import static baltool.mirth.codegenerator.HttpUtils.*;
+import static baltool.mirth.Constants.BALLERINA_TOML_FILE;
+import static baltool.mirth.Constants.CONTENT;
+import static baltool.mirth.Constants.COPILOT_BACKEND_URL;
+import static baltool.mirth.Constants.DEV_COPILOT_BACKEND_URL;
+import static baltool.mirth.Constants.FILE_PATH;
+import static baltool.mirth.Constants.MAXIMUM_RETRY_COUNT;
+import static baltool.mirth.codegenerator.HttpUtils.getHttpClient;
+import static baltool.mirth.codegenerator.HttpUtils.sendRequestAsync;
+import static baltool.mirth.codegenerator.HttpUtils.sendStreamRequestAsync;
 
 public class CodeGenerationUtils {
 
@@ -58,14 +74,21 @@ public class CodeGenerationUtils {
                                                         String fileName) {
         try {
             String mirthChannelContent = Files.readString(mirthChannelFilePath, StandardCharsets.UTF_8);
-//            try {
-//                JsonParser.parseString(mirthChannelContent);
-//                logger.printVerboseInfo(fileName, "Logic App JSON validation: SUCCESS");
-//            } catch (Exception e) {
-//                logger.printVerboseError(fileName, "Logic App JSON validation: FAILED - " + e.getMessage());
-//                logger.printStackTrace(fileName, e.getStackTrace());
-//                throw new RuntimeException("Invalid JSON content in Logic App file", e);
-//            }
+
+            try {
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+
+                // Enable additional validation features here, if needed
+                DocumentBuilder builder = factory.newDocumentBuilder();
+
+                // Parse XML from string
+                builder.parse(new InputSource(new StringReader(mirthChannelContent)));
+                logger.printVerboseInfo(fileName, "XML validation: SUCCESS");
+            } catch (Exception e) {
+                logger.printVerboseError(fileName, "XML validation: FAILED - " + e.getMessage());
+                logger.printStackTrace(fileName, e.getStackTrace());
+                throw new RuntimeException("Invalid XML content in Mirth channel file", e);
+            }
 
             JsonArray fileAttachmentContents = getFileAttachmentContents(mirthChannelFilePath.getFileName().toString(),
                     mirthChannelContent);
@@ -151,44 +174,39 @@ public class CodeGenerationUtils {
                                                            String fileName)
             throws URISyntaxException, IOException, InterruptedException {
 
-        //for demo purposes, returning a static execution plan
-        return Files.readString(Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/plans/plan_v23_v24.md"), StandardCharsets.UTF_8);
-//        return Files.readString(Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/plans/plan_http_file_v1.md"), StandardCharsets.UTF_8);
-
-
         //Replace this with Mirth Channel specific execution plan generation endpoint
-//        URI uri = new URI(getCopilotBackendURL() + "/logicapps/executionplan");
-//
-//        logger.printVerboseInfo(fileName, "Preparing execution plan generation payload");
-//        JsonObject executionPlanGenerationPayload = constructExecPlanGenerationPayload(additionalInstructions,
-//                sourceFiles, fileAttachmentContents, packageName);
-//        logger.printVerboseInfo(fileName, "Payload size: " +
-//                executionPlanGenerationPayload.toString().length() + " characters");
-//
-//        logger.printVerboseInfo(fileName, "Sending HTTP request to get LogicApp execution plan");
-//        long startTime = System.currentTimeMillis();
-//        HttpResponse<String> response = sendRequestAsync(uri, executionPlanGenerationPayload, copilotAccessToken,
-//                logger, fileName);
-//        long duration = System.currentTimeMillis() - startTime;
-//
-//        logger.printVerboseInfo(fileName, "HTTP response received");
-//        logger.printVerboseInfo(fileName, "Response time: " + duration + "ms");
-//        logger.printVerboseInfo(fileName, "Response status: " + response.statusCode());
-//
-//        if (response.statusCode() >= 300) {
-//            String errorMsg = "Execution plan generation failed with status: " + response.statusCode();
-//            logger.printVerboseError(fileName, errorMsg);
-//            logger.printVerboseError(fileName, "Response body: " + response.body());
-//            throw new RuntimeException(errorMsg + ". Response: " + response.body());
-//        }
-//
-//        JsonObject responseJson = JsonParser.parseString(response.body()).getAsJsonObject();
-//        String executionPlan = responseJson.getAsJsonPrimitive("executionPlan").getAsString();
-//
-//        logger.printVerboseInfo(fileName, "Execution plan extracted successfully");
-//        logger.printVerboseInfo(fileName, "Execution plan length: " + executionPlan.length() + " characters");
-//
-//        return executionPlan;
+        URI uri = new URI(getCopilotBackendURL() + "/mirthchannel/executionplan");
+
+        logger.printVerboseInfo(fileName, "Preparing execution plan generation payload");
+        JsonObject executionPlanGenerationPayload = constructExecPlanGenerationPayload(additionalInstructions,
+                sourceFiles, fileAttachmentContents, packageName);
+        logger.printVerboseInfo(fileName, "Payload size: " +
+                executionPlanGenerationPayload.toString().length() + " characters");
+
+        logger.printVerboseInfo(fileName, "Sending HTTP request to get LogicApp execution plan");
+        long startTime = System.currentTimeMillis();
+        HttpResponse<String> response = sendRequestAsync(uri, executionPlanGenerationPayload, copilotAccessToken,
+                logger, fileName);
+        long duration = System.currentTimeMillis() - startTime;
+
+        logger.printVerboseInfo(fileName, "HTTP response received");
+        logger.printVerboseInfo(fileName, "Response time: " + duration + "ms");
+        logger.printVerboseInfo(fileName, "Response status: " + response.statusCode());
+
+        if (response.statusCode() >= 300) {
+            String errorMsg = "Execution plan generation failed with status: " + response.statusCode();
+            logger.printVerboseError(fileName, errorMsg);
+            logger.printVerboseError(fileName, "Response body: " + response.body());
+            throw new RuntimeException(errorMsg + ". Response: " + response.body());
+        }
+
+        JsonObject responseJson = JsonParser.parseString(response.body()).getAsJsonObject();
+        String executionPlan = responseJson.getAsJsonPrimitive("executionPlan").getAsString();
+
+        logger.printVerboseInfo(fileName, "Execution plan extracted successfully");
+        logger.printVerboseInfo(fileName, "Execution plan length: " + executionPlan.length() + " characters");
+
+        return executionPlan;
     }
 
     private static JsonObject constructExecPlanGenerationPayload(String additionalInstructions, JsonArray sourceFiles,
@@ -222,32 +240,13 @@ public class CodeGenerationUtils {
         if (additionalInstructions != null && !additionalInstructions.isEmpty()) {
             prompt.append(additionalInstructions).append("\n\n");
         }
-        prompt.append(Files.readString(Path.of(
-                "/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/instructions_v2.md"), StandardCharsets.UTF_8));
-
-//        prompt.append("## General Guidelines\n\n")
-//                .append("When you are converting the Mirth Connect channel processing phase in the execution plan ")
-//                .append("into Ballerina integration, follow the instructions given below.\n\n")
-//                .append("1. Use existing file structure in the Ballerina integration project to avoid ")
-//                .append("bal files with large numbers of lines as well as to write user readable code.\n")
-//                .append("2. Identify message flow and group each connector, code template into functions. ")
-//                .append("3. Use variable names in the Ballerina integration similar to the variables ")
-//                .append("initialized in the Mirth Connect channel.\n")
-//                .append("4. Add comments in the Ballerina integration code describing that ")
-//                .append("\"this line execution related to the that Mirth Connect component\".\n")
-//                .append("5. Do not use reserved keywords such as \"resource\" as identifiers ")
-//                .append("in the Ballerina integration code.\n\n")
-//                .append("# Action Plan\n")
-//                .append("1. Analyze the Mirth Connect channel in the attached xml file with its channel ")
-//                .append("connectors and their components.\n")
-//                .append("2. Identify the message flow accurately by referring the xml file ")
-//                .append("with the field 'sequenceNumber'.\n")
-//                .append("3. Generate completed code for all the Mirth Connect components listed in the ")
-//                .append("given execution plan.\n")
-//                .append("4. **Crucially:** Output the entire Ballerina equivalent code implementation ")
-//                .append("for each Mirth Connect component. \n")
-//                .append("5. Give the complete implementation for each function you define in the code.\n");
-
+        // Append the detailed instructions from the resource file
+        String instructions = Optional.ofNullable(CodeGenerationUtils.class.getResourceAsStream("/mirth_ballerina_mappings.md"))
+                .map(inputStream -> new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
+                        .lines()
+                        .collect(Collectors.joining(System.lineSeparator())))
+                .orElseThrow(() -> new RuntimeException("Failed to load instructions_v2.md from resources"));
+        prompt.append(instructions);
         return prompt.toString();
     }
 
@@ -262,7 +261,6 @@ public class CodeGenerationUtils {
         logger.printVerboseInfo(fileName, "Payload size: " + codeGenerationPayload.toString().length() + " characters");
 
         URI uri = new URI(getCopilotBackendURL() + "/code");
-//        URI uri = new URI(getCopilotBackendURL() + "/healthcare");
         HttpRequest codeGenerationRequest = HttpRequest.newBuilder()
                 .uri(uri)
                 .header("Authorization", "Bearer " + copilotAccessToken)
@@ -274,8 +272,6 @@ public class CodeGenerationUtils {
         logger.printVerboseInfo(fileName, "Sending HTTP request to get generated code");
         HttpResponse<InputStream> response = getHttpClient().send(codeGenerationRequest,
                 HttpResponse.BodyHandlers.ofInputStream());
-//        HttpResponse<Stream<String>> response = getHttpClient().send(codeGenerationRequest,
-//                HttpResponse.BodyHandlers.ofLines());
 
         logger.printVerboseInfo(fileName, "Code generation response received");
         logger.printVerboseInfo(fileName, "Response status: " + response.statusCode());
@@ -394,8 +390,6 @@ public class CodeGenerationUtils {
                 responseContent.append(line).append(System.lineSeparator());
                 totalBytesRead += line.getBytes(StandardCharsets.UTF_8).length;
 
-//                System.out.println("Chunk: " + line);
-
                 if (totalBytesRead % (1024 * 1024) == 0) {
                     logger.printVerboseInfo(fileName,
                             "Read " + (totalBytesRead / 1024 / 1024) + " MB so far...");
@@ -476,18 +470,14 @@ public class CodeGenerationUtils {
                 "<code filename=\"([^\"]+)\">\\s*```ballerina[^\\n]*\\n(.*?)\\n```\\s*</code>",
                 Pattern.DOTALL
         );
-
         Matcher matcher = pattern.matcher(generatedResponseBody);
 
         while (matcher.find()) {
             String filename = matcher.group(1);  // Extract filename
             String codeContent = matcher.group(2);  // Extract code content
-
             codeContent = codeContent.trim();
-
             generatedCodeMap.put(filename, codeContent);
         }
-
         return generatedCodeMap;
     }
 
@@ -715,7 +705,6 @@ public class CodeGenerationUtils {
         logger.printVerboseInfo(fileName, "Sending HTTP request to get the repaired code");
         HttpResponse<Stream<String>> response = sendStreamRequestAsync(uri, codeReparationPayload, copilotAccessToken,
                 logger, fileName);
-//        String[] listLines = response.body().toList().toArray(new String[0]);
         logger.printVerboseInfo(fileName, "Code repair response received");
         logger.printVerboseInfo(fileName, "Response status: " + response.statusCode());
 
