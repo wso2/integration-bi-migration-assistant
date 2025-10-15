@@ -527,12 +527,12 @@ public class CombinedSummaryReport {
                 transition: transform 0.2s, box-shadow 0.2s;
                 box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             }
-            
+
             .time-estimates-horizontal:hover {
                 transform: translateY(-3px);
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             }
-            
+
             .time-estimate {
                 display: flex;
                 flex-direction: column;
@@ -540,32 +540,32 @@ public class CombinedSummaryReport {
                 flex: 1;
                 text-align: center;
             }
-            
+
             .time-label {
                 font-size: 0.9em;
                 color: #666;
                 margin-bottom: 10px;
                 font-weight: 500;
             }
-            
+
             .time-value {
                 font-weight: bold;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
             }
-            
+
             .time-days {
                 font-size: 1.4em;
                 margin-bottom: 2px;
             }
-            
+
             .time-weeks {
                 font-size: 0.8em;
                 color: #777;
                 font-weight: normal;
             }
-            
+
             /* Responsive design */
             @media (max-width: 768px) {
                 .metrics {
@@ -768,12 +768,29 @@ public class CombinedSummaryReport {
                 averageConversionPercentage,
                 totalGeneratedLines);
 
-        // Generate estimation scenarios section
-        String estimationScenarios = ReportUtils.generateEstimationScenarios("activity");
+        // Generate estimation scenarios section - simplified to show only average case
+        String avgCaseBody = ReportUtils.generateAverageCaseEstimationScenarioBody("activity");
 
-        // Generate time estimation sections
-        String manualWorkEstimation = ReportUtils.generateEstimateView("Manual Work Estimation",
-                totalManualConversionEstimation, "activity");
+        String estimationScenarios = """
+                <div class="estimation-notes">
+                    <p><strong>Estimation Scenario:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
+                %s
+                </div>
+                """
+                .formatted(
+                        avgCaseBody);
+
+        String manualWorkEstimation = """
+                <div class="metrics overview-metrics">
+                    <div class="metric overview-metric" style="display: flex; flex-direction: column; align-items: center; width: 100%%; box-sizing: border-box; padding: 20px; justify-content: center;">
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <span class="metric-value">%d days</span>
+                            <span class="metric-label">Manual Work Estimation</span>
+                        </div>
+                    </div>
+                </div>
+                """
+                .formatted(totalManualConversionEstimation.averageCaseDaysAsInt());
 
         // Combine all parts into the final overview HTML
         return """

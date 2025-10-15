@@ -70,6 +70,7 @@ public final class ReportUtils {
      * @return HTML string for the estimation scenarios section
      */
     public static String generateEstimationScenarios(String elementType) {
+        String avgCaseBody = generateAverageCaseEstimationScenarioBody(elementType);
         return """
                 <div class="estimation-notes">
                     <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
@@ -82,16 +83,12 @@ public final class ReportUtils {
                           </ul>
                         </li>
                         <li>Average case scenario:
-                          <ul>
-                            <li>2.0 days per each new unsupported %s for analysis, implementation, and testing</li>
-                            <li>2.0 hour per each repeated unsupported %s for implementation</li>
-                            <li>Assumes medium complexity with moderate implementation challenges</li>
-                          </ul>
+                            %s
                         </li>
                         <li>Worst case scenario:
                           <ul>
                             <li>3.0 days per each new unsupported %s for analysis, implementation, and testing</li>
-                            <li>4.0 hour per each repeated unsupported %s for implementation</li>
+                            <li>4.0 hours per each repeated unsupported %s for implementation</li>
                             <li>Assumes high complexity with significant implementation challenges</li>
                           </ul>
                         </li>
@@ -99,9 +96,28 @@ public final class ReportUtils {
                 </div>
                 """.formatted(
                 elementType.toLowerCase(), elementType.toLowerCase(),
-                elementType.toLowerCase(), elementType.toLowerCase(),
+                avgCaseBody,
                 elementType.toLowerCase(), elementType.toLowerCase()
         );
+    }
+
+    /**
+     * Generates the average case estimation scenario section HTML.
+     *
+     * @param elementType The type of elements being analyzed (e.g., "activity",
+     *                    "component")
+     * @return HTML string for the average case estimation scenario section
+     */
+    public static String generateAverageCaseEstimationScenarioBody(String elementType) {
+        return """
+                    <ul>
+                        <li>2.0 days per each new unsupported %s for analysis, implementation, and testing</li>
+                        <li>2.0 hours per each repeated unsupported %s for implementation</li>
+                        <li>Assumes medium complexity with moderate implementation challenges</li>
+                    </ul>
+                """
+                .formatted(
+                        elementType.toLowerCase(), elementType.toLowerCase());
     }
 
     /**
