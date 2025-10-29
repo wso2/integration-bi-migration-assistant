@@ -109,7 +109,7 @@ public class ProjectReport {
         ReportComponent summaryComponent = generateSummaryContainer(coveragePercentage, totalElementCount,
                 unhandledElementCount, elementType, generatedLineCount);
         ReportComponent estimateViewComponent = ReportUtils.generateEstimateView("Manual Work Estimation",
-                manualConversionEstimation, elementType);
+                manualConversionEstimation);
         ReportComponent estimationScenariosComponent = ReportUtils.generateEstimationScenarios(elementType);
         ReportComponent unsupportedElementsComponent = generateUnsupportedElements(typeFrequencyMap);
         ReportComponent unsupportedBlocksComponent = generateUnsupportedElementsBlocks(unhandledElements);

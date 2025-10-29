@@ -300,6 +300,92 @@
       .drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
       .drawer.open { max-height: 500px; }
       .empty-message { text-align: center; padding: 20px; color: #666; }
+    .summary-container {
+  background-color: #fff;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  margin: 25px 0;
+  transition: box-shadow 0.3s;
+}
+.summary-container:hover {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+.estimation-notes {
+  margin-top: 25px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #4682B4;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+.estimation-notes p {
+  margin-top: 0;
+}
+.estimation-notes ul {
+  margin: 15px 0 5px 25px;
+  padding-left: 0;
+}
+.estimation-notes li {
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.time-best {
+  color: #4CAF50;
+  font-weight: 600;
+}
+.time-avg {
+  color: #4682B4;
+  font-weight: 600;
+}
+.time-worst {
+  color: #FF5722;
+  font-weight: 600;
+}
+.time-estimates-horizontal {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  margin: 20px 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: stretch;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.time-estimates-horizontal:hover {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+}
+.time-estimate {
+  flex-direction: column;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  text-align: center;
+}
+.time-label {
+  color: #666;
+  font-weight: 500;
+  font-size: 0.9em;
+  margin-bottom: 10px;
+}
+.time-value {
+  flex-direction: column;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+}
+.time-days {
+  font-size: 1.4em;
+  margin-bottom: 2px;
+}
+.time-weeks {
+  color: #777;
+  font-weight: normal;
+  font-size: 0.8em;
+}
+
     </style>
   </head>
   <body>
@@ -399,30 +485,32 @@
     </div>
 
 <div class="summary-container">
-  <h2>Manual Work Estimation</h2>
-  <table>
-    <tr>
-      <th>Scenario</th>
-      <th>Working Days</th>
-      <th>Weeks (approx.)</th>
-    </tr>
-    <tr>
-      <td>Best Case</td>
-      <td class="time-best">0.0 days</td>
-      <td class="time-best">1 weeks</td>
-    </tr>
-    <tr>
-      <td>Average Case</td>
-      <td class="time-avg">0.1 days</td>
-      <td class="time-avg">1 weeks</td>
-    </tr>
-    <tr>
-      <td>Worst Case</td>
-      <td class="time-worst">0.2 days</td>
-      <td class="time-worst">1 weeks</td>
-    </tr>
-  </table>
-  <div class="estimation-notes">
+    <h2>Manual Work Estimation</h2>
+    <div class="time-estimates-horizontal">
+        <div class="time-estimate">
+            <div class="time-label">Best Case</div>
+            <div class="time-value time-best">
+                <span class="time-days">1 day</span>
+                <span class="time-weeks">(1 week)</span>
+            </div>
+        </div>
+        <div class="time-estimate">
+            <div class="time-label">Average Case</div>
+            <div class="time-value time-avg">
+                <span class="time-days">1 day</span>
+                <span class="time-weeks">(1 week)</span>
+            </div>
+        </div>
+        <div class="time-estimate">
+            <div class="time-label">Worst Case</div>
+            <div class="time-value time-worst">
+                <span class="time-days">1 day</span>
+                <span class="time-weeks">(1 week)</span>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="estimation-notes">
     <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
     <ul>
       <li>Best case scenario:
@@ -454,7 +542,6 @@
       </li>
     </ul>
   </div>
-</div>
 
     <div class="summary-container">
       <h2>Currently Unsupported Elements</h2>

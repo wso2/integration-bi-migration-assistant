@@ -133,11 +133,9 @@ public final class ReportUtils {
      *
      * @param sectionTitle The title of the estimation section
      * @param estimation   The time estimation to display
-     * @param elementType  The type of elements being analyzed (e.g., "activity", "component")
      * @return ReportComponent containing HTML and styles for the estimation section
      */
-    public static ReportComponent generateEstimateView(String sectionTitle, TimeEstimation estimation,
-                                                        String elementType) {
+    public static ReportComponent generateEstimateView(String sectionTitle, TimeEstimation estimation) {
         int bestCaseWeeks = estimation.bestCaseWeeks();
         int avgCaseWeeks = estimation.averageCaseWeeks();
         int worstCaseWeeks = estimation.worstCaseWeeks();

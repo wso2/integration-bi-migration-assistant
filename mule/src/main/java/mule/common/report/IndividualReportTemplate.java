@@ -326,6 +326,7 @@ public class IndividualReportTemplate {
                     .drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
                     .drawer.open { max-height: 500px; }
                     .empty-message { text-align: center; padding: 20px; color: #666; }
+                  %s
                   </style>
                 </head>
                 <body>

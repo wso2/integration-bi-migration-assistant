@@ -24,6 +24,8 @@ import mule.common.MigrationMetrics;
 import mule.common.MuleLogger;
 import common.report.ReportComponent;
 import common.report.Styles;
+import common.TimeEstimation;
+import common.ReportUtils;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -150,6 +152,7 @@ public class IndividualReportGenerator {
         return String.format(
                 IndividualReportTemplate.getHtmlTemplate(),
                 reportTitle,
+                estimationComponent.styles().toHTML(),
                 sourceProjectName,
                 reportTitle,
                 // Overall coverage section parameters
@@ -347,9 +350,8 @@ public class IndividualReportGenerator {
         return pms.passedXMLTags().values().stream().mapToInt(i -> i).sum();
     }
 
-    public static ReportComponent generateManualWorkEstimationComponent(double bestCaseDays, double avgCaseDays,
-            double worstCaseDays, double bestCaseCompTimeNew,
-            double bestCaseCompTimeRepeated, double bestDwExprTime,
+    private static ReportComponent generateMuleEstimationNotes(double bestCaseCompTimeNew,
+                    double bestCaseCompTimeRepeated, double bestDwExprTime,
             double bestCaseInspectionTime, double avgCaseCompTimeNew,
             double avgCaseCompTimeRepeated, double avgCaseDwExprTime,
             double avgCaseInspectionTime, double worstCaseCompTimeNew,
@@ -357,31 +359,7 @@ public class IndividualReportGenerator {
             double worstCaseInspectionTime) {
         String content = String.format(
                 """
-                        <div class="summary-container">
-                          <h2>Manual Work Estimation</h2>
-                          <table>
-                            <tr>
-                              <th>Scenario</th>
-                              <th>Working Days</th>
-                              <th>Weeks (approx.)</th>
-                            </tr>
-                            <tr>
-                              <td>Best Case</td>
-                              <td class="time-best">%.1f days</td>
-                              <td class="time-best">%d weeks</td>
-                            </tr>
-                            <tr>
-                              <td>Average Case</td>
-                              <td class="time-avg">%.1f days</td>
-                              <td class="time-avg">%d weeks</td>
-                            </tr>
-                            <tr>
-                              <td>Worst Case</td>
-                              <td class="time-worst">%.1f days</td>
-                              <td class="time-worst">%d weeks</td>
-                            </tr>
-                          </table>
-                          <div class="estimation-notes">
+                        <div class="estimation-notes">
                             <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
                             <ul>
                               <li>Best case scenario:
@@ -412,12 +390,8 @@ public class IndividualReportGenerator {
                                 </ul>
                               </li>
                             </ul>
-                          </div>
-                        </div>""",
-                bestCaseDays, (int) Math.ceil(bestCaseDays / 5.0),
-                avgCaseDays, (int) Math.ceil(avgCaseDays / 5.0),
-                worstCaseDays, (int) Math.ceil(worstCaseDays / 5.0),
-                bestCaseCompTimeNew, bestCaseCompTimeRepeated * 8, bestDwExprTime * 8 * 60,
+                          </div>""",
+                        bestCaseCompTimeNew, bestCaseCompTimeRepeated * 8, bestDwExprTime * 8 * 60,
                 bestCaseInspectionTime * 8 * 60,
                 avgCaseCompTimeNew, avgCaseCompTimeRepeated * 8, avgCaseDwExprTime * 8 * 60,
                 avgCaseInspectionTime * 8 * 60,
@@ -425,5 +399,33 @@ public class IndividualReportGenerator {
                 worstCaseInspectionTime * 8 * 60);
 
         return new ReportComponent(content, new Styles(Map.of()));
+    }
+
+    public static ReportComponent generateManualWorkEstimationComponent(double bestCaseDays, double avgCaseDays,
+            double worstCaseDays, double bestCaseCompTimeNew,
+            double bestCaseCompTimeRepeated, double bestDwExprTime,
+            double bestCaseInspectionTime, double avgCaseCompTimeNew,
+            double avgCaseCompTimeRepeated, double avgCaseDwExprTime,
+            double avgCaseInspectionTime, double worstCaseCompTimeNew,
+            double worstCaseCompTimeRepeated, double worstCaseDwExprTime,
+            double worstCaseInspectionTime) {
+        // Create TimeEstimation object from the day values
+        TimeEstimation estimation = new TimeEstimation(bestCaseDays, avgCaseDays, worstCaseDays);
+
+        // Generate horizontal estimation view using ReportUtils
+        ReportComponent estimateView = ReportUtils.generateEstimateView("Manual Work Estimation", estimation);
+
+        // Generate Mule-specific detailed notes
+        ReportComponent muleNotes = generateMuleEstimationNotes(
+                bestCaseCompTimeNew, bestCaseCompTimeRepeated, bestDwExprTime,
+                bestCaseInspectionTime, avgCaseCompTimeNew, avgCaseCompTimeRepeated,
+                avgCaseDwExprTime, avgCaseInspectionTime, worstCaseCompTimeNew,
+                worstCaseCompTimeRepeated, worstCaseDwExprTime, worstCaseInspectionTime);
+
+        // Combine both components
+        String combinedContent = estimateView.content() + muleNotes.content();
+        Styles combinedStyles = estimateView.styles().merge(muleNotes.styles());
+
+        return new ReportComponent(combinedContent, combinedStyles);
     }
 }
