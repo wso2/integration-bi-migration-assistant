@@ -26,7 +26,6 @@ import java.util.List;
 import static mule.common.report.IndividualReportGenerator.AVG_CASE_COMP_TIME_NEW;
 import static mule.common.report.IndividualReportGenerator.AVG_CASE_COMP_TIME_REPEATED;
 import static mule.common.report.IndividualReportGenerator.AVG_CASE_DW_EXPR_TIME;
-import static mule.common.report.IndividualReportGenerator.AVG_CASE_INSPECTION_TIME;
 import static mule.common.report.IndividualReportGenerator.INDIVIDUAL_REPORT_NAME;
 
 /**
@@ -96,9 +95,8 @@ public class AggregateReportGenerator {
                         totalAverageCaseDays, // %.1f - average case days
                 projectResults.size(),                         // %d - project count again
                         avgCoverage, // %.0f - avg coverage again
-                AVG_CASE_COMP_TIME_NEW, AVG_CASE_COMP_TIME_REPEATED * 8, AVG_CASE_DW_EXPR_TIME * 8 * 60,
-                        AVG_CASE_INSPECTION_TIME * 8 * 60,
-                                generateProjectCards(projectResults, convertedProjectsDir),  // %s - project cards
+                        AVG_CASE_COMP_TIME_NEW, AVG_CASE_COMP_TIME_REPEATED * 8, AVG_CASE_DW_EXPR_TIME * 8 * 60,
+                                                generateProjectCards(projectResults, convertedProjectsDir),  // %s - project cards
                 // html
                 generateFailedElementsRows(projectResults)      // %s - failed elements rows html
         );

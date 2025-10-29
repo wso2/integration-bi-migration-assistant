@@ -48,10 +48,6 @@ public class IndividualReportGenerator {
     public static final double AVG_CASE_DW_EXPR_TIME = 1.5 / 60; // 12 min
     public static final double WORST_CASE_DW_EXPR_TIME = 0.125 / 3; // 20 min
 
-    public static final double BEST_CASE_INSPECTION_TIME = 0.125 / 30; // 2 min
-    public static final double AVG_CASE_INSPECTION_TIME = 0.125 / 12; // 5 min
-    public static final double WORST_CASE_INSPECTION_TIME = 0.125 / 6; // 10 min
-
     public static final String INDIVIDUAL_REPORT_NAME = "migration_report.html";
     public static final String MIGRATION_SUMMARY_TITLE = "Migration Summary";
     public static final String MIGRATION_ASSESSMENT_TITLE = "Migration Assessment";
@@ -134,20 +130,15 @@ public class IndividualReportGenerator {
         String coverageStatus = getCoverageStatus(migrationCoverage);
         String badgeClass = getCoverageBadgeClass(migrationCoverage);
 
-        double bestCaseDays = pms.bestCaseDays() + totalItems * BEST_CASE_INSPECTION_TIME;
-        double avgCaseDays = pms.averageCaseDays() + totalItems * AVG_CASE_INSPECTION_TIME;
-        double worstCaseDays = pms.worstCaseDays() + totalItems * WORST_CASE_INSPECTION_TIME;
-
         String reportTitle = dryRun ? MIGRATION_ASSESSMENT_TITLE : MIGRATION_SUMMARY_TITLE;
         logger.logInfo("Formating individual migration report...");
 
         // Generate Manual Work Estimation component
         ReportComponent estimationComponent = generateManualWorkEstimationComponent(
-                bestCaseDays, avgCaseDays, worstCaseDays,
-                BEST_CASE_COMP_TIME_NEW, BEST_CASE_COMP_TIME_REPEATED, BEST_DW_EXPR_TIME,
-                BEST_CASE_INSPECTION_TIME, AVG_CASE_COMP_TIME_NEW, AVG_CASE_COMP_TIME_REPEATED,
-                AVG_CASE_DW_EXPR_TIME, AVG_CASE_INSPECTION_TIME, WORST_CASE_COMP_TIME_NEW,
-                WORST_CASE_COMP_TIME_REPEATED, WORST_CASE_DW_EXPR_TIME, WORST_CASE_INSPECTION_TIME);
+                pms.bestCaseDays(), pms.averageCaseDays(), pms.worstCaseDays(),
+                        BEST_CASE_COMP_TIME_NEW, BEST_CASE_COMP_TIME_REPEATED, BEST_DW_EXPR_TIME,
+                AVG_CASE_COMP_TIME_NEW, AVG_CASE_COMP_TIME_REPEATED, AVG_CASE_DW_EXPR_TIME,
+                WORST_CASE_COMP_TIME_NEW, WORST_CASE_COMP_TIME_REPEATED, WORST_CASE_DW_EXPR_TIME);
 
         return String.format(
                 IndividualReportTemplate.getHtmlTemplate(),
@@ -352,11 +343,10 @@ public class IndividualReportGenerator {
 
     private static ReportComponent generateMuleEstimationNotes(double bestCaseCompTimeNew,
                     double bestCaseCompTimeRepeated, double bestDwExprTime,
-            double bestCaseInspectionTime, double avgCaseCompTimeNew,
-            double avgCaseCompTimeRepeated, double avgCaseDwExprTime,
-            double avgCaseInspectionTime, double worstCaseCompTimeNew,
-            double worstCaseCompTimeRepeated, double worstCaseDwExprTime,
-            double worstCaseInspectionTime) {
+            double avgCaseCompTimeNew,
+                    double avgCaseCompTimeRepeated, double avgCaseDwExprTime,
+            double worstCaseCompTimeNew,
+            double worstCaseCompTimeRepeated, double worstCaseDwExprTime) {
         String content = String.format(
                 """
                         <div class="estimation-notes">
@@ -367,7 +357,6 @@ public class IndividualReportGenerator {
                                   <li>%s day per each new unsupported element code line for analysis, implementation, and testing</li>
                                   <li>%s hour per each repeated unsupported element code line for implementation</li>
                                   <li>%s minutes per each unsupported dataweave code line for translation</li>
-                                  <li>%s minutes per each converted code line for inspection and verification</li>
                                   <li>Assumes minimal complexity and straightforward implementations</li>
                                 </ul>
                               </li>
@@ -376,7 +365,6 @@ public class IndividualReportGenerator {
                                   <li>%s days per each new unsupported element code line for analysis, implementation, and testing</li>
                                   <li>%s hour per each repeated unsupported element code line for implementation</li>
                                   <li>%s minutes per each unsupported dataweave code line for translation</li>
-                                  <li>%s minutes per each converted code line for inspection and verification</li>
                                   <li>Assumes medium complexity with moderate implementation challenges</li>
                                 </ul>
                               </li>
@@ -385,18 +373,14 @@ public class IndividualReportGenerator {
                                   <li>%s days per each new unsupported element code line for analysis, implementation, and testing</li>
                                   <li>%s hour per each repeated unsupported element code line for implementation</li>
                                   <li>%s minutes per each unsupported dataweave code line for translation</li>
-                                  <li>%s minutes per each converted code line for inspection and verification</li>
                                   <li>Assumes high complexity with significant implementation challenges</li>
                                 </ul>
                               </li>
                             </ul>
                           </div>""",
-                        bestCaseCompTimeNew, bestCaseCompTimeRepeated * 8, bestDwExprTime * 8 * 60,
-                bestCaseInspectionTime * 8 * 60,
-                avgCaseCompTimeNew, avgCaseCompTimeRepeated * 8, avgCaseDwExprTime * 8 * 60,
-                avgCaseInspectionTime * 8 * 60,
-                worstCaseCompTimeNew, worstCaseCompTimeRepeated * 8, worstCaseDwExprTime * 8 * 60,
-                worstCaseInspectionTime * 8 * 60);
+                bestCaseCompTimeNew, bestCaseCompTimeRepeated * 8, bestDwExprTime * 8 * 60,
+                        avgCaseCompTimeNew, avgCaseCompTimeRepeated * 8, avgCaseDwExprTime * 8 * 60,
+                worstCaseCompTimeNew, worstCaseCompTimeRepeated * 8, worstCaseDwExprTime * 8 * 60);
 
         return new ReportComponent(content, new Styles(Map.of()));
     }
@@ -404,11 +388,10 @@ public class IndividualReportGenerator {
     public static ReportComponent generateManualWorkEstimationComponent(double bestCaseDays, double avgCaseDays,
             double worstCaseDays, double bestCaseCompTimeNew,
             double bestCaseCompTimeRepeated, double bestDwExprTime,
-            double bestCaseInspectionTime, double avgCaseCompTimeNew,
-            double avgCaseCompTimeRepeated, double avgCaseDwExprTime,
-            double avgCaseInspectionTime, double worstCaseCompTimeNew,
-            double worstCaseCompTimeRepeated, double worstCaseDwExprTime,
-            double worstCaseInspectionTime) {
+            double avgCaseCompTimeNew,
+                    double avgCaseCompTimeRepeated, double avgCaseDwExprTime,
+            double worstCaseCompTimeNew,
+            double worstCaseCompTimeRepeated, double worstCaseDwExprTime) {
         // Create TimeEstimation object from the day values
         TimeEstimation estimation = new TimeEstimation(bestCaseDays, avgCaseDays, worstCaseDays);
 
@@ -418,9 +401,9 @@ public class IndividualReportGenerator {
         // Generate Mule-specific detailed notes
         ReportComponent muleNotes = generateMuleEstimationNotes(
                 bestCaseCompTimeNew, bestCaseCompTimeRepeated, bestDwExprTime,
-                bestCaseInspectionTime, avgCaseCompTimeNew, avgCaseCompTimeRepeated,
-                avgCaseDwExprTime, avgCaseInspectionTime, worstCaseCompTimeNew,
-                worstCaseCompTimeRepeated, worstCaseDwExprTime, worstCaseInspectionTime);
+                avgCaseCompTimeNew, avgCaseCompTimeRepeated,
+                avgCaseDwExprTime, worstCaseCompTimeNew,
+                worstCaseCompTimeRepeated, worstCaseDwExprTime);
 
         // Combine both components
         String combinedContent = estimateView.content() + muleNotes.content();
