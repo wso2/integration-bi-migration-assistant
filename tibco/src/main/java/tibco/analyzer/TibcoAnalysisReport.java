@@ -18,9 +18,10 @@
 
 package tibco.analyzer;
 
-import common.AnalysisReport;
 import common.ProjectSummary;
 import common.TimeEstimation;
+import common.UnhandledElement;
+import common.report.ProjectReport;
 import org.w3c.dom.Element;
 import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
 import tibco.converter.ConversionUtils;
@@ -139,8 +140,8 @@ public final class TibcoAnalysisReport {
      *
      * @return A map with activity kinds as keys and collections of string representations as values
      */
-    private Map<String, Collection<AnalysisReport.UnhandledElement>> createUnhandledElementsMap() {
-        Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = new HashMap<>();
+    private Map<String, Collection<UnhandledElement>> createUnhandledElementsMap() {
+        Map<String, Collection<UnhandledElement>> unhandledElementsMap = new HashMap<>();
         for (UnhandledActivityElement unhandledActivityElement : unhandledActivityElements) {
             String code = ConversionUtils.elementToString(unhandledActivityElement.element());
             String fileName = unhandledActivityElement.fileName();
@@ -150,12 +151,12 @@ public final class TibcoAnalysisReport {
                     String name = namedElement.name();
                     unhandledElementsMap
                             .computeIfAbsent(type, k -> new HashSet<>())
-                            .add(new AnalysisReport.UnhandledElement(code, Optional.of(name), fileName));
+                            .add(new UnhandledElement(code, Optional.of(name), fileName));
                 }
                 case UnhandledActivityElement.UnNamedUnhandledActivityElement ignored -> {
                     String uniqueKey = "unnamed-activity-" + unhandledElementsMap.size();
                     unhandledElementsMap.put(uniqueKey, List.of(
-                            new AnalysisReport.UnhandledElement(code, Optional.empty(), fileName)));
+                            new UnhandledElement(code, Optional.empty(), fileName)));
                 }
             }
         }
@@ -169,8 +170,8 @@ public final class TibcoAnalysisReport {
      *
      * @return A map with activity kinds as keys and collections of string representations as values
      */
-    private Map<String, Collection<AnalysisReport.UnhandledElement>> createPartiallySupportedElementsMap() {
-        Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap = new HashMap<>();
+    private Map<String, Collection<UnhandledElement>> createPartiallySupportedElementsMap() {
+        Map<String, Collection<UnhandledElement>> partiallySupportedElementsMap = new HashMap<>();
         for (PartiallySupportedActivityElement partiallySupportedActivityElement : partiallySupportedActivityElements) {
             String code = ConversionUtils.elementToString(partiallySupportedActivityElement.element());
             String fileName = partiallySupportedActivityElement.fileName();
@@ -180,12 +181,12 @@ public final class TibcoAnalysisReport {
                     String name = namedElement.name();
                     partiallySupportedElementsMap
                             .computeIfAbsent(type, k -> new HashSet<>())
-                            .add(new AnalysisReport.UnhandledElement(code, Optional.of(name), fileName));
+                            .add(new UnhandledElement(code, Optional.of(name), fileName));
                 }
                 case PartiallySupportedActivityElement.UnNamedPartiallySupportedActivityElement ignored -> {
                     String uniqueKey = "unnamed-activity-" + partiallySupportedElementsMap.size();
                     partiallySupportedElementsMap.put(uniqueKey, List.of(
-                            new AnalysisReport.UnhandledElement(code, Optional.empty(), fileName)));
+                            new UnhandledElement(code, Optional.empty(), fileName)));
                 }
             }
         }
@@ -212,7 +213,7 @@ public final class TibcoAnalysisReport {
         return new TibcoAnalysisReport(0, 0, Collections.emptyList(), 0, Collections.emptyList());
     }
 
-    private static TimeEstimation timeEstimationPerElement(AnalysisReport.UnhandledElement element,
+    private static TimeEstimation timeEstimationPerElement(UnhandledElement element,
                                                            int count) {
         assert count > 0 : "There should be at least one element to estimate time";
         TimeEstimation estimation = new TimeEstimation(1, 2, 3);
@@ -229,10 +230,10 @@ public final class TibcoAnalysisReport {
     }
 
     private static TimeEstimation getManualConversionTimeEstimation(
-            Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap) {
+            Map<String, Collection<UnhandledElement>> unhandledElementsMap) {
         TimeEstimation estimation = new TimeEstimation(0, 0, 0);
 
-        for (Collection<AnalysisReport.UnhandledElement> elements : unhandledElementsMap.values()) {
+        for (Collection<UnhandledElement> elements : unhandledElementsMap.values()) {
             int count = elements.size();
             if (count > 0) {
                 estimation =
@@ -282,23 +283,23 @@ public final class TibcoAnalysisReport {
     }
 
     /**
-     * Generates an HTML report of the TIBCO analysis. Delegates the HTML generation to the generic AnalysisReport
+     * Generates an HTML report of the TIBCO analysis. Delegates the HTML generation to the generic ProjectReport
      * class.
      *
      * @return A string containing the HTML report
      */
     public String toHTML() {
         // Create a map of unhandled elements grouped by their kind
-        Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
+        Map<String, Collection<UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
 
         TimeEstimation manualConversionEstimation = getManualConversionTimeEstimation(unhandledElementsMap);
 
         // Create maps for partially supported activities
-        Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap =
+        Map<String, Collection<UnhandledElement>> partiallySupportedElementsMap =
                 createPartiallySupportedElementsMap();
 
-        // Create and use a generic AnalysisReport
-        AnalysisReport report = new AnalysisReport(
+        // Create and use a generic ProjectReport
+        ProjectReport report = new ProjectReport(
                 REPORT_TITLE,
                 totalActivityCount,
                 unhandledActivityCount,
@@ -327,12 +328,12 @@ public final class TibcoAnalysisReport {
                 (double) unhandledActivityCount / totalActivityCount * 100.0 : 0.0);
 
         // Create a map of unhandled elements grouped by their kind
-        Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
+        Map<String, Collection<UnhandledElement>> unhandledElementsMap = createUnhandledElementsMap();
 
         // Get time estimation using the separate methods
         TimeEstimation manualConversionEstimation = getManualConversionTimeEstimation(unhandledElementsMap);
 
-        Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedElementsMap =
+        Map<String, Collection<UnhandledElement>> partiallySupportedElementsMap =
                 createPartiallySupportedElementsMap();
 
         return new ProjectSummary(

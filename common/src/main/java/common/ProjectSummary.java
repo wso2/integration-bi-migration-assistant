@@ -47,7 +47,7 @@ public record ProjectSummary(
         TimeEstimation manualConversionEstimation,
         long generatedLineCount,
         double successfulConversionPercentage,
-        Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledActivities,
-        Map<String, Collection<AnalysisReport.UnhandledElement>> partiallySupportedActivities) {
+        Map<String, Collection<UnhandledElement>> unhandledActivities,
+        Map<String, Collection<UnhandledElement>> partiallySupportedActivities) {
 
 }

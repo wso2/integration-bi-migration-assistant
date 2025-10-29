@@ -18,9 +18,9 @@
 
 package tibco.analyzer;
 
-import common.AnalysisReport;
 import common.ProjectSummary;
 import common.TimeEstimation;
+import common.UnhandledElement;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -34,18 +34,18 @@ public class CombinedSummaryReportTest {
     @Test
     public void testCombinedSummaryReportWithUnhandledActivities() {
         // Create test project summaries with unhandled activities
-        Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledActivities1 = new HashMap<>();
+        Map<String, Collection<UnhandledElement>> unhandledActivities1 = new HashMap<>();
         unhandledActivities1.put("CustomActivity", List.of(
-                new AnalysisReport.UnhandledElement("code1", java.util.Optional.of("Activity1"), "file1.xml"),
-                new AnalysisReport.UnhandledElement("code2", java.util.Optional.of("Activity2"), "file2.xml")
+                new UnhandledElement("code1", java.util.Optional.of("Activity1"), "file1.xml"),
+                new UnhandledElement("code2", java.util.Optional.of("Activity2"), "file2.xml")
         ));
         unhandledActivities1.put("AnotherActivity", List.of(
-                new AnalysisReport.UnhandledElement("code3", java.util.Optional.of("Activity3"), "file3.xml")
+                new UnhandledElement("code3", java.util.Optional.of("Activity3"), "file3.xml")
         ));
 
-        Map<String, Collection<AnalysisReport.UnhandledElement>> unhandledActivities2 = new HashMap<>();
+        Map<String, Collection<UnhandledElement>> unhandledActivities2 = new HashMap<>();
         unhandledActivities2.put("CustomActivity", List.of(
-                new AnalysisReport.UnhandledElement("code4", java.util.Optional.of("Activity4"), "file4.xml")
+                new UnhandledElement("code4", java.util.Optional.of("Activity4"), "file4.xml")
         ));
 
         ProjectSummary summary1 = new ProjectSummary(

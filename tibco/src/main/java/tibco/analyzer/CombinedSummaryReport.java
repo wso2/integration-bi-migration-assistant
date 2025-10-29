@@ -18,10 +18,10 @@
 
 package tibco.analyzer;
 
-import common.AnalysisReport;
 import common.ProjectSummary;
 import common.ReportUtils;
 import common.TimeEstimation;
+import common.UnhandledElement;
 import tibco.converter.ConversionUtils;
 
 import java.util.ArrayList;
@@ -925,9 +925,9 @@ public class CombinedSummaryReport {
         Map<String, List<String>> projectsAffected = new HashMap<>();
 
         for (ProjectSummary project : projectSummaries) {
-            for (Map.Entry<String, Collection<AnalysisReport.UnhandledElement>> entry : project
+            for (Map.Entry<String, Collection<UnhandledElement>> entry : project
                     .unhandledActivities() == null
-                    ? Collections.<String, Collection<AnalysisReport.UnhandledElement>>emptyMap().entrySet()
+                    ? Collections.<String, Collection<UnhandledElement>>emptyMap().entrySet()
                     : project.unhandledActivities().entrySet()) {
                 String elementType = entry.getKey();
                 int frequency = entry.getValue().size();

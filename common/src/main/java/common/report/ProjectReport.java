@@ -16,17 +16,20 @@
  *  under the License.
  */
 
-package common;
+package common.report;
+
+import common.ReportUtils;
+import common.TimeEstimation;
+import common.UnhandledElement;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * A generic analysis report that can be used for different types of integrations.
  */
-public class AnalysisReport {
+public class ProjectReport {
 
     private final String reportTitle;
     private final int totalElementCount;
@@ -422,12 +425,12 @@ public class AnalysisReport {
      * @param manualConversionEstimation Manual conversion time estimation
      * @param generatedLineCount    Number of lines of code generated
      */
-    public AnalysisReport(String reportTitle, int totalElementCount, int unhandledElementCount, String elementType,
-                          Map<String, Collection<UnhandledElement>> unhandledElements,
-                          int partiallySupportedElementCount,
-                          Map<String, Collection<UnhandledElement>> partiallySupportedElements,
-                          TimeEstimation manualConversionEstimation,
-                          long generatedLineCount) {
+    public ProjectReport(String reportTitle, int totalElementCount, int unhandledElementCount, String elementType,
+                         Map<String, Collection<UnhandledElement>> unhandledElements,
+                         int partiallySupportedElementCount,
+                         Map<String, Collection<UnhandledElement>> partiallySupportedElements,
+                         TimeEstimation manualConversionEstimation,
+                         long generatedLineCount) {
         assert totalElementCount >= unhandledElementCount;
         this.reportTitle = reportTitle;
         this.totalElementCount = totalElementCount;
@@ -919,8 +922,4 @@ public class AnalysisReport {
         return Math.round(((double) part / total) * 1000) / 10.0; // Round to 1 decimal place
     }
 
-
-    public record UnhandledElement(String code, Optional<String> name, String fileName) {
-
-    }
 }
