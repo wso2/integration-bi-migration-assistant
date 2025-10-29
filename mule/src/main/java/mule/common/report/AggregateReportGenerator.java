@@ -27,15 +27,7 @@ import static mule.common.report.IndividualReportGenerator.AVG_CASE_COMP_TIME_NE
 import static mule.common.report.IndividualReportGenerator.AVG_CASE_COMP_TIME_REPEATED;
 import static mule.common.report.IndividualReportGenerator.AVG_CASE_DW_EXPR_TIME;
 import static mule.common.report.IndividualReportGenerator.AVG_CASE_INSPECTION_TIME;
-import static mule.common.report.IndividualReportGenerator.BEST_CASE_COMP_TIME_NEW;
-import static mule.common.report.IndividualReportGenerator.BEST_CASE_COMP_TIME_REPEATED;
-import static mule.common.report.IndividualReportGenerator.BEST_CASE_INSPECTION_TIME;
-import static mule.common.report.IndividualReportGenerator.BEST_DW_EXPR_TIME;
 import static mule.common.report.IndividualReportGenerator.INDIVIDUAL_REPORT_NAME;
-import static mule.common.report.IndividualReportGenerator.WORST_CASE_COMP_TIME_NEW;
-import static mule.common.report.IndividualReportGenerator.WORST_CASE_COMP_TIME_REPEATED;
-import static mule.common.report.IndividualReportGenerator.WORST_CASE_DW_EXPR_TIME;
-import static mule.common.report.IndividualReportGenerator.WORST_CASE_INSPECTION_TIME;
 
 /**
  * Utility class to generate and write an aggregate migration report.
@@ -55,16 +47,8 @@ public class AggregateReportGenerator {
                 .mapToDouble(ProjectMigrationStats::migrationCoverage)
                 .average().orElse(0.0);
 
-        double totalBestCaseDays = projectResults.stream().map(ProjectMigrationResult::getMigrationStats)
-                .mapToDouble(ProjectMigrationStats::bestCaseDays)
-                .sum();
-
         double totalAverageCaseDays = projectResults.stream().map(ProjectMigrationResult::getMigrationStats)
                 .mapToDouble(ProjectMigrationStats::averageCaseDays)
-                .sum();
-
-        double totalWorstCaseDays = projectResults.stream().map(ProjectMigrationResult::getMigrationStats)
-                .mapToDouble(ProjectMigrationStats::worstCaseDays)
                 .sum();
 
         // Calculate total items across all projects
@@ -108,22 +92,13 @@ public class AggregateReportGenerator {
                 barColor,                                        // %s - color for coverage bar
                 totalItems,                                      // %d - total items
                 migratableItems,                                 // %d - migratable items
-                nonMigratableItems,                              // %d - non-migratable items
-                totalBestCaseDays,                               // %.1f - best case days
-                totalBestCaseDays / 5.0,                         // %.1f - best case weeks
-                totalAverageCaseDays,                            // %.1f - average case days
-                totalAverageCaseDays / 5.0,                      // %.1f - average case weeks
-                totalWorstCaseDays,                              // %.1f - worst case days
-                totalWorstCaseDays / 5.0,                        // %.1f - worst case weeks
+                        nonMigratableItems, // %d - non-migratable items
+                        totalAverageCaseDays, // %.1f - average case days
                 projectResults.size(),                         // %d - project count again
-                avgCoverage,                                     // %.0f - avg coverage again
-                BEST_CASE_COMP_TIME_NEW, BEST_CASE_COMP_TIME_REPEATED * 8, BEST_DW_EXPR_TIME * 8 * 60,
-                BEST_CASE_INSPECTION_TIME * 8 * 60,
+                        avgCoverage, // %.0f - avg coverage again
                 AVG_CASE_COMP_TIME_NEW, AVG_CASE_COMP_TIME_REPEATED * 8, AVG_CASE_DW_EXPR_TIME * 8 * 60,
-                AVG_CASE_INSPECTION_TIME * 8 * 60,
-                WORST_CASE_COMP_TIME_NEW, WORST_CASE_COMP_TIME_REPEATED * 8, WORST_CASE_DW_EXPR_TIME * 8 * 60,
-                WORST_CASE_INSPECTION_TIME * 8 * 60,
-                generateProjectCards(projectResults, convertedProjectsDir),  // %s - project cards
+                        AVG_CASE_INSPECTION_TIME * 8 * 60,
+                                generateProjectCards(projectResults, convertedProjectsDir),  // %s - project cards
                 // html
                 generateFailedElementsRows(projectResults)      // %s - failed elements rows html
         );
