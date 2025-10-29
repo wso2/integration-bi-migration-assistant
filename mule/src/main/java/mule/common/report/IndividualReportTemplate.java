@@ -37,16 +37,16 @@ public class IndividualReportTemplate {
                       margin: 0;
                       padding: 20px;
                     }
-                    
+
                     .container {
                       max-width: 1200px;
                       margin: 0 auto;
                     }
-                    
+
                     h1, h2, h3 {
                       color: #333;
                     }
-                    
+
                     h1 {
                       text-align: center;
                       color: #4682B4;
@@ -58,7 +58,7 @@ public class IndividualReportTemplate {
                       position: relative;
                       border-bottom: 1px solid rgba(70, 130, 180, 0.2);
                     }
-                    
+
                     h1::after {
                       content: "";
                       position: absolute;
@@ -69,7 +69,7 @@ public class IndividualReportTemplate {
                       height: 3px;
                       background-color: rgba(70, 130, 180, 0.8);
                     }
-                    
+
                     .summary-container h2 {
                       margin-top: 0;
                       color: #4682B4;
@@ -79,14 +79,14 @@ public class IndividualReportTemplate {
                       text-align: center;
                       font-size: 1.5em;
                     }
-                    
+
                     h3 {
                       color: #4682B4;
                       border-bottom: 2px solid #f0f0f0;
                       padding-bottom: 10px;
                       margin-bottom: 20px;
                     }
-                    
+
                     /* Summary container styling */
                     .summary-container {
                       background-color: #fff;
@@ -96,11 +96,11 @@ public class IndividualReportTemplate {
                       margin: 25px 0;
                       transition: box-shadow 0.3s;
                     }
-                    
+
                     .summary-container:hover {
                       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
                     }
-                    
+
                     /* Coverage indicator */
                     .coverage-indicator {
                       width: 100%%;
@@ -111,39 +111,39 @@ public class IndividualReportTemplate {
                       box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
                       margin: 10px 0 20px 0;
                     }
-                    
+
                     .coverage-bar {
                       height: 100%%;
                       border-radius: 6px;
                       transition: width 0.5s ease-in-out;
                     }
-                    
+
                     /* Table styling */
                     table {
                       width: 100%%;
                       border-collapse: collapse;
                       margin: 20px 0;
                     }
-                    
+
                     th, td {
                       border: 1px solid #ddd;
                       padding: 12px;
                       text-align: left;
                     }
-                    
+
                     th {
                       background-color: #4682B4;
                       color: white;
                     }
-                    
+
                     tr:nth-child(even) {
                       background-color: #f2f2f2;
                     }
-                    
+
                     tr:hover {
                       background-color: #ddd;
                     }
-                    
+
                     /* Estimation notes */
                     .estimation-notes {
                       margin-top: 25px;
@@ -153,26 +153,26 @@ public class IndividualReportTemplate {
                       border-left: 4px solid #4682B4;
                       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
                     }
-                    
+
                     .estimation-notes p {
                       margin-top: 0;
                     }
-                    
+
                     .estimation-notes ul {
                       margin: 15px 0 5px 25px;
                       padding-left: 0;
                     }
-                    
+
                     .estimation-notes li {
                       margin-bottom: 8px;
                       line-height: 1.4;
                     }
-                    
+
                     /* Code blocks styling */
                     .unsupported-blocks {
                       padding: 10px;
                     }
-                    
+
                     .block-item {
                       background-color: #f8f9fa;
                       border: 1px solid #ddd;
@@ -181,12 +181,12 @@ public class IndividualReportTemplate {
                       overflow: hidden;
                       transition: transform 0.2s, box-shadow 0.2s;
                     }
-                    
+
                     .block-item:hover {
                       transform: translateY(-2px);
                       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
                     }
-                    
+
                     .block-header {
                       background-color: #4682B4;
                       color: white;
@@ -194,7 +194,7 @@ public class IndividualReportTemplate {
                       display: flex;
                       justify-content: space-between;
                     }
-                    
+
                     .block-code {
                       margin: 0;
                       padding: 15px;
@@ -203,15 +203,15 @@ public class IndividualReportTemplate {
                       font-family: monospace;
                       white-space: pre-wrap;
                     }
-                    
+
                     .block-number {
                       font-weight: bold;
                     }
-                    
+
                     .block-type {
                       font-family: monospace;
                     }
-                    
+
                     /* Status badges */
                     .status-badge {
                       padding: 6px 12px;
@@ -224,25 +224,25 @@ public class IndividualReportTemplate {
                       display: inline-block;
                       margin-left: 15px;
                     }
-                    
+
                     .status-high {
                       background-color: #e8f5e9;
                       color: #2e7d32;
                       border: 1px solid rgba(46, 125, 50, 0.2);
                     }
-                    
+
                     .status-medium {
                       background-color: #fff8e1;
                       color: #f57c00;
                       border: 1px solid rgba(245, 124, 0, 0.2);
                     }
-                    
+
                     .status-low {
                       background-color: #ffebee;
                       color: #c62828;
                       border: 1px solid rgba(198, 40, 40, 0.2);
                     }
-                    
+
                     /* Footer */
                     footer {
                       text-align: center;
@@ -250,7 +250,7 @@ public class IndividualReportTemplate {
                       font-size: 0.9em;
                       color: #666;
                     }
-                    
+
                     /* Code in tables */
                     table code {
                       background-color: #f0f0f0;
@@ -259,7 +259,7 @@ public class IndividualReportTemplate {
                       font-family: monospace;
                       font-size: 0.9em;
                     }
-                    
+
                     /* Metric styling with box shape and hover effects */
                     .metric {
                       width: 100%%;
@@ -276,53 +276,53 @@ public class IndividualReportTemplate {
                       border: 1px solid #eaeaea;
                       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
                     }
-                    
+
                     .metric:hover {
                       transform: translateY(-3px);
                       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
                     }
-                    
+
                     .metric-value {
                       font-weight: bold;
                       font-size: 1.8em;
                       color: #4682B4;
                       margin-bottom: 5px;
                     }
-                    
+
                     .metric-label {
                       font-size: 0.9em;
                       color: #666;
                       text-align: center;
                     }
-                    
+
                     .metric-left {
                       flex: 1;
                       display: flex;
                       flex-direction: column;
                       align-items: center;
                     }
-                    
+
                     .metric-right {
                       flex: 1;
                       padding-top: 10px;
                     }
-                    
+
                     /* Time estimation table styling */
                     .time-best {
                       color: #4CAF50; /* Green for Best Case */
                       font-weight: 600;
                     }
-                    
+
                     .time-avg {
                       color: #4682B4; /* Blue for Average Case */
                       font-weight: 600;
                     }
-                    
+
                     .time-worst {
                       color: #FF5722; /* Orange/Red for Worst Case */
                       font-weight: 600;
                     }
-                    
+
                     .drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
                     .drawer.open { max-height: 500px; }
                     .empty-message { text-align: center; padding: 20px; color: #666; }
@@ -331,11 +331,11 @@ public class IndividualReportTemplate {
                 <body>
                 <div class="container">
                   <h1>%s - %s</h1>
-                  
+
                   <div class="summary-container">
                     <h2>Migration Coverage Overview</h2>
                     <div class="metrics" style="flex-direction: column; align-items: center; width: 100%%;">
-                   
+
                       <!-- Overall Coverage -->
                       <div class="metric" style="width: 100%%; box-sizing: border-box; padding: 15px 20px; display: flex; flex-direction: row; align-items: flex-start; gap: 20px; background-color: #f0f8ff;">
                         <div class="metric-left" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
@@ -423,65 +423,9 @@ public class IndividualReportTemplate {
                       </div>
                     </div>
                   </div>
-                
-                  <div class="summary-container">
-                    <h2>Manual Work Estimation</h2>
-                    <table>
-                      <tr>
-                        <th>Scenario</th>
-                        <th>Working Days</th>
-                        <th>Weeks (approx.)</th>
-                      </tr>
-                      <tr>
-                        <td>Best Case</td>
-                        <td class="time-best">%.1f days</td>
-                        <td class="time-best">%d weeks</td>
-                      </tr>
-                      <tr>
-                        <td>Average Case</td>
-                        <td class="time-avg">%.1f days</td>
-                        <td class="time-avg">%d weeks</td>
-                      </tr>
-                      <tr>
-                        <td>Worst Case</td>
-                        <td class="time-worst">%.1f days</td>
-                        <td class="time-worst">%d weeks</td>
-                      </tr>
-                    </table>
-                    <div class="estimation-notes">
-                      <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
-                      <ul>
-                        <li>Best case scenario:
-                          <ul>
-                            <li>%s day per each new unsupported element code line for analysis, implementation, and testing</li>
-                            <li>%s hour per each repeated unsupported element code line for implementation</li>
-                            <li>%s minutes per each unsupported dataweave code line for translation</li>
-                            <li>%s minutes per each converted code line for inspection and verification</li>
-                            <li>Assumes minimal complexity and straightforward implementations</li>
-                          </ul>
-                        </li>
-                        <li>Average case scenario:
-                          <ul>
-                            <li>%s days per each new unsupported element code line for analysis, implementation, and testing</li>
-                            <li>%s hour per each repeated unsupported element code line for implementation</li>
-                            <li>%s minutes per each unsupported dataweave code line for translation</li>
-                            <li>%s minutes per each converted code line for inspection and verification</li>
-                            <li>Assumes medium complexity with moderate implementation challenges</li>
-                          </ul>
-                        </li>
-                        <li>Worst case scenario:
-                          <ul>
-                            <li>%s days per each new unsupported element code line for analysis, implementation, and testing</li>
-                            <li>%s hour per each repeated unsupported element code line for implementation</li>
-                            <li>%s minutes per each unsupported dataweave code line for translation</li>
-                            <li>%s minutes per each converted code line for inspection and verification</li>
-                            <li>Assumes high complexity with significant implementation challenges</li>
-                          </ul>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                  
+
+              %s
+
                   <div class="summary-container">
                     <h2>Currently Unsupported Elements</h2>
                     <div id="toolSupportSection">
@@ -505,7 +449,7 @@ public class IndividualReportTemplate {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div class="summary-container">
                     <h2>DataWeave Expressions that Require Manual Conversion</h2>
                     <div class="unsupported-blocks">

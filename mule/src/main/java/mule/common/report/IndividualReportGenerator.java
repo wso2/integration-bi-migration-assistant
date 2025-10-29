@@ -22,9 +22,12 @@ import mule.common.DWConstructBase;
 import mule.common.DWConversionStats;
 import mule.common.MigrationMetrics;
 import mule.common.MuleLogger;
+import common.report.ReportComponent;
+import common.report.Styles;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 public class IndividualReportGenerator {
@@ -135,6 +138,15 @@ public class IndividualReportGenerator {
 
         String reportTitle = dryRun ? MIGRATION_ASSESSMENT_TITLE : MIGRATION_SUMMARY_TITLE;
         logger.logInfo("Formating individual migration report...");
+
+        // Generate Manual Work Estimation component
+        ReportComponent estimationComponent = generateManualWorkEstimationComponent(
+                bestCaseDays, avgCaseDays, worstCaseDays,
+                BEST_CASE_COMP_TIME_NEW, BEST_CASE_COMP_TIME_REPEATED, BEST_DW_EXPR_TIME,
+                BEST_CASE_INSPECTION_TIME, AVG_CASE_COMP_TIME_NEW, AVG_CASE_COMP_TIME_REPEATED,
+                AVG_CASE_DW_EXPR_TIME, AVG_CASE_INSPECTION_TIME, WORST_CASE_COMP_TIME_NEW,
+                WORST_CASE_COMP_TIME_REPEATED, WORST_CASE_DW_EXPR_TIME, WORST_CASE_INSPECTION_TIME);
+
         return String.format(
                 IndividualReportTemplate.getHtmlTemplate(),
                 reportTitle,
@@ -153,16 +165,8 @@ public class IndividualReportGenerator {
                 dataweaveDisplayValue,
                 dataweaveBarWidth, dataweaveCoverageColor,
                 totalDwConstructs, migratableDwConstructs, nonMigratableDwConstructs,
-                // Time estimation section parameters
-                bestCaseDays, (int) Math.ceil(bestCaseDays / 5.0),
-                avgCaseDays, (int) Math.ceil(avgCaseDays / 5.0),
-                worstCaseDays, (int) Math.ceil(worstCaseDays / 5.0),
-                BEST_CASE_COMP_TIME_NEW, BEST_CASE_COMP_TIME_REPEATED * 8, BEST_DW_EXPR_TIME * 8 * 60,
-                BEST_CASE_INSPECTION_TIME * 8 * 60,
-                AVG_CASE_COMP_TIME_NEW, AVG_CASE_COMP_TIME_REPEATED * 8, AVG_CASE_DW_EXPR_TIME * 8 * 60,
-                AVG_CASE_INSPECTION_TIME * 8 * 60,
-                WORST_CASE_COMP_TIME_NEW, WORST_CASE_COMP_TIME_REPEATED * 8, WORST_CASE_DW_EXPR_TIME * 8 * 60,
-                WORST_CASE_INSPECTION_TIME * 8 * 60,
+                // Manual Work Estimation component
+                        estimationComponent.content(),
                 // Content sections
                 unsupportedElementsTable,
                 unsupportedBlocksHtml,
@@ -341,5 +345,85 @@ public class IndividualReportGenerator {
 
     private static int calculateMigratableXmlElements(ProjectMigrationStats pms) {
         return pms.passedXMLTags().values().stream().mapToInt(i -> i).sum();
+    }
+
+    public static ReportComponent generateManualWorkEstimationComponent(double bestCaseDays, double avgCaseDays,
+            double worstCaseDays, double bestCaseCompTimeNew,
+            double bestCaseCompTimeRepeated, double bestDwExprTime,
+            double bestCaseInspectionTime, double avgCaseCompTimeNew,
+            double avgCaseCompTimeRepeated, double avgCaseDwExprTime,
+            double avgCaseInspectionTime, double worstCaseCompTimeNew,
+            double worstCaseCompTimeRepeated, double worstCaseDwExprTime,
+            double worstCaseInspectionTime) {
+        String content = String.format(
+                """
+                        <div class="summary-container">
+                          <h2>Manual Work Estimation</h2>
+                          <table>
+                            <tr>
+                              <th>Scenario</th>
+                              <th>Working Days</th>
+                              <th>Weeks (approx.)</th>
+                            </tr>
+                            <tr>
+                              <td>Best Case</td>
+                              <td class="time-best">%.1f days</td>
+                              <td class="time-best">%d weeks</td>
+                            </tr>
+                            <tr>
+                              <td>Average Case</td>
+                              <td class="time-avg">%.1f days</td>
+                              <td class="time-avg">%d weeks</td>
+                            </tr>
+                            <tr>
+                              <td>Worst Case</td>
+                              <td class="time-worst">%.1f days</td>
+                              <td class="time-worst">%d weeks</td>
+                            </tr>
+                          </table>
+                          <div class="estimation-notes">
+                            <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
+                            <ul>
+                              <li>Best case scenario:
+                                <ul>
+                                  <li>%s day per each new unsupported element code line for analysis, implementation, and testing</li>
+                                  <li>%s hour per each repeated unsupported element code line for implementation</li>
+                                  <li>%s minutes per each unsupported dataweave code line for translation</li>
+                                  <li>%s minutes per each converted code line for inspection and verification</li>
+                                  <li>Assumes minimal complexity and straightforward implementations</li>
+                                </ul>
+                              </li>
+                              <li>Average case scenario:
+                                <ul>
+                                  <li>%s days per each new unsupported element code line for analysis, implementation, and testing</li>
+                                  <li>%s hour per each repeated unsupported element code line for implementation</li>
+                                  <li>%s minutes per each unsupported dataweave code line for translation</li>
+                                  <li>%s minutes per each converted code line for inspection and verification</li>
+                                  <li>Assumes medium complexity with moderate implementation challenges</li>
+                                </ul>
+                              </li>
+                              <li>Worst case scenario:
+                                <ul>
+                                  <li>%s days per each new unsupported element code line for analysis, implementation, and testing</li>
+                                  <li>%s hour per each repeated unsupported element code line for implementation</li>
+                                  <li>%s minutes per each unsupported dataweave code line for translation</li>
+                                  <li>%s minutes per each converted code line for inspection and verification</li>
+                                  <li>Assumes high complexity with significant implementation challenges</li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>""",
+                bestCaseDays, (int) Math.ceil(bestCaseDays / 5.0),
+                avgCaseDays, (int) Math.ceil(avgCaseDays / 5.0),
+                worstCaseDays, (int) Math.ceil(worstCaseDays / 5.0),
+                bestCaseCompTimeNew, bestCaseCompTimeRepeated * 8, bestDwExprTime * 8 * 60,
+                bestCaseInspectionTime * 8 * 60,
+                avgCaseCompTimeNew, avgCaseCompTimeRepeated * 8, avgCaseDwExprTime * 8 * 60,
+                avgCaseInspectionTime * 8 * 60,
+                worstCaseCompTimeNew, worstCaseCompTimeRepeated * 8, worstCaseDwExprTime * 8 * 60,
+                worstCaseInspectionTime * 8 * 60);
+
+        return new ReportComponent(content, new Styles(Map.of()));
     }
 }
