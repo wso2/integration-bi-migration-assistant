@@ -95,8 +95,10 @@ public class AggregateReportGenerator {
                         totalAverageCaseDays, // %.1f - average case days
                 projectResults.size(),                         // %d - project count again
                         avgCoverage, // %.0f - avg coverage again
-                        AVG_CASE_COMP_TIME_NEW, AVG_CASE_COMP_TIME_REPEATED * 8, AVG_CASE_DW_EXPR_TIME * 8 * 60,
-                                                generateProjectCards(projectResults, convertedProjectsDir),  // %s - project cards
+                        AVG_CASE_COMP_TIME_NEW,
+                        AVG_CASE_COMP_TIME_REPEATED * 8,
+                        AVG_CASE_DW_EXPR_TIME * 8 * 60,
+                        generateProjectCards(projectResults, convertedProjectsDir),
                 // html
                 generateFailedElementsRows(projectResults)      // %s - failed elements rows html
         );

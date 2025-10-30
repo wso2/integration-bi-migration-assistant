@@ -17,20 +17,21 @@
  */
 package mule.common.report;
 
+import common.ReportUtils;
+import common.TimeEstimation;
+import common.report.ReportComponent;
+import common.report.Styles;
 import mule.MuleMigrator.MuleVersion;
 import mule.common.DWConstructBase;
 import mule.common.DWConversionStats;
 import mule.common.MigrationMetrics;
 import mule.common.MuleLogger;
-import common.report.ReportComponent;
-import common.report.Styles;
-import common.TimeEstimation;
-import common.ReportUtils;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+
 
 public class IndividualReportGenerator {
 
@@ -350,11 +351,13 @@ public class IndividualReportGenerator {
         String content = String.format(
                 """
                         <div class="estimation-notes">
-                            <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
+                            <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours,
+                                5 working days = 1 week</p>
                             <ul>
                               <li>Best case scenario:
                                 <ul>
-                                  <li>%s day per each new unsupported element code line for analysis, implementation, and testing</li>
+                    <li>%s day per each new unsupported element code line for analysis,
+                        implementation, and testing</li>
                                   <li>%s hour per each repeated unsupported element code line for implementation</li>
                                   <li>%s minutes per each unsupported dataweave code line for translation</li>
                                   <li>Assumes minimal complexity and straightforward implementations</li>
@@ -362,7 +365,8 @@ public class IndividualReportGenerator {
                               </li>
                               <li>Average case scenario:
                                 <ul>
-                                  <li>%s days per each new unsupported element code line for analysis, implementation, and testing</li>
+                                  <li>%s days per each new unsupported element code line for analysis,
+                                      implementation, and testing</li>
                                   <li>%s hour per each repeated unsupported element code line for implementation</li>
                                   <li>%s minutes per each unsupported dataweave code line for translation</li>
                                   <li>Assumes medium complexity with moderate implementation challenges</li>
@@ -370,7 +374,8 @@ public class IndividualReportGenerator {
                               </li>
                               <li>Worst case scenario:
                                 <ul>
-                                  <li>%s days per each new unsupported element code line for analysis, implementation, and testing</li>
+                                  <li>%s days per each new unsupported element code line for analysis,
+                                      implementation, and testing</li>
                                   <li>%s hour per each repeated unsupported element code line for implementation</li>
                                   <li>%s minutes per each unsupported dataweave code line for translation</li>
                                   <li>Assumes high complexity with significant implementation challenges</li>

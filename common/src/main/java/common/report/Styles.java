@@ -41,10 +41,9 @@ public record Styles(Map<String, Map<String, String>> styles) {
                 if (mergedProperties.containsKey(propertyName)) {
                     String existingValue = mergedProperties.get(propertyName);
                     if (!existingValue.equals(propertyValue)) {
-                        throw new IllegalArgumentException(
-                                String.format(
-                                        "Style conflict for class '%s': property '%s' has conflicting values '%s' vs '%s'",
-                                        className, propertyName, existingValue, propertyValue));
+                        throw new IllegalArgumentException(String.format(
+                                "Style conflict for class '%s': property '%s' has conflicting values '%s' vs '%s'",
+                                className, propertyName, existingValue, propertyValue));
                     }
                 } else {
                     mergedProperties.put(propertyName, propertyValue);
