@@ -57,8 +57,6 @@ import static mule.MigratorUtils.createDirectories;
 import static mule.MigratorUtils.getImmediateSubdirectories;
 import static mule.common.report.IndividualReportGenerator.INDIVIDUAL_REPORT_NAME;
 import static mule.common.report.IndividualReportGenerator.getProjectMigrationStats;
-import static mule.v3.MuleToBalConverter.convertXMLFileToBir;
-import static mule.v4.MuleToBalConverter.convertXMLFileToBir;
 import static mule.v3.MuleToBalConverter.createContextTypeDefns;
 import static mule.v4.MuleToBalConverter.createContextTypeDefns;
 import static mule.v4.MuleToBalConverter.createTextDocument;
@@ -501,12 +499,19 @@ public class MuleMigrator {
     private static TextDocument genBirFromXMLFile(MuleLogger logger, ContextBase ctx, MuleXMLNavigator muleXMLNavigator,
                                                   File xmlFile, String balFileName) {
         logger.logInfo("Converting XML file: " + xmlFile.getName());
-        TextDocument birTextDocument = null;
         try {
             if (ctx instanceof mule.v3.Context v3Ctx) {
-                birTextDocument = convertXMLFileToBir(v3Ctx, muleXMLNavigator, xmlFile.getPath(), balFileName);
+                var parseResult =
+                        mule.v3.reader.MuleConfigReader.readMuleConfigFromRoot(v3Ctx, muleXMLNavigator,
+                                xmlFile.getPath());
+                return mule.v3.MuleToBalConverter.generateTextDocument(v3Ctx, balFileName,
+                        parseResult.flows(), parseResult.subFlows());
             } else if (ctx instanceof mule.v4.Context v4Ctx) {
-                birTextDocument = convertXMLFileToBir(v4Ctx, muleXMLNavigator, xmlFile.getPath(), balFileName);
+                var parseResult =
+                        mule.v4.reader.MuleConfigReader.readMuleConfigFromRoot(v4Ctx, muleXMLNavigator,
+                                xmlFile.getPath());
+                return mule.v4.MuleToBalConverter.generateTextDocument(v4Ctx, balFileName,
+                        parseResult.flows(), parseResult.subFlows());
             } else {
                 throw new IllegalStateException("Unsupported context type: " + ctx.getClass().getName());
             }
@@ -516,7 +521,7 @@ public class MuleMigrator {
                             "%s%n%s",
                     xmlFile.getName(), e.getMessage()));
         }
-        return birTextDocument;
+        return null;
     }
 
     /**
