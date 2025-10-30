@@ -22,12 +22,10 @@ import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import mule.common.MuleXMLNavigator;
 import mule.v3.converter.MuleConfigConverter;
 import mule.v3.model.MuleModel;
-import mule.v3.model.MuleXMLTag;
-import mule.v3.model.ParseResult;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -85,12 +83,9 @@ import static mule.v3.model.MuleModel.UnsupportedBlock;
 public class MuleToBalConverter {
 
     public static SyntaxTree convertStandaloneXMLFileToBallerina(String xmlFilePath) {
-        Context ctx = new Context();
-        ctx.startStandaloneFile(xmlFilePath);
-        MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator(ctx.migrationMetrics, MuleXMLTag::isCompatible);
-        ParseResult parseResult =
-                mule.v3.reader.MuleConfigReader.readMuleConfigFromRoot(ctx, muleXMLNavigator, xmlFilePath);
-        TextDocument txtDoc = generateTextDocument(ctx, "internal", parseResult.flows(), parseResult.subFlows());
+        Context ctx = new Context(List.of(Path.of(xmlFilePath).toFile()), List.of());
+        ctx.parseAllFiles();
+        TextDocument txtDoc = ctx.codeGen().getFirst();
         return new CodeGenerator(txtDoc).generateSyntaxTree();
     }
 

@@ -23,22 +23,22 @@ import mule.v3.Constants;
 import mule.v3.Context;
 import mule.v3.ConversionUtils;
 import mule.v3.model.MuleXMLTag;
-
+import mule.v3.model.ParseResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import static common.BallerinaModel.Import;
 import static mule.v3.ConversionUtils.getAllowedMethods;
@@ -62,8 +62,6 @@ import static mule.v3.model.MuleModel.HTTPListenerConfig;
 import static mule.v3.model.MuleModel.HTTPRequestConfig;
 import static mule.v3.model.MuleModel.HttpListener;
 import static mule.v3.model.MuleModel.HttpRequest;
-
-import mule.v3.model.ParseResult;
 import static mule.v3.model.MuleModel.InputPayloadElement;
 import static mule.v3.model.MuleModel.Kind;
 import static mule.v3.model.MuleModel.LogLevel;

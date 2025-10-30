@@ -17,11 +17,16 @@
  */
 package mule.v3;
 
+import common.BallerinaModel;
 import mule.common.ContextBase;
 import mule.common.DWConstructBase;
 import mule.common.MigrationMetrics;
+import mule.common.MuleXMLNavigator;
 import mule.v3.dataweave.converter.DWConstruct;
+import mule.v3.model.ParseResult;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,6 +34,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 
 import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
@@ -49,8 +55,19 @@ import static mule.v3.model.MuleModel.UnsupportedBlock;
 public class Context extends ContextBase {
     public final ProjectContext projectCtx = new ProjectContext();
     public FileContext currentFileCtx;
-    private boolean isStandaloneBalFile = false;
+    private final boolean isStandaloneBalFile;
     public final MigrationMetrics<DWConstruct> migrationMetrics = new MigrationMetrics<>();
+    private final Map<File, ParseResult> parseResults = new HashMap<>();
+    private final Map<File, FileContext> fileContexts = new HashMap<>();
+
+    public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir) {
+        super(xmlFiles, yamlFiles, muleAppDir);
+        isStandaloneBalFile = xmlFiles.size() == 1;
+    }
+
+    public Context(List<File> xmlFiles, List<File> yamlFiles) {
+        this(xmlFiles, yamlFiles, null);
+    }
 
     @Override
     public MigrationMetrics<? extends DWConstructBase> getMigrationMetrics() {
@@ -58,19 +75,62 @@ public class Context extends ContextBase {
     }
 
     @Override
-    public void startNewFile(String filePath) {
-        currentFileCtx = new FileContext(filePath, projectCtx);
-    }
-
-    @Override
-    public void startStandaloneFile(String filePath) {
-        currentFileCtx = new FileContext(filePath, projectCtx);
-        isStandaloneBalFile = true;
-    }
-
-    @Override
     public boolean isStandaloneBalFile() {
         return isStandaloneBalFile;
+    }
+
+    @Override
+    public void parseAllFiles() {
+        for (File xmlFile : xmlFiles) {
+            currentFileCtx =
+                    this.fileContexts.computeIfAbsent(xmlFile, (path) -> new FileContext(path.getPath(), projectCtx));
+            parseResults.put(xmlFile, mule.v3.reader.MuleConfigReader.readMuleConfigFromRoot(this, getXMLNavigator(),
+                    xmlFile.getPath()));
+        }
+    }
+
+    @Override
+    public List<BallerinaModel.TextDocument> codeGen() {
+        List<BallerinaModel.TextDocument> result = new ArrayList<>();
+        for (File xmlFile : parseResults.keySet()) {
+            currentFileCtx = this.fileContexts.get(xmlFile);
+            ParseResult parseResult = parseResults.get(xmlFile);
+            assert currentFileCtx != null : "We should have created file ctx when we parse the file";
+            String balFileName = muleAppDir != null ?
+                    muleAppDir.relativize(xmlFile.toPath()).toString().replace(File.separator, ".")
+                            .replace(".xml", "") : "internal.bal";
+            result.add(mule.v3.MuleToBalConverter.generateTextDocument(this, balFileName, parseResult.flows(),
+                    parseResult.subFlows()));
+        }
+        return result;
+    }
+
+    @Override
+    protected MuleXMLNavigator getXMLNavigator() {
+        return new MuleXMLNavigator(this.migrationMetrics, mule.v3.model.MuleXMLTag::isCompatible);
+    }
+
+    @Override
+    public List<ModuleTypeDef> createContextTypeDefns() {
+        return mule.v3.MuleToBalConverter.createContextTypeDefns(this);
+    }
+
+    @Override
+    public List<Import> getContextImports() {
+        List<Import> contextImports = new ArrayList<>();
+        if (!projectCtx.inboundProperties.isEmpty()) {
+            // TODO: at the moment only http provides 'inboundProperties'
+            contextImports.add(new Import("ballerina", "http"));
+        }
+        return contextImports;
+    }
+
+    @Override
+    public void appendJavaDependencies(StringBuilder tomlContent) {
+        for (var each : projectCtx.javaDependencies()) {
+            tomlContent.append("\n");
+            tomlContent.append(each.dependencyParam);
+        }
     }
 
     public static class FileContext {
