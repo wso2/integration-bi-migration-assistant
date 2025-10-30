@@ -453,6 +453,19 @@ public class AggregateReportTemplate {
                     color: #666;
                     }
 
+                /* Overview specific styles */
+                .overview-metrics {
+                flex-direction: column;
+                align-items: center;
+                width: 100%%;
+                }
+
+                .overview-metric {
+                width: 100%%;
+                box-sizing: border-box;
+                padding: 15px 20px;
+                }
+
                     /* Responsive design */
                     @media (max-width: 768px) {
                     .metrics {
@@ -513,28 +526,11 @@ public class AggregateReportTemplate {
                       </div>
                     </div>
 
-                    <div style="display: flex; justify-content: center; margin: 20px 0;">
-                      <div class="time-estimates" style="width: 100%%; box-sizing: border-box;">
-                        <div class="time-estimate best-case">
-                          <div class="time-label">Best Case</div>
-                          <div class="time-value time-best">
-                            <span class="time-days">%.1fd</span>
-                            <span class="time-weeks">(~%.1fw)</span>
-                          </div>
-                        </div>
-                        <div class="time-estimate avg-case">
-                          <div class="time-label">Average Case</div>
-                          <div class="time-value time-avg">
-                            <span class="time-days">%.1fd</span>
-                            <span class="time-weeks">(~%.1fw)</span>
-                          </div>
-                        </div>
-                        <div class="time-estimate worst-case">
-                          <div class="time-label">Worst Case</div>
-                          <div class="time-value time-worst">
-                            <span class="time-days">%.1fd</span>
-                            <span class="time-weeks">(~%.1fw)</span>
-                          </div>
+                <div class="metrics overview-metrics">
+                  <div class="metric overview-metric" style="display: flex; flex-direction: column; align-items: center; width: 100%%; box-sizing: border-box; padding: 20px; justify-content: center;">
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                      <span class="metric-value">%.1f days</span>
+                      <span class="metric-label">Manual Work Estimation</span>
                         </div>
                       </div>
                     </div>
@@ -550,35 +546,12 @@ public class AggregateReportTemplate {
                     </div>
 
                     <div class="estimation-notes">
-                      <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
-                      <ul>
-                        <li>Best case scenario:
-                          <ul>
-                            <li>%s day per each new unsupported element code line for analysis, implementation, and testing</li>
-                            <li>%s hour per each repeated unsupported element code line for implementation</li>
-                            <li>%s minutes per each unsupported dataweave code line for translation</li>
-                            <li>%s minutes per each converted code line for inspection and verification</li>
-                            <li>Assumes minimal complexity and straightforward implementations</li>
-                          </ul>
-                        </li>
-                        <li>Average case scenario:
-                          <ul>
-                            <li>%s days per each new unsupported element code line for analysis, implementation, and testing</li>
-                            <li>%s hour per each repeated unsupported element code line for implementation</li>
-                            <li>%s minutes per each unsupported dataweave code line for translation</li>
-                            <li>%s minutes per each converted code line for inspection and verification</li>
-                            <li>Assumes medium complexity with moderate implementation challenges</li>
-                          </ul>
-                        </li>
-                        <li>Worst case scenario:
-                          <ul>
-                            <li>%s days per each new unsupported element code line for analysis, implementation, and testing</li>
-                            <li>%s hour per each repeated unsupported element code line for implementation</li>
-                            <li>%s minutes per each unsupported dataweave code line for translation</li>
-                            <li>%s minutes per each converted code line for inspection and verification</li>
-                            <li>Assumes high complexity with significant implementation challenges</li>
-                          </ul>
-                        </li>
+                  <p><strong>Estimation Scenario:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
+                  <ul>
+                    <li>%s days per each new unsupported element code line for analysis, implementation, and testing</li>
+                    <li>%s hour per each repeated unsupported element code line for implementation</li>
+                <li>%s minutes per each unsupported dataweave code line for translation</li>
+                    <li>Assumes medium complexity with moderate implementation challenges</li>
                       </ul>
                     </div>
                   </div>

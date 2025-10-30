@@ -18,6 +18,10 @@
 
 package common;
 
+import common.report.ReportComponent;
+import common.report.StyleDefinitions;
+import common.report.Styles;
+
 /**
  * Utility class for common report generation methods.
  */
@@ -67,11 +71,11 @@ public final class ReportUtils {
      * Generates the estimation scenarios section HTML.
      *
      * @param elementType The type of elements being analyzed (e.g., "activity", "component")
-     * @return HTML string for the estimation scenarios section
+     * @return ReportComponent containing HTML and styles for the estimation scenarios section
      */
-    public static String generateEstimationScenarios(String elementType) {
+    public static ReportComponent generateEstimationScenarios(String elementType) {
         String avgCaseBody = generateAverageCaseEstimationScenarioBody(elementType);
-        return """
+        String htmlContent = """
                 <div class="estimation-notes">
                     <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
                     <ul>
@@ -99,6 +103,10 @@ public final class ReportUtils {
                 avgCaseBody,
                 elementType.toLowerCase(), elementType.toLowerCase()
         );
+
+        Styles styles = StyleDefinitions.getSharedContainerStyles();
+
+        return new ReportComponent(htmlContent, styles);
     }
 
     /**
@@ -125,15 +133,14 @@ public final class ReportUtils {
      *
      * @param sectionTitle The title of the estimation section
      * @param estimation   The time estimation to display
-     * @param elementType  The type of elements being analyzed (e.g., "activity", "component")
-     * @return HTML string for the estimation section
+     * @return ReportComponent containing HTML and styles for the estimation section
      */
-    public static String generateEstimateView(String sectionTitle, TimeEstimation estimation, String elementType) {
+    public static ReportComponent generateEstimateView(String sectionTitle, TimeEstimation estimation) {
         int bestCaseWeeks = estimation.bestCaseWeeks();
         int avgCaseWeeks = estimation.averageCaseWeeks();
         int worstCaseWeeks = estimation.worstCaseWeeks();
 
-        return """
+        String htmlContent = """
                 <div class="summary-container">
                     <h2>%s</h2>
                     <div class="time-estimates-horizontal">
@@ -166,6 +173,11 @@ public final class ReportUtils {
                 toDays(estimation.averageCaseDaysAsInt()), toWeeks(avgCaseWeeks),
                 toDays(estimation.worstCaseDaysAsInt()), toWeeks(worstCaseWeeks)
         );
+
+        Styles styles = StyleDefinitions.getSharedContainerStyles()
+                .merge(StyleDefinitions.getTimeEstimationStyles());
+
+        return new ReportComponent(htmlContent, styles);
     }
 
 }

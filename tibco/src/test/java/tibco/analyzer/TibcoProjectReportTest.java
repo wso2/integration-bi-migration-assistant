@@ -19,6 +19,7 @@
 package tibco.analyzer;
 
 import common.ProjectSummary;
+import common.UnhandledElement;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.w3c.dom.Document;
@@ -31,7 +32,7 @@ import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-public class TibcoAnalysisReportTest {
+public class TibcoProjectReportTest {
 
     @Test
     public void testToProjectSummaryWithUnhandledActivities() throws Exception {
@@ -73,13 +74,13 @@ public class TibcoAnalysisReportTest {
         Assert.assertEquals(summary.unhandledActivities().size(), 2); // 2 unique types
 
         // Verify CustomActivity type
-        Collection<common.AnalysisReport.UnhandledElement> customActivities =
+        Collection<UnhandledElement> customActivities =
                 summary.unhandledActivities().get("CustomActivity");
         Assert.assertNotNull(customActivities);
         Assert.assertEquals(customActivities.size(), 2);
 
         // Verify AnotherActivity type
-        Collection<common.AnalysisReport.UnhandledElement> anotherActivities =
+        Collection<UnhandledElement> anotherActivities =
                 summary.unhandledActivities().get("AnotherActivity");
         Assert.assertNotNull(anotherActivities);
         Assert.assertEquals(anotherActivities.size(), 1);

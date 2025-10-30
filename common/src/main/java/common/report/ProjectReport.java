@@ -16,17 +16,20 @@
  *  under the License.
  */
 
-package common;
+package common.report;
+
+import common.ReportUtils;
+import common.TimeEstimation;
+import common.UnhandledElement;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * A generic analysis report that can be used for different types of integrations.
  */
-public class AnalysisReport {
+public class ProjectReport {
 
     private final String reportTitle;
     private final int totalElementCount;
@@ -38,374 +41,6 @@ public class AnalysisReport {
     private final TimeEstimation estimation;
     private final TimeEstimation manualConversionEstimation;
     private final long generatedLineCount;
-
-    // CSS styles as a constant to avoid format specifier issues
-    private static final String CSS_STYLES = """
-            /* Base styles */
-            body {
-                font-family: Arial, sans-serif;
-                background-color: #f4f4f9;
-                color: #333;
-                margin: 0;
-                padding: 20px;
-            }
-
-            .container {
-                max-width: 1200px;
-                margin: 0 auto;
-            }
-
-            h1, h2, h3 {
-                color: #333;
-            }
-
-            h1 {
-                text-align: center;
-                color: #4682B4;
-                font-size: 2.5em;
-                font-weight: 300;
-                margin: 15px auto 40px;
-                padding: 0 0 15px;
-                max-width: 600px;
-                position: relative;
-                border-bottom: 1px solid rgba(70, 130, 180, 0.2);
-            }
-
-            h1::after {
-                content: "";
-                position: absolute;
-                bottom: -1px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 100px;
-                height: 3px;
-                background-color: rgba(70, 130, 180, 0.8);
-            }
-
-            .summary-container h2 {
-                margin-top: 0;
-                color: #4682B4;
-                border-bottom: 2px solid #f0f0f0;
-                padding-bottom: 10px;
-                margin-bottom: 20px;
-                text-align: center;
-                font-size: 1.5em;
-            }
-
-            h3 {
-                color: #4682B4;
-                border-bottom: 2px solid #f0f0f0;
-                padding-bottom: 10px;
-                margin-bottom: 20px;
-            }
-
-            /* Summary container styling */
-            .summary-container {
-                background-color: #fff;
-                padding: 25px;
-                border-radius: 10px;
-                box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-                margin: 25px 0;
-                transition: box-shadow 0.3s;
-            }
-
-            .summary-container:hover {
-                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-            }
-
-            /* Coverage indicator */
-            .coverage-indicator {
-                width: 100%;
-                height: 12px;
-                background-color: #f0f0f0;
-                border-radius: 6px;
-                overflow: hidden;
-                box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-                margin: 10px 0 20px 0;
-            }
-
-            .coverage-bar {
-                height: 100%;
-                border-radius: 6px;
-                transition: width 0.5s ease-in-out;
-            }
-
-            /* Table styling */
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin: 20px 0;
-            }
-
-            th, td {
-                border: 1px solid #ddd;
-                padding: 12px;
-                text-align: left;
-            }
-
-            th {
-                background-color: #4682B4;
-                color: white;
-            }
-
-            tr:nth-child(even) {
-                background-color: #f2f2f2;
-            }
-
-            tr:hover {
-                background-color: #ddd;
-            }
-
-            /* Estimation notes */
-            .estimation-notes {
-                margin-top: 25px;
-                padding: 20px;
-                background-color: #f8f9fa;
-                border-radius: 8px;
-                border-left: 4px solid #4682B4;
-                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            }
-
-            .estimation-notes p {
-                margin-top: 0;
-            }
-
-            .estimation-notes ul {
-                margin: 15px 0 5px 25px;
-                padding-left: 0;
-            }
-
-            .estimation-notes li {
-                margin-bottom: 8px;
-                line-height: 1.4;
-            }
-
-            /* Code blocks styling */
-            .unsupported-blocks {
-                padding: 10px;
-            }
-
-            .block-item {
-                background-color: #f8f9fa;
-                border: 1px solid #ddd;
-                border-radius: 5px;
-                margin-bottom: 15px;
-                overflow: hidden;
-                transition: transform 0.2s, box-shadow 0.2s;
-            }
-
-            .block-item:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
-            }
-
-            .block-header {
-                background-color: #4682B4;
-                color: white;
-                padding: 10px;
-                display: flex;
-                justify-content: space-between;
-            }
-
-            .block-code {
-                margin: 0;
-                padding: 15px;
-                background-color: #fff;
-                overflow-x: auto;
-                font-family: monospace;
-                white-space: pre-wrap;
-            }
-
-            .block-number {
-                font-weight: bold;
-            }
-
-            .block-type {
-                font-family: monospace;
-            }
-
-            /* Status badges */
-            .status-badge {
-                padding: 6px 12px;
-                border-radius: 20px;
-                font-size: 0.75em;
-                font-weight: 600;
-                letter-spacing: 0.3px;
-                text-transform: uppercase;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                display: inline-block;
-                margin-left: 15px;
-            }
-
-            .status-high {
-                background-color: #e8f5e9;
-                color: #2e7d32;
-                border: 1px solid rgba(46, 125, 50, 0.2);
-            }
-
-            .status-medium {
-                background-color: #fff8e1;
-                color: #f57c00;
-                border: 1px solid rgba(245, 124, 0, 0.2);
-            }
-
-            .status-low {
-                background-color: #ffebee;
-                color: #c62828;
-                border: 1px solid rgba(198, 40, 40, 0.2);
-            }
-
-            /* Footer */
-            footer {
-                text-align: center;
-                margin-top: 20px;
-                font-size: 0.9em;
-                color: #666;
-            }
-
-            /* Code in tables */
-            table code {
-                background-color: #f0f0f0;
-                padding: 2px 6px;
-                border-radius: 4px;
-                font-family: monospace;
-                font-size: 0.9em;
-            }
-
-            /* Metric styling with box shape and hover effects */
-            .metric {
-                width: 100%;
-                box-sizing: border-box;
-                padding: 15px 20px;
-                display: flex;
-                flex-direction: row;
-                align-items: flex-start;
-                gap: 20px;
-                background-color: #f8f9fa;
-                border-radius: 8px;
-                transition: transform 0.2s, box-shadow 0.2s;
-                margin-bottom: 15px;
-                border: 1px solid #eaeaea;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            }
-
-            .metric:hover {
-                transform: translateY(-3px);
-                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            }
-
-            .metric-value {
-                font-weight: bold;
-                font-size: 1.8em;
-                color: #4682B4;
-                margin-bottom: 5px;
-            }
-
-            .metric-label {
-                font-size: 0.9em;
-                color: #666;
-                text-align: center;
-            }
-
-            .metric-left {
-                flex: 1;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
-
-            .metric-right {
-                flex: 1;
-                padding-top: 10px;
-            }
-
-            /* Time estimation table styling */
-            .time-best {
-                color: #4CAF50;
-                font-weight: 600;
-            }
-
-            .time-avg {
-                color: #4682B4;
-                font-weight: 600;
-            }
-
-            .time-worst {
-                color: #FF5722;
-                font-weight: 600;
-            }
-
-            /* Time estimates horizontal layout styling */
-            .time-estimates-horizontal {
-                display: flex;
-                justify-content: space-around;
-                align-items: stretch;
-                background-color: #f8f9fa;
-                border-radius: 8px;
-                padding: 20px;
-                margin: 20px 0;
-                transition: transform 0.2s, box-shadow 0.2s;
-                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            }
-            
-            .time-estimates-horizontal:hover {
-                transform: translateY(-3px);
-                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            }
-            
-            .time-estimate {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                flex: 1;
-                text-align: center;
-            }
-            
-            .time-label {
-                font-size: 0.9em;
-                color: #666;
-                margin-bottom: 10px;
-                font-weight: 500;
-            }
-            
-            .time-value {
-                font-weight: bold;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .time-days {
-                font-size: 1.4em;
-                margin-bottom: 2px;
-            }
-            
-            .time-weeks {
-                font-size: 0.8em;
-                color: #777;
-                font-weight: normal;
-            }
-            
-            .drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
-            .drawer.open { max-height: 500px; }
-            .empty-message { text-align: center; padding: 20px; color: #666; }
-
-            /* Coverage bar with data attributes */
-            .coverage-bar[data-width] {
-                height: 100%;
-                border-radius: 6px;
-                transition: width 0.5s ease-in-out;
-            }
-
-            /* Utility classes for visibility */
-            .hidden {
-                display: none;
-            }
-
-            .visible {
-                display: block;
-            }
-            """;
 
     /**
      * Create a new generic analysis report with manual conversion estimation and generated line count.
@@ -422,12 +57,12 @@ public class AnalysisReport {
      * @param manualConversionEstimation Manual conversion time estimation
      * @param generatedLineCount    Number of lines of code generated
      */
-    public AnalysisReport(String reportTitle, int totalElementCount, int unhandledElementCount, String elementType,
-                          Map<String, Collection<UnhandledElement>> unhandledElements,
-                          int partiallySupportedElementCount,
-                          Map<String, Collection<UnhandledElement>> partiallySupportedElements,
-                          TimeEstimation manualConversionEstimation,
-                          long generatedLineCount) {
+    public ProjectReport(String reportTitle, int totalElementCount, int unhandledElementCount, String elementType,
+                         Map<String, Collection<UnhandledElement>> unhandledElements,
+                         int partiallySupportedElementCount,
+                         Map<String, Collection<UnhandledElement>> partiallySupportedElements,
+                         TimeEstimation manualConversionEstimation,
+                         long generatedLineCount) {
         assert totalElementCount >= unhandledElementCount;
         this.reportTitle = reportTitle;
         this.totalElementCount = totalElementCount;
@@ -467,46 +102,57 @@ public class AnalysisReport {
         // Calculate frequencies for types from the unhandled elements map
         Map<String, Integer> typeFrequencyMap = calculateTypeFrequencies();
 
+        // Calculate automated migration coverage percentage
+        double coveragePercentage = 100 - calculatePercentage(unhandledElementCount, totalElementCount);
+
+        // Generate all report components
+        ReportComponent summaryComponent = generateSummaryContainer(coveragePercentage, totalElementCount,
+                unhandledElementCount, elementType, generatedLineCount);
+        ReportComponent estimateViewComponent = ReportUtils.generateEstimateView("Manual Work Estimation",
+                manualConversionEstimation);
+        ReportComponent estimationScenariosComponent = ReportUtils.generateEstimationScenarios(elementType);
+        ReportComponent unsupportedElementsComponent = generateUnsupportedElements(typeFrequencyMap);
+        ReportComponent unsupportedBlocksComponent = generateUnsupportedElementsBlocks(unhandledElements);
+        ReportComponent partiallySupportedComponent = generatePartiallySupportedElements(partiallySupportedElements);
+        ReportComponent footerComponent = generateFooter();
+
+        // Merge all styles from components
+        Styles mergedStyles = StyleDefinitions.getBaseStyles()
+                .merge(summaryComponent.styles())
+                .merge(estimateViewComponent.styles())
+                .merge(estimationScenariosComponent.styles())
+                .merge(unsupportedElementsComponent.styles())
+                .merge(unsupportedBlocksComponent.styles())
+                .merge(partiallySupportedComponent.styles())
+                .merge(footerComponent.styles());
+
+        // Build final HTML document
         StringBuilder html = new StringBuilder();
 
-        // Start HTML document
+        // HTML head with merged styles
         html.append("""
                 <!DOCTYPE html>
                 <html>
                 <head>
                     <title>%s</title>
-                    <style>%s</style>
+                    <style>
+                %s
+                    </style>
                 </head>
                 <body>
                     <div class="container">
                         <h1>%s</h1>
-                """.formatted(reportTitle, CSS_STYLES, reportTitle));
+                """.formatted(reportTitle, mergedStyles.toHTML(), reportTitle));
 
-        // Calculate automated migration coverage percentage
-        double coveragePercentage = 100 - calculatePercentage(unhandledElementCount, totalElementCount);
-
-        // Generate summary container
-        html.append(
-                generateSummaryContainer(coveragePercentage, totalElementCount, unhandledElementCount, elementType, generatedLineCount));
-
-        // Generate manual work estimation and generated code statistics sections
-        html.append(ReportUtils.generateEstimateView("Manual Work Estimation", manualConversionEstimation,
-                elementType));
-
-        // Generate estimation notes
-        html.append(ReportUtils.generateEstimationScenarios(elementType));
-
-        // Generate unsupported elements section
-        html.append(generateUnsupportedElements(typeFrequencyMap));
-
-        // Generate unsupported elements blocks
-        html.append(generateUnsupportedElementsBlocks(unhandledElements));
-
-        // Generate partially supported elements section
-        html.append(generatePartiallySupportedElements(partiallySupportedElements));
-
-        // Generate footer
-        html.append(generateFooter());
+        // Append all component content
+        html.append(summaryComponent.content());
+        html.append(estimateViewComponent.content());
+        html.append(estimationScenariosComponent.content());
+        html.append(unsupportedElementsComponent.content());
+        html.append(unsupportedBlocksComponent.content());
+        html.append(partiallySupportedComponent.content());
+        html.append("    </div>\n"); // Close the container div
+        html.append(footerComponent.content());
 
         return html.toString();
     }
@@ -519,9 +165,9 @@ public class AnalysisReport {
      * @param unhandledElementCount Count of unhandled elements
      * @param elementType           The type of elements being analyzed
      * @param generatedLineCount    Number of lines of code generated
-     * @return HTML string for the summary container section
+     * @return ReportComponent containing HTML and styles for the summary container section
      */
-    private static String generateSummaryContainer(double coveragePercentage, int totalElementCount,
+    private static ReportComponent generateSummaryContainer(double coveragePercentage, int totalElementCount,
             int unhandledElementCount, String elementType, long generatedLineCount) {
         // Determine status badge based on coverage
         String statusClass = coveragePercentage >= 90 ? "status-high"
@@ -529,7 +175,7 @@ public class AnalysisReport {
         String statusText = coveragePercentage >= 90 ? "High Coverage"
                 : coveragePercentage >= 70 ? "Medium Coverage" : "Low Coverage";
 
-        return """
+        String htmlContent = """
                     <div class="summary-container">
                         <h2>Migration Coverage Overview</h2>
                         <div class="metrics">
@@ -584,105 +230,13 @@ public class AnalysisReport {
                         elementType.toLowerCase(),
                         unhandledElementCount,
                         generatedLineCount);
-    }
 
-    /**
-     * Generates the manual work estimation section HTML.
-     *
-     * @param estimation  Time estimation
-     * @param elementType The type of elements being analyzed
-     * @return HTML string for the manual work estimation section
-     */
-    private static String generateManualWorkEstimation(TimeEstimation estimation, String elementType) {
-        int bestCaseWeeks = estimation.bestCaseWeeks();
-        int avgCaseWeeks = estimation.averageCaseWeeks();
-        int worstCaseWeeks = estimation.worstCaseWeeks();
+        Styles styles = StyleDefinitions.getSharedContainerStyles()
+                .merge(StyleDefinitions.getCoverageIndicatorStyles())
+                .merge(StyleDefinitions.getMetricStyles())
+                .merge(StyleDefinitions.getStatusBadgeStyles());
 
-        return """
-                    <div class="summary-container">
-                        <h2>Manual Work Estimation</h2>
-                        <table>
-                            <tr>
-                                <th>Scenario</th>
-                                <th>Working Days</th>
-                                <th>Weeks (approx.)</th>
-                            </tr>
-                            <tr>
-                                <td>Best Case</td>
-                                <td class="time-best">%s</td>
-                                <td class="time-best">%s</td>
-                            </tr>
-                            <tr>
-                                <td>Average Case</td>
-                                <td class="time-avg">%s</td>
-                                <td class="time-avg">%s</td>
-                            </tr>
-                            <tr>
-                                <td>Worst Case</td>
-                                <td class="time-worst">%s</td>
-                                <td class="time-worst">%s</td>
-                            </tr>
-                        </table>
-                """.formatted(
-                ReportUtils.toDays(estimation.bestCaseDaysAsInt()), ReportUtils.toWeeks(bestCaseWeeks),
-                ReportUtils.toDays(estimation.averageCaseDaysAsInt()), ReportUtils.toWeeks(avgCaseWeeks),
-                ReportUtils.toDays(estimation.worstCaseDaysAsInt()), ReportUtils.toWeeks(worstCaseWeeks)
-        );
-    }
-
-    /**
-     * Generates a consolidated manual work estimation section showing breakdown and total.
-     *
-     * @param conversionEstimation Manual conversion time estimation
-     * @param validationEstimation Validation time estimation
-     * @param elementType The type of elements being analyzed
-     * @return HTML string for the consolidated manual work estimation section
-     */
-    private static String generateSeparateManualWorkEstimation(TimeEstimation conversionEstimation,
-                                                               TimeEstimation validationEstimation,
-                                                               String elementType) {
-        TimeEstimation totalEstimation = TimeEstimation.sum(conversionEstimation, validationEstimation);
-
-        return """
-                    <div class="summary-container">
-                        <h2>Manual Work Estimation</h2>
-                        <table>
-                            <tr>
-                                <th>Work Type</th>
-                                <th>Best Case</th>
-                                <th>Average Case</th>
-                                <th>Worst Case</th>
-                            </tr>
-                            <tr>
-                                <td><strong>Manual Conversion</strong></td>
-                                <td class="time-best">%s</td>
-                                <td class="time-avg">%s</td>
-                                <td class="time-worst">%s</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Code Validation</strong></td>
-                                <td class="time-best">%s</td>
-                                <td class="time-avg">%s</td>
-                                <td class="time-worst">%s</td>
-                            </tr>
-                            <tr style="border-top: 2px solid #4682B4;">
-                                <td><strong>Total</strong></td>
-                                <td class="time-best"><strong>%s</strong></td>
-                                <td class="time-avg"><strong>%s</strong></td>
-                                <td class="time-worst"><strong>%s</strong></td>
-                            </tr>
-                        </table>
-                """.formatted(
-                ReportUtils.toDays(conversionEstimation.bestCaseDaysAsInt()),
-                ReportUtils.toDays(conversionEstimation.averageCaseDaysAsInt()),
-                ReportUtils.toDays(conversionEstimation.worstCaseDaysAsInt()),
-                ReportUtils.toDays(validationEstimation.bestCaseDaysAsInt()),
-                ReportUtils.toDays(validationEstimation.averageCaseDaysAsInt()),
-                ReportUtils.toDays(validationEstimation.worstCaseDaysAsInt()),
-                ReportUtils.toDays(totalEstimation.bestCaseDaysAsInt()),
-                ReportUtils.toDays(totalEstimation.averageCaseDaysAsInt()),
-                ReportUtils.toDays(totalEstimation.worstCaseDaysAsInt())
-        );
+        return new ReportComponent(htmlContent, styles);
     }
 
 
@@ -690,9 +244,10 @@ public class AnalysisReport {
      * Generates the unsupported elements section HTML.
      *
      * @param typeFrequencyMap Map containing element types and their frequencies
-     * @return HTML string for the unsupported elements section
+     * @return ReportComponent containing HTML and styles for the unsupported elements section
      */
-    private static String generateUnsupportedElements(Map<String, Integer> typeFrequencyMap) {
+    private static ReportComponent generateUnsupportedElements(Map<String, Integer> typeFrequencyMap) {
+        String htmlContent;
         if (!typeFrequencyMap.isEmpty()) {
             StringBuilder html = new StringBuilder();
             html.append("""
@@ -724,10 +279,10 @@ public class AnalysisReport {
                         </div>
                     </div>
                     """);
-            return html.toString();
+            htmlContent = html.toString();
         } else {
             // No unsupported elements
-            return """
+            htmlContent = """
                     <div class="summary-container">
                         <h2>Currently Unsupported Activities</h2>
                         <div id="toolSupportSection">
@@ -744,15 +299,21 @@ public class AnalysisReport {
                     </div>
                     """;
         }
+
+        Styles styles = StyleDefinitions.getSharedContainerStyles()
+                .merge(StyleDefinitions.getTableStyles())
+                .merge(StyleDefinitions.getUtilityStyles());
+
+        return new ReportComponent(htmlContent, styles);
     }
 
     /**
      * Generates the unsupported elements blocks section HTML.
      *
      * @param unhandledElements Map containing unhandled elements
-     * @return HTML string for the unsupported elements blocks section
+     * @return ReportComponent containing HTML and styles for the unsupported elements blocks section
      */
-    private static String generateUnsupportedElementsBlocks(
+    private static ReportComponent generateUnsupportedElementsBlocks(
             Map<String, Collection<UnhandledElement>> unhandledElements) {
         int blockCounter = 1;
         boolean hasUnhandledBlocks = false;
@@ -773,21 +334,27 @@ public class AnalysisReport {
             }
         }
 
+        String htmlContent;
         if (hasUnhandledBlocks) {
             blocksSection.append("</div>");
-            return blocksSection.toString();
+            htmlContent = blocksSection.toString();
+        } else {
+            htmlContent = "";
         }
 
-        return "";
+        Styles styles = StyleDefinitions.getSharedContainerStyles()
+                .merge(StyleDefinitions.getCodeBlockStyles());
+
+        return new ReportComponent(htmlContent, styles);
     }
 
     /**
      * Generates the partially supported elements section HTML.
      *
      * @param partiallySupportedElements Map containing partially supported elements
-     * @return HTML string for the partially supported elements section
+     * @return ReportComponent containing HTML and styles for the partially supported elements section
      */
-    private static String generatePartiallySupportedElements(
+    private static ReportComponent generatePartiallySupportedElements(
             Map<String, Collection<UnhandledElement>> partiallySupportedElements) {
         // Calculate frequencies for partially supported elements
         Map<String, Integer> partiallySupportedFrequencyMap = new HashMap<>();
@@ -795,6 +362,7 @@ public class AnalysisReport {
             partiallySupportedFrequencyMap.put(entry.getKey(), entry.getValue().size());
         }
 
+        String htmlContent;
         if (!partiallySupportedFrequencyMap.isEmpty()) {
             StringBuilder html = new StringBuilder();
             html.append("""
@@ -826,10 +394,10 @@ public class AnalysisReport {
                         </div>
                     </div>
                     """);
-            return html.toString();
+            htmlContent = html.toString();
         } else {
             // No partially supported elements
-            return """
+            htmlContent = """
                     <div class="summary-container">
                         <h2>Activities that may require manual changes</h2>
                         <div id="partiallySupportedSection">
@@ -846,15 +414,21 @@ public class AnalysisReport {
                     </div>
                     """;
         }
+
+        Styles styles = StyleDefinitions.getSharedContainerStyles()
+                .merge(StyleDefinitions.getTableStyles())
+                .merge(StyleDefinitions.getUtilityStyles());
+
+        return new ReportComponent(htmlContent, styles);
     }
 
     /**
      * Generates the footer section HTML.
      *
-     * @return HTML string for the footer section
+     * @return ReportComponent containing HTML and styles for the footer section
      */
-    private static String generateFooter() {
-        return """
+    private static ReportComponent generateFooter() {
+        String htmlContent = """
                     <footer><p>Report generated on: <span id="datetime"></span></p></footer>
                     <script>
                       document.addEventListener('DOMContentLoaded', function() {
@@ -890,6 +464,11 @@ public class AnalysisReport {
                 </body>
                 </html>
                 """;
+
+        // Footer has minimal styles - just need empty styles or utility styles for JavaScript
+        Styles styles = StyleDefinitions.getUtilityStyles();
+
+        return new ReportComponent(htmlContent, styles);
     }
 
     private static void appendElement(StringBuilder sb, String kind, String name, String code, String fileName) {
@@ -919,8 +498,4 @@ public class AnalysisReport {
         return Math.round(((double) part / total) * 1000) / 10.0; // Round to 1 decimal place
     }
 
-
-    public record UnhandledElement(String code, Optional<String> name, String fileName) {
-
-    }
 }

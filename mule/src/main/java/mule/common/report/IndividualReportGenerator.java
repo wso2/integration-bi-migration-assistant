@@ -17,6 +17,10 @@
  */
 package mule.common.report;
 
+import common.ReportUtils;
+import common.TimeEstimation;
+import common.report.ReportComponent;
+import common.report.Styles;
 import mule.MuleMigrator.MuleVersion;
 import mule.common.DWConstructBase;
 import mule.common.DWConversionStats;
@@ -25,7 +29,9 @@ import mule.common.MuleLogger;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
+
 
 public class IndividualReportGenerator {
 
@@ -42,10 +48,6 @@ public class IndividualReportGenerator {
     public static final double BEST_DW_EXPR_TIME = 0.5 / 30; // 8 min
     public static final double AVG_CASE_DW_EXPR_TIME = 1.5 / 60; // 12 min
     public static final double WORST_CASE_DW_EXPR_TIME = 0.125 / 3; // 20 min
-
-    public static final double BEST_CASE_INSPECTION_TIME = 0.125 / 30; // 2 min
-    public static final double AVG_CASE_INSPECTION_TIME = 0.125 / 12; // 5 min
-    public static final double WORST_CASE_INSPECTION_TIME = 0.125 / 6; // 10 min
 
     public static final String INDIVIDUAL_REPORT_NAME = "migration_report.html";
     public static final String MIGRATION_SUMMARY_TITLE = "Migration Summary";
@@ -129,15 +131,20 @@ public class IndividualReportGenerator {
         String coverageStatus = getCoverageStatus(migrationCoverage);
         String badgeClass = getCoverageBadgeClass(migrationCoverage);
 
-        double bestCaseDays = pms.bestCaseDays() + totalItems * BEST_CASE_INSPECTION_TIME;
-        double avgCaseDays = pms.averageCaseDays() + totalItems * AVG_CASE_INSPECTION_TIME;
-        double worstCaseDays = pms.worstCaseDays() + totalItems * WORST_CASE_INSPECTION_TIME;
-
         String reportTitle = dryRun ? MIGRATION_ASSESSMENT_TITLE : MIGRATION_SUMMARY_TITLE;
         logger.logInfo("Formating individual migration report...");
+
+        // Generate Manual Work Estimation component
+        ReportComponent estimationComponent = generateManualWorkEstimationComponent(
+                pms.bestCaseDays(), pms.averageCaseDays(), pms.worstCaseDays(),
+                        BEST_CASE_COMP_TIME_NEW, BEST_CASE_COMP_TIME_REPEATED, BEST_DW_EXPR_TIME,
+                AVG_CASE_COMP_TIME_NEW, AVG_CASE_COMP_TIME_REPEATED, AVG_CASE_DW_EXPR_TIME,
+                WORST_CASE_COMP_TIME_NEW, WORST_CASE_COMP_TIME_REPEATED, WORST_CASE_DW_EXPR_TIME);
+
         return String.format(
                 IndividualReportTemplate.getHtmlTemplate(),
                 reportTitle,
+                estimationComponent.styles().toHTML(),
                 sourceProjectName,
                 reportTitle,
                 // Overall coverage section parameters
@@ -153,16 +160,8 @@ public class IndividualReportGenerator {
                 dataweaveDisplayValue,
                 dataweaveBarWidth, dataweaveCoverageColor,
                 totalDwConstructs, migratableDwConstructs, nonMigratableDwConstructs,
-                // Time estimation section parameters
-                bestCaseDays, (int) Math.ceil(bestCaseDays / 5.0),
-                avgCaseDays, (int) Math.ceil(avgCaseDays / 5.0),
-                worstCaseDays, (int) Math.ceil(worstCaseDays / 5.0),
-                BEST_CASE_COMP_TIME_NEW, BEST_CASE_COMP_TIME_REPEATED * 8, BEST_DW_EXPR_TIME * 8 * 60,
-                BEST_CASE_INSPECTION_TIME * 8 * 60,
-                AVG_CASE_COMP_TIME_NEW, AVG_CASE_COMP_TIME_REPEATED * 8, AVG_CASE_DW_EXPR_TIME * 8 * 60,
-                AVG_CASE_INSPECTION_TIME * 8 * 60,
-                WORST_CASE_COMP_TIME_NEW, WORST_CASE_COMP_TIME_REPEATED * 8, WORST_CASE_DW_EXPR_TIME * 8 * 60,
-                WORST_CASE_INSPECTION_TIME * 8 * 60,
+                // Manual Work Estimation component
+                        estimationComponent.content(),
                 // Content sections
                 unsupportedElementsTable,
                 unsupportedBlocksHtml,
@@ -341,5 +340,80 @@ public class IndividualReportGenerator {
 
     private static int calculateMigratableXmlElements(ProjectMigrationStats pms) {
         return pms.passedXMLTags().values().stream().mapToInt(i -> i).sum();
+    }
+
+    private static ReportComponent generateMuleEstimationNotes(double bestCaseCompTimeNew,
+                    double bestCaseCompTimeRepeated, double bestDwExprTime,
+            double avgCaseCompTimeNew,
+                    double avgCaseCompTimeRepeated, double avgCaseDwExprTime,
+            double worstCaseCompTimeNew,
+            double worstCaseCompTimeRepeated, double worstCaseDwExprTime) {
+        String content = String.format(
+                """
+                        <div class="estimation-notes">
+                            <p><strong>Estimation Scenarios:</strong> Time measurement: 1 day = 8 hours,
+                                5 working days = 1 week</p>
+                            <ul>
+                              <li>Best case scenario:
+                                <ul>
+                    <li>%s day per each new unsupported element code line for analysis,
+                        implementation, and testing</li>
+                                  <li>%s hour per each repeated unsupported element code line for implementation</li>
+                                  <li>%s minutes per each unsupported dataweave code line for translation</li>
+                                  <li>Assumes minimal complexity and straightforward implementations</li>
+                                </ul>
+                              </li>
+                              <li>Average case scenario:
+                                <ul>
+                                  <li>%s days per each new unsupported element code line for analysis,
+                                      implementation, and testing</li>
+                                  <li>%s hour per each repeated unsupported element code line for implementation</li>
+                                  <li>%s minutes per each unsupported dataweave code line for translation</li>
+                                  <li>Assumes medium complexity with moderate implementation challenges</li>
+                                </ul>
+                              </li>
+                              <li>Worst case scenario:
+                                <ul>
+                                  <li>%s days per each new unsupported element code line for analysis,
+                                      implementation, and testing</li>
+                                  <li>%s hour per each repeated unsupported element code line for implementation</li>
+                                  <li>%s minutes per each unsupported dataweave code line for translation</li>
+                                  <li>Assumes high complexity with significant implementation challenges</li>
+                                </ul>
+                              </li>
+                            </ul>
+                          </div>""",
+                bestCaseCompTimeNew, bestCaseCompTimeRepeated * 8, bestDwExprTime * 8 * 60,
+                        avgCaseCompTimeNew, avgCaseCompTimeRepeated * 8, avgCaseDwExprTime * 8 * 60,
+                worstCaseCompTimeNew, worstCaseCompTimeRepeated * 8, worstCaseDwExprTime * 8 * 60);
+
+        return new ReportComponent(content, new Styles(Map.of()));
+    }
+
+    public static ReportComponent generateManualWorkEstimationComponent(double bestCaseDays, double avgCaseDays,
+            double worstCaseDays, double bestCaseCompTimeNew,
+            double bestCaseCompTimeRepeated, double bestDwExprTime,
+            double avgCaseCompTimeNew,
+                    double avgCaseCompTimeRepeated, double avgCaseDwExprTime,
+            double worstCaseCompTimeNew,
+            double worstCaseCompTimeRepeated, double worstCaseDwExprTime) {
+        // Create TimeEstimation object from the day values
+        TimeEstimation estimation = new TimeEstimation(bestCaseDays, avgCaseDays, worstCaseDays);
+
+        // Generate horizontal estimation view using ReportUtils
+        ReportComponent estimateView = ReportUtils.generateEstimateView("Manual Work Estimation", estimation);
+
+        // Generate Mule-specific detailed notes
+        ReportComponent muleNotes = generateMuleEstimationNotes(
+                bestCaseCompTimeNew, bestCaseCompTimeRepeated, bestDwExprTime,
+                avgCaseCompTimeNew, avgCaseCompTimeRepeated,
+                avgCaseDwExprTime, worstCaseCompTimeNew,
+                worstCaseCompTimeRepeated, worstCaseDwExprTime);
+
+        // Combine both components
+        String combinedContent = estimateView.content() + muleNotes.content();
+        Styles combinedStyles = estimateView.styles().merge(muleNotes.styles());
+
+        return new ReportComponent(combinedContent, combinedStyles);
     }
 }
