@@ -17,6 +17,7 @@
  */
 package mule.v4.reader;
 
+import mule.common.MuleXMLNavigator;
 import mule.common.MuleXMLNavigator.MuleElement;
 import mule.v4.Constants;
 import mule.v4.Context;
@@ -24,7 +25,15 @@ import mule.v4.ConversionUtils;
 import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.MuleModel.DbConnection;
 import mule.v4.model.MuleXMLTag;
+
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,6 +72,8 @@ import static mule.v4.model.MuleModel.Scheduler;
 import static mule.v4.model.MuleModel.MuleRecord;
 import static mule.v4.model.MuleModel.ObjectToJson;
 import static mule.v4.model.MuleModel.ObjectToString;
+
+import mule.v4.model.ParseResult;
 import static mule.v4.model.MuleModel.Payload;
 import static mule.v4.model.MuleModel.RaiseError;
 import static mule.v4.model.MuleModel.RemoveVariable;
@@ -90,8 +101,19 @@ import static mule.v4.model.MuleXMLTag.HTTP_REQUEST_CONNECTION;
 
 public class MuleConfigReader {
 
-    public static void readMuleConfigFromRoot(Context ctx, MuleElement muleElement,
-                                              List<Flow> flows, List<SubFlow> subFlows) {
+    public static ParseResult readMuleConfigFromRoot(Context ctx, MuleXMLNavigator muleXMLNavigator,
+                                                     String xmlFilePath) {
+        Element root;
+        try {
+            root = parseMuleXMLConfigurationFile(xmlFilePath);
+        } catch (Exception e) {
+            throw new RuntimeException("Error while parsing the mule XML configuration file: ", e);
+        }
+
+        MuleElement muleElement = muleXMLNavigator.createRootMuleElement(root);
+        List<Flow> flows = new ArrayList<>();
+        List<SubFlow> subFlows = new ArrayList<>();
+
         while (muleElement.peekChild() != null) {
             MuleElement child = muleElement.consumeChild();
             Element element = child.getElement();
@@ -109,6 +131,18 @@ public class MuleConfigReader {
 
             readGlobalConfigElement(ctx, child);
         }
+
+        return new ParseResult(flows, subFlows);
+    }
+
+    private static Element parseMuleXMLConfigurationFile(String uri) throws ParserConfigurationException, SAXException,
+            IOException {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document document = builder.parse(uri);
+        document.getDocumentElement().normalize();
+        return document.getDocumentElement();
     }
 
     public static void readGlobalConfigElement(Context ctx, MuleElement muleElement) {
