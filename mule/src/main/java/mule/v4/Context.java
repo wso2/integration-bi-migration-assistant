@@ -73,7 +73,7 @@ public class Context extends ContextBase {
                    mule.common.MultiRootContext multiRootContext) {
         super(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName, dryRun, keepStructure,
                 logger, result, multiRootContext);
-        isStandaloneBalFile = xmlFiles.size() == 1;
+        isStandaloneBalFile = muleAppDir == null;
     }
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, mule.common.MuleLogger logger) {
@@ -293,7 +293,7 @@ public class Context extends ContextBase {
                 .flatMap(each -> Stream.concat(each.flows().stream().map(MuleModel.Flow::name),
                         each.subFlows().stream().map(MuleModel.SubFlow::name))).filter(f -> f.equals(flowName))
                 .map(ignored -> new MultiRootContext.LookupResult(getOrgName(), getProjectName(),
-                        mule.v3.ConversionUtils.convertToBalIdentifier(flowName)))
+                        mule.v4.ConversionUtils.convertToBalIdentifier(flowName)))
                 .findFirst();
     }
 
