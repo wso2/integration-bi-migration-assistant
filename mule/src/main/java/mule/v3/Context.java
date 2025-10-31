@@ -48,6 +48,7 @@ import static mule.v3.model.MuleModel.DbGenericConfig;
 import static mule.v3.model.MuleModel.DbTemplateQuery;
 import static mule.v3.model.MuleModel.HTTPListenerConfig;
 import static mule.v3.model.MuleModel.HTTPRequestConfig;
+import static mule.v3.model.MuleModel.MuleImport;
 import static mule.v3.model.MuleModel.MuleRecord;
 import static mule.v3.model.MuleModel.UnsupportedBlock;
 
@@ -214,6 +215,7 @@ public class Context extends ContextBase {
         public final HashMap<String, DbGenericConfig> dbGenericConfigs = new LinkedHashMap<>();
         public final HashMap<String, DbTemplateQuery> dbTemplateQueries = new LinkedHashMap<>();
         public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
+        public final List<MuleImport> imports = new ArrayList<>();
         public final List<MuleRecord> globalExceptionStrategies = new ArrayList<>();
         public final List<UnsupportedBlock> unsupportedBlocks = new ArrayList<>();
 

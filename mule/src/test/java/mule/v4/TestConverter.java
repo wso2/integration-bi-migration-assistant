@@ -65,6 +65,13 @@ public class TestConverter {
                 "src/test/resources/mule/v4/misc/multi_root_output", false, false);
     }
 
+    @Test(description = "Test parsing import elements in sharedResources multi-root project")
+    public void testSharedResourcesImportParsing() {
+        deleteDirectoryIfExists("src/test/resources/mule/v4/sharedResources_output");
+        testConvertingMultiMuleProjects(4, "src/test/resources/mule/v4/sharedResources",
+                "src/test/resources/mule/v4/sharedResources_output", false, false);
+    }
+
     private void deleteDirectoryIfExists(String first) {
         Path balProjectDir = Path.of(first);
         if (Files.exists(balProjectDir)) {
