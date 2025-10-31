@@ -74,7 +74,7 @@ public class Context extends ContextBase {
                    mule.common.MultiRootContext multiRootContext) {
         super(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName, dryRun, keepStructure,
                 logger, result, multiRootContext);
-        isStandaloneBalFile = xmlFiles.size() == 1;
+        isStandaloneBalFile = muleAppDir == null;
     }
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, mule.common.MuleLogger logger) {
