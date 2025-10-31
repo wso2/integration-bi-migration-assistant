@@ -23,7 +23,9 @@ import mule.common.ContextBase;
 import mule.common.DWConstructBase;
 import mule.common.MigrationMetrics;
 import mule.common.MuleXMLNavigator;
+import mule.common.MultiRootContext;
 import mule.v3.dataweave.converter.DWConstruct;
+import mule.v3.model.MuleModel;
 import mule.v3.model.ParseResult;
 import org.jetbrains.annotations.NotNull;
 
@@ -37,6 +39,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
@@ -65,14 +69,15 @@ public class Context extends ContextBase {
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                    List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
-                   mule.common.MuleLogger logger, mule.common.ProjectMigrationResult result) {
+                   mule.common.MuleLogger logger, mule.common.ProjectMigrationResult result,
+                   mule.common.MultiRootContext multiRootContext) {
         super(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName, dryRun, keepStructure,
-                logger, result);
+                logger, result, multiRootContext);
         isStandaloneBalFile = xmlFiles.size() == 1;
     }
 
     public Context(List<File> xmlFiles, List<File> yamlFiles) {
-        this(xmlFiles, yamlFiles, null, null, Collections.emptyList(), null, false, false, null, null);
+        this(xmlFiles, yamlFiles, null, null, Collections.emptyList(), null, false, false, null, null, null);
     }
 
     @Override
@@ -249,8 +254,32 @@ public class Context extends ContextBase {
      * @return the Ballerina function reference
      */
     @NotNull
+    @Override
     public String getFlowFuncRef(String flowName) {
+        Optional<MultiRootContext.LookupResult> local = lookupResultFlowFunc(flowName);
+        if (local.isPresent()) {
+            return local.get().identifier();
+        }
+        if (this.multiRootContext != null) {
+            Optional<MultiRootContext.LookupResult> shared = multiRootContext.lookupFlow(flowName);
+            if (shared.isPresent()) {
+                var result = shared.get();
+                addImport(new Import(result.org(), result.proj()));
+                return result.proj() + ":" + result.identifier();
+            }
+        }
+        // TODO: add a warning for this
         return mule.v3.ConversionUtils.convertToBalIdentifier(flowName);
+    }
+
+    @Override
+    public Optional<MultiRootContext.LookupResult> lookupResultFlowFunc(String flowName) {
+        return parseResults.values().stream()
+                .flatMap(each -> Stream.concat(each.flows().stream().map(MuleModel.Flow::name),
+                        each.subFlows().stream().map(MuleModel.SubFlow::name))).filter(f -> f.equals(flowName))
+                .map(ignored -> new MultiRootContext.LookupResult(getOrgName(), getProjectName(),
+                        mule.v3.ConversionUtils.convertToBalIdentifier(flowName)))
+                .findFirst();
     }
 
     public static class Counters {
