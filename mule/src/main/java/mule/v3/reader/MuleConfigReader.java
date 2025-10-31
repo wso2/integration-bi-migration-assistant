@@ -17,19 +17,28 @@
  */
 package mule.v3.reader;
 
+import mule.common.MuleXMLNavigator;
 import mule.common.MuleXMLNavigator.MuleElement;
 import mule.v3.Constants;
 import mule.v3.Context;
 import mule.v3.ConversionUtils;
 import mule.v3.model.MuleXMLTag;
+import mule.v3.model.ParseResult;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import static common.BallerinaModel.Import;
 import static mule.v3.ConversionUtils.getAllowedMethods;
@@ -52,6 +61,7 @@ import static mule.v3.model.MuleModel.Foreach;
 import static mule.v3.model.MuleModel.HTTPListenerConfig;
 import static mule.v3.model.MuleModel.HTTPRequestConfig;
 import static mule.v3.model.MuleModel.HttpListener;
+import static mule.v3.model.MuleModel.MuleImport;
 import static mule.v3.model.MuleModel.HttpRequest;
 import static mule.v3.model.MuleModel.InputPayloadElement;
 import static mule.v3.model.MuleModel.Kind;
@@ -84,8 +94,19 @@ import static mule.v3.model.MuleModel.ProcessorChain;
 
 public class MuleConfigReader {
 
-    public static void readMuleConfigFromRoot(Context ctx, MuleElement muleElement,
-                                              List<Flow> flows, List<SubFlow> subFlows) {
+    public static ParseResult readMuleConfigFromRoot(Context ctx, MuleXMLNavigator muleXMLNavigator,
+                                                     String xmlFilePath) {
+        Element root;
+        try {
+            root = parseMuleXMLConfigurationFile(xmlFilePath);
+        } catch (Exception e) {
+            throw new RuntimeException("Error while parsing the mule XML configuration file: ", e);
+        }
+
+        MuleElement muleElement = muleXMLNavigator.createRootMuleElement(root);
+        List<Flow> flows = new ArrayList<>();
+        List<SubFlow> subFlows = new ArrayList<>();
+
         while (muleElement.peekChild() != null) {
             MuleElement child = muleElement.consumeChild();
             Element element = child.getElement();
@@ -103,6 +124,18 @@ public class MuleConfigReader {
 
             readGlobalConfigElement(ctx, child);
         }
+
+        return new ParseResult(flows, subFlows);
+    }
+
+    private static Element parseMuleXMLConfigurationFile(String uri) throws ParserConfigurationException, SAXException,
+            IOException {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document document = builder.parse(uri);
+        document.getDocumentElement().normalize();
+        return document.getDocumentElement();
     }
 
     public static void readGlobalConfigElement(Context ctx, MuleElement muleElement) {
@@ -131,6 +164,9 @@ public class MuleConfigReader {
         } else if (MuleXMLTag.CHOICE_EXCEPTION_STRATEGY.tag().equals(elementTagName)) {
             ChoiceExceptionStrategy choiceExceptionStrategy = readChoiceExceptionStrategy(ctx, muleElement);
             ctx.currentFileCtx.configs.globalExceptionStrategies.add(choiceExceptionStrategy);
+        } else if (MuleXMLTag.IMPORT.tag().equals(elementTagName)) {
+            MuleImport muleImport = readImport(ctx, muleElement);
+            ctx.currentFileCtx.configs.imports.add(muleImport);
         } else {
             UnsupportedBlock unsupportedBlock = readUnsupportedBlock(ctx, muleElement);
             ctx.currentFileCtx.configs.unsupportedBlocks.add(unsupportedBlock);
@@ -673,6 +709,12 @@ public class MuleConfigReader {
 
     private static String readDbTemplateQueryRef(Context ctx, MuleElement muleElement) {
         return muleElement.getElement().getAttribute("name");
+    }
+
+    private static MuleImport readImport(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String file = element.getAttribute("file");
+        return new MuleImport(file);
     }
 
     private static UnsupportedBlock readUnsupportedBlock(Context ctx, MuleElement muleElement) {

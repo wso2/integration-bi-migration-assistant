@@ -17,9 +17,94 @@
  */
 package mule.common;
 
+import common.BallerinaModel;
+import mule.MuleMigrator.MuleVersion;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.File;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+
+import static common.BallerinaModel.Import;
+import static common.BallerinaModel.ModuleTypeDef;
+
 public abstract class ContextBase {
+
+    protected final List<File> xmlFiles;
+    public final List<File> yamlFiles;
+    protected final Path muleAppDir;
+    public final MuleVersion muleVersion;
+    public final List<File> propertyFiles;
+    public final String sourceName;
+    public final boolean dryRun;
+    public final boolean keepStructure;
+    public final MuleLogger logger;
+    public final ProjectMigrationResult result;
+    protected final MultiRootContext multiRootContext;
+
+    protected ContextBase(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
+                         List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
+                          @NotNull MuleLogger logger, ProjectMigrationResult result,
+                          MultiRootContext multiRootContext) {
+        assert logger != null : "Logger must not be null";
+        this.xmlFiles = xmlFiles;
+        this.yamlFiles = yamlFiles;
+        this.muleAppDir = muleAppDir;
+        this.muleVersion = muleVersion;
+        this.propertyFiles = propertyFiles;
+        this.sourceName = sourceName;
+        this.dryRun = dryRun;
+        this.keepStructure = keepStructure;
+        this.logger = logger;
+        this.result = result;
+        this.multiRootContext = multiRootContext;
+        if (multiRootContext != null) {
+            multiRootContext.register(this);
+        }
+    }
+
     public abstract MigrationMetrics<? extends DWConstructBase> getMigrationMetrics();
-    public abstract void startNewFile(String filePath);
-    public abstract void startStandaloneFile(String filePath);
+
     public abstract boolean isStandaloneBalFile();
+
+    public abstract void parseAllFiles();
+
+    public abstract List<BallerinaModel.TextDocument> codeGen();
+
+    protected abstract MuleXMLNavigator getXMLNavigator();
+
+    /**
+     * Creates context type definitions for internal types.
+     *
+     * @return List of module type definitions
+     */
+    public abstract List<ModuleTypeDef> createContextTypeDefns();
+
+    /**
+     * Returns the list of imports required for context types.
+     * This is typically used when context has properties that require HTTP imports.
+     *
+     * @return List of imports required for context types
+     */
+    public abstract List<Import> getContextImports();
+
+    /**
+     * Appends Java dependencies to the TOML content.
+     *
+     * @param tomlContent StringBuilder to append dependencies to
+     */
+    public abstract void appendJavaDependencies(StringBuilder tomlContent);
+
+    public String getOrgName() {
+        return result == null ? "" : result.getOrgName();
+    }
+
+    public String getProjectName() {
+        return result == null ? "" : result.getProjectName();
+    }
+
+    public abstract Optional<String> getFlowFuncRef(String flowName);
+
+    public abstract Optional<MultiRootContext.LookupResult> lookupResultFlowFunc(String flowName);
 }

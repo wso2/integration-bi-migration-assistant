@@ -48,17 +48,8 @@ public final class BICodeConverter {
 
     public BICodeConverter(Predicate<BallerinaModel.ModuleVar> isConfigurable,
                            Predicate<BallerinaModel.ModuleVar> isConnection,
-                           Predicate<BallerinaModel.TextDocument> skipConversion) {
-        this.isConfigurable = isConfigurable;
-        this.isConnection = isConnection;
-        this.skipConversion = skipConversion;
-        this.toolImports = Map.of();
-    }
-
-    public BICodeConverter(Predicate<BallerinaModel.ModuleVar> isConfigurable,
-            Predicate<BallerinaModel.ModuleVar> isConnection,
-            Predicate<BallerinaModel.TextDocument> skipConversion,
-            Collection<BallerinaModel.Import> toolImports) {
+                           Predicate<BallerinaModel.TextDocument> skipConversion,
+                           Collection<BallerinaModel.Import> toolImports) {
         this.isConfigurable = isConfigurable;
         this.isConnection = isConnection;
         this.skipConversion = skipConversion;
@@ -69,8 +60,9 @@ public final class BICodeConverter {
                         (existing, replacement) -> existing));
     }
 
-    public BICodeConverter() {
-        this(DEFAULT_IS_CONFIGURABLE_PREDICATE, DEFAULT_IS_CONNECTION_PREDICATE, DEFAULT_SKIP_CONVERSION_PREDICATE);
+    public BICodeConverter(Collection<BallerinaModel.Import> toolImports) {
+        this(DEFAULT_IS_CONFIGURABLE_PREDICATE, DEFAULT_IS_CONNECTION_PREDICATE, DEFAULT_SKIP_CONVERSION_PREDICATE,
+                toolImports);
     }
 
     public BallerinaModel.Module convert(BallerinaModel.Module module) {
