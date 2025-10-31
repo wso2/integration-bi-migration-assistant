@@ -18,6 +18,7 @@
 package mule.common;
 
 import common.BallerinaModel;
+import mule.MuleMigrator.MuleVersion;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -31,11 +32,27 @@ public abstract class ContextBase {
     protected final List<File> xmlFiles;
     public final List<File> yamlFiles;
     protected final Path muleAppDir;
+    public final MuleVersion muleVersion;
+    public final List<File> propertyFiles;
+    public final String sourceName;
+    public final boolean dryRun;
+    public final boolean keepStructure;
+    public final MuleLogger logger;
+    public final ProjectMigrationResult result;
 
-    protected ContextBase(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir) {
+    protected ContextBase(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
+                         List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
+                         MuleLogger logger, ProjectMigrationResult result) {
         this.xmlFiles = xmlFiles;
         this.yamlFiles = yamlFiles;
         this.muleAppDir = muleAppDir;
+        this.muleVersion = muleVersion;
+        this.propertyFiles = propertyFiles;
+        this.sourceName = sourceName;
+        this.dryRun = dryRun;
+        this.keepStructure = keepStructure;
+        this.logger = logger;
+        this.result = result;
     }
 
     public abstract MigrationMetrics<? extends DWConstructBase> getMigrationMetrics();
