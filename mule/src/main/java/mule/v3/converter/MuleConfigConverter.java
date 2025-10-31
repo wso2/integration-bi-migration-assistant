@@ -300,7 +300,7 @@ public class MuleConfigConverter {
 
     private static List<Statement> convertFlowReference(Context ctx, FlowReference flowReference) {
         String flowName = flowReference.flowName();
-        String funcRef = ConversionUtils.convertToBalIdentifier(flowName);
+        String funcRef = ctx.getFlowFuncRef(flowName);
         var stmt = stmtFrom(String.format("%s(%s);", funcRef, Constants.CONTEXT_REFERENCE));
         return List.of(stmt);
     }

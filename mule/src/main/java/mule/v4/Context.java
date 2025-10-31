@@ -18,6 +18,7 @@
 package mule.v4;
 
 import common.BallerinaModel;
+import mule.MuleMigrator.MuleVersion;
 import mule.common.ContextBase;
 import mule.common.DWConstructBase;
 import mule.common.MigrationMetrics;
@@ -25,6 +26,7 @@ import mule.common.MuleXMLNavigator;
 import mule.v4.dataweave.converter.DWConstruct;
 import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.ParseResult;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -60,13 +62,16 @@ public class Context extends ContextBase {
     private final Map<File, ParseResult> parseResults = new HashMap<>();
     private final Map<File, FileContext> fileContexts = new HashMap<>();
 
-    public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir) {
-        super(xmlFiles, yamlFiles, muleAppDir);
+    public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
+                   List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
+                   mule.common.MuleLogger logger, mule.common.ProjectMigrationResult result) {
+        super(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName, dryRun, keepStructure,
+                logger, result);
         isStandaloneBalFile = xmlFiles.size() == 1;
     }
 
     public Context(List<File> xmlFiles, List<File> yamlFiles) {
-        this(xmlFiles, yamlFiles, null);
+        this(xmlFiles, yamlFiles, null, null, Collections.emptyList(), null, false, false, null, null);
     }
 
     @Override
@@ -240,6 +245,17 @@ public class Context extends ContextBase {
 
     public void addImport(Import imp) {
         this.currentFileCtx.balConstructs.imports.add(imp);
+    }
+
+    /**
+     * Converts a flow name to a Ballerina function reference.
+     *
+     * @param flowName the flow name to convert
+     * @return the Ballerina function reference
+     */
+    @NotNull
+    public String getFlowFuncRef(String flowName) {
+        return mule.v4.ConversionUtils.convertToBalIdentifier(flowName);
     }
 
     public static class Counters {
