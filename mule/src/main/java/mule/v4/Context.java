@@ -96,8 +96,12 @@ public class Context extends ContextBase {
             currentFileCtx =
                     this.fileContexts.computeIfAbsent(xmlFile,
                             (path) -> new FileContext(path.getPath(), projectCtx));
-            parseResults.put(xmlFile, readMuleConfigFromRoot(this, getXMLNavigator(),
-                    xmlFile.getPath()));
+            try {
+                parseResults.put(xmlFile, readMuleConfigFromRoot(this, getXMLNavigator(),
+                        xmlFile.getPath()));
+            } catch (Exception ex) {
+                logger.logSevere("Error while parsing %s".formatted(xmlFile));
+            }
         }
     }
 
@@ -111,14 +115,18 @@ public class Context extends ContextBase {
             String balFileName = muleAppDir != null ?
                     muleAppDir.relativize(xmlFile.toPath()).toString().replace(File.separator, ".")
                             .replace(".xml", "") : "internal.bal";
-            result.add(generateTextDocument(this, balFileName, parseResult.flows(), parseResult.subFlows()));
+            try {
+                result.add(generateTextDocument(this, balFileName, parseResult.flows(), parseResult.subFlows()));
+            } catch (Exception e) {
+                logger.logSevere("Unrecoverable error while generating code for %s".formatted(xmlFile));
+            }
         }
         return result;
     }
 
     @Override
     protected MuleXMLNavigator getXMLNavigator() {
-        return new MuleXMLNavigator(this.migrationMetrics, mule.v3.model.MuleXMLTag::isCompatible);
+        return new MuleXMLNavigator(this.migrationMetrics, mule.v4.model.MuleXMLTag::isCompatible);
     }
 
     @Override

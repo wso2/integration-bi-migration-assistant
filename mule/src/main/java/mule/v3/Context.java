@@ -46,6 +46,7 @@ import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
+import static mule.v3.MuleToBalConverter.generateTextDocument;
 import static mule.v3.model.MuleModel.DbMSQLConfig;
 import static mule.v3.model.MuleModel.DbOracleConfig;
 import static mule.v3.model.MuleModel.DbGenericConfig;
@@ -95,8 +96,13 @@ public class Context extends ContextBase {
         for (File xmlFile : xmlFiles) {
             currentFileCtx =
                     this.fileContexts.computeIfAbsent(xmlFile, (path) -> new FileContext(path.getPath(), projectCtx));
-            parseResults.put(xmlFile, mule.v3.reader.MuleConfigReader.readMuleConfigFromRoot(this, getXMLNavigator(),
-                    xmlFile.getPath()));
+            try {
+                parseResults.put(xmlFile,
+                        mule.v3.reader.MuleConfigReader.readMuleConfigFromRoot(this, getXMLNavigator(),
+                                xmlFile.getPath()));
+            } catch (Exception ex) {
+                logger.logSevere("Error while parsing %s".formatted(xmlFile));
+            }
         }
     }
 
@@ -110,8 +116,12 @@ public class Context extends ContextBase {
             String balFileName = muleAppDir != null ?
                     muleAppDir.relativize(xmlFile.toPath()).toString().replace(File.separator, ".")
                             .replace(".xml", "") : "internal.bal";
-            result.add(mule.v3.MuleToBalConverter.generateTextDocument(this, balFileName, parseResult.flows(),
-                    parseResult.subFlows()));
+            try {
+                result.add(generateTextDocument(this, balFileName, parseResult.flows(),
+                        parseResult.subFlows()));
+            } catch (Exception e) {
+                logger.logSevere("Unrecoverable error while generating code for %s".formatted(xmlFile));
+            }
         }
         return result;
     }
