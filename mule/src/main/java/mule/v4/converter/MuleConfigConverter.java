@@ -17,6 +17,7 @@
  */
 package mule.v4.converter;
 
+import common.BallerinaModel;
 import common.BallerinaModel.Statement.ForeachStatement;
 import common.BallerinaModel.Statement.ForkStatement;
 import mule.v4.Constants;
@@ -403,9 +404,14 @@ public class MuleConfigConverter {
 
     private static WorkerStatementResult convertFlowReference(Context ctx, FlowReference flowReference) {
         String flowName = flowReference.flowName();
-        String funcRef = ctx.getFlowFuncRef(flowName);
+        List<Statement> statements = new ArrayList<>();
+        String funcRef = ctx.getFlowFuncRef(flowName).orElseGet(() -> {
+            statements.add(new Statement.Comment("FIXME: failed to find flow %s".formatted(flowName)));
+            return flowName;
+        });
         var stmt = stmtFrom(String.format("%s(%s);", funcRef, Constants.CONTEXT_REFERENCE));
-        return new WorkerStatementResult(List.of(stmt));
+        statements.add(stmt);
+        return new WorkerStatementResult(statements);
     }
 
     private static WorkerStatementResult convertObjectToJson(Context ctx, ObjectToJson objectToJson) {

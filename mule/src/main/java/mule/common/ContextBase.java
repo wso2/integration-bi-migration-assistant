@@ -101,7 +101,7 @@ public abstract class ContextBase {
         return result.getProjectName();
     }
 
-    public abstract String getFlowFuncRef(String flowName);
+    public abstract Optional<String> getFlowFuncRef(String flowName);
 
     public abstract Optional<MultiRootContext.LookupResult> lookupResultFlowFunc(String flowName);
 }

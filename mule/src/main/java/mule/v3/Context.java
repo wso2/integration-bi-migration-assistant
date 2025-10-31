@@ -265,21 +265,20 @@ public class Context extends ContextBase {
      */
     @NotNull
     @Override
-    public String getFlowFuncRef(String flowName) {
+    public Optional<String> getFlowFuncRef(String flowName) {
         Optional<MultiRootContext.LookupResult> local = lookupResultFlowFunc(flowName);
         if (local.isPresent()) {
-            return local.get().identifier();
+            return local.map(MultiRootContext.LookupResult::identifier);
         }
         if (this.multiRootContext != null) {
             Optional<MultiRootContext.LookupResult> shared = multiRootContext.lookupFlow(flowName);
             if (shared.isPresent()) {
                 var result = shared.get();
                 addImport(new Import(result.org(), result.proj()));
-                return result.proj() + ":" + result.identifier();
+                return Optional.of(result.proj() + ":" + result.identifier());
             }
         }
-        // TODO: add a warning for this
-        return mule.v3.ConversionUtils.convertToBalIdentifier(flowName);
+        return Optional.empty();
     }
 
     @Override
