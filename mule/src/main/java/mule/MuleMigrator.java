@@ -24,7 +24,6 @@ import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.common.ContextBase;
 import mule.common.MigrationResult;
 import mule.common.MuleLogger;
-import mule.common.MuleXMLNavigator;
 import mule.common.MultiMigrationResult;
 import mule.common.MultiRootContext;
 import mule.common.ProjectMigrationResult;
@@ -217,8 +216,12 @@ public class MuleMigrator {
             ContextBase ctx = createProjectContext(logger, result, inputPathArg, outputPathArg, orgNameArg,
                     projectNameArg, muleVersion, dryRun, keepStructure, false, null);
             if (ctx != null) {
-                parseMuleProject(ctx);
-                generateCodeFromParsedProject(ctx);
+                try {
+                    parseMuleProject(ctx);
+                    generateCodeFromParsedProject(ctx);
+                } catch (Exception e) {
+                    logger.logSevere("Unrecoverable error while migrating %s".formatted(sourcePath));
+                }
             }
         } else if (Files.isRegularFile(sourcePath) && inputPathArg.endsWith(".xml")) {
             logger.logInfo("Source path is a Mule XML file: '" + sourcePath + "'");
@@ -316,6 +319,7 @@ public class MuleMigrator {
 
         List<ProjectMigrationResult> projResultList = projectContexts.stream()
                 .map(ctx -> ctx.result)
+                .filter(result -> result.getMigrationStats() != null)
                 .toList();
         multiResult.setMigrationResults(projResultList);
         String aggregateReport = AggregateReportGenerator.generateHtmlReport(logger, projResultList, targetPath,
@@ -414,8 +418,12 @@ public class MuleMigrator {
         File xmlConfigFile = inputXmlFilePath.toFile();
         ContextBase ctx = getContext(version, Collections.singletonList(xmlConfigFile), Collections.emptyList(),
                 sourceDir, Collections.emptyList(), inputFileName, dryRun, keepStructure, logger, result, null);
-        parseMuleProject(ctx);
-        generateCodeFromParsedProject(ctx);
+        try {
+            parseMuleProject(ctx);
+            generateCodeFromParsedProject(ctx);
+        } catch (Exception ex) {
+            logger.logSevere("Unrecoverable error while converting %s".formatted(xmlConfigFile));
+        }
     }
 
     private static ContextBase getContext(MuleVersion muleVersion, List<File> xmlFiles, List<File> yamlFiles,
@@ -431,16 +439,6 @@ public class MuleMigrator {
                     dryRun, keepStructure, logger, result, multiRootContext);
         } else {
             throw new IllegalArgumentException("Unsupported Mule version: " + muleVersion);
-        }
-    }
-
-    private static MuleXMLNavigator getXMLNavigator(ContextBase contextBase) {
-        if (contextBase instanceof mule.v3.Context v3Context) {
-            return new MuleXMLNavigator(v3Context.migrationMetrics, mule.v3.model.MuleXMLTag::isCompatible);
-        } else if (contextBase instanceof mule.v4.Context v4Context) {
-            return new MuleXMLNavigator(v4Context.migrationMetrics, mule.v4.model.MuleXMLTag::isCompatible);
-        } else {
-            throw new IllegalArgumentException("Unsupported context type: " + contextBase.getClass().getName());
         }
     }
 
