@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
+import mule.common.MuleLogger;
 import static mule.MuleMigrator.testConvertingMuleProject;
 import static mule.MuleMigrator.testConvertingMultiMuleProjects;
 import static mule.v3.MuleToBalConverter.convertStandaloneXMLFileToBallerina;
@@ -39,7 +40,8 @@ public class TestConverter {
     @Test(description = "Test converting standalone mule xml file")
     public void convertAndPrintMuleXMLFile() {
         OUT.println("Generating Ballerina code...");
-        SyntaxTree syntaxTree = convertStandaloneXMLFileToBallerina("src/test/resources/mule/v3/test_converter.xml");
+        SyntaxTree syntaxTree = convertStandaloneXMLFileToBallerina("src/test/resources/mule/v3/test_converter.xml",
+                new MuleLogger(false));
         OUT.println("________________________________________________________________");
         OUT.println(syntaxTree.toSourceCode());
         OUT.println("________________________________________________________________");

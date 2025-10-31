@@ -77,8 +77,8 @@ import static mule.v4.model.MuleModel.VMListener;
 
 public class MuleToBalConverter {
 
-    public static SyntaxTree convertStandaloneXMLFileToBallerina(String xmlFilePath) {
-        Context ctx = new Context(List.of(Path.of(xmlFilePath).toFile()), List.of());
+    public static SyntaxTree convertStandaloneXMLFileToBallerina(String xmlFilePath, mule.common.MuleLogger logger) {
+        Context ctx = new Context(List.of(Path.of(xmlFilePath).toFile()), List.of(), logger);
         ctx.parseAllFiles();
         TextDocument txtDoc = ctx.codeGen().getFirst();
         return new CodeGenerator(txtDoc).generateSyntaxTree();

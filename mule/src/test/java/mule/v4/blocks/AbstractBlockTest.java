@@ -20,6 +20,7 @@ package mule.v4.blocks;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.testng.Assert;
 
+import mule.common.MuleLogger;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,7 +47,8 @@ public class AbstractBlockTest {
 
     private static void testMuleToBal(String muleVersionDir, String sourcePath, String targetPath) {
         Path testDir = MULE_RESOURCE_DIR.resolve(muleVersionDir).resolve(BLOCKS_DIR);
-        SyntaxTree syntaxTree = convertStandaloneXMLFileToBallerina(testDir.resolve(sourcePath).toString());
+        SyntaxTree syntaxTree = convertStandaloneXMLFileToBallerina(testDir.resolve(sourcePath).toString(),
+                new MuleLogger(false));
         String expectedBalCode = getSourceText(testDir.resolve(targetPath));
         String actualBalCode = syntaxTree.toSourceCode();
         updateAssertFile(testDir.resolve(targetPath), actualBalCode);
