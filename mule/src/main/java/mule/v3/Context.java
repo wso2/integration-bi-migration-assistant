@@ -32,6 +32,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -158,11 +159,13 @@ public class Context extends ContextBase {
         public final String filePath;
         public final GlobalConfigs configs;
         public final BalConstructs balConstructs;
+        private final Map<String, ModuleVar> configurables;
 
         FileContext(String filePath, ProjectContext projectContext) {
             this.filePath = filePath;
             this.configs = new GlobalConfigs(projectContext);
             this.balConstructs = new BalConstructs();
+            this.configurables = new LinkedHashMap<>();
         }
     }
 
@@ -182,7 +185,7 @@ public class Context extends ContextBase {
         List<HashMap<String, DbOracleConfig>> dbOracleConfigMaps = new ArrayList<>();
         List<HashMap<String, DbGenericConfig>> dbGenericConfigMaps = new ArrayList<>();
         List<HashMap<String, DbTemplateQuery>> dbTemplateQueryMaps = new ArrayList<>();
-        List<HashMap<String, ModuleVar>> configurableVarMaps = new ArrayList<>();
+        public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
 
         public void addJavaDependency(MuleToBalConverter.JavaDependencies dependencies) {
             javaDependencies.add(dependencies);
@@ -213,12 +216,7 @@ public class Context extends ContextBase {
         }
 
         public boolean configurableVarExists(String key) {
-            for (HashMap<String, ModuleVar> configVarMap : configurableVarMaps) {
-                if (configVarMap.containsKey(key)) {
-                    return true;
-                }
-            }
-            return false;
+            return configurableVars.containsKey(key);
         }
     }
 
@@ -229,7 +227,6 @@ public class Context extends ContextBase {
         public final HashMap<String, DbOracleConfig> dbOracleConfigs = new LinkedHashMap<>();
         public final HashMap<String, DbGenericConfig> dbGenericConfigs = new LinkedHashMap<>();
         public final HashMap<String, DbTemplateQuery> dbTemplateQueries = new LinkedHashMap<>();
-        public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
         public final List<MuleImport> imports = new ArrayList<>();
         public final List<MuleRecord> globalExceptionStrategies = new ArrayList<>();
         public final List<UnsupportedBlock> unsupportedBlocks = new ArrayList<>();
@@ -241,7 +238,6 @@ public class Context extends ContextBase {
             projCtx.dbOracleConfigMaps.add(dbOracleConfigs);
             projCtx.dbGenericConfigMaps.add(dbGenericConfigs);
             projCtx.dbTemplateQueryMaps.add(dbTemplateQueries);
-            projCtx.configurableVarMaps.add(configurableVars);
         }
     }
 
@@ -294,6 +290,17 @@ public class Context extends ContextBase {
     @Override
     public void addFunction(Function function) {
         this.currentFileCtx.balConstructs.functions.add(function);
+    }
+
+    public void addConfigurableVar(String varName, ModuleVar var) {
+        assert varName.equals(var.name());
+        this.currentFileCtx.configurables.put(varName, var);
+        this.projectCtx.configurableVars.put(varName, var);
+    }
+
+    @Override
+    public Collection<ModuleVar> getConfigurableVars() {
+        return this.currentFileCtx.configurables.values();
     }
 
     public static class Counters {

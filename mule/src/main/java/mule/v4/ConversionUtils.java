@@ -36,7 +36,6 @@ import javax.xml.transform.stream.StreamResult;
 
 import static common.BallerinaModel.ModuleVar;
 import static common.ConversionUtils.exprFrom;
-import static common.ConversionUtils.escapeSpecialCharacters;
 import static mule.v4.converter.MELConverter.convertMELToBal;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
 
@@ -141,22 +140,7 @@ public class ConversionUtils {
      * @return Ballerina identifier
      */
     public static String convertToBalIdentifier(String varName) {
-        String var = escapeSpecialCharacters(varName);
-        return insertQuoteIfApplicable(var);
-    }
-
-    /**
-     * Inserts a single quote prefix to the variable name if it is a Ballerina keyword or starts with a digit.
-     *
-     * @param varName the variable name
-     * @return quoted variable name if applicable, otherwise the original variable name
-     */
-    private static String insertQuoteIfApplicable(String varName) {
-        if (varName.isEmpty()) {
-            return varName;
-        }
-
-        return Character.isDigit(varName.charAt(0)) || SyntaxInfo.isKeyword(varName) ? "'" + varName : varName;
+        return common.ConversionUtils.convertToBalIdentifier(varName);
     }
 
     public static String[] getAllowedMethods(String allowedMethods) {
@@ -303,9 +287,13 @@ public class ConversionUtils {
 
     public static void addConfigVarEntry(Context ctx, String varName, String varValue) {
         String escapedVarName = convertToBalIdentifier(varName);
-        String valueExpr = varValue == null ? "?" : "\"%s\"".formatted(varValue);
+        String valueExpr = requiredConfigValue(varValue) ? "?" : "\"%s\"".formatted(varValue);
         var configVarDecl = new ModuleVar(escapedVarName, "string", Optional.of(exprFrom(valueExpr)), false, true);
-        ctx.currentFileCtx.balConstructs.configurableVars.put(escapedVarName, configVarDecl);
+        ctx.addConfigurableVar(escapedVarName, configVarDecl);
+    }
+
+    private static boolean requiredConfigValue(String varValue) {
+        return varValue == null || varValue.startsWith("${");
     }
 
     public static String getAttrVal(Context ctx, String propValue) {

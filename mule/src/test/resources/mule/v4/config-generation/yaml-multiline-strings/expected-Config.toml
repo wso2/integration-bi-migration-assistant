@@ -1,0 +1,11 @@
+# Properties from input.yaml
+email_body = """Hello,
+This is a test message.
+Thank you.
+"""
+certificate_pem = """-----BEGIN CERTIFICATE-----
+MIIC...
+-----END CERTIFICATE-----
+"""
+json_config = """{"name":"test","value":"data"}"""
+

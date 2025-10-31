@@ -20,8 +20,10 @@ package mule.common;
 import mule.common.report.ProjectMigrationStats;
 
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static mule.MuleMigrator.MuleVersion;
 
@@ -38,6 +40,7 @@ public final class ProjectMigrationResult implements MigrationResult {
     private String htmlReport;
     private String jsonReport;
     private Path targetPath;
+    private Set<String> configurableVariableNames = new HashSet<>();
 
     @Override
     public String toString() {
@@ -127,5 +130,13 @@ public final class ProjectMigrationResult implements MigrationResult {
 
     public void setOrgName(String orgName) {
         this.orgName = orgName;
+    }
+
+    public Set<String> getConfigurableVariableNames() {
+        return configurableVariableNames;
+    }
+
+    public void setConfigurableVariableNames(Set<String> configurableVariableNames) {
+        this.configurableVariableNames = configurableVariableNames;
     }
 }

@@ -46,7 +46,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.ModuleTypeDef;
@@ -497,12 +499,19 @@ public class MuleMigrator {
                             .textDocuments();
         }
 
+        // Collect configurable variable names
+        Set<String> configurableVariableNames = ctx.getConfigurableVars().stream()
+                .map(common.BallerinaModel.ModuleVar::name)
+                .collect(Collectors.toSet());
+        ctx.result.setConfigurableVariableNames(configurableVariableNames);
+
         // 3. Generate project artifacts and bal files
         ctx.logger.logState("Generate project artifacts and bal files...");
         Map<String, String> allFiles = new HashMap<>();
         allFiles.putAll(genProjectArtifacts(ctx, ctx.logger));
         allFiles.putAll(genBalFilesFromBir(ctx.logger, birTxtDocs));
-        allFiles.putAll(genConfigTOMLFile(ctx.logger, ctx.yamlFiles, ctx.propertyFiles));
+        allFiles.putAll(genConfigTOMLFile(ctx.logger, ctx.yamlFiles, ctx.propertyFiles,
+                ctx.result.getConfigurableVariableNames()));
         allFiles = Collections.unmodifiableMap(allFiles);
         ctx.result.setFiles(allFiles);
     }
@@ -563,8 +572,9 @@ public class MuleMigrator {
         return Map.of("Ballerina.toml", tomlContent.toString());
     }
 
-    private static Map<String, String> genConfigTOMLFile(MuleLogger logger, List<File> yamlFiles,
-                                                         List<File> propertyFiles) {
+    public static Map<String, String> genConfigTOMLFile(MuleLogger logger, List<File> yamlFiles,
+                                                         List<File> propertyFiles,
+                                                         Set<String> configurableVariableNames) {
         logger.logState("Generating Config.toml file from .yaml and .properties files...");
         StringBuilder tomlContent = new StringBuilder();
 
@@ -577,21 +587,22 @@ public class MuleMigrator {
 
             // Add file name as comment
             tomlContent.append("# Properties from ").append(propFile.getName()).append("\n");
-            processPropertiesFile(logger, propFile, tomlContent);
+            processPropertiesFile(logger, propFile, tomlContent, configurableVariableNames);
             tomlContent.append("\n");
         }
 
         // Process .yaml files using SnakeYAML
         for (File yamlFile : yamlFiles) {
             tomlContent.append("# Properties from ").append(yamlFile.getName()).append("\n");
-            processYamlFile(logger, yamlFile, tomlContent);
+            processYamlFile(logger, yamlFile, tomlContent, configurableVariableNames);
             tomlContent.append("\n");
         }
 
         return Map.of("Config.toml", tomlContent.toString());
     }
 
-    public static void processPropertiesFile(MuleLogger logger, File propFile, StringBuilder tomlContent) {
+    public static void processPropertiesFile(MuleLogger logger, File propFile, StringBuilder tomlContent,
+                                             Set<String> configurableVariableNames) {
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(new FileInputStream(propFile), StandardCharsets.UTF_8))) {
             String line;
@@ -602,9 +613,13 @@ public class MuleMigrator {
 
                 int equalsIndex = line.indexOf('=');
                 if (equalsIndex > 0) {
-                    String key = line.substring(0, equalsIndex).trim().replace('.', '_');
-                    String value = line.substring(equalsIndex + 1).trim();
-                    tomlContent.append(key).append(" = \"").append(escapeTomlValue(value)).append("\"\n");
+                    String escapedKey = common.ConversionUtils
+                            .convertToBalIdentifier(line.substring(0, equalsIndex).trim().replace('.', '_'));
+                    // Only add key if it exists in configurable variable names
+                    if (configurableVariableNames != null && configurableVariableNames.contains(escapedKey)) {
+                        String value = line.substring(equalsIndex + 1).trim();
+                        tomlContent.append(escapedKey).append(" = ").append(formatTomlValue(value)).append("\n");
+                    }
                 }
             }
         } catch (Exception e) {
@@ -616,13 +631,40 @@ public class MuleMigrator {
         return value.replace("\"", "\\\"").replace("\\", "\\\\");
     }
 
-    public static void processYamlFile(MuleLogger logger, File yamlFile, StringBuilder tomlContent) {
+    /**
+     * Checks if a value needs to be written as a TOML multi-line string block.
+     * Values containing double quotes or newlines should use string blocks for
+     * better readability.
+     *
+     * @param value The value to check
+     * @return true if the value should use string block format, false otherwise
+     */
+    private static boolean needsStringBlock(String value) {
+        return value.contains("\"") || value.contains("\n") || value.contains("\r");
+    }
+
+    /**
+     * Formats a TOML value, using string block format if needed.
+     *
+     * @param value The value to format
+     * @return The formatted TOML value (either as regular string or string block)
+     */
+    private static String formatTomlValue(String value) {
+        if (needsStringBlock(value)) {
+            return "\"\"\"" + value + "\"\"\"";
+        } else {
+            return "\"" + escapeTomlValue(value) + "\"";
+        }
+    }
+
+    public static void processYamlFile(MuleLogger logger, File yamlFile, StringBuilder tomlContent,
+                                       Set<String> configurableVariableNames) {
         try {
             Yaml yaml = new Yaml();
             try (FileInputStream inputStream = new FileInputStream(yamlFile)) {
                 Object data = yaml.load(inputStream);
                 if (data instanceof Map) {
-                    flattenYamlToToml((Map<String, Object>) data, "", tomlContent);
+                    flattenYamlToToml((Map<String, Object>) data, "", tomlContent, configurableVariableNames);
                 }
             }
         } catch (Exception e) {
@@ -630,28 +672,39 @@ public class MuleMigrator {
         }
     }
 
-    static void flattenYamlToToml(Map<String, Object> map, String prefix, StringBuilder tomlContent) {
+    static void flattenYamlToToml(Map<String, Object> map, String prefix, StringBuilder tomlContent,
+                                   Set<String> configurableVariableNames) {
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             String key = entry.getKey().replace('-', '_');
             String fullKey = prefix.isEmpty() ? key : prefix + "_" + key;
             Object value = entry.getValue();
 
             if (value instanceof Map) {
-                flattenYamlToToml((Map<String, Object>) value, fullKey, tomlContent);
+                flattenYamlToToml((Map<String, Object>) value, fullKey, tomlContent, configurableVariableNames);
             } else if (value instanceof List<?> list) {
                 for (int i = 0; i < list.size(); i++) {
                     Object listItem = list.get(i);
                     if (listItem instanceof Map) {
-                        flattenYamlToToml((Map<String, Object>) listItem, fullKey + "_" + i, tomlContent);
+                        flattenYamlToToml((Map<String, Object>) listItem, fullKey + "_" + i, tomlContent,
+                                configurableVariableNames);
                     } else {
                         String listKey = fullKey + "_" + i;
-                        String listValue = escapeTomlValue(String.valueOf(listItem));
-                        tomlContent.append(listKey).append(" = \"").append(listValue).append("\"\n");
+                        String escapedListKey = common.ConversionUtils.convertToBalIdentifier(listKey);
+                        // Only add key if it exists in configurable variable names
+                        if (configurableVariableNames != null && configurableVariableNames.contains(escapedListKey)) {
+                            String listValue = String.valueOf(listItem);
+                            tomlContent.append(escapedListKey).append(" = ").append(formatTomlValue(listValue))
+                                    .append("\n");
+                        }
                     }
                 }
             } else {
-                String tomlValue = escapeTomlValue(String.valueOf(value));
-                tomlContent.append(fullKey).append(" = \"").append(tomlValue).append("\"\n");
+                String escapedFullKey = common.ConversionUtils.convertToBalIdentifier(fullKey);
+                // Only add key if it exists in configurable variable names
+                if (configurableVariableNames != null && configurableVariableNames.contains(escapedFullKey)) {
+                    String tomlValue = String.valueOf(value);
+                    tomlContent.append(escapedFullKey).append(" = ").append(formatTomlValue(tomlValue)).append("\n");
+                }
             }
         }
     }
