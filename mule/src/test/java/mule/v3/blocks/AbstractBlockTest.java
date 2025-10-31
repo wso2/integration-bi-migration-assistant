@@ -18,9 +18,9 @@
 package mule.v3.blocks;
 
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import mule.common.MuleLogger;
 import org.testng.Assert;
 
-import mule.common.MuleLogger;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

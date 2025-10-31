@@ -17,7 +17,6 @@
  */
 package mule.v4.converter;
 
-import common.BallerinaModel;
 import common.BallerinaModel.Statement.ForeachStatement;
 import common.BallerinaModel.Statement.ForkStatement;
 import mule.v4.Constants;

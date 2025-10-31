@@ -33,5 +33,5 @@ public class MultiRootContext {
         return projectContexts.stream().flatMap(cx -> cx.lookupResultFlowFunc(flowName).stream()).findFirst();
     }
 
-    public record LookupResult(String org, String proj, String identifier) {}
+    public record LookupResult(String org, String proj, String identifier) { }
 }

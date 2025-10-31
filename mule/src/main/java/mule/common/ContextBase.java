@@ -19,7 +19,6 @@ package mule.common;
 
 import common.BallerinaModel;
 import mule.MuleMigrator.MuleVersion;
-
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
