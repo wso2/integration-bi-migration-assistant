@@ -76,8 +76,8 @@ public class Context extends ContextBase {
         isStandaloneBalFile = xmlFiles.size() == 1;
     }
 
-    public Context(List<File> xmlFiles, List<File> yamlFiles) {
-        this(xmlFiles, yamlFiles, null, null, Collections.emptyList(), null, false, false, null, null, null);
+    public Context(List<File> xmlFiles, List<File> yamlFiles, mule.common.MuleLogger logger) {
+        this(xmlFiles, yamlFiles, null, null, Collections.emptyList(), null, false, false, logger, null, null);
     }
 
     @Override

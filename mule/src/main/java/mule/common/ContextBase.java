@@ -20,6 +20,8 @@ package mule.common;
 import common.BallerinaModel;
 import mule.MuleMigrator.MuleVersion;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
@@ -44,7 +46,9 @@ public abstract class ContextBase {
 
     protected ContextBase(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                          List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
-                          MuleLogger logger, ProjectMigrationResult result, MultiRootContext multiRootContext) {
+                          @NotNull MuleLogger logger, ProjectMigrationResult result,
+                          MultiRootContext multiRootContext) {
+        assert logger != null : "Logger must not be null";
         this.xmlFiles = xmlFiles;
         this.yamlFiles = yamlFiles;
         this.muleAppDir = muleAppDir;
@@ -94,11 +98,11 @@ public abstract class ContextBase {
     public abstract void appendJavaDependencies(StringBuilder tomlContent);
 
     public String getOrgName() {
-        return result.getOrgName();
+        return result == null ? "" : result.getOrgName();
     }
 
     public String getProjectName() {
-        return result.getProjectName();
+        return result == null ? "" : result.getProjectName();
     }
 
     public abstract Optional<String> getFlowFuncRef(String flowName);
