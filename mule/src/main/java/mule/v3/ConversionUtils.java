@@ -36,15 +36,13 @@ import javax.xml.transform.stream.StreamResult;
 
 import static common.BallerinaModel.ModuleVar;
 import static common.ConversionUtils.exprFrom;
+import static common.ConversionUtils.escapeSpecialCharacters;
 import static mule.v3.converter.MELConverter.convertMELToBal;
 
 /**
  * Utility class for converting mule configs.
  */
 public class ConversionUtils {
-
-    private static final Pattern UNESCAPED_SPECIAL_CHAR_SET =
-            Pattern.compile("([$&+,:;=\\?@#\\\\|/'\\ \\[\\}\\]<\\>.\"^*{}~`()%!-])");
 
     /**
      * Converts mule path to a Ballerina resource path.
@@ -161,17 +159,6 @@ public class ConversionUtils {
         }
 
         return Character.isDigit(varName.charAt(0)) || SyntaxInfo.isKeyword(varName) ? "'" + varName : varName;
-    }
-
-    /**
-     * Escapes special characters in an identifier with a preceding backslash (\).
-     * This is part of making an identifier valid in Ballerina syntax.
-     *
-     * @param identifier the original identifier string
-     * @return identifier with special characters escaped
-     */
-    private static String escapeSpecialCharacters(String identifier) {
-        return UNESCAPED_SPECIAL_CHAR_SET.matcher(identifier).replaceAll("\\\\$1");
     }
 
     public static String[] getAllowedMethods(String allowedMethods) {
