@@ -253,6 +253,9 @@ public record MuleModel() {
     }
 
     // Global Elements
+    public record MuleImport(String file) {
+    }
+
     public record HTTPListenerConfig(Kind kind, String name, String basePath, String port,
                                      String host) implements MuleRecord {
         public HTTPListenerConfig(String name, String basePath, String port, String host) {

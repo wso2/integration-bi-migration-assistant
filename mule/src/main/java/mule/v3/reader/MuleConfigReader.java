@@ -61,6 +61,7 @@ import static mule.v3.model.MuleModel.Foreach;
 import static mule.v3.model.MuleModel.HTTPListenerConfig;
 import static mule.v3.model.MuleModel.HTTPRequestConfig;
 import static mule.v3.model.MuleModel.HttpListener;
+import static mule.v3.model.MuleModel.MuleImport;
 import static mule.v3.model.MuleModel.HttpRequest;
 import static mule.v3.model.MuleModel.InputPayloadElement;
 import static mule.v3.model.MuleModel.Kind;
@@ -163,6 +164,9 @@ public class MuleConfigReader {
         } else if (MuleXMLTag.CHOICE_EXCEPTION_STRATEGY.tag().equals(elementTagName)) {
             ChoiceExceptionStrategy choiceExceptionStrategy = readChoiceExceptionStrategy(ctx, muleElement);
             ctx.currentFileCtx.configs.globalExceptionStrategies.add(choiceExceptionStrategy);
+        } else if (MuleXMLTag.IMPORT.tag().equals(elementTagName)) {
+            MuleImport muleImport = readImport(ctx, muleElement);
+            ctx.currentFileCtx.configs.imports.add(muleImport);
         } else {
             UnsupportedBlock unsupportedBlock = readUnsupportedBlock(ctx, muleElement);
             ctx.currentFileCtx.configs.unsupportedBlocks.add(unsupportedBlock);
@@ -705,6 +709,12 @@ public class MuleConfigReader {
 
     private static String readDbTemplateQueryRef(Context ctx, MuleElement muleElement) {
         return muleElement.getElement().getAttribute("name");
+    }
+
+    private static MuleImport readImport(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String file = element.getAttribute("file");
+        return new MuleImport(file);
     }
 
     private static UnsupportedBlock readUnsupportedBlock(Context ctx, MuleElement muleElement) {

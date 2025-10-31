@@ -48,6 +48,7 @@ import static mule.v4.model.MuleModel.ErrorHandler;
 import static mule.v4.model.MuleModel.GlobalProperty;
 import static mule.v4.model.MuleModel.HTTPListenerConfig;
 import static mule.v4.model.MuleModel.HTTPRequestConfig;
+import static mule.v4.model.MuleModel.MuleImport;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
 import static mule.v4.reader.MuleConfigReader.readMuleConfigFromRoot;
 
@@ -217,6 +218,7 @@ public class Context extends ContextBase {
         public final HashMap<String, DbConfig> dbConfigs = new LinkedHashMap<>();
         public final List<ErrorHandler> globalErrorHandlers = new ArrayList<>();
         public final List<GlobalProperty> globalProperties = new ArrayList<>();
+        public final List<MuleImport> imports = new ArrayList<>();
         public final List<UnsupportedBlock> unsupportedBlocks = new ArrayList<>();
 
         GlobalConfigs(ProjectContext projCtx) {
