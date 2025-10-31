@@ -23,6 +23,7 @@ import mule.MuleMigrator.MuleVersion;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.ModuleTypeDef;
@@ -39,10 +40,11 @@ public abstract class ContextBase {
     public final boolean keepStructure;
     public final MuleLogger logger;
     public final ProjectMigrationResult result;
+    protected final MultiRootContext multiRootContext;
 
     protected ContextBase(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                          List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
-                         MuleLogger logger, ProjectMigrationResult result) {
+                          MuleLogger logger, ProjectMigrationResult result, MultiRootContext multiRootContext) {
         this.xmlFiles = xmlFiles;
         this.yamlFiles = yamlFiles;
         this.muleAppDir = muleAppDir;
@@ -53,6 +55,10 @@ public abstract class ContextBase {
         this.keepStructure = keepStructure;
         this.logger = logger;
         this.result = result;
+        this.multiRootContext = multiRootContext;
+        if (multiRootContext != null) {
+            multiRootContext.register(this);
+        }
     }
 
     public abstract MigrationMetrics<? extends DWConstructBase> getMigrationMetrics();
@@ -86,4 +92,16 @@ public abstract class ContextBase {
      * @param tomlContent StringBuilder to append dependencies to
      */
     public abstract void appendJavaDependencies(StringBuilder tomlContent);
+
+    public String getOrgName() {
+        return result.getOrgName();
+    }
+
+    public String getProjectName() {
+        return result.getProjectName();
+    }
+
+    public abstract String getFlowFuncRef(String flowName);
+
+    public abstract Optional<MultiRootContext.LookupResult> lookupResultFlowFunc(String flowName);
 }

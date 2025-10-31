@@ -26,6 +26,7 @@ import mule.common.MigrationResult;
 import mule.common.MuleLogger;
 import mule.common.MuleXMLNavigator;
 import mule.common.MultiMigrationResult;
+import mule.common.MultiRootContext;
 import mule.common.ProjectMigrationResult;
 import mule.common.report.AggregateReportGenerator;
 import mule.common.report.IndividualReportGenerator;
@@ -214,7 +215,7 @@ public class MuleMigrator {
         if (Files.isDirectory(sourcePath)) {
             logger.logInfo("Source path is a Mule project directory: '" + sourcePath + "'");
             ContextBase ctx = createProjectContext(logger, result, inputPathArg, outputPathArg, orgNameArg,
-                    projectNameArg, muleVersion, dryRun, keepStructure, false);
+                    projectNameArg, muleVersion, dryRun, keepStructure, false, null);
             if (ctx != null) {
                 parseMuleProject(ctx);
                 generateCodeFromParsedProject(ctx);
@@ -283,6 +284,7 @@ public class MuleMigrator {
         }
 
         List<ContextBase> projectContexts = new ArrayList<>();
+        MultiRootContext multiRootContext = new MultiRootContext();
 
         // Phase 1: Parse all projects
         for (Path projectDir : projectDirectories) {
@@ -290,7 +292,7 @@ public class MuleMigrator {
             ProjectMigrationResult projResult = new ProjectMigrationResult();
             try {
                 ContextBase ctx = createProjectContext(logger, projResult, projectDir.toString(), outputPathArg, null,
-                        null, muleVersion, dryRun, keepStructure, true);
+                        null, muleVersion, dryRun, keepStructure, true, multiRootContext);
                 if (ctx != null) {
                     parseMuleProject(ctx);
                     projectContexts.add(ctx);
@@ -325,7 +327,8 @@ public class MuleMigrator {
     private static ContextBase createProjectContext(MuleLogger logger, ProjectMigrationResult result,
                                                     String inputPathArg, String outputPathArg, String orgNameArg,
                                                     String projectNameArg, Integer muleVersion, boolean dryRun,
-                                                    boolean keepStructure, boolean multiRoot) {
+                                                    boolean keepStructure, boolean multiRoot,
+                                                    MultiRootContext multiRootContext) {
         Path sourcePath = Path.of(inputPathArg);
         Path targetPath = outputPathArg != null ? Path.of(outputPathArg) : sourcePath;
         result.setTargetPath(targetPath);
@@ -379,7 +382,7 @@ public class MuleMigrator {
                 propertyFiles.size() + " .properties files.");
 
         ContextBase ctx = getContext(version, xmlFiles, yamlFiles, muleXmlConfigDir, propertyFiles,
-                sourceProjectName, dryRun, keepStructure, logger, result);
+                sourceProjectName, dryRun, keepStructure, logger, result, multiRootContext);
         return ctx;
     }
 
@@ -410,20 +413,22 @@ public class MuleMigrator {
 
         File xmlConfigFile = inputXmlFilePath.toFile();
         ContextBase ctx = getContext(version, Collections.singletonList(xmlConfigFile), Collections.emptyList(),
-                sourceDir, Collections.emptyList(), inputFileName, dryRun, keepStructure, logger, result);
+                sourceDir, Collections.emptyList(), inputFileName, dryRun, keepStructure, logger, result, null);
         parseMuleProject(ctx);
         generateCodeFromParsedProject(ctx);
     }
 
     private static ContextBase getContext(MuleVersion muleVersion, List<File> xmlFiles, List<File> yamlFiles,
             Path muleAppDir, List<File> propertyFiles, String sourceName,
-            boolean dryRun, boolean keepStructure, MuleLogger logger, ProjectMigrationResult result) {
+                                          boolean dryRun, boolean keepStructure, MuleLogger logger,
+                                          ProjectMigrationResult result,
+                                          MultiRootContext multiRootContext) {
         if (muleVersion == MuleVersion.MULE_V3) {
             return new mule.v3.Context(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName,
-                    dryRun, keepStructure, logger, result);
+                    dryRun, keepStructure, logger, result, multiRootContext);
         } else if (muleVersion == MuleVersion.MULE_V4) {
             return new mule.v4.Context(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName,
-                    dryRun, keepStructure, logger, result);
+                    dryRun, keepStructure, logger, result, multiRootContext);
         } else {
             throw new IllegalArgumentException("Unsupported Mule version: " + muleVersion);
         }
@@ -489,13 +494,15 @@ public class MuleMigrator {
         // 3. Rearrange BIR for BI Structure
         if (!ctx.keepStructure) {
             ctx.logger.logState("Re-arranging BIR files to fit Ballerina Integrator project structure...");
-            birTxtDocs = new BICodeConverter().convert(new BallerinaModel.Module("mock", birTxtDocs)).textDocuments();
+            birTxtDocs =
+                    new BICodeConverter(ctx.getContextImports()).convert(new BallerinaModel.Module("mock", birTxtDocs))
+                            .textDocuments();
         }
 
         // 3. Generate project artifacts and bal files
         ctx.logger.logState("Generate project artifacts and bal files...");
         Map<String, String> allFiles = new HashMap<>();
-        allFiles.putAll(genProjectArtifacts(ctx, ctx.logger, ctx.result.getOrgName(), ctx.result.getProjectName()));
+        allFiles.putAll(genProjectArtifacts(ctx, ctx.logger));
         allFiles.putAll(genBalFilesFromBir(ctx.logger, birTxtDocs));
         allFiles.putAll(genConfigTOMLFile(ctx.logger, ctx.yamlFiles, ctx.propertyFiles));
         allFiles = Collections.unmodifiableMap(allFiles);
@@ -537,8 +544,7 @@ public class MuleMigrator {
         return balFiles;
     }
 
-    private static Map<String, String> genProjectArtifacts(ContextBase ctx, MuleLogger logger, String orgName,
-                                                           String projectName) {
+    private static Map<String, String> genProjectArtifacts(ContextBase ctx, MuleLogger logger) {
         logger.logState("Generating Ballerina.toml...");
         String version = "0.1.0";
         String distribution = "2201.12.3";
@@ -552,7 +558,7 @@ public class MuleMigrator {
 
                 [build-options]
                 observabilityIncluded = true
-                """.formatted(orgName, projectName, version, distribution));
+                """.formatted(ctx.getOrgName(), ctx.getProjectName(), version, distribution));
 
         ctx.appendJavaDependencies(tomlContent);
 
