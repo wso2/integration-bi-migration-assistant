@@ -18,6 +18,7 @@
 package mule.v4;
 
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import mule.common.MuleLogger;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -28,7 +29,6 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
-import mule.common.MuleLogger;
 import static mule.MuleMigrator.testConvertingMuleProject;
 import static mule.MuleMigrator.testConvertingMultiMuleProjects;
 import static mule.v4.MuleToBalConverter.convertStandaloneXMLFileToBallerina;
