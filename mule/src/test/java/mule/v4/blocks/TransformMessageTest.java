@@ -76,7 +76,8 @@ public class TransformMessageTest extends AbstractBlockTest {
                 {"transform_message_with_type_coercion_format.dwl", "transform_message_with_type_coercion_format.bal"},
                 {"transform_message_with_type_coercion_date_to_number.dwl",
                         "transform_message_with_type_coercion_date_to_number.bal"},
-                {"transform_message_with_type_coercion_to_date.dwl", "transform_message_with_type_coercion_to_date.bal"}
+                {"transform_message_with_type_coercion_to_date.dwl", "transform_message_with_type_coercion_to_date.bal"},
+                {"transform_message_with_default_value.dwl", "transform_message_with_default_value.bal"}
         };
     }
 }

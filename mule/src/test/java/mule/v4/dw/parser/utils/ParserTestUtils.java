@@ -19,8 +19,8 @@ package mule.v4.dw.parser.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import mule.v3.dataweave.parser.DataWeaveLexer;
-import mule.v3.dataweave.parser.DataWeaveParser;
+import mule.v4.dataweave.parser.DataWeaveLexer;
+import mule.v4.dataweave.parser.DataWeaveParser;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;

@@ -250,7 +250,7 @@ public class DataWeaveScripts {
             ---
             payload.EVENT_TYPE == 'Hail' and payload.MAGNITUDE >= 1 and payload.distance_in_miles <= 5)) )
             }
-         
+
             """;
     public static final String SCRIPT_COMPLEX_OPERATORS_IN_OBJECT_WITH_FUNCTIONS = """
             %dw 1.0
@@ -264,11 +264,11 @@ public class DataWeaveScripts {
             %output application/json
             ---
             {
-                hail1: sizeOf (payload.resultSet1 filter ((item,index) -> (item.EVENT_TYPE == 'Hail' and 
+                                hail1: sizeOf (payload.resultSet1 filter ((item,index) -> (item.EVENT_TYPE == 'Hail' and
                 item.MAGNITUDE >= 1 and item.distance_in_miles <= 5)) ),
-                hail2: sizeOf (payload.resultSet1 filter ($.EVENT_TYPE == 'Hail' and  $.magnitude >= 1.5 and 
+                                hail2: sizeOf (payload.resultSet1 filter ($.EVENT_TYPE == 'Hail' and  $.magnitude >= 1.5 and
                 $.distance_in_miles <= 5) map { count: $.weather_event_id }),
-                thunder: sizeOf ( payload.resultSet1 filter ($.EVENT_TYPE == 'Thunderstorm Wind' and  
+                                thunder: sizeOf ( payload.resultSet1 filter ($.EVENT_TYPE == 'Thunderstorm Wind' and
                 $.magnitude >= 30 and $.distance_in_miles <= 1) map { count: $.weather_event_id })
             }
             """;
