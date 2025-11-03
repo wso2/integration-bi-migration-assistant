@@ -17,6 +17,7 @@
  */
 package mule;
 
+import common.ConversionUtils;
 import mule.common.MuleLogger;
 import org.jetbrains.annotations.NotNull;
 
@@ -46,11 +47,13 @@ public class MigratorUtils {
 
 
     public static String getBalProjectName(String projectNameArg, String sourceName) {
-        return projectNameArg != null ? projectNameArg : sourceName + BAL_PROJECT_SUFFIX;
+        String projectName = projectNameArg != null ? projectNameArg : sourceName + BAL_PROJECT_SUFFIX;
+        return ConversionUtils.escapeIdentifier(projectName);
     }
 
     public static String getBalOrgName(String orgNameArg) {
-        return orgNameArg != null ? orgNameArg : BAL_DEFAULT_PROJECT_ORG;
+        String orgName = orgNameArg != null ? orgNameArg : BAL_DEFAULT_PROJECT_ORG;
+        return ConversionUtils.escapeIdentifier(orgName);
     }
 
     public static void writeFilesFromMap(MuleLogger logger, Path targetDir, Map<String, String> files) {

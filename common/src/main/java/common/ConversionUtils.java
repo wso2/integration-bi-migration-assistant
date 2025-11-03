@@ -21,7 +21,6 @@ package common;
 import java.util.regex.Pattern;
 
 public class ConversionUtils {
-
     private static final Pattern UNESCAPED_SPECIAL_CHAR_SET = Pattern
             .compile("([$&+,:;=\\?@#\\\\|/'\\ \\[\\}\\]<\\>.\"^*{}~`()%!-])");
 
@@ -38,13 +37,25 @@ public class ConversionUtils {
     }
 
     /**
-     * Escapes special characters in an identifier with a preceding backslash (\). Replaces hyphens (-) with underscores
-     * (_) and escapes other special characters. This is part of making an identifier valid in Ballerina syntax.
+     * Escapes special characters in an identifier with a preceding backslash (\).
+     * This is part of making an identifier valid in Ballerina syntax.
      *
      * @param identifier the original identifier string
-     * @return identifier with special characters escaped and hyphens replaced
+     * @return identifier with special characters escaped
      */
     public static String escapeSpecialCharacters(String identifier) {
         return UNESCAPED_SPECIAL_CHAR_SET.matcher(identifier).replaceAll("\\\\$1");
+    }
+
+    /**
+     * Strips all special characters from an identifier.
+     * This removes all characters matching UNESCAPED_SPECIAL_CHAR_SET to create a
+     * valid identifier.
+     *
+     * @param identifier the original identifier string
+     * @return identifier with special characters removed
+     */
+    public static String escapeIdentifier(String identifier) {
+        return UNESCAPED_SPECIAL_CHAR_SET.matcher(identifier).replaceAll("");
     }
 }

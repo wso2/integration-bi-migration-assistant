@@ -18,6 +18,7 @@
 
 package tibco;
 
+import common.ConversionUtils;
 import common.LoggingUtils;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Document;
@@ -315,8 +316,10 @@ public class TibcoToBalConverter {
 
     private static @NotNull Map<String, Object> migrateTIBCOInner(String orgName, String projectName, String sourcePath,
             Consumer<String> stateCallback, Consumer<String> logCallback) {
+        String escapedOrgName = ConversionUtils.escapeIdentifier(orgName);
+        String escapedProjectName = ConversionUtils.escapeIdentifier(projectName);
         ProjectConversionContext cx = new ProjectConversionContext(
-                new ConversionContext(orgName, false, false, stateCallback, logCallback), projectName);
+                new ConversionContext(escapedOrgName, false, false, stateCallback, logCallback), escapedProjectName);
         try {
             tibco.converter.TibcoConverter.ParsedProject parsed =
                     tibco.converter.TibcoConverter.parseProject(cx, sourcePath);
