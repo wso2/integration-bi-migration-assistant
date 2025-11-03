@@ -37,8 +37,7 @@ public class DWContext {
     final Map<String, DWScriptContext> scriptCache = new HashMap<>();
     public boolean isOutputVarSet = false;
     public boolean referringToPayload = false;
-    public boolean alreadyReturned = false;
-    public boolean inDoOnFail = false;
+    public boolean inDefaultAccess = false;
 
     public DWContext(Context toolContext, List<BallerinaModel.Statement> statementList) {
         this.parentStatements = statementList;
@@ -67,14 +66,8 @@ public class DWContext {
                     new BallerinaStatement("json %s = check ctx.%s.ensureType(json);"
                             .formatted(DWUtils.DW_PAYLOAD_IDENTIFIER, DWUtils.DW_PAYLOAD_IDENTIFIER)));
         }
-        if (this.alreadyReturned) {
-            this.currentScriptContext.statements.add(
-                    new BallerinaStatement(this.currentScriptContext.exprBuilder.toString()));
-        } else {
-
-            this.currentScriptContext.statements.add(
-                    new BallerinaStatement("return " + (this.currentScriptContext.exprBuilder + ";")));
-        }
+        this.currentScriptContext.statements.add(
+                new BallerinaStatement("return " + (this.currentScriptContext.exprBuilder + ";")));
         this.currentScriptContext.exprBuilder = new StringBuilder();
     }
 
