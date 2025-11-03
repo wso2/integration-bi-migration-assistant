@@ -131,8 +131,8 @@ public class MuleToBalConverter {
         // Add global listeners
         List<Listener> listeners = new ArrayList<>();
         for (HTTPListenerConfig httpListenerConfig : ctx.currentFileCtx.configs.httpListenerConfigs.values()) {
-            listeners.add(new Listener.HTTPListener(httpListenerConfig.name(),
-                    getAttrValInt(ctx, httpListenerConfig.port()), httpListenerConfig.host()));
+            listeners.add(new Listener.HTTPListener(ConversionUtils.convertToBalIdentifier(httpListenerConfig.name()),
+                            getAttrValInt(ctx, httpListenerConfig.port()), httpListenerConfig.host()));
         }
 
         // Add module vars
@@ -166,7 +166,8 @@ public class MuleToBalConverter {
                         url, getAttrVal(ctx, dbGenericConfig.user()),
                         getAttrVal(ctx, dbGenericConfig.password())));
             }
-            moduleVars.add(new ModuleVar(dbGenericConfig.name(), typeFrom(Constants.JDBC_CLIENT_TYPE), balExpr));
+            moduleVars.add(new ModuleVar(ConversionUtils.convertToBalIdentifier(dbGenericConfig.name()),
+                    typeFrom(Constants.JDBC_CLIENT_TYPE), balExpr));
         }
 
         for (DbTemplateQuery dbTemplateQuery : ctx.currentFileCtx.configs.dbTemplateQueries.values()) {
@@ -427,7 +428,7 @@ public class MuleToBalConverter {
         List<String> pathParams = new ArrayList<>();
         String resourcePath = getBallerinaResourcePath(ctx, httpListener.resourcePath(), pathParams);
         String[] resourceMethodNames = httpListener.allowedMethods();
-        String listenerRef = httpListener.configRef();
+        String listenerRef = ConversionUtils.convertToBalIdentifier(httpListener.configRef());
         HTTPListenerConfig httpListenerConfig = ctx.projectCtx.getHttpListenerConfig(httpListener.configRef());
 
         Comment comment = null;

@@ -522,7 +522,8 @@ public class MuleConfigConverter {
         Map<String, String> queryParams = httpRequest.queryParams();
 
         stmts.add(stmtFrom("\n\n// http client request\n"));
-        stmts.add(stmtFrom(String.format("http:Client %s = check new(%s);", httpRequest.configRef(), url)));
+        String escapedConfigRef = ConversionUtils.convertToBalIdentifier(httpRequest.configRef());
+        stmts.add(stmtFrom(String.format("http:Client %s = check new(%s);", escapedConfigRef, url)));
 
         String headersVar = httpRequest.headersScript()
                 .map(script -> processMapScript(ctx, script, stmts, "headers"))
@@ -543,7 +544,7 @@ public class MuleConfigConverter {
             String pathRepr = buildPathRepresentation(httpRequest.uriParamsScript());
             String queryParamsStr = buildQueryParamsString(httpRequest.queryParamsScript());
             String commentMessage = String.format("Instead try to use %s->%s.%s.%s%s",
-                    clientResultVar, httpRequest.configRef(), pathRepr, method.toLowerCase(), queryParamsStr);
+                    clientResultVar, escapedConfigRef, pathRepr, method.toLowerCase(), queryParamsStr);
             String pathBuilderFn = generateRequestPathBuilder(ctx, commentMessage);
             List<String> params = new ArrayList<>();
             params.add(path);
@@ -559,7 +560,7 @@ public class MuleConfigConverter {
                 callArgs.add(headersVar);
             }
             stmts.add(stmtFrom("%s %s = check %s->%s(%s);".formatted(Constants.HTTP_RESPONSE_TYPE,
-                    clientResultVar, httpRequest.configRef(), method.toLowerCase(), String.join(", ", callArgs))));
+                    clientResultVar, escapedConfigRef, method.toLowerCase(), String.join(", ", callArgs))));
         } else {
             // Build HTTP request parameters
             List<String> params = new ArrayList<>();
@@ -578,9 +579,8 @@ public class MuleConfigConverter {
             }
 
             stmts.add(stmtFrom("%s %s = check %s->%s.%s(%s);".formatted(Constants.HTTP_RESPONSE_TYPE,
-                    clientResultVar, httpRequest.configRef(), path, method.toLowerCase(), String.join(", ", params))));
+                    clientResultVar, escapedConfigRef, path, method.toLowerCase(), String.join(", ", params))));
         }
-
         stmts.add(stmtFrom(String.format("%s.payload = check %s.getJsonPayload();",
                 Constants.CONTEXT_REFERENCE, clientResultVar)));
         return new WorkerStatementResult(stmts);
@@ -693,9 +693,10 @@ public class MuleConfigConverter {
                 "`%s`".formatted(database.query()))));
 
         String dbStreamVarName = Constants.VAR_DB_STREAM_TEMPLATE.formatted(ctx.projectCtx.counters.dbStreamVarCount++);
+        String escapedDbConfigRef = ConversionUtils.convertToBalIdentifier(database.configRef());
         stmts.add(stmtFrom("%s %s= %s->query(%s);"
                 .formatted(Constants.DB_QUERY_DEFAULT_TEMPLATE.formatted(streamConstraintType),
-                        dbStreamVarName, database.configRef(), dbQueryVarName)));
+                        dbStreamVarName, escapedDbConfigRef, dbQueryVarName)));
 
         if (!database.unsupportedBlocks().isEmpty()) {
             stmts.add(stmtFrom(convertToUnsupportedTODO(ctx, database.unsupportedBlocks())));
