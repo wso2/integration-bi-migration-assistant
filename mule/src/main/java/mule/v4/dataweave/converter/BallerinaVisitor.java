@@ -239,6 +239,21 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     }
 
     @Override
+    public Void visitSelectorExpressionWrapperWithDefault(
+            DataWeaveParser.SelectorExpressionWrapperWithDefaultContext ctx) {
+        dwContext.append("do { \n return check ");
+        dwContext.inDoOnFail = true;
+        dwContext.currentScriptContext.containsCheck = true;
+        visit(ctx.primaryExpression());
+        visit(ctx.selectorExpression());
+        dwContext.append(";} on fail { \n return ");
+        visit(ctx.expression());
+        dwContext.append(";}");
+        dwContext.alreadyReturned = true;
+        return null;
+    }
+
+    @Override
     public Void visitArray(DataWeaveParser.ArrayContext ctx) {
         List<String> elements = new ArrayList<>();
         for (var expr : ctx.expression()) {
@@ -823,7 +838,9 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     @Override
     public Void visitSingleValueSelector(DataWeaveParser.SingleValueSelectorContext ctx) {
         dwContext.append(".").append(ctx.IDENTIFIER().getText());
-        dwContext.addCheckExpr();
+        if (!dwContext.inDoOnFail) {
+            dwContext.addCheckExpr();
+        }
         stats.record(DWConstruct.SINGLE_VALUE_SELECTOR, true);
         return null;
     }
