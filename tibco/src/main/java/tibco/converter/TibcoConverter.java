@@ -215,9 +215,10 @@ public class TibcoConverter {
         Logger logger = verbose ? createVerboseLogger("migrate-tibco") : createDefaultLogger("migrate-tibco");
         Consumer<String> stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         Consumer<String> logCallback = LoggingUtils.wrapLoggerForLogCallback(logger);
+        String escapedOrgName = common.ConversionUtils.escapeIdentifier(orgName.orElse("converter"));
         ConversionContext context =
-                new ConversionContext(orgName.orElse("converter"), dryRun, keepStructure,
-                        stateCallback, logCallback);
+                new ConversionContext(escapedOrgName, dryRun, keepStructure,
+                                stateCallback, logCallback);
         Path inputPath = null;
         try {
             inputPath = Paths.get(sourcePath).toRealPath();
@@ -263,7 +264,8 @@ public class TibcoConverter {
                             childOutputPath = childDir + "_converted";
                         }
                         String finalProjectName = projectName.orElse(childName);
-                        ProjectConversionContext context = new ProjectConversionContext(cx, finalProjectName);
+                        String escapedProjectName = common.ConversionUtils.escapeIdentifier(finalProjectName);
+                        ProjectConversionContext context = new ProjectConversionContext(cx, escapedProjectName);
 
                         projectInfoList.add(new ProjectInfo(
                                 childDir.toString(),
@@ -421,7 +423,8 @@ public class TibcoConverter {
             return Optional.empty();
         }
         String finalProjectName = projectName.orElse(inputPath.getFileName().toString());
-        ProjectConversionContext context = new ProjectConversionContext(cx, finalProjectName);
+        String escapedProjectName = common.ConversionUtils.escapeIdentifier(finalProjectName);
+        ProjectConversionContext context = new ProjectConversionContext(cx, escapedProjectName);
 
         String projectPath;
         String targetPath;
