@@ -295,12 +295,13 @@ public class ConversionUtils {
 
     private static String processPropertyName(Context ctx, String propertyName) {
         String configVarName = propertyName.replace('.', '_');
-        if (!ctx.projectCtx.configurableVarExists(configVarName)) {
-            var configVarDecl = new ModuleVar(configVarName, "string", Optional.of(exprFrom("?")), false, true);
-            ctx.currentFileCtx.configs.configurableVars.put(configVarName, configVarDecl);
+        String escapedConfigVarName = convertToBalIdentifier(configVarName);
+        if (!ctx.projectCtx.configurableVarExists(escapedConfigVarName)) {
+            var configVarDecl = new ModuleVar(escapedConfigVarName, "string", Optional.of(exprFrom("?")), false, true);
+            ctx.currentFileCtx.configs.configurableVars.put(escapedConfigVarName, configVarDecl);
         }
 
-        return configVarName;
+        return escapedConfigVarName;
     }
 
     public static String getAttrVal(Context ctx, String propValue) {

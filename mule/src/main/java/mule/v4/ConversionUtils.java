@@ -293,17 +293,19 @@ public class ConversionUtils {
 
     public static String processPropertyName(Context ctx, String propertyName) {
         String configVarName = propertyName.replace('.', '_');
-        if (!ctx.projectCtx.configurableVarExists(configVarName)) {
+        String escapedConfigVarName = convertToBalIdentifier(configVarName);
+        if (!ctx.projectCtx.configurableVarExists(escapedConfigVarName)) {
             addConfigVarEntry(ctx, configVarName, null);
         }
 
-        return configVarName;
+        return escapedConfigVarName;
     }
 
     public static void addConfigVarEntry(Context ctx, String varName, String varValue) {
+        String escapedVarName = convertToBalIdentifier(varName);
         String valueExpr = varValue == null ? "?" : "\"%s\"".formatted(varValue);
-        var configVarDecl = new ModuleVar(varName, "string", Optional.of(exprFrom(valueExpr)), false, true);
-        ctx.currentFileCtx.balConstructs.configurableVars.put(varName, configVarDecl);
+        var configVarDecl = new ModuleVar(escapedVarName, "string", Optional.of(exprFrom(valueExpr)), false, true);
+        ctx.currentFileCtx.balConstructs.configurableVars.put(escapedVarName, configVarDecl);
     }
 
     public static String getAttrVal(Context ctx, String propValue) {

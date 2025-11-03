@@ -441,12 +441,13 @@ public class MuleConfigConverter {
         Map<String, String> queryParams = httpRequest.queryParams();
 
         stmts.add(stmtFrom("\n\n// http client request\n"));
-        stmts.add(stmtFrom(String.format("http:Client %s = check new(\"%s\");", httpRequest.configRef(), url)));
+        String escapedConfigRef = ConversionUtils.convertToBalIdentifier(httpRequest.configRef());
+        stmts.add(stmtFrom(String.format("http:Client %s = check new(\"%s\");", escapedConfigRef, url)));
         String clientResultVar = String.format(Constants.VAR_CLIENT_RESULT_TEMPLATE,
                 ctx.projectCtx.counters.clientResultVarCount++);
         stmts.add(stmtFrom("%s %s = check %s->%s.%s(%s);".formatted(Constants.HTTP_RESPONSE_TYPE,
-                clientResultVar, httpRequest.configRef(), path, method.toLowerCase(),
-                genQueryParam(ctx, queryParams))));
+                clientResultVar, escapedConfigRef, path, method.toLowerCase(),
+                        genQueryParam(ctx, queryParams))));
         stmts.add(stmtFrom(String.format("%s.payload = check %s.getJsonPayload();",
                 Constants.CONTEXT_REFERENCE, clientResultVar)));
         return stmts;
@@ -466,9 +467,10 @@ public class MuleConfigConverter {
                         : String.format("`%s`", database.query()))));
 
         String dbStreamVarName = Constants.VAR_DB_STREAM_TEMPLATE.formatted(ctx.projectCtx.counters.dbStreamVarCount++);
+        String escapedDbConfigRef = ConversionUtils.convertToBalIdentifier(database.configRef());
         stmts.add(stmtFrom("%s %s= %s->query(%s);"
                 .formatted(Constants.DB_QUERY_DEFAULT_TEMPLATE.formatted(streamConstraintType),
-                        dbStreamVarName, database.configRef(), dbQueryVarName)));
+                        dbStreamVarName, escapedDbConfigRef, dbQueryVarName)));
 
         if (database.kind() == Kind.DB_SELECT) {
             String dbSelectVarName = Constants.VAR_DB_SELECT_TEMPLATE
