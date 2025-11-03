@@ -246,6 +246,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         visit(ctx.selectorExpression());
         dwContext.append(" ?: ");
         visit(ctx.expression());
+        dwContext.inDefaultAccess = false;
         return null;
     }
 
