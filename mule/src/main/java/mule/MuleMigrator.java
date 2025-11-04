@@ -572,7 +572,7 @@ public class MuleMigrator {
         return Map.of("Ballerina.toml", tomlContent.toString());
     }
 
-    private static Map<String, String> genConfigTOMLFile(MuleLogger logger, List<File> yamlFiles,
+    public static Map<String, String> genConfigTOMLFile(MuleLogger logger, List<File> yamlFiles,
                                                          List<File> propertyFiles,
                                                          Set<String> configurableVariableNames) {
         logger.logState("Generating Config.toml file from .yaml and .properties files...");
@@ -618,7 +618,7 @@ public class MuleMigrator {
                     // Only add key if it exists in configurable variable names
                     if (configurableVariableNames != null && configurableVariableNames.contains(escapedKey)) {
                         String value = line.substring(equalsIndex + 1).trim();
-                        tomlContent.append(escapedKey).append(" = \"").append(escapeTomlValue(value)).append("\"\n");
+                        tomlContent.append(escapedKey).append(" = ").append(formatTomlValue(value)).append("\n");
                     }
                 }
             }
@@ -629,6 +629,32 @@ public class MuleMigrator {
 
     private static String escapeTomlValue(String value) {
         return value.replace("\"", "\\\"").replace("\\", "\\\\");
+    }
+
+    /**
+     * Checks if a value needs to be written as a TOML multi-line string block.
+     * Values containing double quotes or newlines should use string blocks for
+     * better readability.
+     *
+     * @param value The value to check
+     * @return true if the value should use string block format, false otherwise
+     */
+    private static boolean needsStringBlock(String value) {
+        return value.contains("\"") || value.contains("\n") || value.contains("\r");
+    }
+
+    /**
+     * Formats a TOML value, using string block format if needed.
+     *
+     * @param value The value to format
+     * @return The formatted TOML value (either as regular string or string block)
+     */
+    private static String formatTomlValue(String value) {
+        if (needsStringBlock(value)) {
+            return "\"\"\"" + value + "\"\"\"";
+        } else {
+            return "\"" + escapeTomlValue(value) + "\"";
+        }
     }
 
     public static void processYamlFile(MuleLogger logger, File yamlFile, StringBuilder tomlContent,
@@ -666,8 +692,9 @@ public class MuleMigrator {
                         String escapedListKey = common.ConversionUtils.convertToBalIdentifier(listKey);
                         // Only add key if it exists in configurable variable names
                         if (configurableVariableNames != null && configurableVariableNames.contains(escapedListKey)) {
-                            String listValue = escapeTomlValue(String.valueOf(listItem));
-                            tomlContent.append(escapedListKey).append(" = \"").append(listValue).append("\"\n");
+                            String listValue = String.valueOf(listItem);
+                            tomlContent.append(escapedListKey).append(" = ").append(formatTomlValue(listValue))
+                                    .append("\n");
                         }
                     }
                 }
@@ -675,8 +702,8 @@ public class MuleMigrator {
                 String escapedFullKey = common.ConversionUtils.convertToBalIdentifier(fullKey);
                 // Only add key if it exists in configurable variable names
                 if (configurableVariableNames != null && configurableVariableNames.contains(escapedFullKey)) {
-                    String tomlValue = escapeTomlValue(String.valueOf(value));
-                    tomlContent.append(escapedFullKey).append(" = \"").append(tomlValue).append("\"\n");
+                    String tomlValue = String.valueOf(value);
+                    tomlContent.append(escapedFullKey).append(" = ").append(formatTomlValue(tomlValue)).append("\n");
                 }
             }
         }

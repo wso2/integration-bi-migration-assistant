@@ -17,17 +17,26 @@
  */
 package mule.v4;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import mule.MuleMigrator;
 import mule.common.MuleLogger;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.testng.Assert.assertEquals;
 
@@ -268,5 +277,72 @@ public class YamlToTomlConverterTest {
         Path file = tempDir.resolve(filename);
         Files.writeString(file, content);
         return file;
+    }
+
+    @Test(dataProvider = "configTomlTestData")
+    public void testGenConfigTOMLFile(String testCaseName) throws IOException {
+        Path testCaseDir = getTestCasePath(testCaseName);
+
+        // 1. Load variables.json to get Set<String> of configurable variable names
+        Set<String> configurableVars = loadVariableNames(testCaseDir);
+
+        // 2. Collect YAML and properties files from test directory
+        List<File> yamlFiles = collectFiles(testCaseDir, "*.yaml");
+        List<File> propertyFiles = collectFiles(testCaseDir, "*.properties");
+
+        // 3. Call genConfigTOMLFile
+        MuleLogger logger = new MuleLogger(false);
+        Map<String, String> result = MuleMigrator.genConfigTOMLFile(
+                logger, yamlFiles, propertyFiles, configurableVars);
+
+        // 4. Read expected output
+        String expected = Files.readString(testCaseDir.resolve("expected-Config.toml"));
+
+        // 5. Assert
+        assertEquals(result.get("Config.toml"), expected,
+                "Config.toml mismatch for test case: " + testCaseName);
+    }
+
+    @DataProvider(name = "configTomlTestData")
+    public Object[][] configTomlTestData() {
+        return new Object[][] {
+                {"basic-values"},
+                {"values-with-quotes"},
+                {"multiline-values"},
+                {"values-with-backslashes"},
+                {"variable-filtering"},
+                {"mixed-yaml-properties"},
+                {"nested-yaml"},
+                {"yaml-arrays"},
+                {"yaml-multiline-strings"}
+        };
+    }
+
+    private Path getTestCasePath(String testCaseName) {
+        return Paths.get("src", "test", "resources", "mule", "v4", "config-generation", testCaseName);
+    }
+
+    private Set<String> loadVariableNames(Path testCaseDir) throws IOException {
+        Path variablesJsonPath = testCaseDir.resolve("variables.json");
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        List<String> variableList = objectMapper.readValue(
+                variablesJsonPath.toFile(),
+                new TypeReference<List<String>>() { }
+        );
+
+        return new HashSet<>(variableList);
+    }
+
+    private List<File> collectFiles(Path directory, String pattern) throws IOException {
+        List<File> files = new ArrayList<>();
+        String regex = pattern.replace("*", ".*");
+
+        try (Stream<Path> paths = Files.list(directory)) {
+            paths.filter(path -> path.getFileName().toString().matches(regex))
+                    .forEach(path -> files.add(path.toFile()));
+        }
+
+        return files;
     }
 }

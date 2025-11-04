@@ -287,9 +287,13 @@ public class ConversionUtils {
 
     public static void addConfigVarEntry(Context ctx, String varName, String varValue) {
         String escapedVarName = convertToBalIdentifier(varName);
-        String valueExpr = varValue == null ? "?" : "\"%s\"".formatted(varValue);
+        String valueExpr = requiredConfigValue(varValue) ? "?" : "\"%s\"".formatted(varValue);
         var configVarDecl = new ModuleVar(escapedVarName, "string", Optional.of(exprFrom(valueExpr)), false, true);
         ctx.addConfigurableVar(escapedVarName, configVarDecl);
+    }
+
+    private static boolean requiredConfigValue(String varValue) {
+        return varValue == null || varValue.startsWith("${");
     }
 
     public static String getAttrVal(Context ctx, String propValue) {
