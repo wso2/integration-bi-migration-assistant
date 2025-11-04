@@ -33,6 +33,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -245,7 +246,7 @@ public class Context extends ContextBase {
         public final HashSet<Import> imports = new LinkedHashSet<>();
         public final HashMap<String, ModuleTypeDef> typeDefs = new LinkedHashMap<>();
         public final HashMap<String, ModuleVar> moduleVars = new LinkedHashMap<>();
-        public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
+        private final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
         public final HashMap<String, Function> commonFunctions = new LinkedHashMap<>();
         // TODO: merge `commonFunctions` and `functions`
         public final List<Function> functions = new ArrayList<>();
@@ -255,6 +256,14 @@ public class Context extends ContextBase {
             projCtx.configurableVarMaps.add(configurableVars);
             projCtx.typeDefMaps.add(typeDefs);
             projCtx.functionMaps.add(commonFunctions);
+        }
+
+        void addConfigurableVar(String varName, ModuleVar var) {
+            configurableVars.put(varName, var);
+        }
+
+        Collection<ModuleVar> getConfigurableVars() {
+            return configurableVars.values();
         }
     }
 
@@ -295,6 +304,14 @@ public class Context extends ContextBase {
                 .map(ignored -> new MultiRootContext.LookupResult(getOrgName(), getProjectName(),
                         mule.v4.ConversionUtils.convertToBalIdentifier(flowName)))
                 .findFirst();
+    }
+
+    public void addConfigurableVar(String varName, ModuleVar var) {
+        this.currentFileCtx.balConstructs.addConfigurableVar(varName, var);
+    }
+
+    public Collection<ModuleVar> getConfigurableVars() {
+        return this.currentFileCtx.balConstructs.getConfigurableVars();
     }
 
     public static class Counters {

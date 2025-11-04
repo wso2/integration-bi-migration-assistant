@@ -32,6 +32,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -229,7 +230,7 @@ public class Context extends ContextBase {
         public final HashMap<String, DbOracleConfig> dbOracleConfigs = new LinkedHashMap<>();
         public final HashMap<String, DbGenericConfig> dbGenericConfigs = new LinkedHashMap<>();
         public final HashMap<String, DbTemplateQuery> dbTemplateQueries = new LinkedHashMap<>();
-        public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
+        private final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
         public final List<MuleImport> imports = new ArrayList<>();
         public final List<MuleRecord> globalExceptionStrategies = new ArrayList<>();
         public final List<UnsupportedBlock> unsupportedBlocks = new ArrayList<>();
@@ -242,6 +243,14 @@ public class Context extends ContextBase {
             projCtx.dbGenericConfigMaps.add(dbGenericConfigs);
             projCtx.dbTemplateQueryMaps.add(dbTemplateQueries);
             projCtx.configurableVarMaps.add(configurableVars);
+        }
+
+        void addConfigurableVar(String varName, ModuleVar var) {
+            configurableVars.put(varName, var);
+        }
+
+        Collection<ModuleVar> getConfigurableVars() {
+            return configurableVars.values();
         }
     }
 
@@ -289,6 +298,14 @@ public class Context extends ContextBase {
                 .map(ignored -> new MultiRootContext.LookupResult(getOrgName(), getProjectName(),
                         mule.v3.ConversionUtils.convertToBalIdentifier(flowName)))
                 .findFirst();
+    }
+
+    public void addConfigurableVar(String varName, ModuleVar var) {
+        this.currentFileCtx.configs.addConfigurableVar(varName, var);
+    }
+
+    public Collection<ModuleVar> getConfigurableVars() {
+        return this.currentFileCtx.configs.getConfigurableVars();
     }
 
     public static class Counters {

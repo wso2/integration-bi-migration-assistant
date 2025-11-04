@@ -298,7 +298,7 @@ public class ConversionUtils {
         String escapedConfigVarName = convertToBalIdentifier(configVarName);
         if (!ctx.projectCtx.configurableVarExists(escapedConfigVarName)) {
             var configVarDecl = new ModuleVar(escapedConfigVarName, "string", Optional.of(exprFrom("?")), false, true);
-            ctx.currentFileCtx.configs.configurableVars.put(escapedConfigVarName, configVarDecl);
+            ctx.addConfigurableVar(escapedConfigVarName, configVarDecl);
         }
 
         return escapedConfigVarName;

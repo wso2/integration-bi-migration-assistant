@@ -305,7 +305,7 @@ public class ConversionUtils {
         String escapedVarName = convertToBalIdentifier(varName);
         String valueExpr = varValue == null ? "?" : "\"%s\"".formatted(varValue);
         var configVarDecl = new ModuleVar(escapedVarName, "string", Optional.of(exprFrom(valueExpr)), false, true);
-        ctx.currentFileCtx.balConstructs.configurableVars.put(escapedVarName, configVarDecl);
+        ctx.addConfigurableVar(escapedVarName, configVarDecl);
     }
 
     public static String getAttrVal(Context ctx, String propValue) {
