@@ -23,11 +23,13 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.ModuleTypeDef;
+import static common.BallerinaModel.ModuleVar;
 
 public abstract class ContextBase {
 
@@ -107,4 +109,11 @@ public abstract class ContextBase {
     public abstract Optional<String> getFlowFuncRef(String flowName);
 
     public abstract Optional<MultiRootContext.LookupResult> lookupResultFlowFunc(String flowName);
+
+    /**
+     * Returns all configurable module variables created during conversion.
+     *
+     * @return Collection of configurable ModuleVars
+     */
+    public abstract Collection<ModuleVar> getConfigurableVars();
 }

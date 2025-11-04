@@ -42,6 +42,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static common.BallerinaModel.Function;
@@ -310,8 +311,11 @@ public class Context extends ContextBase {
         this.currentFileCtx.balConstructs.addConfigurableVar(varName, var);
     }
 
+    @Override
     public Collection<ModuleVar> getConfigurableVars() {
-        return this.currentFileCtx.balConstructs.getConfigurableVars();
+        return projectCtx.configurableVarMaps.stream()
+                .flatMap(map -> map.values().stream())
+                .collect(Collectors.toList());
     }
 
     public static class Counters {
