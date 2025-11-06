@@ -403,9 +403,14 @@ public class MuleConfigConverter {
 
     private static WorkerStatementResult convertFlowReference(Context ctx, FlowReference flowReference) {
         String flowName = flowReference.flowName();
-        String funcRef = ConversionUtils.convertToBalIdentifier(flowName);
+        List<Statement> statements = new ArrayList<>();
+        String funcRef = ctx.getFlowFuncRef(flowName).orElseGet(() -> {
+            statements.add(new Statement.Comment("FIXME: failed to find flow %s".formatted(flowName)));
+            return flowName;
+        });
         var stmt = stmtFrom(String.format("%s(%s);", funcRef, Constants.CONTEXT_REFERENCE));
-        return new WorkerStatementResult(List.of(stmt));
+        statements.add(stmt);
+        return new WorkerStatementResult(statements);
     }
 
     private static WorkerStatementResult convertObjectToJson(Context ctx, ObjectToJson objectToJson) {

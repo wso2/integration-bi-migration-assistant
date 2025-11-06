@@ -24,8 +24,8 @@ import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.common.ContextBase;
 import mule.common.MigrationResult;
 import mule.common.MuleLogger;
-import mule.common.MuleXMLNavigator;
 import mule.common.MultiMigrationResult;
+import mule.common.MultiRootContext;
 import mule.common.ProjectMigrationResult;
 import mule.common.report.AggregateReportGenerator;
 import mule.common.report.IndividualReportGenerator;
@@ -57,10 +57,6 @@ import static mule.MigratorUtils.createDirectories;
 import static mule.MigratorUtils.getImmediateSubdirectories;
 import static mule.common.report.IndividualReportGenerator.INDIVIDUAL_REPORT_NAME;
 import static mule.common.report.IndividualReportGenerator.getProjectMigrationStats;
-import static mule.v3.MuleToBalConverter.convertXMLFileToBir;
-import static mule.v4.MuleToBalConverter.convertXMLFileToBir;
-import static mule.v3.MuleToBalConverter.createContextTypeDefns;
-import static mule.v4.MuleToBalConverter.createContextTypeDefns;
 import static mule.v4.MuleToBalConverter.createTextDocument;
 
 public class MuleMigrator {
@@ -88,6 +84,7 @@ public class MuleMigrator {
         }
     }
 
+    @SuppressWarnings("unused")
     public static Map<String, Object> migrateMule(Map<String, Object> parameters) {
         try {
             String orgName = validateAndGetString(parameters, "orgName");
@@ -216,8 +213,16 @@ public class MuleMigrator {
         Path sourcePath = Paths.get(inputPathArg);
         if (Files.isDirectory(sourcePath)) {
             logger.logInfo("Source path is a Mule project directory: '" + sourcePath + "'");
-            convertMuleProject(logger, result, inputPathArg, outputPathArg, orgNameArg, projectNameArg, muleVersion,
-                    dryRun, keepStructure, false);
+            ContextBase ctx = createProjectContext(logger, result, inputPathArg, outputPathArg, orgNameArg,
+                    projectNameArg, muleVersion, dryRun, keepStructure, false, null);
+            if (ctx != null) {
+                try {
+                    parseMuleProject(ctx);
+                    generateCodeFromParsedProject(ctx);
+                } catch (Exception e) {
+                    logger.logSevere("Unrecoverable error while migrating %s".formatted(sourcePath));
+                }
+            }
         } else if (Files.isRegularFile(sourcePath) && inputPathArg.endsWith(".xml")) {
             logger.logInfo("Source path is a Mule XML file: '" + sourcePath + "'");
             convertMuleXmlFile(logger, result, inputPathArg, outputPathArg, orgNameArg, projectNameArg, muleVersion,
@@ -281,20 +286,41 @@ public class MuleMigrator {
             logger.logInfo("Using specified Mule version: " + muleVersion);
         }
 
-        List<ProjectMigrationResult> projResultList = new ArrayList<>();
+        List<ContextBase> projectContexts = new ArrayList<>();
+        MultiRootContext multiRootContext = new MultiRootContext();
+
+        // Phase 1: Parse all projects
         for (Path projectDir : projectDirectories) {
-            logger.logState("Converting Mule project: " + projectDir);
+            logger.logState("Parsing Mule project: " + projectDir);
             ProjectMigrationResult projResult = new ProjectMigrationResult();
-            projResultList.add(projResult);
             try {
-                convertMuleProject(logger, projResult, projectDir.toString(), outputPathArg, null, null, muleVersion,
-                        dryRun, keepStructure, true);
-                logger.logState("Completed converting Mule project: " + projectDir);
+                ContextBase ctx = createProjectContext(logger, projResult, projectDir.toString(), outputPathArg, null,
+                        null, muleVersion, dryRun, keepStructure, true, multiRootContext);
+                if (ctx != null) {
+                    parseMuleProject(ctx);
+                    projectContexts.add(ctx);
+                    logger.logState("Completed parsing Mule project: " + projectDir);
+                }
             } catch (Exception e) {
-                logger.logSevere("Error converting Mule project " + projectDir + ": " + e.getMessage());
+                logger.logSevere("Error parsing Mule project " + projectDir + ": " + e.getMessage());
             }
         }
 
+        // Phase 2: Generate code for all parsed projects
+        for (ContextBase ctx : projectContexts) {
+            try {
+                logger.logState("Generating code for Mule project: " + ctx.sourceName);
+                generateCodeFromParsedProject(ctx);
+                logger.logState("Completed converting Mule project: " + ctx.sourceName);
+            } catch (Exception e) {
+                logger.logSevere("Error generating code for Mule project " + ctx.sourceName + ": " + e.getMessage());
+            }
+        }
+
+        List<ProjectMigrationResult> projResultList = projectContexts.stream()
+                .map(ctx -> ctx.result)
+                .filter(result -> result.getMigrationStats() != null)
+                .toList();
         multiResult.setMigrationResults(projResultList);
         String aggregateReport = AggregateReportGenerator.generateHtmlReport(logger, projResultList, targetPath,
                 dryRun);
@@ -302,10 +328,11 @@ public class MuleMigrator {
         logger.logState("Completed converting Mule projects via multi-root mode");
     }
 
-    private static void convertMuleProject(MuleLogger logger, ProjectMigrationResult result, String inputPathArg,
-                                           String outputPathArg, String orgNameArg, String projectNameArg,
-                                           Integer muleVersion,
-                                           boolean dryRun, boolean keepStructure, boolean multiRoot) {
+    private static ContextBase createProjectContext(MuleLogger logger, ProjectMigrationResult result,
+                                                    String inputPathArg, String outputPathArg, String orgNameArg,
+                                                    String projectNameArg, Integer muleVersion, boolean dryRun,
+                                                    boolean keepStructure, boolean multiRoot,
+                                                    MultiRootContext multiRootContext) {
         Path sourcePath = Path.of(inputPathArg);
         Path targetPath = outputPathArg != null ? Path.of(outputPathArg) : sourcePath;
         result.setTargetPath(targetPath);
@@ -346,7 +373,7 @@ public class MuleMigrator {
         collectXmlFiles(muleXmlConfigDir.toFile(), xmlFiles);
         if (xmlFiles.isEmpty()) {
             result.setFatalError("No XML files found in the directory: " + muleXmlConfigDir);
-            return;
+            return null;
         }
 
         List<File> yamlFiles = new ArrayList<>();
@@ -358,9 +385,9 @@ public class MuleMigrator {
         logger.logInfo("Found " + xmlFiles.size() + " .xml files, " + yamlFiles.size() + ".yaml files, and " +
                 propertyFiles.size() + " .properties files.");
 
-
-        convertToBalProject(logger, result, version, xmlFiles, yamlFiles, propertyFiles, muleXmlConfigDir,
-                sourceProjectName, dryRun, keepStructure, multiRoot);
+        ContextBase ctx = getContext(version, xmlFiles, yamlFiles, muleXmlConfigDir, propertyFiles,
+                sourceProjectName, dryRun, keepStructure, logger, result, multiRootContext);
+        return ctx;
     }
 
     private static void convertMuleXmlFile(MuleLogger logger, ProjectMigrationResult result, String inputPathArg,
@@ -388,29 +415,30 @@ public class MuleMigrator {
         }
         result.setMuleVersion(version);
 
-
         File xmlConfigFile = inputXmlFilePath.toFile();
-        convertToBalProject(logger, result, version, Collections.singletonList(xmlConfigFile), Collections.emptyList(),
-                Collections.emptyList(), sourceDir, inputFileName, dryRun, keepStructure, false);
-    }
-
-    private static ContextBase getContext(MuleVersion muleVersion) {
-        if (muleVersion == MuleVersion.MULE_V3) {
-            return new mule.v3.Context();
-        } else if (muleVersion == MuleVersion.MULE_V4) {
-            return new mule.v4.Context();
-        } else {
-            throw new IllegalArgumentException("Unsupported Mule version: " + muleVersion);
+        ContextBase ctx = getContext(version, Collections.singletonList(xmlConfigFile), Collections.emptyList(),
+                sourceDir, Collections.emptyList(), inputFileName, dryRun, keepStructure, logger, result, null);
+        try {
+            parseMuleProject(ctx);
+            generateCodeFromParsedProject(ctx);
+        } catch (Exception ex) {
+            logger.logSevere("Unrecoverable error while converting %s".formatted(xmlConfigFile));
         }
     }
 
-    private static MuleXMLNavigator getXMLNavigator(ContextBase contextBase) {
-        if (contextBase instanceof mule.v3.Context v3Context) {
-            return new MuleXMLNavigator(v3Context.migrationMetrics, mule.v3.model.MuleXMLTag::isCompatible);
-        } else if (contextBase instanceof mule.v4.Context v4Context) {
-            return new MuleXMLNavigator(v4Context.migrationMetrics, mule.v4.model.MuleXMLTag::isCompatible);
+    private static ContextBase getContext(MuleVersion muleVersion, List<File> xmlFiles, List<File> yamlFiles,
+            Path muleAppDir, List<File> propertyFiles, String sourceName,
+                                          boolean dryRun, boolean keepStructure, MuleLogger logger,
+                                          ProjectMigrationResult result,
+                                          MultiRootContext multiRootContext) {
+        if (muleVersion == MuleVersion.MULE_V3) {
+            return new mule.v3.Context(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName,
+                    dryRun, keepStructure, logger, result, multiRootContext);
+        } else if (muleVersion == MuleVersion.MULE_V4) {
+            return new mule.v4.Context(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName,
+                    dryRun, keepStructure, logger, result, multiRootContext);
         } else {
-            throw new IllegalArgumentException("Unsupported context type: " + contextBase.getClass().getName());
+            throw new IllegalArgumentException("Unsupported Mule version: " + muleVersion);
         }
     }
 
@@ -433,90 +461,50 @@ public class MuleMigrator {
                 aggregateReport);
     }
 
-    private static void convertToBalProject(MuleLogger logger, ProjectMigrationResult result, MuleVersion muleVersion,
-                                            List<File> xmlFiles,
-                                            List<File> yamlFiles, List<File> propertyFiles,
-                                            Path muleAppDir, String sourceName,
-                                            boolean dryRun, boolean keepStructure, boolean multiRoot) {
-        logger.logState("Converting Mule XML configs to ballerina intermediate representation...");
-        // 1. Convert xml configs to ballerina-ir
-        ContextBase ctx = getContext(muleVersion);
-        MuleXMLNavigator muleXMLNavigator = getXMLNavigator(ctx);
-        List<TextDocument> birTxtDocs = new ArrayList<>(xmlFiles.size() + 1);
-        for (File xmlFile : xmlFiles) {
-            ctx.startNewFile(xmlFile.getPath());
-            Path relativePath = muleAppDir.relativize(xmlFile.toPath());
-            String balFileName = relativePath.toString().replace(File.separator, ".").replace(".xml", "");
-            TextDocument birTextDoc = genBirFromXMLFile(logger, ctx, muleXMLNavigator, xmlFile, balFileName);
-            if (birTextDoc != null) {
-                birTxtDocs.add(birTextDoc);
-            }
-        }
-        logger.logInfo("Converted " + birTxtDocs.size() + " XML files to Ballerina IR.");
+    private static void parseMuleProject(ContextBase ctx) {
+        ctx.logger.logState("Converting Mule XML configs to ballerina intermediate representation...");
+        ctx.parseAllFiles();
+    }
 
-        TextDocument birTxtDoc = genBirForInternalTypes(logger, ctx);
+    private static void generateCodeFromParsedProject(ContextBase ctx) {
+        List<TextDocument> birTxtDocs = ctx.codeGen();
+        ctx.logger.logInfo("Converted " + birTxtDocs.size() + " XML files to Ballerina IR.");
+
+        TextDocument birTxtDoc = genBirForInternalTypes(ctx.logger, ctx);
         birTxtDocs.add(birTxtDoc);
 
         // 2. Generate migration report
-        ProjectMigrationStats migrationStats = getProjectMigrationStats(muleVersion, ctx.getMigrationMetrics());
-        result.setMigrationStats(migrationStats);
+        ProjectMigrationStats migrationStats = getProjectMigrationStats(ctx.muleVersion, ctx.getMigrationMetrics());
+        ctx.result.setMigrationStats(migrationStats);
 
-        String individualReportHtml = IndividualReportGenerator.generateHtmlReport(logger, migrationStats, muleVersion,
-                dryRun, sourceName);
-        result.setHtmlReport(individualReportHtml);
+        String individualReportHtml = IndividualReportGenerator.generateHtmlReport(ctx.logger, migrationStats,
+                ctx.muleVersion, ctx.dryRun, ctx.sourceName);
+        ctx.result.setHtmlReport(individualReportHtml);
 
         String individualReportJson = IndividualReportGenerator.generateJsonReport(migrationStats);
-        result.setJsonReport(individualReportJson);
+        ctx.result.setJsonReport(individualReportJson);
 
-        if (dryRun) {
-            logger.logState("Dry run completed for project: " + sourceName);
+        if (ctx.dryRun) {
+            ctx.logger.logState("Dry run completed for project: " + ctx.sourceName);
             return;
         }
 
         // 3. Rearrange BIR for BI Structure
-        if (!keepStructure) {
-            logger.logState("Re-arranging BIR files to fit Ballerina Integrator project structure...");
-            birTxtDocs = new BICodeConverter().convert(new BallerinaModel.Module("mock", birTxtDocs)).textDocuments();
+        if (!ctx.keepStructure) {
+            ctx.logger.logState("Re-arranging BIR files to fit Ballerina Integrator project structure...");
+            birTxtDocs =
+                    new BICodeConverter(ctx.getContextImports()).convert(new BallerinaModel.Module("mock", birTxtDocs))
+                            .textDocuments();
         }
 
         // 3. Generate project artifacts and bal files
-        logger.logState("Generate project artifacts and bal files...");
+        ctx.logger.logState("Generate project artifacts and bal files...");
         Map<String, String> allFiles = new HashMap<>();
-        allFiles.putAll(genProjectArtifacts(ctx, logger, result.getOrgName(), result.getProjectName()));
-        allFiles.putAll(genBalFilesFromBir(logger, birTxtDocs));
-        allFiles.putAll(genConfigTOMLFile(logger, yamlFiles, propertyFiles));
+        allFiles.putAll(genProjectArtifacts(ctx, ctx.logger));
+        allFiles.putAll(genBalFilesFromBir(ctx.logger, birTxtDocs));
+        allFiles.putAll(genConfigTOMLFile(ctx.logger, ctx.yamlFiles, ctx.propertyFiles));
         allFiles = Collections.unmodifiableMap(allFiles);
-        result.setFiles(allFiles);
-    }
-
-    /**
-     * Generate and write the Ballerina file from the XML file.
-     *
-     * @param ctx              Context instance
-     * @param muleXMLNavigator MuleXMLNavigator instance to navigate the XML file
-     * @param xmlFile          xml file to be converted
-     * @param balFileName      name of the target Ballerina file (without .bal extension)
-     * @return BalFile instance containing the .bal file information
-     */
-    private static TextDocument genBirFromXMLFile(MuleLogger logger, ContextBase ctx, MuleXMLNavigator muleXMLNavigator,
-                                                  File xmlFile, String balFileName) {
-        logger.logInfo("Converting XML file: " + xmlFile.getName());
-        TextDocument birTextDocument = null;
-        try {
-            if (ctx instanceof mule.v3.Context v3Ctx) {
-                birTextDocument = convertXMLFileToBir(v3Ctx, muleXMLNavigator, xmlFile.getPath(), balFileName);
-            } else if (ctx instanceof mule.v4.Context v4Ctx) {
-                birTextDocument = convertXMLFileToBir(v4Ctx, muleXMLNavigator, xmlFile.getPath(), balFileName);
-            } else {
-                throw new IllegalStateException("Unsupported context type: " + ctx.getClass().getName());
-            }
-        } catch (Exception e) {
-            assert false;
-            logger.logSevere(String.format("Error converting the file to ballerina intermediate representation: " +
-                            "%s%n%s",
-                    xmlFile.getName(), e.getMessage()));
-        }
-        return birTextDocument;
+        ctx.result.setFiles(allFiles);
     }
 
     /**
@@ -528,23 +516,8 @@ public class MuleMigrator {
         // TODO: do we need to consider multi-flow-multi-context scenario?
 
         logger.logInfo("Generating BIR for context type definitions...");
-        List<ModuleTypeDef> contextTypeDefns;
-        List<Import> contextImports = new ArrayList<>(1);
-        if (ctx instanceof mule.v3.Context v3Ctx) {
-            contextTypeDefns = createContextTypeDefns(v3Ctx);
-            if (!v3Ctx.projectCtx.inboundProperties.isEmpty()) {
-                // TODO: at the moment only http provides 'inboundProperties'
-                contextImports.add(new Import("ballerina", "http"));
-            }
-        } else if (ctx instanceof mule.v4.Context v4Ctx) {
-            contextTypeDefns = createContextTypeDefns(v4Ctx);
-            if (!v4Ctx.projectCtx.attributes.isEmpty()) {
-                // TODO: at the moment only http provides 'attributes'
-                contextImports.add(new Import("ballerina", "http"));
-            }
-        } else {
-            throw new IllegalStateException("Unsupported context type: " + ctx.getClass().getName());
-        }
+        List<ModuleTypeDef> contextTypeDefns = ctx.createContextTypeDefns();
+        List<Import> contextImports = ctx.getContextImports();
 
         return createTextDocument(INTERNAL_TYPES_FILE_NAME, contextImports, contextTypeDefns,
                 Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
@@ -569,8 +542,7 @@ public class MuleMigrator {
         return balFiles;
     }
 
-    private static Map<String, String> genProjectArtifacts(ContextBase ctx, MuleLogger logger, String orgName,
-                                                           String projectName) {
+    private static Map<String, String> genProjectArtifacts(ContextBase ctx, MuleLogger logger) {
         logger.logState("Generating Ballerina.toml...");
         String version = "0.1.0";
         String distribution = "2201.12.3";
@@ -581,24 +553,12 @@ public class MuleMigrator {
                 name = "%s"
                 version = "%s"
                 distribution = "%s"
-                
+
                 [build-options]
                 observabilityIncluded = true
-                """.formatted(orgName, projectName, version, distribution));
+                """.formatted(ctx.getOrgName(), ctx.getProjectName(), version, distribution));
 
-        if (ctx instanceof mule.v4.Context v4Ctx) {
-            for (var each : v4Ctx.projectCtx.javaDependencies()) {
-                tomlContent.append("\n");
-                tomlContent.append(each.dependencyParam);
-            }
-        } else if (ctx instanceof mule.v3.Context v3Ctx) {
-            for (var each : v3Ctx.projectCtx.javaDependencies()) {
-                tomlContent.append("\n");
-                tomlContent.append(each.dependencyParam);
-            }
-        } else {
-            throw new IllegalStateException();
-        }
+        ctx.appendJavaDependencies(tomlContent);
 
         return Map.of("Ballerina.toml", tomlContent.toString());
     }

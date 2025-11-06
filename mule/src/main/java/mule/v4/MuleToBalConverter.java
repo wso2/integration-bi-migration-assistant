@@ -22,17 +22,11 @@ import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import mule.common.MuleXMLNavigator;
-import mule.common.MuleXMLNavigator.MuleElement;
 import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.MuleModel.DbGenericConnection;
 import mule.v4.model.MuleModel.Scheduler;
-import mule.v4.model.MuleXMLTag;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
 
-import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -41,10 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 import static common.BallerinaModel.BlockFunctionBody;
 import static common.BallerinaModel.ClassDef;
@@ -84,56 +74,18 @@ import static mule.v4.model.MuleModel.MuleRecord;
 import static mule.v4.model.MuleModel.SubFlow;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
 import static mule.v4.model.MuleModel.VMListener;
-import static mule.v4.reader.MuleConfigReader.readMuleConfigFromRoot;
 
 public class MuleToBalConverter {
 
-    public static SyntaxTree convertStandaloneXMLFileToBallerina(String xmlFilePath) {
-        Context ctx = new Context();
-        ctx.startStandaloneFile(xmlFilePath);
-        MuleXMLNavigator muleXMLNavigator = new MuleXMLNavigator(ctx.migrationMetrics, MuleXMLTag::isCompatible);
-        TextDocument txtDoc = convertXMLFileToBir(ctx, muleXMLNavigator, xmlFilePath, "internal");
+    public static SyntaxTree convertStandaloneXMLFileToBallerina(String xmlFilePath, mule.common.MuleLogger logger) {
+        Context ctx = new Context(List.of(Path.of(xmlFilePath).toFile()), List.of(), logger);
+        ctx.parseAllFiles();
+        TextDocument txtDoc = ctx.codeGen().getFirst();
         return new CodeGenerator(txtDoc).generateSyntaxTree();
     }
 
-    public static TextDocument convertXMLFileToBir(Context ctx, MuleXMLNavigator muleXMLNavigator, String xmlFilePath,
-                                                   String balFileName) {
-        return getTextDocument(muleXMLNavigator, ctx, xmlFilePath, balFileName);
-    }
-
-    private static TextDocument getTextDocument(MuleXMLNavigator muleXMLNavigator, Context ctx, String xmlFilePath,
-                                                String balFileName) {
-        Element root;
-        try {
-            root = parseMuleXMLConfigurationFile(xmlFilePath);
-        } catch (Exception e) {
-            throw new RuntimeException("Error while parsing the mule XML configuration file: ", e);
-        }
-
-        MuleElement muleRootElement = muleXMLNavigator.createRootMuleElement(root);
-        List<Flow> flows = new ArrayList<>();
-        List<SubFlow> subFlows = new ArrayList<>();
-        readMuleConfigFromRoot(ctx, muleRootElement, flows, subFlows);
-
-        return generateTextDocument(ctx, balFileName, flows, subFlows);
-    }
-
-    private static Element parseMuleXMLConfigurationFile(String uri) throws ParserConfigurationException, SAXException,
-            IOException {
-        // Load the Mule XML file
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setNamespaceAware(true);
-        DocumentBuilder builder = factory.newDocumentBuilder();
-        Document document = builder.parse(uri);
-
-        // Normalize the XML structure
-        document.getDocumentElement().normalize();
-
-        return document.getDocumentElement();
-    }
-
-    private static TextDocument generateTextDocument(Context ctx, String balFileName,
-                                                     List<Flow> flows, List<SubFlow> subFlows) {
+    public static TextDocument generateTextDocument(Context ctx, String balFileName,
+                                                    List<Flow> flows, List<SubFlow> subFlows) {
         List<Service> services = new ArrayList<>();
         Set<Function> functions = new HashSet<>();
         List<ClassDef> classDefs = new ArrayList<>();

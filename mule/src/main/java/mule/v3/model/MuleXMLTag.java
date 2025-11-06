@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 public enum MuleXMLTag implements MuleXMLTagBase {
 
     // Global Elements
+    IMPORT("import", 1),
     HTTP_LISTENER_CONFIG("http:listener-config", 5),
     HTTP_REQUEST_CONFIG("http:request-config", 5),
     DB_MYSQL_CONFIG("db:mysql-config", 4),

@@ -18,6 +18,7 @@
 package mule.v4;
 
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import mule.common.MuleLogger;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -39,7 +40,8 @@ public class TestConverter {
     @Test(description = "Test converting standalone mule xml file")
     public void convertAndPrintMuleXMLFile() {
         OUT.println("Generating Ballerina code...");
-        SyntaxTree syntaxTree = convertStandaloneXMLFileToBallerina("src/test/resources/mule/v4/test_converter.xml");
+        SyntaxTree syntaxTree = convertStandaloneXMLFileToBallerina("src/test/resources/mule/v4/test_converter.xml",
+                new MuleLogger(false));
         OUT.println("________________________________________________________________");
         OUT.println(syntaxTree.toSourceCode());
         OUT.println("________________________________________________________________");
@@ -63,6 +65,13 @@ public class TestConverter {
         deleteDirectoryIfExists("src/test/resources/mule/v4/misc/multi_root_output");
         testConvertingMultiMuleProjects(4, "src/test/resources/mule/v4/projects",
                 "src/test/resources/mule/v4/misc/multi_root_output", false, false);
+    }
+
+    @Test(description = "Test parsing import elements in sharedResources multi-root project")
+    public void testSharedResourcesImportParsing() {
+        deleteDirectoryIfExists("src/test/resources/mule/v4/sharedResources_output");
+        testConvertingMultiMuleProjects(4, "src/test/resources/mule/v4/sharedResources",
+                "src/test/resources/mule/v4/sharedResources_output", false, false);
     }
 
     private void deleteDirectoryIfExists(String first) {
