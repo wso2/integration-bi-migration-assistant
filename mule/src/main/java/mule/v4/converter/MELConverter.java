@@ -26,6 +26,18 @@ import static mule.v4.ConversionUtils.isTokenChar;
 
 public class MELConverter {
 
+    private static String normalize(String melExpr) {
+        String normalizedExpr = melExpr.trim();
+        if (normalizedExpr.startsWith("output")) {
+            int dashIndex = normalizedExpr.indexOf("---");
+            if (dashIndex != -1) {
+                normalizedExpr = normalizedExpr.substring(dashIndex + 3).trim();
+            }
+        }
+        normalizedExpr = normalizedExpr.replace("Mule::p(", "p(");
+        return normalizedExpr;
+    }
+
     /**
      * Converts a MEL expression to a Ballerina expression.
      *
@@ -41,11 +53,11 @@ public class MELConverter {
 
         String melExpr = mel.substring(2, mel.length() - 1).trim();
 
+        melExpr = normalize(melExpr);
         // Handle empty expression
         if (melExpr.isEmpty()) {
             return "";
         }
-
         StringBuilder result = new StringBuilder();
         StringBuilder token = new StringBuilder();
 

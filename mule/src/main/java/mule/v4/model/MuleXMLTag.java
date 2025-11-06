@@ -86,6 +86,7 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     HTTP_REQUEST("http:request", 4),
     HTTP_REQEUST_BUILDER("http:request-builder", 3),
     HTTP_QUERY_PARAM("http:query-param", 2),
+    HTTP_HEADERS("http:headers", 2),
 
     // VM connector
     VM_LISTENER("vm:listener", 5),

@@ -110,9 +110,10 @@ public record MuleModel() {
     }
 
     public record HttpRequest(Kind kind, String configRef, String method, String url, String path,
-                              Map<String, String> queryParams) implements MuleRecord {
-        public HttpRequest(String configRef, String method, String url, String path, Map<String, String> queryParams) {
-            this(Kind.HTTP_REQUEST, configRef, method, url, path, queryParams);
+                              Map<String, String> queryParams, Optional<String> headersScript) implements MuleRecord {
+        public HttpRequest(String configRef, String method, String url, String path, Map<String, String> queryParams,
+                          Optional<String> headersScript) {
+            this(Kind.HTTP_REQUEST, configRef, method, url, path, queryParams, headersScript);
         }
     }
 

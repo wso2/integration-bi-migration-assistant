@@ -305,7 +305,7 @@ public class ConversionUtils {
     }
 
     public static String processPropertyName(Context ctx, String propertyName) {
-        String configVarName = propertyName.replace('.', '_');
+        String configVarName = propertyName.replace('.', '_').replaceAll("::", "_");
         if (!ctx.projectCtx.configurableVarExists(configVarName)) {
             addConfigVarEntry(ctx, configVarName, null);
         }

@@ -56,6 +56,7 @@ import static mule.v4.ConversionUtils.convertToUnsupportedTODO;
 import static mule.v4.ConversionUtils.genQueryParam;
 import static mule.v4.ConversionUtils.getBallerinaClientResourcePath;
 import static mule.v4.ConversionUtils.inferTypeFromBalExpr;
+import static mule.v4.converter.MELConverter.convertMELToBal;
 import static mule.v4.converter.MuleConfigConverter.ConversionResult.FailClauseResult;
 import static mule.v4.converter.MuleConfigConverter.ConversionResult.WorkerStatementResult;
 import static mule.v4.model.MuleModel.Async;
@@ -479,14 +480,41 @@ public class MuleConfigConverter {
 
         stmts.add(stmtFrom("\n\n// http client request\n"));
         stmts.add(stmtFrom(String.format("http:Client %s = check new(\"%s\");", httpRequest.configRef(), url)));
+
+        // Process headers if present
+        String headersVar = null;
+        if (httpRequest.headersScript().isPresent()) {
+            String headersScript = httpRequest.headersScript().get();
+            headersVar = processHeadersScript(ctx, headersScript, stmts);
+        }
+
         String clientResultVar = String.format(Constants.VAR_CLIENT_RESULT_TEMPLATE,
                 ctx.projectCtx.counters.clientResultVarCount++);
-        stmts.add(stmtFrom("%s %s = check %s->%s.%s(%s);".formatted(Constants.HTTP_RESPONSE_TYPE,
-                clientResultVar, httpRequest.configRef(), path, method.toLowerCase(),
-                genQueryParam(ctx, queryParams))));
+
+        // Build HTTP request parameters
+        List<String> params = new ArrayList<>();
+        String queryParamsStr = genQueryParam(ctx, queryParams);
+        if (!queryParamsStr.isEmpty()) {
+            params.add(queryParamsStr);
+        }
+        if (headersVar != null) {
+            params.add(headersVar);
+        }
+
+        String httpCall = "%s %s = check %s->%s.%s(%s);".formatted(Constants.HTTP_RESPONSE_TYPE,
+                clientResultVar, httpRequest.configRef(), path, method.toLowerCase(), String.join(", ", params));
+        stmts.add(stmtFrom(httpCall));
+
         stmts.add(stmtFrom(String.format("%s.payload = check %s.getJsonPayload();",
                 Constants.CONTEXT_REFERENCE, clientResultVar)));
         return new WorkerStatementResult(stmts);
+    }
+
+    private static String processHeadersScript(Context ctx, String script, List<Statement> stmts) {
+        String varName = "_headers_";
+        stmts.add(common.ConversionUtils.stmtFrom(
+                "map<string> %s = %s;".formatted(varName, convertMELToBal(ctx, script, false))));
+        return varName;
     }
 
     private static WorkerStatementResult convertDatabase(Context ctx, Database database) {
