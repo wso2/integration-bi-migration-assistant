@@ -548,8 +548,8 @@ public class AggregateReportTemplate {
                     <div class="estimation-notes">
                   <p><strong>Estimation Scenario:</strong> Time measurement: 1 day = 8 hours, 5 working days = 1 week</p>
                   <ul>
-                    <li>%s days per each new unsupported element code line for analysis, implementation, and testing</li>
-                    <li>%s hour per each repeated unsupported element code line for implementation</li>
+                    <li>%s hours per each new unsupported element code line for analysis, implementation, and testing</li>
+                    <li>%s minutes per each repeated unsupported element code line for implementation</li>
                 <li>%s minutes per each unsupported dataweave code line for translation</li>
                     <li>Assumes medium complexity with moderate implementation challenges</li>
                       </ul>

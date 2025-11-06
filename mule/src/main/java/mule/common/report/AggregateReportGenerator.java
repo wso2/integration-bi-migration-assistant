@@ -23,9 +23,9 @@ import mule.common.ProjectMigrationResult;
 import java.nio.file.Path;
 import java.util.List;
 
-import static mule.common.report.IndividualReportGenerator.AVG_CASE_COMP_TIME_NEW;
-import static mule.common.report.IndividualReportGenerator.AVG_CASE_COMP_TIME_REPEATED;
-import static mule.common.report.IndividualReportGenerator.AVG_CASE_DW_EXPR_TIME;
+import static mule.common.report.IndividualReportGenerator.AVG_CASE_COMP_TIME_NEW_MINUTES;
+import static mule.common.report.IndividualReportGenerator.AVG_CASE_COMP_TIME_REPEATED_MINUTES;
+import static mule.common.report.IndividualReportGenerator.AVG_CASE_DW_EXPR_TIME_MINUTES;
 import static mule.common.report.IndividualReportGenerator.INDIVIDUAL_REPORT_NAME;
 
 /**
@@ -91,14 +91,14 @@ public class AggregateReportGenerator {
                 barColor,                                        // %s - color for coverage bar
                 totalItems,                                      // %d - total items
                 migratableItems,                                 // %d - migratable items
-                        nonMigratableItems, // %d - non-migratable items
-                        totalAverageCaseDays, // %.1f - average case days
+                nonMigratableItems, // %d - non-migratable items
+                totalAverageCaseDays, // %.1f - average case days
                 projectResults.size(),                         // %d - project count again
-                        avgCoverage, // %.0f - avg coverage again
-                        AVG_CASE_COMP_TIME_NEW,
-                        AVG_CASE_COMP_TIME_REPEATED * 8,
-                        AVG_CASE_DW_EXPR_TIME * 8 * 60,
-                        generateProjectCards(projectResults, convertedProjectsDir),
+                avgCoverage, // %.0f - avg coverage again
+                AVG_CASE_COMP_TIME_NEW_MINUTES / 60,
+                AVG_CASE_COMP_TIME_REPEATED_MINUTES,
+                AVG_CASE_DW_EXPR_TIME_MINUTES,
+                generateProjectCards(projectResults, convertedProjectsDir),
                 // html
                 generateFailedElementsRows(projectResults)      // %s - failed elements rows html
         );

@@ -45,6 +45,7 @@ checkstyleMain.exclude("mule/v4/dataweave/parser/*.java")
 // To bypass 120 word limit for html template
 checkstyleMain.exclude("mule/common/report/IndividualReportTemplate.java")
 checkstyleMain.exclude("mule/common/report/AggregateReportTemplate.java")
+checkstyleMain.exclude("mule/common/report/IndividualReportGenerator.java")
 
 spotbugs {
     reportLevel = 'high'

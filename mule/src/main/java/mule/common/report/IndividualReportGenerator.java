@@ -35,19 +35,20 @@ import java.util.function.Function;
 
 public class IndividualReportGenerator {
 
-    // For a new element
-    public static final double BEST_CASE_COMP_TIME_NEW = 1;
-    public static final double AVG_CASE_COMP_TIME_NEW = 2;
-    public static final double WORST_CASE_COMP_TIME_NEW = 3;
+    // Baseline estimates in minutes for a new element
+    public static final double BEST_CASE_COMP_TIME_NEW_MINUTES = 60;
+    public static final double AVG_CASE_COMP_TIME_NEW_MINUTES = 120;
+    public static final double WORST_CASE_COMP_TIME_NEW_MINUTES = 180;
 
-    // For a repeated element
-    public static final double BEST_CASE_COMP_TIME_REPEATED = 0.125; // 1 hour
-    public static final double AVG_CASE_COMP_TIME_REPEATED = 0.25; // 2 hours
-    public static final double WORST_CASE_COMP_TIME_REPEATED = 0.5; // 4 hours
+    // Baseline estimates in minutes for a repeated element
+    public static final double BEST_CASE_COMP_TIME_REPEATED_MINUTES = 7.5;
+    public static final double AVG_CASE_COMP_TIME_REPEATED_MINUTES = 15;
+    public static final double WORST_CASE_COMP_TIME_REPEATED_MINUTES = 30;
 
-    public static final double BEST_DW_EXPR_TIME = 0.5 / 30; // 8 min
-    public static final double AVG_CASE_DW_EXPR_TIME = 1.5 / 60; // 12 min
-    public static final double WORST_CASE_DW_EXPR_TIME = 0.125 / 3; // 20 min
+    // Baseline estimates in minutes for DataWeave expressions
+    public static final double BEST_DW_EXPR_TIME_MINUTES = 1;
+    public static final double AVG_CASE_DW_EXPR_TIME_MINUTES = 1.5;
+    public static final double WORST_CASE_DW_EXPR_TIME_MINUTES = 2.5;
 
     public static final String INDIVIDUAL_REPORT_NAME = "migration_report.html";
     public static final String MIGRATION_SUMMARY_TITLE = "Migration Summary";
@@ -137,9 +138,12 @@ public class IndividualReportGenerator {
         // Generate Manual Work Estimation component
         ReportComponent estimationComponent = generateManualWorkEstimationComponent(
                 pms.bestCaseDays(), pms.averageCaseDays(), pms.worstCaseDays(),
-                        BEST_CASE_COMP_TIME_NEW, BEST_CASE_COMP_TIME_REPEATED, BEST_DW_EXPR_TIME,
-                AVG_CASE_COMP_TIME_NEW, AVG_CASE_COMP_TIME_REPEATED, AVG_CASE_DW_EXPR_TIME,
-                WORST_CASE_COMP_TIME_NEW, WORST_CASE_COMP_TIME_REPEATED, WORST_CASE_DW_EXPR_TIME);
+                BEST_CASE_COMP_TIME_NEW_MINUTES, BEST_CASE_COMP_TIME_REPEATED_MINUTES,
+                BEST_DW_EXPR_TIME_MINUTES,
+                AVG_CASE_COMP_TIME_NEW_MINUTES, AVG_CASE_COMP_TIME_REPEATED_MINUTES,
+                AVG_CASE_DW_EXPR_TIME_MINUTES,
+                WORST_CASE_COMP_TIME_NEW_MINUTES, WORST_CASE_COMP_TIME_REPEATED_MINUTES,
+                WORST_CASE_DW_EXPR_TIME_MINUTES);
 
         return String.format(
                 IndividualReportTemplate.getHtmlTemplate(),
@@ -161,7 +165,7 @@ public class IndividualReportGenerator {
                 dataweaveBarWidth, dataweaveCoverageColor,
                 totalDwConstructs, migratableDwConstructs, nonMigratableDwConstructs,
                 // Manual Work Estimation component
-                        estimationComponent.content(),
+                estimationComponent.content(),
                 // Content sections
                 unsupportedElementsTable,
                 unsupportedBlocksHtml,
@@ -295,23 +299,27 @@ public class IndividualReportGenerator {
 
     private static double calculateBestCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags, int dwExpressions) {
         double repeatedElementTime = failedXMLTags.values().stream().filter(x -> x > 1).mapToInt(x -> x - 1)
-                .mapToDouble(integer -> (integer - 1) * BEST_CASE_COMP_TIME_REPEATED).sum();
-        return failedXMLTags.size() * BEST_CASE_COMP_TIME_NEW + repeatedElementTime + dwExpressions * BEST_DW_EXPR_TIME;
+                .mapToDouble(integer -> (integer - 1) * BEST_CASE_COMP_TIME_REPEATED_MINUTES).sum();
+        double totalMinutes = failedXMLTags.size() * BEST_CASE_COMP_TIME_NEW_MINUTES + repeatedElementTime +
+                dwExpressions * BEST_DW_EXPR_TIME_MINUTES;
+        return totalMinutes / (8 * 60); // Convert minutes to days (8 hours per day, 60 minutes per hour)
     }
 
     private static double calculateAverageCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags,
                                                        int dwExpressions) {
         double repeatedElementTime = failedXMLTags.values().stream().filter(x -> x > 1).mapToInt(x -> x - 1)
-                .mapToDouble(integer -> (integer - 1) * AVG_CASE_COMP_TIME_REPEATED).sum();
-        return failedXMLTags.size() * AVG_CASE_COMP_TIME_NEW + repeatedElementTime +
-                dwExpressions * AVG_CASE_DW_EXPR_TIME;
+                .mapToDouble(integer -> (integer - 1) * AVG_CASE_COMP_TIME_REPEATED_MINUTES).sum();
+        double totalMinutes = failedXMLTags.size() * AVG_CASE_COMP_TIME_NEW_MINUTES + repeatedElementTime +
+                dwExpressions * AVG_CASE_DW_EXPR_TIME_MINUTES;
+        return totalMinutes / (8 * 60); // Convert minutes to days (8 hours per day, 60 minutes per hour)
     }
 
     private static double calculateWorstCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags, int dwExpressions) {
         double repeatedElementTime = failedXMLTags.values().stream().filter(x -> x > 1).mapToInt(x -> x - 1)
-                .mapToDouble(integer -> (integer - 1) * WORST_CASE_COMP_TIME_REPEATED).sum();
-        return failedXMLTags.size() * WORST_CASE_COMP_TIME_NEW + repeatedElementTime +
-                dwExpressions * WORST_CASE_DW_EXPR_TIME;
+                .mapToDouble(integer -> (integer - 1) * WORST_CASE_COMP_TIME_REPEATED_MINUTES).sum();
+        double totalMinutes = failedXMLTags.size() * WORST_CASE_COMP_TIME_NEW_MINUTES + repeatedElementTime +
+                dwExpressions * WORST_CASE_DW_EXPR_TIME_MINUTES;
+        return totalMinutes / (8 * 60); // Convert minutes to days (8 hours per day, 60 minutes per hour)
     }
 
     private static int countUnsupportedDWExpressions(DWConversionStats<? extends DWConstructBase> dwStats) {
@@ -356,36 +364,36 @@ public class IndividualReportGenerator {
                             <ul>
                               <li>Best case scenario:
                                 <ul>
-                    <li>%s day per each new unsupported element code line for analysis,
+                        <li>%s hour per each new unsupported element code line for analysis,
                         implementation, and testing</li>
-                                  <li>%s hour per each repeated unsupported element code line for implementation</li>
+                                      <li>%s minutes per each repeated unsupported element code line for implementation</li>
                                   <li>%s minutes per each unsupported dataweave code line for translation</li>
                                   <li>Assumes minimal complexity and straightforward implementations</li>
                                 </ul>
                               </li>
                               <li>Average case scenario:
                                 <ul>
-                                  <li>%s days per each new unsupported element code line for analysis,
+                                      <li>%s hours per each new unsupported element code line for analysis,
                                       implementation, and testing</li>
-                                  <li>%s hour per each repeated unsupported element code line for implementation</li>
+                                      <li>%s minutes per each repeated unsupported element code line for implementation</li>
                                   <li>%s minutes per each unsupported dataweave code line for translation</li>
                                   <li>Assumes medium complexity with moderate implementation challenges</li>
                                 </ul>
                               </li>
                               <li>Worst case scenario:
                                 <ul>
-                                  <li>%s days per each new unsupported element code line for analysis,
+                                      <li>%s hours per each new unsupported element code line for analysis,
                                       implementation, and testing</li>
-                                  <li>%s hour per each repeated unsupported element code line for implementation</li>
+                                      <li>%s minutes per each repeated unsupported element code line for implementation</li>
                                   <li>%s minutes per each unsupported dataweave code line for translation</li>
                                   <li>Assumes high complexity with significant implementation challenges</li>
                                 </ul>
                               </li>
                             </ul>
                           </div>""",
-                bestCaseCompTimeNew, bestCaseCompTimeRepeated * 8, bestDwExprTime * 8 * 60,
-                        avgCaseCompTimeNew, avgCaseCompTimeRepeated * 8, avgCaseDwExprTime * 8 * 60,
-                worstCaseCompTimeNew, worstCaseCompTimeRepeated * 8, worstCaseDwExprTime * 8 * 60);
+                bestCaseCompTimeNew / 60, bestCaseCompTimeRepeated, bestDwExprTime,
+                avgCaseCompTimeNew / 60, avgCaseCompTimeRepeated, avgCaseDwExprTime,
+                worstCaseCompTimeNew / 60, worstCaseCompTimeRepeated, worstCaseDwExprTime);
 
         return new ReportComponent(content, new Styles(Map.of()));
     }
