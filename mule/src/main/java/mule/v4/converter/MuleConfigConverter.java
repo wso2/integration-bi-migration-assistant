@@ -526,23 +526,26 @@ public class MuleConfigConverter {
         stmts.add(stmtFrom(String.format("http:Client %s = check new(%s);", httpRequest.configRef(), url)));
 
         String headersVar = httpRequest.headersScript()
-                .map(script -> processMapScript(ctx, script, stmts, "_headers_"))
+                .map(script -> processMapScript(ctx, script, stmts, "headers"))
                 .orElse(null);
 
         String uriParamsVar = httpRequest.uriParamsScript()
-                .map(script -> processMapScript(ctx, script, stmts, "_uri_params_"))
+                .map(script -> processMapScript(ctx, script, stmts, "uriParams"))
                 .orElse(null);
 
         String queryParamsVar = httpRequest.queryParamsScript()
-                .map(script -> processMapScript(ctx, script, stmts, "_query_params_"))
+                .map(script -> processMapScript(ctx, script, stmts, "queryParams"))
                 .orElse(null);
 
         String clientResultVar = String.format(Constants.VAR_CLIENT_RESULT_TEMPLATE,
                 ctx.projectCtx.counters.clientResultVarCount++);
 
         if (isConfigurablePath) {
-            // TODO: give a better comment
-            String pathBuilderFn = generateRequestPathBuilder(ctx, "Use a path builder");
+            String pathRepr = buildPathRepresentation(httpRequest.uriParamsScript());
+            String queryParamsStr = buildQueryParamsString(httpRequest.queryParamsScript());
+            String commentMessage = String.format("Instead try to use %s->%s.%s.%s%s",
+                    clientResultVar, httpRequest.configRef(), pathRepr, method.toLowerCase(), queryParamsStr);
+            String pathBuilderFn = generateRequestPathBuilder(ctx, commentMessage);
             List<String> params = new ArrayList<>();
             params.add(path);
             params.add(uriParamsVar != null ? uriParamsVar : "{}");
@@ -586,7 +589,7 @@ public class MuleConfigConverter {
         String uriParam = "uriParams";
         String queryParam = "queryParams";
         List<Statement> body = List.of(common.ConversionUtils.stmtFrom("""
-                // %s
+                \n// TODO: %s
                 string requestPath = %s;
                 foreach var [key, value] in %s.entries() {
                     requestPath = regexp:replaceAll(check regexp:fromString(string `\\{${key}\\}`), requestPath, value);
@@ -611,6 +614,64 @@ public class MuleConfigConverter {
         stmts.add(common.ConversionUtils.stmtFrom(
                 "map<string> %s = %s;".formatted(varName, convertMELToBal(ctx, script, false))));
         return varName;
+    }
+
+    /**
+     * Builds a path representation from URI params script. Extracts keys from the
+     * DataWeave script and formats them as
+     * Ballerina path segments.
+     *
+     * @param uriParamsScript Optional DataWeave script for URI params
+     * @return Path representation like "/[id]" or "/[id]/[name]" or "/" if no URI
+     *         params
+     */
+    private static String buildPathRepresentation(Optional<String> uriParamsScript) {
+        final String basePath = "/basePath/";
+        if (uriParamsScript.isEmpty()) {
+            return basePath;
+        }
+        List<String> keys = extractMapKeys(uriParamsScript.get());
+        if (keys.isEmpty()) {
+            return basePath;
+        }
+        return basePath + String.join("/", keys.stream().map(key -> "[" + key + "]").toList());
+    }
+
+    /**
+     * Builds a query params string representation from query params script.
+     * Extracts keys from the DataWeave script and
+     * formats them as function parameters.
+     *
+     * @param queryParamsScript Optional DataWeave script for query params
+     * @return Query params string like "(language=language)" or "(key1=key1,
+     *         key2=key2)" or empty string
+     */
+    private static String buildQueryParamsString(Optional<String> queryParamsScript) {
+        if (queryParamsScript.isEmpty()) {
+            return "";
+        }
+        List<String> keys = extractMapKeys(queryParamsScript.get());
+        if (keys.isEmpty()) {
+            return "";
+        }
+        return "(" + String.join(", ", keys.stream().map(key -> key + "=" + key).toList()) + ")";
+    }
+
+    /**
+     * Extracts map keys from a DataWeave script by finding "key" : patterns.
+     *
+     * @param script DataWeave script containing a map literal
+     * @return List of extracted keys
+     */
+    private static List<String> extractMapKeys(String script) {
+        List<String> keys = new ArrayList<>();
+        // Pattern to match "key" : in map literals
+        Pattern pattern = Pattern.compile("\"([^\"]+)\"\\s*:");
+        Matcher matcher = pattern.matcher(script);
+        while (matcher.find()) {
+            keys.add(matcher.group(1));
+        }
+        return keys;
     }
 
     private static WorkerStatementResult convertDatabase(Context ctx, Database database) {

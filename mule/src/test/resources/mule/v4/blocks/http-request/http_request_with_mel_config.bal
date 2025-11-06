@@ -12,7 +12,8 @@ configurable string secure_api_port = ?;
 configurable string anypoint_auth_client_id = ?;
 configurable string anypoint_auth_client_secret = ?;
 
-function pathBuilder0(string path, map<string> uriParams, map<string> queryParams) returns string { // Use a path builder
+function pathBuilder0(string path, map<string> uriParams, map<string> queryParams) returns string {
+    // TODO: Instead try to use clientResult0->http_request_config./basePath/[id].get(language=language)
     string requestPath = path;
     foreach var [key, value] in uriParams.entries() {
         requestPath = regexp:replaceAll(check regexp:fromString(string `\{${key}\}`), requestPath, value);
