@@ -107,4 +107,6 @@ public abstract class ContextBase {
     public abstract Optional<String> getFlowFuncRef(String flowName);
 
     public abstract Optional<MultiRootContext.LookupResult> lookupResultFlowFunc(String flowName);
+
+    public abstract void addFunction(common.BallerinaModel.Function function);
 }
