@@ -6,6 +6,7 @@
 - [Concat Object Expression](dataweave-mappings-v4.md#concat-object-expression)
 - [Concat String Expression](dataweave-mappings-v4.md#concat-string-expression)
 - [Date Type Expression](dataweave-mappings-v4.md#date-type-expression)
+- [Default Value Expression](dataweave-mappings-v4.md#default-value-expression)
 - [Filter Value Identifier Expression](dataweave-mappings-v4.md#filter-value-identifier-expression)
 - [Lower Expression](dataweave-mappings-v4.md#lower-expression)
 - [Map Combination Expression](dataweave-mappings-v4.md#map-combination-expression)
@@ -160,6 +161,38 @@ function _dwMethod0_(Context ctx) returns json|error {
         "dateTime": check time:civilFromString("2003-10-01T23:57:59-03:00").ensureType(json),
         "localDateTime": check time:civilFromString("2003-10-01T23:57:59").ensureType(json)
     };
+}
+
+```
+
+## Default Value Expression
+
+**DataWeave Script (transform_message_with_default_value.dwl):**
+```dataweave
+%dw 2.0
+output application/json
+---
+{
+	name: payload.name default "Unknown"
+}
+
+
+```
+
+**Ballerina Output (transform_message_with_default_value.bal):**
+```ballerina
+public type Context record {|
+    anydata payload = ();
+|};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_(ctx);
+    ctx.payload = _dwOutput_;
+}
+
+function _dwMethod0_(Context ctx) returns json|error {
+    json payload = check ctx.payload.ensureType(json);
+    return {"name": check payload?.name ?: "Unknown"};
 }
 
 ```

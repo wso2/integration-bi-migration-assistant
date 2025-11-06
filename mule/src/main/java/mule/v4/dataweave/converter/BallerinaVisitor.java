@@ -239,6 +239,18 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     }
 
     @Override
+    public Void visitSelectorExpressionWrapperWithDefault(
+            DataWeaveParser.SelectorExpressionWrapperWithDefaultContext ctx) {
+        dwContext.inDefaultAccess = true;
+        visit(ctx.primaryExpression());
+        visit(ctx.selectorExpression());
+        dwContext.append(" ?: ");
+        visit(ctx.expression());
+        dwContext.inDefaultAccess = false;
+        return null;
+    }
+
+    @Override
     public Void visitArray(DataWeaveParser.ArrayContext ctx) {
         List<String> elements = new ArrayList<>();
         for (var expr : ctx.expression()) {
@@ -822,7 +834,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitSingleValueSelector(DataWeaveParser.SingleValueSelectorContext ctx) {
-        dwContext.append(".").append(ctx.IDENTIFIER().getText());
+        String access = dwContext.inDefaultAccess ? "?." : ".";
+        dwContext.append(access).append(ctx.IDENTIFIER().getText());
         dwContext.addCheckExpr();
         stats.record(DWConstruct.SINGLE_VALUE_SELECTOR, true);
         return null;

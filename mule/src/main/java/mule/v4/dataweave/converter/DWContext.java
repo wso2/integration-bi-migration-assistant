@@ -37,6 +37,7 @@ public class DWContext {
     final Map<String, DWScriptContext> scriptCache = new HashMap<>();
     public boolean isOutputVarSet = false;
     public boolean referringToPayload = false;
+    public boolean inDefaultAccess = false;
 
     public DWContext(Context toolContext, List<BallerinaModel.Statement> statementList) {
         this.parentStatements = statementList;
@@ -77,7 +78,11 @@ public class DWContext {
     }
 
     public void addCheckExpr() {
-        this.currentScriptContext.exprBuilder.insert(0, "check ");
+        StringBuilder exprBuilder = this.currentScriptContext.exprBuilder;
+        if (exprBuilder.toString().startsWith("check")) {
+            return;
+        }
+        exprBuilder.insert(0, "check ");
         this.currentScriptContext.containsCheck = true;
     }
 

@@ -126,6 +126,7 @@ The migration tool currently supports the following DataWeave transformations fr
 - [Concat Object Expression](docs/dataweave-mappings-v4.md#concat-object-expression)
 - [Concat String Expression](docs/dataweave-mappings-v4.md#concat-string-expression)
 - [Date Type Expression](docs/dataweave-mappings-v4.md#date-type-expression)
+- [Default Value Expression](docs/dataweave-mappings-v4.md#default-value-expression)
 - [Filter Value Identifier Expression](docs/dataweave-mappings-v4.md#filter-value-identifier-expression)
 - [Lower Expression](docs/dataweave-mappings-v4.md#lower-expression)
 - [Map Combination Expression](docs/dataweave-mappings-v4.md#map-combination-expression)

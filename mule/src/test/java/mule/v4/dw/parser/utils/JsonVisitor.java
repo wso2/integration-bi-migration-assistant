@@ -81,6 +81,15 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     }
 
     @Override
+    public JsonNode visitInputDirective(DataWeaveParser.InputDirectiveContext ctx) {
+        ObjectNode directiveNode = objectMapper.createObjectNode();
+        directiveNode.put("type", "Input");
+        directiveNode.put("identifier", ctx.IDENTIFIER().getText());
+        directiveNode.put("input", ctx.MEDIA_TYPE().getText());
+        return directiveNode;
+    }
+
+    @Override
     public JsonNode visitImportDirective(DataWeaveParser.ImportDirectiveContext ctx) {
         ObjectNode directiveNode = objectMapper.createObjectNode();
         directiveNode.put("type", "Import");
@@ -496,6 +505,17 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
         objectNode.put("type", "SelectorExpression");
         objectNode.set("primary", visit(ctx.primaryExpression()));
         objectNode.set("selector", visit(ctx.selectorExpression()));
+        return objectNode;
+    }
+
+    @Override
+    public JsonNode visitSelectorExpressionWrapperWithDefault(
+            DataWeaveParser.SelectorExpressionWrapperWithDefaultContext ctx) {
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put("type", "SelectorExpressionWithDefault");
+        objectNode.set("primary", visit(ctx.primaryExpression()));
+        objectNode.set("selector", visit(ctx.selectorExpression()));
+        objectNode.set("default", visit(ctx.expression()));
         return objectNode;
     }
 

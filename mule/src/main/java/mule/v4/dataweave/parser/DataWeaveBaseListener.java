@@ -497,18 +497,6 @@ public class DataWeaveBaseListener implements DataWeaveListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterObjectExpression(DataWeaveParser.ObjectExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitObjectExpression(DataWeaveParser.ObjectExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterLambdaExpression(DataWeaveParser.LambdaExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -528,6 +516,78 @@ public class DataWeaveBaseListener implements DataWeaveListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitArrayExpression(DataWeaveParser.ArrayExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSelectorExpressionWrapperWithDefault(DataWeaveParser.SelectorExpressionWrapperWithDefaultContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSelectorExpressionWrapperWithDefault(DataWeaveParser.SelectorExpressionWrapperWithDefaultContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterIdentifierExpression(DataWeaveParser.IdentifierExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitIdentifierExpression(DataWeaveParser.IdentifierExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSelectorExpressionWrapper(DataWeaveParser.SelectorExpressionWrapperContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSelectorExpressionWrapper(DataWeaveParser.SelectorExpressionWrapperContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterIndexIdentifierExpression(DataWeaveParser.IndexIdentifierExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitIndexIdentifierExpression(DataWeaveParser.IndexIdentifierExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterGroupedExpression(DataWeaveParser.GroupedExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitGroupedExpression(DataWeaveParser.GroupedExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterObjectExpression(DataWeaveParser.ObjectExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitObjectExpression(DataWeaveParser.ObjectExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -557,18 +617,6 @@ public class DataWeaveBaseListener implements DataWeaveListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterIdentifierExpression(DataWeaveParser.IdentifierExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitIdentifierExpression(DataWeaveParser.IdentifierExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterFunctionCallExpression(DataWeaveParser.FunctionCallExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -576,18 +624,6 @@ public class DataWeaveBaseListener implements DataWeaveListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitFunctionCallExpression(DataWeaveParser.FunctionCallExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterSelectorExpressionWrapper(DataWeaveParser.SelectorExpressionWrapperContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitSelectorExpressionWrapper(DataWeaveParser.SelectorExpressionWrapperContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -605,18 +641,6 @@ public class DataWeaveBaseListener implements DataWeaveListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterIndexIdentifierExpression(DataWeaveParser.IndexIdentifierExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitIndexIdentifierExpression(DataWeaveParser.IndexIdentifierExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterValueIdentifierExpression(DataWeaveParser.ValueIdentifierExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -624,18 +648,6 @@ public class DataWeaveBaseListener implements DataWeaveListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitValueIdentifierExpression(DataWeaveParser.ValueIdentifierExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterGroupedExpression(DataWeaveParser.GroupedExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitGroupedExpression(DataWeaveParser.GroupedExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

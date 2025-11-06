@@ -201,17 +201,18 @@ unaryExpression
 // **Primary Expressions (Highest Precedence)**
 primaryExpression
     : IF LPAREN logicalOrExpression RPAREN logicalOrExpression (ELSE IF LPAREN logicalOrExpression RPAREN logicalOrExpression)* (ELSE logicalOrExpression)?    # ifElseCondition
-    | inlineLambda                           # lambdaExpression
-    | grouped                                # groupedExpression
-    | literal                                # literalExpression
-    | functionCall                           # functionCallExpression
-    | array                                  # arrayExpression
-    | object                                 # objectExpression
-    | builtInFunction                        # builtInFunctionExpression
-    | IDENTIFIER                             # identifierExpression
-    | VALUE_IDENTIFIER                       # valueIdentifierExpression
-    | INDEX_IDENTIFIER                       # indexIdentifierExpression
-    | primaryExpression selectorExpression   # selectorExpressionWrapper
+    | inlineLambda                                              # lambdaExpression
+    | grouped                                                   # groupedExpression
+    | literal                                                   # literalExpression
+    | functionCall                                              # functionCallExpression
+    | array                                                     # arrayExpression
+    | object                                                    # objectExpression
+    | builtInFunction                                           # builtInFunctionExpression
+    | IDENTIFIER                                                # identifierExpression
+    | VALUE_IDENTIFIER                                          # valueIdentifierExpression
+    | INDEX_IDENTIFIER                                          # indexIdentifierExpression
+    | primaryExpression selectorExpression                      # selectorExpressionWrapper
+    | primaryExpression selectorExpression DEFAULT expression   # selectorExpressionWrapperWithDefault
     ;
 
 // Built-in functions
