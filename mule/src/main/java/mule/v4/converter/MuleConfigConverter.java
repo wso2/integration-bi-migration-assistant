@@ -485,7 +485,21 @@ public class MuleConfigConverter {
         String headersVar = null;
         if (httpRequest.headersScript().isPresent()) {
             String headersScript = httpRequest.headersScript().get();
-            headersVar = processHeadersScript(ctx, headersScript, stmts);
+            headersVar = processMapScript(ctx, headersScript, stmts, "_headers_");
+        }
+
+        // Process uri-params if present
+        String uriParamsVar = null;
+        if (httpRequest.uriParamsScript().isPresent()) {
+            String uriParamsScript = httpRequest.uriParamsScript().get();
+            uriParamsVar = processMapScript(ctx, uriParamsScript, stmts, "_uri_params_");
+        }
+
+        // Process query-params if present
+        String queryParamsVar = null;
+        if (httpRequest.queryParamsScript().isPresent()) {
+            String queryParamsScriptText = httpRequest.queryParamsScript().get();
+            queryParamsVar = processMapScript(ctx, queryParamsScriptText, stmts, "_query_params_");
         }
 
         String clientResultVar = String.format(Constants.VAR_CLIENT_RESULT_TEMPLATE,
@@ -500,6 +514,12 @@ public class MuleConfigConverter {
         if (headersVar != null) {
             params.add(headersVar);
         }
+        if (uriParamsVar != null) {
+            params.add(uriParamsVar);
+        }
+        if (queryParamsVar != null) {
+            params.add(queryParamsVar);
+        }
 
         String httpCall = "%s %s = check %s->%s.%s(%s);".formatted(Constants.HTTP_RESPONSE_TYPE,
                 clientResultVar, httpRequest.configRef(), path, method.toLowerCase(), String.join(", ", params));
@@ -510,8 +530,7 @@ public class MuleConfigConverter {
         return new WorkerStatementResult(stmts);
     }
 
-    private static String processHeadersScript(Context ctx, String script, List<Statement> stmts) {
-        String varName = "_headers_";
+    private static String processMapScript(Context ctx, String script, List<Statement> stmts, String varName) {
         stmts.add(common.ConversionUtils.stmtFrom(
                 "map<string> %s = %s;".formatted(varName, convertMELToBal(ctx, script, false))));
         return varName;

@@ -631,6 +631,8 @@ public class MuleConfigReader {
 
         Map<String, String> queryParams = new HashMap<>();
         Optional<String> headersScript = Optional.empty();
+        Optional<String> uriParamsScript = Optional.empty();
+        Optional<String> queryParamsScript = Optional.empty();
 
         // Check for inline DataWeave script (CDATA) in http:request element
         String textContent = element.getTextContent();
@@ -647,13 +649,24 @@ public class MuleConfigReader {
                 if (script != null && !script.trim().isEmpty()) {
                     headersScript = Optional.of(script.trim());
                 }
+            } else if (child.getElement().getTagName().equals(MuleXMLTag.HTTP_URI_PARAMS.tag())) {
+                String script = child.getElement().getTextContent();
+                if (script != null && !script.trim().isEmpty()) {
+                    uriParamsScript = Optional.of(script.trim());
+                }
+            } else if (child.getElement().getTagName().equals(MuleXMLTag.HTTP_QUERY_PARAMS.tag())) {
+                String script = child.getElement().getTextContent();
+                if (script != null && !script.trim().isEmpty()) {
+                    queryParamsScript = Optional.of(script.trim());
+                }
             } else {
                 // TODO: handle all other scenarios
                 throw new UnsupportedOperationException();
             }
         }
 
-        return new HttpRequest(configRef, method, url, path, queryParams, headersScript);
+        return new HttpRequest(configRef, method, url, path, queryParams, headersScript, uriParamsScript,
+                queryParamsScript);
     }
 
     private static void processQueryParams(Map<String, String> queryParams, MuleElement muleElement) {
