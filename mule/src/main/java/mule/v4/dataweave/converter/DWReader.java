@@ -36,6 +36,7 @@ import java.nio.file.Paths;
 import java.util.List;
 
 import static common.BallerinaModel.Statement;
+import static common.ConversionUtils.stmtFrom;
 import static mule.v4.model.MuleModel.SetPayloadElement;
 import static mule.v4.model.MuleModel.SetVariableElement;
 import static mule.v4.model.MuleModel.TransformMessageElement;
@@ -104,6 +105,8 @@ public class DWReader {
                     SetPayloadElement setPayloadElement = (SetPayloadElement) child;
                     addStatementToList(setPayloadElement.script(), setPayloadElement.resource(),
                             context, ctx, DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME, statementList);
+                    statementList.add(stmtFrom("%s.payload = %s;".formatted(Constants.CONTEXT_REFERENCE,
+                            DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME)));
                     break;
                 case DW_SET_VARIABLE:
                     SetVariableElement setVariableElement = (SetVariableElement) child;
@@ -126,6 +129,9 @@ public class DWReader {
                                            List<Statement> statementList) {
         String funcStatement = getFunctionStatement(script, resourcePath, context, ctx, varName);
         statementList.add(new BallerinaStatement(funcStatement));
+        ctx.projectCtx.vars.put(varName, context.currentScriptContext.outputType);
+        statementList.add(stmtFrom(
+                "%s.%s = %s;".formatted(Constants.VARS_FIELD_ACCESS, varName, varName)));
         context.clearScript();
     }
 

@@ -17,19 +17,21 @@
  */
 package mule.v4.converter;
 
+import common.BallerinaModel;
 import common.BallerinaModel.Statement.ForeachStatement;
 import common.BallerinaModel.Statement.ForkStatement;
 import mule.v4.Constants;
 import mule.v4.Context;
 import mule.v4.ConversionUtils;
 import mule.v4.dataweave.converter.DWReader;
-import mule.v4.dataweave.converter.DWUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static common.BallerinaModel.BlockFunctionBody;
 import static common.BallerinaModel.Expression.BallerinaExpression;
@@ -56,6 +58,7 @@ import static mule.v4.ConversionUtils.convertToUnsupportedTODO;
 import static mule.v4.ConversionUtils.genQueryParam;
 import static mule.v4.ConversionUtils.getBallerinaClientResourcePath;
 import static mule.v4.ConversionUtils.inferTypeFromBalExpr;
+import static mule.v4.converter.MELConverter.convertMELToBal;
 import static mule.v4.converter.MuleConfigConverter.ConversionResult.FailClauseResult;
 import static mule.v4.converter.MuleConfigConverter.ConversionResult.WorkerStatementResult;
 import static mule.v4.model.MuleModel.Async;
@@ -470,23 +473,208 @@ public class MuleConfigConverter {
         return new WorkerStatementResult(stmts);
     }
 
+    private static String extractVariables(Context cx, String value) {
+        if (value == null || value.isEmpty()) {
+            return value;
+        }
+
+        // Pattern to match ${...} expressions, including those with :: and other
+        // characters
+        Pattern pattern = Pattern.compile("\\$\\{([^}]+)\\}");
+        Matcher matcher = pattern.matcher(value);
+        StringBuilder result = new StringBuilder();
+        int lastEnd = 0;
+        boolean concat = false;
+        while (matcher.find()) {
+            concat = true;
+            // Add text before the match
+            result.append(value, lastEnd, matcher.start());
+
+            // Extract the variable name (content between ${ and })
+            String variableName = matcher.group(1);
+
+            // Process the variable name using ConversionUtils.processPropertyName
+            String processedName = ConversionUtils.processPropertyName(cx, variableName);
+
+            // Replace with processed variable name
+            result.append("${").append(processedName).append("}");
+
+            lastEnd = matcher.end();
+        }
+
+        // Add remaining text after the last match
+        result.append(value.substring(lastEnd));
+        String body = result.toString();
+        return concat ? "string `%s`".formatted(body) : "\"%s\"".formatted(body);
+    }
+
     private static WorkerStatementResult convertHttpRequest(Context ctx, HttpRequest httpRequest) {
         List<Statement> stmts = new ArrayList<>();
-        String path = getBallerinaClientResourcePath(ctx, httpRequest.path());
+        boolean isConfigurablePath = httpRequest.path().startsWith("${");
+        String path;
+        if (isConfigurablePath) {
+            path = extractVariables(ctx, httpRequest.path());
+        } else {
+            path = getBallerinaClientResourcePath(ctx, httpRequest.path());
+        }
         String method = httpRequest.method();
-        String url = httpRequest.url();
+        String url = extractVariables(ctx, httpRequest.url());
         Map<String, String> queryParams = httpRequest.queryParams();
 
         stmts.add(stmtFrom("\n\n// http client request\n"));
-        stmts.add(stmtFrom(String.format("http:Client %s = check new(\"%s\");", httpRequest.configRef(), url)));
+        stmts.add(stmtFrom(String.format("http:Client %s = check new(%s);", httpRequest.configRef(), url)));
+
+        String headersVar = httpRequest.headersScript()
+                .map(script -> processMapScript(ctx, script, stmts, "headers"))
+                .orElse(null);
+
+        String uriParamsVar = httpRequest.uriParamsScript()
+                .map(script -> processMapScript(ctx, script, stmts, "uriParams"))
+                .orElse(null);
+
+        String queryParamsVar = httpRequest.queryParamsScript()
+                .map(script -> processMapScript(ctx, script, stmts, "queryParams"))
+                .orElse(null);
+
         String clientResultVar = String.format(Constants.VAR_CLIENT_RESULT_TEMPLATE,
                 ctx.projectCtx.counters.clientResultVarCount++);
-        stmts.add(stmtFrom("%s %s = check %s->%s.%s(%s);".formatted(Constants.HTTP_RESPONSE_TYPE,
-                clientResultVar, httpRequest.configRef(), path, method.toLowerCase(),
-                genQueryParam(ctx, queryParams))));
+
+        if (isConfigurablePath) {
+            String pathRepr = buildPathRepresentation(httpRequest.uriParamsScript());
+            String queryParamsStr = buildQueryParamsString(httpRequest.queryParamsScript());
+            String commentMessage = String.format("Instead try to use %s->%s.%s.%s%s",
+                    clientResultVar, httpRequest.configRef(), pathRepr, method.toLowerCase(), queryParamsStr);
+            String pathBuilderFn = generateRequestPathBuilder(ctx, commentMessage);
+            List<String> params = new ArrayList<>();
+            params.add(path);
+            params.add(uriParamsVar != null ? uriParamsVar : "{}");
+            params.add(queryParamsVar != null ? queryParamsVar : "{}");
+            String queryPathVarName = "queryPath";
+
+            stmts.add(stmtFrom(
+                    "string %s = %s(%s);".formatted(queryPathVarName, pathBuilderFn, String.join(", ", params))));
+            List<String> callArgs = new ArrayList<>();
+            callArgs.add(queryPathVarName);
+            if (headersVar != null) {
+                callArgs.add(headersVar);
+            }
+            stmts.add(stmtFrom("%s %s = check %s->%s(%s);".formatted(Constants.HTTP_RESPONSE_TYPE,
+                    clientResultVar, httpRequest.configRef(), method.toLowerCase(), String.join(", ", callArgs))));
+        } else {
+            // Build HTTP request parameters
+            List<String> params = new ArrayList<>();
+            String queryParamsStr = genQueryParam(ctx, queryParams);
+            if (!queryParamsStr.isEmpty()) {
+                params.add(queryParamsStr);
+            }
+            if (headersVar != null) {
+                params.add(headersVar);
+            }
+            if (uriParamsVar != null) {
+                params.add(uriParamsVar);
+            }
+            if (queryParamsVar != null) {
+                params.add(queryParamsVar);
+            }
+
+            stmts.add(stmtFrom("%s %s = check %s->%s.%s(%s);".formatted(Constants.HTTP_RESPONSE_TYPE,
+                    clientResultVar, httpRequest.configRef(), path, method.toLowerCase(), String.join(", ", params))));
+        }
+
         stmts.add(stmtFrom(String.format("%s.payload = check %s.getJsonPayload();",
                 Constants.CONTEXT_REFERENCE, clientResultVar)));
         return new WorkerStatementResult(stmts);
+    }
+
+    private static String generateRequestPathBuilder(Context ctx, String todoComment) {
+        ctx.addImport(new Import("ballerina", "lang.regexp"));
+        String pathParam = "path";
+        String uriParam = "uriParams";
+        String queryParam = "queryParams";
+        List<Statement> body = List.of(common.ConversionUtils.stmtFrom("""
+                \n// TODO: %s
+                string requestPath = %s;
+                foreach var [key, value] in %s.entries() {
+                    requestPath = regexp:replaceAll(check regexp:fromString(string `\\{${key}\\}`), requestPath, value);
+                }
+                foreach var [key, value] in %s.entries() {
+                    requestPath = regexp:replaceAll(check regexp:fromString(string `\\{${key}\\}`), requestPath, value);
+                }
+                return requestPath;
+                """.formatted(todoComment, pathParam, uriParam, queryParam)));
+        String functionName = "pathBuilder" + ctx.projectCtx.counters.requestPathBuilderCount++;
+        BallerinaModel.TypeDesc.MapTypeDesc stringMapTD = new BallerinaModel.TypeDesc.MapTypeDesc(
+                BallerinaModel.TypeDesc.BuiltinType.STRING);
+        ctx.addFunction(new Function(functionName,
+                List.of(new Parameter(pathParam, BallerinaModel.TypeDesc.BuiltinType.STRING),
+                        new Parameter(uriParam, stringMapTD),
+                        new Parameter(queryParam, stringMapTD)),
+                BallerinaModel.TypeDesc.BuiltinType.STRING, body));
+        return functionName;
+    }
+
+    private static String processMapScript(Context ctx, String script, List<Statement> stmts, String varName) {
+        stmts.add(common.ConversionUtils.stmtFrom(
+                "map<string> %s = %s;".formatted(varName, convertMELToBal(ctx, script, true))));
+        return varName;
+    }
+
+    /**
+     * Builds a path representation from URI params script. Extracts keys from the
+     * DataWeave script and formats them as
+     * Ballerina path segments.
+     *
+     * @param uriParamsScript Optional DataWeave script for URI params
+     * @return Path representation like "/[id]" or "/[id]/[name]" or "/" if no URI
+     *         params
+     */
+    private static String buildPathRepresentation(Optional<String> uriParamsScript) {
+        final String basePath = "/basePath/";
+        if (uriParamsScript.isEmpty()) {
+            return basePath;
+        }
+        List<String> keys = extractMapKeys(uriParamsScript.get());
+        if (keys.isEmpty()) {
+            return basePath;
+        }
+        return basePath + String.join("/", keys.stream().map(key -> "[" + key + "]").toList());
+    }
+
+    /**
+     * Builds a query params string representation from query params script.
+     * Extracts keys from the DataWeave script and
+     * formats them as function parameters.
+     *
+     * @param queryParamsScript Optional DataWeave script for query params
+     * @return Query params string like "(language=language)" or "(key1=key1,
+     *         key2=key2)" or empty string
+     */
+    private static String buildQueryParamsString(Optional<String> queryParamsScript) {
+        if (queryParamsScript.isEmpty()) {
+            return "";
+        }
+        List<String> keys = extractMapKeys(queryParamsScript.get());
+        if (keys.isEmpty()) {
+            return "";
+        }
+        return "(" + String.join(", ", keys.stream().map(key -> key + "=" + key).toList()) + ")";
+    }
+
+    /**
+     * Extracts map keys from a DataWeave script by finding "key" : patterns.
+     *
+     * @param script DataWeave script containing a map literal
+     * @return List of extracted keys
+     */
+    private static List<String> extractMapKeys(String script) {
+        List<String> keys = new ArrayList<>();
+        // Pattern to match "key" : in map literals
+        Pattern pattern = Pattern.compile("\"([^\"]+)\"\\s*:");
+        Matcher matcher = pattern.matcher(script);
+        while (matcher.find()) {
+            keys.add(matcher.group(1));
+        }
+        return keys;
     }
 
     private static WorkerStatementResult convertDatabase(Context ctx, Database database) {
@@ -728,8 +916,6 @@ public class MuleConfigConverter {
     private static WorkerStatementResult convertTransformMessage(Context ctx, TransformMessage transformMsg) {
         List<Statement> stmts = new ArrayList<>();
         DWReader.processDWElements(transformMsg.children(), ctx, stmts);
-        stmts.add(stmtFrom("%s.payload = %s;".formatted(Constants.CONTEXT_REFERENCE,
-                DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME)));
         return new WorkerStatementResult(stmts);
     }
 

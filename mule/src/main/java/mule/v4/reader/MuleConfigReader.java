@@ -630,17 +630,43 @@ public class MuleConfigReader {
         String path = element.getAttribute("path");
 
         Map<String, String> queryParams = new HashMap<>();
+        Optional<String> headersScript = Optional.empty();
+        Optional<String> uriParamsScript = Optional.empty();
+        Optional<String> queryParamsScript = Optional.empty();
+
+        // Check for inline DataWeave script (CDATA) in http:request element
+        String textContent = element.getTextContent();
+        if (textContent != null && !textContent.trim().isEmpty() && textContent.trim().startsWith("#[")) {
+            headersScript = Optional.of(textContent.trim());
+        }
+
         while (muleElement.peekChild() != null) {
             MuleElement child = muleElement.consumeChild();
             if (child.getElement().getTagName().equals(MuleXMLTag.HTTP_REQEUST_BUILDER.tag())) {
                 processQueryParams(queryParams, child);
+            } else if (child.getElement().getTagName().equals(MuleXMLTag.HTTP_HEADERS.tag())) {
+                String script = child.getElement().getTextContent();
+                if (script != null && !script.trim().isEmpty()) {
+                    headersScript = Optional.of(script.trim());
+                }
+            } else if (child.getElement().getTagName().equals(MuleXMLTag.HTTP_URI_PARAMS.tag())) {
+                String script = child.getElement().getTextContent();
+                if (script != null && !script.trim().isEmpty()) {
+                    uriParamsScript = Optional.of(script.trim());
+                }
+            } else if (child.getElement().getTagName().equals(MuleXMLTag.HTTP_QUERY_PARAMS.tag())) {
+                String script = child.getElement().getTextContent();
+                if (script != null && !script.trim().isEmpty()) {
+                    queryParamsScript = Optional.of(script.trim());
+                }
             } else {
                 // TODO: handle all other scenarios
                 throw new UnsupportedOperationException();
             }
         }
 
-        return new HttpRequest(configRef, method, url, path, queryParams);
+        return new HttpRequest(configRef, method, url, path, queryParams, headersScript, uriParamsScript,
+                queryParamsScript);
     }
 
     private static void processQueryParams(Map<String, String> queryParams, MuleElement muleElement) {

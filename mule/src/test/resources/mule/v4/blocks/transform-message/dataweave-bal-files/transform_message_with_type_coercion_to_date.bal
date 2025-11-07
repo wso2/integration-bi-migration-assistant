@@ -1,19 +1,19 @@
 import ballerina/jballerina.java;
 import ballerina/time;
 
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
 public type Context record {|
     anydata payload = ();
+    Vars vars = {};
 |};
 
 public function UTC() returns handle = @java:FieldGet {
     'class: "java.time.ZoneOffset",
     name: "UTC"
 } external;
-
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
-    ctx.payload = _dwOutput_;
-}
 
 public function parseDateTime(handle date, handle formatter) returns handle = @java:Method {
     'class: "java.time.LocalDateTime",
@@ -40,3 +40,9 @@ public function toInstant(handle localDateTime, handle zoneOffset) returns handl
     'class: "java.time.LocalDateTime",
     paramTypes: ["java.time.ZoneOffset"]
 } external;
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}

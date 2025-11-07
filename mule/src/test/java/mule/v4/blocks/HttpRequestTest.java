@@ -43,4 +43,16 @@ public class HttpRequestTest extends AbstractBlockTest {
         testMule4ToBal("http-request/http_request_with_url_property.xml",
                 "http-request/http_request_with_url_property.bal");
     }
+
+    @Test
+    public void testHttpRequestWithHeaders() {
+        testMule4ToBal("http-request/http_request_with_headers.xml",
+                "http-request/http_request_with_headers.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithMelConfig() {
+        testMule4ToBal("http-request/http_request_with_mel_config.xml",
+                "http-request/http_request_with_mel_config.bal");
+    }
 }

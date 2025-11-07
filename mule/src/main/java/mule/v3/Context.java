@@ -291,6 +291,11 @@ public class Context extends ContextBase {
                 .findFirst();
     }
 
+    @Override
+    public void addFunction(Function function) {
+        this.currentFileCtx.balConstructs.functions.add(function);
+    }
+
     public static class Counters {
         public int invokeEndPointMethodCount = 0;
         public int dwMethodCount = 0;

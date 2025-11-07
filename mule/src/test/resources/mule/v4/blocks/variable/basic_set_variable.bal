@@ -27,7 +27,7 @@ service /mule4 on config {
         ctx.vars.name = "John";
         ctx.vars.age = 29;
         ctx.vars.'from = "USA";
-        log:printInfo(string `Variables defined are: name - ${ctx.vars.name.toString()}, age - ${ctx.vars.age.toString()}, from - ${ctx.vars.'from.toString()}`);
+        log:printInfo(string `Variables defined are: name - ${ctx.vars?.name.toString()}, age - ${ctx.vars?.age.toString()}, from - ${ctx.vars?.'from.toString()}`);
 
         ctx.attributes.response.setPayload(ctx.payload);
         return ctx.attributes.response;
