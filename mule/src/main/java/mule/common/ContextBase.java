@@ -116,5 +116,8 @@ public abstract class ContextBase {
      *
      * @return Collection of configurable ModuleVars
      */
+    public abstract Collection<ModuleVar> getCurrentFileConfigurableVars();
+
+
     public abstract Collection<ModuleVar> getConfigurableVars();
 }

@@ -195,7 +195,7 @@ public class MuleToBalConverter {
             typeDefs = ctx.currentFileCtx.balConstructs.typeDefs.values().stream().toList();
         }
 
-        ArrayList<ModuleVar> orderedModuleVars = new ArrayList<>(ctx.getConfigurableVars());
+        ArrayList<ModuleVar> orderedModuleVars = new ArrayList<>(ctx.getCurrentFileConfigurableVars());
         orderedModuleVars.addAll(moduleVars);
         return createTextDocument(balFileName + ".bal", new ArrayList<>(ctx.currentFileCtx.balConstructs.imports),
                 typeDefs, orderedModuleVars, listeners, services, classDefs, functions.stream().toList(), comments);

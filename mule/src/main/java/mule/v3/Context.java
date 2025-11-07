@@ -299,8 +299,13 @@ public class Context extends ContextBase {
     }
 
     @Override
-    public Collection<ModuleVar> getConfigurableVars() {
+    public Collection<ModuleVar> getCurrentFileConfigurableVars() {
         return this.currentFileCtx.configurables.values();
+    }
+
+    @Override
+    public Collection<ModuleVar> getConfigurableVars() {
+        return this.projectCtx.configurableVars.values();
     }
 
     public static class Counters {

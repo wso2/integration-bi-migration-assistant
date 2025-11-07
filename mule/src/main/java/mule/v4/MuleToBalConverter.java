@@ -194,7 +194,7 @@ public class MuleToBalConverter {
         }
 
         ArrayList<ModuleVar> orderedModuleVars = new ArrayList<>(
-                ctx.getConfigurableVars()
+                ctx.getCurrentFileConfigurableVars()
         );
         orderedModuleVars.addAll(moduleVars);
         return createTextDocument(balFileName + ".bal", new ArrayList<>(ctx.currentFileCtx.balConstructs.imports),
