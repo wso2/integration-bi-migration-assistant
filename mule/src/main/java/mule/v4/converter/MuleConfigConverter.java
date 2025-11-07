@@ -116,7 +116,14 @@ public class MuleConfigConverter {
 
         // Read flow blocks
         for (MuleRecord record : flowBlocks) {
-            ConversionResult result = convertMuleBlock(ctx, record);
+            ConversionResult result;
+            try {
+                result = convertMuleBlock(ctx, record);
+            } catch (Exception e) {
+                ctx.logger.logSevere("Unexpected conversion error while trying to convert block %s skipping".formatted(
+                        record.kind()));
+                continue;
+            }
             if (result instanceof WorkerStatementResult(List<Statement> stmtList, List<NamedWorkerDecl> workerList)) {
                 workers.addAll(workerList);
                 body.addAll(stmtList);

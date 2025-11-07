@@ -654,26 +654,27 @@ public class MuleConfigReader {
 
         while (muleElement.peekChild() != null) {
             MuleElement child = muleElement.consumeChild();
-            if (child.getElement().getTagName().equals(MuleXMLTag.HTTP_REQEUST_BUILDER.tag())) {
+            String tagName = child.getElement().getTagName();
+            if (tagName.equals(MuleXMLTag.HTTP_REQEUST_BUILDER.tag())) {
                 processQueryParams(queryParams, child);
-            } else if (child.getElement().getTagName().equals(MuleXMLTag.HTTP_HEADERS.tag())) {
+            } else if (tagName.equals(MuleXMLTag.HTTP_HEADERS.tag())) {
                 String script = child.getElement().getTextContent();
                 if (script != null && !script.trim().isEmpty()) {
                     headersScript = Optional.of(script.trim());
                 }
-            } else if (child.getElement().getTagName().equals(MuleXMLTag.HTTP_URI_PARAMS.tag())) {
+            } else if (tagName.equals(MuleXMLTag.HTTP_URI_PARAMS.tag())) {
                 String script = child.getElement().getTextContent();
                 if (script != null && !script.trim().isEmpty()) {
                     uriParamsScript = Optional.of(script.trim());
                 }
-            } else if (child.getElement().getTagName().equals(MuleXMLTag.HTTP_QUERY_PARAMS.tag())) {
+            } else if (tagName.equals(MuleXMLTag.HTTP_QUERY_PARAMS.tag())) {
                 String script = child.getElement().getTextContent();
                 if (script != null && !script.trim().isEmpty()) {
                     queryParamsScript = Optional.of(script.trim());
                 }
             } else {
                 // TODO: handle all other scenarios
-                throw new UnsupportedOperationException();
+                ctx.logger.logSevere("Ignoring unsupported element: " + tagName);
             }
         }
 
