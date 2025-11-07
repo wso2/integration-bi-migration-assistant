@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -611,19 +612,30 @@ public class MuleConfigReader {
     private static HttpRequest readHttpRequest(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String configRef = element.getAttribute("config-ref");
-        String url = element.getAttribute("url");
+        String urlAttribute = element.getAttribute("url");
 
-        // Note: url overrides host and port
-        if (url.isEmpty()) {
-            HTTPRequestConfig httpRequestConfig = ctx.projectCtx.getHttpRequestConfig(configRef);
-            String host = httpRequestConfig.host();
-            String port = httpRequestConfig.port();
-            url = String.format("%s:%s", host, port);
+        // Create a supplier that lazily resolves the URL
+        Supplier<String> urlSupplier;
+        if (!urlAttribute.isEmpty()) {
+            // If url is provided directly, return it as-is
+            urlSupplier = () -> urlAttribute;
+        } else {
+            // If url is empty, create a supplier that resolves config and builds URL
+            urlSupplier = () -> {
+                HTTPRequestConfig httpRequestConfig = ctx.projectCtx.getHttpRequestConfig(configRef);
+                if (httpRequestConfig == null) {
+                    throw new IllegalStateException("HTTPRequestConfig not found for config-ref: " + configRef);
+                }
+                String host = httpRequestConfig.host();
+                String port = httpRequestConfig.port();
+                String url = String.format("%s:%s", host, port);
 
-            String protocol = httpRequestConfig.protocol();
-            if (!protocol.isEmpty()) {
-                url = protocol.toLowerCase() + "://" + url;
-            }
+                String protocol = httpRequestConfig.protocol();
+                if (!protocol.isEmpty()) {
+                    url = protocol.toLowerCase() + "://" + url;
+                }
+                return url;
+            };
         }
 
         String method = element.getAttribute("method").toLowerCase();
@@ -642,30 +654,31 @@ public class MuleConfigReader {
 
         while (muleElement.peekChild() != null) {
             MuleElement child = muleElement.consumeChild();
-            if (child.getElement().getTagName().equals(MuleXMLTag.HTTP_REQEUST_BUILDER.tag())) {
+            String tagName = child.getElement().getTagName();
+            if (tagName.equals(MuleXMLTag.HTTP_REQEUST_BUILDER.tag())) {
                 processQueryParams(queryParams, child);
-            } else if (child.getElement().getTagName().equals(MuleXMLTag.HTTP_HEADERS.tag())) {
+            } else if (tagName.equals(MuleXMLTag.HTTP_HEADERS.tag())) {
                 String script = child.getElement().getTextContent();
                 if (script != null && !script.trim().isEmpty()) {
                     headersScript = Optional.of(script.trim());
                 }
-            } else if (child.getElement().getTagName().equals(MuleXMLTag.HTTP_URI_PARAMS.tag())) {
+            } else if (tagName.equals(MuleXMLTag.HTTP_URI_PARAMS.tag())) {
                 String script = child.getElement().getTextContent();
                 if (script != null && !script.trim().isEmpty()) {
                     uriParamsScript = Optional.of(script.trim());
                 }
-            } else if (child.getElement().getTagName().equals(MuleXMLTag.HTTP_QUERY_PARAMS.tag())) {
+            } else if (tagName.equals(MuleXMLTag.HTTP_QUERY_PARAMS.tag())) {
                 String script = child.getElement().getTextContent();
                 if (script != null && !script.trim().isEmpty()) {
                     queryParamsScript = Optional.of(script.trim());
                 }
             } else {
                 // TODO: handle all other scenarios
-                throw new UnsupportedOperationException();
+                ctx.logger.logSevere("Ignoring unsupported element: " + tagName);
             }
         }
 
-        return new HttpRequest(configRef, method, url, path, queryParams, headersScript, uriParamsScript,
+        return new HttpRequest(configRef, method, urlSupplier, path, queryParams, headersScript, uriParamsScript,
                 queryParamsScript);
     }
 
