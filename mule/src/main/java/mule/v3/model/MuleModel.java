@@ -20,6 +20,7 @@ package mule.v3.model;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 public record MuleModel() {
 
@@ -141,10 +142,15 @@ public record MuleModel() {
     }
 
     // Scopes
-    public record Flow(Kind kind, String name, Optional<MuleRecord> source, List<MuleRecord> flowBlocks)
+    public record Flow(Kind kind, String name, Supplier<Optional<MuleRecord>> sourceSupplier,
+                       List<MuleRecord> flowBlocks)
             implements MuleRecord {
-        public Flow(String name, Optional<MuleRecord> source, List<MuleRecord> flowBlocks) {
-            this(Kind.FLOW, name, source, flowBlocks);
+        public Flow(String name, Supplier<Optional<MuleRecord>> sourceSupplier, List<MuleRecord> flowBlocks) {
+            this(Kind.FLOW, name, sourceSupplier, flowBlocks);
+        }
+
+        public Optional<MuleRecord> source() {
+            return sourceSupplier.get();
         }
     }
 

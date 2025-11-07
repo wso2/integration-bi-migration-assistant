@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -348,13 +349,9 @@ public class MuleConfigReader {
             }
         }
 
-        Optional<MuleRecord> optSource;
-        if (source == null) {
-            optSource = Optional.empty();
-        } else {
-            optSource = Optional.of(source);
-        }
-        return new Flow(flowName, optSource, flowBlocks);
+        MuleRecord finalSource = source;
+        Supplier<Optional<MuleRecord>> sourceSupplier = () -> Optional.ofNullable(finalSource);
+        return new Flow(flowName, sourceSupplier, flowBlocks);
     }
 
     public static SubFlow readSubFlow(Context ctx, MuleElement mFlowElement) {

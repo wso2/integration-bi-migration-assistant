@@ -386,13 +386,9 @@ public class MuleConfigReader {
             }
         }
 
-        Optional<MuleRecord> optSource;
-        if (source == null) {
-            optSource = Optional.empty();
-        } else {
-            optSource = Optional.of(source);
-        }
-        return new Flow(flowName, optSource, flowBlocks);
+        MuleRecord finalSource = source;
+        Supplier<Optional<MuleRecord>> sourceSupplier = () -> Optional.ofNullable(finalSource);
+        return new Flow(flowName, sourceSupplier, flowBlocks);
     }
 
     public static SubFlow readSubFlow(Context ctx, MuleElement mFlowElement) {
