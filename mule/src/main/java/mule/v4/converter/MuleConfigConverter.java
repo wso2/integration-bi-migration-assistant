@@ -553,9 +553,13 @@ public class MuleConfigConverter {
 
             stmts.add(stmtFrom(
                     "string %s = %s(%s);".formatted(queryPathVarName, pathBuilderFn, String.join(", ", params))));
-            stmts.add(stmtFrom("%s %s = check %s->%s(%s, %s);".formatted(Constants.HTTP_RESPONSE_TYPE,
-                    clientResultVar, httpRequest.configRef(), method.toLowerCase(), queryPathVarName,
-                    headersVar != null ? headersVar : "")));
+            List<String> callArgs = new ArrayList<>();
+            callArgs.add(queryPathVarName);
+            if (headersVar != null) {
+                callArgs.add(headersVar);
+            }
+            stmts.add(stmtFrom("%s %s = check %s->%s(%s);".formatted(Constants.HTTP_RESPONSE_TYPE,
+                    clientResultVar, httpRequest.configRef(), method.toLowerCase(), String.join(", ", callArgs))));
         } else {
             // Build HTTP request parameters
             List<String> params = new ArrayList<>();
@@ -598,7 +602,7 @@ public class MuleConfigConverter {
                 }
                 return requestPath;
                 """.formatted(todoComment, pathParam, uriParam, queryParam)));
-        String functionName = "pathBuilder" + ctx.projectCtx.counters.requestPathBuilderCount;
+        String functionName = "pathBuilder" + ctx.projectCtx.counters.requestPathBuilderCount++;
         BallerinaModel.TypeDesc.MapTypeDesc stringMapTD = new BallerinaModel.TypeDesc.MapTypeDesc(
                 BallerinaModel.TypeDesc.BuiltinType.STRING);
         ctx.addFunction(new Function(functionName,
