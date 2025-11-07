@@ -128,7 +128,7 @@ public class MuleToBalConverter {
         // Add global listeners
         List<Listener> listeners = new ArrayList<>();
         for (HTTPListenerConfig httpListenerConfig : ctx.currentFileCtx.configs.httpListenerConfigs.values()) {
-            listeners.add(new Listener.HTTPListener(httpListenerConfig.name(),
+            listeners.add(new Listener.HTTPListener(ConversionUtils.convertToBalIdentifier(httpListenerConfig.name()),
                     getAttrValInt(ctx, httpListenerConfig.port()), httpListenerConfig.host()));
         }
 
@@ -166,7 +166,8 @@ public class MuleToBalConverter {
                 throw new IllegalStateException("Unsupported DB connection type: " + dbConnection.kind());
             }
 
-            moduleVars.add(new ModuleVar(dbConfig.name(), dbClientType, balExpr));
+            moduleVars
+                    .add(new ModuleVar(ConversionUtils.convertToBalIdentifier(dbConfig.name()), dbClientType, balExpr));
         }
 
         moduleVars.addAll(ctx.currentFileCtx.balConstructs.moduleVars.values());
@@ -365,7 +366,7 @@ public class MuleToBalConverter {
         List<String> pathParams = new ArrayList<>();
         String resourcePath = getBallerinaResourcePath(ctx, httpListener.resourcePath(), pathParams);
         String[] resourceMethodNames = httpListener.allowedMethods();
-        String listenerRef = httpListener.configRef();
+        String listenerRef = ConversionUtils.convertToBalIdentifier(httpListener.configRef());
         String muleBasePath = insertLeadingSlash(
                 ctx.projectCtx.getHttpListenerConfig(httpListener.configRef()).basePath());
         String basePath = getBallerinaAbsolutePath(muleBasePath);

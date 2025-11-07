@@ -36,6 +36,7 @@ import javax.xml.transform.stream.StreamResult;
 
 import static common.BallerinaModel.ModuleVar;
 import static common.ConversionUtils.exprFrom;
+import static common.ConversionUtils.escapeSpecialCharacters;
 import static mule.v4.converter.MELConverter.convertMELToBal;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
 
@@ -43,9 +44,6 @@ import static mule.v4.model.MuleModel.UnsupportedBlock;
  * Utility class for converting mule configs.
  */
 public class ConversionUtils {
-
-    private static final Pattern UNESCAPED_SPECIAL_CHAR_SET =
-            Pattern.compile("([$&+,:;=\\?@#\\\\|/'\\ \\[\\}\\]<\\>.\"^*{}~`()%!-])");
 
     /**
      * Converts mule path to a Ballerina resource path.
@@ -159,17 +157,6 @@ public class ConversionUtils {
         }
 
         return Character.isDigit(varName.charAt(0)) || SyntaxInfo.isKeyword(varName) ? "'" + varName : varName;
-    }
-
-    /**
-     * Escapes special characters in an identifier with a preceding backslash (\).
-     * This is part of making an identifier valid in Ballerina syntax.
-     *
-     * @param identifier the original identifier string
-     * @return identifier with special characters escaped
-     */
-    private static String escapeSpecialCharacters(String identifier) {
-        return UNESCAPED_SPECIAL_CHAR_SET.matcher(identifier).replaceAll("\\\\$1");
     }
 
     public static String[] getAllowedMethods(String allowedMethods) {
@@ -306,17 +293,19 @@ public class ConversionUtils {
 
     public static String processPropertyName(Context ctx, String propertyName) {
         String configVarName = propertyName.replace('.', '_').replaceAll("::", "_");
-        if (!ctx.projectCtx.configurableVarExists(configVarName)) {
+        String escapedConfigVarName = convertToBalIdentifier(configVarName);
+        if (!ctx.projectCtx.configurableVarExists(escapedConfigVarName)) {
             addConfigVarEntry(ctx, configVarName, null);
         }
 
-        return configVarName;
+        return escapedConfigVarName;
     }
 
     public static void addConfigVarEntry(Context ctx, String varName, String varValue) {
+        String escapedVarName = convertToBalIdentifier(varName);
         String valueExpr = varValue == null ? "?" : "\"%s\"".formatted(varValue);
-        var configVarDecl = new ModuleVar(varName, "string", Optional.of(exprFrom(valueExpr)), false, true);
-        ctx.currentFileCtx.balConstructs.configurableVars.put(varName, configVarDecl);
+        var configVarDecl = new ModuleVar(escapedVarName, "string", Optional.of(exprFrom(valueExpr)), false, true);
+        ctx.currentFileCtx.balConstructs.configurableVars.put(escapedVarName, configVarDecl);
     }
 
     public static String getAttrVal(Context ctx, String propValue) {
