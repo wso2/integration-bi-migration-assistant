@@ -1,0 +1,5 @@
+# Properties from input.properties
+json_payload = """{"name":"John","age":30}"""
+error_message = """The value "test" is invalid"""
+sql_query = """SELECT * FROM users WHERE name = "admin""""
+

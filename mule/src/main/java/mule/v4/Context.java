@@ -33,6 +33,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -156,11 +157,13 @@ public class Context extends ContextBase {
         public final String filePath;
         public final GlobalConfigs configs;
         public final BalConstructs balConstructs;
+        private final Map<String, ModuleVar> configurables;
 
         FileContext(String filePath, ProjectContext projectContext) {
             this.filePath = filePath;
             this.configs = new GlobalConfigs(projectContext);
             this.balConstructs = new BalConstructs(projectContext);
+            this.configurables = new LinkedHashMap<>();
         }
     }
 
@@ -178,7 +181,7 @@ public class Context extends ContextBase {
         List<HashMap<String, DbConfig>> dbConfigMaps = new ArrayList<>();
 
         // Shared bal constructs
-        List<HashMap<String, ModuleVar>> configurableVarMaps = new ArrayList<>();
+        public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
         List<HashMap<String, ModuleTypeDef>> typeDefMaps = new ArrayList<>();
         List<HashMap<String, Function>> functionMaps = new ArrayList<>();
 
@@ -199,7 +202,7 @@ public class Context extends ContextBase {
         }
 
         public boolean configurableVarExists(String key) {
-            return containsKeyInMaps(configurableVarMaps, key);
+            return configurableVars.containsKey(key);
         }
 
         public boolean typeDefExists(String key) {
@@ -245,14 +248,12 @@ public class Context extends ContextBase {
         public final HashSet<Import> imports = new LinkedHashSet<>();
         public final HashMap<String, ModuleTypeDef> typeDefs = new LinkedHashMap<>();
         public final HashMap<String, ModuleVar> moduleVars = new LinkedHashMap<>();
-        public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
         public final HashMap<String, Function> commonFunctions = new LinkedHashMap<>();
         // TODO: merge `commonFunctions` and `functions`
         public final List<Function> functions = new ArrayList<>();
         public final List<String> utilFunctions = new ArrayList<>();
 
         BalConstructs(ProjectContext projCtx) {
-            projCtx.configurableVarMaps.add(configurableVars);
             projCtx.typeDefMaps.add(typeDefs);
             projCtx.functionMaps.add(commonFunctions);
         }
@@ -300,6 +301,22 @@ public class Context extends ContextBase {
     @Override
     public void addFunction(Function function) {
         this.currentFileCtx.balConstructs.functions.add(function);
+    }
+
+    public void addConfigurableVar(String varName, ModuleVar var) {
+        assert varName.equals(var.name());
+        this.currentFileCtx.configurables.put(varName, var);
+        this.projectCtx.configurableVars.put(varName, var);
+    }
+
+    @Override
+    public Collection<ModuleVar> getCurrentFileConfigurableVars() {
+        return this.currentFileCtx.configurables.values();
+    }
+
+    @Override
+    public Collection<ModuleVar> getConfigurableVars() {
+        return this.projectCtx.configurableVars.values();
     }
 
     public static class Counters {

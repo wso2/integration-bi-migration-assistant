@@ -18,11 +18,14 @@
 
 package common;
 
+import io.ballerina.compiler.syntax.tree.SyntaxInfo;
+
 import java.util.regex.Pattern;
 
 public class ConversionUtils {
-    private static final Pattern UNESCAPED_SPECIAL_CHAR_SET = Pattern
-            .compile("([$&+,:;=\\?@#\\\\|/'\\ \\[\\}\\]<\\>.\"^*{}~`()%!-])");
+
+    private static final Pattern UNESCAPED_SPECIAL_CHAR_SET =
+            Pattern.compile("([$&+,:;=\\?@#\\\\|/'\\ \\[\\}\\]<\\>.\"^*{}~`()%!-])");
 
     public static BallerinaModel.Expression.BallerinaExpression exprFrom(String expr) {
         return new BallerinaModel.Expression.BallerinaExpression(expr);
@@ -57,5 +60,33 @@ public class ConversionUtils {
      */
     public static String escapeIdentifier(String identifier) {
         return UNESCAPED_SPECIAL_CHAR_SET.matcher(identifier).replaceAll("");
+    }
+
+    /**
+     * Converts a mule variable name to a Ballerina identifier syntax by:
+     * 1. Escaping special characters with a preceding `\`
+     * 2. Adding a single quote prefix if the identifier is a Ballerina keyword
+     * 3. Adding a single quote prefix if the identifier starts with a digit (0-9)
+     *
+     * @param varName mule variable name
+     * @return Ballerina identifier
+     */
+    public static String convertToBalIdentifier(String varName) {
+        String var = escapeSpecialCharacters(varName);
+        return insertQuoteIfApplicable(var);
+    }
+
+    /**
+     * Inserts a single quote prefix to the variable name if it is a Ballerina keyword or starts with a digit.
+     *
+     * @param varName the variable name
+     * @return quoted variable name if applicable, otherwise the original variable name
+     */
+    private static String insertQuoteIfApplicable(String varName) {
+        if (varName.isEmpty()) {
+            return varName;
+        }
+
+        return Character.isDigit(varName.charAt(0)) || SyntaxInfo.isKeyword(varName) ? "'" + varName : varName;
     }
 }

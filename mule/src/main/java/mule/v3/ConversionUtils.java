@@ -36,14 +36,12 @@ import javax.xml.transform.stream.StreamResult;
 
 import static common.BallerinaModel.ModuleVar;
 import static common.ConversionUtils.exprFrom;
-import static common.ConversionUtils.escapeSpecialCharacters;
 import static mule.v3.converter.MELConverter.convertMELToBal;
 
 /**
  * Utility class for converting mule configs.
  */
 public class ConversionUtils {
-
     /**
      * Converts mule path to a Ballerina resource path.
      *
@@ -143,22 +141,7 @@ public class ConversionUtils {
      * @return Ballerina identifier
      */
     public static String convertToBalIdentifier(String varName) {
-        String var = escapeSpecialCharacters(varName);
-        return insertQuoteIfApplicable(var);
-    }
-
-    /**
-     * Inserts a single quote prefix to the variable name if it is a Ballerina keyword or starts with a digit.
-     *
-     * @param varName the variable name
-     * @return quoted variable name if applicable, otherwise the original variable name
-     */
-    private static String insertQuoteIfApplicable(String varName) {
-        if (varName.isEmpty()) {
-            return varName;
-        }
-
-        return Character.isDigit(varName.charAt(0)) || SyntaxInfo.isKeyword(varName) ? "'" + varName : varName;
+        return common.ConversionUtils.convertToBalIdentifier(varName);
     }
 
     public static String[] getAllowedMethods(String allowedMethods) {
@@ -298,7 +281,7 @@ public class ConversionUtils {
         String escapedConfigVarName = convertToBalIdentifier(configVarName);
         if (!ctx.projectCtx.configurableVarExists(escapedConfigVarName)) {
             var configVarDecl = new ModuleVar(escapedConfigVarName, "string", Optional.of(exprFrom("?")), false, true);
-            ctx.currentFileCtx.configs.configurableVars.put(escapedConfigVarName, configVarDecl);
+            ctx.addConfigurableVar(escapedConfigVarName, configVarDecl);
         }
 
         return escapedConfigVarName;

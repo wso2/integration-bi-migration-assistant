@@ -1,0 +1,12 @@
+email:
+  body: |
+    Hello,
+    This is a test message.
+    Thank you.
+certificate:
+  pem: |
+    -----BEGIN CERTIFICATE-----
+    MIIC...
+    -----END CERTIFICATE-----
+json:
+  config: '{"name":"test","value":"data"}'
