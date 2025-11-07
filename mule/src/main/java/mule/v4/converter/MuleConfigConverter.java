@@ -829,7 +829,7 @@ public class MuleConfigConverter {
             ));
             body.add(stmtFrom("return value;"));
 
-            Function errorWrapFunc = Function.publicFunction(Constants.FUNC_WRAP_ROUTE_ERR, params,
+            var errorWrapFunc = Function.publicFunction(Constants.FUNC_WRAP_ROUTE_ERR, params,
                     typeFrom("anydata|error"), body);
             ctx.currentFileCtx.balConstructs.commonFunctions.put(Constants.FUNC_WRAP_ROUTE_ERR, errorWrapFunc);
         }

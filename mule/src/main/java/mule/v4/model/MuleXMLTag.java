@@ -39,6 +39,7 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     VM_CONFIG("vm:config", 1),
     CONFIGURATION_PROPERTIES("configuration-properties", 1),
     GLOBAL_PROPERTY("global-property", 1),
+    APIKIT_CONFIG("apikit:config", 1),
 
     // Flow Control
     CHOICE("choice", 3),

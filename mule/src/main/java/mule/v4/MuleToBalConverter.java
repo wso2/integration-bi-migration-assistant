@@ -22,12 +22,15 @@ import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+
+import mule.v4.model.MuleModel.ApiKitConfig;
 import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.MuleModel.DbGenericConnection;
 import mule.v4.model.MuleModel.Scheduler;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -99,13 +102,12 @@ public class MuleToBalConverter {
             }
 
             MuleRecord src = source.get();
-            if (src.kind() == Kind.VM_LISTENER) {
-                genVMListenerSource(ctx, flow, (VMListener) src, functions);
-            } else if (src.kind() == Kind.SCHEDULER) {
-                genSchedulerSource(ctx, flow, (Scheduler) src, functions, classDefs);
-            } else {
-                assert src.kind() == Kind.HTTP_LISTENER;
-                genHttpSource(ctx, flow, (HttpListener) src, services, functions);
+            switch (src) {
+                case VMListener vmListener -> genVMListenerSource(ctx, flow, vmListener, functions);
+                case Scheduler scheduler -> genSchedulerSource(ctx, flow, scheduler, functions, classDefs);
+                case HttpListener httpListener -> genHttpSource(ctx, flow, httpListener, services, functions);
+                case ApiKitConfig apiKit -> genApiKitSource(ctx, flow, apiKit, services);
+                default -> throw new IllegalStateException("Unsupported source kind: %s".formatted(src.kind()));
             }
         }
 
@@ -199,6 +201,56 @@ public class MuleToBalConverter {
         orderedModuleVars.addAll(moduleVars);
         return createTextDocument(balFileName + ".bal", new ArrayList<>(ctx.currentFileCtx.balConstructs.imports),
                 typeDefs, orderedModuleVars, listeners, services, classDefs, functions.stream().toList(), comments);
+    }
+
+    private static void genApiKitSource(Context ctx, Flow flow, ApiKitConfig apiKit, Collection<Service> services) {
+        // TODO: Common with httpSource refactor
+        ctx.projectCtx.attributes.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_TYPE);
+        ctx.projectCtx.attributes.put(Constants.HTTP_RESPONSE_REF, Constants.HTTP_RESPONSE_TYPE);
+        ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
+
+        // Create a service for APIKit if not there
+        Service service = ctx.getServiceForAPIKit(apiKit, k -> apiKitServiceCreator(ctx, k));
+        if (!services.contains(service)) {
+            services.add(service);
+        }
+
+        ApiKitConfig.HTTPResourceData resourceData = apiKit.resourcePathData(flow);
+        List<String> pathParams = resourceData.pathParams();
+        String resourcePath = resourceData.resourcePath();
+        String resourceMethod = resourceData.method();
+
+        List<Parameter> queryPrams = new ArrayList<>();
+        queryPrams.add(new Parameter(Constants.HTTP_REQUEST_REF, typeFrom(Constants.HTTP_REQUEST_TYPE)));
+
+        List<Statement> bodyStmts = new ArrayList<>();
+        String attributesInitValue = getAttributesInitValue(ctx, pathParams);
+        bodyStmts.add(stmtFrom("Context %s = {%s: %s};".formatted(Constants.CONTEXT_REFERENCE,
+                Constants.ATTRIBUTES_REF, attributesInitValue)));
+
+        List<Statement> bodyCoreStmts = convertTopLevelMuleBlocks(ctx, flow.flowBlocks());
+        bodyStmts.addAll(bodyCoreStmts);
+
+        // Add return statement
+        bodyStmts.add(stmtFrom("\n\n%s.%s.setPayload(%s.payload);".formatted(Constants.ATTRIBUTES_FIELD_ACCESS,
+                Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
+        bodyStmts.add(stmtFrom("return %s.%s;".formatted(Constants.ATTRIBUTES_FIELD_ACCESS,
+                Constants.HTTP_RESPONSE_REF)));
+
+        // Add service resources
+        TypeDesc returnType = typeFrom(Constants.HTTP_RESOURCE_RETURN_TYPE_DEFAULT);
+        ctx.currentFileCtx.balConstructs.imports.add(Constants.HTTP_MODULE_IMPORT);
+
+        Resource resource = new Resource(resourceMethod, resourcePath, queryPrams, Optional.of(returnType), bodyStmts);
+        service.resources().add(resource);
+    }
+
+    private static Service apiKitServiceCreator(Context cx, ApiKitConfig apiKitConfig) {
+        HTTPListenerConfig listener = cx.getDefaultHttpListenerConfig();
+        String basePath = getBallerinaAbsolutePath(listener.basePath());
+        String listenerRef = ConversionUtils.convertToBalIdentifier(listener.name());
+        List<Resource> resources = new ArrayList<>();
+        return new Service(basePath, listenerRef, resources);
     }
 
     private static List<Service> normalizeServices(List<Service> services) {

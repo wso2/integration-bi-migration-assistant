@@ -17,11 +17,14 @@
  */
 package mule.v4.model;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public record MuleModel() {
 
@@ -267,6 +270,52 @@ public record MuleModel() {
     public record MuleImport(String file) {
     }
 
+    public record ApiKitConfig(Kind kind, String name, String api) implements MuleRecord {
+
+        public ApiKitConfig(String name, String api) {
+            this(Kind.APIKIT_CONFIG, name, api);
+        }
+
+        public HTTPResourceData resourcePathData(Flow flow) {
+            String flowName = flow.name();
+
+            // Pattern: {METHOD}:\{PATH}:{CONFIG_NAME}
+            String[] parts = flowName.split(":");
+            if (parts.length < 3) {
+                return new HTTPResourceData("", List.of(), "get");
+            }
+
+            String method = parts[0].toLowerCase();
+            String configName = parts[parts.length - 1];
+            String path = flowName.substring(method.length() + 1, flowName.length() - configName.length() - 1);
+
+            // Remove leading \ if present
+            if (path.startsWith("\\")) {
+                path = path.substring(1);
+            }
+
+            // Extract path parameters from escaped format: \(id) before transformation
+            List<String> pathParams = new ArrayList<>();
+            Pattern pattern = Pattern.compile("\\\\\\(([^)]+)\\)");
+            Matcher matcher = pattern.matcher(path);
+            while (matcher.find()) {
+                pathParams.add(matcher.group(1));
+            }
+
+            // Convert escaped path: orders\(id) -> orders/[string id]
+            String resourcePath = path
+                    .replace("\\(", "/[string ")
+                    .replace(")", "]")
+                    .replace("\\", "/");
+
+            return new HTTPResourceData(resourcePath, pathParams, method);
+        }
+
+        public record HTTPResourceData(String resourcePath, List<String> pathParams, String method) {
+
+        }
+    }
+
     public record HTTPListenerConfig(Kind kind, String name, String basePath, String port,
                                      String host) implements MuleRecord {
         public HTTPListenerConfig(String name, String basePath, String port, String host) {
@@ -361,6 +410,7 @@ public record MuleModel() {
         SCATTER_GATHER,
         FIRST_SUCCESSFUL,
         ROUTE,
+        APIKIT_CONFIG,
         HTTP_LISTENER_CONFIG,
         HTTP_REQUEST_CONFIG,
         DB_CONFIG,

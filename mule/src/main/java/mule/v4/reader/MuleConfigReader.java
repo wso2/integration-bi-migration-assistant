@@ -45,6 +45,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import static common.BallerinaModel.Import;
 import static mule.v4.ConversionUtils.getAllowedMethods;
+import static mule.v4.model.MuleModel.ApiKitConfig;
 import static mule.v4.model.MuleModel.Async;
 import static mule.v4.model.MuleModel.Choice;
 import static mule.v4.model.MuleModel.Database;
@@ -101,6 +102,10 @@ import static mule.v4.model.MuleXMLTag.HTTP_REQUEST_CONNECTION;
 
 public class MuleConfigReader {
 
+    private record ApiKitFlowParts(String method, String path, String configName) {
+
+    }
+
     public static ParseResult readMuleConfigFromRoot(Context ctx, MuleXMLNavigator muleXMLNavigator,
                                                      String xmlFilePath) {
         Element root;
@@ -147,7 +152,10 @@ public class MuleConfigReader {
 
     public static void readGlobalConfigElement(Context ctx, MuleElement muleElement) {
         String elementTagName = muleElement.getElement().getTagName();
-        if (MuleXMLTag.HTTP_LISTENER_CONFIG.tag().equals(elementTagName)) {
+        if (MuleXMLTag.APIKIT_CONFIG.tag().equals(elementTagName)) {
+            ApiKitConfig apiKitConfig = readApiKitConfig(ctx, muleElement);
+            ctx.currentFileCtx.configs.apiKitConfigs.put(apiKitConfig.name(), apiKitConfig);
+        } else if (MuleXMLTag.HTTP_LISTENER_CONFIG.tag().equals(elementTagName)) {
             HTTPListenerConfig httpListenerConfig = readHttpListenerConfig(ctx, muleElement);
             ctx.currentFileCtx.configs.httpListenerConfigs.put(httpListenerConfig.name(), httpListenerConfig);
         } else if (MuleXMLTag.HTTP_REQUEST_CONFIG.tag().equals(elementTagName)) {
@@ -360,6 +368,27 @@ public class MuleConfigReader {
         return new Choice(whens, otherwiseProcess);
     }
 
+    // ApiKit Flow Helpers
+    private static boolean isApiKitFlowPattern(String flowName) {
+        return flowName.matches("^(get|post|put|delete|patch|head|options|GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)" +
+                ":.*:.*$");
+    }
+
+    private static ApiKitFlowParts extractApiKitParts(String flowName) {
+        String[] parts = flowName.split(":");
+        if (parts.length < 3) {
+            throw new IllegalArgumentException("Invalid apikit flow name: " + flowName);
+        }
+        String method = parts[0].toLowerCase();
+        String configName = parts[parts.length - 1];
+        String path = flowName.substring(method.length() + 1, flowName.length() - configName.length() - 1);
+        return new ApiKitFlowParts(method, path, configName);
+    }
+
+    private static Optional<MuleRecord> createApiKitSource(Context ctx, ApiKitFlowParts parts) {
+        return Optional.ofNullable(ctx.projectCtx.getApiKitConfig(parts.configName()));
+    }
+
     // Scopes
     public static Flow readFlow(Context ctx, MuleElement mFlowElement) {
         Element flowElement = mFlowElement.getElement();
@@ -387,7 +416,17 @@ public class MuleConfigReader {
         }
 
         MuleRecord finalSource = source;
-        Supplier<Optional<MuleRecord>> sourceSupplier = () -> Optional.ofNullable(finalSource);
+        Supplier<Optional<MuleRecord>> sourceSupplier;
+
+        if (finalSource != null) {
+            sourceSupplier = () -> Optional.of(finalSource);
+        } else if (isApiKitFlowPattern(flowName)) {
+            ApiKitFlowParts parts = extractApiKitParts(flowName);
+            sourceSupplier = () -> createApiKitSource(ctx, parts);
+        } else {
+            sourceSupplier = Optional::empty;
+        }
+
         return new Flow(flowName, sourceSupplier, flowBlocks);
     }
 
@@ -765,6 +804,13 @@ public class MuleConfigReader {
     }
 
     // Global Elements
+    private static ApiKitConfig readApiKitConfig(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String name = element.getAttribute("name");
+        String api = element.getAttribute("api");
+        return new ApiKitConfig(name, api);
+    }
+
     private static HTTPListenerConfig readHttpListenerConfig(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_HTTP));

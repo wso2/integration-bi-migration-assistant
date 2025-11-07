@@ -26,12 +26,14 @@ import mule.common.MuleXMLNavigator;
 import mule.common.MultiRootContext;
 import mule.v4.dataweave.converter.DWConstruct;
 import mule.v4.model.MuleModel;
+import mule.v4.model.MuleModel.ApiKitConfig;
 import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.ParseResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -42,9 +44,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
@@ -67,6 +69,7 @@ public class Context extends ContextBase {
     public final MigrationMetrics<DWConstruct> migrationMetrics = new MigrationMetrics<>();
     private final Map<File, ParseResult> parseResults = new HashMap<>();
     private final Map<File, FileContext> fileContexts = new HashMap<>();
+    private final Map<ApiKitConfig, BallerinaModel.Service> apiKitServices = new HashMap<>();
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                    List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
@@ -89,6 +92,11 @@ public class Context extends ContextBase {
     @Override
     public boolean isStandaloneBalFile() {
         return isStandaloneBalFile;
+    }
+
+    public HTTPListenerConfig getDefaultHttpListenerConfig() {
+        return projectCtx.httpListenerConfigMaps.stream().flatMap(each -> each.values().stream()).findFirst()
+                .orElse(null);
     }
 
     @Override
@@ -153,6 +161,11 @@ public class Context extends ContextBase {
         }
     }
 
+    public BallerinaModel.Service getServiceForAPIKit(ApiKitConfig apiKit,
+                                                      java.util.function.Function<ApiKitConfig, BallerinaModel.Service> mappingFunction) {
+        return apiKitServices.computeIfAbsent(apiKit, mappingFunction);
+    }
+
     public static class FileContext {
         public final String filePath;
         public final GlobalConfigs configs;
@@ -176,6 +189,7 @@ public class Context extends ContextBase {
         public final HashMap<String, String> vmQueueNameToBalFuncMap = new LinkedHashMap<>();
 
         // Shared mule configs
+        List<HashMap<String, ApiKitConfig>> apiKitConfigMaps = new ArrayList<>();
         List<HashMap<String, HTTPListenerConfig>> httpListenerConfigMaps = new ArrayList<>();
         List<HashMap<String, HTTPRequestConfig>> httpRequestConfigMaps = new ArrayList<>();
         List<HashMap<String, DbConfig>> dbConfigMaps = new ArrayList<>();
@@ -183,7 +197,7 @@ public class Context extends ContextBase {
         // Shared bal constructs
         public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
         List<HashMap<String, ModuleTypeDef>> typeDefMaps = new ArrayList<>();
-        List<HashMap<String, Function>> functionMaps = new ArrayList<>();
+        List<HashMap<String, BallerinaModel.Function>> functionMaps = new ArrayList<>();
 
         public void addJavaDependency(MuleToBalConverter.JavaDependencies dependencies) {
             javaDependencies.add(dependencies);
@@ -191,6 +205,10 @@ public class Context extends ContextBase {
 
         public List<MuleToBalConverter.JavaDependencies> javaDependencies() {
             return Collections.unmodifiableList(javaDependencies);
+        }
+
+        public ApiKitConfig getApiKitConfig(String key) {
+            return getValueFromMaps(apiKitConfigMaps, key);
         }
 
         public HTTPListenerConfig getHttpListenerConfig(String key) {
@@ -229,6 +247,8 @@ public class Context extends ContextBase {
     }
 
     public static class GlobalConfigs {
+
+        public final HashMap<String, ApiKitConfig> apiKitConfigs = new LinkedHashMap<>();
         public final HashMap<String, HTTPListenerConfig> httpListenerConfigs = new LinkedHashMap<>();
         public final HashMap<String, HTTPRequestConfig> httpRequestConfigs = new LinkedHashMap<>();
         public final HashMap<String, DbConfig> dbConfigs = new LinkedHashMap<>();
@@ -238,6 +258,7 @@ public class Context extends ContextBase {
         public final List<UnsupportedBlock> unsupportedBlocks = new ArrayList<>();
 
         GlobalConfigs(ProjectContext projCtx) {
+            projCtx.apiKitConfigMaps.add(apiKitConfigs);
             projCtx.httpListenerConfigMaps.add(httpListenerConfigs);
             projCtx.httpRequestConfigMaps.add(httpRequestConfigs);
             projCtx.dbConfigMaps.add(dbConfigs);
@@ -248,9 +269,9 @@ public class Context extends ContextBase {
         public final HashSet<Import> imports = new LinkedHashSet<>();
         public final HashMap<String, ModuleTypeDef> typeDefs = new LinkedHashMap<>();
         public final HashMap<String, ModuleVar> moduleVars = new LinkedHashMap<>();
-        public final HashMap<String, Function> commonFunctions = new LinkedHashMap<>();
+        public final HashMap<String, BallerinaModel.Function> commonFunctions = new LinkedHashMap<>();
         // TODO: merge `commonFunctions` and `functions`
-        public final List<Function> functions = new ArrayList<>();
+        public final List<BallerinaModel.Function> functions = new ArrayList<>();
         public final List<String> utilFunctions = new ArrayList<>();
 
         BalConstructs(ProjectContext projCtx) {
@@ -299,7 +320,7 @@ public class Context extends ContextBase {
     }
 
     @Override
-    public void addFunction(Function function) {
+    public void addFunction(BallerinaModel.Function function) {
         this.currentFileCtx.balConstructs.functions.add(function);
     }
 
