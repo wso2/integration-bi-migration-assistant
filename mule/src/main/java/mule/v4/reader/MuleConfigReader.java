@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -611,19 +612,30 @@ public class MuleConfigReader {
     private static HttpRequest readHttpRequest(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String configRef = element.getAttribute("config-ref");
-        String url = element.getAttribute("url");
+        String urlAttribute = element.getAttribute("url");
 
-        // Note: url overrides host and port
-        if (url.isEmpty()) {
-            HTTPRequestConfig httpRequestConfig = ctx.projectCtx.getHttpRequestConfig(configRef);
-            String host = httpRequestConfig.host();
-            String port = httpRequestConfig.port();
-            url = String.format("%s:%s", host, port);
+        // Create a supplier that lazily resolves the URL
+        Supplier<String> urlSupplier;
+        if (!urlAttribute.isEmpty()) {
+            // If url is provided directly, return it as-is
+            urlSupplier = () -> urlAttribute;
+        } else {
+            // If url is empty, create a supplier that resolves config and builds URL
+            urlSupplier = () -> {
+                HTTPRequestConfig httpRequestConfig = ctx.projectCtx.getHttpRequestConfig(configRef);
+                if (httpRequestConfig == null) {
+                    throw new IllegalStateException("HTTPRequestConfig not found for config-ref: " + configRef);
+                }
+                String host = httpRequestConfig.host();
+                String port = httpRequestConfig.port();
+                String url = String.format("%s:%s", host, port);
 
-            String protocol = httpRequestConfig.protocol();
-            if (!protocol.isEmpty()) {
-                url = protocol.toLowerCase() + "://" + url;
-            }
+                String protocol = httpRequestConfig.protocol();
+                if (!protocol.isEmpty()) {
+                    url = protocol.toLowerCase() + "://" + url;
+                }
+                return url;
+            };
         }
 
         String method = element.getAttribute("method").toLowerCase();
@@ -665,7 +677,7 @@ public class MuleConfigReader {
             }
         }
 
-        return new HttpRequest(configRef, method, url, path, queryParams, headersScript, uriParamsScript,
+        return new HttpRequest(configRef, method, urlSupplier, path, queryParams, headersScript, uriParamsScript,
                 queryParamsScript);
     }
 

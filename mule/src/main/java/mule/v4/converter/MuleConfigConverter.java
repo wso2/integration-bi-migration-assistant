@@ -518,7 +518,7 @@ public class MuleConfigConverter {
             path = getBallerinaClientResourcePath(ctx, httpRequest.path());
         }
         String method = httpRequest.method();
-        String url = extractVariables(ctx, httpRequest.url());
+        String url = extractVariables(ctx, httpRequest.url().get());
         Map<String, String> queryParams = httpRequest.queryParams();
 
         stmts.add(stmtFrom("\n\n// http client request\n"));

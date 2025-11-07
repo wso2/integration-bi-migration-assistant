@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 public record MuleModel() {
 
@@ -109,13 +110,13 @@ public record MuleModel() {
         }
     }
 
-    public record HttpRequest(Kind kind, String configRef, String method, String url, String path,
+    public record HttpRequest(Kind kind, String configRef, String method, Supplier<String> url, String path,
                               Map<String, String> queryParams, Optional<String> headersScript,
                               Optional<String> uriParamsScript, Optional<String> queryParamsScript)
             implements MuleRecord {
-        public HttpRequest(String configRef, String method, String url, String path, Map<String, String> queryParams,
-                          Optional<String> headersScript, Optional<String> uriParamsScript,
-                          Optional<String> queryParamsScript) {
+        public HttpRequest(String configRef, String method, Supplier<String> url, String path,
+                          Map<String, String> queryParams, Optional<String> headersScript,
+                          Optional<String> uriParamsScript, Optional<String> queryParamsScript) {
             this(Kind.HTTP_REQUEST, configRef, method, url, path, queryParams, headersScript, uriParamsScript,
                     queryParamsScript);
         }
