@@ -11,9 +11,9 @@ public type Context record {|
 
 public function demoFlow(Context ctx) {
     ctx.vars.age = 29;
-    if ctx.vars.age > 18 {
-        log:printInfo(string `Adult detected: Age is ${ctx.vars.age.toString()} years.`);
+    if ctx.vars?.age > 18 {
+        log:printInfo(string `Adult detected: Age is ${ctx.vars?.age.toString()} years.`);
     } else {
-        log:printInfo(string `Minor detected: Age is ${ctx.vars.age.toString()} years.`);
+        log:printInfo(string `Minor detected: Age is ${ctx.vars?.age.toString()} years.`);
     }
 }

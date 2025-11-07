@@ -24,7 +24,6 @@ import mule.v4.Constants;
 import mule.v4.Context;
 import mule.v4.ConversionUtils;
 import mule.v4.dataweave.converter.DWReader;
-import mule.v4.dataweave.converter.DWUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -612,7 +611,7 @@ public class MuleConfigConverter {
 
     private static String processMapScript(Context ctx, String script, List<Statement> stmts, String varName) {
         stmts.add(common.ConversionUtils.stmtFrom(
-                "map<string> %s = %s;".formatted(varName, convertMELToBal(ctx, script, false))));
+                "map<string> %s = %s;".formatted(varName, convertMELToBal(ctx, script, true))));
         return varName;
     }
 
@@ -913,8 +912,6 @@ public class MuleConfigConverter {
     private static WorkerStatementResult convertTransformMessage(Context ctx, TransformMessage transformMsg) {
         List<Statement> stmts = new ArrayList<>();
         DWReader.processDWElements(transformMsg.children(), ctx, stmts);
-        stmts.add(stmtFrom("%s.payload = %s;".formatted(Constants.CONTEXT_REFERENCE,
-                DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME)));
         return new WorkerStatementResult(stmts);
     }
 

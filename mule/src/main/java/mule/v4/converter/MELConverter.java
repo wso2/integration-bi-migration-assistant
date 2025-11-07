@@ -248,7 +248,7 @@ public class MELConverter {
         }
 
         String varName = ConversionUtils.convertToBalIdentifier(varNameToken.toString());
-        result.append(Constants.VARS_FIELD_ACCESS).append(".").append(varName);
+        result.append(Constants.VARS_FIELD_ACCESS).append("?.").append(varName);
         if (addToStringCalls) {
             result.append(".toString()");
         }

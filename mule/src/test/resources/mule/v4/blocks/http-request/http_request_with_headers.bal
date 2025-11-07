@@ -12,12 +12,12 @@ public function demoFlow(Context ctx) {
 
     // http client request
     http:Client http_request_config = check new ("jsonplaceholder.typicode.com:80");
-    map<string> _headers_ = {
+    map<string> headers = {
         "client-id": anypoint_auth_client_id,
         "client-secret": anypoint_auth_client_secret,
         "Content-Type": "application/json"
     };
-    http:Response clientResult0 = check http_request_config->/posts/latest.get(_headers_);
+    http:Response clientResult0 = check http_request_config->/posts/latest.get(headers);
     ctx.payload = check clientResult0.getJsonPayload();
     log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
 }

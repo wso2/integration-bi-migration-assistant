@@ -136,10 +136,10 @@ public type Context record {|
 
 public function demoFlow(Context ctx) {
     ctx.vars.age = 29;
-    if ctx.vars.age > 18 {
-        log:printInfo(string `Adult detected: Age is ${ctx.vars.age.toString()} years.`);
+    if ctx.vars?.age > 18 {
+        log:printInfo(string `Adult detected: Age is ${ctx.vars?.age.toString()} years.`);
     } else {
-        log:printInfo(string `Minor detected: Age is ${ctx.vars.age.toString()} years.`);
+        log:printInfo(string `Minor detected: Age is ${ctx.vars?.age.toString()} years.`);
     }
 }
 
@@ -209,14 +209,14 @@ service /mule4 on config {
     resource function get choice(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         ctx.vars.marks = 73;
-        if ctx.vars.marks >= 75 {
-            log:printInfo(string `You have scored ${ctx.vars.marks.toString()}. Your grade is 'A'.`);
-        } else if ctx.vars.marks >= 65 {
-            log:printInfo(string `You have scored ${ctx.vars.marks.toString()}. Your grade is 'B'.`);
-        } else if ctx.vars.marks >= 55 {
-            log:printInfo(string `You have scored ${ctx.vars.marks.toString()}. Your grade is 'C'.`);
+        if ctx.vars?.marks >= 75 {
+            log:printInfo(string `You have scored ${ctx.vars?.marks.toString()}. Your grade is 'A'.`);
+        } else if ctx.vars?.marks >= 65 {
+            log:printInfo(string `You have scored ${ctx.vars?.marks.toString()}. Your grade is 'B'.`);
+        } else if ctx.vars?.marks >= 55 {
+            log:printInfo(string `You have scored ${ctx.vars?.marks.toString()}. Your grade is 'C'.`);
         } else {
-            log:printInfo(string `You have scored ${ctx.vars.marks.toString()}. Your grade is 'F'.`);
+            log:printInfo(string `You have scored ${ctx.vars?.marks.toString()}. Your grade is 'F'.`);
         }
 
         ctx.attributes.response.setPayload(ctx.payload);
@@ -274,14 +274,14 @@ public type Context record {|
 
 public function demoFlow(Context ctx) {
     ctx.vars.marks = 73;
-    if ctx.vars.marks >= 75 {
-        log:printInfo(string `You have scored ${ctx.vars.marks.toString()}. Your grade is 'A'.`);
-    } else if ctx.vars.marks >= 65 {
-        log:printInfo(string `You have scored ${ctx.vars.marks.toString()}. Your grade is 'B'.`);
-    } else if ctx.vars.marks >= 55 {
-        log:printInfo(string `You have scored ${ctx.vars.marks.toString()}. Your grade is 'C'.`);
+    if ctx.vars?.marks >= 75 {
+        log:printInfo(string `You have scored ${ctx.vars?.marks.toString()}. Your grade is 'A'.`);
+    } else if ctx.vars?.marks >= 65 {
+        log:printInfo(string `You have scored ${ctx.vars?.marks.toString()}. Your grade is 'B'.`);
+    } else if ctx.vars?.marks >= 55 {
+        log:printInfo(string `You have scored ${ctx.vars?.marks.toString()}. Your grade is 'C'.`);
     } else {
-        log:printInfo(string `You have scored ${ctx.vars.marks.toString()}. Your grade is 'F'.`);
+        log:printInfo(string `You have scored ${ctx.vars?.marks.toString()}. Your grade is 'F'.`);
     }
 }
 
@@ -2095,6 +2095,68 @@ public function demoFlow(Context ctx) {
 
 ```
 
+- ### Http Request With Headers
+
+**Input (http_request_with_headers.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" doc:id="1e0d78e1-e5fb-44a9-9b18-b86c0d151be6" >
+        <http:request-connection host="jsonplaceholder.typicode.com" port="80" />
+    </http:request-config>
+    <flow name="demoFlow" doc:id="1d088811-dee1-455d-a909-529d3c54662f" >
+        <http:request method="GET" doc:name="Request" doc:id="b91d51d7-5c26-40a3-8ec5-66426b32989e" config-ref="http_request_config" path="/posts/latest">
+            <http:headers>
+            <![CDATA[#[output application/java
+                ---
+                {
+                    "client-id" : p('anypoint.auth.client_id'),
+                    "client-secret" : Mule::p('anypoint.auth.client_secret'),
+                    "Content-Type" : "application/json"
+                }]]]>
+            </http:headers>
+        </http:request>
+        <logger level="INFO" doc:name="Logger" doc:id="d0390e1c-7a02-44af-87b0-41f9834a6158" message="Received from external API: #[payload]"/>
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_headers.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+configurable string anypoint_auth_client_id = ?;
+configurable string anypoint_auth_client_secret = ?;
+
+public function demoFlow(Context ctx) {
+
+    // http client request
+    http:Client http_request_config = check new ("jsonplaceholder.typicode.com:80");
+    map<string> headers = {
+        "client-id": anypoint_auth_client_id,
+        "client-secret": anypoint_auth_client_secret,
+        "Content-Type": "application/json"
+    };
+    http:Response clientResult0 = check http_request_config->/posts/latest.get(headers);
+    ctx.payload = check clientResult0.getJsonPayload();
+    log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
+}
+
+```
+
 - ### Http Request With Http Source
 
 **Input (http_request_with_http_source.xml):**
@@ -2155,6 +2217,102 @@ service /mule4 on listener_config {
         ctx.attributes.response.setPayload(ctx.payload);
         return ctx.attributes.response;
     }
+}
+
+```
+
+- ### Http Request With Mel Config
+
+**Input (http_request_with_mel_config.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" doc:id="1e0d78e1-e5fb-44a9-9b18-b86c0d151be6" >
+        <http:request-connection host="${secure::api.host}" port="${secure::api.port}" />
+    </http:request-config>
+    <flow name="demoFlow" doc:id="1d088811-dee1-455d-a909-529d3c54662f" >
+        <http:request method="GET" doc:name="Request" doc:id="b91d51d7-5c26-40a3-8ec5-66426b32989e" config-ref="http_request_config" path="${secure::api.endpoint}">
+            <http:headers>
+            <![CDATA[#[output application/java
+                ---
+                {
+                    "client-id" : p('anypoint.auth.client_id'),
+                    "client-secret" : Mule::p('anypoint.auth.client_secret'),
+                    "Content-Type" : "application/json"
+                }]]]>
+            </http:headers>
+            <http:uri-params><![CDATA[#[output application/java
+                ---
+                {
+                    "id" : vars.id
+                }]]]>
+            </http:uri-params>
+            <http:query-params><![CDATA[#[output application/java
+                ---
+                {
+                    "language" : vars.language
+                }]]]>
+            </http:query-params>
+        </http:request>
+        <logger level="INFO" doc:name="Logger" doc:id="d0390e1c-7a02-44af-87b0-41f9834a6158" message="Received from external API: #[payload]"/>
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_mel_config.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/lang.regexp;
+import ballerina/log;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+configurable string secure_api_endpoint = ?;
+configurable string secure_api_host = ?;
+configurable string secure_api_port = ?;
+configurable string anypoint_auth_client_id = ?;
+configurable string anypoint_auth_client_secret = ?;
+
+public function demoFlow(Context ctx) {
+
+    // http client request
+    http:Client http_request_config = check new (string `${secure_api_host}:${secure_api_port}`);
+    map<string> headers = {
+        "client-id": anypoint_auth_client_id,
+        "client-secret": anypoint_auth_client_secret,
+        "Content-Type": "application/json"
+    };
+    map<string> uriParams = {
+        "id": ctx.vars?.id.toString()
+    };
+    map<string> queryParams = {
+        "language": ctx.vars?.language.toString()
+    };
+    string queryPath = pathBuilder0(string `${secure_api_endpoint}`, uriParams, queryParams);
+    http:Response clientResult0 = check http_request_config->get(queryPath, headers);
+    ctx.payload = check clientResult0.getJsonPayload();
+    log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
+}
+
+function pathBuilder0(string path, map<string> uriParams, map<string> queryParams) returns string {
+    // TODO: Instead try to use clientResult0->http_request_config./basePath/[id].get(language=language)
+    string requestPath = path;
+    foreach var [key, value] in uriParams.entries() {
+        requestPath = regexp:replaceAll(check regexp:fromString(string `\{${key}\}`), requestPath, value);
+    }
+    foreach var [key, value] in queryParams.entries() {
+        requestPath = regexp:replaceAll(check regexp:fromString(string `\{${key}\}`), requestPath, value);
+    }
+    return requestPath;
 }
 
 ```
@@ -3349,6 +3507,11 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 ```ballerina
 import ballerina/http;
 
+public type Vars record {|
+    json _dwOutput_?;
+    json myVariable?;
+|};
+
 public type Attributes record {|
     http:Request request;
     http:Response response;
@@ -3357,6 +3520,7 @@ public type Attributes record {|
 
 public type Context record {|
     anydata payload = ();
+    Vars vars = {};
     Attributes attributes;
 |};
 
@@ -3366,8 +3530,10 @@ service /foo on config {
     resource function get .(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         json _dwOutput_ = _dwMethod0_(ctx);
-        json myVariable = _dwMethod0_(ctx);
+        ctx.vars._dwOutput_ = _dwOutput_;
         ctx.payload = _dwOutput_;
+        json myVariable = _dwMethod0_(ctx);
+        ctx.vars.myVariable = myVariable;
 
         ctx.attributes.response.setPayload(ctx.payload);
         return ctx.attributes.response;
@@ -3413,6 +3579,10 @@ output application/json
 ```ballerina
 import ballerina/http;
 
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
 public type Attributes record {|
     http:Request request;
     http:Response response;
@@ -3421,6 +3591,7 @@ public type Attributes record {|
 
 public type Context record {|
     anydata payload = ();
+    Vars vars = {};
     Attributes attributes;
 |};
 
@@ -3430,6 +3601,7 @@ service /foo on config {
     resource function get .(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         json _dwOutput_ = check _dwMethod0_(ctx);
+        ctx.vars._dwOutput_ = _dwOutput_;
         ctx.payload = _dwOutput_;
 
         ctx.attributes.response.setPayload(ctx.payload);
@@ -3657,7 +3829,7 @@ service /mule4 on config {
         ctx.vars.name = "John";
         ctx.vars.age = 29;
         ctx.vars.'from = "USA";
-        log:printInfo(string `Variables defined are: name - ${ctx.vars.name.toString()}, age - ${ctx.vars.age.toString()}, from - ${ctx.vars.'from.toString()}`);
+        log:printInfo(string `Variables defined are: name - ${ctx.vars?.name.toString()}, age - ${ctx.vars?.age.toString()}, from - ${ctx.vars?.'from.toString()}`);
 
         ctx.attributes.response.setPayload(ctx.payload);
         return ctx.attributes.response;
@@ -3724,10 +3896,10 @@ service /mule4 on config {
         Context ctx = {attributes: {request, response: new}};
         ctx.vars.greeting = "Hello";
         ctx.vars.'from = "USA";
-        log:printInfo(string `Variables before removing: greeting - ${ctx.vars.greeting.toString()}, from - ${ctx.vars.'from.toString()}`);
+        log:printInfo(string `Variables before removing: greeting - ${ctx.vars?.greeting.toString()}, from - ${ctx.vars?.'from.toString()}`);
         ctx.vars.greeting = ();
         ctx.vars.'from = ();
-        log:printInfo(string `Variables after removing: greeting - ${ctx.vars.greeting.toString()}, from - ${ctx.vars.'from.toString()}`);
+        log:printInfo(string `Variables after removing: greeting - ${ctx.vars?.greeting.toString()}, from - ${ctx.vars?.'from.toString()}`);
 
         ctx.attributes.response.setPayload(ctx.payload);
         return ctx.attributes.response;

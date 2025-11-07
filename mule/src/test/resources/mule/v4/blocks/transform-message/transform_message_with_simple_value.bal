@@ -1,5 +1,9 @@
 import ballerina/http;
 
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
 public type Attributes record {|
     http:Request request;
     http:Response response;
@@ -8,6 +12,7 @@ public type Attributes record {|
 
 public type Context record {|
     anydata payload = ();
+    Vars vars = {};
     Attributes attributes;
 |};
 
@@ -17,6 +22,7 @@ service /foo on config {
     resource function get .(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         json _dwOutput_ = check _dwMethod0_(ctx);
+        ctx.vars._dwOutput_ = _dwOutput_;
         ctx.payload = _dwOutput_;
 
         ctx.attributes.response.setPayload(ctx.payload);

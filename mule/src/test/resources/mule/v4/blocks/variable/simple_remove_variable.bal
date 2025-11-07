@@ -25,10 +25,10 @@ service /mule4 on config {
         Context ctx = {attributes: {request, response: new}};
         ctx.vars.greeting = "Hello";
         ctx.vars.'from = "USA";
-        log:printInfo(string `Variables before removing: greeting - ${ctx.vars.greeting.toString()}, from - ${ctx.vars.'from.toString()}`);
+        log:printInfo(string `Variables before removing: greeting - ${ctx.vars?.greeting.toString()}, from - ${ctx.vars?.'from.toString()}`);
         ctx.vars.greeting = ();
         ctx.vars.'from = ();
-        log:printInfo(string `Variables after removing: greeting - ${ctx.vars.greeting.toString()}, from - ${ctx.vars.'from.toString()}`);
+        log:printInfo(string `Variables after removing: greeting - ${ctx.vars?.greeting.toString()}, from - ${ctx.vars?.'from.toString()}`);
 
         ctx.attributes.response.setPayload(ctx.payload);
         return ctx.attributes.response;

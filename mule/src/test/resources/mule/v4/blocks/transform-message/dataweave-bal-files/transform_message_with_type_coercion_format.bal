@@ -1,19 +1,19 @@
 import ballerina/jballerina.java;
 import ballerina/time;
 
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
 public type Context record {|
     anydata payload = ();
+    Vars vars = {};
 |};
 
 public function getFormattedStringFromDate(string dateString, string format) returns string {
     handle localDateTime = getDateTime(parseInstant(java:fromString(dateString)),
             getZoneId(java:fromString("UTC")));
     return formatDateTime(localDateTime, getDateTimeFormatter(java:fromString(format))).toString();
-}
-
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
-    ctx.payload = _dwOutput_;
 }
 
 public function parseInstant(handle instant) returns handle = @java:Method {
@@ -45,6 +45,12 @@ public function getZoneId(handle zoneId) returns handle = @java:Method {
 
 function _dwMethod0_(Context ctx) returns json|error {
     return {"a": intToString(1, "##,#"), "b": check getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd").ensureType(json), "c": true.toString()};
+}
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
 }
 
 public function getFormattedStringFromNumber(handle formatObject, int value) returns handle = @java:Method {
