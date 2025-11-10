@@ -1,6 +1,6 @@
 [package]
 org = "wso2"
 name = "tool_migrate_logicapps"
-version = "1.0.0-SNAPSHOT"
+version = "0.1.0"
 distribution = "2201.12.3"
 keywords = ["migrate-logicapps", "logicapps-migrate", "logicapps", "azure"]
