@@ -231,6 +231,9 @@ public class CodeGenerationUtils {
         prompt.append("# Role\n")
                 .append("You are an expert in migrating Mirth Connect Channel to Ballerina integration ")
                 .append("with given channel xml file.\n\n");
+        prompt.append("# Important\n")
+                .append("Must incorporate xlibb/pipeline Ballerina library for all the cases to generate  ")
+                .append("complete integration flow.\n\n");
 
         if (executionPlan != null && !executionPlan.isEmpty()) {
             prompt.append(executionPlan).append("\n\n");

@@ -1,12 +1,12 @@
 ## Tool Overview
-The `migrate-mirthchannel` tool enables the conversion of Mirth Connect Channel into Ballerina packages compatible with the [WSO2 Ballerina Integrator](https://wso2.com/integrator/ballerina-integrator).
+The `migrate-mirth` tool enables the conversion of Mirth Connect Channel into Ballerina packages compatible with the [WSO2 Ballerina Integrator](https://wso2.com/integrator/ballerina-integrator).
 It accepts a Mirth Channel XML file as input and produces an equivalent Ballerina Integrator application.
 
 ## Installation
 
-To pull the `migrate-mirthchannel` tool from Ballerina Central, run the following command:
+To pull the `migrate-mirth` tool from Ballerina Central, run the following command:
 ```bash
-$ bal tool pull migrate-mirthchannel
+$ bal tool pull migrate-mirth
 ```
 
 ## Usage
@@ -14,7 +14,7 @@ $ bal tool pull migrate-mirthchannel
 ### Command Syntax
 
 ```bash
-$ bal migrate-mirthchannel <source-project-file-path> [-o|--out <output-directory>] [-v|--verbose]
+$ bal migrate-mirth <source-project-file-path> [-o|--out <output-directory>] [-v|--verbose]
 ```
 
 ### Parameters
@@ -29,7 +29,7 @@ $ bal migrate-mirthchannel <source-project-file-path> [-o|--out <output-director
 #### Convert a Mirth Connect Channel XML file
 
 ```bash
-$ bal migrate-mirthchannel /path/to/mirth-channel.xml
+$ bal migrate-mirth /path/to/mirth-channel.xml
 ```
 
 This will create a Ballerina package in the same directory as the input JSON file.
@@ -37,7 +37,7 @@ This will create a Ballerina package in the same directory as the input JSON fil
 #### Convert a Mirth Connect Channel XML file with a Custom Output Location
 
 ```bash
-$ bal migrate-mirthchannel /path/to/mirth-channel.xml --out /path/to/output-dir
+$ bal migrate-mirth /path/to/mirth-channel.xml --out /path/to/output-dir
 ```
 
 This will create a Ballerina package at `/path/to/output-dir`.
@@ -45,7 +45,7 @@ This will create a Ballerina package at `/path/to/output-dir`.
 #### Convert a Mirth Connect Channel XML file with Verbose Output
 
 ```bash
-$ bal migrate-mirthchannel /path/to/mirth-channel.xml --verbose
+$ bal migrate-mirth /path/to/mirth-channel.xml --verbose
 ```
 
 This will convert the Logic App with detailed logging during the conversion process.

@@ -2,7 +2,7 @@ package baltool.mirth;
 
 public class Constants {
 
-    public static final String CMD_NAME = "migrate-mirthchannel";
+    public static final String CMD_NAME = "migrate-mirth";
 
     public static final String DEV_AUTH_ORG = "ballerinacopilotdev";
     public static final String AUTH_ORG = "ballerinacopilot";
@@ -12,7 +12,7 @@ public class Constants {
             "e1-us-east-azure.choreoapps.dev";
     public static final String DEV_AUTH_CLIENT_ID = "XpQ6lphi7kjKkWzumYyqqNf7CjIa";
     public static final String AUTH_CLIENT_ID = "9rKng8hSZd0VkeA45Lt4LOfCp9Aa";
-    public static final String CONFIG_FILE_PATH = "migrate-logicapps.config";
+    public static final String CONFIG_FILE_PATH = "migrate-mirth.config";
     public static final int AUTHENTICATION_TIMEOUT_SECONDS = 180;
     public static final String DEV_COPILOT_BACKEND_URL = "http://localhost:9094/ai";
     public static final String COPILOT_BACKEND_URL = "https://dev-tools.wso2.com/ballerina-copilot/v2.0";
