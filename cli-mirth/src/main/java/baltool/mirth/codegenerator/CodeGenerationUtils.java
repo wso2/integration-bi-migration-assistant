@@ -48,7 +48,7 @@ import static baltool.mirth.Constants.CONTENT;
 import static baltool.mirth.Constants.COPILOT_BACKEND_URL;
 import static baltool.mirth.Constants.DEV_COPILOT_BACKEND_URL;
 import static baltool.mirth.Constants.FILE_PATH;
-import static baltool.mirth.Constants.MAXIMUM_RETRY_COUNT;
+import static baltool.mirth.Constants.MAXIMUM_REPAIR_COUNT;
 import static baltool.mirth.codegenerator.HttpUtils.getHttpClient;
 import static baltool.mirth.codegenerator.HttpUtils.sendRequestAsync;
 import static baltool.mirth.codegenerator.HttpUtils.sendStreamRequestAsync;
@@ -509,7 +509,7 @@ public class CodeGenerationUtils {
 
         logger.printVerboseInfo(fileName, "Starting code repair process...");
         GeneratedCode repairedCode = generatedCode;
-        for (int iteration = 0; iteration < MAXIMUM_RETRY_COUNT; iteration++) {
+        for (int iteration = 0; iteration < MAXIMUM_REPAIR_COUNT; iteration++) {
             logger.printVerboseInfo(fileName, "Iteration " + (iteration + 1) + " of code repair");
             GeneratedCode repairedCodeIteration = repairIfDiagnosticsExist(copilotAccessToken, sourceFiles,
                     fileAttachmentContents, packageName, generatedPrompt, moduleDescriptor, generatedCode, logger,
