@@ -33,7 +33,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,7 +43,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static common.BallerinaModel.Import;
@@ -70,6 +68,9 @@ public class Context extends ContextBase {
     private final Map<File, ParseResult> parseResults = new HashMap<>();
     private final Map<File, FileContext> fileContexts = new HashMap<>();
     private final Map<ApiKitConfig, BallerinaModel.Service> apiKitServices = new HashMap<>();
+    public String currentServiceBasePath;
+    public String currentResourcePath;
+    public String currentListenerPort;
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                    List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
@@ -166,6 +167,16 @@ public class Context extends ContextBase {
         return apiKitServices.computeIfAbsent(apiKit, mappingFunction);
     }
 
+    public String getApiKitBasePath(ApiKitConfig apiKitConfig) {
+        return getApiKitBasePath(apiKitConfig.name());
+    }
+
+    public String getApiKitBasePath(String configName) {
+        String key = configName == null || configName.isBlank() ? "__defaultApiKitConfig__" : configName;
+        return projectCtx.apiKitBasePaths.computeIfAbsent(key,
+                ignored -> "/apikit" + projectCtx.apiKitBasePaths.size());
+    }
+
     public static class FileContext {
         public final String filePath;
         public final GlobalConfigs configs;
@@ -198,6 +209,8 @@ public class Context extends ContextBase {
         public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
         List<HashMap<String, ModuleTypeDef>> typeDefMaps = new ArrayList<>();
         List<HashMap<String, BallerinaModel.Function>> functionMaps = new ArrayList<>();
+
+        private final Map<String, String> apiKitBasePaths = new HashMap<>();
 
         public void addJavaDependency(MuleToBalConverter.JavaDependencies dependencies) {
             javaDependencies.add(dependencies);

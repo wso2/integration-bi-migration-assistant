@@ -247,7 +247,7 @@ public class MuleToBalConverter {
 
     private static Service apiKitServiceCreator(Context cx, ApiKitConfig apiKitConfig) {
         HTTPListenerConfig listener = cx.getDefaultHttpListenerConfig();
-        String basePath = getBallerinaAbsolutePath(listener.basePath());
+        String basePath = cx.getApiKitBasePath(apiKitConfig);
         String listenerRef = ConversionUtils.convertToBalIdentifier(listener.name());
         List<Resource> resources = new ArrayList<>();
         return new Service(basePath, listenerRef, resources);
@@ -419,8 +419,8 @@ public class MuleToBalConverter {
         String resourcePath = getBallerinaResourcePath(ctx, httpListener.resourcePath(), pathParams);
         String[] resourceMethodNames = httpListener.allowedMethods();
         String listenerRef = ConversionUtils.convertToBalIdentifier(httpListener.configRef());
-        String muleBasePath = insertLeadingSlash(
-                ctx.projectCtx.getHttpListenerConfig(httpListener.configRef()).basePath());
+        HTTPListenerConfig listenerConfig = ctx.projectCtx.getHttpListenerConfig(httpListener.configRef());
+        String muleBasePath = insertLeadingSlash(listenerConfig.basePath());
         String basePath = getBallerinaAbsolutePath(muleBasePath);
 
         // Add services
@@ -431,6 +431,11 @@ public class MuleToBalConverter {
         String attributesInitValue = getAttributesInitValue(ctx, pathParams);
         bodyStmts.add(stmtFrom("Context %s = {%s: %s};".formatted(Constants.CONTEXT_REFERENCE,
                 Constants.ATTRIBUTES_REF, attributesInitValue)));
+
+        // Set context for apikit-router comment generation
+        ctx.currentServiceBasePath = basePath;
+        ctx.currentResourcePath = resourcePath;
+        ctx.currentListenerPort = listenerConfig.port();
 
         List<Statement> bodyCoreStmts = convertTopLevelMuleBlocks(ctx, flowBlocks);
         bodyStmts.addAll(bodyCoreStmts);

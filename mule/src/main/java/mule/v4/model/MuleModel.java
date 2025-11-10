@@ -277,17 +277,33 @@ public record MuleModel() {
         }
 
         public HTTPResourceData resourcePathData(Flow flow) {
-            String flowName = flow.name();
+            return parseApiKitFlowName(flow.name());
+        }
 
-            // Pattern: {METHOD}:\{PATH}:{CONFIG_NAME}
+        /**
+         * Parses an ApiKit flow name to extract HTTP resource data.
+         * Supports two patterns:
+         * - {METHOD}:\{PATH}:{CONFIG_NAME} (3 parts)
+         * - {METHOD}:\{PATH}:{PAYLOAD_FORMAT}:{CONFIG_NAME} (4 parts, payload format is
+         * ignored)
+         *
+         * @param flowName the flow name to parse
+         * @return HTTPResourceData containing resource path, path parameters, HTTP
+         *         method, and config name
+         */
+        public static HTTPResourceData parseApiKitFlowName(String flowName) {
+            // Pattern: {METHOD}:\{PATH}:{CONFIG_NAME} or
+            // {METHOD}:\{PATH}:{PAYLOAD_FORMAT}:{CONFIG_NAME}
             String[] parts = flowName.split(":");
             if (parts.length < 3) {
-                return new HTTPResourceData("", List.of(), "get");
+                return new HTTPResourceData("", List.of(), "get", "");
             }
 
             String method = parts[0].toLowerCase();
             String configName = parts[parts.length - 1];
-            String path = flowName.substring(method.length() + 1, flowName.length() - configName.length() - 1);
+            // For 4-part pattern, path is parts[1] (skip parts[2] which is payload format)
+            // For 3-part pattern, path is parts[1]
+            String path = parts[1];
 
             // Remove leading \ if present
             if (path.startsWith("\\")) {
@@ -308,11 +324,18 @@ public record MuleModel() {
                     .replace(")", "]")
                     .replace("\\", "/");
 
-            return new HTTPResourceData(resourcePath, pathParams, method);
+            return new HTTPResourceData(resourcePath, pathParams, method, configName);
         }
 
-        public record HTTPResourceData(String resourcePath, List<String> pathParams, String method) {
+        public record HTTPResourceData(String resourcePath, List<String> pathParams, String method,
+                String configName) {
 
+        }
+    }
+
+    public record ApiKitRouter(Kind kind, String configRef) implements MuleRecord {
+        public ApiKitRouter(String configRef) {
+            this(Kind.APIKIT_ROUTER, configRef);
         }
     }
 
@@ -411,6 +434,7 @@ public record MuleModel() {
         FIRST_SUCCESSFUL,
         ROUTE,
         APIKIT_CONFIG,
+        APIKIT_ROUTER,
         HTTP_LISTENER_CONFIG,
         HTTP_REQUEST_CONFIG,
         DB_CONFIG,

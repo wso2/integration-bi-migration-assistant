@@ -46,6 +46,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import static common.BallerinaModel.Import;
 import static mule.v4.ConversionUtils.getAllowedMethods;
 import static mule.v4.model.MuleModel.ApiKitConfig;
+import static mule.v4.model.MuleModel.ApiKitRouter;
 import static mule.v4.model.MuleModel.Async;
 import static mule.v4.model.MuleModel.Choice;
 import static mule.v4.model.MuleModel.Database;
@@ -101,10 +102,6 @@ import static mule.v4.model.MuleXMLTag.HTTP_LISTENER_CONNECTION;
 import static mule.v4.model.MuleXMLTag.HTTP_REQUEST_CONNECTION;
 
 public class MuleConfigReader {
-
-    private record ApiKitFlowParts(String method, String path, String configName) {
-
-    }
 
     public static ParseResult readMuleConfigFromRoot(Context ctx, MuleXMLNavigator muleXMLNavigator,
                                                      String xmlFilePath) {
@@ -276,6 +273,9 @@ public class MuleConfigReader {
             case MuleXMLTag.VM_CONSUME -> {
                 return readVMConsume(ctx, muleElement);
             }
+            case MuleXMLTag.APIKIT_ROUTER -> {
+                return readApiKitRouter(ctx, muleElement);
+            }
             default -> {
                 return readUnsupportedBlock(ctx, muleElement);
             }
@@ -374,19 +374,9 @@ public class MuleConfigReader {
                 ":.*:.*$");
     }
 
-    private static ApiKitFlowParts extractApiKitParts(String flowName) {
-        String[] parts = flowName.split(":");
-        if (parts.length < 3) {
-            throw new IllegalArgumentException("Invalid apikit flow name: " + flowName);
-        }
-        String method = parts[0].toLowerCase();
-        String configName = parts[parts.length - 1];
-        String path = flowName.substring(method.length() + 1, flowName.length() - configName.length() - 1);
-        return new ApiKitFlowParts(method, path, configName);
-    }
-
-    private static Optional<MuleRecord> createApiKitSource(Context ctx, ApiKitFlowParts parts) {
-        return Optional.ofNullable(ctx.projectCtx.getApiKitConfig(parts.configName()));
+    private static Optional<MuleRecord> createApiKitSource(Context ctx, String flowName) {
+        ApiKitConfig.HTTPResourceData resourceData = ApiKitConfig.parseApiKitFlowName(flowName);
+        return Optional.ofNullable(ctx.projectCtx.getApiKitConfig(resourceData.configName()));
     }
 
     // Scopes
@@ -421,8 +411,7 @@ public class MuleConfigReader {
         if (finalSource != null) {
             sourceSupplier = () -> Optional.of(finalSource);
         } else if (isApiKitFlowPattern(flowName)) {
-            ApiKitFlowParts parts = extractApiKitParts(flowName);
-            sourceSupplier = () -> createApiKitSource(ctx, parts);
+            sourceSupplier = () -> createApiKitSource(ctx, flowName);
         } else {
             sourceSupplier = Optional::empty;
         }
@@ -809,6 +798,12 @@ public class MuleConfigReader {
         String name = element.getAttribute("name");
         String api = element.getAttribute("api");
         return new ApiKitConfig(name, api);
+    }
+
+    private static ApiKitRouter readApiKitRouter(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String configRef = element.getAttribute("config-ref");
+        return new ApiKitRouter(configRef);
     }
 
     private static HTTPListenerConfig readHttpListenerConfig(Context ctx, MuleElement muleElement) {
