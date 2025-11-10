@@ -10,7 +10,7 @@ def balToolVersion = "${mirthConnectVersion}"
 def ballerinaVersion = "${ballerinaLangVersion}"
 
 group 'com.wso2'
-version = '0.1.0'
+version "${mirthConnectVersion}"
 
 def libJarPath = "../../../../build/libs/mirthchannel-migration-assistant-${project.version}.jar"
 
@@ -37,8 +37,32 @@ dependencies {
     implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
 }
 
+checkstyle {
+    toolVersion = '10.12.5'
+    config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
+}
+
+spotbugs {
+    reportLevel = 'high'
+    excludeFilter = file("${rootProject.projectDir}/spotbugs-exclude.xml")
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+    reports {
+        html.required = true
+        xml.required = false
+    }
+}
+
+test {
+    useTestNG() {
+        suites 'src/test/resources/testng.xml'
+    }
+}
+
+// Keep this for backward compatibility
 application {
-    mainClass = 'codegenerator.MirthChannelMigrationExecutor'
+    mainClass = 'cli.MirthConnectCli'
 }
 
 task updateTomlFile {
@@ -59,47 +83,18 @@ task updateTomlFile {
     }
 }
 
-
-
-//application {
-//    mainClass.set('cli.MirthConnectCli')  // Updated to use the correct main class
-//}
-
-checkstyle {
-    toolVersion = '10.12.5'
-    config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
-}
-
-
-spotbugs {
-    reportLevel = 'high'
-    excludeFilter = file("${rootProject.projectDir}/spotbugs-exclude.xml")
-}
-
-
-tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
-    reports {
-        html.required = true
-        xml.required = false
-    }
-}
-
-test {
-    useTestNG() {
-        suites 'src/test/resources/testng.xml'
-    }
-}
-
+// Task to copy dependencies to a lib directory
 task copyDependencies(type: Copy) {
     from configurations.runtimeClasspath
     into "${buildDir}/libs/lib"
 }
 
+// Default jar task - we'll keep it for backward compatibility
 jar {
     dependsOn copyDependencies
     manifest {
         attributes(
-                'Main-Class': 'codegenerator.MirthChannelMigrationExecutor',
+                'Main-Class': 'cli.MirthConnectCli',
                 'Class-Path': configurations.runtimeClasspath.files.collect { "lib/${it.name}" }.join(' ')
         )
     }
@@ -150,7 +145,7 @@ tasks.register('mirthChannelReleaseLocal', Exec) {
 }
 
 build {
-//    dependsOn checkstyleMain
-//    dependsOn spotbugsMain
+    dependsOn checkstyleMain
+    dependsOn spotbugsMain
     dependsOn mirthChannelJar
 }

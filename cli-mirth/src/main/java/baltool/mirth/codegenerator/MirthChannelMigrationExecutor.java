@@ -25,15 +25,6 @@ public class MirthChannelMigrationExecutor {
     private static final int TOTAL_STEPS = 3;
 
 
-    public static void main(String[] args) {
-
-        Path sourceFile = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/channels/HL7_Conversion.xml");
-//        Path sourceFile = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/file_handle_channel.xml");
-        Path outputDirectory = Path.of("/Users/isurus/wso2/integration-bi-migration-assistant/cli-mirth/src/main/resources/gen");
-        migrateChannelToBallerina(sourceFile, outputDirectory, "", false, new VerboseLogger(false));
-
-    }
-
     public static void migrateChannelToBallerina(Path channelFilePath, Path outputDir, String additionalInstructions, boolean verbose, VerboseLogger logger) {
         executeMigration(channelFilePath, outputDir, additionalInstructions, verbose, logger);
     }
