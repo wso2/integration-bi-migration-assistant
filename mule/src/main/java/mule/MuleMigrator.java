@@ -461,6 +461,37 @@ public class MuleMigrator {
         Path targetPath = multiResult.getTargetPath();
         MigratorUtils.writeFile(logger, targetPath, AggregateReportGenerator.AGGREGATE_MIGRATION_REPORT_NAME,
                 aggregateReport);
+
+        // Generate workspace Ballerina.toml for multi-root projects
+        writeWorkspaceBallerinaToml(logger, multiResult);
+    }
+
+    private static void writeWorkspaceBallerinaToml(MuleLogger logger, MultiMigrationResult multiResult) {
+        // Extract package names from successfully converted projects
+        List<String> packageNames = multiResult.getMigrationResults().stream()
+                .filter(result -> result.getMigrationStats() != null)
+                .map(ProjectMigrationResult::getProjectName)
+                .toList();
+
+        if (packageNames.isEmpty()) {
+            return;
+        }
+
+        // Generate workspace Ballerina.toml content
+        StringBuilder tomlContent = new StringBuilder("[workspace]\n");
+        tomlContent.append("packages = [");
+        for (int i = 0; i < packageNames.size(); i++) {
+            if (i > 0) {
+                tomlContent.append(", ");
+            }
+            tomlContent.append("\"").append(packageNames.get(i)).append("\"");
+        }
+        tomlContent.append("]\n");
+
+        // Write workspace Ballerina.toml to target directory
+        Path targetPath = multiResult.getTargetPath();
+        MigratorUtils.writeFile(logger, targetPath, "Ballerina.toml", tomlContent.toString());
+        logger.logInfo("Created workspace Ballerina.toml at: " + targetPath.resolve("Ballerina.toml"));
     }
 
     private static void parseMuleProject(ContextBase ctx) {
