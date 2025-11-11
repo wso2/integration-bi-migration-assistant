@@ -95,7 +95,14 @@ public class MuleMigrator {
             Consumer<String> stateCallback = validateAndGetConsumer(parameters, "stateCallback");
             Consumer<String> logCallback = validateAndGetConsumer(parameters, "logCallback");
             Integer muleVersion = validateAndGetForceVersion(parameters);
-            return migrateMuleInner(orgName, projectName, sourcePath, muleVersion, stateCallback, logCallback);
+            boolean multiRoot = validateAndGetBoolean(parameters, "multiRoot", false);
+
+            if (multiRoot) {
+                return migrateMuleMultiRootInner(orgName, projectName, sourcePath, muleVersion, stateCallback,
+                        logCallback);
+            } else {
+                return migrateMuleInner(orgName, projectName, sourcePath, muleVersion, stateCallback, logCallback);
+            }
         } catch (IllegalArgumentException e) {
             return Map.of("error", e.getMessage());
         }
@@ -117,6 +124,79 @@ public class MuleMigrator {
                 "report", projResult.getHtmlReport(),
                 "report-json", projResult.getJsonReport()
         );
+    }
+
+    private static Map<String, Object> migrateMuleMultiRootInner(String orgName, String projectName, String sourcePath,
+            Integer muleVersion, Consumer<String> stateCallback, Consumer<String> logCallback) {
+        MuleLogger logger = new MuleLogger(stateCallback, logCallback);
+        Path inputPath;
+        try {
+            inputPath = Paths.get(sourcePath).toRealPath();
+        } catch (IOException e) {
+            return Map.of("error", "Invalid path: " + sourcePath);
+        }
+
+        if (!Files.isDirectory(inputPath)) {
+            return Map.of("error", "Multi-root conversion requires a directory path: " + sourcePath);
+        }
+
+        MigrationResult result = migrateMuleSourceInMemory(logger, sourcePath, null, orgName, projectName, muleVersion,
+                false, false, false, true);
+        if (result.getFatalError().isPresent()) {
+            return Map.of("error", result.getFatalError().get());
+        }
+
+        if (!(result instanceof MultiMigrationResult multiResult)) {
+            return Map.of("error", "Expected MultiMigrationResult but got: " + result.getClass().getName());
+        }
+
+        List<ProjectMigrationResult> projResultList = multiResult.getMigrationResults();
+        if (projResultList.isEmpty()) {
+            return Map.of("error", "No projects were successfully processed");
+        }
+
+        // Collect files and project summaries
+        Map<String, String> allFiles = new HashMap<>();
+        List<String> packageNames = new ArrayList<>();
+
+        for (ProjectMigrationResult projResult : projResultList) {
+            String projectPrefix = projResult.getProjectName();
+            packageNames.add(projectPrefix);
+
+            // Add all project files with project prefix
+            if (projResult.getFiles() != null) {
+                for (Map.Entry<String, String> entry : projResult.getFiles().entrySet()) {
+                    String filePath = projectPrefix + "/" + entry.getKey();
+                    allFiles.put(filePath, entry.getValue());
+                }
+            }
+
+            // Add individual project migration report
+            String reportPath = projectPrefix + "/" + INDIVIDUAL_REPORT_NAME;
+            allFiles.put(reportPath, projResult.getHtmlReport());
+        }
+
+        // Generate aggregated HTML report
+        Path targetPath = multiResult.getTargetPath();
+        String aggregatedHtmlReport = AggregateReportGenerator.generateHtmlReport(logger, projResultList, targetPath,
+                false);
+        allFiles.put(AggregateReportGenerator.AGGREGATE_MIGRATION_REPORT_NAME, aggregatedHtmlReport);
+
+        // Generate aggregated JSON report
+        Map<String, Object> jsonReportMap = generateAggregatedJsonReport(projResultList);
+
+        // Generate root Ballerina.toml
+        String rootBallerinaToml = generateWorkspaceBallerinaToml(packageNames);
+        if (!rootBallerinaToml.isEmpty()) {
+            allFiles.put("Ballerina.toml", rootBallerinaToml);
+        }
+
+        Map<String, Object> resultMap = new HashMap<>();
+        resultMap.put("error", null);
+        resultMap.put("textEdits", allFiles);
+        resultMap.put("report", aggregatedHtmlReport);
+        resultMap.put("jsonReport", jsonReportMap);
+        return resultMap;
     }
 
     private static String validateAndGetString(Map<String, Object> parameters, String key) {
@@ -158,6 +238,18 @@ public class MuleMigrator {
             throw new IllegalArgumentException("Parameter " + key + " must be either 3 or 4, got: " + value);
         }
         return (Integer) value;
+    }
+
+    private static boolean validateAndGetBoolean(Map<String, Object> parameters, String key, boolean defaultValue) {
+        if (!parameters.containsKey(key)) {
+            return defaultValue;
+        }
+        Object value = parameters.get(key);
+        if (!(value instanceof Boolean)) {
+            throw new IllegalArgumentException("Parameter " + key + " must be a Boolean, got: " +
+                    (value != null ? value.getClass().getSimpleName() : "null"));
+        }
+        return (Boolean) value;
     }
 
     public static void migrateAndExportMuleSource(String inputPathArg, String outputPathArg, String orgName,
@@ -466,15 +558,9 @@ public class MuleMigrator {
         writeWorkspaceBallerinaToml(logger, multiResult);
     }
 
-    private static void writeWorkspaceBallerinaToml(MuleLogger logger, MultiMigrationResult multiResult) {
-        // Extract package names from successfully converted projects
-        List<String> packageNames = multiResult.getMigrationResults().stream()
-                .filter(result -> result.getMigrationStats() != null)
-                .map(ProjectMigrationResult::getProjectName)
-                .toList();
-
+    public static String generateWorkspaceBallerinaToml(List<String> packageNames) {
         if (packageNames.isEmpty()) {
-            return;
+            return "";
         }
 
         // Generate workspace Ballerina.toml content
@@ -488,9 +574,24 @@ public class MuleMigrator {
         }
         tomlContent.append("]\n");
 
+        return tomlContent.toString();
+    }
+
+    private static void writeWorkspaceBallerinaToml(MuleLogger logger, MultiMigrationResult multiResult) {
+        // Extract package names from successfully converted projects
+        List<String> packageNames = multiResult.getMigrationResults().stream()
+                .filter(result -> result.getMigrationStats() != null)
+                .map(ProjectMigrationResult::getProjectName)
+                .toList();
+
+        String tomlContent = generateWorkspaceBallerinaToml(packageNames);
+        if (tomlContent.isEmpty()) {
+            return;
+        }
+
         // Write workspace Ballerina.toml to target directory
         Path targetPath = multiResult.getTargetPath();
-        MigratorUtils.writeFile(logger, targetPath, "Ballerina.toml", tomlContent.toString());
+        MigratorUtils.writeFile(logger, targetPath, "Ballerina.toml", tomlContent);
         logger.logInfo("Created workspace Ballerina.toml at: " + targetPath.resolve("Ballerina.toml"));
     }
 
@@ -738,6 +839,52 @@ public class MuleMigrator {
                 }
             }
         }
+    }
+
+    private static Map<String, Object> generateAggregatedJsonReport(List<ProjectMigrationResult> projectResults) {
+        int totalProjects = projectResults.size();
+        int totalElements = projectResults.stream()
+                .map(ProjectMigrationResult::getMigrationStats)
+                .mapToInt(stats -> {
+                    int xmlElements = stats.passedXMLTags().values().stream().mapToInt(i -> i).sum() +
+                            stats.failedXMLTags().values().stream().mapToInt(i -> i).sum();
+                    int dwElements = stats.dwConversionStats().getTotalEncounteredCount();
+                    return xmlElements + dwElements;
+                })
+                .sum();
+        int migratableElements = projectResults.stream()
+                .map(ProjectMigrationResult::getMigrationStats)
+                .mapToInt(stats -> {
+                    int xmlElements = stats.passedXMLTags().values().stream().mapToInt(i -> i).sum();
+                    int dwElements = stats.dwConversionStats().getConvertedCount();
+                    return xmlElements + dwElements;
+                })
+                .sum();
+        int nonMigratableElements = totalElements - migratableElements;
+
+        double coveragePercentage = totalElements > 0 ? (double) migratableElements / totalElements * 100.0 : 100.0;
+
+        String coverageLevel;
+        if (coveragePercentage >= 75) {
+            coverageLevel = "High";
+        } else if (coveragePercentage >= 50) {
+            coverageLevel = "Medium";
+        } else {
+            coverageLevel = "Low";
+        }
+
+        Map<String, Object> coverageOverview = new HashMap<>();
+        coverageOverview.put("projects", totalProjects);
+        coverageOverview.put("unitName", "code lines");
+        coverageOverview.put("coveragePercentage", Math.round(coveragePercentage));
+        coverageOverview.put("coverageLevel", coverageLevel);
+        coverageOverview.put("totalElements", totalElements);
+        coverageOverview.put("migratableElements", migratableElements);
+        coverageOverview.put("nonMigratableElements", nonMigratableElements);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("coverageOverview", coverageOverview);
+        return result;
     }
 
     // ----------------------------------------------- Testing API ------------------------------------------------
