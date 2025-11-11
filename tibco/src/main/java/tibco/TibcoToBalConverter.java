@@ -20,13 +20,16 @@ package tibco;
 
 import common.ConversionUtils;
 import common.LoggingUtils;
+import common.ProjectSummary;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
+import tibco.analyzer.CombinedSummaryReport;
 import tibco.analyzer.DefaultAnalysisPass;
 import tibco.analyzer.LoggingAnalysisPass;
 import tibco.analyzer.ModelAnalyser;
+import tibco.converter.TibcoConverter;
 import tibco.model.Process;
 import tibco.model.Resource;
 import tibco.model.Type;
@@ -41,7 +44,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -307,8 +312,13 @@ public class TibcoToBalConverter {
             String sourcePath = validateAndGetString(parameters, "sourcePath");
             Consumer<String> stateCallback = validateAndGetConsumer(parameters, "stateCallback");
             Consumer<String> logCallback = validateAndGetConsumer(parameters, "logCallback");
+            boolean multiRoot = validateAndGetBoolean(parameters, "multiRoot", false);
 
-            return migrateTIBCOInner(orgName, projectName, sourcePath, stateCallback, logCallback);
+            if (multiRoot) {
+                return migrateTIBCOMultiRootInner(orgName, projectName, sourcePath, stateCallback, logCallback);
+            } else {
+                return migrateTIBCOInner(orgName, projectName, sourcePath, stateCallback, logCallback);
+            }
         } catch (IllegalArgumentException e) {
             return Map.of("error", e.getMessage());
         }
@@ -339,6 +349,121 @@ public class TibcoToBalConverter {
         }
     }
 
+    private static @NotNull Map<String, Object> migrateTIBCOMultiRootInner(String orgName, String projectName,
+            String sourcePath,
+            Consumer<String> stateCallback,
+            Consumer<String> logCallback) {
+        String escapedOrgName = ConversionUtils.escapeIdentifier(orgName);
+        ConversionContext cx = new ConversionContext(escapedOrgName, false, false, stateCallback, logCallback);
+        Path inputPath;
+        try {
+            inputPath = Paths.get(sourcePath).toRealPath();
+        } catch (IOException e) {
+            return Map.of("error", "Invalid path: " + sourcePath);
+        }
+
+        if (!Files.isDirectory(inputPath)) {
+            return Map.of("error", "Multi-root conversion requires a directory path: " + sourcePath);
+        }
+
+        // Use shared processing logic
+        // In API mode, always use child directory names for each project (ignore
+        // projectName parameter)
+        List<TibcoConverter.MultiRootSerializedProjectInfo> serializedProjects = TibcoConverter
+                .processMultiRootProjects(cx, inputPath, Optional.empty());
+
+        if (serializedProjects.isEmpty()) {
+            return Map.of("error", "No projects were successfully processed");
+        }
+
+        // Stage 5: Collect files and project summaries
+        Map<String, String> allFiles = new HashMap<>();
+        List<ProjectSummary> projectSummaries = new ArrayList<>();
+        List<String> packageNames = new ArrayList<>();
+
+        for (TibcoConverter.MultiRootSerializedProjectInfo serializedInfo : serializedProjects) {
+            String projectPrefix = serializedInfo.info().childName();
+            packageNames.add(projectPrefix + "_converted");
+
+            // Add all project files with project prefix
+            for (Map.Entry<String, String> entry : serializedInfo.serialized().files().entrySet()) {
+                String filePath = projectPrefix + "/" + entry.getKey();
+                allFiles.put(filePath, entry.getValue());
+            }
+
+            // Add individual project migration report
+            String reportPath = projectPrefix + "/migration_report.html";
+            allFiles.put(reportPath, serializedInfo.serialized().report().toHTML());
+
+            // Create project summary
+            ProjectSummary projectSummary = serializedInfo.serialized().report().toProjectSummary(
+                    serializedInfo.info().childName(),
+                    serializedInfo.info().childPath(),
+                    reportPath);
+            projectSummaries.add(projectSummary);
+        }
+
+        // Generate aggregated HTML report
+        CombinedSummaryReport combinedReport = new CombinedSummaryReport(
+                "Combined Migration Assessment",
+                projectSummaries,
+                cx.getDuplicateProcessData());
+        String aggregatedHtmlReport = combinedReport.toHTML();
+        allFiles.put("aggregate_migration_report.html", aggregatedHtmlReport);
+
+        // Generate aggregated JSON report
+        Map<String, Object> jsonReportMap = generateAggregatedJsonReport(projectSummaries);
+
+        // Generate root Ballerina.toml
+        String rootBallerinaToml = TibcoConverter.generateWorkspaceBallerinaToml(packageNames);
+        if (!rootBallerinaToml.isEmpty()) {
+            allFiles.put("Ballerina.toml", rootBallerinaToml);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("error", null);
+        result.put("textEdits", allFiles);
+        result.put("report", aggregatedHtmlReport);
+        result.put("jsonReport", jsonReportMap);
+        return result;
+    }
+
+    private static Map<String, Object> generateAggregatedJsonReport(List<ProjectSummary> projectSummaries) {
+        int totalProjects = projectSummaries.size();
+        int totalActivities = projectSummaries.stream()
+                .mapToInt(ProjectSummary::totalActivityCount)
+                .sum();
+        int totalUnhandledActivities = projectSummaries.stream()
+                .mapToInt(ProjectSummary::unhandledActivityCount)
+                .sum();
+        int totalMigratableActivities = totalActivities - totalUnhandledActivities;
+
+        double coveragePercentage = totalActivities > 0 ? (double) totalMigratableActivities / totalActivities * 100.0
+                : 100.0;
+
+        String coverageLevel;
+        if (coveragePercentage >= 90) {
+            coverageLevel = "High";
+        } else if (coveragePercentage >= 75) {
+            coverageLevel = "Medium";
+        } else {
+            coverageLevel = "Low";
+        }
+
+        Map<String, Object> coverageOverview = new HashMap<>();
+        coverageOverview.put("projects", totalProjects);
+        coverageOverview.put("unitName", "activity");
+        coverageOverview.put("coveragePercentage", Math.round(coveragePercentage));
+        coverageOverview.put("coverageLevel", coverageLevel);
+        coverageOverview.put("totalElements", totalActivities);
+        coverageOverview.put("migratableElements", totalMigratableActivities);
+        coverageOverview.put("nonMigratableElements", totalUnhandledActivities);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("coverageOverview", coverageOverview);
+        return result;
+    }
+
     private static @NotNull String validateAndGetString(Map<String, Object> parameters, String key) {
         if (!parameters.containsKey(key)) {
             throw new IllegalArgumentException("Missing required parameter: " + key);
@@ -362,6 +487,18 @@ public class TibcoToBalConverter {
                     (value != null ? value.getClass().getSimpleName() : "null"));
         }
         return (Consumer<String>) value;
+    }
+
+    private static boolean validateAndGetBoolean(Map<String, Object> parameters, String key, boolean defaultValue) {
+        if (!parameters.containsKey(key)) {
+            return defaultValue;
+        }
+        Object value = parameters.get(key);
+        if (!(value instanceof Boolean)) {
+            throw new IllegalArgumentException("Parameter " + key + " must be a Boolean, got: " +
+                    (value != null ? value.getClass().getSimpleName() : "null"));
+        }
+        return (Boolean) value;
     }
 
     public enum JavaDependencies {

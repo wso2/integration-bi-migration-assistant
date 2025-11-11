@@ -241,9 +241,145 @@ public class TibcoConverter {
         migrateTibcoInner(context, sourcePath, outputPath, projectName);
     }
 
-    static void migrateTibcoMultiRoot(ConversionContext cx, Path inputPath, String outputPath,
-                                      Optional<String> projectName) {
+    public record MultiRootProjectInfo(
+                    String childPath,
+            String childName,
+            ProjectConversionContext context) {
+    }
+
+    public record MultiRootSerializedProjectInfo(
+            MultiRootProjectInfo info,
+            ParsedProject parsed,
+            AnalyzedProject analyzed,
+            GeneratedProject generated,
+            SerializedProject serialized) {
+    }
+
+    public static List<MultiRootSerializedProjectInfo> processMultiRootProjects(ConversionContext cx, Path inputPath,
+            Optional<String> projectName) {
         // Stage 0: Initialize project info
+        List<MultiRootProjectInfo> projectInfoList = new ArrayList<>();
+        try {
+            Files.list(inputPath)
+                    .filter(Files::isDirectory)
+                    .forEach(childDir -> {
+                        String childName = childDir.getFileName().toString();
+                        String finalProjectName = projectName.orElse(childName);
+                        String escapedProjectName = common.ConversionUtils.escapeIdentifier(finalProjectName);
+                        ProjectConversionContext context = new ProjectConversionContext(cx, escapedProjectName);
+
+                        projectInfoList.add(new MultiRootProjectInfo(
+                                childDir.toString(),
+                                        childName,
+                                context));
+                    });
+        } catch (IOException e) {
+            cx.log(SEVERE, "Error reading directory: " + inputPath);
+            return new ArrayList<>();
+        }
+
+        // Stage 1: Parse all projects
+        record ParsedProjectInfo(
+                MultiRootProjectInfo info,
+                        ParsedProject parsed) {
+        }
+
+        List<ParsedProjectInfo> parsedProjects = new ArrayList<>();
+        for (MultiRootProjectInfo info : projectInfoList) {
+            cx.logState("Parsing project: " + info.childPath());
+            cx.log(LoggingUtils.Level.INFO, "Parsing project: " + info.childPath());
+            try {
+                ParsedProject parsed = parseProject(info.context(), info.childPath());
+                parsedProjects.add(new ParsedProjectInfo(info, parsed));
+            } catch (Exception e) {
+                cx.log(SEVERE, "Failed to parse project: " + info.childPath() + ": " + e.getMessage());
+                // Skip this project
+            }
+        }
+
+        // Stage 2: Analyze all projects
+        record AnalyzedProjectInfo(
+                MultiRootProjectInfo info,
+                ParsedProject parsed,
+                AnalyzedProject analyzed) {
+        }
+
+        List<AnalyzedProjectInfo> analyzedProjects = new ArrayList<>();
+        for (ParsedProjectInfo parsedInfo : parsedProjects) {
+            cx.logState("Analyzing project: " + parsedInfo.info().childName());
+            try {
+                ModelAnalyser modelAnalyser = new ModelAnalyser(List.of(
+                        new DefaultAnalysisPass(),
+                        new LoggingAnalysisPass(),
+                        new DependencyAnalysisPass()));
+                AnalyzedProject analyzed = analyzeProject(parsedInfo.info().context(), parsedInfo.parsed(),
+                        modelAnalyser);
+                analyzedProjects.add(new AnalyzedProjectInfo(
+                        parsedInfo.info(),
+                        parsedInfo.parsed(),
+                        analyzed));
+            } catch (Exception e) {
+                cx.log(SEVERE, "Failed to analyze project: " + parsedInfo.info().childName() + ": " + e.getMessage());
+                // Skip this project
+            }
+        }
+
+        // Stage 3: Generate code for all projects
+        record GeneratedProjectInfo(
+                MultiRootProjectInfo info,
+                ParsedProject parsed,
+                AnalyzedProject analyzed,
+                GeneratedProject generated) {
+        }
+
+        List<GeneratedProjectInfo> generatedProjects = new ArrayList<>();
+        for (AnalyzedProjectInfo analyzedInfo : analyzedProjects) {
+            cx.logState("Generating code for project: " + analyzedInfo.info().childName());
+            try {
+                GeneratedProject generated = generateCode(analyzedInfo.info().context(), analyzedInfo.analyzed());
+                generatedProjects.add(new GeneratedProjectInfo(
+                        analyzedInfo.info(),
+                        analyzedInfo.parsed(),
+                        analyzedInfo.analyzed(),
+                        generated));
+            } catch (Exception e) {
+                cx.log(SEVERE, "Failed to generate code for project: " + analyzedInfo.info().childName() + ": "
+                        + e.getMessage());
+                // Skip this project
+            }
+        }
+
+        // Stage 4: Serialize all projects
+        List<MultiRootSerializedProjectInfo> serializedProjects = new ArrayList<>();
+        List<BallerinaModel.Import> allProjectImports = projectInfoList.stream()
+                .map(MultiRootProjectInfo::context)
+                .map(ProjectConversionContext::getImport)
+                .collect(Collectors.toList());
+
+        for (GeneratedProjectInfo generatedInfo : generatedProjects) {
+            cx.logState("Serializing project: " + generatedInfo.info().childName());
+            try {
+                SerializedProject serialized =
+                        serializeProject(generatedInfo.info().context(), generatedInfo.generated(),
+                                allProjectImports);
+                serializedProjects.add(new MultiRootSerializedProjectInfo(
+                        generatedInfo.info(),
+                        generatedInfo.parsed(),
+                        generatedInfo.analyzed(),
+                        generatedInfo.generated(),
+                        serialized));
+            } catch (Exception e) {
+                cx.log(SEVERE,
+                        "Failed to serialize project: " + generatedInfo.info().childName() + ": " + e.getMessage());
+                // Skip this project
+            }
+        }
+
+        return serializedProjects;
+    }
+
+    static void migrateTibcoMultiRoot(ConversionContext cx, Path inputPath, String outputPath,
+            Optional<String> projectName) {
         record ProjectInfo(
                 String childPath,
                 String childOutputPath,
@@ -251,6 +387,9 @@ public class TibcoConverter {
                 ProjectConversionContext context) {
         }
 
+        List<MultiRootSerializedProjectInfo> serializedProjects = processMultiRootProjects(cx, inputPath, projectName);
+
+        // Convert to ProjectInfo for file writing
         List<ProjectInfo> projectInfoList = new ArrayList<>();
         try {
             Files.list(inputPath)
@@ -279,120 +418,26 @@ public class TibcoConverter {
             return;
         }
 
-        // Stage 1: Parse all projects
-        record ParsedProjectInfo(
-                ProjectInfo info,
-                ParsedProject parsed) {
-        }
-
-        List<ParsedProjectInfo> parsedProjects = new ArrayList<>();
-        for (ProjectInfo info : projectInfoList) {
-            cx.logState("Parsing project: " + info.childPath());
-            cx.log(LoggingUtils.Level.INFO, "Parsing project: " + info.childPath());
-            try {
-                ParsedProject parsed = parseProject(info.context(), info.childPath());
-                parsedProjects.add(new ParsedProjectInfo(info, parsed));
-            } catch (Exception e) {
-                cx.log(SEVERE, "Failed to parse project: " + info.childPath() + ": " + e.getMessage());
-                // Skip this project
-            }
-        }
-
-        // Stage 2: Analyze all projects
-        record AnalyzedProjectInfo(
-                ProjectInfo info,
-                ParsedProject parsed,
-                AnalyzedProject analyzed) {
-        }
-
-        List<AnalyzedProjectInfo> analyzedProjects = new ArrayList<>();
-        for (ParsedProjectInfo parsedInfo : parsedProjects) {
-            cx.logState("Analyzing project: " + parsedInfo.info().childName());
-            try {
-                ModelAnalyser modelAnalyser = new ModelAnalyser(List.of(
-                        new DefaultAnalysisPass(),
-                        new LoggingAnalysisPass(),
-                        new DependencyAnalysisPass()));
-                AnalyzedProject analyzed = analyzeProject(parsedInfo.info().context(), parsedInfo.parsed(),
-                        modelAnalyser);
-                analyzedProjects.add(new AnalyzedProjectInfo(
-                        parsedInfo.info(),
-                        parsedInfo.parsed(),
-                        analyzed));
-            } catch (Exception e) {
-                cx.log(SEVERE, "Failed to analyze project: " + parsedInfo.info().childName() + ": " + e.getMessage());
-                // Skip this project
-            }
-        }
-
-        // Stage 3: Generate code for all projects
-        record GeneratedProjectInfo(
-                ProjectInfo info,
-                ParsedProject parsed,
-                AnalyzedProject analyzed,
-                GeneratedProject generated) {
-        }
-
-        List<GeneratedProjectInfo> generatedProjects = new ArrayList<>();
-        for (AnalyzedProjectInfo analyzedInfo : analyzedProjects) {
-            cx.logState("Generating code for project: " + analyzedInfo.info().childName());
-            try {
-                GeneratedProject generated = generateCode(analyzedInfo.info().context(), analyzedInfo.analyzed());
-                generatedProjects.add(new GeneratedProjectInfo(
-                        analyzedInfo.info(),
-                        analyzedInfo.parsed(),
-                        analyzedInfo.analyzed(),
-                        generated));
-            } catch (Exception e) {
-                cx.log(SEVERE, "Failed to generate code for project: " + analyzedInfo.info().childName() + ": "
-                        + e.getMessage());
-                // Skip this project
-            }
-        }
-
-        // Stage 4: Serialize all projects
-        record SerializedProjectInfo(
-                ProjectInfo info,
-                ParsedProject parsed,
-                AnalyzedProject analyzed,
-                GeneratedProject generated,
-                SerializedProject serialized) {
-        }
-
-        List<SerializedProjectInfo> serializedProjects = new ArrayList<>();
-        for (GeneratedProjectInfo generatedInfo : generatedProjects) {
-            cx.logState("Serializing project: " + generatedInfo.info().childName());
-            try {
-                SerializedProject serialized =
-                        serializeProject(generatedInfo.info().context(), generatedInfo.generated(),
-                                projectInfoList.stream()
-                                        .map(ProjectInfo::context)
-                                        .map(ProjectConversionContext::getImport)
-                                        .collect(Collectors.toList()));
-                serializedProjects.add(new SerializedProjectInfo(
-                        generatedInfo.info(),
-                        generatedInfo.parsed(),
-                        generatedInfo.analyzed(),
-                        generatedInfo.generated(),
-                        serialized));
-            } catch (Exception e) {
-                cx.log(SEVERE,
-                        "Failed to serialize project: " + generatedInfo.info().childName() + ": " + e.getMessage());
-                // Skip this project
-            }
-        }
-
         // Stage 5: Write all projects to disk and collect summaries
         List<ProjectSummary> projectSummaries = new ArrayList<>();
-        for (SerializedProjectInfo serializedInfo : serializedProjects) {
+        Map<String, ProjectInfo> projectInfoMap = new HashMap<>();
+        for (ProjectInfo info : projectInfoList) {
+            projectInfoMap.put(info.childName(), info);
+        }
+
+        for (MultiRootSerializedProjectInfo serializedInfo : serializedProjects) {
+            ProjectInfo projectInfo = projectInfoMap.get(serializedInfo.info().childName());
+            if (projectInfo == null) {
+                continue;
+            }
             cx.logState("Writing project: " + serializedInfo.info().childName());
             try {
-                writeProjectFiles(serializedInfo.info().context(), serializedInfo.serialized(),
-                        serializedInfo.info().childOutputPath(), serializedInfo.info().context().dryRun());
+                writeProjectFiles(projectInfo.context(), serializedInfo.serialized(),
+                        projectInfo.childOutputPath(), projectInfo.context().dryRun());
 
                 // Create project summary
                 String reportRelativePath = serializedInfo.info().childName() + "_converted/report.html";
-                        ProjectSummary projectSummary = serializedInfo.serialized().report().toProjectSummary(
+                ProjectSummary projectSummary = serializedInfo.serialized().report().toProjectSummary(
                         serializedInfo.info().childName(),
                         serializedInfo.info().childPath(),
                         reportRelativePath);
@@ -415,7 +460,11 @@ public class TibcoConverter {
             try {
                 // Extract package directory names from successfully converted projects
                 List<String> packageNames = serializedProjects.stream()
-                        .map(serialized -> Paths.get(serialized.info().childOutputPath()).getFileName().toString())
+                        .map(serialized -> {
+                            ProjectInfo info = projectInfoMap.get(serialized.info().childName());
+                            return info != null ? Paths.get(info.childOutputPath()).getFileName().toString() : null;
+                        })
+                        .filter(java.util.Objects::nonNull)
                         .toList();
                 writeWorkspaceBallerinaToml(cx, summaryOutputPath, packageNames);
             } catch (IOException e) {
@@ -489,10 +538,9 @@ public class TibcoConverter {
                 LoggingUtils.Level.INFO, "Created combined summary report at: " + reportFilePath);
     }
 
-    private static void writeWorkspaceBallerinaToml(ConversionContext context, Path targetDir,
-                                                    List<String> packageNames) throws IOException {
+    public static String generateWorkspaceBallerinaToml(List<String> packageNames) {
         if (packageNames.isEmpty()) {
-            return;
+            return "";
         }
 
         // Generate workspace Ballerina.toml content
@@ -506,19 +554,20 @@ public class TibcoConverter {
         }
         tomlContent.append("]\n");
 
-        // Write workspace Ballerina.toml to target directory
-        Path workspaceTomlPath = targetDir.resolve("Ballerina.toml");
-        Files.writeString(workspaceTomlPath, tomlContent.toString());
-        context.log(LoggingUtils.Level.INFO, "Created workspace Ballerina.toml at: " + workspaceTomlPath);
+        return tomlContent.toString();
     }
 
-    private static void createTargetDirectoryIfNeeded(ProjectConversionContext context,
-                                                      Path targetDir) throws IOException {
-        if (Files.exists(targetDir)) {
+    private static void writeWorkspaceBallerinaToml(ConversionContext context, Path targetDir,
+            List<String> packageNames) throws IOException {
+        String tomlContent = generateWorkspaceBallerinaToml(packageNames);
+        if (tomlContent.isEmpty()) {
             return;
         }
-        Files.createDirectories(targetDir);
-        context.log(LoggingUtils.Level.INFO, "Created target directory: " + targetDir);
+
+        // Write workspace Ballerina.toml to target directory
+        Path workspaceTomlPath = targetDir.resolve("Ballerina.toml");
+        Files.writeString(workspaceTomlPath, tomlContent);
+        context.log(LoggingUtils.Level.INFO, "Created workspace Ballerina.toml at: " + workspaceTomlPath);
     }
 
     private static String ballerinaToml(ProjectConversionContext cx) {

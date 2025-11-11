@@ -94,7 +94,7 @@ public class TibcoProjectConversionTest {
             Files.createDirectories(expectedJsonFile.getParent());
             // Write the generated JSON to expected file
             Files.writeString(expectedJsonFile, reportJson);
-            
+
             // Write all textEdits to the expected directory (like testProjectConversion does)
             for (Map.Entry<String, String> entry : textEdits.entrySet()) {
                 Path filePath = expectedBallerinaProject.resolve(entry.getKey());
@@ -203,6 +203,139 @@ public class TibcoProjectConversionTest {
             TestUtils.deleteDirectory(tempInputDir);
             TestUtils.deleteDirectory(tempOutputDir);
         }
+    }
+
+    @Test(groups = { "tibco", "converter" })
+    public void testMultiRootConversionByAPI() throws IOException {
+        // Setup multi-root source directory structure
+        Path multiRootSource = Path.of("src", "test", "resources", "multi-root");
+        Path expectedMultiRootOutput = Path.of("src", "test", "resources", "multi-root-converted");
+
+        // Create parameter map for the API
+        java.util.Map<String, Object> parameters = new java.util.HashMap<>();
+        parameters.put("orgName", "testOrg");
+        parameters.put("projectName", "testProject");
+        parameters.put("sourcePath", multiRootSource.toString());
+        parameters.put("multiRoot", true);
+        parameters.put("stateCallback", (java.util.function.Consumer<String>) s -> {
+        });
+        parameters.put("logCallback", (java.util.function.Consumer<String>) s -> {
+        });
+
+        // Run the conversion using the new public API
+        var result = tibco.TibcoToBalConverter.migrateTIBCO(parameters);
+        Assert.assertNotNull(result, "migrateTIBCO returned null");
+        Assert.assertFalse(result.containsKey("error") && result.get("error") != null,
+                "Conversion failed with error: " + result.get("error"));
+        Assert.assertTrue(result.containsKey("textEdits"), "Result does not contain 'textEdits'");
+        Assert.assertTrue(result.containsKey("report"), "Result does not contain 'report'");
+        Assert.assertTrue(result.containsKey("jsonReport"), "Result does not contain 'jsonReport'");
+
+        @SuppressWarnings("unchecked")
+        var textEdits = (java.util.Map<String, String>) result.get("textEdits");
+        Assert.assertNotNull(textEdits, "textEdits is null");
+
+        // Validate HTML report
+        String report = (String) result.get("report");
+        Assert.assertNotNull(report, "report is null");
+        Assert.assertFalse(report.isBlank(), "report should not be empty");
+        Assert.assertTrue(report.contains("Combined Migration Assessment"), "Report should contain title");
+
+        // Validate aggregate report in textEdits matches the report field
+        Assert.assertTrue(textEdits.containsKey("aggregate_migration_report.html"),
+                "Should contain aggregate migration report");
+        Assert.assertEquals(textEdits.get("aggregate_migration_report.html"), report,
+                "Aggregate report in textEdits should match report field");
+
+        // Validate JSON report structure
+        @SuppressWarnings("unchecked")
+        var jsonReport = (java.util.Map<String, Object>) result.get("jsonReport");
+        Assert.assertNotNull(jsonReport, "jsonReport is null");
+        Assert.assertTrue(jsonReport.containsKey("coverageOverview"), "jsonReport should contain coverageOverview");
+
+        @SuppressWarnings("unchecked")
+        var coverageOverview = (java.util.Map<String, Object>) jsonReport.get("coverageOverview");
+        Assert.assertNotNull(coverageOverview, "coverageOverview is null");
+        Assert.assertTrue(coverageOverview.containsKey("projects"), "coverageOverview should contain projects");
+        Assert.assertTrue(coverageOverview.containsKey("unitName"), "coverageOverview should contain unitName");
+        Assert.assertEquals(coverageOverview.get("unitName"), "activity", "unitName should be 'activity'");
+
+        // Validate root Ballerina.toml
+        Assert.assertTrue(textEdits.containsKey("Ballerina.toml"), "Should contain root Ballerina.toml");
+        String expectedRootToml = Files.readString(expectedMultiRootOutput.resolve("Ballerina.toml"));
+        Assert.assertEquals(textEdits.get("Ballerina.toml"), expectedRootToml,
+                "Root Ballerina.toml should match expected");
+
+        // Validate each project's files
+        // Map from API project prefix to expected directory name
+        java.util.Map<String, String> projectMapping = java.util.Map.of(
+                "helloWorld", "helloWorld_converted",
+                "lib", "lib_converted");
+
+        for (var entry : projectMapping.entrySet()) {
+            String projectPrefix = entry.getKey();
+            String expectedDirName = entry.getValue();
+            Path expectedProjectDir = expectedMultiRootOutput.resolve(expectedDirName);
+
+            // Walk through expected project directory and validate files
+            try (Stream<Path> expectedFiles = Files.walk(expectedProjectDir)) {
+                var expectedPaths = expectedFiles
+                        .filter(Files::isRegularFile)
+                        .filter(path -> path.toString().endsWith(".bal") || path.toString().endsWith(".toml")
+                                || path.toString().endsWith(".html"))
+                        .map(expectedProjectDir::relativize)
+                        .toList();
+
+                // Check all expected files exist in textEdits with project prefix and match
+                // content
+                for (Path relativePath : expectedPaths) {
+                    if (relativePath.endsWith("types.bal")) {
+                        continue;
+                    }
+                    // Skip report.html as it's stored as migration_report.html in API
+                    if (relativePath.endsWith("report.html")) {
+                        String migrationReportKey = projectPrefix + "/migration_report.html";
+                        Assert.assertTrue(textEdits.containsKey(migrationReportKey),
+                                "Missing migration_report.html in textEdits for " + projectPrefix);
+                        String expectedReportContent = Files.readString(expectedProjectDir.resolve(relativePath));
+                        Assert.assertEquals(textEdits.get(migrationReportKey), expectedReportContent,
+                                "Migration report content should match for " + projectPrefix);
+                        continue;
+                    }
+
+                    String key = projectPrefix + "/" + relativePath.toString().replace('\\', '/');
+                    Assert.assertTrue(textEdits.containsKey(key), "Missing file in textEdits: " + key);
+                    String actualContent = textEdits.get(key);
+                    String expectedContent = Files.readString(expectedProjectDir.resolve(relativePath));
+                    Assert.assertEquals(actualContent, expectedContent,
+                            "File contents do not match for: " + key);
+                }
+
+                // Check for extra files in textEdits for this project
+                for (String key : textEdits.keySet()) {
+                    if (key.startsWith(projectPrefix + "/") && !key.equals(projectPrefix + "/migration_report.html")) {
+                        String relativeKey = key.substring(projectPrefix.length() + 1);
+                        if (relativeKey.endsWith("types.bal")) {
+                            continue;
+                        }
+                        Path relPath = Path.of(relativeKey);
+                        if (!expectedPaths.contains(relPath) && !relPath.endsWith("migration_report.html")) {
+                            Assert.fail("Extra file in textEdits: " + key);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Validate aggregate report exists (content comparison skipped as it may vary
+        // with timestamps/paths)
+        Assert.assertTrue(textEdits.containsKey("aggregate_migration_report.html"),
+                "Should contain aggregate migration report");
+        String aggregateReport = textEdits.get("aggregate_migration_report.html");
+        Assert.assertNotNull(aggregateReport, "Aggregate report should not be null");
+        Assert.assertFalse(aggregateReport.isBlank(), "Aggregate report should not be empty");
+        Assert.assertTrue(aggregateReport.contains("Combined Migration Assessment"),
+                "Aggregate report should contain title");
     }
 
     @Test(groups = {"tibco", "converter"})
