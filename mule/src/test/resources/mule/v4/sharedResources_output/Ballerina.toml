@@ -1,2 +1,2 @@
 [workspace]
-packages = ["project_ballerina", "lib_ballerina"]
+packages = ["lib_ballerina", "project_ballerina"]

@@ -563,14 +563,17 @@ public class MuleMigrator {
             return "";
         }
 
+        List<String> sortedPackageNames = new ArrayList<>(packageNames);
+        Collections.sort(sortedPackageNames);
+
         // Generate workspace Ballerina.toml content
         StringBuilder tomlContent = new StringBuilder("[workspace]\n");
         tomlContent.append("packages = [");
-        for (int i = 0; i < packageNames.size(); i++) {
+        for (int i = 0; i < sortedPackageNames.size(); i++) {
             if (i > 0) {
                 tomlContent.append(", ");
             }
-            tomlContent.append("\"").append(packageNames.get(i)).append("\"");
+            tomlContent.append("\"").append(sortedPackageNames.get(i)).append("\"");
         }
         tomlContent.append("]\n");
 

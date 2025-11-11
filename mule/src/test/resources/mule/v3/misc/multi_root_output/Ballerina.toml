@@ -1,2 +1,2 @@
 [workspace]
-packages = ["demo_project_classic_ballerina", "demo_project_bi_ballerina"]
+packages = ["demo_project_bi_ballerina", "demo_project_classic_ballerina"]

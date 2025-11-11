@@ -47,6 +47,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -543,14 +544,17 @@ public class TibcoConverter {
             return "";
         }
 
+        List<String> sortedPackageNames = new ArrayList<>(packageNames);
+        Collections.sort(sortedPackageNames);
+
         // Generate workspace Ballerina.toml content
         StringBuilder tomlContent = new StringBuilder("[workspace]\n");
         tomlContent.append("packages = [");
-        for (int i = 0; i < packageNames.size(); i++) {
+        for (int i = 0; i < sortedPackageNames.size(); i++) {
             if (i > 0) {
                 tomlContent.append(", ");
             }
-            tomlContent.append("\"").append(packageNames.get(i)).append("\"");
+            tomlContent.append("\"").append(sortedPackageNames.get(i)).append("\"");
         }
         tomlContent.append("]\n");
 
