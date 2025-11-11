@@ -352,9 +352,8 @@ public class TibcoConverter {
 
         // Stage 4: Serialize all projects
         List<MultiRootSerializedProjectInfo> serializedProjects = new ArrayList<>();
-        List<BallerinaModel.Import> allProjectImports = projectInfoList.stream()
-                .map(MultiRootProjectInfo::context)
-                .map(ProjectConversionContext::getImport)
+        List<BallerinaModel.Import> allProjectImports = generatedProjects.stream()
+                .map(generatedInfo -> generatedInfo.info().context().getImport())
                 .collect(Collectors.toList());
 
         for (GeneratedProjectInfo generatedInfo : generatedProjects) {
@@ -381,70 +380,36 @@ public class TibcoConverter {
 
     static void migrateTibcoMultiRoot(ConversionContext cx, Path inputPath, String outputPath,
             Optional<String> projectName) {
-        record ProjectInfo(
-                String childPath,
-                String childOutputPath,
-                String childName,
-                ProjectConversionContext context) {
-        }
-
         List<MultiRootSerializedProjectInfo> serializedProjects = processMultiRootProjects(cx, inputPath, projectName);
-
-        // Convert to ProjectInfo for file writing
-        List<ProjectInfo> projectInfoList = new ArrayList<>();
-        try {
-            Files.list(inputPath)
-                    .filter(Files::isDirectory)
-                    .forEach(childDir -> {
-                        String childName = childDir.getFileName().toString();
-                        String childOutputPath;
-                        if (outputPath != null) {
-                            childOutputPath = Paths.get(outputPath, childName + "_converted").toString();
-                        } else {
-                            childOutputPath = childDir + "_converted";
-                        }
-                        String finalProjectName = projectName.orElse(childName);
-                        String escapedProjectName = common.ConversionUtils.escapeIdentifier(finalProjectName);
-                        ProjectConversionContext context = new ProjectConversionContext(cx, escapedProjectName);
-
-                        projectInfoList.add(new ProjectInfo(
-                                childDir.toString(),
-                                childOutputPath,
-                                childName,
-                                context));
-                    });
-        } catch (IOException e) {
-            cx.log(SEVERE, "Error reading directory: " + inputPath);
-            System.exit(1);
-            return;
-        }
 
         // Stage 5: Write all projects to disk and collect summaries
         List<ProjectSummary> projectSummaries = new ArrayList<>();
-        Map<String, ProjectInfo> projectInfoMap = new HashMap<>();
-        for (ProjectInfo info : projectInfoList) {
-            projectInfoMap.put(info.childName(), info);
-        }
+        List<String> packageNames = new ArrayList<>();
 
         for (MultiRootSerializedProjectInfo serializedInfo : serializedProjects) {
-            ProjectInfo projectInfo = projectInfoMap.get(serializedInfo.info().childName());
-            if (projectInfo == null) {
-                continue;
+            String childName = serializedInfo.info().childName();
+            String childOutputPath;
+            if (outputPath != null) {
+                childOutputPath = Paths.get(outputPath, childName + "_converted").toString();
+            } else {
+                childOutputPath = serializedInfo.info().childPath() + "_converted";
             }
-            cx.logState("Writing project: " + serializedInfo.info().childName());
+            ProjectConversionContext context = serializedInfo.info().context();
+            packageNames.add(Paths.get(childOutputPath).getFileName().toString());
+
+            cx.logState("Writing project: " + childName);
             try {
-                writeProjectFiles(projectInfo.context(), serializedInfo.serialized(),
-                        projectInfo.childOutputPath(), projectInfo.context().dryRun());
+                writeProjectFiles(context, serializedInfo.serialized(), childOutputPath, context.dryRun());
 
                 // Create project summary
-                String reportRelativePath = serializedInfo.info().childName() + "_converted/report.html";
+                String reportRelativePath = childName + "_converted/report.html";
                 ProjectSummary projectSummary = serializedInfo.serialized().report().toProjectSummary(
-                        serializedInfo.info().childName(),
-                        serializedInfo.info().childPath(),
+                        childName,
+                                serializedInfo.info().childPath(),
                         reportRelativePath);
                 projectSummaries.add(projectSummary);
             } catch (Exception e) {
-                cx.log(SEVERE, "Failed to write project: " + serializedInfo.info().childName() + ": " + e.getMessage());
+                cx.log(SEVERE, "Failed to write project: " + childName + ": " + e.getMessage());
             }
         }
 
@@ -459,14 +424,6 @@ public class TibcoConverter {
         // Generate workspace Ballerina.toml for multi-root projects
         if (!serializedProjects.isEmpty()) {
             try {
-                // Extract package directory names from successfully converted projects
-                List<String> packageNames = serializedProjects.stream()
-                        .map(serialized -> {
-                            ProjectInfo info = projectInfoMap.get(serialized.info().childName());
-                            return info != null ? Paths.get(info.childOutputPath()).getFileName().toString() : null;
-                        })
-                        .filter(java.util.Objects::nonNull)
-                        .toList();
                 writeWorkspaceBallerinaToml(cx, summaryOutputPath, packageNames);
             } catch (IOException e) {
                 cx.log(SEVERE, "Error creating workspace Ballerina.toml: " + e.getMessage());
