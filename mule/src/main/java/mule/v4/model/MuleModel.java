@@ -17,11 +17,14 @@
  */
 package mule.v4.model;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public record MuleModel() {
 
@@ -154,10 +157,15 @@ public record MuleModel() {
     }
 
     // Scopes
-    public record Flow(Kind kind, String name, Optional<MuleRecord> source, List<MuleRecord> flowBlocks)
+    public record Flow(Kind kind, String name, Supplier<Optional<MuleRecord>> sourceSupplier,
+            List<MuleRecord> flowBlocks)
             implements MuleRecord {
-        public Flow(String name, Optional<MuleRecord> source, List<MuleRecord> flowBlocks) {
-            this(Kind.FLOW, name, source, flowBlocks);
+        public Flow(String name, Supplier<Optional<MuleRecord>> sourceSupplier, List<MuleRecord> flowBlocks) {
+            this(Kind.FLOW, name, sourceSupplier, flowBlocks);
+        }
+
+        public Optional<MuleRecord> source() {
+            return sourceSupplier.get();
         }
     }
 
@@ -262,6 +270,75 @@ public record MuleModel() {
     public record MuleImport(String file) {
     }
 
+    public record ApiKitConfig(Kind kind, String name, String api) implements MuleRecord {
+
+        public ApiKitConfig(String name, String api) {
+            this(Kind.APIKIT_CONFIG, name, api);
+        }
+
+        public HTTPResourceData resourcePathData(Flow flow) {
+            return parseApiKitFlowName(flow.name());
+        }
+
+        /**
+         * Parses an ApiKit flow name to extract HTTP resource data.
+         * Supports two patterns:
+         * - {METHOD}:\{PATH}:{CONFIG_NAME} (3 parts)
+         * - {METHOD}:\{PATH}:{PAYLOAD_FORMAT}:{CONFIG_NAME} (4 parts, payload format is
+         * ignored)
+         *
+         * @param flowName the flow name to parse
+         * @return HTTPResourceData containing resource path, path parameters, HTTP
+         *         method, and config name
+         */
+        public static HTTPResourceData parseApiKitFlowName(String flowName) {
+            // Pattern: {METHOD}:\{PATH}:{CONFIG_NAME} or
+            // {METHOD}:\{PATH}:{PAYLOAD_FORMAT}:{CONFIG_NAME}
+            String[] parts = flowName.split(":");
+            if (parts.length < 3) {
+                return new HTTPResourceData("", List.of(), "get", "");
+            }
+
+            String method = parts[0].toLowerCase();
+            String configName = parts[parts.length - 1];
+            // For 4-part pattern, path is parts[1] (skip parts[2] which is payload format)
+            // For 3-part pattern, path is parts[1]
+            String path = parts[1];
+
+            // Remove leading \ if present
+            if (path.startsWith("\\")) {
+                path = path.substring(1);
+            }
+
+            // Extract path parameters from escaped format: \(id) before transformation
+            List<String> pathParams = new ArrayList<>();
+            Pattern pattern = Pattern.compile("\\\\\\(([^)]+)\\)");
+            Matcher matcher = pattern.matcher(path);
+            while (matcher.find()) {
+                pathParams.add(matcher.group(1));
+            }
+
+            // Convert escaped path: orders\(id) -> orders/[string id]
+            String resourcePath = path
+                    .replace("\\(", "/[string ")
+                    .replace(")", "]")
+                    .replace("\\", "/");
+
+            return new HTTPResourceData(resourcePath, pathParams, method, configName);
+        }
+
+        public record HTTPResourceData(String resourcePath, List<String> pathParams, String method,
+                String configName) {
+
+        }
+    }
+
+    public record ApiKitRouter(Kind kind, String configRef) implements MuleRecord {
+        public ApiKitRouter(String configRef) {
+            this(Kind.APIKIT_ROUTER, configRef);
+        }
+    }
+
     public record HTTPListenerConfig(Kind kind, String name, String basePath, String port,
                                      String host) implements MuleRecord {
         public HTTPListenerConfig(String name, String basePath, String port, String host) {
@@ -356,6 +433,8 @@ public record MuleModel() {
         SCATTER_GATHER,
         FIRST_SUCCESSFUL,
         ROUTE,
+        APIKIT_CONFIG,
+        APIKIT_ROUTER,
         HTTP_LISTENER_CONFIG,
         HTTP_REQUEST_CONFIG,
         DB_CONFIG,
