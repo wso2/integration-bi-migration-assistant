@@ -182,6 +182,8 @@ public class TibcoProjectConversionTest {
                     "lib_converted directory should exist");
             Assert.assertTrue(Files.exists(tempOutputDir.resolve("combined_summary_report.html")),
                     "Combined summary report should exist");
+            Assert.assertTrue(Files.exists(tempOutputDir.resolve("Ballerina.toml")),
+                    "Workspace Ballerina.toml should exist");
 
             // Compare each converted project with expected results
             TestUtils.compareDirectories(tempOutputDir.resolve("helloWorld_converted"),
@@ -191,6 +193,10 @@ public class TibcoProjectConversionTest {
 
             // Verify combined summary report exists (content comparison skipped as it may vary)
             Assert.assertTrue(Files.exists(tempOutputDir.resolve("combined_summary_report.html")));
+
+            // Compare workspace Ballerina.toml content
+            TestUtils.compareFiles(tempOutputDir.resolve("Ballerina.toml"),
+                    expectedMultiRootOutput.resolve("Ballerina.toml"));
 
         } finally {
             // Clean up temporary directories

@@ -409,6 +409,19 @@ public class TibcoConverter {
         } catch (IOException e) {
             cx.log(SEVERE, "Error creating combined summary report");
         }
+
+        // Generate workspace Ballerina.toml for multi-root projects
+        if (!serializedProjects.isEmpty()) {
+            try {
+                // Extract package directory names from successfully converted projects
+                List<String> packageNames = serializedProjects.stream()
+                        .map(serialized -> Paths.get(serialized.info().childOutputPath()).getFileName().toString())
+                        .toList();
+                writeWorkspaceBallerinaToml(cx, summaryOutputPath, packageNames);
+            } catch (IOException e) {
+                cx.log(SEVERE, "Error creating workspace Ballerina.toml: " + e.getMessage());
+            }
+        }
     }
 
 
@@ -474,6 +487,29 @@ public class TibcoConverter {
         Files.writeString(reportFilePath, htmlContent);
         context.log(
                 LoggingUtils.Level.INFO, "Created combined summary report at: " + reportFilePath);
+    }
+
+    private static void writeWorkspaceBallerinaToml(ConversionContext context, Path targetDir,
+                                                    List<String> packageNames) throws IOException {
+        if (packageNames.isEmpty()) {
+            return;
+        }
+
+        // Generate workspace Ballerina.toml content
+        StringBuilder tomlContent = new StringBuilder("[workspace]\n");
+        tomlContent.append("packages = [");
+        for (int i = 0; i < packageNames.size(); i++) {
+            if (i > 0) {
+                tomlContent.append(", ");
+            }
+            tomlContent.append("\"").append(packageNames.get(i)).append("\"");
+        }
+        tomlContent.append("]\n");
+
+        // Write workspace Ballerina.toml to target directory
+        Path workspaceTomlPath = targetDir.resolve("Ballerina.toml");
+        Files.writeString(workspaceTomlPath, tomlContent.toString());
+        context.log(LoggingUtils.Level.INFO, "Created workspace Ballerina.toml at: " + workspaceTomlPath);
     }
 
     private static void createTargetDirectoryIfNeeded(ProjectConversionContext context,
