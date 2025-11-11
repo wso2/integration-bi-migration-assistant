@@ -3,16 +3,6 @@ import ballerina/log;
 
 public listener http:Listener http\-listener\-config = new (8080);
 
-service /apikit0 on http\-listener\-config {
-    resource function get orders/[string id](http:Request request) returns http:Response|error {
-        Context ctx = {attributes: {request, response: new, uriParams: {id}}};
-        log:printInfo(string `Received order id: ${id.toString()}`);
-
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
-    }
-}
-
 service / on http\-listener\-config {
     resource function default api(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
@@ -37,6 +27,14 @@ service / on http\-listener\-config {
         }
 
         // TODO: try to directly call the endpoints generated for the api kit
+
+        ctx.attributes.response.setPayload(ctx.payload);
+        return ctx.attributes.response;
+    }
+
+    resource function get apikit0/orders/[string id](http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new, uriParams: {id}}};
+        log:printInfo(string `Received order id: ${id.toString()}`);
 
         ctx.attributes.response.setPayload(ctx.payload);
         return ctx.attributes.response;

@@ -22,7 +22,6 @@ import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-
 import mule.v4.model.MuleModel.ApiKitConfig;
 import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.MuleModel.DbGenericConnection;
@@ -32,6 +31,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -94,24 +94,31 @@ public class MuleToBalConverter {
         List<ClassDef> classDefs = new ArrayList<>();
         List<Flow> privateFlows = new ArrayList<>();
 
-        for (Flow flow : flows) {
-            Optional<MuleRecord> source = flow.source();
-            if (source.isEmpty()) {
-                privateFlows.add(flow);
-                continue;
-            }
+        flows.stream()
+                .sorted(Comparator.comparing(flow -> {
+                    Optional<MuleRecord> source = flow.source();
+                    return !(source.isPresent() && source.get() instanceof HttpListener);
+                }))
+                .forEachOrdered(flow -> {
+                    Optional<MuleRecord> source = flow.source();
+                    if (source.isEmpty()) {
+                        privateFlows.add(flow);
+                        return;
+                    }
 
-            MuleRecord src = source.get();
-            switch (src) {
-                case VMListener vmListener -> genVMListenerSource(ctx, flow, vmListener, functions);
-                case Scheduler scheduler -> genSchedulerSource(ctx, flow, scheduler, functions, classDefs);
-                case HttpListener httpListener -> genHttpSource(ctx, flow, httpListener, services, functions);
-                case ApiKitConfig apiKit -> genApiKitSource(ctx, flow, apiKit, services);
-                default -> throw new IllegalStateException("Unsupported source kind: %s".formatted(src.kind()));
-            }
-        }
+                    MuleRecord src = source.get();
+                    switch (src) {
+                        case VMListener vmListener -> genVMListenerSource(ctx, flow, vmListener, functions);
+                        case Scheduler scheduler -> genSchedulerSource(ctx, flow, scheduler, functions, classDefs);
+                        case HttpListener httpListener -> ctx.projectCtx.lastHttpService =
+                                genHttpSource(ctx, flow, httpListener, services, functions);
+                        case ApiKitConfig apiKit ->
+                                genApiKitSource(ctx, flow, apiKit, services, ctx.projectCtx.lastHttpService);
+                        default -> throw new IllegalStateException("Unsupported source kind: %s".formatted(src.kind()));
+                    }
+                });
 
-        services = normalizeServices(services);
+        List<Service> normalizeServices = normalizeServices(services);
 
         // Create functions for private flows
         genBalFuncsFromPrivateFlows(ctx, privateFlows, functions);
@@ -200,25 +207,40 @@ public class MuleToBalConverter {
         );
         orderedModuleVars.addAll(moduleVars);
         return createTextDocument(balFileName + ".bal", new ArrayList<>(ctx.currentFileCtx.balConstructs.imports),
-                typeDefs, orderedModuleVars, listeners, services, classDefs, functions.stream().toList(), comments);
+                typeDefs, orderedModuleVars, listeners, normalizeServices, classDefs, functions.stream().toList(),
+                comments);
     }
 
-    private static void genApiKitSource(Context ctx, Flow flow, ApiKitConfig apiKit, Collection<Service> services) {
+    private static void genApiKitSource(Context ctx, Flow flow, ApiKitConfig apiKit, Collection<Service> services,
+                                        Service lastHttpService) {
         // TODO: Common with httpSource refactor
         ctx.projectCtx.attributes.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_TYPE);
         ctx.projectCtx.attributes.put(Constants.HTTP_RESPONSE_REF, Constants.HTTP_RESPONSE_TYPE);
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
 
-        // Create a service for APIKit if not there
-        Service service = ctx.getServiceForAPIKit(apiKit, k -> apiKitServiceCreator(ctx, k));
-        if (!services.contains(service)) {
-            services.add(service);
+        if (lastHttpService == null) {
+            throw new IllegalStateException("API Kit flow %s requires an HTTP listener to be processed first"
+                    .formatted(flow.name()));
         }
 
         ApiKitConfig.HTTPResourceData resourceData = apiKit.resourcePathData(flow);
         List<String> pathParams = resourceData.pathParams();
-        String resourcePath = resourceData.resourcePath();
+        String apiKitResourcePath = resourceData.resourcePath();
         String resourceMethod = resourceData.method();
+
+        // Get paths: serviceBasePath + apiKitBasePath + resourcePath
+        String httpBasePath = lastHttpService.basePath();
+        String apiKitBasePath = ctx.getApiKitBasePath(apiKit);
+        String combinedResourcePath = concatenatePaths(
+                concatenatePaths(httpBasePath, apiKitBasePath),
+                apiKitResourcePath);
+
+        // Store paths in context for apikit:router redirect logic
+        ctx.currentServiceBasePath = httpBasePath;
+        ctx.currentApiKitBasePath = apiKitBasePath;
+        ctx.currentResourcePath = combinedResourcePath;
+        HTTPListenerConfig listenerConfig = ctx.getDefaultHttpListenerConfig();
+        ctx.currentListenerPort = listenerConfig.port();
 
         List<Parameter> queryPrams = new ArrayList<>();
         queryPrams.add(new Parameter(Constants.HTTP_REQUEST_REF, typeFrom(Constants.HTTP_REQUEST_TYPE)));
@@ -241,16 +263,27 @@ public class MuleToBalConverter {
         TypeDesc returnType = typeFrom(Constants.HTTP_RESOURCE_RETURN_TYPE_DEFAULT);
         ctx.currentFileCtx.balConstructs.imports.add(Constants.HTTP_MODULE_IMPORT);
 
-        Resource resource = new Resource(resourceMethod, resourcePath, queryPrams, Optional.of(returnType), bodyStmts);
-        service.resources().add(resource);
+        Resource resource = new Resource(resourceMethod, combinedResourcePath, queryPrams, Optional.of(returnType),
+                bodyStmts);
+        lastHttpService.resources().add(resource);
     }
 
-    private static Service apiKitServiceCreator(Context cx, ApiKitConfig apiKitConfig) {
-        HTTPListenerConfig listener = cx.getDefaultHttpListenerConfig();
-        String basePath = cx.getApiKitBasePath(apiKitConfig);
-        String listenerRef = ConversionUtils.convertToBalIdentifier(listener.name());
-        List<Resource> resources = new ArrayList<>();
-        return new Service(basePath, listenerRef, resources);
+    private static String concatenatePaths(String basePath, String resourcePath) {
+        // Normalize paths by removing trailing slashes from basePath and leading slashes from resourcePath
+        String normalizedBasePath = basePath.endsWith("/") ? basePath.substring(0, basePath.length() - 1) : basePath;
+        String normalizedResourcePath = resourcePath.startsWith("/") ? resourcePath : "/" + resourcePath;
+
+        // Handle root basePath case
+        if (normalizedBasePath.equals("/") || normalizedBasePath.isEmpty()) {
+            return normalizedResourcePath;
+        }
+
+        String normaizedPath = normalizedBasePath + normalizedResourcePath;
+        while (normaizedPath.startsWith("/")) {
+            normaizedPath = normaizedPath.substring(1);
+        }
+
+        return normaizedPath;
     }
 
     private static List<Service> normalizeServices(List<Service> services) {
@@ -319,8 +352,8 @@ public class MuleToBalConverter {
         return new ClassDef(jobName, List.of(typeFrom("task:Job")), List.of(), List.of(executeFunc));
     }
 
-    private static void genHttpSource(Context ctx, Flow flow, HttpListener src, List<Service> services,
-                                      Set<Function> functions) {
+    private static Service genHttpSource(Context ctx, Flow flow, HttpListener src, List<Service> services,
+                                         Set<Function> functions) {
         ctx.projectCtx.attributes.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_TYPE);
         ctx.projectCtx.attributes.put(Constants.HTTP_RESPONSE_REF, Constants.HTTP_RESPONSE_TYPE);
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
@@ -328,6 +361,7 @@ public class MuleToBalConverter {
         // Create a service from the flow
         Service service = genBalService(ctx, src, flow.flowBlocks(), functions);
         services.add(service);
+        return service;
     }
 
     public static List<ModuleTypeDef> createContextTypeDefns(Context ctx) {

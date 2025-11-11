@@ -28,6 +28,7 @@ import mule.v4.dataweave.converter.DWConstruct;
 import mule.v4.model.MuleModel;
 import mule.v4.model.MuleModel.ApiKitConfig;
 import mule.v4.model.MuleModel.DbConfig;
+import mule.v4.model.MuleModel.HttpListener;
 import mule.v4.model.ParseResult;
 import org.jetbrains.annotations.NotNull;
 
@@ -42,7 +43,9 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static common.BallerinaModel.Import;
@@ -67,10 +70,10 @@ public class Context extends ContextBase {
     public final MigrationMetrics<DWConstruct> migrationMetrics = new MigrationMetrics<>();
     private final Map<File, ParseResult> parseResults = new HashMap<>();
     private final Map<File, FileContext> fileContexts = new HashMap<>();
-    private final Map<ApiKitConfig, BallerinaModel.Service> apiKitServices = new HashMap<>();
     public String currentServiceBasePath;
     public String currentResourcePath;
     public String currentListenerPort;
+    public String currentApiKitBasePath;
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                    List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
@@ -117,21 +120,39 @@ public class Context extends ContextBase {
 
     @Override
     public List<BallerinaModel.TextDocument> codeGen() {
-        List<BallerinaModel.TextDocument> result = new ArrayList<>();
-        for (File xmlFile : parseResults.keySet()) {
-            currentFileCtx = this.fileContexts.get(xmlFile);
-            ParseResult parseResult = parseResults.get(xmlFile);
-            assert currentFileCtx != null : "We should have created file ctx when we parse the file";
-            String balFileName = muleAppDir != null ?
-                    muleAppDir.relativize(xmlFile.toPath()).toString().replace(File.separator, ".")
-                            .replace(".xml", "") : "internal.bal";
-            try {
-                result.add(generateTextDocument(this, balFileName, parseResult.flows(), parseResult.subFlows()));
-            } catch (Exception e) {
-                logger.logSevere("Unrecoverable error while generating code for %s".formatted(xmlFile));
-            }
-        }
-        return result;
+        return parseResults.keySet().stream().filter(f -> {
+                    var parserResult = parseResults.get(f);
+                    return parserResult != null && parserResult.flows() != null && parserResult.subFlows() != null;
+                })
+                .sorted((f1, f2) -> {
+                    boolean f1HasHttp = hasHttpListener(parseResults.get(f1));
+                    boolean f2HasHttp = hasHttpListener(parseResults.get(f2));
+                    if (f1HasHttp == f2HasHttp) {
+                        return 0;
+                    }
+                    return f1HasHttp ? -1 : 1; // HTTP listeners first
+                }).map(xmlFile -> {
+                    currentFileCtx = this.fileContexts.get(xmlFile);
+                    ParseResult parseResult = parseResults.get(xmlFile);
+                    assert currentFileCtx != null : "We should have created file ctx when we parse the file";
+
+                    String balFileName = muleAppDir != null
+                            ? muleAppDir.relativize(xmlFile.toPath()).toString().replace(File.separator, ".")
+                            .replace(".xml", "")
+                            : "internal.bal";
+                    try {
+                        return generateTextDocument(this, balFileName, parseResult.flows(),
+                                parseResult.subFlows());
+                    } catch (Exception e) {
+                        logger.logSevere("Unrecoverable error while generating code for %s".formatted(xmlFile));
+                        return null;
+                    }
+                }).filter(Objects::nonNull).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private boolean hasHttpListener(ParseResult parseResult) {
+        return parseResult.flows().stream()
+                .anyMatch(flow -> flow.source().filter(source -> source instanceof HttpListener).isPresent());
     }
 
     @Override
@@ -160,11 +181,6 @@ public class Context extends ContextBase {
             tomlContent.append("\n");
             tomlContent.append(each.dependencyParam);
         }
-    }
-
-    public BallerinaModel.Service getServiceForAPIKit(ApiKitConfig apiKit,
-                                                      java.util.function.Function<ApiKitConfig, BallerinaModel.Service> mappingFunction) {
-        return apiKitServices.computeIfAbsent(apiKit, mappingFunction);
     }
 
     public String getApiKitBasePath(ApiKitConfig apiKitConfig) {
@@ -198,6 +214,9 @@ public class Context extends ContextBase {
         public final LinkedHashMap<String, String> vars = new LinkedHashMap<>();
         public final LinkedHashMap<String, String> attributes = new LinkedHashMap<>();
         public final HashMap<String, String> vmQueueNameToBalFuncMap = new LinkedHashMap<>();
+
+        // Track last HTTP service across all files for API Kit resource merging
+        public BallerinaModel.Service lastHttpService = null;
 
         // Shared mule configs
         List<HashMap<String, ApiKitConfig>> apiKitConfigMaps = new ArrayList<>();

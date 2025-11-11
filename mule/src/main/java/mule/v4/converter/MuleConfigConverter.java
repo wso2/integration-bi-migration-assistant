@@ -945,6 +945,7 @@ public class MuleConfigConverter {
     private static WorkerStatementResult convertApiKitRouter(Context ctx, ApiKitRouter apiKitRouter) {
         String basePath = ctx.currentServiceBasePath != null ? ctx.currentServiceBasePath : "<unknown>";
         String resourcePath = ctx.currentResourcePath != null ? ctx.currentResourcePath : "<unknown>";
+
         String comment = "// TODO: APIKit router - basePath: %s, resourcePath: %s".formatted(basePath, resourcePath);
         ctx.addImport(new Import("ballerina", "http"));
 
@@ -957,7 +958,12 @@ public class MuleConfigConverter {
                         List.of(new StringConstant(clientPath)))));
         stmts.add(clientDecl);
 
-        String redirectBasePath = ctx.getApiKitBasePath(apiKitRouter.configRef()) + "/";
+        // Use serviceBasePath + apiKitBasePath for redirect
+        String apiKitBasePath = ctx.getApiKitBasePath(apiKitRouter.configRef());
+        String normalizedBasePath = basePath.endsWith("/") ? basePath.substring(0, basePath.length() - 1) : basePath;
+        String normalizedApiKitBasePath = apiKitBasePath.startsWith("/") ? apiKitBasePath : "/" + apiKitBasePath;
+        String combinedBasePath = normalizedBasePath + normalizedApiKitBasePath;
+        String redirectBasePath = (combinedBasePath.endsWith("/") ? combinedBasePath : combinedBasePath + "/");
         Statement.VarDeclStatment redirectPath =
                 new Statement.VarDeclStatment(BallerinaModel.TypeDesc.BuiltinType.STRING,
                         "apiKitRedirectPath",
