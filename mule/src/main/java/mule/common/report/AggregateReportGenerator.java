@@ -176,8 +176,7 @@ public static String generateHtmlReport(AggregateStatistics stats, MuleLogger lo
             String statusText = stats.migrationCoverage() >= 75 ? "High Coverage" :
                     stats.migrationCoverage() >= 50 ? "Medium Coverage" : "Low Coverage";
 
-            Path reportPath = result.getTargetPath().resolve(result.getProjectName()).resolve(INDIVIDUAL_REPORT_NAME);
-            Path relativeReportPath = convertedProjectsDir.relativize(reportPath);
+            Path relativeReportPath = Path.of(result.getProjectName(), INDIVIDUAL_REPORT_NAME);
 
             // Get the appropriate color for the coverage bar
             String barColor = stats.migrationCoverage() >= 75 ? "#4CAF50" : // Green for high
