@@ -23,6 +23,7 @@ import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.v4.converter.ScriptConversionException;
+import mule.v4.model.MuleModel.AnypointMqSubscriber;
 import mule.v4.model.MuleModel.ApiKitConfig;
 import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.MuleModel.DbGenericConnection;
@@ -46,6 +47,7 @@ import static common.BallerinaModel.Expression;
 import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.Listener;
+import static common.BallerinaModel.Remote;
 import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
 import static common.BallerinaModel.Parameter;
@@ -54,6 +56,7 @@ import static common.BallerinaModel.Service;
 import static common.BallerinaModel.Statement;
 import static common.BallerinaModel.TextDocument;
 import static common.BallerinaModel.TypeDesc;
+import static common.ConversionUtils.escapeIdentifier;
 import static common.ConversionUtils.exprFrom;
 import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
@@ -117,6 +120,8 @@ public class MuleToBalConverter {
                                     httpListener, services, functions);
                             case ApiKitConfig apiKit ->
                                 genApiKitSource(ctx, flow, apiKit, services, ctx.projectCtx.lastHttpService);
+                            case AnypointMqSubscriber mqSubscriber ->
+                                genAnypointMqSource(ctx, flow, mqSubscriber, services);
                             default ->
                                 throw new IllegalStateException("Unsupported source kind: %s".formatted(src.kind()));
                         }
@@ -273,6 +278,44 @@ public class MuleToBalConverter {
         Resource resource = new Resource(resourceMethod, combinedResourcePath, queryPrams, Optional.of(returnType),
                 bodyStmts);
         lastHttpService.resources().add(resource);
+    }
+
+    private static void genAnypointMqSource(Context ctx, Flow flow, AnypointMqSubscriber mqSubscriber,
+                                            Collection<Service> services) {
+        ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
+
+        // Add JMS import
+        ctx.currentFileCtx.balConstructs.imports.add(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_JMS));
+
+        // Add configurable variable for JMS provider URL (null value generates "?")
+        String jmsProviderUrlVar = "JMS_PROVIDER_URL";
+        ConversionUtils.addConfigVarEntry(ctx, jmsProviderUrlVar, null);
+
+        String serviceName = escapeIdentifier(mqSubscriber.configRef());
+
+        // Create listener expression with hardcoded JMS configuration
+        String listenerExpr = """
+                new jms:Listener(
+                    connectionConfig = {
+                        initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory",
+                        providerUrl: JMS_PROVIDER_URL
+                    }
+                )""";
+
+        // Convert flow blocks to statements
+        List<Statement> bodyStmts = convertTopLevelMuleBlocks(ctx, flow.flowBlocks());
+
+        // Create remote function for onMessage
+        List<Parameter> params = new ArrayList<>();
+        params.add(new Parameter("message", typeFrom(Constants.JMS_MESSAGE_TYPE)));
+
+        Function onMessageFunction = new Function("onMessage", params, bodyStmts);
+        Remote remoteFunction = new Remote(onMessageFunction);
+
+        // Create service with remote function
+        Service service = new Service(serviceName, List.of(listenerExpr), Optional.empty(),
+                List.of(), List.of(), List.of(), List.of(remoteFunction), Optional.empty());
+        services.add(service);
     }
 
     private static String concatenatePaths(String basePath, String resourcePath) {

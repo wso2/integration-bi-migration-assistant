@@ -26,6 +26,7 @@ import mule.common.MuleXMLNavigator;
 import mule.common.MultiRootContext;
 import mule.v4.dataweave.converter.DWConstruct;
 import mule.v4.model.MuleModel;
+import mule.v4.model.MuleModel.AnypointMqConfig;
 import mule.v4.model.MuleModel.ApiKitConfig;
 import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.MuleModel.HttpListener;
@@ -223,6 +224,7 @@ public class Context extends ContextBase {
         List<HashMap<String, HTTPListenerConfig>> httpListenerConfigMaps = new ArrayList<>();
         List<HashMap<String, HTTPRequestConfig>> httpRequestConfigMaps = new ArrayList<>();
         List<HashMap<String, DbConfig>> dbConfigMaps = new ArrayList<>();
+        List<HashMap<String, AnypointMqConfig>> anypointMqConfigMaps = new ArrayList<>();
 
         // Shared bal constructs
         public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
@@ -249,6 +251,10 @@ public class Context extends ContextBase {
 
         public HTTPRequestConfig getHttpRequestConfig(String key) {
             return getValueFromMaps(httpRequestConfigMaps, key);
+        }
+
+        public AnypointMqConfig getAnypointMqConfig(String key) {
+            return getValueFromMaps(anypointMqConfigMaps, key);
         }
 
         public boolean configurableVarExists(String key) {
@@ -284,6 +290,7 @@ public class Context extends ContextBase {
         public final HashMap<String, HTTPListenerConfig> httpListenerConfigs = new LinkedHashMap<>();
         public final HashMap<String, HTTPRequestConfig> httpRequestConfigs = new LinkedHashMap<>();
         public final HashMap<String, DbConfig> dbConfigs = new LinkedHashMap<>();
+        public final HashMap<String, AnypointMqConfig> anypointMqConfigs = new LinkedHashMap<>();
         public final List<ErrorHandler> globalErrorHandlers = new ArrayList<>();
         public final List<GlobalProperty> globalProperties = new ArrayList<>();
         public final List<MuleImport> imports = new ArrayList<>();
@@ -294,6 +301,7 @@ public class Context extends ContextBase {
             projCtx.httpListenerConfigMaps.add(httpListenerConfigs);
             projCtx.httpRequestConfigMaps.add(httpRequestConfigs);
             projCtx.dbConfigMaps.add(dbConfigs);
+            projCtx.anypointMqConfigMaps.add(anypointMqConfigs);
         }
     }
 
