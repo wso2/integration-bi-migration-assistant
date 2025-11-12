@@ -44,6 +44,7 @@ import java.util.Set;
 import static common.BallerinaModel.BlockFunctionBody;
 import static common.BallerinaModel.ClassDef;
 import static common.BallerinaModel.Expression;
+import static common.BallerinaModel.Expression.VariableReference;
 import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.Listener;
@@ -98,6 +99,7 @@ public class MuleToBalConverter {
         Set<Function> functions = new HashSet<>();
         List<ClassDef> classDefs = new ArrayList<>();
         List<Flow> privateFlows = new ArrayList<>();
+        List<Listener> listeners = new ArrayList<>();
 
         flows.stream()
                 .sorted(Comparator.comparing(flow -> {
@@ -121,7 +123,7 @@ public class MuleToBalConverter {
                             case ApiKitConfig apiKit ->
                                 genApiKitSource(ctx, flow, apiKit, services, ctx.projectCtx.lastHttpService);
                             case AnypointMqSubscriber mqSubscriber ->
-                                genAnypointMqSource(ctx, flow, mqSubscriber, services);
+                                genAnypointMqSource(ctx, flow, mqSubscriber, services, listeners);
                             default ->
                                 throw new IllegalStateException("Unsupported source kind: %s".formatted(src.kind()));
                         }
@@ -146,8 +148,7 @@ public class MuleToBalConverter {
             functions.addAll(ctx.currentFileCtx.balConstructs.functions); // TODO: this is a  hack.
         }
 
-        // Add global listeners
-        List<Listener> listeners = new ArrayList<>();
+        // Add global HTTP listeners from configs
         for (HTTPListenerConfig httpListenerConfig : ctx.currentFileCtx.configs.httpListenerConfigs.values()) {
             listeners.add(new Listener.HTTPListener(ConversionUtils.convertToBalIdentifier(httpListenerConfig.name()),
                     getAttrValInt(ctx, httpListenerConfig.port()), httpListenerConfig.host()));
@@ -281,7 +282,7 @@ public class MuleToBalConverter {
     }
 
     private static void genAnypointMqSource(Context ctx, Flow flow, AnypointMqSubscriber mqSubscriber,
-                                            Collection<Service> services) {
+                                            Collection<Service> services, List<Listener> listeners) {
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
 
         // Add JMS import
@@ -291,19 +292,28 @@ public class MuleToBalConverter {
         String jmsProviderUrlVar = "JMS_PROVIDER_URL";
         ConversionUtils.addConfigVarEntry(ctx, jmsProviderUrlVar, null);
 
-        String serviceName = escapeIdentifier(mqSubscriber.configRef());
+        String serviceName = "\"" + escapeIdentifier(mqSubscriber.configRef()) + "\"";
 
-        // Create listener expression with hardcoded JMS configuration
-        String listenerExpr = """
-                new jms:Listener(
-                    connectionConfig = {
-                        initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory",
-                        providerUrl: JMS_PROVIDER_URL
-                    }
-                )""";
+        // Listener name from config-ref
+        String listenerName = ConversionUtils.convertToBalIdentifier(mqSubscriber.configRef());
+
+        // Create JMS Listener using the BallerinaModel
+        Listener.JMSListener jmsListener = new Listener.JMSListener(
+                listenerName,
+                exprFrom("\"org.apache.activemq.jndi.ActiveMQInitialContextFactory\""),
+                new VariableReference(jmsProviderUrlVar),
+                mqSubscriber.destination(),
+                Optional.empty(),
+                Optional.empty()
+        );
+        listeners.add(jmsListener);
 
         // Convert flow blocks to statements
-        List<Statement> bodyStmts = convertTopLevelMuleBlocks(ctx, flow.flowBlocks());
+        List<Statement> bodyStmts = new ArrayList<>();
+        String attributesInitValue = "{}";
+        bodyStmts.add(stmtFrom("Context %s = {%s: %s};".formatted(Constants.CONTEXT_REFERENCE,
+                Constants.ATTRIBUTES_REF, attributesInitValue)));
+        bodyStmts.addAll(convertTopLevelMuleBlocks(ctx, flow.flowBlocks()));
 
         // Create remote function for onMessage
         List<Parameter> params = new ArrayList<>();
@@ -312,8 +322,8 @@ public class MuleToBalConverter {
         Function onMessageFunction = new Function("onMessage", params, bodyStmts);
         Remote remoteFunction = new Remote(onMessageFunction);
 
-        // Create service with remote function
-        Service service = new Service(serviceName, List.of(listenerExpr), Optional.empty(),
+        // Create service with listener reference
+        Service service = new Service(serviceName, List.of(listenerName), Optional.empty(),
                 List.of(), List.of(), List.of(), List.of(remoteFunction), Optional.empty());
         services.add(service);
     }
