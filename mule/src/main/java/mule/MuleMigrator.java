@@ -178,12 +178,14 @@ public class MuleMigrator {
 
         // Generate aggregated HTML report
         Path targetPath = multiResult.getTargetPath();
-        String aggregatedHtmlReport = AggregateReportGenerator.generateHtmlReport(logger, projResultList, targetPath,
-                false);
+        AggregateReportGenerator.AggregateStatistics stats =
+                AggregateReportGenerator.calculateAggregateStatistics(projResultList);
+        String aggregatedHtmlReport = AggregateReportGenerator.generateHtmlReport(stats, logger, projResultList,
+                targetPath, false);
         allFiles.put(AggregateReportGenerator.AGGREGATE_MIGRATION_REPORT_NAME, aggregatedHtmlReport);
 
         // Generate aggregated JSON report
-        Map<String, Object> jsonReportMap = generateAggregatedJsonReport(projResultList);
+        Map<String, Object> jsonReportMap = generateAggregatedJsonReport(stats);
 
         // Generate root Ballerina.toml
         String rootBallerinaToml = generateWorkspaceBallerinaToml(packageNames);
@@ -416,7 +418,9 @@ public class MuleMigrator {
                 .filter(result -> result.getMigrationStats() != null)
                 .toList();
         multiResult.setMigrationResults(projResultList);
-        String aggregateReport = AggregateReportGenerator.generateHtmlReport(logger, projResultList, targetPath,
+        AggregateReportGenerator.AggregateStatistics stats =
+                AggregateReportGenerator.calculateAggregateStatistics(projResultList);
+        String aggregateReport = AggregateReportGenerator.generateHtmlReport(stats, logger, projResultList, targetPath,
                 dryRun);
         multiResult.setHtmlReport(aggregateReport);
         logger.logState("Completed converting Mule projects via multi-root mode");
@@ -844,46 +848,16 @@ public class MuleMigrator {
         }
     }
 
-    private static Map<String, Object> generateAggregatedJsonReport(List<ProjectMigrationResult> projectResults) {
-        int totalProjects = projectResults.size();
-        int totalElements = projectResults.stream()
-                .map(ProjectMigrationResult::getMigrationStats)
-                .mapToInt(stats -> {
-                    int xmlElements = stats.passedXMLTags().values().stream().mapToInt(i -> i).sum() +
-                            stats.failedXMLTags().values().stream().mapToInt(i -> i).sum();
-                    int dwElements = stats.dwConversionStats().getTotalEncounteredCount();
-                    return xmlElements + dwElements;
-                })
-                .sum();
-        int migratableElements = projectResults.stream()
-                .map(ProjectMigrationResult::getMigrationStats)
-                .mapToInt(stats -> {
-                    int xmlElements = stats.passedXMLTags().values().stream().mapToInt(i -> i).sum();
-                    int dwElements = stats.dwConversionStats().getConvertedCount();
-                    return xmlElements + dwElements;
-                })
-                .sum();
-        int nonMigratableElements = totalElements - migratableElements;
-
-        double coveragePercentage = totalElements > 0 ? (double) migratableElements / totalElements * 100.0 : 100.0;
-
-        String coverageLevel;
-        if (coveragePercentage >= 75) {
-            coverageLevel = "High";
-        } else if (coveragePercentage >= 50) {
-            coverageLevel = "Medium";
-        } else {
-            coverageLevel = "Low";
-        }
-
+    private static Map<String, Object> generateAggregatedJsonReport(
+            AggregateReportGenerator.AggregateStatistics stats) {
         Map<String, Object> coverageOverview = new HashMap<>();
-        coverageOverview.put("projects", totalProjects);
+        coverageOverview.put("projects", stats.totalProjects());
         coverageOverview.put("unitName", "code lines");
-        coverageOverview.put("coveragePercentage", Math.round(coveragePercentage));
-        coverageOverview.put("coverageLevel", coverageLevel);
-        coverageOverview.put("totalElements", totalElements);
-        coverageOverview.put("migratableElements", migratableElements);
-        coverageOverview.put("nonMigratableElements", nonMigratableElements);
+        coverageOverview.put("coveragePercentage", Math.round(stats.avgCoverage()));
+        coverageOverview.put("coverageLevel", stats.coverageLevel());
+        coverageOverview.put("totalElements", stats.totalItems());
+        coverageOverview.put("migratableElements", stats.migratableItems());
+        coverageOverview.put("nonMigratableElements", stats.nonMigratableItems());
 
         Map<String, Object> result = new HashMap<>();
         result.put("coverageOverview", coverageOverview);

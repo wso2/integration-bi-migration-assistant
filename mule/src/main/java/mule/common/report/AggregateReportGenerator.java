@@ -39,9 +39,45 @@ public class AggregateReportGenerator {
     public static final String MIGRATION_SUMMARY_TITLE = "Aggregate Migration Summary";
     public static final String MIGRATION_ASSESSMENT_TITLE = "Aggregate Migration Assessment";
 
-    public static String generateHtmlReport(MuleLogger logger, List<ProjectMigrationResult> projectResults,
-                                            Path convertedProjectsDir, boolean dryRun) {
-        logger.logState("Generating aggregate migration report...");
+    /**
+     * Record containing all calculated aggregate statistics for migration reports.
+     *
+     * @param totalProjects           total number of projects
+     * @param avgCoverage             average of per-project coverage percentages
+     * @param totalAverageCaseDays    sum of average case days across all projects
+     * @param totalElements           total XML elements (passed + failed)
+     * @param totalDWExpressions      total DataWeave expressions encountered
+     * @param totalItems              totalElements + totalDWExpressions
+     * @param migratableElements      passed XML elements
+     * @param migratableDWExpressions converted DataWeave expressions
+     * @param migratableItems         migratableElements + migratableDWExpressions
+     * @param nonMigratableItems      totalItems - migratableItems
+     * @param coverageLevel           "High"/"Medium"/"Low" based on
+     *                                coveragePercentage
+     */
+    public record AggregateStatistics(
+                    int totalProjects,
+                    double avgCoverage,
+                    double totalAverageCaseDays,
+                    int totalElements,
+                    int totalDWExpressions,
+                    int totalItems,
+                    int migratableElements,
+                    int migratableDWExpressions,
+                    int migratableItems,
+                    int nonMigratableItems,
+                    String coverageLevel) {
+    }
+
+    /**
+     * Calculates aggregate statistics from a list of project migration results.
+     *
+     * @param projectResults list of project migration results
+     * @return AggregateStatistics record containing all calculated values
+     */
+    public static AggregateStatistics calculateAggregateStatistics(List<ProjectMigrationResult> projectResults) {
+            int totalProjects = projectResults.size();
+
         double avgCoverage = projectResults.stream().map(ProjectMigrationResult::getMigrationStats)
                 .mapToDouble(ProjectMigrationStats::migrationCoverage)
                 .average().orElse(0.0);
@@ -50,7 +86,6 @@ public class AggregateReportGenerator {
                 .mapToDouble(ProjectMigrationStats::averageCaseDays)
                 .sum();
 
-        // Calculate total items across all projects
         int totalElements = projectResults.stream().map(ProjectMigrationResult::getMigrationStats)
                 .mapToInt(AggregateReportGenerator::calculateTotalXmlElements)
                 .sum();
@@ -59,13 +94,12 @@ public class AggregateReportGenerator {
                 .mapToInt(ps -> ps.dwConversionStats().getTotalEncounteredCount())
                 .sum();
 
-
         int totalItems = totalElements + totalDWExpressions;
-
 
         int migratableElements = projectResults.stream().map(ProjectMigrationResult::getMigrationStats)
                 .mapToInt(AggregateReportGenerator::calculateMigratableXmlElements)
                 .sum();
+
         int migratableDWExpressions = projectResults.stream().map(ProjectMigrationResult::getMigrationStats)
                 .mapToInt(ps -> ps.dwConversionStats().getConvertedCount())
                 .sum();
@@ -73,11 +107,40 @@ public class AggregateReportGenerator {
         int migratableItems = migratableElements + migratableDWExpressions;
         int nonMigratableItems = totalItems - migratableItems;
 
+        double coveragePercentage = totalItems > 0 ? (double) migratableItems / totalItems * 100.0 : 100.0;
+
+        String coverageLevel;
+        if (coveragePercentage >= 75) {
+                coverageLevel = "High";
+        } else if (coveragePercentage >= 50) {
+                coverageLevel = "Medium";
+        } else {
+                coverageLevel = "Low";
+        }
+
+        return new AggregateStatistics(
+                        totalProjects,
+                        avgCoverage,
+                        totalAverageCaseDays,
+                        totalElements,
+                        totalDWExpressions,
+                        totalItems,
+                        migratableElements,
+                        migratableDWExpressions,
+                        migratableItems,
+                        nonMigratableItems,
+                        coverageLevel);
+}
+
+public static String generateHtmlReport(AggregateStatistics stats, MuleLogger logger,
+                List<ProjectMigrationResult> projectResults,
+                Path convertedProjectsDir, boolean dryRun) {
+        logger.logState("Generating aggregate migration report...");
 
         // Get appropriate color based on coverage
-        String barColor = avgCoverage >= 75 ? "#4CAF50" :  // Green for high
-                          avgCoverage >= 50 ? "#FFC107" :  // Amber for medium
-                          "#F44336";                       // Red for low
+        String barColor = stats.avgCoverage() >= 75 ? "#4CAF50" : // Green for high
+                        stats.avgCoverage() >= 50 ? "#FFC107" : // Amber for medium
+                                        "#F44336"; // Red for low
 
         String reportTitle = dryRun ? MIGRATION_ASSESSMENT_TITLE : MIGRATION_SUMMARY_TITLE;
         logger.logInfo("Formating aggregate migration report...");
@@ -85,22 +148,22 @@ public class AggregateReportGenerator {
                 AggregateReportTemplate.getHtmlTemplate(),
                 reportTitle,                                     // %s - title
                 reportTitle,                                     // %s - title again
-                projectResults.size(),                         // %d - project count
-                avgCoverage,                                     // %.0f - avg coverage
-                avgCoverage,                                     // %.0f - avg coverage for width
+                        stats.totalProjects(), // %d - project count
+                        stats.avgCoverage(), // %.0f - avg coverage
+                        stats.avgCoverage(), // %.0f - avg coverage for width
                 barColor,                                        // %s - color for coverage bar
-                totalItems,                                      // %d - total items
-                migratableItems,                                 // %d - migratable items
-                nonMigratableItems, // %d - non-migratable items
-                totalAverageCaseDays, // %.1f - average case days
-                projectResults.size(),                         // %d - project count again
-                avgCoverage, // %.0f - avg coverage again
+                        stats.totalItems(), // %d - total items
+                        stats.migratableItems(), // %d - migratable items
+                        stats.nonMigratableItems(), // %d - non-migratable items
+                        stats.totalAverageCaseDays(), // %.1f - average case days
+                        stats.totalProjects(), // %d - project count again
+                        stats.avgCoverage(), // %.0f - avg coverage again
                 AVG_CASE_COMP_TIME_NEW_MINUTES / 60,
                 AVG_CASE_COMP_TIME_REPEATED_MINUTES,
                 AVG_CASE_DW_EXPR_TIME_MINUTES,
                 generateProjectCards(projectResults, convertedProjectsDir),
                 // html
-                generateFailedElementsRows(projectResults)      // %s - failed elements rows html
+                        generateFailedElementsRows(projectResults) // %s - failed elements rows html
         );
     }
 
