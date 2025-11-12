@@ -148,22 +148,22 @@ public static String generateHtmlReport(AggregateStatistics stats, MuleLogger lo
                 AggregateReportTemplate.getHtmlTemplate(),
                 reportTitle,                                     // %s - title
                 reportTitle,                                     // %s - title again
-                        stats.totalProjects(), // %d - project count
-                        stats.avgCoverage(), // %.0f - avg coverage
-                        stats.avgCoverage(), // %.0f - avg coverage for width
+                stats.totalProjects(), // %d - project count
+                stats.avgCoverage(), // %.0f - avg coverage
+                stats.avgCoverage(), // %.0f - avg coverage for width
                 barColor,                                        // %s - color for coverage bar
-                        stats.totalItems(), // %d - total items
-                        stats.migratableItems(), // %d - migratable items
-                        stats.nonMigratableItems(), // %d - non-migratable items
-                        stats.totalAverageCaseDays(), // %.1f - average case days
-                        stats.totalProjects(), // %d - project count again
-                        stats.avgCoverage(), // %.0f - avg coverage again
+                stats.totalItems(), // %d - total items
+                stats.migratableItems(), // %d - migratable items
+                stats.nonMigratableItems(), // %d - non-migratable items
+                stats.totalAverageCaseDays(), // %.1f - average case days
+                stats.totalProjects(), // %d - project count again
+                stats.avgCoverage(), // %.0f - avg coverage again
                 AVG_CASE_COMP_TIME_NEW_MINUTES / 60,
                 AVG_CASE_COMP_TIME_REPEATED_MINUTES,
                 AVG_CASE_DW_EXPR_TIME_MINUTES,
                 generateProjectCards(projectResults, convertedProjectsDir),
                 // html
-                        generateFailedElementsRows(projectResults) // %s - failed elements rows html
+                generateFailedElementsRows(projectResults) // %s - failed elements rows html
         );
     }
 

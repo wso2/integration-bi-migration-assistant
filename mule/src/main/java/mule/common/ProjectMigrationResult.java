@@ -38,7 +38,7 @@ public final class ProjectMigrationResult implements MigrationResult {
     private String projectName;
     private Map<String, String> files;
     private String htmlReport;
-    private String jsonReport;
+    private Map<String, Object> jsonReport;
     private Path targetPath;
     private Set<String> configurableVariableNames = new HashSet<>();
 
@@ -108,11 +108,11 @@ public final class ProjectMigrationResult implements MigrationResult {
         this.htmlReport = htmlReport;
     }
 
-    public String getJsonReport() {
+    public Map<String, Object> getJsonReport() {
         return jsonReport;
     }
 
-    public void setJsonReport(String jsonReport) {
+    public void setJsonReport(Map<String, Object> jsonReport) {
         this.jsonReport = jsonReport;
     }
 

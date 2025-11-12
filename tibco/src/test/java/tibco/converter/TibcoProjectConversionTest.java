@@ -18,6 +18,8 @@
 
 package tibco.converter;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -81,9 +83,13 @@ public class TibcoProjectConversionTest {
         Assert.assertNotNull(textEdits, "textEdits is null");
 
         // Validate the report-json against expected JSON file
-        String reportJson = (String) result.get("report-json");
-        Assert.assertNotNull(reportJson, "report-json is null");
-        Assert.assertFalse(reportJson.isBlank(), "report-json should not be empty");
+        @SuppressWarnings("unchecked")
+        var reportJsonMap = (java.util.Map<String, Object>) result.get("report-json");
+        Assert.assertNotNull(reportJsonMap, "report-json is null");
+        Assert.assertFalse(reportJsonMap.isEmpty(), "report-json should not be empty");
+
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        String reportJson = gson.toJson(reportJsonMap);
 
         Path expectedJsonFile = Path.of("src/test/resources/tibco.projects.converted")
                 .resolve(expectedBallerinaProject.getFileName())

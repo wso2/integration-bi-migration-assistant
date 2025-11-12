@@ -54,7 +54,7 @@ public class IndividualReportGenerator {
     public static final String MIGRATION_SUMMARY_TITLE = "Migration Summary";
     public static final String MIGRATION_ASSESSMENT_TITLE = "Migration Assessment";
 
-    public static String generateJsonReport(ProjectMigrationStats pms) {
+    public static Map<String, Object> generateJsonReport(ProjectMigrationStats pms) {
         int migrationCoverage = pms.migrationCoverage();
         String coverageStatus = getCoverageStatus(migrationCoverage);
 
@@ -73,23 +73,17 @@ public class IndividualReportGenerator {
         int migratableItems = migratableXmlElements + migratableDwConstructs;
         int nonMigratableItems = nonMigratableXmlElements + nonMigratableDwConstructs;
 
-        return """
-                {
-                    "coverageOverview": {
-                        "unitName": "code lines",
-                        "coveragePercentage": %d,
-                        "coverageLevel": "%s",
-                        "totalElements": %d,
-                        "migratableElements": %d,
-                        "nonMigratableElements": %d
-                    }
-                }""".formatted(
-                migrationCoverage,
-                coverageStatus,
-                totalItems,
-                migratableItems,
-                nonMigratableItems
-        );
+        Map<String, Object> coverageOverview = new LinkedHashMap<>();
+        coverageOverview.put("unitName", "code lines");
+        coverageOverview.put("coveragePercentage", migrationCoverage);
+        coverageOverview.put("coverageLevel", coverageStatus);
+        coverageOverview.put("totalElements", totalItems);
+        coverageOverview.put("migratableElements", migratableItems);
+        coverageOverview.put("nonMigratableElements", nonMigratableItems);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("coverageOverview", coverageOverview);
+        return result;
     }
 
     public static String generateHtmlReport(MuleLogger logger, ProjectMigrationStats pms, MuleVersion muleVersion,

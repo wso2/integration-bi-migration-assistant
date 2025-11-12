@@ -119,11 +119,12 @@ public class MuleMigrator {
         }
 
         ProjectMigrationResult projResult = (ProjectMigrationResult) result;
-        return Map.of(
-                "textEdits", projResult.getFiles(),
-                "report", projResult.getHtmlReport(),
-                "report-json", projResult.getJsonReport()
-        );
+        Map<String, Object> resultMap = new HashMap<>();
+        resultMap.put("error", null);
+        resultMap.put("textEdits", projResult.getFiles());
+        resultMap.put("report", projResult.getHtmlReport());
+        resultMap.put("report-json", projResult.getJsonReport());
+        return resultMap;
     }
 
     private static Map<String, Object> migrateMuleMultiRootInner(String orgName, String projectName, String sourcePath,
@@ -622,7 +623,7 @@ public class MuleMigrator {
                 ctx.muleVersion, ctx.dryRun, ctx.sourceName);
         ctx.result.setHtmlReport(individualReportHtml);
 
-        String individualReportJson = IndividualReportGenerator.generateJsonReport(migrationStats);
+        Map<String, Object> individualReportJson = IndividualReportGenerator.generateJsonReport(migrationStats);
         ctx.result.setJsonReport(individualReportJson);
 
         if (ctx.dryRun) {

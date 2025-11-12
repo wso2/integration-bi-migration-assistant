@@ -49,7 +49,8 @@ public class MuleProjectConversionTest {
         // Run the conversion using the new public API
         var result = MuleMigrator.migrateMule(parameters);
         Assert.assertNotNull(result, "migrateMule returned null");
-        Assert.assertFalse(result.containsKey("error"), "Conversion failed with error: " + result.get("error"));
+        Assert.assertFalse(result.containsKey("error") && result.get("error") != null,
+                "Conversion failed with error: " + result.get("error"));
         Assert.assertTrue(result.containsKey("textEdits"), "Result does not contain 'textEdits'");
         Assert.assertTrue(result.containsKey("report"), "Result does not contain 'report'");
         Assert.assertTrue(result.containsKey("report-json"), "Result does not contain 'report-json'");
@@ -59,9 +60,16 @@ public class MuleProjectConversionTest {
         Assert.assertNotNull(textEdits, "textEdits is null");
 
         // Validate the report-json
-        String reportJson = (String) result.get("report-json");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> reportJson = (Map<String, Object>) result.get("report-json");
         Assert.assertNotNull(reportJson, "report-json is null");
-        Assert.assertFalse(reportJson.isBlank(), "report-json should not be empty");
+        Assert.assertTrue(reportJson.containsKey("coverageOverview"), "report-json should contain coverageOverview");
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> coverageOverview = (Map<String, Object>) reportJson.get("coverageOverview");
+        Assert.assertNotNull(coverageOverview, "coverageOverview is null");
+        Assert.assertTrue(coverageOverview.containsKey("coveragePercentage"),
+                "coverageOverview should contain coveragePercentage");
     }
 
     @Test(groups = {"mule", "converter"})
