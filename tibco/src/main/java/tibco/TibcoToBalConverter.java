@@ -424,7 +424,7 @@ public class TibcoToBalConverter {
         result.put("error", null);
         result.put("textEdits", allFiles);
         result.put("report", aggregatedHtmlReport);
-        result.put("jsonReport", jsonReportMap);
+        result.put("report-json", jsonReportMap);
         return result;
     }
 

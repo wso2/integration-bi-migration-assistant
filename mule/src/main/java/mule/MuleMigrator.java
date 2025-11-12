@@ -195,7 +195,7 @@ public class MuleMigrator {
         resultMap.put("error", null);
         resultMap.put("textEdits", allFiles);
         resultMap.put("report", aggregatedHtmlReport);
-        resultMap.put("jsonReport", jsonReportMap);
+        resultMap.put("report-json", jsonReportMap);
         return resultMap;
     }
 

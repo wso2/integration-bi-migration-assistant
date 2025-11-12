@@ -229,7 +229,7 @@ public class TibcoProjectConversionTest {
                 "Conversion failed with error: " + result.get("error"));
         Assert.assertTrue(result.containsKey("textEdits"), "Result does not contain 'textEdits'");
         Assert.assertTrue(result.containsKey("report"), "Result does not contain 'report'");
-        Assert.assertTrue(result.containsKey("jsonReport"), "Result does not contain 'jsonReport'");
+        Assert.assertTrue(result.containsKey("report-json"), "Result does not contain 'report-json'");
 
         @SuppressWarnings("unchecked")
         var textEdits = (java.util.Map<String, String>) result.get("textEdits");
@@ -249,9 +249,9 @@ public class TibcoProjectConversionTest {
 
         // Validate JSON report structure
         @SuppressWarnings("unchecked")
-        var jsonReport = (java.util.Map<String, Object>) result.get("jsonReport");
-        Assert.assertNotNull(jsonReport, "jsonReport is null");
-        Assert.assertTrue(jsonReport.containsKey("coverageOverview"), "jsonReport should contain coverageOverview");
+        var jsonReport = (java.util.Map<String, Object>) result.get("report-json");
+        Assert.assertNotNull(jsonReport, "report-json is null");
+        Assert.assertTrue(jsonReport.containsKey("coverageOverview"), "report-json should contain coverageOverview");
 
         @SuppressWarnings("unchecked")
         var coverageOverview = (java.util.Map<String, Object>) jsonReport.get("coverageOverview");
