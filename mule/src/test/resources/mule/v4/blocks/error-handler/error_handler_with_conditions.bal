@@ -2,8 +2,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -27,8 +27,8 @@ service /mule4 on listener_config {
             my_error_handler(ctx, err);
         }
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -42,7 +42,7 @@ public function my_error_handler(Context ctx, error err) {
         log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("xxx: first error catch");
-        ctx.attributes.response.statusCode = 500;
+(<http:Response>ctx.attributes.response).statusCode = 500;
     } else if err is "EXPRESSION" {
         // on-error-continue
         log:printError("Message: " + err.message());

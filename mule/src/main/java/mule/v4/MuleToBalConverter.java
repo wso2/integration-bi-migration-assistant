@@ -62,6 +62,7 @@ import static common.ConversionUtils.exprFrom;
 import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
 import static mule.v4.Constants.BAL_ANYDATA_TYPE;
+import static mule.v4.Constants.HTTP_RESPONSE_TYPE;
 import static mule.v4.ConversionUtils.getAttrVal;
 import static mule.v4.ConversionUtils.getAttrValInt;
 import static mule.v4.ConversionUtils.getBallerinaAbsolutePath;
@@ -267,9 +268,10 @@ public class MuleToBalConverter {
         bodyStmts.addAll(bodyCoreStmts);
 
         // Add return statement
-        bodyStmts.add(stmtFrom("\n\n%s.%s.setPayload(%s.payload);".formatted(Constants.ATTRIBUTES_FIELD_ACCESS,
-                Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
-        bodyStmts.add(stmtFrom("return %s.%s;".formatted(Constants.ATTRIBUTES_FIELD_ACCESS,
+        bodyStmts.add(stmtFrom("\n\n(<%s>%s.%s).setPayload(%s.payload);".formatted(Constants.HTTP_RESPONSE_TYPE,
+                Constants.ATTRIBUTES_FIELD_ACCESS, Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
+        bodyStmts.add(
+                stmtFrom("return <%s>%s.%s;".formatted(Constants.HTTP_RESPONSE_TYPE, Constants.ATTRIBUTES_FIELD_ACCESS,
                 Constants.HTTP_RESPONSE_REF)));
 
         // Add service resources
@@ -454,7 +456,7 @@ public class MuleToBalConverter {
                 if (type.startsWith("map<") && type.endsWith(">")) {
                     attributesField = new RecordField(name, typeFrom(type), exprFrom("{}"));
                 } else {
-                    attributesField = new RecordField(name, typeFrom(type), false);
+                    attributesField = new RecordField(name, typeFrom(type), true);
                 }
                 attributesRecordFields.add(attributesField);
             }
@@ -537,9 +539,9 @@ public class MuleToBalConverter {
         bodyStmts.addAll(bodyCoreStmts);
 
         // Add return statement
-        bodyStmts.add(stmtFrom("\n\n%s.%s.setPayload(%s.payload);".formatted(Constants.ATTRIBUTES_FIELD_ACCESS,
-                        Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
-        bodyStmts.add(stmtFrom("return %s.%s;".formatted(Constants.ATTRIBUTES_FIELD_ACCESS,
+        bodyStmts.add(stmtFrom("\n\n(<%s>%s.%s).setPayload(%s.payload);".formatted(Constants.HTTP_RESPONSE_TYPE,
+                Constants.ATTRIBUTES_FIELD_ACCESS, Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
+        bodyStmts.add(stmtFrom("return <%s>%s.%s;".formatted(HTTP_RESPONSE_TYPE, Constants.ATTRIBUTES_FIELD_ACCESS,
                 Constants.HTTP_RESPONSE_REF)));
 
         // Add service resources

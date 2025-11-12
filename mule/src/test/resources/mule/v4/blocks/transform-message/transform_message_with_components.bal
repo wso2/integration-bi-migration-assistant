@@ -6,8 +6,8 @@ public type Vars record {|
 |};
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -28,8 +28,8 @@ service /foo on config {
         json myVariable = _dwMethod0_(ctx);
         ctx.vars.myVariable = myVariable;
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 

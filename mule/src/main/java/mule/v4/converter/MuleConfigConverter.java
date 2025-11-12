@@ -1121,7 +1121,8 @@ public class MuleConfigConverter {
         stmts.addAll(errorBlocks);
 
         if (ctx.projectCtx.attributes.containsKey(Constants.HTTP_RESPONSE_REF)) {
-            stmts.add(stmtFrom("%s.%s.statusCode = 500;".formatted(Constants.ATTRIBUTES_FIELD_ACCESS,
+            stmts.add(stmtFrom("(<%s>%s.%s).statusCode = 500;".formatted(Constants.HTTP_RESPONSE_TYPE,
+                    Constants.ATTRIBUTES_FIELD_ACCESS,
                     Constants.HTTP_RESPONSE_REF)));
         } else {
             // Add a panic statement to propagate the error
