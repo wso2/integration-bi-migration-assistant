@@ -107,12 +107,10 @@ public class AggregateReportGenerator {
         int migratableItems = migratableElements + migratableDWExpressions;
         int nonMigratableItems = totalItems - migratableItems;
 
-        double coveragePercentage = totalItems > 0 ? (double) migratableItems / totalItems * 100.0 : 100.0;
-
         String coverageLevel;
-        if (coveragePercentage >= 75) {
+        if (avgCoverage >= 75) {
                 coverageLevel = "High";
-        } else if (coveragePercentage >= 50) {
+        } else if (avgCoverage >= 50) {
                 coverageLevel = "Medium";
         } else {
                 coverageLevel = "Low";
