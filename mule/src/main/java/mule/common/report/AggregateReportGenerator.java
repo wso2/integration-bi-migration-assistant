@@ -196,8 +196,9 @@ public static String generateHtmlReport(AggregateStatistics stats, MuleLogger lo
             html.append("      <div class=\"project-left\">\n");
             html.append("        <div class=\"project-header\">\n");
             html.append("          <div class=\"project-name\">\n");
-            html.append("            <a href=\"").append(relativeReportPath).append("\" class=\"project-link\">")
-                    .append(result.getSourceName()).append("</a>\n");
+            html.append("            <a href=\"").append(relativeReportPath).append("\" class=\"project-link\" id=\"")
+                            .append(result.getProjectName()).append("\">").append(result.getSourceName())
+                            .append("</a>\n");
             html.append("          </div>\n");
             html.append("          <span class=\"status-badge ").append(statusClass).append("\">").append(statusText)
                     .append("</span>\n");
