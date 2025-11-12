@@ -59,7 +59,7 @@ public class ConversionUtils {
      * @return identifier with special characters removed
      */
     public static String escapeIdentifier(String identifier) {
-        return UNESCAPED_SPECIAL_CHAR_SET.matcher(identifier).replaceAll("");
+        return UNESCAPED_SPECIAL_CHAR_SET.matcher(identifier).replaceAll("_");
     }
 
     /**
