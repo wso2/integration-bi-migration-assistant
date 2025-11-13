@@ -29,12 +29,105 @@ import tibco.ProjectConversionContext;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 public class TibcoProjectConversionTest {
+
+    /**
+     * Recursively compares two JSON Maps, handling nested Maps, Lists, and
+     * primitive values.
+     * Throws AssertionError with detailed differences if maps don't match.
+     *
+     * @param actual   The actual Map to compare
+     * @param expected The expected Map to compare against
+     * @param path     The current path in the JSON structure (for error messages)
+     */
+    private void compareJsonMaps(Map<String, Object> actual, Map<String, Object> expected, String path) {
+        List<String> differences = new ArrayList<>();
+
+        // Check all keys in expected map
+        for (Map.Entry<String, Object> expectedEntry : expected.entrySet()) {
+            String key = expectedEntry.getKey();
+            String currentPath = path.isEmpty() ? key : path + "." + key;
+
+            if (!actual.containsKey(key)) {
+                differences.add("Missing key: " + currentPath);
+                continue;
+            }
+
+            Object actualValue = actual.get(key);
+            Object expectedValue = expectedEntry.getValue();
+            compareValues(actualValue, expectedValue, currentPath, differences);
+        }
+
+        // Check for extra keys in actual map
+        for (String key : actual.keySet()) {
+            if (!expected.containsKey(key)) {
+                String currentPath = path.isEmpty() ? key : path + "." + key;
+                differences.add("Unexpected key: " + currentPath);
+            }
+        }
+
+        if (!differences.isEmpty()) {
+            Assert.fail("JSON comparison failed:\n" + String.join("\n", differences));
+        }
+    }
+
+    /**
+     * Recursively compares two values, handling Maps, Lists, and primitives.
+     */
+    @SuppressWarnings("unchecked")
+    private void compareValues(Object actual, Object expected, String path, List<String> differences) {
+        // Handle null values
+        if (actual == null && expected == null) {
+            return;
+        }
+        if (actual == null || expected == null) {
+            differences.add("Value mismatch at " + path + ": expected " + expected + ", found " + actual);
+            return;
+        }
+
+        // Handle Maps
+        if (actual instanceof Map && expected instanceof Map) {
+            compareJsonMaps((Map<String, Object>) actual, (Map<String, Object>) expected, path);
+            return;
+        }
+
+        // Handle Lists
+        if (actual instanceof List && expected instanceof List) {
+            List<Object> actualList = (List<Object>) actual;
+            List<Object> expectedList = (List<Object>) expected;
+            if (actualList.size() != expectedList.size()) {
+                differences.add("Array size mismatch at " + path + ": expected " + expectedList.size() +
+                        ", found " + actualList.size());
+                return;
+            }
+            for (int i = 0; i < actualList.size(); i++) {
+                compareValues(actualList.get(i), expectedList.get(i), path + "[" + i + "]", differences);
+            }
+            return;
+        }
+
+        // Handle Numbers (compare numeric values, not types)
+        if (actual instanceof Number && expected instanceof Number) {
+            double actualValue = ((Number) actual).doubleValue();
+            double expectedValue = ((Number) expected).doubleValue();
+            if (Math.abs(actualValue - expectedValue) > 0.0001) {
+                differences.add("Value mismatch at " + path + ": expected " + expected + ", found " + actual);
+            }
+            return;
+        }
+
+        // Handle primitives (use equals for comparison)
+        if (!actual.equals(expected)) {
+            differences.add("Value mismatch at " + path + ": expected " + expected + ", found " + actual);
+        }
+    }
 
     @Test(groups = {"tibco", "converter"}, dataProvider = "projectTestCaseProvider")
     public void testProjectConversion(Path tibcoProject, Path expectedBallerinaProject) throws Exception {
@@ -113,12 +206,11 @@ public class TibcoProjectConversionTest {
                 "Expected JSON file must exist for project: " + expectedBallerinaProject.getFileName() +
                         " at path: " + expectedJsonFile);
 
+        // Deserialize both JSONs to Maps and compare key by key (order-independent)
         String expectedJson = Files.readString(expectedJsonFile);
-        // Normalize whitespace for comparison by removing all whitespace and comparing structure
-        String normalizedReportJson = reportJson.replaceAll("\\s+", "");
-        String normalizedExpectedJson = expectedJson.replaceAll("\\s+", "");
-        Assert.assertEquals(normalizedReportJson, normalizedExpectedJson,
-                "Report JSON does not match expected JSON for project: " + expectedBallerinaProject.getFileName());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> expectedJsonMap = gson.fromJson(expectedJson, Map.class);
+        compareJsonMaps(reportJsonMap, expectedJsonMap, "");
 
         // Collect expected .bal files (except types.bal)
         try (Stream<Path> expectedFiles = Files.walk(expectedBallerinaProject)) {
@@ -253,18 +345,36 @@ public class TibcoProjectConversionTest {
         Assert.assertEquals(textEdits.get("aggregate_migration_report.html"), report,
                 "Aggregate report in textEdits should match report field");
 
-        // Validate JSON report structure
+        // Validate JSON report structure using Map-based comparison
         @SuppressWarnings("unchecked")
         var jsonReport = (java.util.Map<String, Object>) result.get("report-json");
         Assert.assertNotNull(jsonReport, "report-json is null");
-        Assert.assertTrue(jsonReport.containsKey("coverageOverview"), "report-json should contain coverageOverview");
+        Assert.assertTrue(jsonReport.containsKey("coverageOverview"),
+                "report-json should contain coverageOverview");
 
+        // Validate coverageOverview structure explicitly
         @SuppressWarnings("unchecked")
         var coverageOverview = (java.util.Map<String, Object>) jsonReport.get("coverageOverview");
         Assert.assertNotNull(coverageOverview, "coverageOverview is null");
-        Assert.assertTrue(coverageOverview.containsKey("projects"), "coverageOverview should contain projects");
-        Assert.assertTrue(coverageOverview.containsKey("unitName"), "coverageOverview should contain unitName");
-        Assert.assertEquals(coverageOverview.get("unitName"), "activity", "unitName should be 'activity'");
+
+        // Validate required keys exist
+        Assert.assertTrue(coverageOverview.containsKey("projects"),
+                "coverageOverview should contain projects");
+        Assert.assertTrue(coverageOverview.containsKey("unitName"),
+                "coverageOverview should contain unitName");
+
+        // Build expected structure for known values (order-independent comparison)
+        Map<String, Object> expectedCoverageOverview = new HashMap<>();
+        expectedCoverageOverview.put("unitName", "activity");
+        // Note: projects value is validated for existence but not compared
+        // since we don't have an expected value file for multi-root case
+
+        // Compare known keys using helper method (order-independent)
+        // This validates unitName matches and checks for any unexpected keys in the
+        // subset we validate
+        Map<String, Object> actualSubset = new HashMap<>();
+        actualSubset.put("unitName", coverageOverview.get("unitName"));
+        compareJsonMaps(actualSubset, expectedCoverageOverview, "coverageOverview");
 
         // Validate root Ballerina.toml
         Assert.assertTrue(textEdits.containsKey("Ballerina.toml"), "Should contain root Ballerina.toml");
