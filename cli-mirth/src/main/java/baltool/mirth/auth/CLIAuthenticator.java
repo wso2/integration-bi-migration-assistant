@@ -18,7 +18,6 @@ package baltool.mirth.auth;
  */
 
 import baltool.mirth.codegenerator.VerboseLogger;
-import static baltool.mirth.Constants.*;
 import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -43,6 +42,16 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import static baltool.mirth.Constants.AUTHENTICATION_TIMEOUT_SECONDS;
+import static baltool.mirth.Constants.AUTH_CLIENT_ID;
+import static baltool.mirth.Constants.AUTH_ORG;
+import static baltool.mirth.Constants.AUTH_REDIRECT_URL;
+import static baltool.mirth.Constants.BALLERINA_USER_HOME_NAME;
+import static baltool.mirth.Constants.CONFIG_FILE_PATH;
+import static baltool.mirth.Constants.DEV_AUTH_CLIENT_ID;
+import static baltool.mirth.Constants.DEV_AUTH_ORG;
+import static baltool.mirth.Constants.DEV_AUTH_REDIRECT_URL;
 
 /**
  * Handles CLI authentication for the Ballerina MirthConnect Channel migration tool.

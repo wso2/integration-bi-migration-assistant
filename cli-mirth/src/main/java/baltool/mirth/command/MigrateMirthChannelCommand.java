@@ -38,7 +38,7 @@ public class MigrateMirthChannelCommand implements BLauncherCmd {
     @CommandLine.Option(names = {"--verbose", "-v"}, description = "Enable verbose output", defaultValue = "false")
     private boolean verbose;
 
-    @CommandLine.Option(names = { "--out", "-o" }, description = "Output directory path")
+    @CommandLine.Option(names = {"--out", "-o"}, description = "Output directory path")
     private String outputPath;
 
     @Override
@@ -75,8 +75,8 @@ public class MigrateMirthChannelCommand implements BLauncherCmd {
 
             if (outputPath != null) {
                 Path outputDir = Path.of(outputPath).toAbsolutePath();
-                MirthChannelMigrationExecutor.migrateChannelToBallerina(channelFilePath, outputDir, "",verbose,
-                        new VerboseLogger(verbose));
+                MirthChannelMigrationExecutor.migrateChannelToBallerina(channelFilePath, outputDir,
+                        "", verbose, new VerboseLogger(verbose));
             } else {
                 MirthChannelMigrationExecutor.migrateChannelToBallerina(channelFilePath, verbose,
                         new VerboseLogger(verbose));

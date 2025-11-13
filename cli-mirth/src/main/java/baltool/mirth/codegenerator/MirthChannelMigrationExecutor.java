@@ -4,7 +4,12 @@ import baltool.mirth.auth.CLIAuthenticator;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import io.ballerina.projects.*;
+import io.ballerina.projects.ModuleDescriptor;
+import io.ballerina.projects.ModuleName;
+import io.ballerina.projects.PackageDescriptor;
+import io.ballerina.projects.PackageName;
+import io.ballerina.projects.PackageOrg;
+import io.ballerina.projects.PackageVersion;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -17,7 +22,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 
-import static baltool.mirth.Constants.*;
+import static baltool.mirth.Constants.BALLERINA_TOML_FILE;
+import static baltool.mirth.Constants.CONTENT;
+import static baltool.mirth.Constants.DEFAULT_ORG_NAME;
+import static baltool.mirth.Constants.DEFAULT_PROJECT_VERSION;
+import static baltool.mirth.Constants.FILE_PATH;
 
 public class MirthChannelMigrationExecutor {
 
@@ -25,7 +34,8 @@ public class MirthChannelMigrationExecutor {
     private static final int TOTAL_STEPS = 3;
 
 
-    public static void migrateChannelToBallerina(Path channelFilePath, Path outputDir, String additionalInstructions, boolean verbose, VerboseLogger logger) {
+    public static void migrateChannelToBallerina(Path channelFilePath, Path outputDir, String additionalInstructions,
+                                                 boolean verbose, VerboseLogger logger) {
         executeMigration(channelFilePath, outputDir, additionalInstructions, verbose, logger);
     }
 
@@ -80,7 +90,8 @@ public class MirthChannelMigrationExecutor {
             logger.printVerboseInfo(fileName, "File validation successful");
             logger.printVerboseInfo(fileName, "File size: " + Files.size(mirthChannelFilePath) + " bytes");
 
-            String projectName = mirthChannelFilePath.getFileName().toString().replace(".xml", BALLERINA_PROJECT_SUFFIX);
+            String projectName = mirthChannelFilePath.getFileName().toString().replace(".xml",
+                    BALLERINA_PROJECT_SUFFIX);
             String packageName = URLEncoder.encode(projectName, StandardCharsets.UTF_8).replace("-", "_");
             logger.printVerboseInfo(fileName, "Package name: " + packageName);
 

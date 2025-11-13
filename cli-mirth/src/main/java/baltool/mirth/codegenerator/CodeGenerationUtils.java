@@ -14,10 +14,6 @@ import io.ballerina.tools.diagnostics.Diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticInfo;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 import org.xml.sax.InputSource;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.StringReader;
-import java.util.stream.Collectors;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -25,6 +21,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.net.ConnectException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -41,7 +38,11 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import static baltool.mirth.Constants.BALLERINA_TOML_FILE;
 import static baltool.mirth.Constants.CONTENT;
@@ -60,12 +61,6 @@ public class CodeGenerationUtils {
     private static final String TEMP_DIR_PREFIX = "logicapps-migration-tool-codegen-diagnostics-dir-";
 
     private record GeneratedCode(Map<String, String> codeMap, JsonArray functions) {
-    }
-
-    public static String generateMirthChannelExecPlan(String channelXmlContent) {
-        // Placeholder implementation
-
-        return "Execution plan for the provided Mirth channel XML content.";
     }
 
     public static JsonArray generateCodeForMirthChannel(String copilotAccessToken, Path mirthChannelFilePath,
@@ -93,15 +88,16 @@ public class CodeGenerationUtils {
             JsonArray fileAttachmentContents = getFileAttachmentContents(mirthChannelFilePath.getFileName().toString(),
                     mirthChannelContent);
             JsonArray sourceFiles = createSourceFilesArray();
-            logger.printVerboseInfo(fileName, "Source files structure created: " + sourceFiles.size() + " files");
+            logger.printVerboseInfo(fileName, "Source files structure created: " + sourceFiles.size() +
+                    " files");
 
             logger.printInfo(fileName, "Starting Ballerina code generation for Logic App file: " +
                     mirthChannelFilePath.getFileName());
 
             // Step 1: Generate execution plan
             logger.startProgress(fileName, "Generating execution plan");
-            String executionPlan = CodeGenerationUtils.generateMirthChannelExecutionPlan(copilotAccessToken, sourceFiles,
-                    fileAttachmentContents, packageName, additionalInstructions, logger, fileName);
+            String executionPlan = CodeGenerationUtils.generateMirthChannelExecutionPlan(copilotAccessToken,
+                    sourceFiles, fileAttachmentContents, packageName, additionalInstructions, logger, fileName);
             String generatedPrompt = constructMigrateUserPrompt(additionalInstructions, executionPlan);
             logger.printInfo(fileName, "✓ Execution plan generated");
 
@@ -225,7 +221,8 @@ public class CodeGenerationUtils {
         return BALLERINA_DEV_UPDATE ? DEV_COPILOT_BACKEND_URL : COPILOT_BACKEND_URL;
     }
 
-    private static String constructMigrateUserPrompt(String additionalInstructions, String executionPlan) throws IOException {
+    private static String constructMigrateUserPrompt(String additionalInstructions, String executionPlan)
+            throws IOException {
         StringBuilder prompt = new StringBuilder();
 
         prompt.append("# Role\n")
@@ -244,7 +241,8 @@ public class CodeGenerationUtils {
             prompt.append(additionalInstructions).append("\n\n");
         }
         // Append the detailed instructions from the resource file
-        String instructions = Optional.ofNullable(CodeGenerationUtils.class.getResourceAsStream("/mirth_ballerina_mappings.md"))
+        String instructions = Optional.ofNullable(CodeGenerationUtils.class.getResourceAsStream(
+                "/mirth_ballerina_mappings.md"))
                 .map(inputStream -> new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
                         .lines()
                         .collect(Collectors.joining(System.lineSeparator())))
@@ -261,7 +259,8 @@ public class CodeGenerationUtils {
         logger.printVerboseInfo(fileName, "Preparing code generation payload");
         JsonObject codeGenerationPayload = constructCodeGenerationPayload(generatedPrompt, sourceFiles,
                 fileAttachmentContents, packageName);
-        logger.printVerboseInfo(fileName, "Payload size: " + codeGenerationPayload.toString().length() + " characters");
+        logger.printVerboseInfo(fileName, "Payload size: " + codeGenerationPayload.toString().length() +
+                " characters");
 
         URI uri = new URI(getCopilotBackendURL() + "/code");
         HttpRequest codeGenerationRequest = HttpRequest.newBuilder()
@@ -386,7 +385,6 @@ public class CodeGenerationUtils {
                 } catch (IOException e) {
                     // treat premature close as end-of-stream
                     logger.printVerboseInfo(fileName, "Stream ended unexpectedly, treating as EOF");
-                    System.out.println("Stream ended unexpectedly, treating as EOF");
                     break;
                 }
 
@@ -597,7 +595,8 @@ public class CodeGenerationUtils {
 
         Path tempProjectDir = Files.createTempDirectory(TEMP_DIR_PREFIX + System.currentTimeMillis());
         tempProjectDir.toFile().deleteOnExit();
-        logger.printVerboseInfo(fileName, "Created Temporary project directory: " + tempProjectDir.toAbsolutePath());
+        logger.printVerboseInfo(fileName, "Created Temporary project directory: " +
+                tempProjectDir.toAbsolutePath());
 
         logger.printVerboseInfo(fileName, "Writing source files to temporary directory");
         int fileCount = 0;
@@ -693,7 +692,8 @@ public class CodeGenerationUtils {
     }
 
     private static GeneratedCode getRepairedCodeFromStream(String copilotAccessToken, JsonArray sourceFiles,
-                                                           JsonArray fileAttachmentContents, String packageName, String generatedPrompt,
+                                                           JsonArray fileAttachmentContents, String packageName,
+                                                           String generatedPrompt,
                                                            GeneratedCode generatedCode, JsonObject diagnosticsRequest,
                                                            VerboseLoggerFactory logger, String fileName)
             throws URISyntaxException, IOException, InterruptedException {
