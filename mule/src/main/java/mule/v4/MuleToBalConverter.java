@@ -17,7 +17,6 @@
  */
 package mule.v4;
 
-import common.BallerinaModel;
 import common.BallerinaModel.Statement.BallerinaStatement;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;

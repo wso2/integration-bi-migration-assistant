@@ -24,6 +24,7 @@ public listener jms:Listener mq_config = new jms:Listener(
     }
 );
 
+// TODO: placeholder jms listener for mq_config
 service "mq_config" on mq_config {
     remote function onMessage(jms:Message message) {
         Context ctx = {attributes: {}};
