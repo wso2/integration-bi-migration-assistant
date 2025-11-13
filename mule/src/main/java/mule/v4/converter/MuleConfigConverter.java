@@ -318,9 +318,15 @@ public class MuleConfigConverter {
 
     private static WorkerStatementResult convertLogger(Context ctx, Logger lg) {
         String logFuncName = getBallerinaLogFunction(lg.level());
-        String stringLiteral = convertMuleExprToBalStringLiteral(ctx, lg.message());
-        BallerinaStatement stmt = stmtFrom("log:%s(%s);".formatted(logFuncName, stringLiteral));
-        return new WorkerStatementResult(List.of(stmt));
+        List<Statement> stmts = new ArrayList<>();
+        try {
+            String stringLiteral = convertMuleExprToBalStringLiteral(ctx, lg.message());
+            BallerinaStatement stmt = stmtFrom("log:%s(%s);".formatted(logFuncName, stringLiteral));
+            stmts.add(stmt);
+        } catch (ScriptConversionException e) {
+            stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+        }
+        return new WorkerStatementResult(stmts);
     }
 
     private static String getBallerinaLogFunction(LogLevel logLevel) {
@@ -334,15 +340,21 @@ public class MuleConfigConverter {
 
     private static WorkerStatementResult convertSetVariable(Context ctx, SetVariable setVariable) {
         String varName = ConversionUtils.convertToBalIdentifier(setVariable.variableName());
-        String balExpr = convertMuleExprToBal(ctx, setVariable.value());
-        String type = inferTypeFromBalExpr(balExpr);
+        List<Statement> stmts = new ArrayList<>();
+        try {
+            String balExpr = convertMuleExprToBal(ctx, setVariable.value());
+            String type = inferTypeFromBalExpr(balExpr);
 
-        if (!ctx.projectCtx.vars.containsKey(varName)) {
-            ctx.projectCtx.vars.put(varName, type);
+            if (!ctx.projectCtx.vars.containsKey(varName)) {
+                ctx.projectCtx.vars.put(varName, type);
+            }
+
+            var stmt = stmtFrom(String.format("%s.%s = %s;", Constants.VARS_FIELD_ACCESS, varName, balExpr));
+            stmts.add(stmt);
+        } catch (ScriptConversionException e) {
+            stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
         }
-
-        var stmt = stmtFrom(String.format("%s.%s = %s;", Constants.VARS_FIELD_ACCESS, varName, balExpr));
-        return new WorkerStatementResult(List.of(stmt));
+        return new WorkerStatementResult(stmts);
     }
 
     private static WorkerStatementResult convertRemoveVariable(Context ctx, RemoveVariable removeVariable) {
@@ -365,17 +377,22 @@ public class MuleConfigConverter {
     private static WorkerStatementResult convertSetPayload(Context ctx, Payload payload) {
         String pyld;
         String type;
-        switch (payload.mimeType()) {
-            // TODO: handle other mime types
-            default -> {
-                pyld = convertMuleExprToBal(ctx, payload.expr());
-                type = inferTypeFromBalExpr(pyld);
+        List<Statement> stmts = new ArrayList<>();
+        try {
+            switch (payload.mimeType()) {
+                // TODO: handle other mime types
+                default -> {
+                    pyld = convertMuleExprToBal(ctx, payload.expr());
+                    type = inferTypeFromBalExpr(pyld);
+                }
             }
+        } catch (ScriptConversionException e) {
+            stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+            return new WorkerStatementResult(stmts);
         }
 
-        String payloadVar = String.format(Constants.VAR_PAYLOAD_TEMPLATE, ctx.projectCtx.counters.payloadVarCount++);
-
-        List<Statement> stmts = new ArrayList<>();
+        String payloadVar = String.format(Constants.VAR_PAYLOAD_TEMPLATE,
+                ctx.projectCtx.counters.payloadVarCount++);
         stmts.add(stmtFrom("\n\n// set payload\n"));
         stmts.add(stmtFrom(String.format("%s %s = %s;", type, payloadVar, pyld)));
         stmts.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE,
@@ -387,8 +404,15 @@ public class MuleConfigConverter {
         List<WhenInChoice> whens = choice.whens();
         assert !whens.isEmpty(); // For valid mule config, there is at least one when
 
+        List<Statement> stmts = new ArrayList<>();
         WhenInChoice firstWhen = whens.getFirst();
-        String ifCondition = convertMuleExprToBal(ctx, firstWhen.condition());
+        String ifCondition;
+        try {
+            ifCondition = convertMuleExprToBal(ctx, firstWhen.condition());
+        } catch (ScriptConversionException e) {
+            stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+            ifCondition = "false";
+        }
         List<Statement> ifBody = new ArrayList<>();
         for (MuleRecord mr : firstWhen.process()) {
             List<Statement> statements = convertMuleRegularBlock(ctx, mr).statements();
@@ -403,8 +427,14 @@ public class MuleConfigConverter {
                 List<Statement> statements = convertMuleRegularBlock(ctx, mr).statements();
                 elseIfBody.addAll(statements);
             }
-            ElseIfClause elseIfClause = new ElseIfClause(exprFrom(convertMuleExprToBal(ctx, when.condition())),
-                    elseIfBody);
+            String whenCondition;
+            try {
+                whenCondition = convertMuleExprToBal(ctx, when.condition());
+            } catch (ScriptConversionException e) {
+                stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+                whenCondition = "false";
+            }
+            ElseIfClause elseIfClause = new ElseIfClause(exprFrom(whenCondition), elseIfBody);
             elseIfClauses.add(elseIfClause);
         }
 
@@ -415,7 +445,8 @@ public class MuleConfigConverter {
         }
 
         var ifElseStmt = new IfElseStatement(exprFrom(ifCondition), ifBody, elseIfClauses, elseBody);
-        return new WorkerStatementResult(List.of(ifElseStmt));
+        stmts.add(ifElseStmt);
+        return new WorkerStatementResult(stmts);
     }
 
     private static WorkerStatementResult convertFlowReference(Context ctx, FlowReference flowReference) {
@@ -449,15 +480,29 @@ public class MuleConfigConverter {
     }
 
     private static WorkerStatementResult convertExprComponent(Context ctx, ExpressionComponent ec) {
-        String convertedExpr = convertMuleExprToBal(ctx, String.format("#[%s]", ec.exprCompContent()));
-        ConversionUtils.processExprCompContent(ctx, convertedExpr);
-        return new WorkerStatementResult(List.of(stmtFrom(convertedExpr)));
+        List<Statement> stmts = new ArrayList<>();
+        try {
+            String convertedExpr = convertMuleExprToBal(ctx, String.format("#[%s]", ec.exprCompContent()));
+            ConversionUtils.processExprCompContent(ctx, convertedExpr);
+            stmts.add(stmtFrom(convertedExpr));
+        } catch (ScriptConversionException e) {
+            stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+        }
+        return new WorkerStatementResult(stmts);
     }
 
     private static WorkerStatementResult convertEnricher(Context ctx, Enricher enricher) {
+        List<Statement> stmts = new ArrayList<>();
         // TODO: support no source
-        String source = convertMuleExprToBal(ctx, enricher.source());
-        String target = convertMuleExprToBal(ctx, enricher.target());
+        String source;
+        String target;
+        try {
+            source = convertMuleExprToBal(ctx, enricher.source());
+            target = convertMuleExprToBal(ctx, enricher.target());
+        } catch (ScriptConversionException e) {
+            stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+            return new WorkerStatementResult(stmts);
+        }
 
         if (target.startsWith(Constants.VARS_FIELD_ACCESS + ".")) {
             String var = target.replace(Constants.VARS_FIELD_ACCESS + ".", "");
@@ -466,7 +511,6 @@ public class MuleConfigConverter {
             }
         }
 
-        List<Statement> stmts = new ArrayList<>();
         if (enricher.innerBlock().isEmpty()) {
             stmts.add(stmtFrom(String.format("%s = %s;", target, source)));
         } else {
@@ -529,7 +573,12 @@ public class MuleConfigConverter {
         if (isConfigurablePath) {
             path = extractVariables(ctx, httpRequest.path());
         } else {
-            path = getBallerinaClientResourcePath(ctx, httpRequest.path());
+            try {
+                path = getBallerinaClientResourcePath(ctx, httpRequest.path());
+            } catch (ScriptConversionException e) {
+                stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+                return new WorkerStatementResult(stmts);
+            }
         }
         String method = httpRequest.method();
         String url = extractVariables(ctx, httpRequest.url().get());
@@ -578,7 +627,13 @@ public class MuleConfigConverter {
         } else {
             // Build HTTP request parameters
             List<String> params = new ArrayList<>();
-            String queryParamsStr = genQueryParam(ctx, queryParams);
+            String queryParamsStr;
+            try {
+                queryParamsStr = genQueryParam(ctx, queryParams);
+            } catch (ScriptConversionException e) {
+                stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+                queryParamsStr = "";
+            }
             if (!queryParamsStr.isEmpty()) {
                 params.add(queryParamsStr);
             }
@@ -628,8 +683,12 @@ public class MuleConfigConverter {
     }
 
     private static String processMapScript(Context ctx, String script, List<Statement> stmts, String varName) {
-        stmts.add(common.ConversionUtils.stmtFrom(
-                "map<string> %s = %s;".formatted(varName, convertMELToBal(ctx, script, true))));
+        try {
+            stmts.add(common.ConversionUtils.stmtFrom(
+                    "map<string> %s = %s;".formatted(varName, convertMELToBal(ctx, script, true))));
+        } catch (ScriptConversionException e) {
+            stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+        }
         return varName;
     }
 
@@ -748,7 +807,13 @@ public class MuleConfigConverter {
 
     private static WorkerStatementResult convertForeach(Context ctx, Foreach foreach) {
         List<Statement> stmts = new ArrayList<>();
-        String collection = convertMuleExprToBal(ctx, foreach.collection());
+        String collection;
+        try {
+            collection = convertMuleExprToBal(ctx, foreach.collection());
+        } catch (ScriptConversionException e) {
+            stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+            return new WorkerStatementResult(stmts);
+        }
 
         // Generate unique variable names for the foreach loop
         String iteratorVar = String.format(Constants.VAR_ITERATOR_TEMPLATE,
@@ -759,7 +824,8 @@ public class MuleConfigConverter {
         stmts.add(stmtFrom("\n\n// foreach loop\n"));
 
         // Store original payload
-        stmts.add(stmtFrom(String.format("anydata %s = %s.payload;", originalPayloadVar, Constants.CONTEXT_REFERENCE)));
+        stmts.add(stmtFrom(
+                String.format("anydata %s = %s.payload;", originalPayloadVar, Constants.CONTEXT_REFERENCE)));
 
         List<Statement> foreachBody = new ArrayList<>();
         foreachBody.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE, iteratorVar)));
@@ -768,13 +834,11 @@ public class MuleConfigConverter {
         ForeachStatement foreachStmt = new ForeachStatement(
                 new TypeBindingPattern(typeFrom("anydata"), iteratorVar),
                 exprFrom(collection),
-                foreachBody
-        );
+                foreachBody);
         stmts.add(foreachStmt);
 
         // Restore original payload after foreach
         stmts.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE, originalPayloadVar)));
-
         return new WorkerStatementResult(stmts);
     }
 

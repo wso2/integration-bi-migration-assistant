@@ -63,6 +63,7 @@ import static mule.v4.ConversionUtils.getBallerinaAbsolutePath;
 import static mule.v4.ConversionUtils.getBallerinaResourcePath;
 import static mule.v4.ConversionUtils.insertLeadingSlash;
 import static mule.v4.converter.MuleConfigConverter.convertErrorHandlerRecords;
+import mule.v4.converter.ScriptConversionException;
 import static mule.v4.converter.MuleConfigConverter.convertTopLevelMuleBlocks;
 import static mule.v4.model.MuleModel.DbConnection;
 import static mule.v4.model.MuleModel.DbMySqlConnection;
@@ -88,7 +89,8 @@ public class MuleToBalConverter {
     }
 
     public static TextDocument generateTextDocument(Context ctx, String balFileName,
-                                                    List<Flow> flows, List<SubFlow> subFlows) {
+            List<Flow> flows, List<SubFlow> subFlows)
+            throws ScriptConversionException {
         List<Service> services = new ArrayList<>();
         Set<Function> functions = new HashSet<>();
         List<ClassDef> classDefs = new ArrayList<>();
@@ -107,14 +109,19 @@ public class MuleToBalConverter {
                     }
 
                     MuleRecord src = source.get();
-                    switch (src) {
-                        case VMListener vmListener -> genVMListenerSource(ctx, flow, vmListener, functions);
-                        case Scheduler scheduler -> genSchedulerSource(ctx, flow, scheduler, functions, classDefs);
-                        case HttpListener httpListener -> ctx.projectCtx.lastHttpService =
-                                genHttpSource(ctx, flow, httpListener, services, functions);
-                        case ApiKitConfig apiKit ->
+                    try {
+                        switch (src) {
+                            case VMListener vmListener -> genVMListenerSource(ctx, flow, vmListener, functions);
+                            case Scheduler scheduler -> genSchedulerSource(ctx, flow, scheduler, functions, classDefs);
+                            case HttpListener httpListener -> ctx.projectCtx.lastHttpService = genHttpSource(ctx, flow,
+                                    httpListener, services, functions);
+                            case ApiKitConfig apiKit ->
                                 genApiKitSource(ctx, flow, apiKit, services, ctx.projectCtx.lastHttpService);
-                        default -> throw new IllegalStateException("Unsupported source kind: %s".formatted(src.kind()));
+                            default ->
+                                throw new IllegalStateException("Unsupported source kind: %s".formatted(src.kind()));
+                        }
+                    } catch (ScriptConversionException e) {
+                        throw new RuntimeException(e);
                     }
                 });
 
@@ -353,7 +360,8 @@ public class MuleToBalConverter {
     }
 
     private static Service genHttpSource(Context ctx, Flow flow, HttpListener src, List<Service> services,
-                                         Set<Function> functions) {
+            Set<Function> functions)
+            throws ScriptConversionException {
         ctx.projectCtx.attributes.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_TYPE);
         ctx.projectCtx.attributes.put(Constants.HTTP_RESPONSE_REF, Constants.HTTP_RESPONSE_TYPE);
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
@@ -448,7 +456,8 @@ public class MuleToBalConverter {
     }
 
     private static Service genBalService(Context ctx, HttpListener httpListener, List<MuleRecord> flowBlocks,
-                                         Set<Function> functions) {
+            Set<Function> functions)
+            throws ScriptConversionException {
         List<String> pathParams = new ArrayList<>();
         String resourcePath = getBallerinaResourcePath(ctx, httpListener.resourcePath(), pathParams);
         String[] resourceMethodNames = httpListener.allowedMethods();

@@ -41,12 +41,23 @@ public class MELConverter {
     /**
      * Converts a MEL expression to a Ballerina expression.
      *
-     * @param ctx             Mule to bal converter data
+     * @param ctx              Mule to bal converter data
      * @param mel              MEL expression to convert (in form #[...])
      * @param addToStringCalls flag to add toString() calls to converted tokens
      * @return equivalent Ballerina expression
+     * @throws ScriptConversionException if conversion fails
      */
-    public static String convertMELToBal(Context ctx, String mel, boolean addToStringCalls) {
+    public static String convertMELToBal(Context ctx, String mel, boolean addToStringCalls)
+            throws ScriptConversionException {
+        try {
+            return convertMELToBalInner(ctx, mel, addToStringCalls);
+        } catch (Exception e) {
+            throw new ScriptConversionException(mel, e);
+        }
+    }
+
+    private static String convertMELToBalInner(Context ctx, String mel, boolean addToStringCalls)
+            throws ScriptConversionException {
         if (!mel.startsWith("#[") || !mel.endsWith("]")) {
             throw new IllegalArgumentException("Invalid MEL expression format: " + mel);
         }
@@ -121,8 +132,19 @@ public class MELConverter {
             if (isTokenChar(currentChar)) {
                 token.append(currentChar);
             } else {
-                processToken(token, result, addToStringCalls);
-                result.append(currentChar);
+                switch (token.toString()) {
+                    case "and" -> result.append("&&");
+                    case "or" -> result.append("||");
+                    case "map" -> result.append(".map(");
+                    case "contains" -> {
+                        throw new UnsupportedOperationException("query operations not supported");
+                    }
+                    default -> {
+                        processToken(token, result, addToStringCalls);
+                        result.append(currentChar);
+                    }
+                }
+                token.setLength(0);
             }
         }
 
@@ -141,7 +163,8 @@ public class MELConverter {
     }
 
     private static int processStringLiteral(Context ctx, String melExpr, int startPos,
-                                            StringBuilder result) {
+            StringBuilder result)
+            throws ScriptConversionException {
         char startingChar = melExpr.charAt(startPos);
         int i = startPos + 1;
 
