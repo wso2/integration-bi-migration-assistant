@@ -17,6 +17,7 @@
  */
 package mule.v4;
 
+import common.BallerinaModel;
 import common.BallerinaModel.Statement.BallerinaStatement;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
@@ -326,7 +327,9 @@ public class MuleToBalConverter {
 
         // Create service with listener reference
         Service service = new Service(serviceName, List.of(listenerName), Optional.empty(),
-                List.of(), List.of(), List.of(), List.of(remoteFunction), Optional.empty());
+                List.of(), List.of(), List.of(), List.of(remoteFunction),
+                Optional.of(new Statement.Comment(
+                        "TODO: placeholder jms listener for %s".formatted(mqSubscriber.configRef()))));
         services.add(service);
     }
 
