@@ -838,7 +838,7 @@ public class CombinedSummaryReport {
                 <div class="project-card" style="display: flex; flex-direction: column; align-items: stretch;">
                     <div class="project-header">
                         <div class="project-name">
-                            <a href="%s" class="project-link">%s</a>
+                            <a href="%s" class="project-link" id="%s">%s</a>
                         </div>
                         <span class="status-badge %s">%s</span>
                     </div>
@@ -902,6 +902,7 @@ public class CombinedSummaryReport {
                 </div>
                 """.formatted(
                 project.reportPath(),
+                sanitizeHtmlId(project.projectName()),
                 project.projectName(),
                 statusClass,
                 statusText,
@@ -1001,6 +1002,17 @@ public class CombinedSummaryReport {
                     </div>
                 </div>
                 """.formatted(tableRows.toString());
+    }
+
+    private String sanitizeHtmlId(String id) {
+        if (id == null || id.isEmpty()) {
+            return "project_";
+        }
+        String sanitized = id.replaceAll("[^a-zA-Z0-9_-]", "_");
+        if (!Character.isLetter(sanitized.charAt(0))) {
+            sanitized = "project_" + sanitized;
+        }
+        return sanitized;
     }
 
 }

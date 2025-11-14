@@ -11,6 +11,7 @@
             <class name="mule.v3.TestConverter"/>
             <class name="mule.v4.TestConverter"/>
             <class name="mule.v4.YamlToTomlConverterTest"/>
+            <class name="mule.MuleProjectConversionTest"/>
 
             <!-- V4 support updated blocks -->
             <class name="mule.v4.blocks.HttpListenerTest"/>

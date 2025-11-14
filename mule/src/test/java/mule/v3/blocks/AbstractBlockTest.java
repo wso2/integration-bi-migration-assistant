@@ -39,7 +39,7 @@ public class AbstractBlockTest {
      * <b>WARNING</b>: Enabling this flag will update all the assertion files in unit tests.
      * Should be used only if there is a bulk update that needs to be made to the test assertions.
      */
-    private static final boolean UPDATE_ASSERTS = false;
+    private static final boolean UPDATE_ASSERTS = "true".equalsIgnoreCase(System.getenv("BLESS"));
 
     public static void testMule3ToBal(String sourcePath, String targetPath) {
         testMuleToBal(MULE_V3_DIR, sourcePath, targetPath);

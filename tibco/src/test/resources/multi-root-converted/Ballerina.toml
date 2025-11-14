@@ -1,0 +1,2 @@
+[workspace]
+packages = ["helloWorld_converted", "lib_converted"]

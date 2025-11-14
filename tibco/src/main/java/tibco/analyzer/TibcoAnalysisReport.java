@@ -247,9 +247,9 @@ public final class TibcoAnalysisReport {
     /**
      * Generates a JSON report of the TIBCO analysis.
      *
-     * @return A string containing the JSON report
+     * @return A Map containing the JSON report structure
      */
-    public String toJSON() {
+    public Map<String, Object> toJSON() {
         double coveragePercentage = 100.0
                 - (totalActivityCount > 0 ?
                 (double) unhandledActivityCount / totalActivityCount * 100.0 : 0.0);
@@ -263,23 +263,14 @@ public final class TibcoAnalysisReport {
             coverageLevel = "low";
         }
 
-        return """
-                {
-                    "coverageOverview": {
-                        "unitName": "activity",
-                        "coveragePercentage": %d,
-                        "coverageLevel": "%s",
-                        "totalElements": %d,
-                        "migratableElements": %d,
-                        "nonMigratableElements": %d
-                    }
-                }""".formatted(
-                Math.round(coveragePercentage),
-                coverageLevel,
-                totalActivityCount,
-                totalActivityCount - unhandledActivityCount,
-                unhandledActivityCount
-        );
+        return Map.of("coverageOverview", Map.of(
+                "unitName", "activity",
+                "coveragePercentage", Math.round(coveragePercentage),
+                "coverageLevel", coverageLevel,
+                "totalElements", totalActivityCount,
+                "migratableElements", totalActivityCount - unhandledActivityCount,
+                "nonMigratableElements", unhandledActivityCount
+        ));
     }
 
     /**

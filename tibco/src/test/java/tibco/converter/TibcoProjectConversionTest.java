@@ -18,6 +18,8 @@
 
 package tibco.converter;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -27,12 +29,105 @@ import tibco.ProjectConversionContext;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 public class TibcoProjectConversionTest {
+
+    /**
+     * Recursively compares two JSON Maps, handling nested Maps, Lists, and
+     * primitive values.
+     * Throws AssertionError with detailed differences if maps don't match.
+     *
+     * @param actual   The actual Map to compare
+     * @param expected The expected Map to compare against
+     * @param path     The current path in the JSON structure (for error messages)
+     */
+    private void compareJsonMaps(Map<String, Object> actual, Map<String, Object> expected, String path) {
+        List<String> differences = new ArrayList<>();
+
+        // Check all keys in expected map
+        for (Map.Entry<String, Object> expectedEntry : expected.entrySet()) {
+            String key = expectedEntry.getKey();
+            String currentPath = path.isEmpty() ? key : path + "." + key;
+
+            if (!actual.containsKey(key)) {
+                differences.add("Missing key: " + currentPath);
+                continue;
+            }
+
+            Object actualValue = actual.get(key);
+            Object expectedValue = expectedEntry.getValue();
+            compareValues(actualValue, expectedValue, currentPath, differences);
+        }
+
+        // Check for extra keys in actual map
+        for (String key : actual.keySet()) {
+            if (!expected.containsKey(key)) {
+                String currentPath = path.isEmpty() ? key : path + "." + key;
+                differences.add("Unexpected key: " + currentPath);
+            }
+        }
+
+        if (!differences.isEmpty()) {
+            Assert.fail("JSON comparison failed:\n" + String.join("\n", differences));
+        }
+    }
+
+    /**
+     * Recursively compares two values, handling Maps, Lists, and primitives.
+     */
+    @SuppressWarnings("unchecked")
+    private void compareValues(Object actual, Object expected, String path, List<String> differences) {
+        // Handle null values
+        if (actual == null && expected == null) {
+            return;
+        }
+        if (actual == null || expected == null) {
+            differences.add("Value mismatch at " + path + ": expected " + expected + ", found " + actual);
+            return;
+        }
+
+        // Handle Maps
+        if (actual instanceof Map && expected instanceof Map) {
+            compareJsonMaps((Map<String, Object>) actual, (Map<String, Object>) expected, path);
+            return;
+        }
+
+        // Handle Lists
+        if (actual instanceof List && expected instanceof List) {
+            List<Object> actualList = (List<Object>) actual;
+            List<Object> expectedList = (List<Object>) expected;
+            if (actualList.size() != expectedList.size()) {
+                differences.add("Array size mismatch at " + path + ": expected " + expectedList.size() +
+                        ", found " + actualList.size());
+                return;
+            }
+            for (int i = 0; i < actualList.size(); i++) {
+                compareValues(actualList.get(i), expectedList.get(i), path + "[" + i + "]", differences);
+            }
+            return;
+        }
+
+        // Handle Numbers (compare numeric values, not types)
+        if (actual instanceof Number && expected instanceof Number) {
+            double actualValue = ((Number) actual).doubleValue();
+            double expectedValue = ((Number) expected).doubleValue();
+            if (Math.abs(actualValue - expectedValue) > 0.0001) {
+                differences.add("Value mismatch at " + path + ": expected " + expected + ", found " + actual);
+            }
+            return;
+        }
+
+        // Handle primitives (use equals for comparison)
+        if (!actual.equals(expected)) {
+            differences.add("Value mismatch at " + path + ": expected " + expected + ", found " + actual);
+        }
+    }
 
     @Test(groups = {"tibco", "converter"}, dataProvider = "projectTestCaseProvider")
     public void testProjectConversion(Path tibcoProject, Path expectedBallerinaProject) throws Exception {
@@ -81,9 +176,13 @@ public class TibcoProjectConversionTest {
         Assert.assertNotNull(textEdits, "textEdits is null");
 
         // Validate the report-json against expected JSON file
-        String reportJson = (String) result.get("report-json");
-        Assert.assertNotNull(reportJson, "report-json is null");
-        Assert.assertFalse(reportJson.isBlank(), "report-json should not be empty");
+        @SuppressWarnings("unchecked")
+        var reportJsonMap = (java.util.Map<String, Object>) result.get("report-json");
+        Assert.assertNotNull(reportJsonMap, "report-json is null");
+        Assert.assertFalse(reportJsonMap.isEmpty(), "report-json should not be empty");
+
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        String reportJson = gson.toJson(reportJsonMap);
 
         Path expectedJsonFile = Path.of("src/test/resources/tibco.projects.converted")
                 .resolve(expectedBallerinaProject.getFileName())
@@ -94,7 +193,7 @@ public class TibcoProjectConversionTest {
             Files.createDirectories(expectedJsonFile.getParent());
             // Write the generated JSON to expected file
             Files.writeString(expectedJsonFile, reportJson);
-            
+
             // Write all textEdits to the expected directory (like testProjectConversion does)
             for (Map.Entry<String, String> entry : textEdits.entrySet()) {
                 Path filePath = expectedBallerinaProject.resolve(entry.getKey());
@@ -107,12 +206,11 @@ public class TibcoProjectConversionTest {
                 "Expected JSON file must exist for project: " + expectedBallerinaProject.getFileName() +
                         " at path: " + expectedJsonFile);
 
+        // Deserialize both JSONs to Maps and compare key by key (order-independent)
         String expectedJson = Files.readString(expectedJsonFile);
-        // Normalize whitespace for comparison by removing all whitespace and comparing structure
-        String normalizedReportJson = reportJson.replaceAll("\\s+", "");
-        String normalizedExpectedJson = expectedJson.replaceAll("\\s+", "");
-        Assert.assertEquals(normalizedReportJson, normalizedExpectedJson,
-                "Report JSON does not match expected JSON for project: " + expectedBallerinaProject.getFileName());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> expectedJsonMap = gson.fromJson(expectedJson, Map.class);
+        compareJsonMaps(reportJsonMap, expectedJsonMap, "");
 
         // Collect expected .bal files (except types.bal)
         try (Stream<Path> expectedFiles = Files.walk(expectedBallerinaProject)) {
@@ -182,6 +280,8 @@ public class TibcoProjectConversionTest {
                     "lib_converted directory should exist");
             Assert.assertTrue(Files.exists(tempOutputDir.resolve("combined_summary_report.html")),
                     "Combined summary report should exist");
+            Assert.assertTrue(Files.exists(tempOutputDir.resolve("Ballerina.toml")),
+                    "Workspace Ballerina.toml should exist");
 
             // Compare each converted project with expected results
             TestUtils.compareDirectories(tempOutputDir.resolve("helloWorld_converted"),
@@ -192,11 +292,166 @@ public class TibcoProjectConversionTest {
             // Verify combined summary report exists (content comparison skipped as it may vary)
             Assert.assertTrue(Files.exists(tempOutputDir.resolve("combined_summary_report.html")));
 
+            // Compare workspace Ballerina.toml content
+            TestUtils.compareFiles(tempOutputDir.resolve("Ballerina.toml"),
+                    expectedMultiRootOutput.resolve("Ballerina.toml"));
+
         } finally {
             // Clean up temporary directories
             TestUtils.deleteDirectory(tempInputDir);
             TestUtils.deleteDirectory(tempOutputDir);
         }
+    }
+
+    @Test(groups = { "tibco", "converter" })
+    public void testMultiRootConversionByAPI() throws IOException {
+        // Setup multi-root source directory structure
+        Path multiRootSource = Path.of("src", "test", "resources", "multi-root");
+        Path expectedMultiRootOutput = Path.of("src", "test", "resources", "multi-root-converted");
+
+        // Create parameter map for the API
+        java.util.Map<String, Object> parameters = new java.util.HashMap<>();
+        parameters.put("orgName", "testOrg");
+        parameters.put("projectName", "testProject");
+        parameters.put("sourcePath", multiRootSource.toString());
+        parameters.put("multiRoot", true);
+        parameters.put("stateCallback", (java.util.function.Consumer<String>) s -> {
+        });
+        parameters.put("logCallback", (java.util.function.Consumer<String>) s -> {
+        });
+
+        // Run the conversion using the new public API
+        var result = tibco.TibcoToBalConverter.migrateTIBCO(parameters);
+        Assert.assertNotNull(result, "migrateTIBCO returned null");
+        Assert.assertFalse(result.containsKey("error") && result.get("error") != null,
+                "Conversion failed with error: " + result.get("error"));
+        Assert.assertTrue(result.containsKey("textEdits"), "Result does not contain 'textEdits'");
+        Assert.assertTrue(result.containsKey("report"), "Result does not contain 'report'");
+        Assert.assertTrue(result.containsKey("report-json"), "Result does not contain 'report-json'");
+
+        @SuppressWarnings("unchecked")
+        var textEdits = (java.util.Map<String, String>) result.get("textEdits");
+        Assert.assertNotNull(textEdits, "textEdits is null");
+
+        // Validate HTML report
+        String report = (String) result.get("report");
+        Assert.assertNotNull(report, "report is null");
+        Assert.assertFalse(report.isBlank(), "report should not be empty");
+        Assert.assertTrue(report.contains("Combined Migration Assessment"), "Report should contain title");
+
+        // Validate aggregate report in textEdits matches the report field
+        Assert.assertTrue(textEdits.containsKey("aggregate_migration_report.html"),
+                "Should contain aggregate migration report");
+        Assert.assertEquals(textEdits.get("aggregate_migration_report.html"), report,
+                "Aggregate report in textEdits should match report field");
+
+        // Validate JSON report structure using Map-based comparison
+        @SuppressWarnings("unchecked")
+        var jsonReport = (java.util.Map<String, Object>) result.get("report-json");
+        Assert.assertNotNull(jsonReport, "report-json is null");
+        Assert.assertTrue(jsonReport.containsKey("coverageOverview"),
+                "report-json should contain coverageOverview");
+
+        // Validate coverageOverview structure explicitly
+        @SuppressWarnings("unchecked")
+        var coverageOverview = (java.util.Map<String, Object>) jsonReport.get("coverageOverview");
+        Assert.assertNotNull(coverageOverview, "coverageOverview is null");
+
+        // Validate required keys exist
+        Assert.assertTrue(coverageOverview.containsKey("projects"),
+                "coverageOverview should contain projects");
+        Assert.assertTrue(coverageOverview.containsKey("unitName"),
+                "coverageOverview should contain unitName");
+
+        // Build expected structure for known values (order-independent comparison)
+        Map<String, Object> expectedCoverageOverview = new HashMap<>();
+        expectedCoverageOverview.put("unitName", "activity");
+        // Note: projects value is validated for existence but not compared
+        // since we don't have an expected value file for multi-root case
+
+        // Compare known keys using helper method (order-independent)
+        // This validates unitName matches and checks for any unexpected keys in the
+        // subset we validate
+        Map<String, Object> actualSubset = new HashMap<>();
+        actualSubset.put("unitName", coverageOverview.get("unitName"));
+        compareJsonMaps(actualSubset, expectedCoverageOverview, "coverageOverview");
+
+        // Validate root Ballerina.toml
+        Assert.assertTrue(textEdits.containsKey("Ballerina.toml"), "Should contain root Ballerina.toml");
+        String expectedRootToml = Files.readString(expectedMultiRootOutput.resolve("Ballerina.toml"));
+        Assert.assertEquals(textEdits.get("Ballerina.toml"), expectedRootToml,
+                "Root Ballerina.toml should match expected");
+
+        // Validate each project's files
+        // Map from API project prefix to expected directory name
+        java.util.Map<String, String> projectMapping = java.util.Map.of(
+                "helloWorld", "helloWorld_converted",
+                "lib", "lib_converted");
+
+        for (var entry : projectMapping.entrySet()) {
+            String projectPrefix = entry.getKey();
+            String expectedDirName = entry.getValue();
+            Path expectedProjectDir = expectedMultiRootOutput.resolve(expectedDirName);
+
+            // Walk through expected project directory and validate files
+            try (Stream<Path> expectedFiles = Files.walk(expectedProjectDir)) {
+                var expectedPaths = expectedFiles
+                        .filter(Files::isRegularFile)
+                        .filter(path -> path.toString().endsWith(".bal") || path.toString().endsWith(".toml")
+                                || path.toString().endsWith(".html"))
+                        .map(expectedProjectDir::relativize)
+                        .toList();
+
+                // Check all expected files exist in textEdits with project prefix and match
+                // content
+                for (Path relativePath : expectedPaths) {
+                    if (relativePath.endsWith("types.bal")) {
+                        continue;
+                    }
+                    // Skip report.html as it's stored as migration_report.html in API
+                    if (relativePath.endsWith("report.html")) {
+                        String migrationReportKey = projectPrefix + "/migration_report.html";
+                        Assert.assertTrue(textEdits.containsKey(migrationReportKey),
+                                "Missing migration_report.html in textEdits for " + projectPrefix);
+                        String expectedReportContent = Files.readString(expectedProjectDir.resolve(relativePath));
+                        Assert.assertEquals(textEdits.get(migrationReportKey), expectedReportContent,
+                                "Migration report content should match for " + projectPrefix);
+                        continue;
+                    }
+
+                    String key = projectPrefix + "/" + relativePath.toString().replace('\\', '/');
+                    Assert.assertTrue(textEdits.containsKey(key), "Missing file in textEdits: " + key);
+                    String actualContent = textEdits.get(key);
+                    String expectedContent = Files.readString(expectedProjectDir.resolve(relativePath));
+                    Assert.assertEquals(actualContent, expectedContent,
+                            "File contents do not match for: " + key);
+                }
+
+                // Check for extra files in textEdits for this project
+                for (String key : textEdits.keySet()) {
+                    if (key.startsWith(projectPrefix + "/") && !key.equals(projectPrefix + "/migration_report.html")) {
+                        String relativeKey = key.substring(projectPrefix.length() + 1);
+                        if (relativeKey.endsWith("types.bal")) {
+                            continue;
+                        }
+                        Path relPath = Path.of(relativeKey);
+                        if (!expectedPaths.contains(relPath) && !relPath.endsWith("migration_report.html")) {
+                            Assert.fail("Extra file in textEdits: " + key);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Validate aggregate report exists (content comparison skipped as it may vary
+        // with timestamps/paths)
+        Assert.assertTrue(textEdits.containsKey("aggregate_migration_report.html"),
+                "Should contain aggregate migration report");
+        String aggregateReport = textEdits.get("aggregate_migration_report.html");
+        Assert.assertNotNull(aggregateReport, "Aggregate report should not be null");
+        Assert.assertFalse(aggregateReport.isBlank(), "Aggregate report should not be empty");
+        Assert.assertTrue(aggregateReport.contains("Combined Migration Assessment"),
+                "Aggregate report should contain title");
     }
 
     @Test(groups = {"tibco", "converter"})

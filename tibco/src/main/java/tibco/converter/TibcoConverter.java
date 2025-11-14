@@ -47,6 +47,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -241,52 +242,51 @@ public class TibcoConverter {
         migrateTibcoInner(context, sourcePath, outputPath, projectName);
     }
 
-    static void migrateTibcoMultiRoot(ConversionContext cx, Path inputPath, String outputPath,
-                                      Optional<String> projectName) {
-        // Stage 0: Initialize project info
-        record ProjectInfo(
-                String childPath,
-                String childOutputPath,
-                String childName,
-                ProjectConversionContext context) {
-        }
+    public record MultiRootProjectInfo(
+                    String childPath,
+            String childName,
+            ProjectConversionContext context) {
+    }
 
-        List<ProjectInfo> projectInfoList = new ArrayList<>();
+    public record MultiRootSerializedProjectInfo(
+            MultiRootProjectInfo info,
+            ParsedProject parsed,
+            AnalyzedProject analyzed,
+            GeneratedProject generated,
+            SerializedProject serialized) {
+    }
+
+    public static List<MultiRootSerializedProjectInfo> processMultiRootProjects(ConversionContext cx, Path inputPath,
+            Optional<String> projectName) {
+        // Stage 0: Initialize project info
+        List<MultiRootProjectInfo> projectInfoList = new ArrayList<>();
         try {
             Files.list(inputPath)
                     .filter(Files::isDirectory)
                     .forEach(childDir -> {
                         String childName = childDir.getFileName().toString();
-                        String childOutputPath;
-                        if (outputPath != null) {
-                            childOutputPath = Paths.get(outputPath, childName + "_converted").toString();
-                        } else {
-                            childOutputPath = childDir + "_converted";
-                        }
                         String finalProjectName = projectName.orElse(childName);
                         String escapedProjectName = common.ConversionUtils.escapeIdentifier(finalProjectName);
                         ProjectConversionContext context = new ProjectConversionContext(cx, escapedProjectName);
 
-                        projectInfoList.add(new ProjectInfo(
+                        projectInfoList.add(new MultiRootProjectInfo(
                                 childDir.toString(),
-                                childOutputPath,
-                                childName,
+                                        childName,
                                 context));
                     });
         } catch (IOException e) {
             cx.log(SEVERE, "Error reading directory: " + inputPath);
-            System.exit(1);
-            return;
+            return new ArrayList<>();
         }
 
         // Stage 1: Parse all projects
         record ParsedProjectInfo(
-                ProjectInfo info,
-                ParsedProject parsed) {
+                MultiRootProjectInfo info,
+                        ParsedProject parsed) {
         }
 
         List<ParsedProjectInfo> parsedProjects = new ArrayList<>();
-        for (ProjectInfo info : projectInfoList) {
+        for (MultiRootProjectInfo info : projectInfoList) {
             cx.logState("Parsing project: " + info.childPath());
             cx.log(LoggingUtils.Level.INFO, "Parsing project: " + info.childPath());
             try {
@@ -300,7 +300,7 @@ public class TibcoConverter {
 
         // Stage 2: Analyze all projects
         record AnalyzedProjectInfo(
-                ProjectInfo info,
+                MultiRootProjectInfo info,
                 ParsedProject parsed,
                 AnalyzedProject analyzed) {
         }
@@ -327,7 +327,7 @@ public class TibcoConverter {
 
         // Stage 3: Generate code for all projects
         record GeneratedProjectInfo(
-                ProjectInfo info,
+                MultiRootProjectInfo info,
                 ParsedProject parsed,
                 AnalyzedProject analyzed,
                 GeneratedProject generated) {
@@ -351,25 +351,18 @@ public class TibcoConverter {
         }
 
         // Stage 4: Serialize all projects
-        record SerializedProjectInfo(
-                ProjectInfo info,
-                ParsedProject parsed,
-                AnalyzedProject analyzed,
-                GeneratedProject generated,
-                SerializedProject serialized) {
-        }
+        List<MultiRootSerializedProjectInfo> serializedProjects = new ArrayList<>();
+        List<BallerinaModel.Import> allProjectImports = generatedProjects.stream()
+                .map(generatedInfo -> generatedInfo.info().context().getImport())
+                .collect(Collectors.toList());
 
-        List<SerializedProjectInfo> serializedProjects = new ArrayList<>();
         for (GeneratedProjectInfo generatedInfo : generatedProjects) {
             cx.logState("Serializing project: " + generatedInfo.info().childName());
             try {
                 SerializedProject serialized =
                         serializeProject(generatedInfo.info().context(), generatedInfo.generated(),
-                                projectInfoList.stream()
-                                        .map(ProjectInfo::context)
-                                        .map(ProjectConversionContext::getImport)
-                                        .collect(Collectors.toList()));
-                serializedProjects.add(new SerializedProjectInfo(
+                                allProjectImports);
+                serializedProjects.add(new MultiRootSerializedProjectInfo(
                         generatedInfo.info(),
                         generatedInfo.parsed(),
                         generatedInfo.analyzed(),
@@ -382,23 +375,41 @@ public class TibcoConverter {
             }
         }
 
+        return serializedProjects;
+    }
+
+    static void migrateTibcoMultiRoot(ConversionContext cx, Path inputPath, String outputPath,
+            Optional<String> projectName) {
+        List<MultiRootSerializedProjectInfo> serializedProjects = processMultiRootProjects(cx, inputPath, projectName);
+
         // Stage 5: Write all projects to disk and collect summaries
         List<ProjectSummary> projectSummaries = new ArrayList<>();
-        for (SerializedProjectInfo serializedInfo : serializedProjects) {
-            cx.logState("Writing project: " + serializedInfo.info().childName());
+        List<String> packageNames = new ArrayList<>();
+
+        for (MultiRootSerializedProjectInfo serializedInfo : serializedProjects) {
+            String childName = serializedInfo.info().childName();
+            String childOutputPath;
+            if (outputPath != null) {
+                childOutputPath = Paths.get(outputPath, childName + "_converted").toString();
+            } else {
+                childOutputPath = serializedInfo.info().childPath() + "_converted";
+            }
+            ProjectConversionContext context = serializedInfo.info().context();
+            packageNames.add(Paths.get(childOutputPath).getFileName().toString());
+
+            cx.logState("Writing project: " + childName);
             try {
-                writeProjectFiles(serializedInfo.info().context(), serializedInfo.serialized(),
-                        serializedInfo.info().childOutputPath(), serializedInfo.info().context().dryRun());
+                writeProjectFiles(context, serializedInfo.serialized(), childOutputPath, context.dryRun());
 
                 // Create project summary
-                String reportRelativePath = serializedInfo.info().childName() + "_converted/report.html";
-                        ProjectSummary projectSummary = serializedInfo.serialized().report().toProjectSummary(
-                        serializedInfo.info().childName(),
-                        serializedInfo.info().childPath(),
+                String reportRelativePath = childName + "_converted/report.html";
+                ProjectSummary projectSummary = serializedInfo.serialized().report().toProjectSummary(
+                        childName,
+                                serializedInfo.info().childPath(),
                         reportRelativePath);
                 projectSummaries.add(projectSummary);
             } catch (Exception e) {
-                cx.log(SEVERE, "Failed to write project: " + serializedInfo.info().childName() + ": " + e.getMessage());
+                cx.log(SEVERE, "Failed to write project: " + childName + ": " + e.getMessage());
             }
         }
 
@@ -408,6 +419,15 @@ public class TibcoConverter {
             writeCombinedSummaryReport(cx, summaryOutputPath, projectSummaries);
         } catch (IOException e) {
             cx.log(SEVERE, "Error creating combined summary report");
+        }
+
+        // Generate workspace Ballerina.toml for multi-root projects
+        if (!serializedProjects.isEmpty()) {
+            try {
+                writeWorkspaceBallerinaToml(cx, summaryOutputPath, packageNames);
+            } catch (IOException e) {
+                cx.log(SEVERE, "Error creating workspace Ballerina.toml: " + e.getMessage());
+            }
         }
     }
 
@@ -476,13 +496,39 @@ public class TibcoConverter {
                 LoggingUtils.Level.INFO, "Created combined summary report at: " + reportFilePath);
     }
 
-    private static void createTargetDirectoryIfNeeded(ProjectConversionContext context,
-                                                      Path targetDir) throws IOException {
-        if (Files.exists(targetDir)) {
+    public static String generateWorkspaceBallerinaToml(List<String> packageNames) {
+        if (packageNames.isEmpty()) {
+            return "";
+        }
+
+        List<String> sortedPackageNames = new ArrayList<>(packageNames);
+        Collections.sort(sortedPackageNames);
+
+        // Generate workspace Ballerina.toml content
+        StringBuilder tomlContent = new StringBuilder("[workspace]\n");
+        tomlContent.append("packages = [");
+        for (int i = 0; i < sortedPackageNames.size(); i++) {
+            if (i > 0) {
+                tomlContent.append(", ");
+            }
+            tomlContent.append("\"").append(sortedPackageNames.get(i)).append("\"");
+        }
+        tomlContent.append("]\n");
+
+        return tomlContent.toString();
+    }
+
+    private static void writeWorkspaceBallerinaToml(ConversionContext context, Path targetDir,
+            List<String> packageNames) throws IOException {
+        String tomlContent = generateWorkspaceBallerinaToml(packageNames);
+        if (tomlContent.isEmpty()) {
             return;
         }
-        Files.createDirectories(targetDir);
-        context.log(LoggingUtils.Level.INFO, "Created target directory: " + targetDir);
+
+        // Write workspace Ballerina.toml to target directory
+        Path workspaceTomlPath = targetDir.resolve("Ballerina.toml");
+        Files.writeString(workspaceTomlPath, tomlContent);
+        context.log(LoggingUtils.Level.INFO, "Created workspace Ballerina.toml at: " + workspaceTomlPath);
     }
 
     private static String ballerinaToml(ProjectConversionContext cx) {
