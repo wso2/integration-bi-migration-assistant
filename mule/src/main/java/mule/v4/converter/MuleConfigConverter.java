@@ -24,6 +24,7 @@ import common.BallerinaModel.Statement.ForkStatement;
 import mule.v4.Constants;
 import mule.v4.Context;
 import mule.v4.ConversionUtils;
+import mule.v4.dataweave.converter.DWCodeGenException;
 import mule.v4.dataweave.converter.DWReader;
 
 import java.util.ArrayList;
@@ -994,7 +995,12 @@ public class MuleConfigConverter {
 
     private static WorkerStatementResult convertTransformMessage(Context ctx, TransformMessage transformMsg) {
         List<Statement> stmts = new ArrayList<>();
-        DWReader.processDWElements(transformMsg.children(), ctx, stmts);
+        try {
+            DWReader.processDWElements(transformMsg.children(), ctx, stmts);
+        } catch (DWCodeGenException e) {
+            stmts.add(new Statement.Comment("FIXME: failed to convert DataWeave script "
+                    + e.getScriptIdentifier()));
+        }
         return new WorkerStatementResult(stmts);
     }
 
