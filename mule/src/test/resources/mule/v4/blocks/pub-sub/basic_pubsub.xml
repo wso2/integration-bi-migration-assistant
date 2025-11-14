@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+  xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+  xmlns="http://www.mulesoft.org/schema/mule/core"
+  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+   http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+   http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+  <pubsub:config name="PubSubConfig" doc:name="Google Pub Sub Configuration">
+    <pubsub:connection privateKeyId="${secure::gcp.listener.privateKeyId}" clientId="${secure::gcp.listener.clientId}" clientEmail="${secure::gcp.listener.clientEmail}" >
+      <pubsub:private-key ><![CDATA[${secure::gcp.listener.privateKey}]]></pubsub:private-key>
+    </pubsub:connection>
+  </pubsub:config>
+  <flow name="pubsubFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c">
+		<pubsub:message-listener doc:name="On message listener" config-ref="PubSubConfig" projectId="${secure::gcp.listener.order.projectId}" subscriptionName="${secure::gcp.listener.order.subscriptionName}"/>
+    <logger level="INFO" doc:name="Logger" doc:id="c56aad96-6335-49a3-9b27-6d2b5ab0a963" message="Pub-Sub message received"/>
+  </flow>
+</mule>
