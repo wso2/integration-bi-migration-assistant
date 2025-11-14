@@ -20,6 +20,7 @@
 - [Object To String](palette-item-mappings-v4.md#object-to-string)
 - [On Error Continue](palette-item-mappings-v4.md#on-error-continue)
 - [On Error Propagate](palette-item-mappings-v4.md#on-error-propagate)
+- [Pub Sub](palette-item-mappings-v4.md#pub-sub)
 - [Raise Error](palette-item-mappings-v4.md#raise-error)
 - [Scatter Gather](palette-item-mappings-v4.md#scatter-gather)
 - [Scheduler](palette-item-mappings-v4.md#scheduler)
@@ -3124,6 +3125,67 @@ service /mule4 on listener_config {
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
+    }
+}
+
+```
+
+## Pub Sub
+
+- ### Basic Pubsub
+
+**Input (basic_pubsub.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+  xmlns:pubsub="http://www.mulesoft.org/schema/mule/pubsub"
+  xmlns="http://www.mulesoft.org/schema/mule/core"
+  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+   http://www.mulesoft.org/schema/mule/pubsub http://www.mulesoft.org/schema/mule/pubsub/current/mule-pubsub.xsd
+   http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+  <pubsub:config name="PubSubConfig" doc:name="Google Pub Sub Configuration">
+    <pubsub:connection privateKeyId="${secure::gcp.listener.privateKeyId}" clientId="${secure::gcp.listener.clientId}" clientEmail="${secure::gcp.listener.clientEmail}" >
+      <pubsub:private-key ><![CDATA[${secure::gcp.listener.privateKey}]]></pubsub:private-key>
+    </pubsub:connection>
+  </pubsub:config>
+  <flow name="pubsubFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c">
+		<pubsub:message-listener doc:name="On message listener" config-ref="PubSubConfig" projectId="${secure::gcp.listener.order.projectId}" subscriptionName="${secure::gcp.listener.order.subscriptionName}"/>
+    <logger level="INFO" doc:name="Logger" doc:id="c56aad96-6335-49a3-9b27-6d2b5ab0a963" message="Pub-Sub message received"/>
+  </flow>
+</mule>
+
+```
+**Output (basic_pubsub.bal):**
+```ballerina
+import ballerina/log;
+import ballerinax/gcloud.pubsub;
+
+public type Attributes record {|
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+configurable string projectId = ?;
+configurable string credentialsPath = ?;
+configurable string subscriptionName = ?;
+listener pubsub:Listener PubSubConfig = check new (
+    subscriptionName,
+    projectId = projectId,
+    credentials = {credentialsPath: credentialsPath}
+);
+
+// TODO: placeholder listener for PubSubConfig
+service on PubSubConfig {
+    remote function onMessage(pubsub:Message message, pubsub:Caller caller) {
+        Context ctx = {attributes: {}};
+        log:printInfo("Pub-Sub message received");
     }
 }
 
