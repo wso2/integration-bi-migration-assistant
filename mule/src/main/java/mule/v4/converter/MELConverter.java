@@ -20,6 +20,7 @@ package mule.v4.converter;
 import mule.v4.Constants;
 import mule.v4.Context;
 import mule.v4.ConversionUtils;
+import org.jetbrains.annotations.NotNull;
 
 import static mule.v4.ConversionUtils.getAttrVal;
 import static mule.v4.ConversionUtils.isTokenChar;
@@ -64,6 +65,11 @@ public class MELConverter {
 
         String melExpr = mel.substring(2, mel.length() - 1).trim();
 
+        return melToBalExpr(ctx, addToStringCalls, melExpr);
+    }
+
+    private static @NotNull String melToBalExpr(Context ctx, boolean addToStringCalls, String melExpr)
+            throws ScriptConversionException {
         melExpr = normalize(melExpr);
         // Handle empty expression
         if (melExpr.isEmpty()) {
@@ -74,9 +80,16 @@ public class MELConverter {
 
         for (int i = 0; i < melExpr.length(); i++) {
             char currentChar = melExpr.charAt(i);
+            String rest = melExpr.substring(i);
+            if (rest.startsWith("!isEmpty") || rest.startsWith("isEmpty")) {
+                var res = processIsEmpty(ctx, melExpr, i, currentChar == '!');
+                result.append(res.expression);
+                i = res.next;
+                continue;
+            }
 
             String tokenStr = token.toString();
-            if (currentChar == '\'' || currentChar == '\"') {
+            if (isQuote(currentChar)) {
                 // Handle string literals
                 processToken(token, result, addToStringCalls);
                 i = processStringLiteral(ctx, melExpr, i, result);
@@ -103,7 +116,13 @@ public class MELConverter {
             }
 
             if (currentChar == '(') {
-                if (i + 1 < melExpr.length() && melExpr.charAt(i + 1) == '\'' && tokenStr.equals("p")) {
+                if (isConditionalFieldGen(melExpr.substring(i))) {
+                    var res = processConditionalFieldGen(ctx, addToStringCalls, melExpr, i);
+                    result.append(res.expression);
+                    i = res.next;
+                    continue;
+                }
+                if (i + 1 < melExpr.length() && isQuote(melExpr.charAt(i + 1)) && tokenStr.equals("p")) {
                     i = processPPropAccess(ctx, melExpr, i, tokenStr, result);
                     token.setLength(0);
                     continue;
@@ -154,12 +173,161 @@ public class MELConverter {
         return result.toString();
     }
 
+    private static boolean isConditionalFieldGen(String expr) {
+        if (expr.isEmpty()) {
+            return false;
+        }
+
+        int i = 0;
+        // Extract first group: if starts with '(', go until corresponding ')', else
+        // until next whitespace
+        if (expr.charAt(0) == '(') {
+            ParenthesisContent result = extractParenthesisContent(expr, 0);
+            i = result.endIndex();
+        } else {
+            // Extract until next whitespace
+            while (i < expr.length() && !Character.isWhitespace(expr.charAt(i))) {
+                i++;
+            }
+        }
+
+        // Skip whitespace and check if the next token is "if"
+        while (i < expr.length() && Character.isWhitespace(expr.charAt(i))) {
+            i++;
+        }
+        return expr.substring(i).startsWith("if");
+    }
+
+    private static ExpressionResult processIsEmpty(Context ctx, String melExpr, int startPos,
+                                                   boolean invert) throws ScriptConversionException {
+        int i = startPos;
+        while (melExpr.charAt(i) != '(') {
+            i++;
+        }
+        ParenthesisContent content = extractParenthesisContent(melExpr, i);
+        String expr = melToBalExpr(ctx, true, content.content);
+        if (invert) {
+            expr = "%s != \"\"".formatted(expr);
+        } else {
+            expr = "%s == \"\"".formatted(expr);
+        }
+        return new ExpressionResult(expr, content.endIndex);
+    }
+
+    private static ExpressionResult processConditionalFieldGen(Context ctx, boolean addToStringCalls, String melExpr,
+                                                               int startPos) throws ScriptConversionException {
+        int i = startPos;
+        String valuePart = "";
+        String conditionPart = "";
+
+        // Extract first group: if starts with '(', go until corresponding ')', else
+        // until next whitespace
+        if (i < melExpr.length() && melExpr.charAt(i) == '(') {
+            ParenthesisContent firstGroup = extractParenthesisContent(melExpr, i);
+            valuePart = firstGroup.content();
+            i = firstGroup.endIndex();
+        } else {
+            // Extract until next whitespace
+            int start = i;
+            while (i < melExpr.length() && !Character.isWhitespace(melExpr.charAt(i))) {
+                i++;
+            }
+            valuePart = melExpr.substring(start, i);
+        }
+
+        // Skip whitespace after first group
+        while (i < melExpr.length() && Character.isWhitespace(melExpr.charAt(i))) {
+            i++;
+        }
+
+        if (i < melExpr.length() && melExpr.substring(i).startsWith("if")) {
+            // Skip "if"
+            i += 2;
+            // Skip whitespace after "if"
+            while (i < melExpr.length() && Character.isWhitespace(melExpr.charAt(i))) {
+                i++;
+            }
+            // Check if next char is '('
+            if (i < melExpr.length() && melExpr.charAt(i) == '(') {
+                // Extract content inside parentheses
+                ParenthesisContent secondGroup = extractParenthesisContent(melExpr, i);
+                conditionPart = secondGroup.content();
+                i = secondGroup.endIndex();
+            } else {
+                // Extract until next space
+                int start = i;
+                while (i < melExpr.length() && !Character.isWhitespace(melExpr.charAt(i))) {
+                    i++;
+                }
+                conditionPart = melExpr.substring(start, i);
+            }
+        }
+
+        int endIndex = i;
+
+        // Extract key and expression from valuePart (format: "$key" : expr)
+        String key = "";
+        String ifTrue = "";
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\"(.+)\"\\s*:\\s*(\\S*)");
+        java.util.regex.Matcher matcher = pattern.matcher(valuePart);
+        if (matcher.find()) {
+            key = matcher.group(1);
+            ifTrue = matcher.group(2).trim();
+        }
+
+        // TODO: Convert valuePart and conditionPart to Ballerina and return
+        String expression = "\"%s\" : %s ? %s : ()".formatted(key, melToBalExpr(ctx, addToStringCalls, conditionPart),
+                melToBalExpr(ctx, addToStringCalls, ifTrue));
+        if (!melExpr.substring(endIndex).trim().startsWith("}")) {
+            expression += ",";
+        }
+        return new ExpressionResult(expression, endIndex);
+    }
+
+    private record ExpressionResult(String expression, int next) {
+
+    }
+
+    private record ParenthesisContent(String content, int endIndex) {
+
+    }
+
+    private static ParenthesisContent extractParenthesisContent(String expr, int startPos) {
+        if (startPos >= expr.length() || expr.charAt(startPos) != '(') {
+            return new ParenthesisContent("", startPos);
+        }
+
+        int depth = 0;
+        int i = startPos;
+        int startFirst = i;
+        while (i < expr.length()) {
+            char c = expr.charAt(i);
+            if (c == '(') {
+                depth++;
+            } else if (c == ')') {
+                depth--;
+                if (depth == 0) {
+                    String content = expr.substring(startFirst + 1, i).trim();
+                    int endIndex = i + 1; // Position after closing ')'
+                    return new ParenthesisContent(content, endIndex);
+                }
+            }
+            i++;
+        }
+
+        // No matching closing parenthesis found
+        return new ParenthesisContent("", expr.length());
+    }
     private static boolean isAttributesToken(String token) {
         return token.equals("message.attributes") || token.equals("attributes");
     }
 
     private static boolean isVarsToken(String token) {
         return token.equals("vars");
+    }
+
+    private static boolean isQuote(char c) {
+        return c == '\'' || c == '\"';
     }
 
     private static int processStringLiteral(Context ctx, String melExpr, int startPos,
@@ -182,7 +350,7 @@ public class MELConverter {
             }
 
             // Escape quotes in string literals
-            if (currentChar == '\'' || currentChar == '\"') {
+            if (isQuote(currentChar)) {
                 stringLiteral.append("\\");
             }
             stringLiteral.append(currentChar);
@@ -199,15 +367,15 @@ public class MELConverter {
         int i = startPos;
 
         assert melExpr.charAt(i) == '(';
-        assert melExpr.charAt(i + 1) == '\'';
+        assert isQuote(melExpr.charAt(i + 1));
         i = i + 2; // Skip open paren and starting quote
 
-        while (i < melExpr.length() && melExpr.charAt(i) != '\'') {
+        while (i < melExpr.length() && !isQuote(melExpr.charAt(i))) {
             externalPropName.append(melExpr.charAt(i));
             i++;
         }
 
-        if (i < melExpr.length() && melExpr.charAt(i) == '\'') {
+        if (i < melExpr.length() && isQuote(melExpr.charAt(i))) {
             i++; // Skip the ending quote
         }
 

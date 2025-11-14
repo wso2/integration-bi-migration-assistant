@@ -42,7 +42,8 @@ public function my_error_handler(Context ctx, error err) {
         log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("xxx: first error catch");
-(<http:Response>ctx.attributes.response).statusCode = 500;
+        http:Response response = <http:Response>ctx.attributes.response;
+        response.statusCode = 500;
     } else if err is "EXPRESSION" {
         // on-error-continue
         log:printError("Message: " + err.message());

@@ -684,12 +684,17 @@ public class MuleConfigConverter {
     }
 
     private static String processMapScript(Context ctx, String script, List<Statement> stmts, String varName) {
+        String nilableName = "%s_nilable".formatted(varName);
         try {
-            stmts.add(common.ConversionUtils.stmtFrom(
-                    "map<string> %s = %s;".formatted(varName, convertMELToBal(ctx, script, true))));
+            stmts.add(stmtFrom(
+                    "map<string?> %s = %s;".formatted(nilableName, convertMELToBal(ctx, script, true))));
         } catch (ScriptConversionException e) {
             stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
         }
+        stmts.add(stmtFrom(
+                ("map<string> %1$s = map from string key in %2$s.keys() where %2$s.get(key) is string "
+                        + "select [ key, <string>%2$s.get(key) ];").formatted(
+                        varName, nilableName)));
         return varName;
     }
 
@@ -1121,9 +1126,11 @@ public class MuleConfigConverter {
         stmts.addAll(errorBlocks);
 
         if (ctx.projectCtx.attributes.containsKey(Constants.HTTP_RESPONSE_REF)) {
-            stmts.add(stmtFrom("(<%s>%s.%s).statusCode = 500;".formatted(Constants.HTTP_RESPONSE_TYPE,
+            stmts.add(stmtFrom("%s response = <%s>%s.%s;".formatted(Constants.HTTP_RESPONSE_TYPE,
+                    Constants.HTTP_RESPONSE_TYPE,
                     Constants.ATTRIBUTES_FIELD_ACCESS,
                     Constants.HTTP_RESPONSE_REF)));
+            stmts.add(stmtFrom("response.statusCode = 500;"));
         } else {
             // Add a panic statement to propagate the error
             stmts.add(stmtFrom("panic " + Constants.ON_FAIL_ERROR_VAR_REF + ";"));
