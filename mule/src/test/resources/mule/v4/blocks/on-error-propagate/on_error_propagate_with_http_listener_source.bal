@@ -2,8 +2,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -33,10 +33,10 @@ service /mule4 on listener_config {
             // set payload
             string payload1 = "Custom error message: Something went wrong.";
             ctx.payload = payload1;
-            ctx.attributes.response.statusCode = 500;
+(<http:Response>ctx.attributes.response).statusCode  = 500;
         }
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }

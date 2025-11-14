@@ -47,7 +47,7 @@ public class MigratorUtils {
 
 
     public static String getBalProjectName(String projectNameArg, String sourceName) {
-        String projectName = projectNameArg != null ? projectNameArg : sourceName + BAL_PROJECT_SUFFIX;
+        String projectName = projectNameArg != null ? projectNameArg : sourceName;
         return ConversionUtils.escapeIdentifier(projectName);
     }
 

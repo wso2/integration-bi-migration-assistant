@@ -99,6 +99,11 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     VM_QUEUES("vm:queues", 1),
     VM_QUEUE("vm:queue", 1),
 
+    // Anypoint MQ connector
+    ANYPOINT_MQ_CONFIG("anypoint-mq:config", 3),
+    ANYPOINT_MQ_SUBSCRIBER("anypoint-mq:subscriber", 5),
+    ANYPOINT_MQ_CONNECTION("anypoint-mq:connection", 2),
+
     // Database Connector
     DB_INSERT("db:insert", 2),
     DB_SELECT("db:select", 2),

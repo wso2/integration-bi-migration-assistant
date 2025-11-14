@@ -71,6 +71,12 @@ public record MuleModel() {
         }
     }
 
+    public record AnypointMqSubscriber(Kind kind, String configRef, String destination) implements MuleRecord {
+        public AnypointMqSubscriber(String configRef, String destination) {
+            this(Kind.ANYPOINT_MQ_SUBSCRIBER, configRef, destination);
+        }
+    }
+
     public record ExpressionComponent(Kind kind, String exprCompContent) implements MuleRecord {
         public ExpressionComponent(String exprCompContent) {
             this(Kind.EXPRESSION_COMPONENT, exprCompContent);
@@ -365,6 +371,12 @@ public record MuleModel() {
         }
     }
 
+    public record AnypointMqConfig(Kind kind, String name) implements MuleRecord {
+        public AnypointMqConfig(String name) {
+            this(Kind.ANYPOINT_MQ_CONFIG, name);
+        }
+    }
+
     public record DbConfig(Kind kind, String name, DbConnection dbConnection) implements MuleRecord {
         public DbConfig(String name, DbConnection dbConnection) {
             this(Kind.DB_CONFIG, name, dbConnection);
@@ -424,6 +436,8 @@ public record MuleModel() {
         VM_CONSUME,
         LOGGER,
         SCHEDULER,
+        ANYPOINT_MQ_CONFIG,
+        ANYPOINT_MQ_SUBSCRIBER,
         EXPRESSION_COMPONENT,
         PAYLOAD,
         FLOW_REFERENCE,

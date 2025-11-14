@@ -4,8 +4,8 @@ import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -42,7 +42,7 @@ service /mule4 on config {
             select _iterator_;
         ctx.payload = dbSelect0;
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }

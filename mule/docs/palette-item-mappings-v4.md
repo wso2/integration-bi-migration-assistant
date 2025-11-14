@@ -15,6 +15,7 @@
 - [Http Request](palette-item-mappings-v4.md#http-request)
 - [Logger](palette-item-mappings-v4.md#logger)
 - [Message Enricher](palette-item-mappings-v4.md#message-enricher)
+- [Mq Subscriber](palette-item-mappings-v4.md#mq-subscriber)
 - [Object To Json](palette-item-mappings-v4.md#object-to-json)
 - [Object To String](palette-item-mappings-v4.md#object-to-string)
 - [On Error Continue](palette-item-mappings-v4.md#on-error-continue)
@@ -192,8 +193,8 @@ public type Vars record {|
 |};
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -219,8 +220,8 @@ service /mule4 on config {
             log:printInfo(string `You have scored ${ctx.vars?.marks.toString()}. Your grade is 'F'.`);
         }
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -335,8 +336,8 @@ public type Vars record {|
 |};
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -376,8 +377,8 @@ service /mule4 on listener_config {
         ctx.payload = dbSelect0;
         log:printInfo("Welcome, " + user_firstName + " " + user_lastName + ". Your account balance is " + user_balance);
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -459,8 +460,8 @@ import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -486,8 +487,8 @@ service /mule4 on config {
             select _iterator_;
         ctx.payload = dbSelect0;
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -536,8 +537,8 @@ import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -574,8 +575,8 @@ service /mule4 on config {
             select _iterator_;
         ctx.payload = dbSelect0;
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -617,8 +618,8 @@ import ballerina/sql;
 import ballerinax/java.jdbc;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -644,8 +645,8 @@ service /mule4 on config {
             select _iterator_;
         ctx.payload = dbSelect0;
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -694,8 +695,8 @@ import ballerinax/oracledb;
 import ballerinax/oracledb.driver as _;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -729,8 +730,8 @@ service /mule4 on config {
             select _iterator_;
         ctx.payload = dbSelect1;
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -844,8 +845,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -869,8 +870,8 @@ service /mule4 on listener_config {
             my_error_handler(ctx, err);
         }
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -884,7 +885,7 @@ public function my_error_handler(Context ctx, error err) {
         log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("xxx: first error catch");
-        ctx.attributes.response.statusCode = 500;
+(<http:Response>ctx.attributes.response).statusCode = 500;
     } else if err is "EXPRESSION" {
         // on-error-continue
         log:printError("Message: " + err.message());
@@ -940,8 +941,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -965,8 +966,8 @@ service /mule4 on listener_config {
             my_error_handler(ctx, err);
         }
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -980,7 +981,7 @@ public function my_error_handler(Context ctx, error err) {
     // set payload
     string payload1 = "Custom error message: Something went wrong.";
     ctx.payload = payload1;
-    ctx.attributes.response.statusCode = 500;
+(<http:Response>ctx.attributes.response).statusCode  = 500;
 }
 
 ```
@@ -1082,8 +1083,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -1104,8 +1105,8 @@ service / on http_listener {
 
         log:printInfo(ctx.payload.toString());
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -1184,8 +1185,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -1201,8 +1202,8 @@ service /mule4 on config {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked via http end point");
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -1241,8 +1242,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -1260,8 +1261,8 @@ service /mule4 on config {
         demoPrivateFlow(ctx);
         log:printInfo("xxx: end of main flow");
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -1300,8 +1301,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -1328,8 +1329,8 @@ service / on HTTP_Listener_config {
         }
         ctx.payload = originalPayload0;
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -1365,8 +1366,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -1382,8 +1383,8 @@ service /mule4 on config {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -1417,8 +1418,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -1447,8 +1448,8 @@ public function invokeEndPoint0(http:Request request) returns http:Response|erro
     Context ctx = {attributes: {request, response: new}};
     log:printInfo("xxx: logger invoked");
 
-    ctx.attributes.response.setPayload(ctx.payload);
-    return ctx.attributes.response;
+    (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+    return <http:Response>ctx.attributes.response;
 }
 
 ```
@@ -1481,8 +1482,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -1498,8 +1499,8 @@ service /mule4 on config {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -1533,8 +1534,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -1550,8 +1551,8 @@ service /mule4 on config {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -1585,8 +1586,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -1602,8 +1603,8 @@ service / on config {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -1637,8 +1638,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -1654,8 +1655,8 @@ service / on config {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -1689,8 +1690,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -1706,8 +1707,8 @@ service /mule4 on config {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -1760,8 +1761,8 @@ public type Vars record {|
 |};
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -1786,8 +1787,8 @@ service /mule4 on config {
         ctx.vars.unsupportedAttributeAccess = ctx.attributes["unsupportedAttribute"].city;
         ctx.vars.httpMethod = ctx.attributes.request.method;
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -1821,8 +1822,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -1838,8 +1839,8 @@ service /mule4 on config {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -1874,8 +1875,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -1892,8 +1893,8 @@ service /mule4 on config {
         log:printInfo("xxx: logger invoked");
         log:printInfo(string `Path params - version: ${ctx.attributes.request.getQueryParamValue("country").toString()}, id: ${ctx.attributes.request.getQueryParamValue("city").toString()}`);
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -1928,8 +1929,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -1946,8 +1947,8 @@ service /mule4 on config {
         log:printInfo("xxx: logger invoked");
         log:printInfo(string `Path params - version: ${ctx.attributes.uriParams.get("version").toString()}, id: ${ctx.attributes.uriParams.get("id").toString()}`);
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -1981,8 +1982,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -1998,8 +1999,8 @@ service /mule4 on config {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -2192,8 +2193,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -2214,8 +2215,8 @@ service /mule4 on listener_config {
         ctx.payload = check clientResult0.getJsonPayload();
         log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -2392,8 +2393,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -2410,8 +2411,8 @@ service /mule4 on config {
         log:printInfo("xxx: first logger invoked");
         log:printInfo("xxx: second logger invoked");
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -2449,8 +2450,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -2470,8 +2471,8 @@ service /mule4 on config {
         log:printWarn("xxx: WARN level logger invoked");
         log:printInfo("xxx: TRACE level logger invoked");
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -2623,6 +2624,70 @@ public function variableEnricherFlow(Context ctx) {
 public function enricher0(Context ctx) returns string? {
     log:printInfo("xxx: logger inside the message enricher invoked");
     return ctx.flowVars.userId;
+}
+
+```
+
+## Mq Subscriber
+
+- ### Basic Mq Subscriber
+
+**Input (basic_mq_subscriber.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <anypoint-mq:config name="mq_config" doc:name="Anypoint MQ Config" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+        <anypoint-mq:connection clientId="mq-client" clientSecret="mq-secret" />
+    </anypoint-mq:config>
+    <flow name="mqSubscriberFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c">
+        <anypoint-mq:subscriber doc:name="MQ Subscriber" doc:id="2d80f8b6-ba81-46e0-91b7-516a8e4fdb67" config-ref="mq_config" destination="test-queue"/>
+        <logger level="INFO" doc:name="Logger" doc:id="c56aad96-6335-49a3-9b27-6d2b5ab0a963" message="xxx: logger invoked"/>
+    </flow>
+</mule>
+
+```
+**Output (basic_mq_subscriber.bal):**
+```ballerina
+import ballerina/log;
+import ballerinax/java.jms;
+
+public type Attributes record {|
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+configurable string JMS_PROVIDER_URL = ?;
+public listener jms:Listener mq_config = new jms:Listener(
+    connectionConfig = {
+        initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory",
+        providerUrl: JMS_PROVIDER_URL
+    },
+    consumerOptions = {
+        destination: {
+            'type: jms:QUEUE,
+            name: "test-queue"
+        }
+    }
+);
+
+// TODO: placeholder jms listener for mq_config
+service "mq_config" on mq_config {
+    remote function onMessage(jms:Message message) {
+        Context ctx = {attributes: {}};
+        log:printInfo("xxx: logger invoked");
+    }
 }
 
 ```
@@ -2871,8 +2936,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -2904,8 +2969,8 @@ service /mule4 on listener_config {
             ctx.payload = payload1;
         }
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -3008,8 +3073,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -3039,11 +3104,11 @@ service /mule4 on listener_config {
             // set payload
             string payload1 = "Custom error message: Something went wrong.";
             ctx.payload = payload1;
-            ctx.attributes.response.statusCode = 500;
+(<http:Response>ctx.attributes.response).statusCode  = 500;
         }
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -3088,8 +3153,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -3111,8 +3176,8 @@ service / on HTTP_Listener_config {
             log:printInfo("User age above 16 years. Allowed to drive");
         }
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -3166,8 +3231,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -3217,8 +3282,8 @@ service / on HTTP_Listener_config {
 
         log:printInfo(ctx.payload.toString());
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -3309,8 +3374,8 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 import ballerina/http;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -3329,8 +3394,8 @@ service /mule4 on config {
         string payload0 = "Hello world!";
         ctx.payload = payload0;
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -3365,8 +3430,8 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 import ballerina/http;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -3393,8 +3458,8 @@ service /mule4 on config {
         string payload2 = "Third payload";
         ctx.payload = payload2;
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -3436,8 +3501,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -3455,8 +3520,8 @@ service /mule4 on config {
         demoSubFlow(ctx);
         log:printInfo("xxx: logger after flow reference invoked");
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -3513,8 +3578,8 @@ public type Vars record {|
 |};
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -3535,8 +3600,8 @@ service /foo on config {
         json myVariable = _dwMethod0_(ctx);
         ctx.vars.myVariable = myVariable;
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -3584,8 +3649,8 @@ public type Vars record {|
 |};
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -3604,8 +3669,8 @@ service /foo on config {
         ctx.vars._dwOutput_ = _dwOutput_;
         ctx.payload = _dwOutput_;
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -3728,8 +3793,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -3763,8 +3828,8 @@ service / on HTTP_Listener_config {
         }
         log:printInfo("End of flow");
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -3810,8 +3875,8 @@ public type Vars record {|
 |};
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -3831,8 +3896,8 @@ service /mule4 on config {
         ctx.vars.'from = "USA";
         log:printInfo(string `Variables defined are: name - ${ctx.vars?.name.toString()}, age - ${ctx.vars?.age.toString()}, from - ${ctx.vars?.'from.toString()}`);
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -3878,8 +3943,8 @@ public type Vars record {|
 |};
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -3901,8 +3966,8 @@ service /mule4 on config {
         ctx.vars.'from = ();
         log:printInfo(string `Variables after removing: greeting - ${ctx.vars?.greeting.toString()}, from - ${ctx.vars?.'from.toString()}`);
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -4065,8 +4130,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -4089,8 +4154,8 @@ service /mule4 on listener_config {
         _ = start async0(ctx);
         log:printInfo("xxx: logger after async block");
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -4152,8 +4217,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -4181,8 +4246,8 @@ service /mule4 on listener_config {
         // VM Publish
         ctx.payload -> W;
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 

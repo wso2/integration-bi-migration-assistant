@@ -45,6 +45,8 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import static common.BallerinaModel.Import;
 import static mule.v4.ConversionUtils.getAllowedMethods;
+import static mule.v4.model.MuleModel.AnypointMqConfig;
+import static mule.v4.model.MuleModel.AnypointMqSubscriber;
 import static mule.v4.model.MuleModel.ApiKitConfig;
 import static mule.v4.model.MuleModel.ApiKitRouter;
 import static mule.v4.model.MuleModel.Async;
@@ -169,6 +171,9 @@ public class MuleConfigReader {
         } else if (MuleXMLTag.VM_CONFIG.tag().equals(elementTagName)) {
             VMConfig vmConfig = readVmConfig(ctx, muleElement);
             // TODO: Revisit how we can use this
+        } else if (MuleXMLTag.ANYPOINT_MQ_CONFIG.tag().equals(elementTagName)) {
+            AnypointMqConfig anypointMqConfig = readAnypointMqConfig(ctx, muleElement);
+            ctx.currentFileCtx.configs.anypointMqConfigs.put(anypointMqConfig.name(), anypointMqConfig);
         } else if (MuleXMLTag.CONFIGURATION_PROPERTIES.tag().equals(elementTagName)) {
             // Ignore as we automatically add all .yaml and .properties to config.toml
         } else if (MuleXMLTag.GLOBAL_PROPERTY.tag().equals(elementTagName)) {
@@ -195,6 +200,9 @@ public class MuleConfigReader {
             }
             case MuleXMLTag.SCHEDULER -> {
                 return readScheduler(ctx, muleElement);
+            }
+            case MuleXMLTag.ANYPOINT_MQ_SUBSCRIBER -> {
+                return readAnypointMqSubscriber(ctx, muleElement);
             }
 
             // Process Items
@@ -332,6 +340,13 @@ public class MuleConfigReader {
         return new Scheduler(frequency, timeUnit, startDelay);
     }
 
+    private static AnypointMqSubscriber readAnypointMqSubscriber(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String configRef = element.getAttribute("config-ref");
+        String destination = element.getAttribute("destination");
+        return new AnypointMqSubscriber(configRef, destination);
+    }
+
     private static MuleRecord readExpressionComponent(Context ctx, MuleElement muleElement) {
         return new ExpressionComponent(muleElement.getElement().getTextContent());
     }
@@ -397,6 +412,9 @@ public class MuleConfigReader {
                 assert source == null;
                 source = readBlock(ctx, child);
             } else if (element.getTagName().equals(MuleXMLTag.SCHEDULER.tag())) {
+                assert source == null;
+                source = readBlock(ctx, child);
+            } else if (element.getTagName().equals(MuleXMLTag.ANYPOINT_MQ_SUBSCRIBER.tag())) {
                 assert source == null;
                 source = readBlock(ctx, child);
             } else {
@@ -878,6 +896,16 @@ public class MuleConfigReader {
             }
         }
         return queues;
+    }
+
+    private static AnypointMqConfig readAnypointMqConfig(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String name = element.getAttribute("name");
+        // Consume child elements (like anypoint-mq:connection) without processing them
+        while (muleElement.peekChild() != null) {
+            muleElement.consumeChild();
+        }
+        return new AnypointMqConfig(name);
     }
 
     private static GlobalProperty readGlobalProperty(Context ctx, MuleElement muleElement) {

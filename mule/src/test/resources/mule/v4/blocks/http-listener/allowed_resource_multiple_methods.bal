@@ -2,8 +2,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -32,6 +32,6 @@ public function invokeEndPoint0(http:Request request) returns http:Response|erro
     Context ctx = {attributes: {request, response: new}};
     log:printInfo("xxx: logger invoked");
 
-    ctx.attributes.response.setPayload(ctx.payload);
-    return ctx.attributes.response;
+    (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+    return <http:Response>ctx.attributes.response;
 }

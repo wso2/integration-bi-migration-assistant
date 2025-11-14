@@ -6,8 +6,8 @@ public type Vars record {|
 |};
 
 public type Attributes record {|
-    http:Request request;
-    http:Response response;
+    http:Request request?;
+    http:Response response?;
     map<string> uriParams = {};
 |};
 
@@ -33,7 +33,7 @@ service /mule4 on config {
             log:printInfo(string `You have scored ${ctx.vars?.marks.toString()}. Your grade is 'F'.`);
         }
 
-        ctx.attributes.response.setPayload(ctx.payload);
-        return ctx.attributes.response;
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }

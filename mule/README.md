@@ -103,6 +103,7 @@ The migration tool currently supports the following Mule 4.x components:
 - [Http Request](docs/palette-item-mappings-v4.md#http-request)
 - [Logger](docs/palette-item-mappings-v4.md#logger)
 - [Message Enricher](docs/palette-item-mappings-v4.md#message-enricher)
+- [Mq Subscriber](docs/palette-item-mappings-v4.md#mq-subscriber)
 - [Object To Json](docs/palette-item-mappings-v4.md#object-to-json)
 - [Object To String](docs/palette-item-mappings-v4.md#object-to-string)
 - [On Error Continue](docs/palette-item-mappings-v4.md#on-error-continue)

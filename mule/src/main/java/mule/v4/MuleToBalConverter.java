@@ -23,6 +23,7 @@ import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.v4.converter.ScriptConversionException;
+import mule.v4.model.MuleModel.AnypointMqSubscriber;
 import mule.v4.model.MuleModel.ApiKitConfig;
 import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.MuleModel.DbGenericConnection;
@@ -43,9 +44,11 @@ import java.util.Set;
 import static common.BallerinaModel.BlockFunctionBody;
 import static common.BallerinaModel.ClassDef;
 import static common.BallerinaModel.Expression;
+import static common.BallerinaModel.Expression.VariableReference;
 import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.Listener;
+import static common.BallerinaModel.Remote;
 import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
 import static common.BallerinaModel.Parameter;
@@ -54,10 +57,12 @@ import static common.BallerinaModel.Service;
 import static common.BallerinaModel.Statement;
 import static common.BallerinaModel.TextDocument;
 import static common.BallerinaModel.TypeDesc;
+import static common.ConversionUtils.escapeIdentifier;
 import static common.ConversionUtils.exprFrom;
 import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
 import static mule.v4.Constants.BAL_ANYDATA_TYPE;
+import static mule.v4.Constants.HTTP_RESPONSE_TYPE;
 import static mule.v4.ConversionUtils.getAttrVal;
 import static mule.v4.ConversionUtils.getAttrValInt;
 import static mule.v4.ConversionUtils.getBallerinaAbsolutePath;
@@ -95,6 +100,7 @@ public class MuleToBalConverter {
         Set<Function> functions = new HashSet<>();
         List<ClassDef> classDefs = new ArrayList<>();
         List<Flow> privateFlows = new ArrayList<>();
+        List<Listener> listeners = new ArrayList<>();
 
         flows.stream()
                 .sorted(Comparator.comparing(flow -> {
@@ -117,6 +123,8 @@ public class MuleToBalConverter {
                                     httpListener, services, functions);
                             case ApiKitConfig apiKit ->
                                 genApiKitSource(ctx, flow, apiKit, services, ctx.projectCtx.lastHttpService);
+                            case AnypointMqSubscriber mqSubscriber ->
+                                genAnypointMqSource(ctx, flow, mqSubscriber, services, listeners);
                             default ->
                                 throw new IllegalStateException("Unsupported source kind: %s".formatted(src.kind()));
                         }
@@ -141,8 +149,7 @@ public class MuleToBalConverter {
             functions.addAll(ctx.currentFileCtx.balConstructs.functions); // TODO: this is a  hack.
         }
 
-        // Add global listeners
-        List<Listener> listeners = new ArrayList<>();
+        // Add global HTTP listeners from configs
         for (HTTPListenerConfig httpListenerConfig : ctx.currentFileCtx.configs.httpListenerConfigs.values()) {
             listeners.add(new Listener.HTTPListener(ConversionUtils.convertToBalIdentifier(httpListenerConfig.name()),
                     getAttrValInt(ctx, httpListenerConfig.port()), httpListenerConfig.host()));
@@ -261,9 +268,10 @@ public class MuleToBalConverter {
         bodyStmts.addAll(bodyCoreStmts);
 
         // Add return statement
-        bodyStmts.add(stmtFrom("\n\n%s.%s.setPayload(%s.payload);".formatted(Constants.ATTRIBUTES_FIELD_ACCESS,
-                Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
-        bodyStmts.add(stmtFrom("return %s.%s;".formatted(Constants.ATTRIBUTES_FIELD_ACCESS,
+        bodyStmts.add(stmtFrom("\n\n(<%s>%s.%s).setPayload(%s.payload);".formatted(Constants.HTTP_RESPONSE_TYPE,
+                Constants.ATTRIBUTES_FIELD_ACCESS, Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
+        bodyStmts.add(
+                stmtFrom("return <%s>%s.%s;".formatted(Constants.HTTP_RESPONSE_TYPE, Constants.ATTRIBUTES_FIELD_ACCESS,
                 Constants.HTTP_RESPONSE_REF)));
 
         // Add service resources
@@ -273,6 +281,55 @@ public class MuleToBalConverter {
         Resource resource = new Resource(resourceMethod, combinedResourcePath, queryPrams, Optional.of(returnType),
                 bodyStmts);
         lastHttpService.resources().add(resource);
+    }
+
+    private static void genAnypointMqSource(Context ctx, Flow flow, AnypointMqSubscriber mqSubscriber,
+                                            Collection<Service> services, List<Listener> listeners) {
+        ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
+
+        // Add JMS import
+        ctx.currentFileCtx.balConstructs.imports.add(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_JMS));
+
+        // Add configurable variable for JMS provider URL (null value generates "?")
+        String jmsProviderUrlVar = "JMS_PROVIDER_URL";
+        ConversionUtils.addConfigVarEntry(ctx, jmsProviderUrlVar, null);
+
+        String serviceName = "\"" + escapeIdentifier(mqSubscriber.configRef()) + "\"";
+
+        // Listener name from config-ref
+        String listenerName = ConversionUtils.convertToBalIdentifier(mqSubscriber.configRef());
+
+        // Create JMS Listener using the BallerinaModel
+        Listener.JMSListener jmsListener = new Listener.JMSListener(
+                listenerName,
+                exprFrom("\"org.apache.activemq.jndi.ActiveMQInitialContextFactory\""),
+                new VariableReference(jmsProviderUrlVar),
+                mqSubscriber.destination(),
+                Optional.empty(),
+                Optional.empty()
+        );
+        listeners.add(jmsListener);
+
+        // Convert flow blocks to statements
+        List<Statement> bodyStmts = new ArrayList<>();
+        String attributesInitValue = "{}";
+        bodyStmts.add(stmtFrom("Context %s = {%s: %s};".formatted(Constants.CONTEXT_REFERENCE,
+                Constants.ATTRIBUTES_REF, attributesInitValue)));
+        bodyStmts.addAll(convertTopLevelMuleBlocks(ctx, flow.flowBlocks()));
+
+        // Create remote function for onMessage
+        List<Parameter> params = new ArrayList<>();
+        params.add(new Parameter("message", typeFrom(Constants.JMS_MESSAGE_TYPE)));
+
+        Function onMessageFunction = new Function("onMessage", params, bodyStmts);
+        Remote remoteFunction = new Remote(onMessageFunction);
+
+        // Create service with listener reference
+        Service service = new Service(serviceName, List.of(listenerName), Optional.empty(),
+                List.of(), List.of(), List.of(), List.of(remoteFunction),
+                Optional.of(new Statement.Comment(
+                        "TODO: placeholder jms listener for %s".formatted(mqSubscriber.configRef()))));
+        services.add(service);
     }
 
     private static String concatenatePaths(String basePath, String resourcePath) {
@@ -401,7 +458,7 @@ public class MuleToBalConverter {
                 if (type.startsWith("map<") && type.endsWith(">")) {
                     attributesField = new RecordField(name, typeFrom(type), exprFrom("{}"));
                 } else {
-                    attributesField = new RecordField(name, typeFrom(type), false);
+                    attributesField = new RecordField(name, typeFrom(type), true);
                 }
                 attributesRecordFields.add(attributesField);
             }
@@ -484,9 +541,9 @@ public class MuleToBalConverter {
         bodyStmts.addAll(bodyCoreStmts);
 
         // Add return statement
-        bodyStmts.add(stmtFrom("\n\n%s.%s.setPayload(%s.payload);".formatted(Constants.ATTRIBUTES_FIELD_ACCESS,
-                        Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
-        bodyStmts.add(stmtFrom("return %s.%s;".formatted(Constants.ATTRIBUTES_FIELD_ACCESS,
+        bodyStmts.add(stmtFrom("\n\n(<%s>%s.%s).setPayload(%s.payload);".formatted(Constants.HTTP_RESPONSE_TYPE,
+                Constants.ATTRIBUTES_FIELD_ACCESS, Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
+        bodyStmts.add(stmtFrom("return <%s>%s.%s;".formatted(HTTP_RESPONSE_TYPE, Constants.ATTRIBUTES_FIELD_ACCESS,
                 Constants.HTTP_RESPONSE_REF)));
 
         // Add service resources
