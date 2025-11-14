@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
-  xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+  xmlns:pubsub="http://www.mulesoft.org/schema/mule/pubsub"
   xmlns="http://www.mulesoft.org/schema/mule/core"
   xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-   http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+   http://www.mulesoft.org/schema/mule/pubsub http://www.mulesoft.org/schema/mule/pubsub/current/mule-pubsub.xsd
    http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
   <pubsub:config name="PubSubConfig" doc:name="Google Pub Sub Configuration">
     <pubsub:connection privateKeyId="${secure::gcp.listener.privateKeyId}" clientId="${secure::gcp.listener.clientId}" clientEmail="${secure::gcp.listener.clientEmail}" >

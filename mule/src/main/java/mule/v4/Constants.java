@@ -33,6 +33,7 @@ public class Constants {
     public static final String ORG_BALLERINAX = "ballerinax";
     public static final String MODULE_HTTP = "http";
     public static final String MODULE_JMS = "java.jms";
+    public static final String MODULE_PUBSUB = "gcloud.pubsub";
     public static final String MODULE_LOG = "log";
     public static final String MODULE_TASK = "task";
     public static final String MODULE_SQL = "sql";
@@ -89,6 +90,8 @@ public class Constants {
     public static final String HTTP_CLIENT_TYPE = "http:Client";
     public static final String HTTP_RESOURCE_RETURN_TYPE_DEFAULT = HTTP_RESPONSE_TYPE + "|error";
     public static final String JMS_MESSAGE_TYPE = "jms:Message";
+    public static final String PUBSUB_MESSAGE_TYPE = "pubsub:Message";
+    public static final String PUBSUB_CALLER_TYPE = "pubsub:Caller";
     public static final String MYSQL_CLIENT_TYPE = "mysql:Client";
     public static final String ORACLEDB_CLIENT_TYPE = "oracledb:Client";
     public static final String JDBC_CLIENT_TYPE = "jdbc:Client";

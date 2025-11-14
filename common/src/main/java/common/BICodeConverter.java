@@ -182,6 +182,7 @@ public final class BICodeConverter {
             case "jsondata" -> List.of(new BallerinaModel.Import("ballerina", "data.jsondata"));
             case "java.jdbc", "jdbc" -> List.of(new BallerinaModel.Import("ballerinax", "java.jdbc"));
             case "java.jms", "jms" -> List.of(new BallerinaModel.Import("ballerinax", "java.jms"));
+            case "pubsub" -> List.of(new BallerinaModel.Import("ballerinax", "gcloud.pubsub"));
             case "io" -> List.of(new BallerinaModel.Import("ballerina", "io"));
             case "file" -> List.of(new BallerinaModel.Import("ballerina", "file"));
             case "regex" -> List.of(new BallerinaModel.Import("ballerina", "regex"));

@@ -47,6 +47,8 @@ import static common.BallerinaModel.Import;
 import static mule.v4.ConversionUtils.getAllowedMethods;
 import static mule.v4.model.MuleModel.AnypointMqConfig;
 import static mule.v4.model.MuleModel.AnypointMqSubscriber;
+import static mule.v4.model.MuleModel.PubSubConfig;
+import static mule.v4.model.MuleModel.PubSubMessageListener;
 import static mule.v4.model.MuleModel.ApiKitConfig;
 import static mule.v4.model.MuleModel.ApiKitRouter;
 import static mule.v4.model.MuleModel.Async;
@@ -174,6 +176,9 @@ public class MuleConfigReader {
         } else if (MuleXMLTag.ANYPOINT_MQ_CONFIG.tag().equals(elementTagName)) {
             AnypointMqConfig anypointMqConfig = readAnypointMqConfig(ctx, muleElement);
             ctx.currentFileCtx.configs.anypointMqConfigs.put(anypointMqConfig.name(), anypointMqConfig);
+        } else if (MuleXMLTag.PUBSUB_CONFIG.tag().equals(elementTagName)) {
+            PubSubConfig pubSubConfig = readPubSubConfig(ctx, muleElement);
+            ctx.currentFileCtx.configs.pubSubConfigs.put(pubSubConfig.name(), pubSubConfig);
         } else if (MuleXMLTag.CONFIGURATION_PROPERTIES.tag().equals(elementTagName)) {
             // Ignore as we automatically add all .yaml and .properties to config.toml
         } else if (MuleXMLTag.GLOBAL_PROPERTY.tag().equals(elementTagName)) {
@@ -203,6 +208,9 @@ public class MuleConfigReader {
             }
             case MuleXMLTag.ANYPOINT_MQ_SUBSCRIBER -> {
                 return readAnypointMqSubscriber(ctx, muleElement);
+            }
+            case MuleXMLTag.PUBSUB_MESSAGE_LISTENER -> {
+                return readPubSubMessageListener(ctx, muleElement);
             }
 
             // Process Items
@@ -347,6 +355,14 @@ public class MuleConfigReader {
         return new AnypointMqSubscriber(configRef, destination);
     }
 
+    private static PubSubMessageListener readPubSubMessageListener(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String configRef = element.getAttribute("config-ref");
+        String projectId = element.getAttribute("projectId");
+        String subscriptionName = element.getAttribute("subscriptionName");
+        return new PubSubMessageListener(configRef, projectId, subscriptionName);
+    }
+
     private static MuleRecord readExpressionComponent(Context ctx, MuleElement muleElement) {
         return new ExpressionComponent(muleElement.getElement().getTextContent());
     }
@@ -415,6 +431,9 @@ public class MuleConfigReader {
                 assert source == null;
                 source = readBlock(ctx, child);
             } else if (element.getTagName().equals(MuleXMLTag.ANYPOINT_MQ_SUBSCRIBER.tag())) {
+                assert source == null;
+                source = readBlock(ctx, child);
+            } else if (element.getTagName().equals(MuleXMLTag.PUBSUB_MESSAGE_LISTENER.tag())) {
                 assert source == null;
                 source = readBlock(ctx, child);
             } else {
@@ -906,6 +925,16 @@ public class MuleConfigReader {
             muleElement.consumeChild();
         }
         return new AnypointMqConfig(name);
+    }
+
+    private static PubSubConfig readPubSubConfig(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String name = element.getAttribute("name");
+        // Consume child elements (like pubsub:connection, pubsub:private-key) without processing them
+        while (muleElement.peekChild() != null) {
+            muleElement.consumeChild();
+        }
+        return new PubSubConfig(name);
     }
 
     private static GlobalProperty readGlobalProperty(Context ctx, MuleElement muleElement) {

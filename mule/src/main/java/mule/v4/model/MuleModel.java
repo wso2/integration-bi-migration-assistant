@@ -77,6 +77,13 @@ public record MuleModel() {
         }
     }
 
+    public record PubSubMessageListener(Kind kind, String configRef, String projectId,
+                                        String subscriptionName) implements MuleRecord {
+        public PubSubMessageListener(String configRef, String projectId, String subscriptionName) {
+            this(Kind.PUBSUB_MESSAGE_LISTENER, configRef, projectId, subscriptionName);
+        }
+    }
+
     public record ExpressionComponent(Kind kind, String exprCompContent) implements MuleRecord {
         public ExpressionComponent(String exprCompContent) {
             this(Kind.EXPRESSION_COMPONENT, exprCompContent);
@@ -377,6 +384,12 @@ public record MuleModel() {
         }
     }
 
+    public record PubSubConfig(Kind kind, String name) implements MuleRecord {
+        public PubSubConfig(String name) {
+            this(Kind.PUBSUB_CONFIG, name);
+        }
+    }
+
     public record DbConfig(Kind kind, String name, DbConnection dbConnection) implements MuleRecord {
         public DbConfig(String name, DbConnection dbConnection) {
             this(Kind.DB_CONFIG, name, dbConnection);
@@ -438,6 +451,8 @@ public record MuleModel() {
         SCHEDULER,
         ANYPOINT_MQ_CONFIG,
         ANYPOINT_MQ_SUBSCRIBER,
+        PUBSUB_CONFIG,
+        PUBSUB_MESSAGE_LISTENER,
         EXPRESSION_COMPONENT,
         PAYLOAD,
         FLOW_REFERENCE,

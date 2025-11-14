@@ -19,7 +19,7 @@ package mule.v4.blocks;
 
 import org.testng.annotations.Test;
 
-public class SubSubTest extends AbstractBlockTest {
+public class PubSubTest extends AbstractBlockTest {
 
     @Test
     public void testBasicPubSub() {
