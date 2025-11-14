@@ -400,7 +400,8 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         enum ListenerType {
             HTTP,
             JMS,
-            FILE
+            FILE,
+            PUBSUB
         }
 
         record FileListener(String name, String path, boolean recursive) implements Listener {
@@ -476,6 +477,26 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                                 }
                             }
                         );""", name, connectionConfig, destinationName);
+            }
+        }
+
+        record PubSubListener(String name, Expression subscriptionName, Expression projectId,
+                              Expression credentialsPath) implements Listener {
+
+            @Override
+            public ListenerType type() {
+                return ListenerType.PUBSUB;
+            }
+
+            @Override
+            @NotNull
+            public String toString() {
+                return String.format("""
+                        listener pubsub:Listener %s = check new (
+                            %s,
+                            projectId = %s,
+                            credentials = {credentialsPath: %s}
+                        );""", name, subscriptionName, projectId, credentialsPath);
             }
         }
     }

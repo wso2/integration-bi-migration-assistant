@@ -18,6 +18,7 @@
             <class name="mule.v4.blocks.LoggerTest"/>
             <class name="mule.v4.blocks.FlowTest"/>
             <class name="mule.v4.blocks.SubFlowTest"/>
+            <class name="mule.v4.blocks.PubSubTest"/>
             <class name="mule.v4.blocks.SetPayloadTest"/>
             <class name="mule.v4.blocks.VariableTest"/>
             <class name="mule.v4.blocks.ChoiceTest"/>

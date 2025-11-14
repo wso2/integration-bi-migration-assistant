@@ -30,6 +30,7 @@ import mule.v4.model.MuleModel.AnypointMqConfig;
 import mule.v4.model.MuleModel.ApiKitConfig;
 import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.MuleModel.HttpListener;
+import mule.v4.model.MuleModel.PubSubConfig;
 import mule.v4.model.ParseResult;
 import org.jetbrains.annotations.NotNull;
 
@@ -225,6 +226,7 @@ public class Context extends ContextBase {
         List<HashMap<String, HTTPRequestConfig>> httpRequestConfigMaps = new ArrayList<>();
         List<HashMap<String, DbConfig>> dbConfigMaps = new ArrayList<>();
         List<HashMap<String, AnypointMqConfig>> anypointMqConfigMaps = new ArrayList<>();
+        List<HashMap<String, PubSubConfig>> pubSubConfigMaps = new ArrayList<>();
 
         // Shared bal constructs
         public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
@@ -255,6 +257,10 @@ public class Context extends ContextBase {
 
         public AnypointMqConfig getAnypointMqConfig(String key) {
             return getValueFromMaps(anypointMqConfigMaps, key);
+        }
+
+        public PubSubConfig getPubSubConfig(String key) {
+            return getValueFromMaps(pubSubConfigMaps, key);
         }
 
         public boolean configurableVarExists(String key) {
@@ -291,6 +297,7 @@ public class Context extends ContextBase {
         public final HashMap<String, HTTPRequestConfig> httpRequestConfigs = new LinkedHashMap<>();
         public final HashMap<String, DbConfig> dbConfigs = new LinkedHashMap<>();
         public final HashMap<String, AnypointMqConfig> anypointMqConfigs = new LinkedHashMap<>();
+        public final HashMap<String, PubSubConfig> pubSubConfigs = new LinkedHashMap<>();
         public final List<ErrorHandler> globalErrorHandlers = new ArrayList<>();
         public final List<GlobalProperty> globalProperties = new ArrayList<>();
         public final List<MuleImport> imports = new ArrayList<>();
@@ -302,6 +309,7 @@ public class Context extends ContextBase {
             projCtx.httpRequestConfigMaps.add(httpRequestConfigs);
             projCtx.dbConfigMaps.add(dbConfigs);
             projCtx.anypointMqConfigMaps.add(anypointMqConfigs);
+            projCtx.pubSubConfigMaps.add(pubSubConfigs);
         }
     }
 

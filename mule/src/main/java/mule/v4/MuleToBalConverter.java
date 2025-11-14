@@ -27,6 +27,7 @@ import mule.v4.model.MuleModel.AnypointMqSubscriber;
 import mule.v4.model.MuleModel.ApiKitConfig;
 import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.MuleModel.DbGenericConnection;
+import mule.v4.model.MuleModel.PubSubMessageListener;
 import mule.v4.model.MuleModel.Scheduler;
 
 import java.nio.file.Path;
@@ -94,7 +95,7 @@ public class MuleToBalConverter {
     }
 
     public static TextDocument generateTextDocument(Context ctx, String balFileName,
-            List<Flow> flows, List<SubFlow> subFlows)
+                                                    List<Flow> flows, List<SubFlow> subFlows)
             throws ScriptConversionException {
         List<Service> services = new ArrayList<>();
         Set<Function> functions = new HashSet<>();
@@ -122,11 +123,13 @@ public class MuleToBalConverter {
                             case HttpListener httpListener -> ctx.projectCtx.lastHttpService = genHttpSource(ctx, flow,
                                     httpListener, services, functions);
                             case ApiKitConfig apiKit ->
-                                genApiKitSource(ctx, flow, apiKit, services, ctx.projectCtx.lastHttpService);
+                                    genApiKitSource(ctx, flow, apiKit, services, ctx.projectCtx.lastHttpService);
                             case AnypointMqSubscriber mqSubscriber ->
-                                genAnypointMqSource(ctx, flow, mqSubscriber, services, listeners);
-                            default ->
-                                throw new IllegalStateException("Unsupported source kind: %s".formatted(src.kind()));
+                                    genAnypointMqSource(ctx, flow, mqSubscriber, services, listeners);
+                            case PubSubMessageListener pubSubListener ->
+                                    genPubSubSource(ctx, flow, pubSubListener, services, listeners);
+                            default -> throw new IllegalStateException(
+                                    "Unsupported source kind: %s".formatted(src.kind()));
                         }
                     } catch (ScriptConversionException e) {
                         throw new RuntimeException(e);
@@ -146,7 +149,7 @@ public class MuleToBalConverter {
         // Create functions for global exception strategies
         for (ErrorHandler errorHandler : ctx.currentFileCtx.configs.globalErrorHandlers) {
             genBalFuncForGlobalErrorHandler(ctx, errorHandler, functions);
-            functions.addAll(ctx.currentFileCtx.balConstructs.functions); // TODO: this is a  hack.
+            functions.addAll(ctx.currentFileCtx.balConstructs.functions); // TODO: this is a hack.
         }
 
         // Add global HTTP listeners from configs
@@ -217,8 +220,7 @@ public class MuleToBalConverter {
         }
 
         ArrayList<ModuleVar> orderedModuleVars = new ArrayList<>(
-                ctx.getCurrentFileConfigurableVars()
-        );
+                ctx.getCurrentFileConfigurableVars());
         orderedModuleVars.addAll(moduleVars);
         return createTextDocument(balFileName + ".bal", new ArrayList<>(ctx.currentFileCtx.balConstructs.imports),
                 typeDefs, orderedModuleVars, listeners, normalizeServices, classDefs, functions.stream().toList(),
@@ -272,7 +274,7 @@ public class MuleToBalConverter {
                 Constants.ATTRIBUTES_FIELD_ACCESS, Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
         bodyStmts.add(
                 stmtFrom("return <%s>%s.%s;".formatted(Constants.HTTP_RESPONSE_TYPE, Constants.ATTRIBUTES_FIELD_ACCESS,
-                Constants.HTTP_RESPONSE_REF)));
+                        Constants.HTTP_RESPONSE_REF)));
 
         // Add service resources
         TypeDesc returnType = typeFrom(Constants.HTTP_RESOURCE_RETURN_TYPE_DEFAULT);
@@ -306,8 +308,7 @@ public class MuleToBalConverter {
                 new VariableReference(jmsProviderUrlVar),
                 mqSubscriber.destination(),
                 Optional.empty(),
-                Optional.empty()
-        );
+                Optional.empty());
         listeners.add(jmsListener);
 
         // Convert flow blocks to statements
@@ -329,6 +330,58 @@ public class MuleToBalConverter {
                 List.of(), List.of(), List.of(), List.of(remoteFunction),
                 Optional.of(new Statement.Comment(
                         "TODO: placeholder jms listener for %s".formatted(mqSubscriber.configRef()))));
+        services.add(service);
+    }
+
+    private static void genPubSubSource(Context ctx, Flow flow, PubSubMessageListener pubSubListener,
+                                        Collection<Service> services, List<Listener> listeners) {
+        ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
+
+        // Add Pub/Sub import
+        ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_PUBSUB));
+
+        // Add configurable variables (null value generates "?")
+        String projectIdVar = "projectId";
+        String credentialsPathVar = "credentialsPath";
+        String subscriptionNameVar = "subscriptionName";
+        ConversionUtils.addConfigVarEntry(ctx, projectIdVar, null);
+        ConversionUtils.addConfigVarEntry(ctx, credentialsPathVar, null);
+        String subscriptionName = null;
+        if (pubSubListener.subscriptionName() != null && !pubSubListener.subscriptionName().isBlank()) {
+            subscriptionName = pubSubListener.subscriptionName();
+        }
+        ConversionUtils.addConfigVarEntry(ctx, subscriptionNameVar, subscriptionName);
+
+        String listenerName = escapeIdentifier(pubSubListener.configRef());
+
+        // Create Pub/Sub Listener using the BallerinaModel
+        Listener.PubSubListener pubSubListenerBal = new Listener.PubSubListener(
+                listenerName,
+                new VariableReference(subscriptionNameVar),
+                new VariableReference(projectIdVar),
+                new VariableReference(credentialsPathVar));
+        listeners.add(pubSubListenerBal);
+
+        // Convert flow blocks to statements
+        List<Statement> bodyStmts = new ArrayList<>();
+        String attributesInitValue = "{}";
+        bodyStmts.add(stmtFrom("Context %s = {%s: %s};".formatted(Constants.CONTEXT_REFERENCE,
+                Constants.ATTRIBUTES_REF, attributesInitValue)));
+        bodyStmts.addAll(convertTopLevelMuleBlocks(ctx, flow.flowBlocks()));
+
+        // Create remote function for onMessage with two parameters
+        List<Parameter> params = new ArrayList<>();
+        params.add(new Parameter("message", typeFrom(Constants.PUBSUB_MESSAGE_TYPE)));
+        params.add(new Parameter("caller", typeFrom(Constants.PUBSUB_CALLER_TYPE)));
+
+        Function onMessageFunction = new Function("onMessage", params, bodyStmts);
+        Remote remoteFunction = new Remote(onMessageFunction);
+
+        // Create service with listener reference
+        Service service = new Service("", List.of(listenerName), Optional.empty(),
+                List.of(), List.of(), List.of(), List.of(remoteFunction),
+                Optional.of(new Statement.Comment(
+                        "TODO: placeholder listener for %s".formatted(pubSubListener.configRef()))));
         services.add(service);
     }
 
@@ -417,7 +470,7 @@ public class MuleToBalConverter {
     }
 
     private static Service genHttpSource(Context ctx, Flow flow, HttpListener src, List<Service> services,
-            Set<Function> functions)
+                                         Set<Function> functions)
             throws ScriptConversionException {
         ctx.projectCtx.attributes.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_TYPE);
         ctx.projectCtx.attributes.put(Constants.HTTP_RESPONSE_REF, Constants.HTTP_RESPONSE_TYPE);
@@ -513,7 +566,7 @@ public class MuleToBalConverter {
     }
 
     private static Service genBalService(Context ctx, HttpListener httpListener, List<MuleRecord> flowBlocks,
-            Set<Function> functions)
+                                         Set<Function> functions)
             throws ScriptConversionException {
         List<String> pathParams = new ArrayList<>();
         String resourcePath = getBallerinaResourcePath(ctx, httpListener.resourcePath(), pathParams);
