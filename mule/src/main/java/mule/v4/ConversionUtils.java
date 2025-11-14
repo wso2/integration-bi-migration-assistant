@@ -18,9 +18,11 @@
 package mule.v4;
 
 import io.ballerina.compiler.syntax.tree.SyntaxInfo;
+import mule.v4.converter.ScriptConversionException;
 import org.w3c.dom.Element;
 
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -47,29 +49,38 @@ public class ConversionUtils {
     /**
      * Converts mule path to a Ballerina resource path.
      *
-     * @param ctx mule to bal converter data
+     * @param ctx  mule to bal converter data
      * @param path mule path
      * @return ballerina resource path
+     * @throws ScriptConversionException if MEL conversion fails
      */
-    public static String getBallerinaResourcePath(Context ctx, String path, List<String> pathParams) {
-        List<String> list = Arrays.stream(path.split("/")).filter(s -> !s.isEmpty())
-                .map(s -> {
-                    if (s.startsWith("{") && s.endsWith("}")) {
-                        // We come here for mule path params. e.g. foo/{bar}/baz
-                        String pathParamName = s.substring(1, s.length() - 1);
-                        pathParamName = convertToBalIdentifier(pathParamName);
-                        pathParams.add(pathParamName);
-                        return "[string " + pathParamName + "]";
-                    }
-                    if (s.startsWith("#[") && s.endsWith("]")) {
-                        // Handle MEL in url. e.g. /users/#[vars.userId]
-                        String balExpr = convertMELToBal(ctx, s, false);
-                        return "[" + balExpr + "]";
-                    }
-                    return convertToBalIdentifier(s);
-                }).toList();
+    public static String getBallerinaResourcePath(Context ctx, String path, List<String> pathParams)
+            throws ScriptConversionException {
+        List<String> list = new ArrayList<>();
+        for (String segment : path.split("/")) {
+            if (!segment.isEmpty()) {
+                list.add(processPathSegment(ctx, segment, pathParams));
+            }
+        }
 
         return list.isEmpty() ? "." : String.join("/", list);
+    }
+
+    private static String processPathSegment(Context ctx, String segment, List<String> pathParams)
+            throws ScriptConversionException {
+        if (segment.startsWith("{") && segment.endsWith("}")) {
+            // We come here for mule path params. e.g. foo/{bar}/baz
+            String pathParamName = segment.substring(1, segment.length() - 1);
+            pathParamName = convertToBalIdentifier(pathParamName);
+            pathParams.add(pathParamName);
+            return "[string " + pathParamName + "]";
+        }
+        if (segment.startsWith("#[") && segment.endsWith("]")) {
+            // Handle MEL in url. e.g. /users/#[vars.userId]
+            String balExpr = convertMELToBal(ctx, segment, false);
+            return "[" + balExpr + "]";
+        }
+        return convertToBalIdentifier(segment);
     }
 
     /**
@@ -88,21 +99,30 @@ public class ConversionUtils {
     /**
      * Converts mule http request path to a Ballerina client resource path.
      *
-     * @param ctx mule to bal converter data
+     * @param ctx      mule to bal converter data
      * @param basePath mule http request path
      * @return ballerina client resource path
+     * @throws ScriptConversionException if MEL conversion fails
      */
-    public static String getBallerinaClientResourcePath(Context ctx, String basePath) {
-        List<String> list = Arrays.stream(basePath.split("/")).filter(s -> !s.isEmpty())
-                .map(s -> {
-                    if (s.startsWith("#[") && s.endsWith("]")) {
-                        // Handle MEL in url. e.g. /users/#[vars.userId]
-                        String balExpr = convertMELToBal(ctx, s, false);
-                        return "[" + balExpr + "]";
-                    }
-                    return ConversionUtils.convertToBalIdentifier(s);
-                }).toList();
+    public static String getBallerinaClientResourcePath(Context ctx, String basePath)
+            throws ScriptConversionException {
+        List<String> list = new ArrayList<>();
+        for (String segment : basePath.split("/")) {
+            if (!segment.isEmpty()) {
+                list.add(processClientPathSegment(ctx, segment));
+            }
+        }
         return list.isEmpty() ? "/" : "/" + String.join("/", list);
+    }
+
+    private static String processClientPathSegment(Context ctx, String segment)
+            throws ScriptConversionException {
+        if (segment.startsWith("#[") && segment.endsWith("]")) {
+            // Handle MEL in url. e.g. /users/#[vars.userId]
+            String balExpr = convertMELToBal(ctx, segment, false);
+            return "[" + balExpr + "]";
+        }
+        return ConversionUtils.convertToBalIdentifier(segment);
     }
 
     public static void processExprCompContent(Context ctx, String convertedBalStmts) {
@@ -155,29 +175,34 @@ public class ConversionUtils {
         return basePath.startsWith("/") ? basePath : "/" + basePath;
     }
 
-    public static String genQueryParam(Context ctx, Map<String, String> queryParams) {
-        return queryParams.entrySet().stream().map(e -> {
-                    String k = e.getKey();
-                    String key = SyntaxInfo.isKeyword(k) ? "'" + k : k;
-                    String balExpr = convertMuleExprToBal(ctx, e.getValue());
-                    if (balExpr.startsWith("ctx.")) {
-                        balExpr = "check " + balExpr + ".ensureType(http:QueryParamType)";
-                    }
-                    return String.format("%s = %s", key, balExpr);
-                })
-                .reduce((a, b) -> a + ", " + b).orElse("");
+    public static String genQueryParam(Context ctx, Map<String, String> queryParams)
+            throws ScriptConversionException {
+        List<String> paramStrings = new ArrayList<>();
+        for (Map.Entry<String, String> e : queryParams.entrySet()) {
+            String k = e.getKey();
+            String key = SyntaxInfo.isKeyword(k) ? "'" + k : k;
+            String balExpr = convertMuleExprToBal(ctx, e.getValue());
+            if (balExpr.startsWith("ctx.")) {
+                balExpr = "check " + balExpr + ".ensureType(http:QueryParamType)";
+            }
+            paramStrings.add(String.format("%s = %s", key, balExpr));
+        }
+        return String.join(", ", paramStrings);
     }
 
-    public static String convertMuleExprToBal(Context ctx, String melExpression) {
+    public static String convertMuleExprToBal(Context ctx, String melExpression)
+            throws ScriptConversionException {
         return convertMuleExprToBal(ctx, melExpression, false);
     }
 
-    public static String convertMuleExprToBalStringLiteral(Context ctx, String melExpression) {
+    public static String convertMuleExprToBalStringLiteral(Context ctx, String melExpression)
+            throws ScriptConversionException {
         return convertMuleExprToBal(ctx, melExpression, true);
     }
 
     private static String convertMuleExprToBal(Context ctx, String melExpression,
-                                               boolean addToStringCalls) {
+            boolean addToStringCalls)
+            throws ScriptConversionException {
         // Direct MEL expression (e.g., "#[payload]")
         if (melExpression.startsWith("#[") && melExpression.endsWith("]")) {
             return convertMELToBal(ctx, melExpression, addToStringCalls);
@@ -233,7 +258,8 @@ public class ConversionUtils {
     }
 
     private static int processMELExpression(Context ctx, String text, int startPos,
-                                            StringBuilder result, boolean addToStringCalls) {
+            StringBuilder result, boolean addToStringCalls)
+            throws ScriptConversionException {
         int bracketDepth = 1;
         int i = startPos + 2;  // Skip "#["
 
@@ -296,15 +322,18 @@ public class ConversionUtils {
         return varValue == null || varValue.startsWith("${");
     }
 
-    public static String getAttrVal(Context ctx, String propValue) {
+    public static String getAttrVal(Context ctx, String propValue)
+            throws ScriptConversionException {
         return getAttrVal(ctx, propValue, false);
     }
 
-    public static String getAttrValInt(Context ctx, String propValue) {
+    public static String getAttrValInt(Context ctx, String propValue)
+            throws ScriptConversionException {
         return getAttrVal(ctx, propValue, true);
     }
 
-    private static String getAttrVal(Context ctx, String propValue, boolean isInt) {
+    private static String getAttrVal(Context ctx, String propValue, boolean isInt)
+            throws ScriptConversionException {
         if (propValue.startsWith("${") && propValue.endsWith("}")) {
             String configVarRef = processPropertyName(ctx, propValue.substring(2, propValue.length() - 1));
             return isInt ? "check int:fromString(%s)".formatted(configVarRef) : configVarRef;
