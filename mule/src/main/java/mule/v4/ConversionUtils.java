@@ -18,6 +18,7 @@
 package mule.v4;
 
 import io.ballerina.compiler.syntax.tree.SyntaxInfo;
+import mule.v4.converter.ScriptConversionException;
 import org.w3c.dom.Element;
 
 import java.io.StringWriter;
@@ -39,7 +40,6 @@ import static common.BallerinaModel.ModuleVar;
 import static common.ConversionUtils.exprFrom;
 import static mule.v4.converter.MELConverter.convertMELToBal;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
-import mule.v4.converter.ScriptConversionException;
 
 /**
  * Utility class for converting mule configs.
