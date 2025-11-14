@@ -76,7 +76,7 @@ public class MELConverter {
             char currentChar = melExpr.charAt(i);
 
             String tokenStr = token.toString();
-            if (currentChar == '\'' || currentChar == '\"') {
+            if (isQuote(currentChar)) {
                 // Handle string literals
                 processToken(token, result, addToStringCalls);
                 i = processStringLiteral(ctx, melExpr, i, result);
@@ -103,7 +103,7 @@ public class MELConverter {
             }
 
             if (currentChar == '(') {
-                if (i + 1 < melExpr.length() && melExpr.charAt(i + 1) == '\'' && tokenStr.equals("p")) {
+                if (i + 1 < melExpr.length() && isQuote(melExpr.charAt(i + 1)) && tokenStr.equals("p")) {
                     i = processPPropAccess(ctx, melExpr, i, tokenStr, result);
                     token.setLength(0);
                     continue;
@@ -162,6 +162,10 @@ public class MELConverter {
         return token.equals("vars");
     }
 
+    private static boolean isQuote(char c) {
+        return c == '\'' || c == '\"';
+    }
+
     private static int processStringLiteral(Context ctx, String melExpr, int startPos,
             StringBuilder result)
             throws ScriptConversionException {
@@ -182,7 +186,7 @@ public class MELConverter {
             }
 
             // Escape quotes in string literals
-            if (currentChar == '\'' || currentChar == '\"') {
+            if (isQuote(currentChar)) {
                 stringLiteral.append("\\");
             }
             stringLiteral.append(currentChar);
@@ -199,15 +203,15 @@ public class MELConverter {
         int i = startPos;
 
         assert melExpr.charAt(i) == '(';
-        assert melExpr.charAt(i + 1) == '\'';
+        assert isQuote(melExpr.charAt(i + 1));
         i = i + 2; // Skip open paren and starting quote
 
-        while (i < melExpr.length() && melExpr.charAt(i) != '\'') {
+        while (i < melExpr.length() && !isQuote(melExpr.charAt(i))) {
             externalPropName.append(melExpr.charAt(i));
             i++;
         }
 
-        if (i < melExpr.length() && melExpr.charAt(i) == '\'') {
+        if (i < melExpr.length() && isQuote(melExpr.charAt(i))) {
             i++; // Skip the ending quote
         }
 
