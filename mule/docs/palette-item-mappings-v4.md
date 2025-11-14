@@ -885,7 +885,8 @@ public function my_error_handler(Context ctx, error err) {
         log:printError("Trace: " + err.stackTrace().toString());
 
         log:printInfo("xxx: first error catch");
-(<http:Response>ctx.attributes.response).statusCode = 500;
+        http:Response response = <http:Response>ctx.attributes.response;
+        response.statusCode = 500;
     } else if err is "EXPRESSION" {
         // on-error-continue
         log:printError("Message: " + err.message());
@@ -981,7 +982,8 @@ public function my_error_handler(Context ctx, error err) {
     // set payload
     string payload1 = "Custom error message: Something went wrong.";
     ctx.payload = payload1;
-(<http:Response>ctx.attributes.response).statusCode  = 500;
+    http:Response response = <http:Response>ctx.attributes.response;
+    response.statusCode = 500;
 }
 
 ```
@@ -2146,11 +2148,14 @@ public function demoFlow(Context ctx) {
 
     // http client request
     http:Client http_request_config = check new ("jsonplaceholder.typicode.com:80");
-    map<string> headers = {
+    map<string?> headers_nilable = {
         "client-id": anypoint_auth_client_id,
         "client-secret": anypoint_auth_client_secret,
         "Content-Type": "application/json"
     };
+    map<string> headers = map from string key in headers_nilable.keys()
+        where headers_nilable.get(key) is string
+        select [key, <string>headers_nilable.get(key)];
     http:Response clientResult0 = check http_request_config->/posts/latest.get(headers);
     ctx.payload = check clientResult0.getJsonPayload();
     log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
@@ -2287,17 +2292,26 @@ public function demoFlow(Context ctx) {
 
     // http client request
     http:Client http_request_config = check new (string `${secure_api_host}:${secure_api_port}`);
-    map<string> headers = {
+    map<string?> headers_nilable = {
         "client-id": anypoint_auth_client_id,
         "client-secret": anypoint_auth_client_secret,
         "Content-Type": "application/json"
     };
-    map<string> uriParams = {
+    map<string> headers = map from string key in headers_nilable.keys()
+        where headers_nilable.get(key) is string
+        select [key, <string>headers_nilable.get(key)];
+    map<string?> uriParams_nilable = {
         "id": ctx.vars?.id.toString()
     };
-    map<string> queryParams = {
+    map<string> uriParams = map from string key in uriParams_nilable.keys()
+        where uriParams_nilable.get(key) is string
+        select [key, <string>uriParams_nilable.get(key)];
+    map<string?> queryParams_nilable = {
         "language": ctx.vars?.language.toString()
     };
+    map<string> queryParams = map from string key in queryParams_nilable.keys()
+        where queryParams_nilable.get(key) is string
+        select [key, <string>queryParams_nilable.get(key)];
     string queryPath = pathBuilder0(string `${secure_api_endpoint}`, uriParams, queryParams);
     http:Response clientResult0 = check http_request_config->get(queryPath, headers);
     ctx.payload = check clientResult0.getJsonPayload();
@@ -3104,7 +3118,8 @@ service /mule4 on listener_config {
             // set payload
             string payload1 = "Custom error message: Something went wrong.";
             ctx.payload = payload1;
-(<http:Response>ctx.attributes.response).statusCode  = 500;
+            http:Response response = <http:Response>ctx.attributes.response;
+            response.statusCode = 500;
         }
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
