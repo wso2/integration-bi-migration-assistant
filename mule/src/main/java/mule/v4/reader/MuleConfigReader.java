@@ -687,6 +687,7 @@ public class MuleConfigReader {
         Optional<String> headersScript = Optional.empty();
         Optional<String> uriParamsScript = Optional.empty();
         Optional<String> queryParamsScript = Optional.empty();
+        List<UnsupportedBlock> unsupportedBlocks = new ArrayList<>();
 
         // Check for inline DataWeave script (CDATA) in http:request element
         String textContent = element.getTextContent();
@@ -715,13 +716,13 @@ public class MuleConfigReader {
                     queryParamsScript = Optional.of(script.trim());
                 }
             } else {
-                // TODO: handle all other scenarios
-                ctx.logger.logSevere("Ignoring unsupported element: " + tagName);
+                UnsupportedBlock unsupportedBlock = readUnsupportedBlock(ctx, child);
+                unsupportedBlocks.add(unsupportedBlock);
             }
         }
 
         return new HttpRequest(configRef, method, urlSupplier, path, queryParams, headersScript, uriParamsScript,
-                queryParamsScript);
+                queryParamsScript, unsupportedBlocks);
     }
 
     private static void processQueryParams(Map<String, String> queryParams, MuleElement muleElement) {
