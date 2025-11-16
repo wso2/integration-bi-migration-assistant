@@ -653,6 +653,11 @@ public class MuleConfigConverter {
         }
         stmts.add(stmtFrom(String.format("%s.payload = check %s.getJsonPayload();",
                 Constants.CONTEXT_REFERENCE, clientResultVar)));
+
+        if (!httpRequest.unsupportedBlocks().isEmpty()) {
+            stmts.add(stmtFrom(convertToUnsupportedTODO(ctx, httpRequest.unsupportedBlocks())));
+        }
+
         return new WorkerStatementResult(stmts);
     }
 

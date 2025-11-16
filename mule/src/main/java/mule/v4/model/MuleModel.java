@@ -128,13 +128,15 @@ public record MuleModel() {
 
     public record HttpRequest(Kind kind, String configRef, String method, Supplier<String> url, String path,
                               Map<String, String> queryParams, Optional<String> headersScript,
-                              Optional<String> uriParamsScript, Optional<String> queryParamsScript)
+                              Optional<String> uriParamsScript, Optional<String> queryParamsScript,
+                              List<UnsupportedBlock> unsupportedBlocks)
             implements MuleRecord {
         public HttpRequest(String configRef, String method, Supplier<String> url, String path,
                           Map<String, String> queryParams, Optional<String> headersScript,
-                          Optional<String> uriParamsScript, Optional<String> queryParamsScript) {
+                          Optional<String> uriParamsScript, Optional<String> queryParamsScript,
+                          List<UnsupportedBlock> unsupportedBlocks) {
             this(Kind.HTTP_REQUEST, configRef, method, url, path, queryParams, headersScript, uriParamsScript,
-                    queryParamsScript);
+                    queryParamsScript, unsupportedBlocks);
         }
     }
 
