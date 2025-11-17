@@ -248,17 +248,17 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         dwContext.inDefaultAccess = true;
         boolean headerAttributeAccess = isHeaderAttributeAccess(ctx.primaryExpression());
         boolean uriParamAttributeAccess = isUriParamAttributeAccess(ctx.primaryExpression());
+        boolean queryParamAttributeAccess = isQueryParamAttributeAccess(ctx.primaryExpression());
         StringBuilder exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
         if (headerAttributeAccess) {
             handleAttributeHeaderAccess(ctx.primaryExpression(), ctx.selectorExpression());
+        } else if (uriParamAttributeAccess) {
+            handleAttributeUriParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
+        } else if (queryParamAttributeAccess) {
+            handleAttributeQueryParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
         } else {
-            if (uriParamAttributeAccess) {
-                exprBuilder.append("(");
-                handleAttributeUriParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
-            } else {
-                visit(ctx.primaryExpression());
-                visit(ctx.selectorExpression());
-            }
+            visit(ctx.primaryExpression());
+            visit(ctx.selectorExpression());
         }
         if (headerAttributeAccess | uriParamAttributeAccess) {
             dwContext.append(" : ");
@@ -281,16 +281,21 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         return primaryExpression.getText().equals("attributes.uriParams");
     }
 
+    private static boolean isQueryParamAttributeAccess(DataWeaveParser.PrimaryExpressionContext primaryExpression) {
+        return primaryExpression.getText().equals("attributes.queryParams");
+    }
+
     private void handleAttributeHeaderAccess(DataWeaveParser.PrimaryExpressionContext primaryExpression,
                                              DataWeaveParser.SelectorExpressionContext selectorExpression) {
         var exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
         exprBuilder.append("(");
-        attributeHeaderCheck(selectorExpression, "hasHeader");
+        contextRequestMethodCall(selectorExpression, "hasHeader");
         exprBuilder.append(" ? ");
-        attributeHeaderCheck(selectorExpression, "getHeader");
+        contextRequestMethodCall(selectorExpression, "getHeader");
     }
 
-    private void attributeHeaderCheck(DataWeaveParser.SelectorExpressionContext selectorExpression, String methodName) {
+    private void contextRequestMethodCall(DataWeaveParser.SelectorExpressionContext selectorExpression,
+                                          String methodName) {
         var exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
         exprBuilder.append("(<").append(HTTP_REQUEST_TYPE).append(">").append(ATTRIBUTES_FIELD_ACCESS).append(".")
                 .append(HTTP_REQUEST_REF).append(").").append(methodName).append("(\"");
@@ -298,6 +303,12 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         visit(selectorExpression);
         this.dwContext.inKeyAccess = false;
         exprBuilder.append("\")");
+    }
+
+    private void handleAttributeQueryParamAccess(DataWeaveParser.PrimaryExpressionContext primaryExpression,
+                                                 DataWeaveParser.SelectorExpressionContext selectorExpression) {
+        var exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
+        contextRequestMethodCall(selectorExpression, "getQueryParamValue");
     }
 
     private void handleAttributeUriParamAccess(DataWeaveParser.PrimaryExpressionContext primaryExpression,
@@ -901,6 +912,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     public Void visitSelectorExpressionWrapper(DataWeaveParser.SelectorExpressionWrapperContext ctx) {
         boolean headerAttributeAccess = isHeaderAttributeAccess(ctx.primaryExpression());
         boolean uriParamAttributeAccess = isUriParamAttributeAccess(ctx.primaryExpression());
+        boolean queryParamAttributeAccess = isQueryParamAttributeAccess(ctx.primaryExpression());
         if (headerAttributeAccess) {
             StringBuilder exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
             handleAttributeHeaderAccess(ctx.primaryExpression(), ctx.selectorExpression());
@@ -909,6 +921,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             StringBuilder exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
             handleAttributeUriParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
             exprBuilder.append(": error(\"no such uri param\"))");
+        } else if (queryParamAttributeAccess) {
+            handleAttributeQueryParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
         } else {
             visit(ctx.primaryExpression());
             visit(ctx.selectorExpression());
