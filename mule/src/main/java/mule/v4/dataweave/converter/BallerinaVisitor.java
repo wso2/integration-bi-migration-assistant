@@ -40,9 +40,13 @@ import static common.BallerinaModel.Import;
 import static common.BallerinaModel.Parameter;
 import static common.BallerinaModel.Statement;
 import static common.ConversionUtils.typeFrom;
+import static mule.v4.Constants.ATTRIBUTES_FIELD_ACCESS;
 import static mule.v4.Constants.BAL_HANDLE_TYPE;
 import static mule.v4.Constants.BAL_INT_TYPE;
 import static mule.v4.Constants.BAL_STRING_TYPE;
+import static mule.v4.Constants.HTTP_REQUEST_REF;
+import static mule.v4.Constants.HTTP_REQUEST_TYPE;
+import static mule.v4.Constants.URI_PARAMS_REF;
 
 public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
@@ -242,13 +246,91 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     public Void visitSelectorExpressionWrapperWithDefault(
             DataWeaveParser.SelectorExpressionWrapperWithDefaultContext ctx) {
         dwContext.inDefaultAccess = true;
-        visit(ctx.primaryExpression());
-        visit(ctx.selectorExpression());
-        dwContext.append(" ?: ");
+        boolean headerAttributeAccess = isHeaderAttributeAccess(ctx.primaryExpression());
+        boolean uriParamAttributeAccess = isUriParamAttributeAccess(ctx.primaryExpression());
+        boolean queryParamAttributeAccess = isQueryParamAttributeAccess(ctx.primaryExpression());
+        StringBuilder exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
+        if (headerAttributeAccess) {
+            handleAttributeHeaderAccess(ctx.primaryExpression(), ctx.selectorExpression());
+        } else if (uriParamAttributeAccess) {
+            handleAttributeUriParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
+        } else if (queryParamAttributeAccess) {
+            handleAttributeQueryParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
+        } else {
+            visit(ctx.primaryExpression());
+            visit(ctx.selectorExpression());
+        }
+        if (headerAttributeAccess | uriParamAttributeAccess) {
+            dwContext.append(" : ");
+        } else {
+            dwContext.append(" ?: ");
+        }
         visit(ctx.expression());
+        if (headerAttributeAccess | uriParamAttributeAccess) {
+            exprBuilder.append(")");
+        }
         dwContext.inDefaultAccess = false;
         return null;
     }
+
+    private static boolean isHeaderAttributeAccess(DataWeaveParser.PrimaryExpressionContext primaryExpression) {
+        return primaryExpression.getText().equals("attributes.headers");
+    }
+
+    private static boolean isUriParamAttributeAccess(DataWeaveParser.PrimaryExpressionContext primaryExpression) {
+        return primaryExpression.getText().equals("attributes.uriParams");
+    }
+
+    private static boolean isQueryParamAttributeAccess(DataWeaveParser.PrimaryExpressionContext primaryExpression) {
+        return primaryExpression.getText().equals("attributes.queryParams");
+    }
+
+    private void handleAttributeHeaderAccess(DataWeaveParser.PrimaryExpressionContext primaryExpression,
+                                             DataWeaveParser.SelectorExpressionContext selectorExpression) {
+        var exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
+        exprBuilder.append("(");
+        contextRequestMethodCall(selectorExpression, "hasHeader");
+        exprBuilder.append(" ? ");
+        contextRequestMethodCall(selectorExpression, "getHeader");
+    }
+
+    private void contextRequestMethodCall(DataWeaveParser.SelectorExpressionContext selectorExpression,
+                                          String methodName) {
+        var exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
+        exprBuilder.append("(<").append(HTTP_REQUEST_TYPE).append(">").append(ATTRIBUTES_FIELD_ACCESS).append(".")
+                .append(HTTP_REQUEST_REF).append(").").append(methodName).append("(\"");
+        this.dwContext.inKeyAccess = true;
+        visit(selectorExpression);
+        this.dwContext.inKeyAccess = false;
+        exprBuilder.append("\")");
+    }
+
+    private void handleAttributeQueryParamAccess(DataWeaveParser.PrimaryExpressionContext primaryExpression,
+                                                 DataWeaveParser.SelectorExpressionContext selectorExpression) {
+        var exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
+        contextRequestMethodCall(selectorExpression, "getQueryParamValue");
+    }
+
+    private void handleAttributeUriParamAccess(DataWeaveParser.PrimaryExpressionContext primaryExpression,
+                                               DataWeaveParser.SelectorExpressionContext selectorExpression) {
+        var exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
+        exprBuilder.append("(");
+        attributeAttributeUriParamAccess(selectorExpression, "hasKey");
+        exprBuilder.append(" ? ");
+        attributeAttributeUriParamAccess(selectorExpression, "get");
+    }
+
+    private void attributeAttributeUriParamAccess(DataWeaveParser.SelectorExpressionContext selectorExpression,
+                                                  String methodName) {
+        var exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
+        exprBuilder.append(ATTRIBUTES_FIELD_ACCESS).append(".").append(URI_PARAMS_REF).append(".").append(methodName)
+                .append("(\"");
+        this.dwContext.inKeyAccess = true;
+        visit(selectorExpression);
+        this.dwContext.inKeyAccess = false;
+        exprBuilder.append("\")");
+    }
+
 
     @Override
     public Void visitArray(DataWeaveParser.ArrayContext ctx) {
@@ -828,14 +910,46 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitSelectorExpressionWrapper(DataWeaveParser.SelectorExpressionWrapperContext ctx) {
-        visit(ctx.primaryExpression());
-        return visit(ctx.selectorExpression());
+        boolean headerAttributeAccess = isHeaderAttributeAccess(ctx.primaryExpression());
+        boolean uriParamAttributeAccess = isUriParamAttributeAccess(ctx.primaryExpression());
+        boolean queryParamAttributeAccess = isQueryParamAttributeAccess(ctx.primaryExpression());
+        if (headerAttributeAccess) {
+            StringBuilder exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
+            handleAttributeHeaderAccess(ctx.primaryExpression(), ctx.selectorExpression());
+            exprBuilder.append(": error(\"no such header\"))");
+        } else if (uriParamAttributeAccess) {
+            StringBuilder exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
+            handleAttributeUriParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
+            exprBuilder.append(": error(\"no such uri param\"))");
+        } else if (queryParamAttributeAccess) {
+            handleAttributeQueryParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
+        } else {
+            visit(ctx.primaryExpression());
+            visit(ctx.selectorExpression());
+        }
+        return null;
     }
 
     @Override
     public Void visitSingleValueSelector(DataWeaveParser.SingleValueSelectorContext ctx) {
-        String access = dwContext.inDefaultAccess ? "?." : ".";
-        dwContext.append(access).append(ctx.IDENTIFIER().getText());
+        String accessOp;
+        if (dwContext.inKeyAccess) {
+            accessOp = "";
+        } else if (dwContext.inDefaultAccess) {
+            accessOp = "?.";
+        } else {
+            accessOp = ".";
+        }
+        dwContext.append(accessOp).append(ctx.IDENTIFIER().getText());
+        dwContext.addCheckExpr();
+        stats.record(DWConstruct.SINGLE_VALUE_SELECTOR, true);
+        return null;
+    }
+
+    @Override
+    public Void visitKeySelector(DataWeaveParser.KeySelectorContext ctx) {
+        assert dwContext.inKeyAccess;
+        dwContext.append(ctx.STRING().getText());
         dwContext.addCheckExpr();
         stats.record(DWConstruct.SINGLE_VALUE_SELECTOR, true);
         return null;

@@ -379,6 +379,13 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSingleValueSelector(DataWeaveParser.SingleValueSelectorContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code keySelector}
+	 * labeled alternative in {@link DataWeaveParser#selectorExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitKeySelector(DataWeaveParser.KeySelectorContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code multiValueSelector}
 	 * labeled alternative in {@link DataWeaveParser#selectorExpression}.
 	 * @param ctx the parse tree

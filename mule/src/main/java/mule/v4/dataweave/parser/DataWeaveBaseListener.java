@@ -689,6 +689,18 @@ public class DataWeaveBaseListener implements DataWeaveListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterKeySelector(DataWeaveParser.KeySelectorContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitKeySelector(DataWeaveParser.KeySelectorContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterMultiValueSelector(DataWeaveParser.MultiValueSelectorContext ctx) { }
 	/**
 	 * {@inheritDoc}

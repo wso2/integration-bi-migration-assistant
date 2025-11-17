@@ -38,6 +38,7 @@ public class DWContext {
     public boolean isOutputVarSet = false;
     public boolean referringToPayload = false;
     public boolean inDefaultAccess = false;
+    public boolean inKeyAccess = false;
 
     public DWContext(Context toolContext, List<BallerinaModel.Statement> statementList) {
         this.parentStatements = statementList;
