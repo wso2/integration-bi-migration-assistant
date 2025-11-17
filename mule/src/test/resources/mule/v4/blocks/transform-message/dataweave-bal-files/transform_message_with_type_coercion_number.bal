@@ -8,11 +8,11 @@ public type Context record {|
 |};
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
+    json _dwOutput_ = check _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod0_(Context ctx) returns json|error {
+function _dwMethod(Context ctx) returns json|error {
     return check int:fromString("10");
 }

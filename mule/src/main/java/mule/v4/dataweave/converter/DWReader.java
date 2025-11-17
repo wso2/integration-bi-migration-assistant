@@ -99,8 +99,13 @@ public class DWReader {
 
     public static void processDWElements(List<TransformMessageElement> children, Context ctx,
                                          List<Statement> statementList) throws DWCodeGenException {
+        processDWElements(children, ctx, statementList, "_dwMethod");
+    }
+
+    public static void processDWElements(List<TransformMessageElement> children, Context ctx,
+                                         List<Statement> statementList, String namePrefix) throws DWCodeGenException {
         try {
-            processDWElementsInner(children, ctx, statementList);
+            processDWElementsInner(children, ctx, statementList, namePrefix);
         } catch (DWCodeGenException e) {
             throw e;
         } catch (Exception e) {
@@ -109,21 +114,22 @@ public class DWReader {
     }
 
     private static void processDWElementsInner(List<TransformMessageElement> children, Context ctx,
-                                               List<Statement> statementList) throws DWCodeGenException {
+                                               List<Statement> statementList,
+                                               String namePrefix) throws DWCodeGenException {
         DWContext context = new DWContext(ctx, statementList);
         for (TransformMessageElement child : children) {
             switch (child.kind()) {
                 case DW_SET_PAYLOAD:
                     SetPayloadElement setPayloadElement = (SetPayloadElement) child;
                     addStatementToList(setPayloadElement.script(), setPayloadElement.resource(),
-                            context, ctx, DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME, statementList);
+                            context, ctx, DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME, statementList, namePrefix);
                     statementList.add(stmtFrom("%s.payload = %s;".formatted(Constants.CONTEXT_REFERENCE,
                             DWUtils.DATAWEAVE_OUTPUT_VARIABLE_NAME)));
                     break;
                 case DW_SET_VARIABLE:
                     SetVariableElement setVariableElement = (SetVariableElement) child;
                     addStatementToList(setVariableElement.script(), setVariableElement.resource(),
-                            context, ctx, setVariableElement.variableName(), statementList);
+                            context, ctx, setVariableElement.variableName(), statementList, namePrefix);
                     break;
                 default:
                     // TODO: add this to unsupported blocks in report?
@@ -145,8 +151,9 @@ public class DWReader {
                                            DWContext context,
                                            Context ctx,
                                            String varName,
-                                           List<Statement> statementList) throws DWCodeGenException {
-        String funcStatement = getFunctionStatement(script, resourcePath, context, ctx, varName);
+                                           List<Statement> statementList,
+                                           String namePrefix) throws DWCodeGenException {
+        String funcStatement = getFunctionStatement(script, resourcePath, context, ctx, varName, namePrefix);
         statementList.add(new BallerinaStatement(funcStatement));
         ctx.projectCtx.vars.put(varName, context.currentScriptContext.outputType);
         statementList.add(stmtFrom(
@@ -155,10 +162,12 @@ public class DWReader {
     }
 
     private static String getFunctionStatement(String script, String resourcePath, DWContext context,
-                                               Context ctx, String varName) throws DWCodeGenException {
+                                               Context ctx, String varName,
+                                               String namePrefix) throws DWCodeGenException {
         if (script != null) {
             ParseTree tree = parseScript(script, context);
-            BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);
+            BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats,
+                    namePrefix, ctx.projectCtx.counters.dwFunctionPrefixCounters);
             visitor.visit(tree);
             context.currentScriptContext.funcName = context.functionNames.getLast();
             return buildStatement(context, varName);
@@ -169,7 +178,8 @@ public class DWReader {
         }
         String resolvedPath = resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR);
         ParseTree tree = readDWScriptFromFile(resolvedPath, context);
-        BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);
+        BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats,
+                namePrefix, ctx.projectCtx.counters.dwFunctionPrefixCounters);
         visitor.visit(tree);
         context.currentScriptContext.funcName = context.functionNames.getLast();
         context.scriptCache.put(resourcePath, context.currentScriptContext);

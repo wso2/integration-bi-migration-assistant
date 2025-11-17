@@ -10,6 +10,12 @@ public type Context record {|
     Vars vars = {};
 |};
 
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
 public function getFormattedStringFromDate(string dateString, string format) returns string {
     handle localDateTime = getDateTime(parseInstant(java:fromString(dateString)),
             getZoneId(java:fromString("UTC")));
@@ -20,6 +26,10 @@ public function parseInstant(handle instant) returns handle = @java:Method {
     'class: "java.time.Instant",
     name: "parse"
 } external;
+
+function _dwMethod(Context ctx) returns json|error {
+    return {"a": intToString(1, "##,#"), "b": check getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd").ensureType(json), "c": true.toString()};
+}
 
 public function formatDateTime(handle dateTime, handle formatter) returns handle = @java:Method {
     'class: "java.time.LocalDateTime"
@@ -42,16 +52,6 @@ public function getZoneId(handle zoneId) returns handle = @java:Method {
     name: "of",
     paramTypes: ["java.lang.String"]
 } external;
-
-function _dwMethod0_(Context ctx) returns json|error {
-    return {"a": intToString(1, "##,#"), "b": check getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd").ensureType(json), "c": true.toString()};
-}
-
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
-    ctx.vars._dwOutput_ = _dwOutput_;
-    ctx.payload = _dwOutput_;
-}
 
 public function getFormattedStringFromNumber(handle formatObject, int value) returns handle = @java:Method {
     'class: "java.text.NumberFormat",

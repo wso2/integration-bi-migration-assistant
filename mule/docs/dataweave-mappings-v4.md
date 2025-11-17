@@ -54,16 +54,16 @@ public type Context record {|
     Vars vars = {};
 |};
 
-function _dwMethod0_(Context ctx) returns json|error {
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
+function _dwMethod(Context ctx) returns json|error {
     any[] _var_0 = [0, 1, 2];
     var _var_1 = [3, 4, 5];
     return {"a": check _var_0.push(..._var_1).ensureType(json)};
-}
-
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
-    ctx.vars._dwOutput_ = _dwOutput_;
-    ctx.payload = _dwOutput_;
 }
 
 ```
@@ -93,12 +93,12 @@ public type Context record {|
 |};
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
+    json _dwOutput_ = check _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod0_(Context ctx) returns json|error {
+function _dwMethod(Context ctx) returns json|error {
     var _var_0 = {"aa": "a"};
     return {"concat": check {_var_0, "cc": "c"}.ensureType(json)};
 }
@@ -129,12 +129,12 @@ public type Context record {|
     Vars vars = {};
 |};
 
-function _dwMethod0_(Context ctx) returns json {
+function _dwMethod(Context ctx) returns json {
     return {"name": "Ballerina " + "Conversion"};
 }
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx);
+    json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
@@ -172,12 +172,12 @@ public type Context record {|
 |};
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
+    json _dwOutput_ = check _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod0_(Context ctx) returns json|error {
+function _dwMethod(Context ctx) returns json|error {
     return {
         "date": check time:civilFromString("2021-01-01").ensureType(json),
         "time": check time:civilFromString("23:59:56").ensureType(json),
@@ -214,15 +214,15 @@ public type Context record {|
     Vars vars = {};
 |};
 
-function _dwMethod0_(Context ctx) returns json|error {
-    json payload = check ctx.payload.ensureType(json);
-    return {"name": check payload?.name ?: "Unknown"};
-}
-
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
+    json _dwOutput_ = check _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
+}
+
+function _dwMethod(Context ctx) returns json|error {
+    json payload = check ctx.payload.ensureType(json);
+    return {"name": check payload?.name ?: "Unknown"};
 }
 
 ```
@@ -249,13 +249,13 @@ public type Context record {|
     Vars vars = {};
 |};
 
-function _dwMethod0_(Context ctx) returns json {
+function _dwMethod(Context ctx) returns json {
     var _var_0 = [1, 2, 3, 4];
     return _var_0.filter(element => element > 2);
 }
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx);
+    json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
@@ -284,14 +284,14 @@ public type Context record {|
     Vars vars = {};
 |};
 
-function _dwMethod0_(Context ctx) returns json {
-    return "APPLE".toLowerAscii();
-}
-
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx);
+    json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
+}
+
+function _dwMethod(Context ctx) returns json {
+    return "APPLE".toLowerAscii();
 }
 
 ```
@@ -320,13 +320,13 @@ public type Context record {|
     Vars vars = {};
 |};
 
-function _dwMethod0_(Context ctx) returns json {
+function _dwMethod(Context ctx) returns json {
     var _var_0 = ["john", "peter", "matt"];
     return {"users": _var_0.'map(element => element.toUpperAscii())};
 }
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx);
+    json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
@@ -355,13 +355,13 @@ public type Context record {|
     Vars vars = {};
 |};
 
-function _dwMethod0_(Context ctx) returns json {
+function _dwMethod(Context ctx) returns json {
     var _var_0 = [1, 2, 3, 4];
     return _var_0.'map(element => element + _var_0.indexOf(element));
 }
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx);
+    json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
@@ -390,15 +390,15 @@ public type Context record {|
     Vars vars = {};
 |};
 
-function _dwMethod0_(Context ctx) returns json {
-    var _var_0 = [1, 2, 3, 4];
-    return _var_0.'map(element => _var_0.indexOf(element) + 1);
-}
-
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx);
+    json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
+}
+
+function _dwMethod(Context ctx) returns json {
+    var _var_0 = [1, 2, 3, 4];
+    return _var_0.'map(element => _var_0.indexOf(element) + 1);
 }
 
 ```
@@ -426,12 +426,12 @@ public type Context record {|
 |};
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx);
+    json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod0_(Context ctx) returns json {
+function _dwMethod(Context ctx) returns json {
     var _var_0 = [1, 2, 3, 4];
     return _var_0.'map(element => element + 1);
 }
@@ -461,12 +461,12 @@ public type Context record {|
 |};
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx);
+    json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod0_(Context ctx) returns json {
+function _dwMethod(Context ctx) returns json {
     var _var_0 = ["john", "peter", "matt"];
     return _var_0.'map(element => _var_0.indexOf(element).toString() + ":" + element.toUpperAscii());
 }
@@ -498,12 +498,12 @@ public type Context record {|
 |};
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx);
+    json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod0_(Context ctx) returns json {
+function _dwMethod(Context ctx) returns json {
     string:RegExp _pattern_ = re `/(\d+)/`;
     var _var_0 = "admin123";
     return {"b": _pattern_.replace(_var_0, "ID")};
@@ -536,12 +536,12 @@ public type Context record {|
 |};
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
+    json _dwOutput_ = check _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod0_(Context ctx) returns json|error {
+function _dwMethod(Context ctx) returns json|error {
     json payload = check ctx.payload.ensureType(json);
     return {"hail1": check payload.resultSet1};
 }
@@ -572,13 +572,13 @@ public type Context record {|
     Vars vars = {};
 |};
 
-function _dwMethod0_(Context ctx) returns json {
+function _dwMethod(Context ctx) returns json {
     var _var_0 = [1, 2, 3, 4];
     return {"hail1": _var_0.length()};
 }
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx);
+    json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
@@ -607,14 +607,14 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function sampleFlow(Context ctx) {
-    string _dwOutput_ = _dwMethod0_(ctx);
-    ctx.vars._dwOutput_ = _dwOutput_;
-    ctx.payload = _dwOutput_;
+function _dwMethod(Context ctx) returns string {
+    return "Hello World";
 }
 
-function _dwMethod0_(Context ctx) returns string {
-    return "Hello World";
+public function sampleFlow(Context ctx) {
+    string _dwOutput_ = _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
 }
 
 ```
@@ -647,19 +647,19 @@ public type Context record {|
     Vars vars = {};
 |};
 
-function _dwMethod0_(Context ctx) returns json|error {
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
+function _dwMethod(Context ctx) returns json|error {
     time:Utc _utcValue_ = check time:utcFromCivil(check time:civilFromString("2005-06-02T15:10:16Z"));
     return {
         "mydate1": check (check time:utcFromCivil(check time:civilFromString("2005-06-02T15:10:16Z")))[0].ensureType(json),
         "mydate2": check (_utcValue_[0] * 1000 + <int>(_utcValue_[1] * 1000)).ensureType(json),
         "mydate3": check (check time:utcFromCivil(check time:civilFromString("2005-06-02T15:10:16Z")))[0].ensureType(json)
     };
-}
-
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
-    ctx.vars._dwOutput_ = _dwOutput_;
-    ctx.payload = _dwOutput_;
 }
 
 ```
@@ -693,6 +693,12 @@ public type Context record {|
     Vars vars = {};
 |};
 
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
 public function getFormattedStringFromDate(string dateString, string format) returns string {
     handle localDateTime = getDateTime(parseInstant(java:fromString(dateString)),
             getZoneId(java:fromString("UTC")));
@@ -703,6 +709,10 @@ public function parseInstant(handle instant) returns handle = @java:Method {
     'class: "java.time.Instant",
     name: "parse"
 } external;
+
+function _dwMethod(Context ctx) returns json|error {
+    return {"a": intToString(1, "##,#"), "b": check getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd").ensureType(json), "c": true.toString()};
+}
 
 public function formatDateTime(handle dateTime, handle formatter) returns handle = @java:Method {
     'class: "java.time.LocalDateTime"
@@ -725,16 +735,6 @@ public function getZoneId(handle zoneId) returns handle = @java:Method {
     name: "of",
     paramTypes: ["java.lang.String"]
 } external;
-
-function _dwMethod0_(Context ctx) returns json|error {
-    return {"a": intToString(1, "##,#"), "b": check getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd").ensureType(json), "c": true.toString()};
-}
-
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
-    ctx.vars._dwOutput_ = _dwOutput_;
-    ctx.payload = _dwOutput_;
-}
 
 public function getFormattedStringFromNumber(handle formatObject, int value) returns handle = @java:Method {
     'class: "java.text.NumberFormat",
@@ -781,12 +781,12 @@ public type Context record {|
 |};
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
+    json _dwOutput_ = check _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod0_(Context ctx) returns json|error {
+function _dwMethod(Context ctx) returns json|error {
     return check int:fromString("10");
 }
 
@@ -815,12 +815,12 @@ public type Context record {|
 |};
 
 public function sampleFlow(Context ctx) {
-    string _dwOutput_ = _dwMethod0_(ctx);
+    string _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod0_(Context ctx) returns string {
+function _dwMethod(Context ctx) returns string {
     return 10.toString();
 }
 
@@ -854,6 +854,12 @@ public type Context record {|
     Vars vars = {};
 |};
 
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
 public function UTC() returns handle = @java:FieldGet {
     'class: "java.time.ZoneOffset",
     name: "UTC"
@@ -870,7 +876,7 @@ public function getDateFromFormattedString(string dateString, string format) ret
     return check time:utcFromString(toInstant(localDateTime, UTC()).toString());
 }
 
-function _dwMethod0_(Context ctx) returns json|error {
+function _dwMethod(Context ctx) returns json|error {
     return {"a": time:utcToString([1436287232, 0]), "b": check getDateFromFormattedString("2015-10-07 16:40:32.000", "yyyy-MM-dd HH:mm:ss.SSS")};
 }
 
@@ -884,12 +890,6 @@ public function toInstant(handle localDateTime, handle zoneOffset) returns handl
     'class: "java.time.LocalDateTime",
     paramTypes: ["java.time.ZoneOffset"]
 } external;
-
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
-    ctx.vars._dwOutput_ = _dwOutput_;
-    ctx.payload = _dwOutput_;
-}
 
 ```
 
@@ -915,14 +915,14 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx);
-    ctx.vars._dwOutput_ = _dwOutput_;
-    ctx.payload = _dwOutput_;
+function _dwMethod(Context ctx) returns json {
+    return "apple".toUpperAscii();
 }
 
-function _dwMethod0_(Context ctx) returns json {
-    return "apple".toUpperAscii();
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
 }
 
 ```
@@ -954,12 +954,12 @@ public type Context record {|
 |};
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
+    json _dwOutput_ = check _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod0_(Context ctx) returns json|error {
+function _dwMethod(Context ctx) returns json|error {
     json payload = check ctx.payload.ensureType(json);
     json _var_0;
     if check payload.country == "USA" {
@@ -999,12 +999,12 @@ public type Context record {|
 |};
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
+    json _dwOutput_ = check _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod0_(Context ctx) returns json|error {
+function _dwMethod(Context ctx) returns json|error {
     json payload = check ctx.payload.ensureType(json);
     json _var_0;
     if check payload.country == "USA" {
