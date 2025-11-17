@@ -7,13 +7,13 @@ public type Context record {|
     Vars vars = {};
 |};
 
-function _dwMethod0_(Context ctx) returns json {
-    var _var_0 = [1, 2, 3, 4];
-    return _var_0.filter(element => element > 2);
-}
-
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod0_(ctx);
+    json _dwOutput_ = _dwMethod_(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
+}
+
+function _dwMethod_(Context ctx) returns json {
+    var _var_0 = [1, 2, 3, 4];
+    return _var_0.filter(element => element > 2);
 }

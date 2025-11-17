@@ -7,12 +7,12 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
-    ctx.vars._dwOutput_ = _dwOutput_;
-    ctx.payload = _dwOutput_;
+function _dwMethod_(Context ctx) returns json|error {
+    return check int:fromString("10");
 }
 
-function _dwMethod0_(Context ctx) returns json|error {
-    return check int:fromString("10");
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod_(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
 }

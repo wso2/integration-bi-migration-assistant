@@ -7,13 +7,7 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
-    ctx.vars._dwOutput_ = _dwOutput_;
-    ctx.payload = _dwOutput_;
-}
-
-function _dwMethod0_(Context ctx) returns json|error {
+function _dwMethod_(Context ctx) returns json|error {
     json payload = check ctx.payload.ensureType(json);
     json _var_0;
     if check payload.country == "USA" {
@@ -22,4 +16,10 @@ function _dwMethod0_(Context ctx) returns json|error {
         _var_0 = {"currency": "EUR"};
     }
     return _var_0;
+}
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod_(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
 }

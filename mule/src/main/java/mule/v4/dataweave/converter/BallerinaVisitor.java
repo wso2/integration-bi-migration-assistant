@@ -30,6 +30,8 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import static common.BallerinaModel.BlockFunctionBody;
@@ -49,13 +51,20 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     private final DWContext dwContext;
     private final Context ctx;
     private int varCount = 0;
+    private final String namePrefix;
+    private final Map<String, Integer> prefixCounters;
 
     private final DWConversionStats stats;
 
-    public BallerinaVisitor(DWContext context, Context ctx, DWConversionStats dwConversionStats) {
+    public BallerinaVisitor(DWContext context, Context ctx, DWConversionStats dwConversionStats, String namePrefix,
+                            Map<String, Integer> prefixCounters) {
+        Objects.requireNonNull(namePrefix);
+        assert !namePrefix.isEmpty();
         this.dwContext = context;
         this.ctx = ctx;
         this.stats = dwConversionStats;
+        this.namePrefix = namePrefix;
+        this.prefixCounters = prefixCounters;
     }
 
     @Override
@@ -133,7 +142,9 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitBody(DataWeaveParser.BodyContext ctx) {
-        String methodName = String.format(DWUtils.DW_FUNCTION_NAME, this.ctx.projectCtx.counters.dwMethodCount++);
+        int count = prefixCounters.getOrDefault(namePrefix, 0);
+        String methodName = count == 0 ? namePrefix + "_" : namePrefix + count + "_";
+        prefixCounters.put(namePrefix, count + 1);
         visitChildren(ctx);
         dwContext.finalizeFunction();
         String outputType = dwContext.currentScriptContext.outputType;

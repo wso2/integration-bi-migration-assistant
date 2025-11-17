@@ -407,5 +407,6 @@ public class Context extends ContextBase {
         public int firstSuccessfulCount = 0;
         public int firstSuccessfulFuncCount = 0;
         public int requestPathBuilderCount = 0;
+        public Map<String, Integer> dwFunctionPrefixCounters = new HashMap<>();
     }
 }

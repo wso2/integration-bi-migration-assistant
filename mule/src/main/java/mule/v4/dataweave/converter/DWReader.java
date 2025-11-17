@@ -158,7 +158,8 @@ public class DWReader {
                                                Context ctx, String varName) throws DWCodeGenException {
         if (script != null) {
             ParseTree tree = parseScript(script, context);
-            BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);
+            BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats,
+                    "_dwMethod", ctx.projectCtx.counters.dwFunctionPrefixCounters);
             visitor.visit(tree);
             context.currentScriptContext.funcName = context.functionNames.getLast();
             return buildStatement(context, varName);
@@ -169,7 +170,8 @@ public class DWReader {
         }
         String resolvedPath = resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR);
         ParseTree tree = readDWScriptFromFile(resolvedPath, context);
-        BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);
+        BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats,
+                "_dwMethod", ctx.projectCtx.counters.dwFunctionPrefixCounters);
         visitor.visit(tree);
         context.currentScriptContext.funcName = context.functionNames.getLast();
         context.scriptCache.put(resourcePath, context.currentScriptContext);

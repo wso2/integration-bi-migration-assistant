@@ -26,7 +26,7 @@ public function getDateFromFormattedString(string dateString, string format) ret
     return check time:utcFromString(toInstant(localDateTime, UTC()).toString());
 }
 
-function _dwMethod0_(Context ctx) returns json|error {
+function _dwMethod_(Context ctx) returns json|error {
     return {"a": time:utcToString([1436287232, 0]), "b": check getDateFromFormattedString("2015-10-07 16:40:32.000", "yyyy-MM-dd HH:mm:ss.SSS")};
 }
 
@@ -42,7 +42,7 @@ public function toInstant(handle localDateTime, handle zoneOffset) returns handl
 } external;
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod0_(ctx);
+    json _dwOutput_ = check _dwMethod_(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
