@@ -90,9 +90,11 @@ public record MuleModel() {
         }
     }
 
-    public record TransformMessage(Kind kind, List<TransformMessageElement> children) implements MuleRecord {
-        public TransformMessage(List<TransformMessageElement> children) {
-            this(Kind.TRANSFORM_MESSAGE, children);
+    public record TransformMessage(Kind kind, Optional<String> name,
+                                   List<TransformMessageElement> children) implements MuleRecord {
+
+        public TransformMessage(Optional<String> name, List<TransformMessageElement> children) {
+            this(Kind.TRANSFORM_MESSAGE, name, children);
         }
     }
 

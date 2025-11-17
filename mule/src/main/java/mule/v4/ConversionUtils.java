@@ -151,6 +151,33 @@ public class ConversionUtils {
     }
 
     /**
+     * Converts space-separated text to camelCase. Example: "Transform to Mule Domain" becomes "transformToMuleDomain"
+     *
+     * @param spaceSeparatedText space-separated text
+     * @return camelCase string
+     */
+    public static String convertToCamelCase(String spaceSeparatedText) {
+        if (spaceSeparatedText == null || spaceSeparatedText.isEmpty()) {
+            return spaceSeparatedText;
+        }
+        String[] words = spaceSeparatedText.trim().split("\\s+");
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < words.length; i++) {
+            String word = words[i];
+            if (word.isEmpty()) {
+                continue;
+            }
+            if (i == 0) {
+                result.append(word.toLowerCase());
+            } else {
+                result.append(Character.toUpperCase(word.charAt(0)))
+                        .append(word.substring(1).toLowerCase());
+            }
+        }
+        return convertToBalIdentifier(result.toString());
+    }
+
+    /**
      * Converts a mule variable name to a Ballerina identifier syntax by:
      * 1. Escaping special characters with a preceding `\`
      * 2. Adding a single quote prefix if the identifier is a Ballerina keyword

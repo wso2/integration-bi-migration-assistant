@@ -143,7 +143,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     @Override
     public Void visitBody(DataWeaveParser.BodyContext ctx) {
         int count = prefixCounters.getOrDefault(namePrefix, 0);
-        String methodName = count == 0 ? namePrefix + "_" : namePrefix + count + "_";
+        String methodName = count == 0 ? namePrefix : namePrefix + count;
         prefixCounters.put(namePrefix, count + 1);
         visitChildren(ctx);
         dwContext.finalizeFunction();

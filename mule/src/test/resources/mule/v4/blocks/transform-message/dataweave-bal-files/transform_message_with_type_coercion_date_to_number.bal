@@ -10,12 +10,12 @@ public type Context record {|
 |};
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod_(ctx);
+    json _dwOutput_ = check _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod_(Context ctx) returns json|error {
+function _dwMethod(Context ctx) returns json|error {
     time:Utc _utcValue_ = check time:utcFromCivil(check time:civilFromString("2005-06-02T15:10:16Z"));
     return {
         "mydate1": check (check time:utcFromCivil(check time:civilFromString("2005-06-02T15:10:16Z")))[0].ensureType(json),

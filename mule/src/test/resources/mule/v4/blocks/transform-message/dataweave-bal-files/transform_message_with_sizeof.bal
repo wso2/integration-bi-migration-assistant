@@ -7,13 +7,13 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = _dwMethod_(ctx);
-    ctx.vars._dwOutput_ = _dwOutput_;
-    ctx.payload = _dwOutput_;
-}
-
-function _dwMethod_(Context ctx) returns json {
+function _dwMethod(Context ctx) returns json {
     var _var_0 = [1, 2, 3, 4];
     return {"hail1": _var_0.length()};
+}
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
 }

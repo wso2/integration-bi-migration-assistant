@@ -1005,8 +1005,11 @@ public class MuleConfigConverter {
 
     private static WorkerStatementResult convertTransformMessage(Context ctx, TransformMessage transformMsg) {
         List<Statement> stmts = new ArrayList<>();
+        String namePrefix = transformMsg.name()
+                .map(ConversionUtils::convertToCamelCase)
+                .orElse("_dwMethod");
         try {
-            DWReader.processDWElements(transformMsg.children(), ctx, stmts);
+            DWReader.processDWElements(transformMsg.children(), ctx, stmts, namePrefix);
         } catch (DWCodeGenException e) {
             stmts.add(new Statement.Comment("FIXME: failed to convert DataWeave script "
                     + e.getScriptIdentifier()));

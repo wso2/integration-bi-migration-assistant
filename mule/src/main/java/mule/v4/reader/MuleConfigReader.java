@@ -1004,6 +1004,9 @@ public class MuleConfigReader {
     }
 
     private static TransformMessage readTransformMessage(Context ctx, MuleElement muleElement) {
+        String docName = muleElement.getElement().getAttribute("doc:name");
+        Optional<String> name = (docName == null || docName.isEmpty()) ? Optional.empty() : Optional.of(docName);
+
         List<TransformMessageElement> transformMessageElements = new ArrayList<>();
         while (muleElement.peekChild() != null) {
             MuleElement child = muleElement.consumeChild();
@@ -1022,7 +1025,7 @@ public class MuleConfigReader {
                 default -> throw new UnsupportedOperationException("Unsupported ee:transform child: " + muleXMLTag);
             }
         }
-        return new TransformMessage(transformMessageElements);
+        return new TransformMessage(name, transformMessageElements);
     }
 
     private static void processTransformMessageChildren(MuleElement parent, List<TransformMessageElement> elements) {

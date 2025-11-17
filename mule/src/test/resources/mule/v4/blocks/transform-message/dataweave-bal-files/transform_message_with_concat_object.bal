@@ -8,12 +8,12 @@ public type Context record {|
 |};
 
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod_(ctx);
+    json _dwOutput_ = check _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod_(Context ctx) returns json|error {
+function _dwMethod(Context ctx) returns json|error {
     var _var_0 = {"aa": "a"};
     return {"concat": check {_var_0, "cc": "c"}.ensureType(json)};
 }

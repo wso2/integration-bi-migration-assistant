@@ -21,7 +21,7 @@ public listener http:Listener config = new (8081);
 service /foo on config {
     resource function get .(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
-        json _dwOutput_ = check _dwMethod_(ctx);
+        json _dwOutput_ = check transformMessage(ctx);
         ctx.vars._dwOutput_ = _dwOutput_;
         ctx.payload = _dwOutput_;
 
@@ -30,7 +30,7 @@ service /foo on config {
     }
 }
 
-function _dwMethod_(Context ctx) returns json|error {
+function transformMessage(Context ctx) returns json|error {
     return {
         "s1": "Hello World",
         "s2": "Hello World",
