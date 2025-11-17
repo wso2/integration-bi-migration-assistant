@@ -225,6 +225,7 @@ grouped: '(' expression ')';
 
 selectorExpression
     : DOT IDENTIFIER                         # singleValueSelector
+    | DOT STRING                             # keySelector
     | DOT STAR IDENTIFIER                    # multiValueSelector
     | OPERATOR_RANGE IDENTIFIER              # descendantsSelector
     | LSQUARE expression RSQUARE             # indexedSelector

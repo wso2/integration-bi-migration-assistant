@@ -632,6 +632,18 @@ public interface DataWeaveListener extends ParseTreeListener {
 	 */
 	void exitSingleValueSelector(DataWeaveParser.SingleValueSelectorContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code keySelector}
+	 * labeled alternative in {@link DataWeaveParser#selectorExpression}.
+	 * @param ctx the parse tree
+	 */
+	void enterKeySelector(DataWeaveParser.KeySelectorContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code keySelector}
+	 * labeled alternative in {@link DataWeaveParser#selectorExpression}.
+	 * @param ctx the parse tree
+	 */
+	void exitKeySelector(DataWeaveParser.KeySelectorContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code multiValueSelector}
 	 * labeled alternative in {@link DataWeaveParser#selectorExpression}.
 	 * @param ctx the parse tree
