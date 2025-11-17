@@ -40,9 +40,12 @@ import static common.BallerinaModel.Import;
 import static common.BallerinaModel.Parameter;
 import static common.BallerinaModel.Statement;
 import static common.ConversionUtils.typeFrom;
+import static mule.v4.Constants.ATTRIBUTES_FIELD_ACCESS;
 import static mule.v4.Constants.BAL_HANDLE_TYPE;
 import static mule.v4.Constants.BAL_INT_TYPE;
 import static mule.v4.Constants.BAL_STRING_TYPE;
+import static mule.v4.Constants.HTTP_REQUEST_REF;
+import static mule.v4.Constants.HTTP_REQUEST_TYPE;
 
 public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
@@ -242,12 +245,48 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     public Void visitSelectorExpressionWrapperWithDefault(
             DataWeaveParser.SelectorExpressionWrapperWithDefaultContext ctx) {
         dwContext.inDefaultAccess = true;
-        visit(ctx.primaryExpression());
-        visit(ctx.selectorExpression());
-        dwContext.append(" ?: ");
+        boolean headerAttributeAccess = isHeaderAttributeAccess(ctx.primaryExpression());
+        StringBuilder exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
+        if (headerAttributeAccess) {
+            exprBuilder.append("(");
+            handleAttributeHeaderAccess(ctx.primaryExpression(), ctx.selectorExpression());
+        } else {
+            visit(ctx.primaryExpression());
+            visit(ctx.selectorExpression());
+        }
+        if (headerAttributeAccess) {
+            dwContext.append(" : ");
+        } else {
+            dwContext.append(" ?: ");
+        }
         visit(ctx.expression());
+        if (headerAttributeAccess) {
+            exprBuilder.append(")");
+        }
         dwContext.inDefaultAccess = false;
         return null;
+    }
+
+    private static boolean isHeaderAttributeAccess(DataWeaveParser.PrimaryExpressionContext primaryExpression) {
+        return primaryExpression.getText().equals("attributes.headers");
+    }
+
+    private void handleAttributeHeaderAccess(DataWeaveParser.PrimaryExpressionContext primaryExpression,
+                                             DataWeaveParser.SelectorExpressionContext selectorExpression) {
+        var exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
+        attributeHeaderCheck(selectorExpression, "hasHeader");
+        exprBuilder.append(" ? ");
+        attributeHeaderCheck(selectorExpression, "getHeader");
+    }
+
+    private void attributeHeaderCheck(DataWeaveParser.SelectorExpressionContext selectorExpression, String methodName) {
+        var exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
+        exprBuilder.append("(<").append(HTTP_REQUEST_TYPE).append(">").append(ATTRIBUTES_FIELD_ACCESS).append(".")
+                .append(HTTP_REQUEST_REF).append(").").append(methodName).append("(\"");
+        this.dwContext.inKeyAccess = true;
+        visit(selectorExpression);
+        this.dwContext.inKeyAccess = false;
+        exprBuilder.append("\")");
     }
 
     @Override
@@ -828,14 +867,30 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitSelectorExpressionWrapper(DataWeaveParser.SelectorExpressionWrapperContext ctx) {
-        visit(ctx.primaryExpression());
-        return visit(ctx.selectorExpression());
+        boolean headerAttributeAccess = isHeaderAttributeAccess(ctx.primaryExpression());
+        if (headerAttributeAccess) {
+            StringBuilder exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
+            exprBuilder.append("(");
+            handleAttributeHeaderAccess(ctx.primaryExpression(), ctx.selectorExpression());
+            exprBuilder.append(": error(\"no such header\"))");
+        } else {
+            visit(ctx.primaryExpression());
+            visit(ctx.selectorExpression());
+        }
+        return null;
     }
 
     @Override
     public Void visitSingleValueSelector(DataWeaveParser.SingleValueSelectorContext ctx) {
-        String access = dwContext.inDefaultAccess ? "?." : ".";
-        dwContext.append(access).append(ctx.IDENTIFIER().getText());
+        String accessOp;
+        if (dwContext.inKeyAccess) {
+            accessOp = "";
+        } else if (dwContext.inDefaultAccess) {
+            accessOp = "?.";
+        } else {
+            accessOp = ".";
+        }
+        dwContext.append(accessOp).append(ctx.IDENTIFIER().getText());
         dwContext.addCheckExpr();
         stats.record(DWConstruct.SINGLE_VALUE_SELECTOR, true);
         return null;
