@@ -1107,13 +1107,6 @@ service on file_config {
         }
     }
 
-    remote function onDelete(file:FileEvent event) {
-        Context ctx = {attributes: {}};
-        if regex:matches(event.name, ".*\.csv") {
-            fileListnerFlow(ctx);
-        }
-    }
-
     remote function onModify(file:FileEvent event) {
         Context ctx = {attributes: {}};
         if regex:matches(event.name, ".*\.csv") {
@@ -1180,13 +1173,6 @@ public listener file:Listener file_config = new (
 // TODO: directory attribute not supported: csv
 service on file_config {
     remote function onCreate(file:FileEvent event) {
-        Context ctx = {attributes: {}};
-        if regex:matches(event.name, ".*\.csv") {
-            fileListnerFlow(ctx);
-        }
-    }
-
-    remote function onDelete(file:FileEvent event) {
         Context ctx = {attributes: {}};
         if regex:matches(event.name, ".*\.csv") {
             fileListnerFlow(ctx);
@@ -1263,13 +1249,6 @@ public listener file:Listener file_config = new (
 // TODO: directory attribute not supported: csv
 service on file_config {
     remote function onCreate(file:FileEvent event) {
-        Context ctx = {attributes: {}};
-        if regex:matches(event.name, ".*\.csv") {
-            fileListnerFlow(ctx);
-        }
-    }
-
-    remote function onDelete(file:FileEvent event) {
         Context ctx = {attributes: {}};
         if regex:matches(event.name, ".*\.csv") {
             fileListnerFlow(ctx);

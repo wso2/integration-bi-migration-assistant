@@ -29,13 +29,6 @@ service on file_config {
         }
     }
 
-    remote function onDelete(file:FileEvent event) {
-        Context ctx = {attributes: {}};
-        if regex:matches(event.name, ".*\.csv") {
-            fileListnerFlow(ctx);
-        }
-    }
-
     remote function onModify(file:FileEvent event) {
         Context ctx = {attributes: {}};
         if regex:matches(event.name, ".*\.csv") {

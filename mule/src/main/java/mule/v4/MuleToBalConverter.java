@@ -432,8 +432,8 @@ public class MuleToBalConverter {
             ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_REGEX));
         }
 
-        // Generate each remote function (onCreate, onDelete, onModify)
-        for (String eventType : new String[]{"onCreate", "onDelete", "onModify"}) {
+        // Generate each remote function (onCreate, onModify)
+        for (String eventType : new String[]{"onCreate", "onModify"}) {
             List<Statement> remoteBody = new ArrayList<>();
             remoteBody.add(stmtFrom("Context %s = { %s : {}};".formatted(
                     Constants.CONTEXT_REFERENCE, Constants.ATTRIBUTES_REF)));

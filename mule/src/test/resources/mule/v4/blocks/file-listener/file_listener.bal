@@ -25,11 +25,6 @@ service on file_config {
         fileListnerFlow(ctx);
     }
 
-    remote function onDelete(file:FileEvent event) {
-        Context ctx = {attributes: {}};
-        fileListnerFlow(ctx);
-    }
-
     remote function onModify(file:FileEvent event) {
         Context ctx = {attributes: {}};
         fileListnerFlow(ctx);
