@@ -60,6 +60,7 @@ public class Constants {
     public static final String HTTP_RESPONSE_REF = "response";
     public static final String PAYLOAD_REF = "payload";
     public static final String URI_PARAMS_REF = "uriParams";
+    public static final String JMS_MESSAGE_REF = "jmsMessage";
     public static final String VARS_FIELD_ACCESS = CONTEXT_REFERENCE + "." + VARS_REF;
     public static final String ATTRIBUTES_FIELD_ACCESS = CONTEXT_REFERENCE + "." + ATTRIBUTES_REF;
     public static final String PAYLOAD_FIELD_ACCESS = CONTEXT_REFERENCE + "." + PAYLOAD_REF;
@@ -120,4 +121,5 @@ public class Constants {
     public static final BallerinaType BAL_ERROR_TYPE = typeFrom("error");
     public static final BallerinaType BAL_HANDLE_TYPE = typeFrom("handle");
     public static final BallerinaType BAL_ANYDATA_TYPE = typeFrom("anydata");
+
 }

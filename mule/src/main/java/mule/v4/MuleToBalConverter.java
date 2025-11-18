@@ -65,6 +65,7 @@ import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
 import static mule.v4.Constants.BAL_ANYDATA_TYPE;
 import static mule.v4.Constants.HTTP_RESPONSE_TYPE;
+import static mule.v4.Constants.JMS_MESSAGE_REF;
 import static mule.v4.ConversionUtils.convertToBalIdentifier;
 import static mule.v4.ConversionUtils.getAttrVal;
 import static mule.v4.ConversionUtils.getAttrValInt;
@@ -294,6 +295,7 @@ public class MuleToBalConverter {
     private static void genAnypointMqSource(Context ctx, Flow flow, AnypointMqSubscriber mqSubscriber,
                                             Collection<Service> services, List<Listener> listeners) {
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
+        ctx.projectCtx.attributes.put(Constants.JMS_MESSAGE_REF, Constants.JMS_MESSAGE_TYPE);
 
         // Add JMS import
         ctx.currentFileCtx.balConstructs.imports.add(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_JMS));
@@ -317,16 +319,16 @@ public class MuleToBalConverter {
                 Optional.empty());
         listeners.add(jmsListener);
 
+        Parameter message = new Parameter("message", typeFrom(Constants.JMS_MESSAGE_TYPE));
         // Convert flow blocks to statements
         List<Statement> bodyStmts = new ArrayList<>();
-        String attributesInitValue = "{}";
+        String attributesInitValue = "{ %s: %s }".formatted(JMS_MESSAGE_REF, message.ref());
         bodyStmts.add(stmtFrom("Context %s = {%s: %s};".formatted(Constants.CONTEXT_REFERENCE,
                 Constants.ATTRIBUTES_REF, attributesInitValue)));
         bodyStmts.addAll(convertTopLevelMuleBlocks(ctx, flow.flowBlocks()));
 
-        // Create remote function for onMessage
         List<Parameter> params = new ArrayList<>();
-        params.add(new Parameter("message", typeFrom(Constants.JMS_MESSAGE_TYPE)));
+        params.add(message);
 
         Function onMessageFunction = new Function("onMessage", params, bodyStmts);
         Remote remoteFunction = new Remote(onMessageFunction);
