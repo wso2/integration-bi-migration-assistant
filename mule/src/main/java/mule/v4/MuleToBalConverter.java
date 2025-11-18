@@ -22,6 +22,8 @@ import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+
+import mule.common.MuleLogger;
 import mule.v4.converter.ScriptConversionException;
 import mule.v4.model.MuleModel.AnypointMqSubscriber;
 import mule.v4.model.MuleModel.ApiKitConfig;
@@ -93,7 +95,7 @@ import static mule.v4.model.MuleModel.VMListener;
 
 public class MuleToBalConverter {
 
-    public static SyntaxTree convertStandaloneXMLFileToBallerina(String xmlFilePath, mule.common.MuleLogger logger) {
+    public static SyntaxTree convertStandaloneXMLFileToBallerina(String xmlFilePath, MuleLogger logger) {
         Context ctx = new Context(List.of(Path.of(xmlFilePath).toFile()), List.of(), logger);
         ctx.parseAllFiles();
         TextDocument txtDoc = ctx.codeGen().getFirst();
@@ -240,7 +242,7 @@ public class MuleToBalConverter {
         ctx.inServiceGen = true;
         // TODO: Common with httpSource refactor
         ctx.projectCtx.attributes.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_TYPE);
-        ctx.projectCtx.attributes.put(Constants.HTTP_RESPONSE_REF, Constants.HTTP_RESPONSE_TYPE);
+        ctx.projectCtx.attributes.put(Constants.HTTP_RESPONSE_REF, HTTP_RESPONSE_TYPE);
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
 
         if (lastHttpService == null) {
@@ -279,10 +281,10 @@ public class MuleToBalConverter {
         bodyStmts.addAll(bodyCoreStmts);
 
         // Add return statement
-        bodyStmts.add(stmtFrom("\n\n(<%s>%s.%s).setPayload(%s.payload);".formatted(Constants.HTTP_RESPONSE_TYPE,
+        bodyStmts.add(stmtFrom("\n\n(<%s>%s.%s).setPayload(%s.payload);".formatted(HTTP_RESPONSE_TYPE,
                 Constants.ATTRIBUTES_FIELD_ACCESS, Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
         bodyStmts.add(
-                stmtFrom("return <%s>%s.%s;".formatted(Constants.HTTP_RESPONSE_TYPE, Constants.ATTRIBUTES_FIELD_ACCESS,
+                stmtFrom("return <%s>%s.%s;".formatted(HTTP_RESPONSE_TYPE, Constants.ATTRIBUTES_FIELD_ACCESS,
                         Constants.HTTP_RESPONSE_REF)));
 
         // Add service resources
@@ -292,6 +294,11 @@ public class MuleToBalConverter {
         Resource resource = new Resource(resourceMethod, combinedResourcePath, queryPrams, Optional.of(returnType),
                 bodyStmts);
         lastHttpService.resources().add(resource);
+        lastHttpService.initFunc().map(initFn -> switch (initFn.body()) {
+            case BlockFunctionBody blockFunctionBody -> blockFunctionBody.statements().addAll(ctx.initFunctionBody);
+            default -> throw new IllegalStateException("Unexpected value: " + initFn.body());
+        });
+        lastHttpService.fields().addAll(ctx.serviceFields);
         ctx.resetServiceState();
     }
 
@@ -299,7 +306,7 @@ public class MuleToBalConverter {
                                             Collection<Service> services, List<Listener> listeners) {
         ctx.inServiceGen = true;
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
-        ctx.projectCtx.attributes.put(Constants.JMS_MESSAGE_REF, Constants.JMS_MESSAGE_TYPE);
+        ctx.projectCtx.attributes.put(JMS_MESSAGE_REF, Constants.JMS_MESSAGE_TYPE);
 
         // Add JMS import
         ctx.currentFileCtx.balConstructs.imports.add(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_JMS));
@@ -351,10 +358,10 @@ public class MuleToBalConverter {
                                                                     VariableReference providerUrl,
                                                                     String mqConfigRef) {
         return ctx.projectCtx.jmsConnectionConfig.computeIfAbsent(mqConfigRef, (configRef) -> {
-            String jmsListenerConfigName = configRef + "Config";
+            String jmsListenerConfigName = ConversionUtils.convertToBalIdentifier(configRef) + "Config";
             ctx.currentFileCtx.balConstructs.moduleVars.put(jmsListenerConfigName,
                     new ModuleVar(jmsListenerConfigName,
-                            common.ConversionUtils.typeFrom(JMS_CONNECTION_CONFIGURATION_TYPE),
+                            typeFrom(JMS_CONNECTION_CONFIGURATION_TYPE),
                             new Expression.MappingConstructor(List.of(
                                     new Expression.MappingConstructor.MappingField("initialContextFactory",
                                             new Expression.StringConstant(
@@ -369,6 +376,7 @@ public class MuleToBalConverter {
     private static void genPubSubSource(Context ctx, Flow flow, PubSubMessageListener pubSubListener,
                                         Collection<Service> services, List<Listener> listeners) {
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
+        ctx.inServiceGen = true;
 
         // Add Pub/Sub import
         ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_PUBSUB));
@@ -411,15 +419,17 @@ public class MuleToBalConverter {
         Remote remoteFunction = new Remote(onMessageFunction);
 
         // Create service with listener reference
-        Service service = new Service("", List.of(listenerName), Optional.empty(),
-                List.of(), List.of(), List.of(), List.of(remoteFunction),
+        Service service = new Service("", List.of(listenerName), ctx.getServiceInitFunction(),
+                List.of(), List.of(), new ArrayList<>(ctx.serviceFields), List.of(remoteFunction),
                 Optional.of(new Statement.Comment(
                         "TODO: placeholder listener for %s".formatted(pubSubListener.configRef()))));
+        ctx.resetServiceState();
         services.add(service);
     }
 
     private static void genFileListenerSource(Context ctx, Flow flow, FileListener fileListener,
                                               Collection<Service> services, List<Listener> listeners) {
+        ctx.inServiceGen = true;
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
 
         // Add file and regex imports
@@ -489,8 +499,9 @@ public class MuleToBalConverter {
                 : Optional.of(new Statement.Comment(String.join("\n", todoComments)));
 
         // Create service with listener reference
-        Service service = new Service("", List.of(listenerName), Optional.empty(),
-                List.of(), List.of(), List.of(), remoteFunctions, serviceComment);
+        Service service = new Service("", List.of(listenerName), ctx.getServiceInitFunction(),
+                List.of(), List.of(), new ArrayList<>(ctx.serviceFields), remoteFunctions, serviceComment);
+        ctx.resetServiceState();
         services.add(service);
     }
 
@@ -518,7 +529,7 @@ public class MuleToBalConverter {
     }
 
     private static @NotNull String createFlowFunction(Context ctx, Flow flow) {
-        String flowFuncName = ConversionUtils.convertToBalIdentifier(flow.name());
+        String flowFuncName = convertToBalIdentifier(flow.name());
         List<Statement> flowBody = convertTopLevelMuleBlocks(ctx, flow.flowBlocks());
         Function flowFunction = Function.publicFunction(flowFuncName, Constants.FUNC_PARAMS_WITH_CONTEXT, flowBody);
         ctx.currentFileCtx.balConstructs.functions.add(flowFunction);
@@ -562,7 +573,7 @@ public class MuleToBalConverter {
         String queueName = vmListener.queueName();
         String funcName = ctx.projectCtx.vmQueueNameToBalFuncMap.get(queueName);
         if (funcName == null) {
-            funcName = ConversionUtils.convertToBalIdentifier(flow.name());
+            funcName = convertToBalIdentifier(flow.name());
             ctx.projectCtx.vmQueueNameToBalFuncMap.put(queueName, funcName);
         }
         genBalFunc(ctx, functions, funcName, flow.flowBlocks());
@@ -613,7 +624,7 @@ public class MuleToBalConverter {
                                          Set<Function> functions)
             throws ScriptConversionException {
         ctx.projectCtx.attributes.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_TYPE);
-        ctx.projectCtx.attributes.put(Constants.HTTP_RESPONSE_REF, Constants.HTTP_RESPONSE_TYPE);
+        ctx.projectCtx.attributes.put(Constants.HTTP_RESPONSE_REF, HTTP_RESPONSE_TYPE);
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
 
         // Create a service from the flow
@@ -735,7 +746,7 @@ public class MuleToBalConverter {
         bodyStmts.addAll(bodyCoreStmts);
 
         // Add return statement
-        bodyStmts.add(stmtFrom("\n\n(<%s>%s.%s).setPayload(%s.payload);".formatted(Constants.HTTP_RESPONSE_TYPE,
+        bodyStmts.add(stmtFrom("\n\n(<%s>%s.%s).setPayload(%s.payload);".formatted(HTTP_RESPONSE_TYPE,
                 Constants.ATTRIBUTES_FIELD_ACCESS, Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
         bodyStmts.add(stmtFrom("return <%s>%s.%s;".formatted(HTTP_RESPONSE_TYPE, Constants.ATTRIBUTES_FIELD_ACCESS,
                 Constants.HTTP_RESPONSE_REF)));
@@ -772,8 +783,12 @@ public class MuleToBalConverter {
             throw new IllegalStateException();
         }
 
+        Service service =
+                new Service(basePath, List.of(listenerRef), ctx.getServiceInitFunction(), resources, List.of(),
+                        new ArrayList<>(ctx.serviceFields),
+                        List.of(), Optional.empty());
         ctx.resetServiceState();
-        return new Service(basePath, listenerRef, resources);
+        return service;
     }
 
     private static String getAttributesInitValue(Context ctx, List<String> pathParams) {
@@ -789,6 +804,7 @@ public class MuleToBalConverter {
                         attributesPropMap.put(Constants.URI_PARAMS_REF, "{%s}".formatted(pathParamValue));
                     }
                 }
+                case JMS_MESSAGE_REF -> attributesPropMap.put(JMS_MESSAGE_REF, JMS_MESSAGE_REF);
                 default -> throw new IllegalStateException();
             }
         }

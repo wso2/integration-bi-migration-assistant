@@ -30,12 +30,10 @@ service "mq_config" on mq_config {
     function init() returns error? {
         jms:Connection connection0 = check new (mq_configConfig);
         jms:Session session0 = check connection0->createSession();
-        jms:MessageProducer producer0 = check session0.createProducer({'type: jms:QUEUE, name: "destinationQueue"});
-        self.producer0 = producer0;
+        self.producer0 = check session0.createProducer({'type: jms:QUEUE, name: "destinationQueue"});
         jms:Connection connection1 = check new (mq_configConfig);
         jms:Session session1 = check connection1->createSession();
-        jms:MessageProducer producer1 = check session1.createProducer({'type: jms:QUEUE, name: "destinationQueue2"});
-        self.producer1 = producer1;
+        self.producer1 = check session1.createProducer({'type: jms:QUEUE, name: "destinationQueue2"});
     }
 
     remote function onMessage(jms:Message message, jms:Caller caller) returns error? {

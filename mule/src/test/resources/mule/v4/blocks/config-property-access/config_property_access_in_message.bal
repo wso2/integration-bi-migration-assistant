@@ -37,6 +37,9 @@ mysql:Client db_config = check new (db_host, db_user, db_password, db_database, 
 public listener http:Listener listener_config = new (check int:fromString(http_port));
 
 service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
     resource function get property_access(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         ctx.vars.dbConnectionString = http_host + ":" + http_port;

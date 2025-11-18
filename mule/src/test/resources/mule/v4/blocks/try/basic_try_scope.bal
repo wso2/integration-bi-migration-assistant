@@ -17,6 +17,9 @@ public type PRECONDITIONS__INCORRECT_AGE distinct error;
 public listener http:Listener HTTP_Listener_config = new (8081);
 
 service / on HTTP_Listener_config {
+    function init() returns error? {
+    }
+
     resource function post checkAge(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo(string `Start of flow - Payload received: ${ctx.payload.toString()}`);

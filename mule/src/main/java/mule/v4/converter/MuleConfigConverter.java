@@ -426,28 +426,27 @@ public class MuleConfigConverter {
                                         List.of())));
         stmtBuffer.add(session);
 
-        Statement.VarDeclStatment producer = new Statement.VarDeclStatment(
-                        JMS_MESSAGE_PRODUCER_TYPE,
-                "producer" + ctx.projectCtx.counters.jmsProducerCount++,
-                new BallerinaModel.Expression.Check(
-                        new BallerinaModel.Expression.MethodCall(
-                                session.ref(),
-                                "createProducer",
-                                List.of(new BallerinaModel.Expression.MappingConstructor(
-                                        List.of(
-                                                new BallerinaModel.Expression.MappingConstructor.MappingField("'type",
-                                                        new BallerinaModel.Expression.VariableReference("jms:QUEUE")),
-                                                new BallerinaModel.Expression.MappingConstructor.MappingField("name",
-                                                        new StringConstant(destination))))))));
-        stmtBuffer.add(producer);
+        String producerName = "producer" + ctx.projectCtx.counters.jmsProducerCount++;
+        BallerinaModel.Expression.Check producerConstructExpr = new BallerinaModel.Expression.Check(
+                new BallerinaModel.Expression.MethodCall(
+                        session.ref(),
+                        "createProducer",
+                        List.of(new BallerinaModel.Expression.MappingConstructor(
+                                List.of(
+                                        new BallerinaModel.Expression.MappingConstructor.MappingField("'type",
+                                                new BallerinaModel.Expression.VariableReference("jms:QUEUE")),
+                                        new BallerinaModel.Expression.MappingConstructor.MappingField("name",
+                                                new StringConstant(destination)))))));
         if (ctx.inServiceGen) {
-            ctx.serviceFields.add(new BallerinaModel.ObjectField(JMS_MESSAGE_PRODUCER_TYPE, producer.varName()));
+            ctx.serviceFields.add(new BallerinaModel.ObjectField(JMS_MESSAGE_PRODUCER_TYPE, producerName));
             BallerinaModel.Expression.VariableReference serviceRef =
-                    new BallerinaModel.Expression.VariableReference("self." + producer.varName());
-            stmtBuffer.add(new Statement.VarAssignStatement(serviceRef, producer.ref()));
+                    new BallerinaModel.Expression.VariableReference("self." + producerName);
+            stmtBuffer.add(new Statement.VarAssignStatement(serviceRef, producerConstructExpr));
             return serviceRef;
         }
-        // TODO: if in service create a final field
+        Statement.VarDeclStatment producer =
+                new Statement.VarDeclStatment(JMS_MESSAGE_PRODUCER_TYPE, producerName, producerConstructExpr);
+        stmtBuffer.add(producer);
         return producer.ref();
     }
 

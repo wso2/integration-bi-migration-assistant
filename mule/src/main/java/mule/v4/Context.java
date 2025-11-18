@@ -211,9 +211,6 @@ public class Context extends ContextBase {
     }
 
     public Optional<BallerinaModel.Function> getServiceInitFunction() {
-        if (initFunctionBody.isEmpty()) {
-            return Optional.empty();
-        }
         return Optional.of(new BallerinaModel.Function("init", List.of(), BallerinaModel.TypeDesc.UnionTypeDesc.of(
                 BallerinaModel.TypeDesc.BuiltinType.ERROR, BallerinaModel.TypeDesc.BuiltinType.NIL),
                 new ArrayList<>(initFunctionBody)));

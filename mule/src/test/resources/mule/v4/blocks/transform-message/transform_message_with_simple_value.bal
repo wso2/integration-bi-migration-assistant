@@ -19,6 +19,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /foo on config {
+    function init() returns error? {
+    }
+
     resource function get .(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         json _dwOutput_ = check transformMessage(ctx);

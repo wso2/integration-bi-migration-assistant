@@ -20,6 +20,9 @@ jdbc:Client mySql_Config = check new ("jdbc:postgresql://localhost:5432/bookstor
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get db(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
 

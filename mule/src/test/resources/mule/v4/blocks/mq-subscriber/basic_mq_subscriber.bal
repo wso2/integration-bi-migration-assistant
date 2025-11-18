@@ -25,6 +25,9 @@ public listener jms:Listener mq_config = new jms:Listener(
 
 // TODO: placeholder jms listener for mq_config
 service "mq_config" on mq_config {
+    function init() returns error? {
+    }
+
     remote function onMessage(jms:Message message, jms:Caller caller) returns error? {
         Context ctx = {attributes: {jmsMessage: message}};
         log:printInfo("xxx: logger invoked");

@@ -21,6 +21,9 @@ listener pubsub:Listener PubSubConfig = check new (
 
 // TODO: placeholder listener for PubSubConfig
 service on PubSubConfig {
+    function init() returns error? {
+    }
+
     remote function onMessage(pubsub:Message message, pubsub:Caller caller) {
         Context ctx = {attributes: {}};
         log:printInfo("Pub-Sub message received");

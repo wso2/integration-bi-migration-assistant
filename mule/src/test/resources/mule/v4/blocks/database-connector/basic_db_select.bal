@@ -21,6 +21,9 @@ mysql:Client mySql_Config = check new ("localhost", "root", "admin123", "test_db
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get db(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
 

@@ -15,6 +15,9 @@ public type Context record {|
 public listener http:Listener HTTP_Listener_config = new (9090);
 
 service / on HTTP_Listener_config {
+    function init() returns error? {
+    }
+
     resource function default scatter(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
 
