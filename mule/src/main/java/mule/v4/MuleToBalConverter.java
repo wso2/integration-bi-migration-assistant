@@ -22,7 +22,6 @@ import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-
 import mule.common.MuleLogger;
 import mule.v4.converter.ScriptConversionException;
 import mule.v4.model.MuleModel.AnypointMqSubscriber;

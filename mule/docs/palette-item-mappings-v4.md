@@ -209,6 +209,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get choice(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         ctx.vars.marks = 73;
@@ -366,6 +369,9 @@ mysql:Client db_config = check new (db_host, db_user, db_password, db_database, 
 public listener http:Listener listener_config = new (check int:fromString(http_port));
 
 service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
     resource function get property_access(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         ctx.vars.dbConnectionString = http_host + ":" + http_port;
@@ -479,6 +485,9 @@ mysql:Client mySql_Config = check new ("localhost", "root", "admin123", "test_db
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get db(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
 
@@ -556,6 +565,9 @@ mysql:Client mySql_Config = check new ("localhost", "root", "admin123", "test_db
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get db(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
 
@@ -637,6 +649,9 @@ jdbc:Client mySql_Config = check new ("jdbc:postgresql://localhost:5432/bookstor
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get db(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
 
@@ -715,6 +730,9 @@ oracledb:Client oracle_config2 = check new ("localhost", "admin", "nimda", "serv
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get db(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
 
@@ -860,6 +878,9 @@ public type Context record {|
 public listener http:Listener listener_config = new (8083);
 
 service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
     resource function get error_handler(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         do {
@@ -957,6 +978,9 @@ public type Context record {|
 public listener http:Listener listener_config = new (8083);
 
 service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
     resource function get error_handler(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         do {
@@ -1100,6 +1124,9 @@ public listener file:Listener file_config = new (
 // TODO: outputMimeType attribute not supported: application/csv; separator=","
 // TODO: directory attribute not supported: csv
 service on file_config {
+    function init() returns error? {
+    }
+
     remote function onCreate(file:FileEvent event) {
         Context ctx = {attributes: {}};
         if regex:matches(event.name, ".*\.csv") {
@@ -1172,6 +1199,9 @@ public listener file:Listener file_config = new (
 // TODO: outputMimeType attribute not supported: application/csv; separator=","
 // TODO: directory attribute not supported: csv
 service on file_config {
+    function init() returns error? {
+    }
+
     remote function onCreate(file:FileEvent event) {
         Context ctx = {attributes: {}};
         if regex:matches(event.name, ".*\.csv") {
@@ -1248,6 +1278,9 @@ public listener file:Listener file_config = new (
 // TODO: outputMimeType attribute not supported: application/csv; separator=","
 // TODO: directory attribute not supported: csv
 service on file_config {
+    function init() returns error? {
+    }
+
     remote function onCreate(file:FileEvent event) {
         Context ctx = {attributes: {}};
         if regex:matches(event.name, ".*\.csv") {
@@ -1326,6 +1359,9 @@ public type Context record {|
 public listener http:Listener http_listener = new (9090);
 
 service / on http_listener {
+    function init() returns error? {
+    }
+
     resource function default first_successful(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
 
@@ -1428,6 +1464,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get flow(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked via http end point");
@@ -1485,6 +1524,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get flow(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked via http end point");
@@ -1544,6 +1586,9 @@ public type Context record {|
 public listener http:Listener HTTP_Listener_config = new (9090);
 
 service / on HTTP_Listener_config {
+    function init() returns error? {
+    }
+
     resource function post demo(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
 
@@ -1609,6 +1654,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function default demo(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
@@ -1661,6 +1709,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get .(http:Request request) returns http:Response|error {
         return invokeEndPoint0(request);
     }
@@ -1725,6 +1776,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function post .(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
@@ -1777,6 +1831,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get demo(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
@@ -1829,6 +1886,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service / on config {
+    function init() returns error? {
+    }
+
     resource function get .(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
@@ -1881,6 +1941,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service / on config {
+    function init() returns error? {
+    }
+
     resource function get demo(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
@@ -1933,6 +1996,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get .(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
@@ -2005,6 +2071,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get attribute_test/[string country]/v1(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new, uriParams: {country}}};
         ctx.vars.queryParams = ctx.attributes.request.getQueryParams();
@@ -2065,6 +2134,9 @@ public type Context record {|
 public listener http:Listener config = new (8081, {host: "localhost"});
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get demo(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
@@ -2118,6 +2190,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get test_query(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
@@ -2172,6 +2247,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get [string version]/demo/[string id](http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new, uriParams: {version, id}}};
         log:printInfo("xxx: logger invoked");
@@ -2225,6 +2303,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get v\-1/demo/'1\.0/main\-contract/'new(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
@@ -2439,6 +2520,9 @@ public type Context record {|
 public listener http:Listener listener_config = new (8081);
 
 service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
     resource function get http_request(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
 
@@ -2648,6 +2732,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get logger(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: first logger invoked");
@@ -2705,6 +2792,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get logger(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: INFO level logger invoked");
@@ -2872,6 +2962,236 @@ public function enricher0(Context ctx) returns string? {
 
 ## Mq Subscriber
 
+- ### Basic Mq Publish
+
+**Input (basic_mq_publish.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <anypoint-mq:config name="mq_config" doc:name="Anypoint MQ Config" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+        <anypoint-mq:connection clientId="mq-client" clientSecret="mq-secret" />
+    </anypoint-mq:config>
+    <flow name="mqSubscriberFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c">
+				<anypoint-mq:publish doc:name="publish mq" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c" config-ref="mq_config" destination="destinationQueue" messageId="#[vars.correlationId]">
+					<anypoint-mq:properties><![CDATA[#[output application/java
+---
+{
+	"foo" : "bar"
+}]]]></anypoint-mq:properties>
+						</anypoint-mq:publish>
+    </flow>
+</mule>
+
+```
+**Output (basic_mq_publish.bal):**
+```ballerina
+import ballerinax/java.jms;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+configurable string JMS_PROVIDER_URL = ?;
+jms:ConnectionConfiguration mq_configConfig = {initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl: JMS_PROVIDER_URL};
+
+public function mqSubscriberFlow(Context ctx) {
+    jms:Connection connection0 = check new (mq_configConfig);
+    jms:Session session0 = check connection0->createSession();
+    jms:MessageProducer producer0 = check session0.createProducer({'type: jms:QUEUE, name: "destinationQueue"});
+    jms:MapMessage jmsMessage0 = {
+        content: {
+            "foo": "bar"
+        }
+    };
+    check producer0->send(jmsMessage0);
+}
+
+```
+
+- ### Basic Mq Publish Service
+
+**Input (basic_mq_publish_service.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <anypoint-mq:config name="mq_config" doc:name="Anypoint MQ Config" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+        <anypoint-mq:connection clientId="mq-client" clientSecret="mq-secret" />
+    </anypoint-mq:config>
+    <flow name="mqSubscriberFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c">
+        <anypoint-mq:subscriber doc:name="MQ Subscriber" doc:id="2d80f8b6-ba81-46e0-91b7-516a8e4fdb67" config-ref="mq_config" destination="test-queue"/>
+				<anypoint-mq:publish doc:name="publish mq" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c" config-ref="mq_config" destination="destinationQueue" messageId="#[vars.correlationId]">
+					<anypoint-mq:properties><![CDATA[#[output application/java
+---
+{
+	"foo" : "bar"
+}]]]></anypoint-mq:properties>
+						</anypoint-mq:publish>
+    </flow>
+</mule>
+
+```
+**Output (basic_mq_publish_service.bal):**
+```ballerina
+import ballerinax/java.jms;
+
+public type Attributes record {|
+    map<string> uriParams = {};
+    jms:Message jmsMessage?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+configurable string JMS_PROVIDER_URL = ?;
+jms:ConnectionConfiguration mq_configConfig = {initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl: JMS_PROVIDER_URL};
+public listener jms:Listener mq_config = new jms:Listener(
+    connectionConfig = mq_configConfig,
+    consumerOptions = {
+        destination: {
+            'type: jms:QUEUE,
+            name: "test-queue"
+        }
+    }
+);
+
+// TODO: placeholder jms listener for mq_config
+service "mq_config" on mq_config {
+    jms:MessageProducer producer0;
+
+    function init() returns error? {
+        jms:Connection connection0 = check new (mq_configConfig);
+        jms:Session session0 = check connection0->createSession();
+        self.producer0 = check session0.createProducer({'type: jms:QUEUE, name: "destinationQueue"});
+    }
+
+    remote function onMessage(jms:Message message, jms:Caller caller) returns error? {
+        Context ctx = {attributes: {jmsMessage: message}};
+        jms:MapMessage jmsMessage0 = {
+            content: {
+                "foo": "bar"
+            }
+        };
+        check self.producer0->send(jmsMessage0);
+    }
+}
+
+```
+
+- ### Basic Mq Publish Service Multiple Destinations
+
+**Input (basic_mq_publish_service_multiple_destinations.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <anypoint-mq:config name="mq_config" doc:name="Anypoint MQ Config" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+        <anypoint-mq:connection clientId="mq-client" clientSecret="mq-secret" />
+    </anypoint-mq:config>
+    <flow name="mqSubscriberFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c">
+        <anypoint-mq:subscriber doc:name="MQ Subscriber" doc:id="2d80f8b6-ba81-46e0-91b7-516a8e4fdb67" config-ref="mq_config" destination="test-queue"/>
+				<anypoint-mq:publish doc:name="publish mq" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c" config-ref="mq_config" destination="destinationQueue" messageId="#[vars.correlationId]">
+					<anypoint-mq:properties><![CDATA[#[output application/java
+---
+{
+	"foo" : "bar"
+}]]]></anypoint-mq:properties>
+						</anypoint-mq:publish>
+
+				<anypoint-mq:publish doc:name="publish mq2" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c" config-ref="mq_config" destination="destinationQueue2" messageId="#[vars.correlationId]">
+					<anypoint-mq:properties><![CDATA[#[output application/java
+---
+{
+	"baz" : "bar"
+}]]]></anypoint-mq:properties>
+						</anypoint-mq:publish>
+    </flow>
+</mule>
+
+```
+**Output (basic_mq_publish_service_multiple_destinations.bal):**
+```ballerina
+import ballerinax/java.jms;
+
+public type Attributes record {|
+    map<string> uriParams = {};
+    jms:Message jmsMessage?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+configurable string JMS_PROVIDER_URL = ?;
+jms:ConnectionConfiguration mq_configConfig = {initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl: JMS_PROVIDER_URL};
+public listener jms:Listener mq_config = new jms:Listener(
+    connectionConfig = mq_configConfig,
+    consumerOptions = {
+        destination: {
+            'type: jms:QUEUE,
+            name: "test-queue"
+        }
+    }
+);
+
+// TODO: placeholder jms listener for mq_config
+service "mq_config" on mq_config {
+    jms:MessageProducer producer0;
+    jms:MessageProducer producer1;
+
+    function init() returns error? {
+        jms:Connection connection0 = check new (mq_configConfig);
+        jms:Session session0 = check connection0->createSession();
+        self.producer0 = check session0.createProducer({'type: jms:QUEUE, name: "destinationQueue"});
+        jms:Connection connection1 = check new (mq_configConfig);
+        jms:Session session1 = check connection1->createSession();
+        self.producer1 = check session1.createProducer({'type: jms:QUEUE, name: "destinationQueue2"});
+    }
+
+    remote function onMessage(jms:Message message, jms:Caller caller) returns error? {
+        Context ctx = {attributes: {jmsMessage: message}};
+        jms:MapMessage jmsMessage0 = {
+            content: {
+                "foo": "bar"
+            }
+        };
+        check self.producer0->send(jmsMessage0);
+        jms:MapMessage jmsMessage1 = {
+            content: {
+                "baz": "bar"
+            }
+        };
+        check self.producer1->send(jmsMessage1);
+    }
+}
+
+```
+
 - ### Basic Mq Subscriber
 
 **Input (basic_mq_subscriber.xml):**
@@ -2903,6 +3223,7 @@ import ballerinax/java.jms;
 
 public type Attributes record {|
     map<string> uriParams = {};
+    jms:Message jmsMessage?;
 |};
 
 public type Context record {|
@@ -2911,11 +3232,9 @@ public type Context record {|
 |};
 
 configurable string JMS_PROVIDER_URL = ?;
+jms:ConnectionConfiguration mq_configConfig = {initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl: JMS_PROVIDER_URL};
 public listener jms:Listener mq_config = new jms:Listener(
-    connectionConfig = {
-        initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory",
-        providerUrl: JMS_PROVIDER_URL
-    },
+    connectionConfig = mq_configConfig,
     consumerOptions = {
         destination: {
             'type: jms:QUEUE,
@@ -2926,9 +3245,293 @@ public listener jms:Listener mq_config = new jms:Listener(
 
 // TODO: placeholder jms listener for mq_config
 service "mq_config" on mq_config {
-    remote function onMessage(jms:Message message) {
-        Context ctx = {attributes: {}};
+    function init() returns error? {
+    }
+
+    remote function onMessage(jms:Message message, jms:Caller caller) returns error? {
+        Context ctx = {attributes: {jmsMessage: message}};
         log:printInfo("xxx: logger invoked");
+    }
+}
+
+```
+
+- ### Basic Mq Subscriber Ack
+
+**Input (basic_mq_subscriber_ack.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <anypoint-mq:config name="mq_config" doc:name="Anypoint MQ Config" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+        <anypoint-mq:connection clientId="mq-client" clientSecret="mq-secret" />
+    </anypoint-mq:config>
+    <flow name="mqSubscriberFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c">
+        <anypoint-mq:subscriber doc:name="MQ Subscriber" doc:id="2d80f8b6-ba81-46e0-91b7-516a8e4fdb67" config-ref="mq_config" destination="test-queue"/>
+        <logger level="INFO" doc:name="Logger" doc:id="c56aad96-6335-49a3-9b27-6d2b5ab0a963" message="xxx: logger invoked"/>
+        <anypoint-mq:ack doc:name="Ack" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c" config-ref="mq_config" ackToken="#[vars.attributes.ackToken]">
+        </anypoint-mq:ack>
+    </flow>
+</mule>
+
+```
+**Output (basic_mq_subscriber_ack.bal):**
+```ballerina
+import ballerina/log;
+import ballerinax/java.jms;
+
+public type Attributes record {|
+    map<string> uriParams = {};
+    jms:Message jmsMessage?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+configurable string JMS_PROVIDER_URL = ?;
+jms:ConnectionConfiguration mq_configConfig = {initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl: JMS_PROVIDER_URL};
+public listener jms:Listener mq_config = new jms:Listener(
+    connectionConfig = mq_configConfig,
+    consumerOptions = {
+        destination: {
+            'type: jms:QUEUE,
+            name: "test-queue"
+        }
+    }
+);
+
+// TODO: placeholder jms listener for mq_config
+service "mq_config" on mq_config {
+    function init() returns error? {
+    }
+
+    remote function onMessage(jms:Message message, jms:Caller caller) returns error? {
+        Context ctx = {attributes: {jmsMessage: message}};
+        log:printInfo("xxx: logger invoked");
+        check caller->acknowledge(<jms:Message>ctx.attributes.jmsMessage);
+    }
+}
+
+```
+
+- ### Mq Publish In Apikit Service
+
+**Input (mq_publish_in_apikit_service.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="http-listener-config" doc:name="HTTP Listener config">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="apikit-config" raml="api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <anypoint-mq:config name="mq_config" doc:name="Anypoint MQ Config" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+        <anypoint-mq:connection clientId="mq-client" clientSecret="mq-secret" />
+    </anypoint-mq:config>
+    <flow name="apiKitMain">
+        <http:listener config-ref="http-listener-config" path="/api" />
+        <apikit:router config-ref="apikit-config" />
+    </flow>
+    <flow name="post:\orders:apikit-config" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c">
+        <logger level="INFO" doc:name="Log Order" message="Processing new order"/>
+        <anypoint-mq:publish doc:name="Publish Order to MQ" doc:id="mq-publish-001" config-ref="mq_config" destination="orders-queue" messageId="#[vars.orderId]">
+            <anypoint-mq:properties><![CDATA[#[output application/java
+---
+{
+	"apiEndpoint" : "POST /orders",
+	"processedAt" : now()
+}]]]></anypoint-mq:properties>
+        </anypoint-mq:publish>
+        <set-payload value='{"status": "Order received and queued"}' mimeType="application/json"/>
+    </flow>
+</mule>
+
+```
+**Output (mq_publish_in_apikit_service.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+import ballerinax/java.jms;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+configurable string JMS_PROVIDER_URL = ?;
+jms:ConnectionConfiguration mq_configConfig = {initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl: JMS_PROVIDER_URL};
+public listener http:Listener http\-listener\-config = new (8081);
+
+service / on http\-listener\-config {
+    jms:MessageProducer producer0;
+
+    function init() returns error? {
+        jms:Connection connection0 = check new (mq_configConfig);
+        jms:Session session0 = check connection0->createSession();
+        self.producer0 = check session0.createProducer({'type: jms:QUEUE, name: "orders-queue"});
+    }
+
+    resource function default api(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        http:Client apiKitClient = check new ("http://localhost:8081");
+        string apiKitRedirectPath = "/apikit0/" + request.rawPath.substring("/".length() + "api".length());
+        match request.method {
+            "GET" => {
+                ctx.payload = check apiKitClient->get(apiKitRedirectPath);
+            }
+            "POST" => {
+                ctx.payload = check apiKitClient->post(apiKitRedirectPath, check request.getJsonPayload());
+            }
+            "PUT" => {
+                ctx.payload = check apiKitClient->put(apiKitRedirectPath, check request.getJsonPayload());
+            }
+            "DELETE" => {
+                ctx.payload = check apiKitClient->delete(apiKitRedirectPath, check request.getJsonPayload());
+            }
+            _ => {
+                panic error("Method not allowed");
+            }
+        }
+
+        // TODO: try to directly call the endpoints generated for the api kit
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+
+    resource function post apikit0/orders(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        log:printInfo("Processing new order");
+        jms:MapMessage jmsMessage0 = {
+            content: {
+                "apiEndpoint": "POST /orders",
+                "processedAt": now()
+            }
+        };
+        check self.producer0->send(jmsMessage0);
+
+        // set payload
+        string payload0 = "{\"status\": \"Order received and queued\"}";
+        ctx.payload = payload0;
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+```
+
+- ### Mq Publish In Http Service
+
+**Input (mq_publish_in_http_service.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="http_config" doc:name="HTTP Listener config" doc:id="85b56e19-f77d-4d11-bfbe-b30beae6e98a" basePath="/api">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <anypoint-mq:config name="mq_config" doc:name="Anypoint MQ Config" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+        <anypoint-mq:connection clientId="mq-client" clientSecret="mq-secret" />
+    </anypoint-mq:config>
+    <flow name="httpMqFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c">
+        <http:listener doc:name="Listener" doc:id="2d80f8b6-ba81-46e0-91b7-516a8e4fdb67" config-ref="http_config" allowedMethods="POST" path="/send-message"/>
+        <logger level="INFO" doc:name="Logger" doc:id="c56aad96-6335-49a3-9b27-6d2b5ab0a963" message="Processing HTTP request"/>
+        <anypoint-mq:publish doc:name="Publish to MQ" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c" config-ref="mq_config" destination="orders-queue" messageId="#[vars.correlationId]">
+            <anypoint-mq:properties><![CDATA[#[output application/java
+---
+{
+	"source" : "http-service",
+	"timestamp" : now()
+}]]]></anypoint-mq:properties>
+        </anypoint-mq:publish>
+        <set-payload value='{"status": "Message published successfully"}' mimeType="application/json"/>
+    </flow>
+</mule>
+
+```
+**Output (mq_publish_in_http_service.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+import ballerinax/java.jms;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+configurable string JMS_PROVIDER_URL = ?;
+jms:ConnectionConfiguration mq_configConfig = {initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl: JMS_PROVIDER_URL};
+public listener http:Listener http_config = new (8081);
+
+service /api on http_config {
+    jms:MessageProducer producer0;
+
+    function init() returns error? {
+        jms:Connection connection0 = check new (mq_configConfig);
+        jms:Session session0 = check connection0->createSession();
+        self.producer0 = check session0.createProducer({'type: jms:QUEUE, name: "orders-queue"});
+    }
+
+    resource function post send\-message(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        log:printInfo("Processing HTTP request");
+        jms:MapMessage jmsMessage0 = {
+            content: {
+                "source": "http-service",
+                "timestamp": now()
+            }
+        };
+        check self.producer0->send(jmsMessage0);
+
+        // set payload
+        string payload0 = "{\"status\": \"Message published successfully\"}";
+        ctx.payload = payload0;
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -3191,6 +3794,9 @@ public type Context record {|
 public listener http:Listener listener_config = new (8081);
 
 service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
     resource function get on_error_continue(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         do {
@@ -3328,6 +3934,9 @@ public type Context record {|
 public listener http:Listener listener_config = new (8083);
 
 service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
     resource function get on_error_propagate(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         do {
@@ -3410,6 +4019,9 @@ listener pubsub:Listener PubSubConfig = check new (
 
 // TODO: placeholder listener for PubSubConfig
 service on PubSubConfig {
+    function init() returns error? {
+    }
+
     remote function onMessage(pubsub:Message message, pubsub:Caller caller) {
         Context ctx = {attributes: {}};
         log:printInfo("Pub-Sub message received");
@@ -3472,6 +4084,9 @@ public type PRECONDITIONS__INCORRECT_AGE distinct error;
 public listener http:Listener HTTP_Listener_config = new (8081);
 
 service / on HTTP_Listener_config {
+    function init() returns error? {
+    }
+
     resource function default test(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         if ctx.attributes.request.getQueryParamValue("age") < 16 {
@@ -3548,6 +4163,9 @@ public type Context record {|
 public listener http:Listener HTTP_Listener_config = new (9090);
 
 service / on HTTP_Listener_config {
+    function init() returns error? {
+    }
+
     resource function default scatter(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
 
@@ -3691,6 +4309,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get set_payload(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
 
@@ -3747,6 +4368,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get set_payload(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
 
@@ -3818,6 +4442,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get sub_flow(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked via http end point");
@@ -3896,6 +4523,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /foo on config {
+    function init() returns error? {
+    }
+
     resource function get .(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         json _dwOutput_ = _dwMethod(ctx);
@@ -3967,6 +4597,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /foo on config {
+    function init() returns error? {
+    }
+
     resource function get .(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         json _dwOutput_ = check transformMessage(ctx);
@@ -4112,6 +4745,9 @@ public type PRECONDITIONS__INCORRECT_AGE distinct error;
 public listener http:Listener HTTP_Listener_config = new (8081);
 
 service / on HTTP_Listener_config {
+    function init() returns error? {
+    }
+
     resource function post checkAge(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo(string `Start of flow - Payload received: ${ctx.payload.toString()}`);
@@ -4193,6 +4829,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get set_variable(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         ctx.vars.name = "John";
@@ -4261,6 +4900,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get remove_variable(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         ctx.vars.greeting = "Hello";
@@ -4447,6 +5089,9 @@ public type Context record {|
 public listener http:Listener listener_config = new (8083);
 
 service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
     resource function get vm(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
 
@@ -4534,6 +5179,9 @@ public type Context record {|
 public listener http:Listener listener_config = new (8083);
 
 service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
     resource function get vm(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         worker W returns error? {
