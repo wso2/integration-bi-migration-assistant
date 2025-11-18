@@ -25,12 +25,17 @@ public listener jms:Listener mq_config = new jms:Listener(
 // TODO: placeholder jms listener for mq_config
 service "mq_config" on mq_config {
     jms:MessageProducer producer0;
+    jms:MessageProducer producer1;
 
     function init() returns error? {
         jms:Connection connection0 = check new (mq_configConfig);
         jms:Session session0 = check connection0->createSession();
         jms:MessageProducer producer0 = check session0.createProducer({'type: jms:QUEUE, name: "destinationQueue"});
         self.producer0 = producer0;
+        jms:Connection connection1 = check new (mq_configConfig);
+        jms:Session session1 = check connection1->createSession();
+        jms:MessageProducer producer1 = check session1.createProducer({'type: jms:QUEUE, name: "destinationQueue2"});
+        self.producer1 = producer1;
     }
 
     remote function onMessage(jms:Message message, jms:Caller caller) returns error? {
@@ -41,5 +46,11 @@ service "mq_config" on mq_config {
             }
         };
         check self.producer0->send(jmsMessage0);
+        jms:MapMessage jmsMessage1 = {
+            content: {
+                "baz": "bar"
+            }
+        };
+        check self.producer1->send(jmsMessage1);
     }
 }

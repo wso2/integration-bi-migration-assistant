@@ -442,6 +442,7 @@ public class Context extends ContextBase {
         public int jmsConnectionCount = 0;
         public int jmsSessionCount = 0;
         public int jmsProducerCount = 0;
+        public int jmsMessageCount = 0;
         public Map<String, Integer> dwFunctionPrefixCounters = new HashMap<>();
     }
 

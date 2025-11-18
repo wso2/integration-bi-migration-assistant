@@ -35,8 +35,6 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.jetbrains.annotations.NotNull;
-
 import static common.BallerinaModel.BlockFunctionBody;
 import static common.BallerinaModel.Expression.BallerinaExpression;
 import static common.BallerinaModel.Function;
@@ -69,7 +67,7 @@ import static mule.v4.ConversionUtils.convertToUnsupportedTODO;
 import static mule.v4.ConversionUtils.genQueryParam;
 import static mule.v4.ConversionUtils.getBallerinaClientResourcePath;
 import static mule.v4.ConversionUtils.inferTypeFromBalExpr;
-import static mule.v4.MuleToBalConverter.*;
+import static mule.v4.MuleToBalConverter.getJmsConnectionConfig;
 import static mule.v4.converter.MELConverter.convertMELToBal;
 import static mule.v4.converter.MuleConfigConverter.ConversionResult.FailClauseResult;
 import static mule.v4.converter.MuleConfigConverter.ConversionResult.WorkerStatementResult;
@@ -385,7 +383,8 @@ public class MuleConfigConverter {
         // Handle message properties (DataWeave/MEL script)
         publish.properties().ifPresent(msg -> {
             try {
-                Statement.VarDeclStatment message = new Statement.VarDeclStatment(JMS_MAP_MESSAGE_TYPE, "jmsMessage",
+                Statement.VarDeclStatment message = new Statement.VarDeclStatment(JMS_MAP_MESSAGE_TYPE,
+                        "jmsMessage" + ctx.projectCtx.counters.jmsMessageCount++,
                         new BallerinaModel.Expression.MappingConstructor(
                                 List.of(new BallerinaModel.Expression.MappingConstructor.MappingField("content",
                                         common.ConversionUtils.exprFrom(convertMELToBal(ctx, msg, false))))));
@@ -399,9 +398,10 @@ public class MuleConfigConverter {
         return new WorkerStatementResult(stmts);
     }
 
-    private static BallerinaModel.Expression.VariableReference getJMSMessageProducer(Context ctx,
-                                                                                     List<Statement> stmtBuffer,
-                                                                                     Context.JMSMessageProducerLookupKey key) {
+    private static BallerinaModel.Expression.VariableReference getJMSMessageProducer(
+            Context ctx,
+            List<Statement> stmtBuffer,
+            Context.JMSMessageProducerLookupKey key) {
         // Add configurable variable for JMS provider URL
         String jmsProviderUrlVar = "JMS_PROVIDER_URL";
         ConversionUtils.addConfigVarEntry(ctx, jmsProviderUrlVar, null);
@@ -426,16 +426,19 @@ public class MuleConfigConverter {
                                         List.of())));
         stmtBuffer.add(session);
 
-        Statement.VarDeclStatment producer = new Statement.VarDeclStatment(JMS_MESSAGE_PRODUCER_TYPE,
+        Statement.VarDeclStatment producer = new Statement.VarDeclStatment(
+                        JMS_MESSAGE_PRODUCER_TYPE,
                 "producer" + ctx.projectCtx.counters.jmsProducerCount++,
                 new BallerinaModel.Expression.Check(
-                        new BallerinaModel.Expression.MethodCall(session.ref(), "createProducer",
-                                List.of(new BallerinaModel.Expression.MappingConstructor(List.of(
-                                        new BallerinaModel.Expression.MappingConstructor.MappingField("'type",
-                                                new BallerinaModel.Expression.VariableReference("jms:QUEUE")),
-                                        new BallerinaModel.Expression.MappingConstructor.MappingField("name",
-                                                new StringConstant(destination))
-                                ))))));
+                        new BallerinaModel.Expression.MethodCall(
+                                session.ref(),
+                                "createProducer",
+                                List.of(new BallerinaModel.Expression.MappingConstructor(
+                                        List.of(
+                                                new BallerinaModel.Expression.MappingConstructor.MappingField("'type",
+                                                        new BallerinaModel.Expression.VariableReference("jms:QUEUE")),
+                                                new BallerinaModel.Expression.MappingConstructor.MappingField("name",
+                                                        new StringConstant(destination))))))));
         stmtBuffer.add(producer);
         if (ctx.inServiceGen) {
             ctx.serviceFields.add(new BallerinaModel.ObjectField(JMS_MESSAGE_PRODUCER_TYPE, producer.varName()));
