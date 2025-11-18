@@ -38,7 +38,7 @@
             <class name="mule.v4.blocks.FirstSuccessfulTest"/>
             <class name="mule.v4.blocks.SchedulerTest"/>
             <class name="mule.v4.blocks.MqSubscriberTest"/>
-            <class name="mule.v4.blocks.FileListnerTest"/>
+            <class name="mule.v4.blocks.FileListenerTest"/>
             <class name="mule.v4.model.MuleModelTest"/>
         </classes>
     </test>

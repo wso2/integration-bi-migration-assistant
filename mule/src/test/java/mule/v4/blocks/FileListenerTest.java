@@ -19,20 +19,20 @@ package mule.v4.blocks;
 
 import org.testng.annotations.Test;
 
-public class FileListnerTest extends AbstractBlockTest {
+public class FileListenerTest extends AbstractBlockTest {
 
     @Test
-    public void testBasicFileListner() {
-        testMule4ToBal("file-listner/basic_file_listner.xml", "file-listner/basic_file_listner.bal");
+    public void testBasicFileListener() {
+        testMule4ToBal("file-listener/basic_file_listener.xml", "file-listener/basic_file_listener.bal");
     }
 
     @Test
     public void testFileListenerWithHardcodeWorkingDir() {
-        testMule4ToBal("file-listner/hardocoded_file_listner.xml", "file-listner/hardocoded_file_listner.bal");
+        testMule4ToBal("file-listener/hardocoded_file_listener.xml", "file-listener/hardocoded_file_listener.bal");
     }
 
     @Test
     public void testFileListenerMatchAll() {
-        testMule4ToBal("file-listner/file_listner.xml", "file-listner/file_listner.bal");
+        testMule4ToBal("file-listener/file_listener.xml", "file-listener/file_listener.bal");
     }
 }

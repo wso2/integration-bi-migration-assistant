@@ -11,7 +11,7 @@ public type Context record {|
     Attributes attributes;
 |};
 
-configurable string file_configWorkingDir = "./foo";
+configurable string file_configWorkingDir = ?;
 public listener file:Listener file_config = new (
     path = file_configWorkingDir,
     recursive = false
@@ -24,21 +24,21 @@ public listener file:Listener file_config = new (
 service on file_config {
     remote function onCreate(file:FileEvent event) {
         Context ctx = {attributes: {}};
-        if regex:matches(event.name, "*.csv") {
+        if regex:matches(event.name, ".*\.csv") {
             fileListnerFlow(ctx);
         }
     }
 
     remote function onDelete(file:FileEvent event) {
         Context ctx = {attributes: {}};
-        if regex:matches(event.name, "*.csv") {
+        if regex:matches(event.name, ".*\.csv") {
             fileListnerFlow(ctx);
         }
     }
 
     remote function onModify(file:FileEvent event) {
         Context ctx = {attributes: {}};
-        if regex:matches(event.name, "*.csv") {
+        if regex:matches(event.name, ".*\.csv") {
             fileListnerFlow(ctx);
         }
     }

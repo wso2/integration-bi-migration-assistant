@@ -29,6 +29,7 @@ import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.MuleModel.DbGenericConnection;
 import mule.v4.model.MuleModel.PubSubMessageListener;
 import mule.v4.model.MuleModel.Scheduler;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -41,8 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import org.jetbrains.annotations.NotNull;
 
 import static common.BallerinaModel.BlockFunctionBody;
 import static common.BallerinaModel.ClassDef;
@@ -419,7 +418,7 @@ public class MuleToBalConverter {
 
         String flowFuncName = createFlowFunction(ctx, flow);
 
-        List<String> todoComments = fileListnerTodoComments(fileListener);
+        List<String> todoComments = fileListenerTodoComments(fileListener);
 
         // Create service body with onCreate, onDelete, onModify remote functions
         List<Remote> remoteFunctions = new ArrayList<>();
@@ -444,7 +443,7 @@ public class MuleToBalConverter {
                     new Expression.FunctionCall(flowFuncName,
                             List.of(new VariableReference(Constants.CONTEXT_REFERENCE))));
             if (hasFilenamePattern) {
-                String pattern = fileListener.matcher().filenamePattern();
+                String pattern = getFileNamePattern(fileListener);
                 remoteBody.add(Statement.IfElseStatement.ifStatement(
                         new Expression.FunctionCall("regex:matches",
                                 List.of(new Expression.FieldAccess(event.ref(), "name"),
@@ -468,7 +467,11 @@ public class MuleToBalConverter {
         services.add(service);
     }
 
-    private static @NotNull List<String> fileListnerTodoComments(FileListener fileListener) {
+    private static String getFileNamePattern(FileListener fileListener) {
+        return ConversionUtils.convertGlobToRegex(fileListener.matcher().filenamePattern());
+    }
+
+    private static @NotNull List<String> fileListenerTodoComments(FileListener fileListener) {
         List<String> todoComments = new ArrayList<>();
         if (fileListener.schedulingStrategy() != null) {
             todoComments.add(String.format("TODO: scheduling-strategy not supported (frequency: %s, timeUnit: %s)",
