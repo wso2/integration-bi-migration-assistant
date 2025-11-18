@@ -77,6 +77,7 @@ public class Context extends ContextBase {
     public String currentResourcePath;
     public String currentListenerPort;
     public String currentApiKitBasePath;
+    public BallerinaModel.Expression.VariableReference jmsCaller;
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                    List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,

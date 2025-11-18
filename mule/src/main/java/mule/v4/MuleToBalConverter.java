@@ -320,6 +320,8 @@ public class MuleToBalConverter {
         listeners.add(jmsListener);
 
         Parameter message = new Parameter("message", typeFrom(Constants.JMS_MESSAGE_TYPE));
+        Parameter caller = new Parameter("caller", typeFrom(Constants.JMS_CALLER_TYPE));
+        ctx.jmsCaller = caller.ref();
         // Convert flow blocks to statements
         List<Statement> bodyStmts = new ArrayList<>();
         String attributesInitValue = "{ %s: %s }".formatted(JMS_MESSAGE_REF, message.ref());
@@ -327,10 +329,11 @@ public class MuleToBalConverter {
                 Constants.ATTRIBUTES_REF, attributesInitValue)));
         bodyStmts.addAll(convertTopLevelMuleBlocks(ctx, flow.flowBlocks()));
 
-        List<Parameter> params = new ArrayList<>();
-        params.add(message);
+        List<Parameter> params = List.of(message, caller);
 
-        Function onMessageFunction = new Function("onMessage", params, bodyStmts);
+        Function onMessageFunction =
+                new Function("onMessage", params, TypeDesc.UnionTypeDesc.of(TypeDesc.BuiltinType.ERROR,
+                        TypeDesc.BuiltinType.NIL), bodyStmts);
         Remote remoteFunction = new Remote(onMessageFunction);
 
         // Create service with listener reference
@@ -339,6 +342,7 @@ public class MuleToBalConverter {
                 Optional.of(new Statement.Comment(
                         "TODO: placeholder jms listener for %s".formatted(mqSubscriber.configRef()))));
         services.add(service);
+        ctx.jmsCaller = null;
     }
 
     private static void genPubSubSource(Context ctx, Flow flow, PubSubMessageListener pubSubListener,

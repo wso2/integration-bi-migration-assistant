@@ -93,6 +93,7 @@ public class Constants {
     public static final String HTTP_CLIENT_TYPE = "http:Client";
     public static final String HTTP_RESOURCE_RETURN_TYPE_DEFAULT = HTTP_RESPONSE_TYPE + "|error";
     public static final String JMS_MESSAGE_TYPE = "jms:Message";
+    public static final String JMS_CALLER_TYPE = "jms:Caller";
     public static final String PUBSUB_MESSAGE_TYPE = "pubsub:Message";
     public static final String PUBSUB_CALLER_TYPE = "pubsub:Caller";
     public static final String FILE_EVENT_TYPE = "file:FileEvent";

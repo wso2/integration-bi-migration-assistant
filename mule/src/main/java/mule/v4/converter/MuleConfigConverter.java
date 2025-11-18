@@ -56,6 +56,7 @@ import static mule.v4.Constants.BAL_ERROR_TYPE;
 import static mule.v4.Constants.FUNC_NAME_ASYC_TEMPLATE;
 import static mule.v4.Constants.HTTP_CLIENT_TYPE;
 import static mule.v4.Constants.HTTP_REQUEST_REF;
+import static mule.v4.Constants.JMS_MESSAGE_TYPE;
 import static mule.v4.ConversionUtils.convertMuleExprToBal;
 import static mule.v4.ConversionUtils.convertMuleExprToBalStringLiteral;
 import static mule.v4.ConversionUtils.convertToUnsupportedTODO;
@@ -65,6 +66,7 @@ import static mule.v4.ConversionUtils.inferTypeFromBalExpr;
 import static mule.v4.converter.MELConverter.convertMELToBal;
 import static mule.v4.converter.MuleConfigConverter.ConversionResult.FailClauseResult;
 import static mule.v4.converter.MuleConfigConverter.ConversionResult.WorkerStatementResult;
+import static mule.v4.model.MuleModel.AnypointMqAck;
 import static mule.v4.model.MuleModel.ApiKitRouter;
 import static mule.v4.model.MuleModel.Async;
 import static mule.v4.model.MuleModel.Choice;
@@ -309,6 +311,9 @@ public class MuleConfigConverter {
             case ApiKitRouter apiKitRouter -> {
                 return convertApiKitRouter(ctx, apiKitRouter);
             }
+            case AnypointMqAck ack -> {
+                return convertAnypointMqAck(ctx, ack);
+            }
             case UnsupportedBlock unsupportedBlock -> {
                 return convertUnsupportedBlock(ctx, unsupportedBlock);
             }
@@ -337,6 +342,21 @@ public class MuleConfigConverter {
             case INFO, TRACE -> "printInfo";
             case WARN -> "printWarn";
         };
+    }
+
+    private static WorkerStatementResult convertAnypointMqAck(Context ctx, AnypointMqAck ack) {
+        List<Statement> stmts = new ArrayList<>();
+        if (ctx.jmsCaller == null) {
+            stmts.add(new Statement.Comment("FIXME: anypoint-mq:ack requires a JMS caller context"));
+            return new WorkerStatementResult(stmts);
+        }
+        String messageExpr = Constants.ATTRIBUTES_FIELD_ACCESS + "." + Constants.JMS_MESSAGE_REF;
+        Statement ackCall = new Statement.CallStatement(new BallerinaModel.Expression.Check(
+                new BallerinaModel.Action.RemoteMethodCallAction(ctx.jmsCaller, "acknowledge",
+                        List.of(new BallerinaModel.Expression.TypeCast(
+                                common.ConversionUtils.typeFrom(JMS_MESSAGE_TYPE), exprFrom(messageExpr))))));
+        stmts.add(ackCall);
+        return new WorkerStatementResult(stmts);
     }
 
     private static WorkerStatementResult convertSetVariable(Context ctx, SetVariable setVariable) {
