@@ -65,6 +65,7 @@ import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
 import static mule.v4.Constants.BAL_ANYDATA_TYPE;
 import static mule.v4.Constants.HTTP_RESPONSE_TYPE;
+import static mule.v4.Constants.JMS_CONNECTION_CONFIGURATION_TYPE;
 import static mule.v4.Constants.JMS_MESSAGE_REF;
 import static mule.v4.ConversionUtils.convertToBalIdentifier;
 import static mule.v4.ConversionUtils.getAttrVal;
@@ -308,15 +309,21 @@ public class MuleToBalConverter {
 
         // Listener name from config-ref
         String listenerName = convertToBalIdentifier(mqSubscriber.configRef());
+        String jmsListnerConfig = listenerName + "Config";
+        ctx.currentFileCtx.balConstructs.moduleVars.put(jmsListnerConfig, new ModuleVar(jmsListnerConfig,
+                common.ConversionUtils.typeFrom(JMS_CONNECTION_CONFIGURATION_TYPE),
+                new Expression.MappingConstructor(List.of(
+                        new Expression.MappingConstructor.MappingField("initialContextFactory",
+                                new Expression.StringConstant(
+                                        "org.apache.activemq.jndi.ActiveMQInitialContextFactory")),
+                        new Expression.MappingConstructor.MappingField("providerUrl",
+                                new VariableReference(jmsProviderUrlVar))
+                ))));
 
         // Create JMS Listener using the BallerinaModel
-        Listener.JMSListener jmsListener = new Listener.JMSListener(
-                listenerName,
-                exprFrom("\"org.apache.activemq.jndi.ActiveMQInitialContextFactory\""),
-                new VariableReference(jmsProviderUrlVar),
-                mqSubscriber.destination(),
-                Optional.empty(),
-                Optional.empty());
+        Listener.JMSListener jmsListener =
+                new Listener.JMSListener(listenerName, () -> new VariableReference(jmsListnerConfig),
+                        mqSubscriber.destination());
         listeners.add(jmsListener);
 
         Parameter message = new Parameter("message", typeFrom(Constants.JMS_MESSAGE_TYPE));
