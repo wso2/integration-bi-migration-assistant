@@ -42,6 +42,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.jetbrains.annotations.NotNull;
+
 import static common.BallerinaModel.BlockFunctionBody;
 import static common.BallerinaModel.ClassDef;
 import static common.BallerinaModel.Expression;
@@ -64,6 +66,7 @@ import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
 import static mule.v4.Constants.BAL_ANYDATA_TYPE;
 import static mule.v4.Constants.HTTP_RESPONSE_TYPE;
+import static mule.v4.ConversionUtils.convertToBalIdentifier;
 import static mule.v4.ConversionUtils.getAttrVal;
 import static mule.v4.ConversionUtils.getAttrValInt;
 import static mule.v4.ConversionUtils.getBallerinaAbsolutePath;
@@ -75,6 +78,8 @@ import static mule.v4.model.MuleModel.DbConnection;
 import static mule.v4.model.MuleModel.DbMySqlConnection;
 import static mule.v4.model.MuleModel.DbOracleConnection;
 import static mule.v4.model.MuleModel.ErrorHandler;
+import static mule.v4.model.MuleModel.FileConfig;
+import static mule.v4.model.MuleModel.FileListener;
 import static mule.v4.model.MuleModel.Flow;
 import static mule.v4.model.MuleModel.GlobalProperty;
 import static mule.v4.model.MuleModel.HTTPListenerConfig;
@@ -128,6 +133,8 @@ public class MuleToBalConverter {
                                     genAnypointMqSource(ctx, flow, mqSubscriber, services, listeners);
                             case PubSubMessageListener pubSubListener ->
                                     genPubSubSource(ctx, flow, pubSubListener, services, listeners);
+                            case FileListener fileListener ->
+                                    genFileListenerSource(ctx, flow, fileListener, services, listeners);
                             default -> throw new IllegalStateException(
                                     "Unsupported source kind: %s".formatted(src.kind()));
                         }
@@ -154,7 +161,7 @@ public class MuleToBalConverter {
 
         // Add global HTTP listeners from configs
         for (HTTPListenerConfig httpListenerConfig : ctx.currentFileCtx.configs.httpListenerConfigs.values()) {
-            listeners.add(new Listener.HTTPListener(ConversionUtils.convertToBalIdentifier(httpListenerConfig.name()),
+            listeners.add(new Listener.HTTPListener(convertToBalIdentifier(httpListenerConfig.name()),
                     getAttrValInt(ctx, httpListenerConfig.port()), httpListenerConfig.host()));
         }
 
@@ -193,7 +200,7 @@ public class MuleToBalConverter {
             }
 
             moduleVars
-                    .add(new ModuleVar(ConversionUtils.convertToBalIdentifier(dbConfig.name()), dbClientType, balExpr));
+                    .add(new ModuleVar(convertToBalIdentifier(dbConfig.name()), dbClientType, balExpr));
         }
 
         moduleVars.addAll(ctx.currentFileCtx.balConstructs.moduleVars.values());
@@ -299,7 +306,7 @@ public class MuleToBalConverter {
         String serviceName = "\"" + escapeIdentifier(mqSubscriber.configRef()) + "\"";
 
         // Listener name from config-ref
-        String listenerName = ConversionUtils.convertToBalIdentifier(mqSubscriber.configRef());
+        String listenerName = convertToBalIdentifier(mqSubscriber.configRef());
 
         // Create JMS Listener using the BallerinaModel
         Listener.JMSListener jmsListener = new Listener.JMSListener(
@@ -383,6 +390,109 @@ public class MuleToBalConverter {
                 Optional.of(new Statement.Comment(
                         "TODO: placeholder listener for %s".formatted(pubSubListener.configRef()))));
         services.add(service);
+    }
+
+    private static void genFileListenerSource(Context ctx, Flow flow, FileListener fileListener,
+                                              Collection<Service> services, List<Listener> listeners) {
+        ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
+
+        // Add file and regex imports
+        ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_FILE));
+
+        // Get file config to retrieve workingDir
+        FileConfig fileConfig = ctx.projectCtx.getFileConfig(fileListener.configRef());
+        if (fileConfig == null) {
+            ctx.logger.logSevere("failed to find the file config: " + fileListener.configRef());
+        }
+
+        String workingDirVar = convertToBalIdentifier(fileListener.configRef() + "WorkingDir");
+        ConversionUtils.addConfigVarEntry(ctx, workingDirVar, fileConfig != null ? fileConfig.workingDir() : null);
+
+        String listenerName = convertToBalIdentifier(fileListener.configRef());
+
+        // Create File Listener using the BallerinaModel.FileListener
+        Listener.FileListener fileListenerBal = new Listener.FileListener(
+                listenerName,
+                new VariableReference(workingDirVar),
+                false);
+        listeners.add(fileListenerBal);
+
+        String flowFuncName = createFlowFunction(ctx, flow);
+
+        List<String> todoComments = fileListnerTodoComments(fileListener);
+
+        // Create service body with onCreate, onDelete, onModify remote functions
+        List<Remote> remoteFunctions = new ArrayList<>();
+
+        // Check if we need regex matching
+        boolean hasFilenamePattern = fileListener.matcher() != null
+                && fileListener.matcher().filenamePattern() != null
+                && !fileListener.matcher().filenamePattern().isEmpty();
+
+        if (hasFilenamePattern) {
+            ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_REGEX));
+        }
+
+        // Generate each remote function (onCreate, onDelete, onModify)
+        for (String eventType : new String[]{"onCreate", "onDelete", "onModify"}) {
+            List<Statement> remoteBody = new ArrayList<>();
+            remoteBody.add(stmtFrom("Context %s = { %s : {}};".formatted(
+                    Constants.CONTEXT_REFERENCE, Constants.ATTRIBUTES_REF)));
+
+            Parameter event = new Parameter("event", typeFrom(Constants.FILE_EVENT_TYPE));
+            Statement.CallStatement flowCall = new Statement.CallStatement(
+                    new Expression.FunctionCall(flowFuncName,
+                            List.of(new VariableReference(Constants.CONTEXT_REFERENCE))));
+            if (hasFilenamePattern) {
+                String pattern = fileListener.matcher().filenamePattern();
+                remoteBody.add(Statement.IfElseStatement.ifStatement(
+                        new Expression.FunctionCall("regex:matches",
+                                List.of(new Expression.FieldAccess(event.ref(), "name"),
+                                        new Expression.StringConstant(pattern))),
+                        List.of(flowCall)));
+            } else {
+                remoteBody.add(flowCall);
+            }
+
+            Function remoteFunc = new Function(eventType, List.of(event), remoteBody);
+            remoteFunctions.add(new Remote(remoteFunc));
+        }
+
+        Optional<Statement.Comment> serviceComment = todoComments.isEmpty()
+                ? Optional.empty()
+                : Optional.of(new Statement.Comment(String.join("\n", todoComments)));
+
+        // Create service with listener reference
+        Service service = new Service("", List.of(listenerName), Optional.empty(),
+                List.of(), List.of(), List.of(), remoteFunctions, serviceComment);
+        services.add(service);
+    }
+
+    private static @NotNull List<String> fileListnerTodoComments(FileListener fileListener) {
+        List<String> todoComments = new ArrayList<>();
+        if (fileListener.schedulingStrategy() != null) {
+            todoComments.add(String.format("TODO: scheduling-strategy not supported (frequency: %s, timeUnit: %s)",
+                    fileListener.schedulingStrategy().frequency(),
+                    fileListener.schedulingStrategy().timeUnit()));
+        }
+        if (fileListener.autoDelete() != null && !fileListener.autoDelete().isEmpty()) {
+            todoComments.add("TODO: autoDelete attribute not supported: " + fileListener.autoDelete());
+        }
+        if (fileListener.outputMimeType() != null && !fileListener.outputMimeType().isEmpty()) {
+            todoComments.add("TODO: outputMimeType attribute not supported: " + fileListener.outputMimeType());
+        }
+        if (fileListener.directory() != null && !fileListener.directory().isEmpty()) {
+            todoComments.add("TODO: directory attribute not supported: " + fileListener.directory());
+        }
+        return todoComments;
+    }
+
+    private static @NotNull String createFlowFunction(Context ctx, Flow flow) {
+        String flowFuncName = ConversionUtils.convertToBalIdentifier(flow.name());
+        List<Statement> flowBody = convertTopLevelMuleBlocks(ctx, flow.flowBlocks());
+        Function flowFunction = Function.publicFunction(flowFuncName, Constants.FUNC_PARAMS_WITH_CONTEXT, flowBody);
+        ctx.currentFileCtx.balConstructs.functions.add(flowFunction);
+        return flowFuncName;
     }
 
     private static String concatenatePaths(String basePath, String resourcePath) {
@@ -528,7 +638,7 @@ public class MuleToBalConverter {
                                                         Set<Function> functions) {
         String name = errorHandler.name();
         String methodName = errorHandler.name().isEmpty() ? "errorHandler" :
-                ConversionUtils.convertToBalIdentifier(name); // Ideally field will not be empty
+                convertToBalIdentifier(name); // Ideally field will not be empty
 
         List<Parameter> parameters = new ArrayList<>();
         parameters.add(Constants.CONTEXT_FUNC_PARAM);
@@ -548,7 +658,7 @@ public class MuleToBalConverter {
     private static void genBalFuncForPrivateOrSubFlow(Context ctx, Set<Function> functions, String flowName,
                                                       List<MuleRecord> flowBlocks) {
         List<Statement> body = convertTopLevelMuleBlocks(ctx, flowBlocks);
-        String methodName = ConversionUtils.convertToBalIdentifier(flowName);
+        String methodName = convertToBalIdentifier(flowName);
         Function function = Function.publicFunction(methodName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
         functions.add(function);
     }
@@ -571,7 +681,7 @@ public class MuleToBalConverter {
         List<String> pathParams = new ArrayList<>();
         String resourcePath = getBallerinaResourcePath(ctx, httpListener.resourcePath(), pathParams);
         String[] resourceMethodNames = httpListener.allowedMethods();
-        String listenerRef = ConversionUtils.convertToBalIdentifier(httpListener.configRef());
+        String listenerRef = convertToBalIdentifier(httpListener.configRef());
         HTTPListenerConfig listenerConfig = ctx.projectCtx.getHttpListenerConfig(httpListener.configRef());
         String muleBasePath = insertLeadingSlash(listenerConfig.basePath());
         String basePath = getBallerinaAbsolutePath(muleBasePath);

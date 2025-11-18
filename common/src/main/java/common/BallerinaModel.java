@@ -404,14 +404,14 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             PUBSUB
         }
 
-        record FileListener(String name, String path, boolean recursive) implements Listener {
+        record FileListener(String name, Expression path, boolean recursive) implements Listener {
 
             @Override
             @NotNull
             public String toString() {
                 return """
                         public listener file:Listener %s = new (
-                            path = "%s",
+                            path = %s,
                             recursive = %s
                         );""".formatted(name, path, recursive);
             }

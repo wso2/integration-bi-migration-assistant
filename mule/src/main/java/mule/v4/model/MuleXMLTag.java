@@ -110,6 +110,12 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     PUBSUB_CONNECTION("pubsub:connection", 2),
     PUBSUB_PRIVATE_KEY("pubsub:private-key", 1),
 
+    // File Connector
+    FILE_CONFIG("file:config", 3),
+    FILE_CONNECTION("file:connection", 2),
+    FILE_LISTENER("file:listener", 5),
+    FILE_MATCHER("file:matcher", 2),
+
     // Database Connector
     DB_INSERT("db:insert", 2),
     DB_SELECT("db:select", 2),

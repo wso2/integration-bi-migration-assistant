@@ -84,6 +84,23 @@ public record MuleModel() {
         }
     }
 
+    public record SchedulingStrategy(String frequency, String timeUnit) {
+    }
+
+    public record FileMatcher(String filenamePattern, String regularFiles) {
+    }
+
+    public record FileListener(Kind kind, String configRef, String directory, String autoDelete,
+                               String outputMimeType, SchedulingStrategy schedulingStrategy,
+                               FileMatcher matcher) implements MuleRecord {
+        public FileListener(String configRef, String directory, String autoDelete,
+                           String outputMimeType, SchedulingStrategy schedulingStrategy,
+                           FileMatcher matcher) {
+            this(Kind.FILE_LISTENER, configRef, directory, autoDelete, outputMimeType,
+                    schedulingStrategy, matcher);
+        }
+    }
+
     public record ExpressionComponent(Kind kind, String exprCompContent) implements MuleRecord {
         public ExpressionComponent(String exprCompContent) {
             this(Kind.EXPRESSION_COMPONENT, exprCompContent);
@@ -394,6 +411,12 @@ public record MuleModel() {
         }
     }
 
+    public record FileConfig(Kind kind, String name, String workingDir) implements MuleRecord {
+        public FileConfig(String name, String workingDir) {
+            this(Kind.FILE_CONFIG, name, workingDir);
+        }
+    }
+
     public record DbConfig(Kind kind, String name, DbConnection dbConnection) implements MuleRecord {
         public DbConfig(String name, DbConnection dbConnection) {
             this(Kind.DB_CONFIG, name, dbConnection);
@@ -457,6 +480,8 @@ public record MuleModel() {
         ANYPOINT_MQ_SUBSCRIBER,
         PUBSUB_CONFIG,
         PUBSUB_MESSAGE_LISTENER,
+        FILE_CONFIG,
+        FILE_LISTENER,
         EXPRESSION_COMPONENT,
         PAYLOAD,
         FLOW_REFERENCE,

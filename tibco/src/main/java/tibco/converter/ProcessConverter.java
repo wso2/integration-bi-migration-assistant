@@ -25,6 +25,7 @@ import common.BallerinaModel.Expression.Check;
 import common.BallerinaModel.Expression.CheckPanic;
 import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Expression.Panic;
+import common.BallerinaModel.Expression.StringConstant;
 import common.BallerinaModel.Expression.TypeCheckExpression;
 import common.BallerinaModel.Expression.VariableReference;
 import common.BallerinaModel.Expression.XMLTemplate;
@@ -151,7 +152,7 @@ public class ProcessConverter {
         // TODO: may need to fix path
         String filePath = fileEventSource.fileName().trim();
         BallerinaModel.Listener listener =
-                new BallerinaModel.Listener.FileListener(name, filePath, true);
+                new BallerinaModel.Listener.FileListener(name, new StringConstant(filePath), true);
         cx.projectContext.addListnerDeclartion(name, listener, List.of(), List.of(FILE));
         return new VariableReference(listener.name());
     }
