@@ -307,22 +307,27 @@ public class MuleToBalConverter {
 
         String serviceName = "\"" + escapeIdentifier(mqSubscriber.configRef()) + "\"";
 
-        // Listener name from config-ref
         String listenerName = convertToBalIdentifier(mqSubscriber.configRef());
-        String jmsListnerConfig = listenerName + "Config";
-        ctx.currentFileCtx.balConstructs.moduleVars.put(jmsListnerConfig, new ModuleVar(jmsListnerConfig,
-                common.ConversionUtils.typeFrom(JMS_CONNECTION_CONFIGURATION_TYPE),
-                new Expression.MappingConstructor(List.of(
-                        new Expression.MappingConstructor.MappingField("initialContextFactory",
-                                new Expression.StringConstant(
-                                        "org.apache.activemq.jndi.ActiveMQInitialContextFactory")),
-                        new Expression.MappingConstructor.MappingField("providerUrl",
-                                new VariableReference(jmsProviderUrlVar))
-                ))));
+        // Listener name from config-ref
+        VariableReference jmsListenerConfig =
+                ctx.projectCtx.jmsConnectionConfig.computeIfAbsent(mqSubscriber.configRef(), (configRef) -> {
+                    String jmsListenerConfigName = listenerName + "Config";
+                    ctx.currentFileCtx.balConstructs.moduleVars.put(jmsListenerConfigName,
+                            new ModuleVar(jmsListenerConfigName,
+                                    common.ConversionUtils.typeFrom(JMS_CONNECTION_CONFIGURATION_TYPE),
+                                    new Expression.MappingConstructor(List.of(
+                                            new Expression.MappingConstructor.MappingField("initialContextFactory",
+                                                    new Expression.StringConstant(
+                                                            "org.apache.activemq.jndi.ActiveMQInitialContextFactory")),
+                                            new Expression.MappingConstructor.MappingField("providerUrl",
+                                                    new VariableReference(jmsProviderUrlVar))
+                                    ))));
+                    return new VariableReference(jmsListenerConfigName);
+                });
 
         // Create JMS Listener using the BallerinaModel
         Listener.JMSListener jmsListener =
-                new Listener.JMSListener(listenerName, () -> new VariableReference(jmsListnerConfig),
+                new Listener.JMSListener(listenerName, () -> jmsListenerConfig,
                         mqSubscriber.destination());
         listeners.add(jmsListener);
 
@@ -344,12 +349,12 @@ public class MuleToBalConverter {
         Remote remoteFunction = new Remote(onMessageFunction);
 
         // Create service with listener reference
-        Service service = new Service(serviceName, List.of(listenerName), Optional.empty(),
-                List.of(), List.of(), List.of(), List.of(remoteFunction),
+        Service service = new Service(serviceName, List.of(listenerName), ctx.getServiceInitFunction(),
+                List.of(), List.of(), ctx.serviceFields, List.of(remoteFunction),
                 Optional.of(new Statement.Comment(
                         "TODO: placeholder jms listener for %s".formatted(mqSubscriber.configRef()))));
         services.add(service);
-        ctx.jmsCaller = null;
+        ctx.resetServiceState();
     }
 
     private static void genPubSubSource(Context ctx, Flow flow, PubSubMessageListener pubSubListener,

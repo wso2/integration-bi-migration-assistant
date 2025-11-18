@@ -78,6 +78,8 @@ public class Context extends ContextBase {
     public String currentListenerPort;
     public String currentApiKitBasePath;
     public BallerinaModel.Expression.VariableReference jmsCaller;
+    public List<BallerinaModel.ObjectField> serviceFields = new ArrayList<>();
+    private List<BallerinaModel.Statement> initFunctionBody = new ArrayList<>();
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                    List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
@@ -197,6 +199,20 @@ public class Context extends ContextBase {
                 ignored -> "/apikit" + projectCtx.apiKitBasePaths.size());
     }
 
+    public void resetServiceState() {
+        this.jmsCaller = null;
+        this.initFunctionBody.clear();
+        this.serviceFields.clear();
+    }
+
+    public Optional<BallerinaModel.Function> getServiceInitFunction() {
+        if (initFunctionBody.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(new BallerinaModel.Function("init", List.of(), BallerinaModel.TypeDesc.UnionTypeDesc.of(
+                BallerinaModel.TypeDesc.BuiltinType.ERROR, BallerinaModel.TypeDesc.BuiltinType.NIL), initFunctionBody));
+    }
+
     public static class FileContext {
         public final String filePath;
         public final GlobalConfigs configs;
@@ -218,6 +234,7 @@ public class Context extends ContextBase {
         public final LinkedHashMap<String, String> vars = new LinkedHashMap<>();
         public final LinkedHashMap<String, String> attributes = new LinkedHashMap<>();
         public final HashMap<String, String> vmQueueNameToBalFuncMap = new LinkedHashMap<>();
+        public final Map<String, BallerinaModel.Expression.VariableReference> jmsConnectionConfig = new HashMap<>();
 
         // Track last HTTP service across all files for API Kit resource merging
         public BallerinaModel.Service lastHttpService = null;
