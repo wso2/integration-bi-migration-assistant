@@ -60,6 +60,9 @@ import static mule.v4.model.MuleModel.DbGenericConnection;
 import static mule.v4.model.MuleModel.Enricher;
 import static mule.v4.model.MuleModel.ErrorHandler;
 import static mule.v4.model.MuleModel.ErrorHandlerRecord;
+import static mule.v4.model.MuleModel.FileConfig;
+import static mule.v4.model.MuleModel.FileListener;
+import static mule.v4.model.MuleModel.FileMatcher;
 import static mule.v4.model.MuleModel.FirstSuccessful;
 import static mule.v4.model.MuleModel.Foreach;
 import static mule.v4.model.MuleModel.GlobalProperty;
@@ -85,6 +88,7 @@ import static mule.v4.model.MuleModel.RaiseError;
 import static mule.v4.model.MuleModel.RemoveVariable;
 import static mule.v4.model.MuleModel.Route;
 import static mule.v4.model.MuleModel.ScatterGather;
+import static mule.v4.model.MuleModel.SchedulingStrategy;
 import static mule.v4.model.MuleModel.SetPayloadElement;
 import static mule.v4.model.MuleModel.SetVariable;
 import static mule.v4.model.MuleModel.SetVariableElement;
@@ -179,6 +183,9 @@ public class MuleConfigReader {
         } else if (MuleXMLTag.PUBSUB_CONFIG.tag().equals(elementTagName)) {
             PubSubConfig pubSubConfig = readPubSubConfig(ctx, muleElement);
             ctx.currentFileCtx.configs.pubSubConfigs.put(pubSubConfig.name(), pubSubConfig);
+        } else if (MuleXMLTag.FILE_CONFIG.tag().equals(elementTagName)) {
+            FileConfig fileConfig = readFileConfig(ctx, muleElement);
+            ctx.currentFileCtx.configs.fileConfigs.put(fileConfig.name(), fileConfig);
         } else if (MuleXMLTag.CONFIGURATION_PROPERTIES.tag().equals(elementTagName)) {
             // Ignore as we automatically add all .yaml and .properties to config.toml
         } else if (MuleXMLTag.GLOBAL_PROPERTY.tag().equals(elementTagName)) {
@@ -211,6 +218,9 @@ public class MuleConfigReader {
             }
             case MuleXMLTag.PUBSUB_MESSAGE_LISTENER -> {
                 return readPubSubMessageListener(ctx, muleElement);
+            }
+            case MuleXMLTag.FILE_LISTENER -> {
+                return readFileListener(ctx, muleElement);
             }
 
             // Process Items
@@ -363,6 +373,40 @@ public class MuleConfigReader {
         return new PubSubMessageListener(configRef, projectId, subscriptionName);
     }
 
+    private static FileListener readFileListener(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String configRef = element.getAttribute("config-ref");
+        String directory = element.getAttribute("directory");
+        String autoDelete = element.getAttribute("autoDelete");
+        String outputMimeType = element.getAttribute("outputMimeType");
+
+        SchedulingStrategy schedulingStrategy = null;
+        FileMatcher matcher = null;
+
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals(MuleXMLTag.SCHEDULING_STRATEGY.tag())) {
+                // Parse scheduling-strategy
+                while (child.peekChild() != null) {
+                    MuleElement strategyChild = child.consumeChild();
+                    Element strategyElement = strategyChild.getElement();
+                    if (strategyElement.getTagName().equals(MuleXMLTag.FIXED_FREQUENCY.tag())) {
+                        String frequency = strategyElement.getAttribute("frequency");
+                        String timeUnit = strategyElement.getAttribute("timeUnit");
+                        schedulingStrategy = new SchedulingStrategy(frequency, timeUnit);
+                    }
+                }
+            } else if (childElement.getTagName().equals(MuleXMLTag.FILE_MATCHER.tag())) {
+                String filenamePattern = childElement.getAttribute("filenamePattern");
+                String regularFiles = childElement.getAttribute("regularFiles");
+                matcher = new FileMatcher(filenamePattern, regularFiles);
+            }
+        }
+
+        return new FileListener(configRef, directory, autoDelete, outputMimeType, schedulingStrategy, matcher);
+    }
+
     private static MuleRecord readExpressionComponent(Context ctx, MuleElement muleElement) {
         return new ExpressionComponent(muleElement.getElement().getTextContent());
     }
@@ -434,6 +478,9 @@ public class MuleConfigReader {
                 assert source == null;
                 source = readBlock(ctx, child);
             } else if (element.getTagName().equals(MuleXMLTag.PUBSUB_MESSAGE_LISTENER.tag())) {
+                assert source == null;
+                source = readBlock(ctx, child);
+            } else if (element.getTagName().equals(MuleXMLTag.FILE_LISTENER.tag())) {
                 assert source == null;
                 source = readBlock(ctx, child);
             } else {
@@ -936,6 +983,22 @@ public class MuleConfigReader {
             muleElement.consumeChild();
         }
         return new PubSubConfig(name);
+    }
+
+    private static FileConfig readFileConfig(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String name = element.getAttribute("name");
+        String workingDir = "<WORKING_DIR>";
+
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals(MuleXMLTag.FILE_CONNECTION.tag())) {
+                workingDir = childElement.getAttribute("workingDir");
+            }
+        }
+
+        return new FileConfig(name, workingDir);
     }
 
     private static GlobalProperty readGlobalProperty(Context ctx, MuleElement muleElement) {

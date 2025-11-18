@@ -55,6 +55,7 @@ import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
 import static mule.v4.MuleToBalConverter.generateTextDocument;
 import static mule.v4.model.MuleModel.ErrorHandler;
+import static mule.v4.model.MuleModel.FileConfig;
 import static mule.v4.model.MuleModel.GlobalProperty;
 import static mule.v4.model.MuleModel.HTTPListenerConfig;
 import static mule.v4.model.MuleModel.HTTPRequestConfig;
@@ -227,6 +228,7 @@ public class Context extends ContextBase {
         List<HashMap<String, DbConfig>> dbConfigMaps = new ArrayList<>();
         List<HashMap<String, AnypointMqConfig>> anypointMqConfigMaps = new ArrayList<>();
         List<HashMap<String, PubSubConfig>> pubSubConfigMaps = new ArrayList<>();
+        List<HashMap<String, FileConfig>> fileConfigMaps = new ArrayList<>();
 
         // Shared bal constructs
         public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
@@ -261,6 +263,10 @@ public class Context extends ContextBase {
 
         public PubSubConfig getPubSubConfig(String key) {
             return getValueFromMaps(pubSubConfigMaps, key);
+        }
+
+        public FileConfig getFileConfig(String key) {
+            return getValueFromMaps(fileConfigMaps, key);
         }
 
         public boolean configurableVarExists(String key) {
@@ -298,6 +304,7 @@ public class Context extends ContextBase {
         public final HashMap<String, DbConfig> dbConfigs = new LinkedHashMap<>();
         public final HashMap<String, AnypointMqConfig> anypointMqConfigs = new LinkedHashMap<>();
         public final HashMap<String, PubSubConfig> pubSubConfigs = new LinkedHashMap<>();
+        public final HashMap<String, FileConfig> fileConfigs = new LinkedHashMap<>();
         public final List<ErrorHandler> globalErrorHandlers = new ArrayList<>();
         public final List<GlobalProperty> globalProperties = new ArrayList<>();
         public final List<MuleImport> imports = new ArrayList<>();
@@ -310,6 +317,7 @@ public class Context extends ContextBase {
             projCtx.dbConfigMaps.add(dbConfigs);
             projCtx.anypointMqConfigMaps.add(anypointMqConfigs);
             projCtx.pubSubConfigMaps.add(pubSubConfigs);
+            projCtx.fileConfigMaps.add(fileConfigs);
         }
     }
 

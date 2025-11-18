@@ -178,6 +178,54 @@ public class ConversionUtils {
     }
 
     /**
+     * Converts a glob pattern to a regex pattern.
+     * Handles common glob wildcards:
+     * - `*` → `.*` (zero or more characters)
+     * - `?` → `.` (single character)
+     * - `**` → `.*` (recursive wildcard)
+     * - `.` → `\.` (escape literal dots)
+     * - Other special regex characters are escaped
+     *
+     * @param globPattern the glob pattern (e.g., "*.csv", "file?.txt")
+     * @return regex pattern (e.g., ".*\\.csv", "file.\\.txt")
+     */
+    public static String convertGlobToRegex(String globPattern) {
+        if (globPattern == null || globPattern.isEmpty()) {
+            return globPattern;
+        }
+
+        // Step 1: Replace ** with a placeholder to handle it separately
+        String placeholder = "<<<DOUBLE_STAR>>>";
+        String result = globPattern.replace("**", placeholder);
+
+        // Step 2: Escape special regex characters except * and ?
+        // Characters that need escaping in regex: . + ( ) | ^ $ @ % [ ] { } \
+        result = result.replace("\\", "\\\\");  // Escape backslash first
+        result = result.replace(".", "\\.");
+        result = result.replace("+", "\\+");
+        result = result.replace("(", "\\(");
+        result = result.replace(")", "\\)");
+        result = result.replace("|", "\\|");
+        result = result.replace("^", "\\^");
+        result = result.replace("$", "\\$");
+        result = result.replace("@", "\\@");
+        result = result.replace("%", "\\%");
+        result = result.replace("[", "\\[");
+        result = result.replace("]", "\\]");
+        result = result.replace("{", "\\{");
+        result = result.replace("}", "\\}");
+
+        // Step 3: Convert glob wildcards to regex
+        result = result.replace("*", ".*");  // * → .*
+        result = result.replace("?", ".");   // ? → .
+
+        // Step 4: Replace placeholder with .*
+        result = result.replace(placeholder, ".*");
+
+        return result;
+    }
+
+    /**
      * Converts a mule variable name to a Ballerina identifier syntax by:
      * 1. Escaping special characters with a preceding `\`
      * 2. Adding a single quote prefix if the identifier is a Ballerina keyword
