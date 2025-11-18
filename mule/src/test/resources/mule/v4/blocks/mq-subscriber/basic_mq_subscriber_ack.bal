@@ -13,10 +13,7 @@ public type Context record {|
 
 configurable string JMS_PROVIDER_URL = ?;
 public listener jms:Listener mq_config = new jms:Listener(
-    connectionConfig = {
-        initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory",
-        providerUrl: JMS_PROVIDER_URL
-    },
+    connectionConfig = {initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl: JMS_PROVIDER_URL},
     consumerOptions = {
         destination: {
             'type: jms:QUEUE,

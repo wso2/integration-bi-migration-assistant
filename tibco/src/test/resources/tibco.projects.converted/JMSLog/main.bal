@@ -1,10 +1,7 @@
 import ballerinax/java.jms;
 
 public listener jms:Listener jmsJMS_Queue_ReceiverListener = new jms:Listener(
-    connectionConfig = {
-        initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory",
-        providerUrl: "tcp://localhost:61616"
-    },
+    connectionConfig = {initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl: "tcp://localhost:61616"},
     consumerOptions = {
         destination: {
             'type: jms:QUEUE,

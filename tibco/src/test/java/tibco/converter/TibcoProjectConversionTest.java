@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.stream.Stream;
 
 public class TibcoProjectConversionTest {
@@ -129,6 +130,39 @@ public class TibcoProjectConversionTest {
         }
     }
 
+    /**
+     * Recursively sorts map keys by converting Maps to TreeMaps and Lists to sorted
+     * lists.
+     * This ensures consistent JSON output with sorted keys.
+     *
+     * @param map The map to sort
+     * @return A new TreeMap with sorted keys
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> sortMapKeys(Map<String, Object> map) {
+        TreeMap<String, Object> sortedMap = new TreeMap<>();
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            Object value = entry.getValue();
+            if (value instanceof Map) {
+                sortedMap.put(entry.getKey(), sortMapKeys((Map<String, Object>) value));
+            } else if (value instanceof List) {
+                List<Object> list = (List<Object>) value;
+                List<Object> sortedList = new ArrayList<>();
+                for (Object item : list) {
+                    if (item instanceof Map) {
+                        sortedList.add(sortMapKeys((Map<String, Object>) item));
+                    } else {
+                        sortedList.add(item);
+                    }
+                }
+                sortedMap.put(entry.getKey(), sortedList);
+            } else {
+                sortedMap.put(entry.getKey(), value);
+            }
+        }
+        return sortedMap;
+    }
+
     @Test(groups = {"tibco", "converter"}, dataProvider = "projectTestCaseProvider")
     public void testProjectConversion(Path tibcoProject, Path expectedBallerinaProject) throws Exception {
         // Create a temporary directory for the output
@@ -182,7 +216,9 @@ public class TibcoProjectConversionTest {
         Assert.assertFalse(reportJsonMap.isEmpty(), "report-json should not be empty");
 
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        String reportJson = gson.toJson(reportJsonMap);
+        // Sort map keys recursively to ensure consistent JSON output
+        Map<String, Object> sortedReportJsonMap = sortMapKeys(reportJsonMap);
+        String reportJson = gson.toJson(sortedReportJsonMap);
 
         Path expectedJsonFile = Path.of("src/test/resources/tibco.projects.converted")
                 .resolve(expectedBallerinaProject.getFileName())
