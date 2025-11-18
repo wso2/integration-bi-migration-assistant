@@ -237,6 +237,7 @@ public class MuleToBalConverter {
 
     private static void genApiKitSource(Context ctx, Flow flow, ApiKitConfig apiKit, Collection<Service> services,
                                         Service lastHttpService) {
+        ctx.inServiceGen = true;
         // TODO: Common with httpSource refactor
         ctx.projectCtx.attributes.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_TYPE);
         ctx.projectCtx.attributes.put(Constants.HTTP_RESPONSE_REF, Constants.HTTP_RESPONSE_TYPE);
@@ -291,10 +292,12 @@ public class MuleToBalConverter {
         Resource resource = new Resource(resourceMethod, combinedResourcePath, queryPrams, Optional.of(returnType),
                 bodyStmts);
         lastHttpService.resources().add(resource);
+        ctx.resetServiceState();
     }
 
     private static void genAnypointMqSource(Context ctx, Flow flow, AnypointMqSubscriber mqSubscriber,
                                             Collection<Service> services, List<Listener> listeners) {
+        ctx.inServiceGen = true;
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
         ctx.projectCtx.attributes.put(Constants.JMS_MESSAGE_REF, Constants.JMS_MESSAGE_TYPE);
 
@@ -310,20 +313,7 @@ public class MuleToBalConverter {
         String listenerName = convertToBalIdentifier(mqSubscriber.configRef());
         // Listener name from config-ref
         VariableReference jmsListenerConfig =
-                ctx.projectCtx.jmsConnectionConfig.computeIfAbsent(mqSubscriber.configRef(), (configRef) -> {
-                    String jmsListenerConfigName = listenerName + "Config";
-                    ctx.currentFileCtx.balConstructs.moduleVars.put(jmsListenerConfigName,
-                            new ModuleVar(jmsListenerConfigName,
-                                    common.ConversionUtils.typeFrom(JMS_CONNECTION_CONFIGURATION_TYPE),
-                                    new Expression.MappingConstructor(List.of(
-                                            new Expression.MappingConstructor.MappingField("initialContextFactory",
-                                                    new Expression.StringConstant(
-                                                            "org.apache.activemq.jndi.ActiveMQInitialContextFactory")),
-                                            new Expression.MappingConstructor.MappingField("providerUrl",
-                                                    new VariableReference(jmsProviderUrlVar))
-                                    ))));
-                    return new VariableReference(jmsListenerConfigName);
-                });
+                getJmsConnectionConfig(ctx, new VariableReference(jmsProviderUrlVar), mqSubscriber.configRef());
 
         // Create JMS Listener using the BallerinaModel
         Listener.JMSListener jmsListener =
@@ -350,11 +340,30 @@ public class MuleToBalConverter {
 
         // Create service with listener reference
         Service service = new Service(serviceName, List.of(listenerName), ctx.getServiceInitFunction(),
-                List.of(), List.of(), ctx.serviceFields, List.of(remoteFunction),
+                List.of(), List.of(), new ArrayList<>(ctx.serviceFields), List.of(remoteFunction),
                 Optional.of(new Statement.Comment(
                         "TODO: placeholder jms listener for %s".formatted(mqSubscriber.configRef()))));
         services.add(service);
         ctx.resetServiceState();
+    }
+
+    public static @NotNull VariableReference getJmsConnectionConfig(Context ctx,
+                                                                    VariableReference providerUrl,
+                                                                    String mqConfigRef) {
+        return ctx.projectCtx.jmsConnectionConfig.computeIfAbsent(mqConfigRef, (configRef) -> {
+            String jmsListenerConfigName = configRef + "Config";
+            ctx.currentFileCtx.balConstructs.moduleVars.put(jmsListenerConfigName,
+                    new ModuleVar(jmsListenerConfigName,
+                            common.ConversionUtils.typeFrom(JMS_CONNECTION_CONFIGURATION_TYPE),
+                            new Expression.MappingConstructor(List.of(
+                                    new Expression.MappingConstructor.MappingField("initialContextFactory",
+                                            new Expression.StringConstant(
+                                                    "org.apache.activemq.jndi.ActiveMQInitialContextFactory")),
+                                    new Expression.MappingConstructor.MappingField("providerUrl",
+                                            providerUrl)
+                            ))));
+            return new VariableReference(jmsListenerConfigName);
+        });
     }
 
     private static void genPubSubSource(Context ctx, Flow flow, PubSubMessageListener pubSubListener,
@@ -699,6 +708,7 @@ public class MuleToBalConverter {
     private static Service genBalService(Context ctx, HttpListener httpListener, List<MuleRecord> flowBlocks,
                                          Set<Function> functions)
             throws ScriptConversionException {
+        ctx.inServiceGen = true;
         List<String> pathParams = new ArrayList<>();
         String resourcePath = getBallerinaResourcePath(ctx, httpListener.resourcePath(), pathParams);
         String[] resourceMethodNames = httpListener.allowedMethods();
@@ -762,6 +772,7 @@ public class MuleToBalConverter {
             throw new IllegalStateException();
         }
 
+        ctx.resetServiceState();
         return new Service(basePath, listenerRef, resources);
     }
 

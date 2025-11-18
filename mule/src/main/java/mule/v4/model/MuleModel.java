@@ -83,6 +83,14 @@ public record MuleModel() {
         }
     }
 
+    public record AnypointMqPublish(Kind kind, String configRef, String destination, String messageId,
+                                    Optional<String> properties) implements MuleRecord {
+        public AnypointMqPublish(String configRef, String destination, String messageId,
+                                Optional<String> properties) {
+            this(Kind.ANYPOINT_MQ_PUBLISH, configRef, destination, messageId, properties);
+        }
+    }
+
     public record PubSubMessageListener(Kind kind, String configRef, String projectId,
                                         String subscriptionName) implements MuleRecord {
         public PubSubMessageListener(String configRef, String projectId, String subscriptionName) {
@@ -485,6 +493,7 @@ public record MuleModel() {
         ANYPOINT_MQ_CONFIG,
         ANYPOINT_MQ_SUBSCRIBER,
         ANYPOINT_MQ_ACK,
+        ANYPOINT_MQ_PUBLISH,
         PUBSUB_CONFIG,
         PUBSUB_MESSAGE_LISTENER,
         FILE_CONFIG,

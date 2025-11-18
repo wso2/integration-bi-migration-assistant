@@ -35,6 +35,8 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.jetbrains.annotations.NotNull;
+
 import static common.BallerinaModel.BlockFunctionBody;
 import static common.BallerinaModel.Expression.BallerinaExpression;
 import static common.BallerinaModel.Function;
@@ -56,17 +58,23 @@ import static mule.v4.Constants.BAL_ERROR_TYPE;
 import static mule.v4.Constants.FUNC_NAME_ASYC_TEMPLATE;
 import static mule.v4.Constants.HTTP_CLIENT_TYPE;
 import static mule.v4.Constants.HTTP_REQUEST_REF;
+import static mule.v4.Constants.JMS_CONNECTION_TYPE;
+import static mule.v4.Constants.JMS_MAP_MESSAGE_TYPE;
+import static mule.v4.Constants.JMS_MESSAGE_PRODUCER_TYPE;
 import static mule.v4.Constants.JMS_MESSAGE_TYPE;
+import static mule.v4.Constants.JMS_SESSION_TYPE;
 import static mule.v4.ConversionUtils.convertMuleExprToBal;
 import static mule.v4.ConversionUtils.convertMuleExprToBalStringLiteral;
 import static mule.v4.ConversionUtils.convertToUnsupportedTODO;
 import static mule.v4.ConversionUtils.genQueryParam;
 import static mule.v4.ConversionUtils.getBallerinaClientResourcePath;
 import static mule.v4.ConversionUtils.inferTypeFromBalExpr;
+import static mule.v4.MuleToBalConverter.*;
 import static mule.v4.converter.MELConverter.convertMELToBal;
 import static mule.v4.converter.MuleConfigConverter.ConversionResult.FailClauseResult;
 import static mule.v4.converter.MuleConfigConverter.ConversionResult.WorkerStatementResult;
 import static mule.v4.model.MuleModel.AnypointMqAck;
+import static mule.v4.model.MuleModel.AnypointMqPublish;
 import static mule.v4.model.MuleModel.ApiKitRouter;
 import static mule.v4.model.MuleModel.Async;
 import static mule.v4.model.MuleModel.Choice;
@@ -314,6 +322,9 @@ public class MuleConfigConverter {
             case AnypointMqAck ack -> {
                 return convertAnypointMqAck(ctx, ack);
             }
+            case AnypointMqPublish publish -> {
+                return convertAnypointMqPublish(ctx, publish);
+            }
             case UnsupportedBlock unsupportedBlock -> {
                 return convertUnsupportedBlock(ctx, unsupportedBlock);
             }
@@ -357,6 +368,84 @@ public class MuleConfigConverter {
                                 common.ConversionUtils.typeFrom(JMS_MESSAGE_TYPE), exprFrom(messageExpr))))));
         stmts.add(ackCall);
         return new WorkerStatementResult(stmts);
+    }
+
+    private static WorkerStatementResult convertAnypointMqPublish(Context ctx, AnypointMqPublish publish) {
+        List<Statement> stmts = new ArrayList<>();
+
+        // Add JMS import
+        ctx.currentFileCtx.balConstructs.imports.add(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_JMS));
+
+        Context.JMSMessageProducerLookupKey key =
+                new Context.JMSMessageProducerLookupKey(publish.configRef(), publish.destination());
+        BallerinaModel.Expression.VariableReference producer = ctx.inServiceGen ?
+                ctx.messageProducers.computeIfAbsent(key, k -> getJMSMessageProducer(ctx, ctx.initFunctionBody, k)) :
+                getJMSMessageProducer(ctx, stmts, key);
+
+        // Handle message properties (DataWeave/MEL script)
+        publish.properties().ifPresent(msg -> {
+            try {
+                Statement.VarDeclStatment message = new Statement.VarDeclStatment(JMS_MAP_MESSAGE_TYPE, "jmsMessage",
+                        new BallerinaModel.Expression.MappingConstructor(
+                                List.of(new BallerinaModel.Expression.MappingConstructor.MappingField("content",
+                                        common.ConversionUtils.exprFrom(convertMELToBal(ctx, msg, false))))));
+                stmts.add(message);
+                stmts.add(new Statement.CallStatement(new BallerinaModel.Expression.Check(
+                        new BallerinaModel.Action.RemoteMethodCallAction(producer, "send", List.of(message.ref())))));
+            } catch (ScriptConversionException e) {
+                stmts.add(new Statement.Comment("FIXME: failed to convert properties script: " + e.getMessage()));
+            }
+        });
+        return new WorkerStatementResult(stmts);
+    }
+
+    private static BallerinaModel.Expression.VariableReference getJMSMessageProducer(Context ctx,
+                                                                                     List<Statement> stmtBuffer,
+                                                                                     Context.JMSMessageProducerLookupKey key) {
+        // Add configurable variable for JMS provider URL
+        String jmsProviderUrlVar = "JMS_PROVIDER_URL";
+        ConversionUtils.addConfigVarEntry(ctx, jmsProviderUrlVar, null);
+
+        var mqConfigRef = key.connectionConfig();
+        var destination = key.destination();
+        // Get JMS connection config
+        BallerinaModel.Expression.VariableReference jmsConnectionConfig =
+                getJmsConnectionConfig(ctx,
+                        new BallerinaModel.Expression.VariableReference(jmsProviderUrlVar), mqConfigRef);
+
+        Statement.VarDeclStatment connection = new Statement.VarDeclStatment(JMS_CONNECTION_TYPE,
+                "connection" + ctx.projectCtx.counters.jmsConnectionCount++,
+                new BallerinaModel.Expression.Check(
+                        new BallerinaModel.Expression.NewExpression(List.of(jmsConnectionConfig))));
+        stmtBuffer.add(connection);
+
+        Statement.VarDeclStatment session =
+                new Statement.VarDeclStatment(JMS_SESSION_TYPE, "session" + ctx.projectCtx.counters.jmsSessionCount++,
+                        new BallerinaModel.Expression.Check(
+                                new BallerinaModel.Action.RemoteMethodCallAction(connection.ref(), "createSession",
+                                        List.of())));
+        stmtBuffer.add(session);
+
+        Statement.VarDeclStatment producer = new Statement.VarDeclStatment(JMS_MESSAGE_PRODUCER_TYPE,
+                "producer" + ctx.projectCtx.counters.jmsProducerCount++,
+                new BallerinaModel.Expression.Check(
+                        new BallerinaModel.Expression.MethodCall(session.ref(), "createProducer",
+                                List.of(new BallerinaModel.Expression.MappingConstructor(List.of(
+                                        new BallerinaModel.Expression.MappingConstructor.MappingField("'type",
+                                                new BallerinaModel.Expression.VariableReference("jms:QUEUE")),
+                                        new BallerinaModel.Expression.MappingConstructor.MappingField("name",
+                                                new StringConstant(destination))
+                                ))))));
+        stmtBuffer.add(producer);
+        if (ctx.inServiceGen) {
+            ctx.serviceFields.add(new BallerinaModel.ObjectField(JMS_MESSAGE_PRODUCER_TYPE, producer.varName()));
+            BallerinaModel.Expression.VariableReference serviceRef =
+                    new BallerinaModel.Expression.VariableReference("self." + producer.varName());
+            stmtBuffer.add(new Statement.VarAssignStatement(serviceRef, producer.ref()));
+            return serviceRef;
+        }
+        // TODO: if in service create a final field
+        return producer.ref();
     }
 
     private static WorkerStatementResult convertSetVariable(Context ctx, SetVariable setVariable) {

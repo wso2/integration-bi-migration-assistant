@@ -124,4 +124,9 @@ public class Constants {
     public static final BallerinaType BAL_HANDLE_TYPE = typeFrom("handle");
     public static final BallerinaType BAL_ANYDATA_TYPE = typeFrom("anydata");
 
+    public static final BallerinaType JMS_CONNECTION_TYPE = typeFrom("jms:Connection");
+    public static final BallerinaType JMS_SESSION_TYPE = typeFrom("jms:Session");
+    public static final BallerinaType JMS_MESSAGE_PRODUCER_TYPE = typeFrom("jms:MessageProducer");
+    public static final BallerinaType JMS_MAP_MESSAGE_TYPE = typeFrom("jms:MapMessage");
+
 }

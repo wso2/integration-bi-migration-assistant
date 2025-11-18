@@ -35,4 +35,9 @@ public class MqSubscriberTest extends AbstractBlockTest {
     public void testBasicMqPublish() {
         testMule4ToBal("mq-subscriber/basic_mq_publish.xml", "mq-subscriber/basic_mq_publish.bal");
     }
+
+    @Test
+    public void testBasicMqPublishInService() {
+        testMule4ToBal("mq-subscriber/basic_mq_publish_service.xml", "mq-subscriber/basic_mq_publish_service.bal");
+    }
 }

@@ -104,6 +104,7 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     ANYPOINT_MQ_SUBSCRIBER("anypoint-mq:subscriber", 5),
     ANYPOINT_MQ_CONNECTION("anypoint-mq:connection", 2),
     ANYPOINT_MQ_ACK("anypoint-mq:ack", 3),
+    ANYPOINT_MQ_PUBLISH("anypoint-mq:publish", 3),
 
     // Google Pub/Sub connector
     PUBSUB_CONFIG("pubsub:config", 3),
