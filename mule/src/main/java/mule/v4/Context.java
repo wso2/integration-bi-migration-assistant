@@ -77,6 +77,12 @@ public class Context extends ContextBase {
     public String currentResourcePath;
     public String currentListenerPort;
     public String currentApiKitBasePath;
+    public BallerinaModel.Expression.VariableReference jmsCaller;
+    public List<BallerinaModel.ObjectField> serviceFields = new ArrayList<>();
+    public List<BallerinaModel.Statement> initFunctionBody = new ArrayList<>();
+    public Map<JMSMessageProducerLookupKey, BallerinaModel.Expression.VariableReference> messageProducers =
+            new HashMap<>();
+    public boolean inServiceGen = false;
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                    List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
@@ -196,6 +202,20 @@ public class Context extends ContextBase {
                 ignored -> "/apikit" + projectCtx.apiKitBasePaths.size());
     }
 
+    public void resetServiceState() {
+        this.jmsCaller = null;
+        this.initFunctionBody.clear();
+        this.serviceFields.clear();
+        this.inServiceGen = false;
+        this.messageProducers.clear();
+    }
+
+    public Optional<BallerinaModel.Function> getServiceInitFunction() {
+        return Optional.of(new BallerinaModel.Function("init", List.of(), BallerinaModel.TypeDesc.UnionTypeDesc.of(
+                BallerinaModel.TypeDesc.BuiltinType.ERROR, BallerinaModel.TypeDesc.BuiltinType.NIL),
+                new ArrayList<>(initFunctionBody)));
+    }
+
     public static class FileContext {
         public final String filePath;
         public final GlobalConfigs configs;
@@ -217,6 +237,7 @@ public class Context extends ContextBase {
         public final LinkedHashMap<String, String> vars = new LinkedHashMap<>();
         public final LinkedHashMap<String, String> attributes = new LinkedHashMap<>();
         public final HashMap<String, String> vmQueueNameToBalFuncMap = new LinkedHashMap<>();
+        public final Map<String, BallerinaModel.Expression.VariableReference> jmsConnectionConfig = new HashMap<>();
 
         // Track last HTTP service across all files for API Kit resource merging
         public BallerinaModel.Service lastHttpService = null;
@@ -415,6 +436,14 @@ public class Context extends ContextBase {
         public int firstSuccessfulCount = 0;
         public int firstSuccessfulFuncCount = 0;
         public int requestPathBuilderCount = 0;
+        public int jmsConnectionCount = 0;
+        public int jmsSessionCount = 0;
+        public int jmsProducerCount = 0;
+        public int jmsMessageCount = 0;
         public Map<String, Integer> dwFunctionPrefixCounters = new HashMap<>();
+    }
+
+    public record JMSMessageProducerLookupKey(String connectionConfig, String destination) {
+
     }
 }

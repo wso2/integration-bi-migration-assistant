@@ -15,6 +15,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get .(http:Request request) returns http:Response|error {
         return invokeEndPoint0(request);
     }

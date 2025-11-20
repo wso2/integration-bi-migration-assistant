@@ -47,6 +47,8 @@ import static common.BallerinaModel.Import;
 import static mule.v4.ConversionUtils.getAllowedMethods;
 import static mule.v4.model.MuleModel.AnypointMqConfig;
 import static mule.v4.model.MuleModel.AnypointMqSubscriber;
+import static mule.v4.model.MuleModel.AnypointMqAck;
+import static mule.v4.model.MuleModel.AnypointMqPublish;
 import static mule.v4.model.MuleModel.PubSubConfig;
 import static mule.v4.model.MuleModel.PubSubMessageListener;
 import static mule.v4.model.MuleModel.ApiKitConfig;
@@ -302,6 +304,12 @@ public class MuleConfigReader {
             case MuleXMLTag.APIKIT_ROUTER -> {
                 return readApiKitRouter(ctx, muleElement);
             }
+            case MuleXMLTag.ANYPOINT_MQ_ACK -> {
+                return readAnypointMqAck(ctx, muleElement);
+            }
+            case MuleXMLTag.ANYPOINT_MQ_PUBLISH -> {
+                return readAnypointMqPublish(ctx, muleElement);
+            }
             default -> {
                 return readUnsupportedBlock(ctx, muleElement);
             }
@@ -363,6 +371,38 @@ public class MuleConfigReader {
         String configRef = element.getAttribute("config-ref");
         String destination = element.getAttribute("destination");
         return new AnypointMqSubscriber(configRef, destination);
+    }
+
+    private static AnypointMqAck readAnypointMqAck(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String configRef = element.getAttribute("config-ref");
+        // Consume any child elements (ignoring them)
+        while (muleElement.peekChild() != null) {
+            muleElement.consumeChild();
+        }
+        return new AnypointMqAck(configRef);
+    }
+
+    private static AnypointMqPublish readAnypointMqPublish(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        String configRef = element.getAttribute("config-ref");
+        String destination = element.getAttribute("destination");
+        String messageId = element.getAttribute("messageId");
+
+        Optional<String> properties = Optional.empty();
+        // Parse nested anypoint-mq:properties element
+        while (muleElement.peekChild() != null) {
+            MuleElement child = muleElement.consumeChild();
+            Element childElement = child.getElement();
+            if (childElement.getTagName().equals("anypoint-mq:properties")) {
+                String script = childElement.getTextContent();
+                if (script != null && !script.trim().isEmpty()) {
+                    properties = Optional.of(script.trim());
+                }
+            }
+        }
+
+        return new AnypointMqPublish(configRef, destination, messageId, properties);
     }
 
     private static PubSubMessageListener readPubSubMessageListener(Context ctx, MuleElement muleElement) {

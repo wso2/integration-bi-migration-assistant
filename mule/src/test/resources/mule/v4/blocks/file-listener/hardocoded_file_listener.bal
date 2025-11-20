@@ -22,6 +22,9 @@ public listener file:Listener file_config = new (
 // TODO: outputMimeType attribute not supported: application/csv; separator=","
 // TODO: directory attribute not supported: csv
 service on file_config {
+    function init() returns error? {
+    }
+
     remote function onCreate(file:FileEvent event) {
         Context ctx = {attributes: {}};
         if regex:matches(event.name, ".*\.csv") {

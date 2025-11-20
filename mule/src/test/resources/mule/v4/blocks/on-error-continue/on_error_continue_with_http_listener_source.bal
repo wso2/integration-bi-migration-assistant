@@ -15,6 +15,9 @@ public type Context record {|
 public listener http:Listener listener_config = new (8081);
 
 service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
     resource function get on_error_continue(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         do {

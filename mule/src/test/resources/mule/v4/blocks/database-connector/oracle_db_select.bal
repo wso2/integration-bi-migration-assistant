@@ -22,6 +22,9 @@ oracledb:Client oracle_config2 = check new ("localhost", "admin", "nimda", "serv
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get db(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
 

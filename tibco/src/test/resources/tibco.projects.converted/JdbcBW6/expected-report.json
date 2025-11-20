@@ -1,10 +1,10 @@
 {
   "coverageOverview": {
-    "unitName": "activity",
     "coverageLevel": "high",
-    "nonMigratableElements": 0,
     "coveragePercentage": 100,
     "migratableElements": 3,
-    "totalElements": 3
+    "nonMigratableElements": 0,
+    "totalElements": 3,
+    "unitName": "activity"
   }
 }

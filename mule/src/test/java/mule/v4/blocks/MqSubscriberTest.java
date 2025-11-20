@@ -25,5 +25,37 @@ public class MqSubscriberTest extends AbstractBlockTest {
     public void testBasicMqSubscriber() {
         testMule4ToBal("mq-subscriber/basic_mq_subscriber.xml", "mq-subscriber/basic_mq_subscriber.bal");
     }
-}
 
+    @Test
+    public void testBasicMqSubscriberWithAck() {
+        testMule4ToBal("mq-subscriber/basic_mq_subscriber_ack.xml", "mq-subscriber/basic_mq_subscriber_ack.bal");
+    }
+
+    @Test
+    public void testBasicMqPublish() {
+        testMule4ToBal("mq-subscriber/basic_mq_publish.xml", "mq-subscriber/basic_mq_publish.bal");
+    }
+
+    @Test
+    public void testBasicMqPublishInService() {
+        testMule4ToBal("mq-subscriber/basic_mq_publish_service.xml", "mq-subscriber/basic_mq_publish_service.bal");
+    }
+
+    @Test
+    public void testBasicMqPublishInServiceMultipleDestinations() {
+        testMule4ToBal("mq-subscriber/basic_mq_publish_service_multiple_destinations.xml",
+                "mq-subscriber/basic_mq_publish_service_multiple_destinations.bal");
+    }
+
+    @Test
+    public void testMqPublishInHttpService() {
+        testMule4ToBal("mq-subscriber/mq_publish_in_http_service.xml",
+                "mq-subscriber/mq_publish_in_http_service.bal");
+    }
+
+    @Test
+    public void testMqPublishInApikitService() {
+        testMule4ToBal("mq-subscriber/mq_publish_in_apikit_service.xml",
+                "mq-subscriber/mq_publish_in_apikit_service.bal");
+    }
+}

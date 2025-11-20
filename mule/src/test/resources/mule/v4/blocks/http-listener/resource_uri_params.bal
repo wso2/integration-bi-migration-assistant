@@ -15,6 +15,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get [string version]/demo/[string id](http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new, uriParams: {version, id}}};
         log:printInfo("xxx: logger invoked");

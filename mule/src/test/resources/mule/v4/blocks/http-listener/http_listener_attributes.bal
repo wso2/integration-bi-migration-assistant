@@ -27,6 +27,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get attribute_test/[string country]/v1(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new, uriParams: {country}}};
         ctx.vars.queryParams = ctx.attributes.request.getQueryParams();

@@ -21,6 +21,7 @@ import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static common.BallerinaModel.Expression.BallerinaExpression;
@@ -444,9 +446,28 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
         }
 
-        record JMSListener(String name, Expression initialContextFactory, Expression providerUrl,
-                           String destinationName, Optional<String> username, Optional<String> password)
+        record JMSListener(String name, Supplier<Expression> connectionConfigSupplier,
+                           String destinationName)
                 implements Listener {
+
+            public JMSListener(String name, Expression initialContextFactory, Expression providerUrl,
+                               String destinationName, Optional<String> username, Optional<String> password) {
+                this(name, () -> {
+                    List<Expression.MappingConstructor.MappingField> fields = new ArrayList<>();
+                    fields.add(new Expression.MappingConstructor.MappingField("initialContextFactory",
+                            initialContextFactory));
+                    fields.add(new Expression.MappingConstructor.MappingField("providerUrl",
+                            providerUrl));
+
+                    if (username.isPresent() && password.isPresent()) {
+                        fields.add(new Expression.MappingConstructor.MappingField("username",
+                                new StringConstant(username.get())));
+                        fields.add(new Expression.MappingConstructor.MappingField("password",
+                                new StringConstant(password.get())));
+                    }
+                    return new Expression.MappingConstructor(fields);
+                }, destinationName);
+            }
 
             @Override
             public ListenerType type() {
@@ -456,27 +477,16 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             @Override
             @NotNull
             public String toString() {
-                StringBuilder connectionConfig = new StringBuilder();
-                connectionConfig.append("initialContextFactory: ").append(initialContextFactory).append(",\n");
-                connectionConfig.append("providerUrl: ").append(providerUrl);
-
-                if (username.isPresent() && password.isPresent()) {
-                    connectionConfig.append(",\nusername: \"").append(username.get()).append("\",\n");
-                    connectionConfig.append("password: \"").append(password.get()).append("\"");
-                }
-
                 return String.format("""
                         public listener jms:Listener %s = new jms:Listener(
-                            connectionConfig = {
-                                %s
-                            },
+                            connectionConfig = %s,
                             consumerOptions = {
                                 destination: {
                                     'type: jms:QUEUE,
                                     name: "%s"
                                 }
                             }
-                        );""", name, connectionConfig, destinationName);
+                        );""", name, connectionConfigSupplier.get(), destinationName);
             }
         }
 

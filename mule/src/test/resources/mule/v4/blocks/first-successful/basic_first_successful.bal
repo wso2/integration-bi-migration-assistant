@@ -15,6 +15,9 @@ public type Context record {|
 public listener http:Listener http_listener = new (9090);
 
 service / on http_listener {
+    function init() returns error? {
+    }
+
     resource function default first_successful(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
 

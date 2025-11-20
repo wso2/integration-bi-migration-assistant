@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <anypoint-mq:config name="mq_config" doc:name="Anypoint MQ Config" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+        <anypoint-mq:connection clientId="mq-client" clientSecret="mq-secret" />
+    </anypoint-mq:config>
+    <flow name="mqSubscriberFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c">
+				<anypoint-mq:publish doc:name="publish mq" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c" config-ref="mq_config" destination="destinationQueue" messageId="#[vars.correlationId]">
+					<anypoint-mq:properties><![CDATA[#[output application/java
+---
+{
+	"foo" : "bar"
+}]]]></anypoint-mq:properties>
+						</anypoint-mq:publish>
+    </flow>
+</mule>

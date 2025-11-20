@@ -21,6 +21,9 @@ public type Context record {|
 public listener http:Listener config = new (8081);
 
 service /mule4 on config {
+    function init() returns error? {
+    }
+
     resource function get remove_variable(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         ctx.vars.greeting = "Hello";

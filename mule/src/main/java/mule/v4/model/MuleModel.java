@@ -77,6 +77,20 @@ public record MuleModel() {
         }
     }
 
+    public record AnypointMqAck(Kind kind, String configRef) implements MuleRecord {
+        public AnypointMqAck(String configRef) {
+            this(Kind.ANYPOINT_MQ_ACK, configRef);
+        }
+    }
+
+    public record AnypointMqPublish(Kind kind, String configRef, String destination, String messageId,
+                                    Optional<String> properties) implements MuleRecord {
+        public AnypointMqPublish(String configRef, String destination, String messageId,
+                                Optional<String> properties) {
+            this(Kind.ANYPOINT_MQ_PUBLISH, configRef, destination, messageId, properties);
+        }
+    }
+
     public record PubSubMessageListener(Kind kind, String configRef, String projectId,
                                         String subscriptionName) implements MuleRecord {
         public PubSubMessageListener(String configRef, String projectId, String subscriptionName) {
@@ -478,6 +492,8 @@ public record MuleModel() {
         SCHEDULER,
         ANYPOINT_MQ_CONFIG,
         ANYPOINT_MQ_SUBSCRIBER,
+        ANYPOINT_MQ_ACK,
+        ANYPOINT_MQ_PUBLISH,
         PUBSUB_CONFIG,
         PUBSUB_MESSAGE_LISTENER,
         FILE_CONFIG,

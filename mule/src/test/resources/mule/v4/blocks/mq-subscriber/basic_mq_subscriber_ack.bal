@@ -31,5 +31,6 @@ service "mq_config" on mq_config {
     remote function onMessage(jms:Message message, jms:Caller caller) returns error? {
         Context ctx = {attributes: {jmsMessage: message}};
         log:printInfo("xxx: logger invoked");
+        check caller->acknowledge(<jms:Message>ctx.attributes.jmsMessage);
     }
 }
