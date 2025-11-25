@@ -41,7 +41,7 @@ public class MirthChannelMigrationExecutor {
 
     public static void migrateChannelToBallerina(Path channelFilePath, boolean verbose, VerboseLogger logger) {
         Path targetDir = Files.isDirectory(channelFilePath) ? channelFilePath :
-                channelFilePath.getParent();
+                channelFilePath.toAbsolutePath().getParent();
         logger.printVerboseInfo("Project root directory: " + targetDir.toAbsolutePath());
         executeMigration(channelFilePath, targetDir, "", verbose, logger);
 
@@ -171,7 +171,7 @@ public class MirthChannelMigrationExecutor {
         } catch (Exception e) {
             logger.printError("Error retrieving access token: " + e.getMessage());
             logger.printVerboseError("Stack trace: \n" + Arrays.toString(e.getStackTrace()));
-            return null;
+            throw new RuntimeException(e);
         }
     }
 }

@@ -21,7 +21,7 @@ public class HttpUtils {
 
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
-            .connectTimeout(Duration.ofMinutes(5))
+            .connectTimeout(Duration.ofMinutes(8))
             .build();
 
     static HttpResponse<Stream<String>> sendStreamRequestAsync(URI uri, JsonObject payload, String accessToken,
@@ -76,7 +76,7 @@ public class HttpUtils {
         HttpResponse<String> response;
         try {
             long startTime = System.currentTimeMillis();
-            response = future.get(5, TimeUnit.MINUTES);
+            response = future.get(8, TimeUnit.MINUTES);
             long duration = System.currentTimeMillis() - startTime;
 
             logger.printVerboseInfo(fileName, "Response time: " + duration + "ms");
