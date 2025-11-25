@@ -1,0 +1,151 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'checkstyle'
+    id 'com.github.spotbugs' version '5.1.3'
+}
+
+def ballerinaToolDir = "${projectDir}/src/main/ballerina/tool-bi-migrate-mirth"
+def balToolVersion = "${mirthConnectVersion}"
+def ballerinaVersion = "${ballerinaLangVersion}"
+
+group 'com.wso2'
+version "${mirthConnectVersion}"
+
+def libJarPath = "../../../../build/libs/mirthchannel-migration-assistant-${project.version}.jar"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.google.code.gson:gson:2.10'
+    implementation 'org.apache.httpcomponents.client5:httpclient5:5.2'
+
+    testImplementation platform('org.junit:junit-bom:5.9.1')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    // Dev dependencies
+    implementation "info.picocli:picocli:${picocliVersion}"
+    implementation "org.jetbrains:annotations:${jetbrainsAnnotationsVersion}"
+    testImplementation "org.testng:testng:${testngVersion}"
+    spotbugs "com.github.spotbugs:spotbugs:${spotbugsVersion}"
+
+    // LogicApps specific dependencies
+    implementation "com.google.code.gson:gson:${gsonVersion}"
+    implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
+}
+
+checkstyle {
+    toolVersion = '10.12.5'
+    config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
+}
+
+spotbugs {
+    reportLevel = 'high'
+    excludeFilter = file("${rootProject.projectDir}/spotbugs-exclude.xml")
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+    reports {
+        html.required = true
+        xml.required = false
+    }
+}
+
+test {
+    useTestNG() {
+        suites 'src/test/resources/testng.xml'
+    }
+}
+
+// Keep this for backward compatibility
+application {
+    mainClass = 'cli.MirthConnectCli'
+}
+
+task updateTomlFile {
+    def balToml = file("${ballerinaToolDir}/Ballerina.toml")
+    def toolToml = file("${ballerinaToolDir}/BalTool.toml")
+    doLast {
+        if (balToml.exists()) {
+            def text = balToml.text
+            text = text.replaceAll('version\\s*=\\s*"[^"]*"', 'version = "' + balToolVersion + '"')
+            text = text.replaceAll('distribution\\s*=\\s*"[^"]*"', 'distribution = "' + ballerinaVersion + '"')
+            balToml.text = text
+        }
+        if (toolToml.exists()) {
+            def text = toolToml.text
+            text = text.replaceAll('path\\s*=\\s*"[^"]*"', 'path = "' + libJarPath + '"')
+            toolToml.text = text
+        }
+    }
+}
+
+// Task to copy dependencies to a lib directory
+task copyDependencies(type: Copy) {
+    from configurations.runtimeClasspath
+    into "${buildDir}/libs/lib"
+}
+
+// Default jar task - we'll keep it for backward compatibility
+jar {
+    dependsOn copyDependencies
+    manifest {
+        attributes(
+                'Main-Class': 'cli.MirthConnectCli',
+                'Class-Path': configurations.runtimeClasspath.files.collect { "lib/${it.name}" }.join(' ')
+        )
+    }
+    from {
+        sourceSets.main.output
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveBaseName = 'integration-bi-migration-assistant.jar'
+    archiveVersion = project.version
+}
+
+// Create a separate JAR for LogicApp migrations
+task mirthChannelJar(type: Jar) {
+    dependsOn copyDependencies
+    manifest {
+        attributes(
+                'Main-Class': 'cli.MirthConnectCli',
+                'Class-Path': configurations.runtimeClasspath.files.collect { "lib/${it.name}" }.join(' ')
+        )
+    }
+    from {
+        sourceSets.main.output
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveBaseName = 'mirthchannel-migration-assistant'
+    archiveVersion = project.version
+}
+
+tasks.register('mirthChannelPack', Exec) {
+    dependsOn mirthChannelJar, updateTomlFile
+    workingDir ballerinaToolDir
+    commandLine 'bal', 'pack'
+    group = 'build'
+}
+
+tasks.register('mirthChannelRelease', Exec) {
+    dependsOn mirthChannelPack
+    workingDir ballerinaToolDir
+    commandLine 'bal', 'push'
+    group = 'build'
+}
+
+tasks.register('mirthChannelReleaseLocal', Exec) {
+    dependsOn mirthChannelPack
+    workingDir ballerinaToolDir
+    commandLine 'bal', 'push', '--repository=local'
+    group = 'build'
+}
+
+build {
+    dependsOn checkstyleMain
+    dependsOn spotbugsMain
+    dependsOn mirthChannelJar
+}
