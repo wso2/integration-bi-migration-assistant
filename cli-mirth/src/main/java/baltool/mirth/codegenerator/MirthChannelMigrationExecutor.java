@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Locale;
 
 import static baltool.mirth.Constants.BALLERINA_TOML_FILE;
 import static baltool.mirth.Constants.CONTENT;
@@ -68,11 +69,10 @@ public class MirthChannelMigrationExecutor {
             processMirthChannel(channelFilePath, additionalInstructions, outputDir, copilotAccessToken,
                     loggerFactory, fileName);
             loggerFactory.setProgressBarActive(false);
-
-            System.exit(0);
         } catch (Exception e) {
             logger.printError("Error during migration process: " + e.getMessage());
             logger.printStackTrace(e.getStackTrace());
+            throw new RuntimeException(e);
         }
     }
 
@@ -89,10 +89,10 @@ public class MirthChannelMigrationExecutor {
             }
             logger.printVerboseInfo(fileName, "File validation successful");
             logger.printVerboseInfo(fileName, "File size: " + Files.size(mirthChannelFilePath) + " bytes");
-
-            String projectName = mirthChannelFilePath.getFileName().toString().replace(".xml",
-                    BALLERINA_PROJECT_SUFFIX);
-            String packageName = URLEncoder.encode(projectName, StandardCharsets.UTF_8).replace("-", "_");
+            String baseName = mirthChannelFilePath.getFileName().toString()
+                    .replaceFirst("(?i)\\.xml$", "");
+            String projectName = (baseName + BALLERINA_PROJECT_SUFFIX).toLowerCase(Locale.ROOT);
+            String packageName = projectName.replaceAll("[^a-z0-9_]", "_");
             logger.printVerboseInfo(fileName, "Package name: " + packageName);
 
             ModuleDescriptor moduleDescriptor = getModuleDescriptor(packageName);

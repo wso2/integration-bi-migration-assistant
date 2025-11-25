@@ -11,7 +11,7 @@ import java.nio.file.Path;
 import static baltool.mirth.Constants.CMD_NAME;
 
 /**
- * This class represents the "migrate-mirth-channel" bal tool command.
+ * This class represents the "migrate-mirth" bal tool command.
  *
  * @since 1.0.0
  */
@@ -23,7 +23,7 @@ public class MigrateMirthChannelCommand implements BLauncherCmd {
 
     private final PrintStream errStream;
     private final PrintStream outStream;
-    private static final String USAGE = "bal migrate-mirthchannel <source-channel-file> " +
+    private static final String USAGE = "bal migrate-mirth <source-channel-file> " +
             "[-v|--verbose] [-o|--out <output-directory>]";
 
     public MigrateMirthChannelCommand() {
@@ -129,9 +129,9 @@ public class MigrateMirthChannelCommand implements BLauncherCmd {
     public void printUsage(StringBuilder stringBuilder) {
         stringBuilder.append(USAGE).append("\n\n");
         stringBuilder.append("Examples:\n");
-        stringBuilder.append("  bal migrate-mirth-channel /path/to/channel-xml-file\n");
-        stringBuilder.append("  bal migrate-mirth-channel /path/to/channel-xml-file --out /path/to/output\n");
-        stringBuilder.append("  bal migrate-mirth-channel /path/to/channel-xml-file --verbose\n");
+        stringBuilder.append("  bal migrate-mirth /path/to/channel-xml-file\n");
+        stringBuilder.append("  bal migrate-mirth /path/to/channel-xml-file --out /path/to/output\n");
+        stringBuilder.append("  bal migrate-mirth /path/to/channel-xml-file --verbose\n");
     }
 
     @Override

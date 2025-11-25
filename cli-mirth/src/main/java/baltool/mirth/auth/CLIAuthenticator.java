@@ -115,7 +115,7 @@ public class CLIAuthenticator {
      * Refreshes the access token using the provided refresh token.
      *
      * @param refreshToken The refresh token to use for obtaining a new access token
-     * @param logger Logger to log messages during the process
+     * @param logger       Logger to log messages during the process
      * @return New access token if successful, null otherwise
      */
     private static String refreshAccessToken(String refreshToken, VerboseLogger logger) {
@@ -182,7 +182,7 @@ public class CLIAuthenticator {
      * Exchanges the authorization code for access and refresh tokens.
      *
      * @param authCode The authorization code received from the OAuth server
-     * @param logger Logger to log messages during the process
+     * @param logger   Logger to log messages during the process
      * @return Access token if successful, null otherwise
      * @throws Exception If network issues occur or response parsing fails
      */
@@ -267,7 +267,7 @@ public class CLIAuthenticator {
      * Validates the access token by checking its status via the introspection endpoint.
      *
      * @param accessToken The access token to validate
-     * @param logger Logger to log messages during the process
+     * @param logger      Logger to log messages during the process
      * @return true if the token is valid, false otherwise
      */
     private static boolean isTokenValid(String accessToken, VerboseLogger logger) {
@@ -327,7 +327,7 @@ public class CLIAuthenticator {
      * Loads a specific token from the config file.
      *
      * @param tokenKey The key of the token to load (e.g., "accessToken", "refreshToken")
-     * @param logger Logger to log messages during the process
+     * @param logger   Logger to log messages during the process
      * @return The token value if found, null otherwise
      */
     private static String loadTokenFromConfig(String tokenKey, VerboseLogger logger) {
@@ -357,11 +357,12 @@ public class CLIAuthenticator {
      *
      * @param tokenKey   The key of the token to save (e.g., "accessToken", "refreshToken")
      * @param tokenValue The value of the token to save
-     * @param logger Logger to log messages during the process
+     * @param logger     Logger to log messages during the process
      */
     private static void saveTokenToConfig(String tokenKey, String tokenValue, VerboseLogger logger) {
         try {
             Path filePath = getConfigFilePath();
+            Files.createDirectories(filePath.getParent());
             String content = "";
 
             if (Files.exists(filePath)) {
@@ -417,6 +418,9 @@ public class CLIAuthenticator {
             if (!received) {
                 throw new RuntimeException("Authentication timed out");
             }
+            if (receivedState == null || !receivedState.equals(state)) {
+                throw new RuntimeException("Authentication failed: state mismatch");
+            }
             if (error != null) {
                 throw new RuntimeException("Authentication failed: " + error);
             }
@@ -457,7 +461,7 @@ public class CLIAuthenticator {
     /**
      * Opens the default web browser to the authentication URL.
      *
-     * @param state The state parameter to include in the URL
+     * @param state  The state parameter to include in the URL
      * @param logger Logger to log messages during the process
      * @throws Exception If an error occurs while opening the browser
      */
@@ -591,144 +595,144 @@ public class CLIAuthenticator {
 
         private String createSuccessPage() {
             return """
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Ballerina MirthConnect Channel Migration Tool Authentication</title>
-                    <style>
-                        body { 
-                            font-family: Arial, sans-serif; 
-                            text-align: center; 
-                            margin: 0; 
-                            padding: 50px 20px;
-                            background: white;
-                            color: #333;
-                            min-height: 80vh;
-                            display: flex;
-                            flex-direction: column;
-                            justify-content: center;
-                            align-items: center;
-                        }
-                        .container {
-                            max-width: 600px;
-                            padding: 40px;
-                        }
-                        .title {
-                            font-size: 28px;
-                            margin-bottom: 40px;
-                            font-weight: 400;
-                            color: #6c7ae0;
-                        }
-                        .success-icon {
-                            font-size: 100px;
-                            color: #4CAF50;
-                            margin-bottom: 30px;
-                        }
-                        .success-title {
-                            font-size: 72px;
-                            font-weight: bold;
-                            margin-bottom: 30px;
-                            color: #333;
-                        }
-                        .message {
-                            font-size: 20px;
-                            margin-bottom: 40px;
-                            color: #666;
-                        }
-                        .instructions {
-                            font-size: 16px;
-                            color: #888;
-                            font-style: italic;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <div class="title">Ballerina MirthConnect Channel Migration Tool Authentication</div>
-                        <div class="success-title">Success</div>
-                        <div class="message">Authorization was successful.</div>
-                        <div class="instructions">You can now close this window and return to your terminal.</div>
-                    </div>
-                </body>
-                </html>
-                """;
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Ballerina MirthConnect Channel Migration Tool Authentication</title>
+                        <style>
+                            body { 
+                                font-family: Arial, sans-serif; 
+                                text-align: center; 
+                                margin: 0; 
+                                padding: 50px 20px;
+                                background: white;
+                                color: #333;
+                                min-height: 80vh;
+                                display: flex;
+                                flex-direction: column;
+                                justify-content: center;
+                                align-items: center;
+                            }
+                            .container {
+                                max-width: 600px;
+                                padding: 40px;
+                            }
+                            .title {
+                                font-size: 28px;
+                                margin-bottom: 40px;
+                                font-weight: 400;
+                                color: #6c7ae0;
+                            }
+                            .success-icon {
+                                font-size: 100px;
+                                color: #4CAF50;
+                                margin-bottom: 30px;
+                            }
+                            .success-title {
+                                font-size: 72px;
+                                font-weight: bold;
+                                margin-bottom: 30px;
+                                color: #333;
+                            }
+                            .message {
+                                font-size: 20px;
+                                margin-bottom: 40px;
+                                color: #666;
+                            }
+                            .instructions {
+                                font-size: 16px;
+                                color: #888;
+                                font-style: italic;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="title">Ballerina MirthConnect Channel Migration Tool Authentication</div>
+                            <div class="success-title">Success</div>
+                            <div class="message">Authorization was successful.</div>
+                            <div class="instructions">You can now close this window and return to your terminal.</div>
+                        </div>
+                    </body>
+                    </html>
+                    """;
         }
 
         private String createErrorPage(String errorMessage) {
             return String.format("""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Ballerina MirthConnect Channel Migration Tool Authentication</title>
-                    <style>
-                        body {
-                            font-family: Arial, sans-serif;
-                            text-align: center; 
-                            margin: 0; 
-                            padding: 50px 20px;
-                            background: white;
-                            color: #333;
-                            min-height: 80vh;
-                            display: flex;
-                            flex-direction: column;
-                            justify-content: center;
-                            align-items: center;
-                        }
-                        .container {
-                            max-width: 600px;
-                            padding: 40px;
-                        }
-                        .title {
-                            font-size: 28px;
-                            margin-bottom: 40px;
-                            font-weight: 400;
-                            color: #6c7ae0;
-                        }
-                        .error-icon {
-                            font-size: 100px;
-                            color: #f44336;
-                            margin-bottom: 30px;
-                        }
-                        .error-title {
-                            font-size: 72px;
-                            font-weight: bold;
-                            margin-bottom: 30px;
-                            color: #333;
-                        }
-                        .message {
-                            font-size: 20px;
-                            margin-bottom: 20px;
-                            color: #666;
-                        }
-                        .error-details {
-                            font-size: 16px;
-                            margin-bottom: 40px;
-                            color: #f44336;
-                            background: #ffebee;
-                            padding: 15px;
-                            border-radius: 8px;
-                            border-left: 4px solid #f44336;
-                            word-break: break-word;
-                        }
-                        .instructions {
-                            font-size: 16px;
-                            color: #888;
-                            font-style: italic;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <div class="title">Ballerina MirthConnect Channel Migration Tool Authentication</div>
-                        <div class="error-icon">✗</div>
-                        <div class="error-title">Authentication Failed</div>
-                        <div class="message">An error occurred during authorization.</div>
-                        <div class="error-details">Error: %s</div>
-                        <div class="instructions">Please try again or check your configuration.</div>
-                    </div>
-                </body>
-                </html>
-                """, errorMessage);
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Ballerina MirthConnect Channel Migration Tool Authentication</title>
+                        <style>
+                            body {
+                                font-family: Arial, sans-serif;
+                                text-align: center; 
+                                margin: 0; 
+                                padding: 50px 20px;
+                                background: white;
+                                color: #333;
+                                min-height: 80vh;
+                                display: flex;
+                                flex-direction: column;
+                                justify-content: center;
+                                align-items: center;
+                            }
+                            .container {
+                                max-width: 600px;
+                                padding: 40px;
+                            }
+                            .title {
+                                font-size: 28px;
+                                margin-bottom: 40px;
+                                font-weight: 400;
+                                color: #6c7ae0;
+                            }
+                            .error-icon {
+                                font-size: 100px;
+                                color: #f44336;
+                                margin-bottom: 30px;
+                            }
+                            .error-title {
+                                font-size: 72px;
+                                font-weight: bold;
+                                margin-bottom: 30px;
+                                color: #333;
+                            }
+                            .message {
+                                font-size: 20px;
+                                margin-bottom: 20px;
+                                color: #666;
+                            }
+                            .error-details {
+                                font-size: 16px;
+                                margin-bottom: 40px;
+                                color: #f44336;
+                                background: #ffebee;
+                                padding: 15px;
+                                border-radius: 8px;
+                                border-left: 4px solid #f44336;
+                                word-break: break-word;
+                            }
+                            .instructions {
+                                font-size: 16px;
+                                color: #888;
+                                font-style: italic;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="title">Ballerina MirthConnect Channel Migration Tool Authentication</div>
+                            <div class="error-icon">✗</div>
+                            <div class="error-title">Authentication Failed</div>
+                            <div class="message">An error occurred during authorization.</div>
+                            <div class="error-details">Error: %s</div>
+                            <div class="instructions">Please try again or check your configuration.</div>
+                        </div>
+                    </body>
+                    </html>
+                    """, errorMessage);
         }
     }
 }

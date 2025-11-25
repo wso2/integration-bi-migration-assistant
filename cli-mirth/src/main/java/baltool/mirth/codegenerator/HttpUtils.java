@@ -11,16 +11,19 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
 /**
  * Utility class for sending HTTP requests and handling responses.
- *
  */
 public class HttpUtils {
+
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)
+            .connectTimeout(Duration.ofMinutes(5))
+            .build();
 
     static HttpResponse<Stream<String>> sendStreamRequestAsync(URI uri, JsonObject payload, String accessToken,
                                                                VerboseLoggerFactory logger, String fileName)
@@ -32,8 +35,6 @@ public class HttpUtils {
                 .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
                 .timeout(Duration.ofMinutes(8))
                 .build();
-
-        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
         CompletableFuture<HttpResponse<Stream<String>>> future = getHttpClient().sendAsync(
                 request, HttpResponse.BodyHandlers.ofLines());
@@ -53,8 +54,6 @@ public class HttpUtils {
         } catch (ExecutionException e) {
             logger.printVerboseError(fileName, "Request failed: " + e.getCause().getMessage());
             throw new IOException("Request failed", e.getCause());
-        } finally {
-            scheduler.shutdown();
         }
 
         return response;
@@ -71,8 +70,6 @@ public class HttpUtils {
                 .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
                 .timeout(Duration.ofMinutes(5))
                 .build();
-
-        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
         CompletableFuture<HttpResponse<String>> future = getHttpClient().sendAsync(
                 request, HttpResponse.BodyHandlers.ofString());
@@ -92,18 +89,12 @@ public class HttpUtils {
         } catch (ExecutionException e) {
             logger.printVerboseError(fileName, "Request failed: " + e.getCause().getMessage());
             throw new IOException("Request failed", e.getCause());
-        } finally {
-            scheduler.shutdown();
         }
 
         return response;
     }
 
     static HttpClient getHttpClient() {
-        return HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_1_1)
-                .connectTimeout(Duration.ofMinutes(5))
-                .executor(Executors.newCachedThreadPool())
-                .build();
+        return HTTP_CLIENT;
     }
 }

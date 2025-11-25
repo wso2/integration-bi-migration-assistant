@@ -58,7 +58,7 @@ public class CodeGenerationUtils {
 
     public static final boolean BALLERINA_DEV_UPDATE = Boolean.parseBoolean(
             System.getenv("BALLERINA_DEV_UPDATE"));
-    private static final String TEMP_DIR_PREFIX = "logicapps-migration-tool-codegen-diagnostics-dir-";
+    private static final String TEMP_DIR_PREFIX = "mirth-migration-tool-codegen-diagnostics-dir-";
 
     private record GeneratedCode(Map<String, String> codeMap, JsonArray functions) {
     }
@@ -179,7 +179,7 @@ public class CodeGenerationUtils {
         logger.printVerboseInfo(fileName, "Payload size: " +
                 executionPlanGenerationPayload.toString().length() + " characters");
 
-        logger.printVerboseInfo(fileName, "Sending HTTP request to get LogicApp execution plan");
+        logger.printVerboseInfo(fileName, "Sending HTTP request to get Mirth Channel execution plan");
         long startTime = System.currentTimeMillis();
         HttpResponse<String> response = sendRequestAsync(uri, executionPlanGenerationPayload, copilotAccessToken,
                 logger, fileName);
@@ -246,7 +246,7 @@ public class CodeGenerationUtils {
                 .map(inputStream -> new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
                         .lines()
                         .collect(Collectors.joining(System.lineSeparator())))
-                .orElseThrow(() -> new RuntimeException("Failed to load instructions_v2.md from resources"));
+                .orElseThrow(() -> new RuntimeException("Failed to load mirth_ballerina_mappings.md from resources"));
         prompt.append(instructions);
         return prompt.toString();
     }
