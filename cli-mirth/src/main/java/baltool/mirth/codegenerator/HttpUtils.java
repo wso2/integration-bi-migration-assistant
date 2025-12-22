@@ -30,6 +30,7 @@ public class HttpUtils {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(uri)
                 .header("Authorization", "Bearer " + accessToken)
+                .header("User-Agent", "Ballerina-VSCode-Plugin")
                 .header("Accept", "*/*")  // Add explicit Accept header
                 .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
                 .timeout(Duration.ofMinutes(8))
@@ -65,7 +66,7 @@ public class HttpUtils {
                 .uri(uri)
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + accessToken)
-                .header("User-Agent", "PostmanRuntime/7.32.3")
+                .header("User-Agent", "Ballerina-VSCode-Plugin")
                 .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
                 .timeout(Duration.ofMinutes(5))
                 .build();

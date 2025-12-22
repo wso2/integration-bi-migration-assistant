@@ -49,7 +49,6 @@ import static baltool.mirth.Constants.CONTENT;
 import static baltool.mirth.Constants.COPILOT_BACKEND_URL;
 import static baltool.mirth.Constants.DEV_COPILOT_BACKEND_URL;
 import static baltool.mirth.Constants.FILE_PATH;
-import static baltool.mirth.Constants.MAXIMUM_REPAIR_COUNT;
 import static baltool.mirth.codegenerator.HttpUtils.getHttpClient;
 import static baltool.mirth.codegenerator.HttpUtils.sendRequestAsync;
 import static baltool.mirth.codegenerator.HttpUtils.sendStreamRequestAsync;
@@ -65,8 +64,8 @@ public class CodeGenerationUtils {
 
     public static JsonArray generateCodeForMirthChannel(String copilotAccessToken, Path mirthChannelFilePath,
                                                         String packageName, String additionalInstructions,
-                                                        ModuleDescriptor moduleDescriptor, VerboseLoggerFactory logger,
-                                                        String fileName) {
+                                                        ModuleDescriptor moduleDescriptor, int maxRepairIterations,
+                                                        VerboseLoggerFactory logger, String fileName) {
         try {
             String mirthChannelContent = Files.readString(mirthChannelFilePath, StandardCharsets.UTF_8);
 
@@ -111,7 +110,8 @@ public class CodeGenerationUtils {
             // Step 3: Repair code
             logger.updateProgress(fileName, 3, "Repairing code");
             GeneratedCode repairedCode = repairCode(copilotAccessToken, sourceFiles, fileAttachmentContents,
-                    packageName, generatedPrompt, moduleDescriptor, generatedCode, logger, fileName);
+                    packageName, generatedPrompt, moduleDescriptor, generatedCode, maxRepairIterations, logger,
+                    fileName);
             logger.printVerboseInfo(fileName, "Repaired files count: " + repairedCode.codeMap.size());
             logger.printInfo(fileName, "✓ Code repair completed");
 
@@ -501,13 +501,14 @@ public class CodeGenerationUtils {
     private static GeneratedCode repairCode(String copilotAccessToken, JsonArray sourceFiles,
                                             JsonArray fileAttachmentContents, String packageName,
                                             String generatedPrompt, ModuleDescriptor moduleDescriptor,
-                                            GeneratedCode generatedCode, VerboseLoggerFactory logger,
-                                            String fileName)
+                                            GeneratedCode generatedCode, int maxRepairIterations,
+                                            VerboseLoggerFactory logger, String fileName)
             throws IOException, URISyntaxException, InterruptedException {
 
         logger.printVerboseInfo(fileName, "Starting code repair process...");
+        logger.printVerboseInfo(fileName, "Maximum repair iterations: " + maxRepairIterations);
         GeneratedCode repairedCode = generatedCode;
-        for (int iteration = 0; iteration < MAXIMUM_REPAIR_COUNT; iteration++) {
+        for (int iteration = 0; iteration < maxRepairIterations; iteration++) {
             logger.printVerboseInfo(fileName, "Iteration " + (iteration + 1) + " of code repair");
             GeneratedCode repairedCodeIteration = repairIfDiagnosticsExist(copilotAccessToken, sourceFiles,
                     fileAttachmentContents, packageName, generatedPrompt, moduleDescriptor, generatedCode, logger,
