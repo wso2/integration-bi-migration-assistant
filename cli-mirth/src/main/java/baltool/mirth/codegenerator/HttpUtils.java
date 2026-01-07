@@ -42,14 +42,14 @@ public class HttpUtils {
         HttpResponse<Stream<String>> response;
         try {
             long startTime = System.currentTimeMillis();
-            response = future.get(5, TimeUnit.MINUTES);
+            response = future.get(8, TimeUnit.MINUTES);
             long duration = System.currentTimeMillis() - startTime;
 
             logger.printVerboseInfo(fileName, "Response time: " + duration + "ms");
             logger.printVerboseInfo(fileName, "Response status: " + response.statusCode());
         } catch (TimeoutException e) {
             future.cancel(true);
-            logger.printVerboseError(fileName, "Request timed out after 5 minutes");
+            logger.printVerboseError(fileName, "Request timed out after 8 minutes");
             throw new IOException("Request timed out", e);
         } catch (ExecutionException e) {
             logger.printVerboseError(fileName, "Request failed: " + e.getCause().getMessage());

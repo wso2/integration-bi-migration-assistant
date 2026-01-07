@@ -66,6 +66,9 @@ public class CodeGenerationUtils {
                                                         String packageName, String additionalInstructions,
                                                         ModuleDescriptor moduleDescriptor, int maxRepairIterations,
                                                         VerboseLoggerFactory logger, String fileName) {
+        assert maxRepairIterations > 0 : "maxRepairIterations must be positive";
+        assert copilotAccessToken != null : "copilotAccessToken cannot be null";
+        assert mirthChannelFilePath != null : "mirthChannelFilePath cannot be null";
         try {
             String mirthChannelContent = Files.readString(mirthChannelFilePath, StandardCharsets.UTF_8);
 

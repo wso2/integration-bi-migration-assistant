@@ -422,6 +422,9 @@ public class CLIAuthenticator {
             if (error != null) {
                 throw new RuntimeException("Authentication failed: " + error);
             }
+            if (!state.equals(receivedState)) {
+                throw new RuntimeException("State parameter mismatch - possible CSRF attack");
+            }
             return authorizationCode;
         } finally {
             if (server != null) {
