@@ -35,20 +35,21 @@ public class MirthChannelMigrationExecutor {
 
 
     public static void migrateChannelToBallerina(Path channelFilePath, Path outputDir, String additionalInstructions,
-                                                 boolean verbose, VerboseLogger logger) {
-        executeMigration(channelFilePath, outputDir, additionalInstructions, verbose, logger);
+                                                 boolean verbose, int maxRepairIterations, VerboseLogger logger) {
+        executeMigration(channelFilePath, outputDir, additionalInstructions, verbose, maxRepairIterations, logger);
     }
 
-    public static void migrateChannelToBallerina(Path channelFilePath, boolean verbose, VerboseLogger logger) {
+    public static void migrateChannelToBallerina(Path channelFilePath, boolean verbose, int maxRepairIterations,
+                                                 VerboseLogger logger) {
         Path targetDir = Files.isDirectory(channelFilePath) ? channelFilePath :
                 channelFilePath.toAbsolutePath().getParent();
         logger.printVerboseInfo("Project root directory: " + targetDir.toAbsolutePath());
-        executeMigration(channelFilePath, targetDir, "", verbose, logger);
+        executeMigration(channelFilePath, targetDir, "", verbose, maxRepairIterations, logger);
 
     }
 
     private static void executeMigration(Path channelFilePath, Path outputDir, String additionalInstructions,
-                                         boolean verbose, VerboseLogger logger) {
+                                         boolean verbose, int maxRepairIterations, VerboseLogger logger) {
         try {
             logger.printVerboseInfo("Starting migration with specified output directory: " +
                     outputDir.toString());
@@ -66,7 +67,7 @@ public class MirthChannelMigrationExecutor {
             loggerFactory.addProcess(fileName, TOTAL_STEPS);
             logger.printVerboseInfo("Single file mode, processing: " + channelFilePath);
             processMirthChannel(channelFilePath, additionalInstructions, outputDir, copilotAccessToken,
-                    loggerFactory, fileName);
+                    maxRepairIterations, loggerFactory, fileName);
             loggerFactory.setProgressBarActive(false);
         } catch (Exception e) {
             logger.printError("Error during migration process: " + e.getMessage());
@@ -76,15 +77,16 @@ public class MirthChannelMigrationExecutor {
     }
 
     private static void processMirthChannel(Path mirthChannelFilePath, String additionalInstructions, Path targetDir,
-                                            String copilotAccessToken, VerboseLoggerFactory logger, String fileName) {
+                                            String copilotAccessToken, int maxRepairIterations,
+                                            VerboseLoggerFactory logger, String fileName) {
         try {
 
             logger.printVerboseInfo(fileName, "Processing file: " + mirthChannelFilePath.toAbsolutePath());
             if (!Files.exists(mirthChannelFilePath)) {
-                throw new IOException("Logic App file does not exist: " + mirthChannelFilePath);
+                throw new IOException("Mirth channel file does not exist: " + mirthChannelFilePath);
             }
             if (!Files.isReadable(mirthChannelFilePath)) {
-                throw new IOException("Logic App file is not readable: " + mirthChannelFilePath);
+                throw new IOException("Mirth Channel file is not readable: " + mirthChannelFilePath);
             }
             logger.printVerboseInfo(fileName, "File validation successful");
             logger.printVerboseInfo(fileName, "File size: " + Files.size(mirthChannelFilePath) + " bytes");
@@ -97,7 +99,8 @@ public class MirthChannelMigrationExecutor {
             ModuleDescriptor moduleDescriptor = getModuleDescriptor(packageName);
 
             JsonArray generatedSourceFiles = CodeGenerationUtils.generateCodeForMirthChannel(copilotAccessToken,
-                    mirthChannelFilePath, packageName, additionalInstructions, moduleDescriptor, logger, fileName);
+                    mirthChannelFilePath, packageName, additionalInstructions, moduleDescriptor, maxRepairIterations,
+                    logger, fileName);
             logger.printVerboseInfo(fileName, "Code generation completed. Generated " +
                     generatedSourceFiles.size() + " source files");
 

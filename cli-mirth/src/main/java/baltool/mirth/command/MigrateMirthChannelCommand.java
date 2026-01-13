@@ -24,7 +24,7 @@ public class MigrateMirthChannelCommand implements BLauncherCmd {
     private final PrintStream errStream;
     private final PrintStream outStream;
     private static final String USAGE = "bal migrate-mirth <source-channel-file> " +
-            "[-v|--verbose] [-o|--out <output-directory>]";
+            "[-v|--verbose] [-o|--out <output-directory>] [-r|--max-repair-iterations <iterations>]";
 
     public MigrateMirthChannelCommand() {
         errStream = System.err;
@@ -41,6 +41,10 @@ public class MigrateMirthChannelCommand implements BLauncherCmd {
     @CommandLine.Option(names = {"--out", "-o"}, description = "Output directory path")
     private String outputPath;
 
+    @CommandLine.Option(names = {"--max-repair-iterations", "-r"},
+            description = "Maximum number of code repair iterations", defaultValue = "2")
+    private int maxRepairIterations;
+
     @Override
     public void execute() {
         try {
@@ -49,6 +53,7 @@ public class MigrateMirthChannelCommand implements BLauncherCmd {
                 outStream.println("Command line arguments:");
                 outStream.println("  Source path: " + (sourcePath != null ? sourcePath : "Not provided"));
                 outStream.println("  Output path: " + (outputPath != null ? outputPath : "Default (source directory)"));
+                outStream.println("  Max repair iterations: " + maxRepairIterations);
                 outStream.println();
             }
 
@@ -76,10 +81,10 @@ public class MigrateMirthChannelCommand implements BLauncherCmd {
             if (outputPath != null) {
                 Path outputDir = Path.of(outputPath).toAbsolutePath();
                 MirthChannelMigrationExecutor.migrateChannelToBallerina(channelFilePath, outputDir,
-                        "", verbose, new VerboseLogger(verbose));
+                        "", verbose, maxRepairIterations, new VerboseLogger(verbose));
             } else {
                 MirthChannelMigrationExecutor.migrateChannelToBallerina(channelFilePath, verbose,
-                        new VerboseLogger(verbose));
+                        maxRepairIterations, new VerboseLogger(verbose));
             }
         } catch (Exception e) {
             errStream.println("Error during command execution: " + e.getMessage());
@@ -122,6 +127,7 @@ public class MigrateMirthChannelCommand implements BLauncherCmd {
         stringBuilder.append("Optional flags:\n");
         stringBuilder.append("  --out, -o               Specify the output directory for the generated Ballerina " +
                 "project\n");
+        stringBuilder.append("  --max-repair-iterations, -r  Maximum number of code repair iterations (default: 2)\n");
         stringBuilder.append("  --verbose, -v           Enable detailed logging output\n");
     }
 
@@ -131,6 +137,7 @@ public class MigrateMirthChannelCommand implements BLauncherCmd {
         stringBuilder.append("Examples:\n");
         stringBuilder.append("  bal migrate-mirth /path/to/channel-xml-file\n");
         stringBuilder.append("  bal migrate-mirth /path/to/channel-xml-file --out /path/to/output\n");
+        stringBuilder.append("  bal migrate-mirth /path/to/channel-xml-file --max-repair-iterations 3\n");
         stringBuilder.append("  bal migrate-mirth /path/to/channel-xml-file --verbose\n");
     }
 

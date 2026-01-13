@@ -29,6 +29,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.URI;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -418,11 +419,11 @@ public class CLIAuthenticator {
             if (!received) {
                 throw new RuntimeException("Authentication timed out");
             }
-            if (receivedState == null || !receivedState.equals(state)) {
-                throw new RuntimeException("Authentication failed: state mismatch");
-            }
             if (error != null) {
                 throw new RuntimeException("Authentication failed: " + error);
+            }
+            if (!state.equals(receivedState)) {
+                throw new RuntimeException("State parameter mismatch - possible CSRF attack");
             }
             return authorizationCode;
         } finally {
@@ -466,10 +467,14 @@ public class CLIAuthenticator {
      * @throws Exception If an error occurs while opening the browser
      */
     private void openBrowser(String state, VerboseLogger logger) throws Exception {
+        // URL encode all parameters to ensure proper handling through the OAuth redirect chain
         String authUrl = String.format(
                 "https://api.asgardeo.io/t/%s/oauth2/authorize?response_type=code&redirect_uri=%s&client_id=%s&" +
                         "scope=openid%%20email&state=%s",
-                getAuthOrg(), getAuthRedirectURL(), getAuthClientID(), state
+                getAuthOrg(),
+                URLEncoder.encode(getAuthRedirectURL(), StandardCharsets.UTF_8),
+                URLEncoder.encode(getAuthClientID(), StandardCharsets.UTF_8),
+                URLEncoder.encode(state, StandardCharsets.UTF_8)
         );
 
         logger.printInfo("Opening browser for authentication...");
@@ -486,16 +491,16 @@ public class CLIAuthenticator {
      * Generates a state parameter for the OAuth flow, which includes the callback URI.
      *
      * @param callbackUri The URI to redirect to after authentication
-     * @return Base64 encoded state string
+     * @return URL-safe Base64 encoded state string
      */
     private String generateState(String callbackUri) {
         Gson gson = new Gson();
         Map<String, String> data = Map.of("callbackUri", callbackUri);
         String json = gson.toJson(data);
-        String base64Encoded = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
-        String state = URLEncoder.encode(base64Encoded, StandardCharsets.UTF_8);
+        // Use URL-safe Base64 encoding to avoid issues with special characters in URLs
 
-        return state;
+        return Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(json.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -539,9 +544,8 @@ public class CLIAuthenticator {
                     for (String param : params) {
                         String[] keyValue = param.split("=", 2);
                         if (keyValue.length == 2) {
-                            String key = keyValue[0];
-                            String value = keyValue[1];
-
+                            String key = URLDecoder.decode(keyValue[0], StandardCharsets.UTF_8);
+                            String value = URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
                             switch (key) {
                                 case "code":
                                     authorizationCode = value;

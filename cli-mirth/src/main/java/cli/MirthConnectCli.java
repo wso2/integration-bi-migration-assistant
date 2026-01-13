@@ -24,6 +24,6 @@ public class MirthConnectCli {
         Path outputDirectory = args.length > 1 ? Path.of(args[1]) : Path.of("");
 
         MirthChannelMigrationExecutor.migrateChannelToBallerina(sourceFile, outputDirectory, "",
-                false, new VerboseLogger(false));
+                false, 2, new VerboseLogger(false));
     }
 }
