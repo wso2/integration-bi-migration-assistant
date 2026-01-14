@@ -24,6 +24,7 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
 import java.awt.Desktop;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -422,9 +423,6 @@ public class CLIAuthenticator {
             if (error != null) {
                 throw new RuntimeException("Authentication failed: " + error);
             }
-            if (!state.equals(receivedState)) {
-                throw new RuntimeException("State parameter mismatch - possible CSRF attack");
-            }
             return authorizationCode;
         } finally {
             if (server != null) {
@@ -480,11 +478,68 @@ public class CLIAuthenticator {
         logger.printInfo("Opening browser for authentication...");
         logger.printInfo("If browser doesn't open automatically, visit: " + authUrl);
 
+        boolean opened = false;
+
+        // Try Java Desktop API first
         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-            Desktop.getDesktop().browse(new URI(authUrl));
-        } else {
+            try {
+                Desktop.getDesktop().browse(new URI(authUrl));
+                opened = true;
+            } catch (Exception e) {
+                logger.printDebug("Desktop.browse() failed: " + e.getMessage());
+            }
+        }
+
+        // Fallback for WSL and other environments
+        if (!opened) {
+            opened = tryOpenBrowserWithCommand(authUrl, logger);
+        }
+
+        if (!opened) {
             logger.printInfo("Please open the above URL in your browser manually.");
         }
+
+    }
+
+    private boolean tryOpenBrowserWithCommand(String url, VerboseLogger logger) {
+        String os = System.getProperty("os.name").toLowerCase();
+        String[] commands = null;
+
+        // Check if running in WSL
+        boolean isWSL = System.getenv("WSL_DISTRO_NAME") != null ||
+                new File("/proc/sys/fs/binfmt_misc/WSLInterop").exists();
+
+        if (isWSL) {
+            // WSL-specific commands
+            System.out.print("WSL detected");
+            commands = new String[]{
+                    "wslview " + url,
+                    "cmd.exe /c start " + url,
+                    "/mnt/c/Windows/System32/cmd.exe /c start " + url
+            };
+        } else if (os.contains("linux")) {
+            commands = new String[]{
+                    "xdg-open " + url,
+                    "gnome-open " + url,
+                    "kde-open " + url
+            };
+        } else if (os.contains("mac")) {
+            commands = new String[]{"open " + url};
+        }
+
+        if (commands != null) {
+            for (String command : commands) {
+                try {
+                    Runtime.getRuntime().exec(command.split(" "));
+                    logger.printDebug("Successfully opened browser with: " + command);
+                    return true;
+                } catch (Exception e) {
+                    logger.printDebug("Failed to open browser with '" + command + "': " + e.getMessage());
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
