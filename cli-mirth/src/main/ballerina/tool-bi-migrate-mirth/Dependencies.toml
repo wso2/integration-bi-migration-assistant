@@ -10,7 +10,7 @@ distribution-version = "2201.12.10"
 [[package]]
 org = "wso2"
 name = "tool_migrate_mirth"
-version = "1.0.1"
+version = "1.0.2"
 modules = [
 	{org = "wso2", packageName = "tool_migrate_mirth", moduleName = "tool_migrate_mirth"}
 ]

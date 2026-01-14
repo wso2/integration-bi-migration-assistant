@@ -511,7 +511,6 @@ public class CLIAuthenticator {
 
         if (isWSL) {
             // WSL-specific commands
-            System.out.print("WSL detected");
             commands = new String[]{
                     "wslview " + url,
                     "cmd.exe /c start " + url,
@@ -530,9 +529,13 @@ public class CLIAuthenticator {
         if (commands != null) {
             for (String command : commands) {
                 try {
-                    Runtime.getRuntime().exec(command.split(" "));
-                    logger.printDebug("Successfully opened browser with: " + command);
-                    return true;
+                    Process process = Runtime.getRuntime().exec(command.split(" "));
+                    // Give the process a moment to fail fast if command doesn't exist
+                    boolean exited = process.waitFor(2, TimeUnit.SECONDS);
+                    if (!exited || process.exitValue() == 0) {
+                        logger.printDebug("Successfully opened browser with: " + command);
+                        return true;
+                    }
                 } catch (Exception e) {
                     logger.printDebug("Failed to open browser with '" + command + "': " + e.getMessage());
                 }
