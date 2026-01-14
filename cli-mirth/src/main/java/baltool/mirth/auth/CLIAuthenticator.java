@@ -537,7 +537,7 @@ public class CLIAuthenticator {
                         return true;
                     }
                 } catch (Exception e) {
-                    logger.printDebug("Failed to open browser with '" + command + "': " + e.getMessage());
+                    logger.printError("Failed to open browser with '" + command + "': " + e.getMessage());
                 }
             }
         }
