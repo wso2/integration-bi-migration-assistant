@@ -62,6 +62,8 @@ import static baltool.mirth.Constants.DEV_AUTH_REDIRECT_URL;
 public class CLIAuthenticator {
     public static final boolean BALLERINA_DEV_UPDATE = Boolean.parseBoolean(
             System.getenv("BALLERINA_DEV_UPDATE"));
+    public static final boolean USE_LONG_LIVED_TOKEN = Boolean.parseBoolean(
+            System.getenv("USE_LONG_LIVED_TOKEN"));
 
     private HttpServer server;
     private CountDownLatch callbackReceived;
@@ -79,6 +81,10 @@ public class CLIAuthenticator {
     public static String getValidAccessToken(VerboseLogger logger) throws Exception {
         String existingToken = loadTokenFromConfig("accessToken", logger);
         if (existingToken != null) {
+            if (USE_LONG_LIVED_TOKEN) {
+                logger.printInfo("Skipping token introspection (USE_LONG_LIVED_TOKEN=true)");
+                return existingToken;
+            }
             if (isTokenValid(existingToken, logger)) {
                 return existingToken;
             } else {
@@ -537,7 +543,7 @@ public class CLIAuthenticator {
                         return true;
                     }
                 } catch (Exception e) {
-                    logger.printDebug("Failed to open browser with '" + command + "': " + e.getMessage());
+                    logger.printError("Failed to open browser with '" + command + "': " + e.getMessage());
                 }
             }
         }

@@ -1,6 +1,6 @@
 [package]
 org = "wso2"
 name = "tool_migrate_mirth"
-version = "1.0.2"
+version = "1.0.3"
 distribution = "2201.12.10"
 keywords = ["migrate-mirth", "mirth-migrate", "mirth-channel", "mirthconnect", "mirth"]
