@@ -2,4 +2,4 @@
 id = "migrate-mirth"
 
 [[dependency]]
-path = "../../../../build/libs/mirthchannel-migration-assistant-1.0.3.jar"
+path = "../../../../build/libs/mirthchannel-migration-assistant-1.0.4.jar"
