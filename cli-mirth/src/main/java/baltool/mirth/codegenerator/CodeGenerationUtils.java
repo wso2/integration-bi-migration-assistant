@@ -269,7 +269,7 @@ public class CodeGenerationUtils {
         HttpRequest codeGenerationRequest = HttpRequest.newBuilder()
                 .uri(uri)
                 .header("Authorization", "Bearer " + copilotAccessToken)
-                .header("User-Agent", "PostmanRuntime/7.32.3")
+                .header("User-Agent", "Ballerina-VSCode-Plugin")
                 .POST(HttpRequest.BodyPublishers.ofString(codeGenerationPayload.toString()))
                 .timeout(Duration.ofMinutes(10))
                 .build();
