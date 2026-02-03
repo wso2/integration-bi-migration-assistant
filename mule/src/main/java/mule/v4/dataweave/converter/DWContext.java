@@ -119,7 +119,7 @@ public class DWContext {
         public boolean containsCheck = false;
         public Map<String, String> varNames = new HashMap<>();
         public String funcName;
-        public String currentType;
+        public String currentType = DWUtils.UNKNOWN;
         public List<String> errors = new ArrayList<>();
         public boolean visited = false;
     }

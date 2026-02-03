@@ -161,7 +161,7 @@ public class DWReader {
         context.clearScript();
     }
 
-    private static String getFunctionStatement(String script, String resourcePath, DWContext context,
+    static String getFunctionStatement(String script, String resourcePath, DWContext context,
                                                Context ctx, String varName,
                                                String namePrefix) throws DWCodeGenException {
         if (script != null) {

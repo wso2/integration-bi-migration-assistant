@@ -22,6 +22,7 @@ import mule.MuleMigrator.MuleVersion;
 import mule.common.ContextBase;
 import mule.common.DWConstructBase;
 import mule.common.MigrationMetrics;
+import mule.common.MuleLogger;
 import mule.common.MuleXMLNavigator;
 import mule.common.MultiRootContext;
 import mule.v4.dataweave.converter.DWConstruct;
@@ -95,6 +96,13 @@ public class Context extends ContextBase {
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, mule.common.MuleLogger logger) {
         this(xmlFiles, yamlFiles, null, null, Collections.emptyList(), null, false, false, logger, null, null);
+    }
+
+    @NotNull
+    public static Context createMockContext() {
+        Context mockContext = new Context(List.of(), List.of(), new MuleLogger(false));
+        mockContext.currentFileCtx = new FileContext(null, mockContext.projectCtx);
+        return mockContext;
     }
 
     @Override

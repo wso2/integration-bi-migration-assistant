@@ -6,6 +6,7 @@
             <package name="mule.v3.dw.*"/>
 <!--            <package name="mule.v4.blocks.*"/>-->
 <!--            <package name="mule.v4.dw.*"/>-->
+            <package name="mule.v4.dataweave.*"/>
         </packages>
         <classes>
             <class name="mule.v3.TestConverter"/>
