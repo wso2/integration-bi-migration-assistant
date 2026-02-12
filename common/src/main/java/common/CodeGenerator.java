@@ -167,13 +167,20 @@ public class CodeGenerator {
             String funcParamString = constructFunctionParameterString(f.parameters(), false);
             String methodName = f.functionName();
             FunctionDefinitionNode functionDefinitionNode;
-            if (f.body() instanceof BallerinaModel.BlockFunctionBody) {
-                FunctionDefinitionNode fd = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
-                        String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(f.visibilityQualifier()),
-                                methodName, funcParamString, getReturnTypeDescriptor(f.returnType())));
-                functionDefinitionNode = generateBallerinaFunction(fd, f.body());
-            } else {
-                functionDefinitionNode = generateBallerinaExternalFunction(f, funcParamString, methodName);
+            switch (f.body()) {
+                case BallerinaModel.BlockFunctionBody blockFunctionBody -> {
+                    FunctionDefinitionNode fd = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
+                            String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(f.visibilityQualifier()),
+                                    methodName, funcParamString, getReturnTypeDescriptor(f.returnType())));
+                    functionDefinitionNode = generateBallerinaFunction(fd, blockFunctionBody);
+                }
+                case BallerinaModel.ExpressionFunctionBody exprBody ->
+                        functionDefinitionNode = generateBallerinaExpressionFunction(exprBody, f, funcParamString);
+                case BallerinaModel.ExternFunctionBody externalBody ->
+                        functionDefinitionNode = generateBallerinaExternalFunction(externalBody, f, funcParamString,
+                                methodName);
+                case null -> throw new IllegalStateException("Function body cannot be null");
+                default -> throw new UnsupportedOperationException("Unsupported function body type");
             }
             moduleMembers.add(functionDefinitionNode);
         }
@@ -204,27 +211,34 @@ public class CodeGenerator {
     private FunctionDefinitionNode genFunctionDefinitionNode(Function function) {
         String funcParamString = constructFunctionParameterString(function.parameters(), false);
         FunctionDefinitionNode functionDefinitionNode;
-        if (function.body() instanceof BallerinaModel.BlockFunctionBody) {
-            functionDefinitionNode = (FunctionDefinitionNode) NodeParser.parseObjectMember(
-                    String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(
-                                    function.visibilityQualifier()), function.functionName(), funcParamString,
-                            getReturnTypeDescriptor(function.returnType())));
-            functionDefinitionNode = generateBallerinaFunction(functionDefinitionNode, function.body());
-        } else {
-            functionDefinitionNode = generateBallerinaExternalFunction(function, funcParamString,
-                    function.functionName());
+        switch (function.body()) {
+            case BallerinaModel.BlockFunctionBody blockFunctionBody -> {
+                functionDefinitionNode = (FunctionDefinitionNode) NodeParser.parseObjectMember(
+                        String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(
+                                        function.visibilityQualifier()), function.functionName(), funcParamString,
+                                getReturnTypeDescriptor(function.returnType())));
+                functionDefinitionNode = generateBallerinaFunction(functionDefinitionNode, blockFunctionBody);
+            }
+            case BallerinaModel.ExpressionFunctionBody exprBody ->
+                    functionDefinitionNode = generateBallerinaExpressionFunction(exprBody, function, funcParamString);
+            case BallerinaModel.ExternFunctionBody externalBody ->
+                    functionDefinitionNode = generateBallerinaExternalFunction(externalBody, function, funcParamString,
+                            function.functionName());
+            case null -> throw new IllegalStateException("Function body cannot be null");
+            default -> throw new UnsupportedOperationException("Unsupported function body type");
         }
         return functionDefinitionNode;
     }
 
-    private FunctionDefinitionNode generateBallerinaExternalFunction(Function f, String funcParamString,
+    private FunctionDefinitionNode generateBallerinaExternalFunction(BallerinaModel.ExternFunctionBody body,
+                                                                     Function f,
+                                                                     String funcParamString,
                                                                      String methodName) {
-        BallerinaModel.ExternFunctionBody body = (BallerinaModel.ExternFunctionBody) f.body();
         return (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
-                String.format("%sfunction %s(%s) %s  = %s { %s } external;", getVisibilityQualifier(
-                        f.visibilityQualifier()),
+                String.format("%sfunction %s(%s) %s  = %s { %s } external;",
+                        getVisibilityQualifier(f.visibilityQualifier()),
                         methodName, funcParamString, getReturnTypeDescriptor(f.returnType()), body.annotation(),
-                        getExternBody((BallerinaModel.ExternFunctionBody) f.body())));
+                        getExternBody(body)));
     }
 
     private String getExternBody(BallerinaModel.ExternFunctionBody body) {
@@ -251,6 +265,17 @@ public class CodeGenerator {
         FunctionBodyBlockNode funcBodyBlock = constructFunctionBodyBlock(((BallerinaModel.BlockFunctionBody)
                 body).statements());
         return fd.modify().withFunctionBody(funcBodyBlock).apply();
+    }
+
+    private FunctionDefinitionNode generateBallerinaExpressionFunction(BallerinaModel.ExpressionFunctionBody body,
+                                                                       Function function, String funcParamString) {
+        String expressionStr = body.expression().toString();
+        String functionDef = String.format("%sfunction %s(%s) %s => %s;",
+                getVisibilityQualifier(function.visibilityQualifier()),
+                function.functionName(),
+                funcParamString,
+                getReturnTypeDescriptor(function.returnType()), expressionStr);
+        return (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(functionDef);
     }
 
     private static MinutiaeList parseLeadingMinutiae(String leadingMinutiae) {
@@ -281,7 +306,7 @@ public class CodeGenerator {
     }
 
     private String getReturnTypeDescriptor(Optional<TypeDesc> returnType) {
-        return returnType.map(r ->  String.format("returns %s", r)).orElse("");
+        return returnType.map(r -> String.format("returns %s", r)).orElse("");
     }
 
     private String getVisibilityQualifier(Optional<String> visibilityQualifier) {

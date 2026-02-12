@@ -39,6 +39,7 @@ public class DWContext {
     public boolean referringToPayload = false;
     public boolean inDefaultAccess = false;
     public boolean inKeyAccess = false;
+    public boolean isSingleExpression = false;
 
     public DWContext(Context toolContext, List<BallerinaModel.Statement> statementList) {
         this.parentStatements = statementList;
@@ -56,20 +57,58 @@ public class DWContext {
             this.currentScriptContext.visited = true;
         }
         this.currentScriptContext = new DWScriptContext();
+        this.isSingleExpression = false;
     }
 
-    public void finalizeFunction() {
+    public BallerinaModel.Expression finalizeFunction() {
         if (this.currentScriptContext.exprBuilder.isEmpty()) {
-            return;
+            return new BallerinaModel.Expression.BallerinaExpression("");
         }
-        if (this.referringToPayload) {
-            this.currentScriptContext.statements.add(0,
-                    new BallerinaStatement("json %s = check ctx.%s.ensureType(json);"
-                            .formatted(DWUtils.DW_PAYLOAD_IDENTIFIER, DWUtils.DW_PAYLOAD_IDENTIFIER)));
+        String returnExpr = this.currentScriptContext.exprBuilder.toString();
+        if (this.currentScriptContext.useLetExpression && !this.currentScriptContext.letVariables.isEmpty()) {
+            StringBuilder letExpr = new StringBuilder("let ");
+            for (int i = 0; i < this.currentScriptContext.letVariables.size(); i++) {
+                if (i > 0) {
+                    letExpr.append(", ");
+                }
+                String varName = this.currentScriptContext.letVariables.get(i);
+                String sourceExpr = this.currentScriptContext.letExpressions.get(i);
+                String varType = inferTypeFromExpression(sourceExpr);
+                if (sourceExpr.equals(DWUtils.DW_PAYLOAD_IDENTIFIER) && this.referringToPayload) {
+                    letExpr.append(varType).append(" ").append(varName)
+                            .append(" = check ctx.payload.cloneWithType()");
+                    this.currentScriptContext.containsCheck = true;
+                } else {
+                    letExpr.append(varType).append(" ").append(varName).append(" = ").append(sourceExpr);
+                }
+            }
+            letExpr.append(" in ").append(returnExpr);
+            this.isSingleExpression = true;
+            return new BallerinaModel.Expression.BallerinaExpression(letExpr.toString());
+        } else {
+            if (this.referringToPayload) {
+                this.currentScriptContext.statements.add(0,
+                        new BallerinaStatement("json %s = check ctx.%s.ensureType(json);"
+                                .formatted(DWUtils.DW_PAYLOAD_IDENTIFIER, DWUtils.DW_PAYLOAD_IDENTIFIER)));
+            }
+            if (this.currentScriptContext.statements.isEmpty()) {
+                this.isSingleExpression = true;
+                return new BallerinaModel.Expression.BallerinaExpression(returnExpr);
+            } else {
+                this.currentScriptContext.statements.add(
+                        new BallerinaStatement("return " + returnExpr + ";"));
+                return new BallerinaModel.Expression.BallerinaExpression("");
+            }
         }
-        this.currentScriptContext.statements.add(
-                new BallerinaStatement("return " + (this.currentScriptContext.exprBuilder + ";")));
-        this.currentScriptContext.exprBuilder = new StringBuilder();
+    }
+
+    private String inferTypeFromExpression(String expr) {
+        // TODO: enhance this to infer more types if needed.
+        //  For now, we only need to handle payload references in let expressions.
+        if (expr.equals(DWUtils.DW_PAYLOAD_IDENTIFIER)) {
+            return "json[]";
+        }
+        return "var";
     }
 
     public String getExpression() {
@@ -112,7 +151,7 @@ public class DWContext {
     public static class DWScriptContext {
         public List<BallerinaModel.Parameter> params = new ArrayList<>();
         public List<BallerinaModel.Statement> statements = new ArrayList<>();
-        public Map<String, String> varTypes = new HashMap<>();
+        public Map<String, String> varTypes = new HashMap<>(); // TODO: do we need this?
         public String outputType;
         public String dwVersion;
         public StringBuilder exprBuilder = new StringBuilder();
@@ -122,5 +161,8 @@ public class DWContext {
         public String currentType = DWUtils.UNKNOWN;
         public List<String> errors = new ArrayList<>();
         public boolean visited = false;
+        public boolean useLetExpression = false;
+        public List<String> letVariables = new ArrayList<>();
+        public List<String> letExpressions = new ArrayList<>();
     }
 }

@@ -36,8 +36,10 @@ import java.util.Optional;
 
 import static common.BallerinaModel.BlockFunctionBody;
 import static common.BallerinaModel.Expression;
+import static common.BallerinaModel.ExpressionFunctionBody;
 import static common.BallerinaModel.ExternFunctionBody;
 import static common.BallerinaModel.Function;
+import static common.BallerinaModel.FunctionBody;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.Parameter;
 import static common.BallerinaModel.Statement;
@@ -150,19 +152,26 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         String methodName = count == 0 ? namePrefix : namePrefix + count;
         prefixCounters.put(namePrefix, count + 1);
         visitChildren(ctx);
-        dwContext.finalizeFunction();
+        Expression expr = dwContext.finalizeFunction();
         String outputType = dwContext.currentScriptContext.outputType;
         if (dwContext.currentScriptContext.containsCheck) {
-            outputType = dwContext.currentScriptContext.outputType + "| error";
+            outputType = dwContext.currentScriptContext.outputType + "|error";
         }
         this.dwContext.functionNames.add(methodName);
-        this.ctx.currentFileCtx.balConstructs.functions.add(new Function(methodName,
-                Constants.FUNC_PARAMS_WITH_CONTEXT, typeFrom(outputType), dwContext.currentScriptContext.statements));
+        FunctionBody functionBody;
+        if (dwContext.isSingleExpression) {
+            functionBody = new ExpressionFunctionBody(expr);
+        } else {
+            functionBody = new BlockFunctionBody(dwContext.currentScriptContext.statements);
+        }
+        this.ctx.currentFileCtx.balConstructs.functions.add(Function.publicFunction(methodName,
+                Constants.FUNC_PARAMS_WITH_CONTEXT, typeFrom(outputType), functionBody));
         return null;
     }
 
     @Override
     public Void visitMultiFieldObject(DataWeaveParser.MultiFieldObjectContext ctx) {
+        String mainExpr = dwContext.getExpression();
         List<String> keyValuePairs = new ArrayList<>();
         int checkCount = 0;
         for (var field : ctx.objectField()) {
@@ -177,7 +186,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         if (checkCount > 1) {
             delimiter = delimiter + System.lineSeparator();
         }
-        dwContext.append("{ ").append(String.join(delimiter, keyValuePairs)).append(" }");
+        dwContext.append(mainExpr).append("{ ").append(String.join(delimiter, keyValuePairs)).append(" }");
         dwContext.currentScriptContext.currentType = DWUtils.OBJECT;
         stats.record(DWConstruct.OBJECT, true);
         return null;
@@ -198,13 +207,14 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         String key = "\"" + ctx.IDENTIFIER().getText() + "\"";
         visit(ctx.expression());
         String value = dwContext.getExpression();
-        if (!isBasicType(dwContext.currentScriptContext.currentType)) {
-            value += ".ensureType(" + dwContext.currentScriptContext.outputType + ")";
-            if (!value.startsWith("check")) {
-                value = "check " + value;
-                this.dwContext.currentScriptContext.containsCheck = true;
-            }
-        }
+        // TODO: remove if not needed
+//        if (!isBasicType(dwContext.currentScriptContext.currentType)) {
+//            value += ".ensureType(" + dwContext.currentScriptContext.outputType + ")";
+//            if (!value.startsWith("check")) {
+//                value = "check " + value;
+//                this.dwContext.currentScriptContext.containsCheck = true;
+//            }
+//        }
         dwContext.append(key + ": " + value);
         return null;
     }
@@ -230,6 +240,9 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         List<DataWeaveParser.ExpressionContext> expressions = ctx.expression();
         visit(expressions.get(0));
         String key = dwContext.getExpression();
+        if (!key.startsWith("\"") && !key.contains(".toString()")) {
+            key = key + ".toString()";
+        }
         visit(expressions.get(1));
         String value = dwContext.getExpression();
         if (!isBasicType(dwContext.currentScriptContext.currentType)) {
@@ -497,15 +510,48 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     @Override
     public Void visitMapExpression(DataWeaveParser.MapExpressionContext ctx) {
         visit(ctx.operationExpression());
-        String varName = DWUtils.VAR_PREFIX + varCount++;
-        String castStatement = "var " + varName + " = " + dwContext.getExpression() + ";";
-        dwContext.currentScriptContext.varTypes.put(varName, "var");
-        dwContext.currentScriptContext.varTypes.put(DWUtils.ELEMENT_ARG, "var");
-        dwContext.currentScriptContext.varNames.put(DWUtils.DW_INDEX_IDENTIFIER, varName);
-        dwContext.currentScriptContext.statements.add(new BallerinaStatement(castStatement));
-        dwContext.append(varName).append(".'map(");
-        visit(ctx.implicitLambdaExpression());
-        dwContext.append(")");
+        String sourceExpr = dwContext.getExpression();
+        String varName = sourceExpr;
+
+        boolean hasTwoParams = false;
+        if (ctx.implicitLambdaExpression().inlineLambda() != null) {
+            List<TerminalNode> identifiers = ctx.implicitLambdaExpression().inlineLambda().functionParameters().IDENTIFIER();
+            hasTwoParams = identifiers.size() == 2;
+        }
+
+        if (hasTwoParams) {
+            String enumeratedVar = DWUtils.VAR_PREFIX + varCount++;
+            dwContext.currentScriptContext.varTypes.put(varName, "var");
+            dwContext.currentScriptContext.useLetExpression = true;
+            dwContext.currentScriptContext.letVariables.add(varName);
+            dwContext.currentScriptContext.letExpressions.add(sourceExpr);
+            dwContext.currentScriptContext.letVariables.add(enumeratedVar);
+            dwContext.currentScriptContext.letExpressions.add(varName + ".enumerate()");
+            dwContext.append(enumeratedVar).append(".map(tuple => let ");
+
+            List<TerminalNode> identifiers = ctx.implicitLambdaExpression().inlineLambda().functionParameters().IDENTIFIER();
+            String indexParam = identifiers.get(1).getText();
+            String itemParam = identifiers.getFirst().getText();
+            dwContext.currentScriptContext.varNames.put(indexParam, indexParam);
+            dwContext.currentScriptContext.varNames.put(itemParam, itemParam);
+
+            dwContext.append("int ").append(indexParam).append(" = tuple[0], ");
+            dwContext.append("int ").append(itemParam).append(" = tuple[1] in ");
+
+            visit(ctx.implicitLambdaExpression().inlineLambda().expression());
+            dwContext.append(")");
+        } else {
+            dwContext.currentScriptContext.varTypes.put(varName, "var");
+            dwContext.currentScriptContext.varTypes.put(DWUtils.ELEMENT_ARG, "var");
+            dwContext.currentScriptContext.varNames.put(DWUtils.DW_INDEX_IDENTIFIER, varName);
+            dwContext.currentScriptContext.useLetExpression = true;
+            dwContext.currentScriptContext.letVariables.add(varName);
+            dwContext.currentScriptContext.letExpressions.add(sourceExpr);
+            dwContext.append(varName).append(".map(");
+            visit(ctx.implicitLambdaExpression());
+            dwContext.append(")");
+        }
+
         stats.record(DWConstruct.MAP, true);
         return null;
     }
@@ -594,18 +640,25 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitImplicitLambdaExpression(DataWeaveParser.ImplicitLambdaExpressionContext ctx) {
-        dwContext.append(DWUtils.ELEMENT_ARG).append("=>");
+        String lambdaParam = DWUtils.ELEMENT_ARG;
+        if (ctx.inlineLambda() != null) {
+            List<TerminalNode> identifiers = ctx.inlineLambda().functionParameters().IDENTIFIER();
+            if (!identifiers.isEmpty()) {
+                lambdaParam = identifiers.getFirst().getText();
+            }
+        }
+        dwContext.append(lambdaParam).append("=>");
         String expr;
         if (ctx.inlineLambda() != null) {
             expr = ctx.inlineLambda().getText();
             if (expr.contains(DWUtils.DW_VALUE_IDENTIFIER)) {
-                dwContext.commonArgs.put(DWUtils.DW_VALUE_IDENTIFIER, DWUtils.ELEMENT_ARG);
+                dwContext.commonArgs.put(DWUtils.DW_VALUE_IDENTIFIER, lambdaParam);
             }
             visit(ctx.inlineLambda());
         } else if (ctx.expression() != null) {
             expr = ctx.expression().getText();
             if (expr.contains(DWUtils.DW_VALUE_IDENTIFIER)) {
-                dwContext.commonArgs.put(DWUtils.DW_VALUE_IDENTIFIER, DWUtils.ELEMENT_ARG);
+                dwContext.commonArgs.put(DWUtils.DW_VALUE_IDENTIFIER, lambdaParam);
             }
             visit(ctx.expression());
         }
@@ -655,12 +708,14 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     public Void visitInlineLambda(DataWeaveParser.InlineLambdaContext ctx) {
         List<TerminalNode> identifiers = ctx.functionParameters().IDENTIFIER();
         if (identifiers.size() == 1) {
-            this.dwContext.currentScriptContext.varNames.put(identifiers.getFirst().getText(), DWUtils.ELEMENT_ARG);
+            String paramName = identifiers.getFirst().getText();
+            this.dwContext.currentScriptContext.varNames.put(paramName, paramName);
         } else {
-            this.dwContext.currentScriptContext.varNames.put(identifiers.getFirst().getText(), DWUtils.ELEMENT_ARG);
+            String firstParam = identifiers.getFirst().getText();
+            this.dwContext.currentScriptContext.varNames.put(firstParam, firstParam);
             this.dwContext.currentScriptContext.varNames.put(identifiers.get(1).getText(),
                     this.dwContext.currentScriptContext.varNames.get(DWUtils.DW_INDEX_IDENTIFIER) + ".indexOf(" +
-                            DWUtils.ELEMENT_ARG + ")");
+                            firstParam + ")");
         }
         return visit(ctx.expression());
     }
