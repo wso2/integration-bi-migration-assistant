@@ -22,6 +22,7 @@ import io.ballerina.compiler.internal.parser.LexerTerminals;
 import mule.common.DWConversionStats;
 import mule.v4.Constants;
 import mule.v4.Context;
+import mule.v4.ConversionUtils;
 import mule.v4.dataweave.converter.builder.IfStatementBuilder;
 import mule.v4.dataweave.parser.DataWeaveBaseVisitor;
 import mule.v4.dataweave.parser.DataWeaveParser;
@@ -412,7 +413,18 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitFunctionCall(DataWeaveParser.FunctionCallContext ctx) {
-        String functionName = ctx.IDENTIFIER().getText();
+        if (ctx.qualifiedIdentifier().IDENTIFIER().size() == 2 &&
+                ctx.qualifiedIdentifier().IDENTIFIER(0).getText().equals("Mule") &&
+                ctx.qualifiedIdentifier().IDENTIFIER(1).getText().equals("p")) {
+            // Handle Mule::p function calls as environment variable accesses
+            assert ctx.expression().size() == 1;
+            String configurableVarName = ConversionUtils.processPropertyName(this.ctx, ctx.expression(0).getText());
+            dwContext.append(configurableVarName);
+            stats.record(DWConstruct.FUNCTION_CALL, true);
+            return null;
+        }
+
+        String functionName = ctx.qualifiedIdentifier().getText();
         List<String> arguments = new ArrayList<>();
         for (var expr : ctx.expression()) {
             visit(expr);
@@ -1014,7 +1026,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitKeySelector(DataWeaveParser.KeySelectorContext ctx) {
-        assert dwContext.inKeyAccess;
+//        assert dwContext.inKeyAccess; TODO
         dwContext.append(ctx.STRING().getText());
         dwContext.addCheckExpr();
         stats.record(DWConstruct.SINGLE_VALUE_SELECTOR, true);

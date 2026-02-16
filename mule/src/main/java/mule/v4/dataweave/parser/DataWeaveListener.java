@@ -784,6 +784,16 @@ public interface DataWeaveListener extends ParseTreeListener {
 	 */
 	void exitDynamicKeyField(DataWeaveParser.DynamicKeyFieldContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link DataWeaveParser#qualifiedIdentifier}.
+	 * @param ctx the parse tree
+	 */
+	void enterQualifiedIdentifier(DataWeaveParser.QualifiedIdentifierContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DataWeaveParser#qualifiedIdentifier}.
+	 * @param ctx the parse tree
+	 */
+	void exitQualifiedIdentifier(DataWeaveParser.QualifiedIdentifierContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link DataWeaveParser#functionCall}.
 	 * @param ctx the parse tree
 	 */

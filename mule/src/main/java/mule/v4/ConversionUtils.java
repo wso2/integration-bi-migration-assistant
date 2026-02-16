@@ -377,6 +377,12 @@ public class ConversionUtils {
     }
 
     public static String processPropertyName(Context ctx, String propertyName) {
+        if (propertyName.startsWith("'")) {
+            propertyName = propertyName.substring(1);
+        }
+        if (propertyName.endsWith("'")) {
+            propertyName = propertyName.substring(0, propertyName.length() - 1);
+        }
         String configVarName = propertyName.replace('.', '_').replaceAll("::", "_");
         String escapedConfigVarName = convertToBalIdentifier(configVarName);
         if (!ctx.projectCtx.configurableVarExists(escapedConfigVarName)) {

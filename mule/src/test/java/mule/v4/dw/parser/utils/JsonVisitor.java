@@ -666,7 +666,7 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     public JsonNode visitFunctionCall(DataWeaveParser.FunctionCallContext ctx) {
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put("type", "FunctionCall");
-        objectNode.put("name", ctx.IDENTIFIER().getText());
+        objectNode.put("name", ctx.qualifiedIdentifier().getText());
         ArrayNode args = objectMapper.createArrayNode();
 
         for (DataWeaveParser.ExpressionContext expr : ctx.expression()) {

@@ -468,6 +468,12 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitDynamicKeyField(DataWeaveParser.DynamicKeyFieldContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link DataWeaveParser#qualifiedIdentifier}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitQualifiedIdentifier(DataWeaveParser.QualifiedIdentifierContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link DataWeaveParser#functionCall}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

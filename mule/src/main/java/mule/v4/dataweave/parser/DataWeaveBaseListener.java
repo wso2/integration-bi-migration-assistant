@@ -845,6 +845,18 @@ public class DataWeaveBaseListener implements DataWeaveListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterQualifiedIdentifier(DataWeaveParser.QualifiedIdentifierContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitQualifiedIdentifier(DataWeaveParser.QualifiedIdentifierContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterFunctionCall(DataWeaveParser.FunctionCallContext ctx) { }
 	/**
 	 * {@inheritDoc}

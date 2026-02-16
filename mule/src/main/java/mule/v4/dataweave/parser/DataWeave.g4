@@ -64,6 +64,7 @@ STRING: '"' .*? '"' | '\'' .*? '\'';
 DATE: '|' .*? '|';
 REGEX: '/' .*? '/';
 DOT: '.';
+DOUBLE_COLON: '::';
 COLON: ':';
 COMMA: ',';
 LCURLY: '{';
@@ -246,8 +247,8 @@ array: LSQUARE (expression (COMMA expression)*)? RSQUARE;
 
 // Objects
 object
-    : LCURLY objectField (COMMA objectField)* RCURLY  # multiFieldObject
-    | LCURLY objectField RCURLY                       # singleFieldObject
+    : LCURLY objectField (COMMA? objectField)* RCURLY  # multiFieldObject
+    | LCURLY objectField RCURLY                        # singleFieldObject
     ;
 
 objectField
@@ -256,8 +257,11 @@ objectField
     | '(' expression ')' COLON expression      # dynamicKeyField
     ;
 
+// Qualified identifiers for module references (e.g., Mule::p)
+qualifiedIdentifier: IDENTIFIER (DOUBLE_COLON IDENTIFIER)*;
+
 // Function calls
-functionCall: IDENTIFIER '(' (expression (COMMA expression)*)? ')';
+functionCall: qualifiedIdentifier '(' (expression (COMMA expression)*)? ')';
 
 // Type expressions for DataWeave 2.0
 typeExpression
