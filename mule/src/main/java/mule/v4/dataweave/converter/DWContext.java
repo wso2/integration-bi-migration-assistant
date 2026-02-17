@@ -60,7 +60,7 @@ public class DWContext {
         this.isSingleExpression = false;
     }
 
-    public BallerinaModel.Expression finalizeFunction() {
+    public BallerinaModel.Expression.BallerinaExpression finalizeFunction() {
         if (this.currentScriptContext.exprBuilder.isEmpty()) {
             return new BallerinaModel.Expression.BallerinaExpression("");
         }
@@ -85,20 +85,24 @@ public class DWContext {
             letExpr.append(" in ").append(returnExpr);
             this.isSingleExpression = true;
             return new BallerinaModel.Expression.BallerinaExpression(letExpr.toString());
+        }
+
+        if (this.currentScriptContext.statements.isEmpty()) {
+            this.isSingleExpression = true;
+            if (this.referringToPayload) {
+                returnExpr = "let json payload = check ctx.%s.cloneWithType() in"
+                        .formatted(DWUtils.DW_PAYLOAD_IDENTIFIER) + returnExpr;
+            }
+            return new BallerinaModel.Expression.BallerinaExpression(returnExpr);
         } else {
             if (this.referringToPayload) {
                 this.currentScriptContext.statements.add(0,
                         new BallerinaStatement("json %s = check ctx.%s.ensureType(json);"
                                 .formatted(DWUtils.DW_PAYLOAD_IDENTIFIER, DWUtils.DW_PAYLOAD_IDENTIFIER)));
             }
-            if (this.currentScriptContext.statements.isEmpty()) {
-                this.isSingleExpression = true;
-                return new BallerinaModel.Expression.BallerinaExpression(returnExpr);
-            } else {
-                this.currentScriptContext.statements.add(
-                        new BallerinaStatement("return " + returnExpr + ";"));
-                return new BallerinaModel.Expression.BallerinaExpression("");
-            }
+            this.currentScriptContext.statements.add(
+                    new BallerinaStatement("return " + returnExpr + ";"));
+            return new BallerinaModel.Expression.BallerinaExpression("");
         }
     }
 
@@ -134,8 +138,6 @@ public class DWContext {
         markAsFailedDWExpr(context);
         this.currentScriptContext.statements.add(new BallerinaStatement(
                 String.format(DWUtils.UNSUPPORTED_DW_NODE, context)));
-
-
     }
 
     public void addUnsupportedCommentWithType(String context, String type) {

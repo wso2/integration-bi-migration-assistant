@@ -44,6 +44,7 @@ import static common.BallerinaModel.FunctionBody;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.Parameter;
 import static common.BallerinaModel.Statement;
+import static common.ConversionUtils.exprFrom;
 import static common.ConversionUtils.typeFrom;
 import static mule.v4.Constants.ATTRIBUTES_FIELD_ACCESS;
 import static mule.v4.Constants.BAL_HANDLE_TYPE;
@@ -153,7 +154,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         String methodName = count == 0 ? namePrefix : namePrefix + count;
         prefixCounters.put(namePrefix, count + 1);
         visitChildren(ctx);
-        Expression expr = dwContext.finalizeFunction();
+        Expression.BallerinaExpression expr = dwContext.finalizeFunction();
         String outputType = dwContext.currentScriptContext.outputType;
         if (dwContext.currentScriptContext.containsCheck) {
             outputType = dwContext.currentScriptContext.outputType + "|error";
@@ -161,6 +162,9 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         this.dwContext.functionNames.add(methodName);
         FunctionBody functionBody;
         if (dwContext.isSingleExpression) {
+            if (dwContext.currentScriptContext.outputType.equals("json") && !expr.expr().endsWith("()")) {
+                expr = exprFrom(expr.expr() + ".toJsonString()");
+            }
             functionBody = new ExpressionFunctionBody(expr);
         } else {
             functionBody = new BlockFunctionBody(dwContext.currentScriptContext.statements);
@@ -702,10 +706,11 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 dwContext.append(leftArr).append(".push(...").append(rightArr).append(")");
                 break;
             default:
-                String leftMap = DWUtils.VAR_PREFIX + varCount++;
-                String leftMapStatement = "var " + leftMap + " = " + leftExpr + ";";
-                dwContext.currentScriptContext.statements.add(new BallerinaStatement(leftMapStatement));
-                dwContext.append(rightExpr.replaceFirst("\\{", "{ " + leftMap + ", "));
+//                String leftMap = DWUtils.VAR_PREFIX + varCount++;
+//                String leftMapStatement = "var " + leftMap + " = " + leftExpr + ";";
+//                dwContext.currentScriptContext.statements.add(new BallerinaStatement(leftMapStatement));
+//                dwContext.append(rightExpr.replaceFirst("\\{", "{ " + leftMap + ", "));
+                dwContext.append(leftExpr).append(" + ").append(rightExpr);
         }
         stats.record(DWConstruct.CONCAT, true);
         return null;
@@ -1019,7 +1024,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             accessOp = ".";
         }
         dwContext.append(accessOp).append(ctx.IDENTIFIER().getText());
-        dwContext.addCheckExpr();
+        dwContext.addCheckExpr(); // TODO: sometimes 'check' not needed
         stats.record(DWConstruct.SINGLE_VALUE_SELECTOR, true);
         return null;
     }
