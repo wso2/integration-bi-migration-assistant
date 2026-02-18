@@ -210,6 +210,16 @@ public interface DataWeaveListener extends ParseTreeListener {
 	 */
 	void exitConcatExpression(DataWeaveParser.ConcatExpressionContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link DataWeaveParser#defaultExpression}.
+	 * @param ctx the parse tree
+	 */
+	void enterDefaultExpression(DataWeaveParser.DefaultExpressionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DataWeaveParser#defaultExpression}.
+	 * @param ctx the parse tree
+	 */
+	void exitDefaultExpression(DataWeaveParser.DefaultExpressionContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link DataWeaveParser#implicitLambdaExpression}.
 	 * @param ctx the parse tree
 	 */
@@ -334,18 +344,6 @@ public interface DataWeaveListener extends ParseTreeListener {
 	 */
 	void exitFormatOption(DataWeaveParser.FormatOptionContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code sizeOfExpression}
-	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
-	 * @param ctx the parse tree
-	 */
-	void enterSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code sizeOfExpression}
-	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
-	 * @param ctx the parse tree
-	 */
-	void exitSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx);
-	/**
 	 * Enter a parse tree produced by the {@code sizeOfExpressionWithParentheses}
 	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
 	 * @param ctx the parse tree
@@ -358,17 +356,17 @@ public interface DataWeaveListener extends ParseTreeListener {
 	 */
 	void exitSizeOfExpressionWithParentheses(DataWeaveParser.SizeOfExpressionWithParenthesesContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code upperExpression}
+	 * Enter a parse tree produced by the {@code sizeOfExpression}
 	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
 	 * @param ctx the parse tree
 	 */
-	void enterUpperExpression(DataWeaveParser.UpperExpressionContext ctx);
+	void enterSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx);
 	/**
-	 * Exit a parse tree produced by the {@code upperExpression}
+	 * Exit a parse tree produced by the {@code sizeOfExpression}
 	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
 	 * @param ctx the parse tree
 	 */
-	void exitUpperExpression(DataWeaveParser.UpperExpressionContext ctx);
+	void exitSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code upperExpressionWithParentheses}
 	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
@@ -382,17 +380,17 @@ public interface DataWeaveListener extends ParseTreeListener {
 	 */
 	void exitUpperExpressionWithParentheses(DataWeaveParser.UpperExpressionWithParenthesesContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code lowerExpression}
+	 * Enter a parse tree produced by the {@code upperExpression}
 	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
 	 * @param ctx the parse tree
 	 */
-	void enterLowerExpression(DataWeaveParser.LowerExpressionContext ctx);
+	void enterUpperExpression(DataWeaveParser.UpperExpressionContext ctx);
 	/**
-	 * Exit a parse tree produced by the {@code lowerExpression}
+	 * Exit a parse tree produced by the {@code upperExpression}
 	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
 	 * @param ctx the parse tree
 	 */
-	void exitLowerExpression(DataWeaveParser.LowerExpressionContext ctx);
+	void exitUpperExpression(DataWeaveParser.UpperExpressionContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code lowerExpressionWithParentheses}
 	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
@@ -405,6 +403,18 @@ public interface DataWeaveListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitLowerExpressionWithParentheses(DataWeaveParser.LowerExpressionWithParenthesesContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code lowerExpression}
+	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
+	 * @param ctx the parse tree
+	 */
+	void enterLowerExpression(DataWeaveParser.LowerExpressionContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code lowerExpression}
+	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
+	 * @param ctx the parse tree
+	 */
+	void exitLowerExpression(DataWeaveParser.LowerExpressionContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code notExpression}
 	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.

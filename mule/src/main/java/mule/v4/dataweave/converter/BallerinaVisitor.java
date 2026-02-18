@@ -582,7 +582,19 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitOperationExpressionWrapper(DataWeaveParser.OperationExpressionWrapperContext ctx) {
-        return visit(ctx.logicalOrExpression());
+        return visit(ctx.defaultExpression());
+    }
+
+    @Override
+    public Void visitDefaultExpression(DataWeaveParser.DefaultExpressionContext ctx) {
+        visit(ctx.logicalOrExpression(0));
+        if (ctx.DEFAULT() != null) {
+            String leftExpr = dwContext.getExpression();
+            visit(ctx.logicalOrExpression(1));
+            String rightExpr = dwContext.getExpression();
+            dwContext.append(leftExpr + " ?: " + rightExpr);
+        }
+        return null;
     }
 
     @Override
@@ -693,7 +705,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         visit((ctx.operationExpression()));
         String leftExpr = dwContext.getExpression();
         String leftType = dwContext.currentScriptContext.currentType;
-        visit(ctx.logicalOrExpression());
+        visit(ctx.defaultExpression());
         String rightExpr = dwContext.getExpression();
         switch (dwContext.currentScriptContext.currentType) {
             case DWUtils.STRING:
@@ -951,6 +963,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     @Override
     public Void visitLowerExpressionWithParentheses(DataWeaveParser.LowerExpressionWithParenthesesContext ctx) {
         visit(ctx.expression());
+        this.dwContext.append("(" + dwContext.getExpression() + ")");
         this.dwContext.append(".toLowerAscii()");
         this.dwContext.currentScriptContext.currentType = DWUtils.STRING;
         stats.record(DWConstruct.LOWER, true);

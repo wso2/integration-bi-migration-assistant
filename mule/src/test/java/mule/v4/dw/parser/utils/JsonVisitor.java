@@ -200,7 +200,20 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
     // Operation expression visitors
     @Override
     public JsonNode visitOperationExpressionWrapper(DataWeaveParser.OperationExpressionWrapperContext ctx) {
-        return visit(ctx.logicalOrExpression());
+        return visit(ctx.defaultExpression());
+    }
+
+    @Override
+    public JsonNode visitDefaultExpression(DataWeaveParser.DefaultExpressionContext ctx) {
+        if (ctx.DEFAULT() != null) {
+            ObjectNode objectNode = objectMapper.createObjectNode();
+            objectNode.put("type", "DefaultExpression");
+            objectNode.set("left", visit(ctx.logicalOrExpression(0)));
+            objectNode.set("right", visit(ctx.logicalOrExpression(1)));
+            return objectNode;
+        } else {
+            return visit(ctx.logicalOrExpression(0));
+        }
     }
 
     @Override
@@ -245,7 +258,7 @@ public class JsonVisitor extends DataWeaveBaseVisitor<JsonNode> {
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put("type", "ConcatExpression");
         objectNode.set("left", visit(ctx.operationExpression()));
-        objectNode.set("right", visit(ctx.logicalOrExpression()));
+        objectNode.set("right", visit(ctx.defaultExpression()));
         return objectNode;
     }
 

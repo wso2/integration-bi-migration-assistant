@@ -128,8 +128,13 @@ operationExpression
     | operationExpression MAP implicitLambdaExpression      # mapExpression
     | operationExpression GROUP_BY implicitLambdaExpression # groupByExpression
     | operationExpression REPLACE REGEX WITH expression     # replaceExpression
-    | operationExpression CONCAT logicalOrExpression        # concatExpression
-    | logicalOrExpression                                   # operationExpressionWrapper
+    | operationExpression CONCAT defaultExpression          # concatExpression
+    | defaultExpression                                     # operationExpressionWrapper
+    ;
+
+// Level 8.5: Default Expression
+defaultExpression
+    : logicalOrExpression (DEFAULT logicalOrExpression)?
     ;
 
 // Implicit Lambda Expressions
@@ -188,12 +193,12 @@ formatOption
 
 // Level 1: Unary Operators (-, not)
 unaryExpression
-    : SIZE_OF expression                   # sizeOfExpression
-    | SIZE_OF '(' expression ')'           # sizeOfExpressionWithParentheses
-    | UPPER expression                     # upperExpression
+    : SIZE_OF '(' expression ')'           # sizeOfExpressionWithParentheses
+    | SIZE_OF expression                   # sizeOfExpression
     | UPPER '(' expression ')'             # upperExpressionWithParentheses
-    | LOWER expression                     # lowerExpression
+    | UPPER expression                     # upperExpression
     | LOWER '(' expression ')'             # lowerExpressionWithParentheses
+    | LOWER expression                     # lowerExpression
     | NOT expression                       # notExpression
     | '-' expression                       # negativeExpression
     | primaryExpression                    # primaryExpressionWrapper

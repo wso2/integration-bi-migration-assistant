@@ -131,6 +131,12 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitConcatExpression(DataWeaveParser.ConcatExpressionContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link DataWeaveParser#defaultExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDefaultExpression(DataWeaveParser.DefaultExpressionContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link DataWeaveParser#implicitLambdaExpression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -205,13 +211,6 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFormatOption(DataWeaveParser.FormatOptionContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code sizeOfExpression}
-	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx);
-	/**
 	 * Visit a parse tree produced by the {@code sizeOfExpressionWithParentheses}
 	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
 	 * @param ctx the parse tree
@@ -219,12 +218,12 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSizeOfExpressionWithParentheses(DataWeaveParser.SizeOfExpressionWithParenthesesContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code upperExpression}
+	 * Visit a parse tree produced by the {@code sizeOfExpression}
 	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitUpperExpression(DataWeaveParser.UpperExpressionContext ctx);
+	T visitSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code upperExpressionWithParentheses}
 	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
@@ -233,12 +232,12 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitUpperExpressionWithParentheses(DataWeaveParser.UpperExpressionWithParenthesesContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code lowerExpression}
+	 * Visit a parse tree produced by the {@code upperExpression}
 	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitLowerExpression(DataWeaveParser.LowerExpressionContext ctx);
+	T visitUpperExpression(DataWeaveParser.UpperExpressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code lowerExpressionWithParentheses}
 	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
@@ -246,6 +245,13 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitLowerExpressionWithParentheses(DataWeaveParser.LowerExpressionWithParenthesesContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code lowerExpression}
+	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLowerExpression(DataWeaveParser.LowerExpressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code notExpression}
 	 * labeled alternative in {@link DataWeaveParser#unaryExpression}.

@@ -245,6 +245,18 @@ public class DataWeaveBaseListener implements DataWeaveListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterDefaultExpression(DataWeaveParser.DefaultExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDefaultExpression(DataWeaveParser.DefaultExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterImplicitLambdaExpression(DataWeaveParser.ImplicitLambdaExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -389,18 +401,6 @@ public class DataWeaveBaseListener implements DataWeaveListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterSizeOfExpressionWithParentheses(DataWeaveParser.SizeOfExpressionWithParenthesesContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -413,13 +413,13 @@ public class DataWeaveBaseListener implements DataWeaveListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterUpperExpression(DataWeaveParser.UpperExpressionContext ctx) { }
+	@Override public void enterSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitUpperExpression(DataWeaveParser.UpperExpressionContext ctx) { }
+	@Override public void exitSizeOfExpression(DataWeaveParser.SizeOfExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -437,13 +437,13 @@ public class DataWeaveBaseListener implements DataWeaveListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterLowerExpression(DataWeaveParser.LowerExpressionContext ctx) { }
+	@Override public void enterUpperExpression(DataWeaveParser.UpperExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitLowerExpression(DataWeaveParser.LowerExpressionContext ctx) { }
+	@Override public void exitUpperExpression(DataWeaveParser.UpperExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -456,6 +456,18 @@ public class DataWeaveBaseListener implements DataWeaveListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitLowerExpressionWithParentheses(DataWeaveParser.LowerExpressionWithParenthesesContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterLowerExpression(DataWeaveParser.LowerExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLowerExpression(DataWeaveParser.LowerExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

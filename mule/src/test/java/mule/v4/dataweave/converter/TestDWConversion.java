@@ -37,8 +37,8 @@ public class TestDWConversion {
                 output application/json
                 ---
                 {
-                    "Even": payload filter(($ mod 2)==0),
-                    "Odd": payload filter(($ mod 2)==1)
+                    "name": upper("wso2"),
+                    "industry": "middle ware"
                 }
                 """;
 
@@ -52,8 +52,8 @@ public class TestDWConversion {
         BallerinaModel.TextDocument txtDoc = new BallerinaModel.TextDocument("testDW", new ArrayList<>(),
                 new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
                 ctx.currentFileCtx.balConstructs.functions, new ArrayList<>());
-        txtDoc.toSource();
         PrintStream out = System.out;
+        assert !txtDoc.toSource().isEmpty(): "something went wrong with the conversion, output is empty";
         out.println(txtDoc.toSource());
     }
 }
