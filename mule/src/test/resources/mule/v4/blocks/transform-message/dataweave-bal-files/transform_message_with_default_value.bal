@@ -13,7 +13,4 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod(Context ctx) returns json|error {
-    json payload = check ctx.payload.ensureType(json);
-    return {"name": check payload?.name ?: "Unknown"};
-}
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in {"name": check payload?.name ?: "Unknown"}.toJsonString();

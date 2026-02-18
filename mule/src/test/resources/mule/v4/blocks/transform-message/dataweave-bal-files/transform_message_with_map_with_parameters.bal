@@ -7,13 +7,10 @@ public type Context record {|
     Vars vars = {};
 |};
 
+public function _dwMethod(Context ctx) returns json => ["john", "peter", "matt"].map(element => ["john", "peter", "matt"].indexOf(firstName).toString() + ":" + firstName.toUpperAscii()).toJsonString();
+
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
-}
-
-function _dwMethod(Context ctx) returns json {
-    var _var_0 = ["john", "peter", "matt"];
-    return _var_0.'map(element => _var_0.indexOf(element).toString() + ":" + element.toUpperAscii());
 }

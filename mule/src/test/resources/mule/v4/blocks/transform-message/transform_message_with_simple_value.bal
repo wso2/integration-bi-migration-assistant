@@ -24,7 +24,7 @@ service /foo on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
-        json _dwOutput_ = check transformMessage(ctx);
+        json _dwOutput_ = transformMessage(ctx);
         ctx.vars._dwOutput_ = _dwOutput_;
         ctx.payload = _dwOutput_;
 
@@ -33,13 +33,11 @@ service /foo on config {
     }
 }
 
-function transformMessage(Context ctx) returns json|error {
-    return {
-        "s1": "Hello World",
-        "s2": "Hello World",
-        "n": 1.23,
-        "b": true,
-        "a": check [1, 2, 3].ensureType(json),
-        "o": check {"name": "Anne"}.ensureType(json)
-    };
-}
+public function transformMessage(Context ctx) returns json => {
+    "s1": "Hello World",
+    "s2": "Hello World",
+    "n": 1.23,
+    "b": true,
+    "a": [1, 2, 3],
+    "o": {"name": "Anne"}
+}.toJsonString();

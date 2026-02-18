@@ -7,9 +7,7 @@ public type Context record {|
     Vars vars = {};
 |};
 
-function _dwMethod(Context ctx) returns json {
-    return {"name": "Ballerina " + "Conversion"};
-}
+public function _dwMethod(Context ctx) returns json => {"name": "Ballerina " + "Conversion"}.toJsonString();
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod(ctx);

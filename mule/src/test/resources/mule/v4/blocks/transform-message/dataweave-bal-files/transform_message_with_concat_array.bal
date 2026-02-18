@@ -7,14 +7,14 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod(ctx);
-    ctx.vars._dwOutput_ = _dwOutput_;
-    ctx.payload = _dwOutput_;
-}
-
-function _dwMethod(Context ctx) returns json|error {
+public function _dwMethod(Context ctx) returns json {
     any[] _var_0 = [0, 1, 2];
     var _var_1 = [3, 4, 5];
-    return {"a": check _var_0.push(..._var_1).ensureType(json)};
+    return {"a": _var_0.push(..._var_1)};
+}
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
 }

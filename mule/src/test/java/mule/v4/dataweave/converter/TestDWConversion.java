@@ -21,6 +21,7 @@ import common.BallerinaModel;
 import mule.v4.Context;
 import org.testng.annotations.Test;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 
 import static mule.v4.dataweave.converter.DWReader.getFunctionStatement;
@@ -30,7 +31,7 @@ public class TestDWConversion {
     @Test
     public void testDWConversion() {
         Context ctx = Context.createMockContext();;
-        DWContext DWCtx = new DWContext(ctx, new ArrayList<>());
+        DWContext dWCtx = new DWContext(ctx, new ArrayList<>());
         String script = """
                 %dw 2.0
                 output application/json
@@ -43,7 +44,7 @@ public class TestDWConversion {
 
         String func;
         try {
-            func = getFunctionStatement(script, null, DWCtx, ctx, "result", "dwTransform");
+            func = getFunctionStatement(script, null, dWCtx, ctx, "result", "dwTransform");
         } catch (DWCodeGenException e) {
             throw new RuntimeException(e);
         }
@@ -52,6 +53,7 @@ public class TestDWConversion {
                 new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
                 ctx.currentFileCtx.balConstructs.functions, new ArrayList<>());
         txtDoc.toSource();
-        System.out.println(txtDoc.toSource());
+        PrintStream out = System.out;
+        out.println(txtDoc.toSource());
     }
 }

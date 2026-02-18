@@ -7,12 +7,10 @@ public type Context record {|
     Vars vars = {};
 |};
 
+public function _dwMethod(Context ctx) returns string => 10.toString();
+
 public function sampleFlow(Context ctx) {
     string _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
-}
-
-function _dwMethod(Context ctx) returns string {
-    return 10.toString();
 }

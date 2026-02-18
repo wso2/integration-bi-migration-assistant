@@ -4539,8 +4539,62 @@ service /foo on config {
     }
 }
 
-function _dwMethod(Context ctx) returns json {
-    return "apple".toUpperAscii();
+public function _dwMethod(Context ctx) returns json => "apple".toUpperAscii();
+
+```
+
+- ### Transform Message With Dw Parsing Failure
+
+**Input (transform_message_with_dw_parsing_failure.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <flow name="mule6demoFlow">
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map (item) -> {
+    intentionally added this line to fail dw parsing
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_dw_parsing_failure.bal):**
+```ballerina
+public type Vars record {|
+    null _dwOutput_?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function mule6demoFlow(Context ctx) {
+
+    // TODO: DATAWEAVE PARSING FAILED.
+    // ------------------------------------------------------------------------
+    // %dw 2.0
+    // output application/json
+    // ---
+    // payload map (item) -> {
+    //     intentionally added this line to fail dw parsing
+    // }
+    // ------------------------------------------------------------------------
+
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
 }
 
 ```
@@ -4602,7 +4656,7 @@ service /foo on config {
 
     resource function get .(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
-        json _dwOutput_ = check transformMessage(ctx);
+        json _dwOutput_ = transformMessage(ctx);
         ctx.vars._dwOutput_ = _dwOutput_;
         ctx.payload = _dwOutput_;
 
@@ -4611,16 +4665,14 @@ service /foo on config {
     }
 }
 
-function transformMessage(Context ctx) returns json|error {
-    return {
-        "s1": "Hello World",
-        "s2": "Hello World",
-        "n": 1.23,
-        "b": true,
-        "a": check [1, 2, 3].ensureType(json),
-        "o": check {"name": "Anne"}.ensureType(json)
-    };
-}
+public function transformMessage(Context ctx) returns json => {
+    "s1": "Hello World",
+    "s2": "Hello World",
+    "n": 1.23,
+    "b": true,
+    "a": [1, 2, 3],
+    "o": {"name": "Anne"}
+}.toJsonString();
 
 ```
 

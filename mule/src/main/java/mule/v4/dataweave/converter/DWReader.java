@@ -172,7 +172,7 @@ public class DWReader {
             try {
                 tree = parseScript(script, context);
             } catch (DWCodeGenException e) {
-                return  ConversionUtils.wrapElementInTodoComment(script, "DATAWEAVE PARSING FAILED." );
+                return ConversionUtils.wrapElementInTodoComment(script, "DATAWEAVE PARSING FAILED.");
             }
 
             BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats,

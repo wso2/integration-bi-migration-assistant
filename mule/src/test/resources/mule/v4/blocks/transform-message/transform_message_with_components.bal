@@ -36,6 +36,4 @@ service /foo on config {
     }
 }
 
-function _dwMethod(Context ctx) returns json {
-    return "apple".toUpperAscii();
-}
+public function _dwMethod(Context ctx) returns json => "apple".toUpperAscii();

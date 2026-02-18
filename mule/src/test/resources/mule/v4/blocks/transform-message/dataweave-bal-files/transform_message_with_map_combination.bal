@@ -7,10 +7,7 @@ public type Context record {|
     Vars vars = {};
 |};
 
-function _dwMethod(Context ctx) returns json {
-    var _var_0 = ["john", "peter", "matt"];
-    return {"users": _var_0.'map(element => element.toUpperAscii())};
-}
+public function _dwMethod(Context ctx) returns json => {"users": ["john", "peter", "matt"].map(element => element.toUpperAscii())}.toJsonString();
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod(ctx);

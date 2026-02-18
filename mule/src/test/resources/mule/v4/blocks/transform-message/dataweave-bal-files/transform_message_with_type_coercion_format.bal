@@ -10,12 +10,6 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod(ctx);
-    ctx.vars._dwOutput_ = _dwOutput_;
-    ctx.payload = _dwOutput_;
-}
-
 public function getFormattedStringFromDate(string dateString, string format) returns string {
     handle localDateTime = getDateTime(parseInstant(java:fromString(dateString)),
             getZoneId(java:fromString("UTC")));
@@ -27,8 +21,10 @@ public function parseInstant(handle instant) returns handle = @java:Method {
     name: "parse"
 } external;
 
-function _dwMethod(Context ctx) returns json|error {
-    return {"a": intToString(1, "##,#"), "b": check getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd").ensureType(json), "c": true.toString()};
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
 }
 
 public function formatDateTime(handle dateTime, handle formatter) returns handle = @java:Method {
@@ -64,6 +60,12 @@ public function intToString(int intValue, string format) returns string {
     handle stringResult = getFormattedStringFromNumber(formatObj, intValue);
     return stringResult.toString();
 }
+
+public function _dwMethod(Context ctx) returns json => {
+    "a": intToString(1, "##,#"),
+    "b": getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd"),
+    "c": true.toString()
+}.toJsonString();
 
 public function newDecimalFormat(handle format) returns handle = @java:Constructor {
     'class: "java.text.DecimalFormat"
