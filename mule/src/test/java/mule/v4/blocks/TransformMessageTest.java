@@ -34,6 +34,12 @@ public class TransformMessageTest extends AbstractBlockTest {
                 "transform-message/transform_message_with_components.bal");
     }
 
+    @Test
+    public void testTransformMessageWithDWParsingFailure() {
+        testMule4ToBal("transform-message/transform_message_with_dw_parsing_failure.xml",
+                "transform-message/transform_message_with_dw_parsing_failure.bal");
+    }
+
     @Test(enabled = false)
     public void testTransformMessageWithUnsupportedComponents() {
         testMule4ToBal("transform-message/transform_message_with_unsupported_components.xml",

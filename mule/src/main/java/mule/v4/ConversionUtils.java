@@ -497,15 +497,23 @@ public class ConversionUtils {
     }
 
     public static String wrapElementInUnsupportedBlockComment(String input) {
+        return wrapElementInTodoComment(input, "UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.");
+    }
+
+    public static String wrapElementInTodoComment(String inputToBeDump, String todoDescription) {
+        return "\n\n" +
+                "// TODO: %s\n".formatted(todoDescription) +
+                "// ------------------------------------------------------------------------\n" +
+                convertToAComment(inputToBeDump) +
+                "// ------------------------------------------------------------------------\n\n";
+    }
+
+    public static String convertToAComment(String input) {
         StringBuilder sb = new StringBuilder();
-        sb.append("\n\n");
-        sb.append("// TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.\n");
-        sb.append("// ------------------------------------------------------------------------\n");
         String[] lines = input.split("\n");
         for (String line : lines) {
             sb.append("// ").append(line).append("\n");
         }
-        sb.append("// ------------------------------------------------------------------------\n\n");
         return sb.toString();
     }
 }
