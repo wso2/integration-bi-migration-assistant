@@ -2,6 +2,6 @@
 output application/json
 ---
 {
-	name: payload.name default "Unknown"
+  hasHomeDelivery: payload.hasHomeDelivery default "",
+  isCompleted: payload.isCompleted default ""
 }
-

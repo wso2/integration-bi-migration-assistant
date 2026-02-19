@@ -7,10 +7,9 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in {
-        "hasHomeDelivery": (check payload.hasHomeDelivery) ?: "",
-        "isCompleted": (check payload.isCompleted) ?: ""
-    }.toJsonString();
+configurable string secure_xref_orderFiltering_entityApiName = ?;
+
+public function _dwMethod(Context ctx) returns json|error => (secure_xref_orderFiltering_entityApiName.toString() + "|" + check vars.sourceApi.toString() + "|" + "MyOrderType" + "|" + "" + "|").toLowerAscii();
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod(ctx);

@@ -56,6 +56,7 @@ public class TransformMessageTest extends AbstractBlockTest {
     @DataProvider (name = "provideTestParams")
     public Object[][] provideTestParams() {
         return new Object[][]{
+                // granular level dw test cases
                 {"transform_message_with_string_return.dwl", "transform_message_with_string_return.bal"},
                 {"transform_message_with_single_selector.dwl", "transform_message_with_single_selector.bal"},
                 {"transform_message_with_sizeof.dwl", "transform_message_with_sizeof.bal"},
@@ -84,7 +85,15 @@ public class TransformMessageTest extends AbstractBlockTest {
                         "transform_message_with_type_coercion_date_to_number.bal"},
                 {"transform_message_with_type_coercion_to_date.dwl",
                         "transform_message_with_type_coercion_to_date.bal"},
-                {"transform_message_with_default_value.dwl", "transform_message_with_default_value.bal"}
+                {"transform_message_with_default_value.dwl", "transform_message_with_default_value.bal"},
+                {"transform_message_with_property_reading.dwl", "transform_message_with_property_reading.bal"},
+
+                // contains complex dw examples
+                // skip from docs with -sd flag
+                {"dw_string_concat_and_lowercase-sd.dwl", "dw_string_concat_and_lowercase-sd.bal"},
+                {"dw_map_over_array-sd.dwl", "dw_map_over_array-sd.bal"},
+                {"dw_map_with_default_fallback-sd.dwl", "dw_map_with_default_fallback-sd.bal"},
+                {"dw_complex_1-sd.dwl", "dw_complex_1-sd.bal"}
         };
     }
 }

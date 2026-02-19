@@ -137,6 +137,7 @@ The migration tool currently supports the following DataWeave transformations fr
 - [Map Index Identifier Only Expression](docs/dataweave-mappings-v4.md#map-index-identifier-only-expression)
 - [Map Value Identifier Expression](docs/dataweave-mappings-v4.md#map-value-identifier-expression)
 - [Map With Parameters Expression](docs/dataweave-mappings-v4.md#map-with-parameters-expression)
+- [Property Reading Expression](docs/dataweave-mappings-v4.md#property-reading-expression)
 - [Replace With Expression](docs/dataweave-mappings-v4.md#replace-with-expression)
 - [Single Selector Expression](docs/dataweave-mappings-v4.md#single-selector-expression)
 - [Sizeof Expression](docs/dataweave-mappings-v4.md#sizeof-expression)

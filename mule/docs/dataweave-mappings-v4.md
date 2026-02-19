@@ -14,6 +14,7 @@
 - [Map Index Identifier Only Expression](dataweave-mappings-v4.md#map-index-identifier-only-expression)
 - [Map Value Identifier Expression](dataweave-mappings-v4.md#map-value-identifier-expression)
 - [Map With Parameters Expression](dataweave-mappings-v4.md#map-with-parameters-expression)
+- [Property Reading Expression](dataweave-mappings-v4.md#property-reading-expression)
 - [Replace With Expression](dataweave-mappings-v4.md#replace-with-expression)
 - [Single Selector Expression](dataweave-mappings-v4.md#single-selector-expression)
 - [Sizeof Expression](dataweave-mappings-v4.md#sizeof-expression)
@@ -190,9 +191,9 @@ public function _dwMethod(Context ctx) returns json|error => {
 output application/json
 ---
 {
-	name: payload.name default "Unknown"
+  hasHomeDelivery: payload.hasHomeDelivery default "",
+  isCompleted: payload.isCompleted default ""
 }
-
 
 ```
 
@@ -207,13 +208,16 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in {"name": check payload.name ?: "Unknown"}.toJsonString();
-
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
+
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in {
+        "hasHomeDelivery": check payload.hasHomeDelivery ?: "",
+        "isCompleted": check payload.isCompleted ?: ""
+    }.toJsonString();
 
 ```
 
@@ -437,6 +441,47 @@ public type Context record {|
 |};
 
 public function _dwMethod(Context ctx) returns json => ["john", "peter", "matt"].map(element => ["john", "peter", "matt"].indexOf(firstName).toString() + ":" + firstName.toUpperAscii()).toJsonString();
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
+```
+
+## Property Reading Expression
+
+**DataWeave Script (transform_message_with_property_reading.dwl):**
+```dataweave
+%dw 2.0
+output application/json
+---
+{
+  someKey: Mule::p('secure::xref.example.someApiName'),
+  anotherKey: Mule::p('secure::xref.example.someDomainName')
+}
+
+```
+
+**Ballerina Output (transform_message_with_property_reading.bal):**
+```ballerina
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+configurable string secure_xref_example_someApiName = ?;
+configurable string secure_xref_example_someDomainName = ?;
+
+public function _dwMethod(Context ctx) returns json => {
+    "someKey": secure_xref_example_someApiName,
+    "anotherKey": secure_xref_example_someDomainName
+}.toJsonString();
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod(ctx);
