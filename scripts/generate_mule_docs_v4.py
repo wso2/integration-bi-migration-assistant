@@ -44,8 +44,8 @@ for root, dirs, files in os.walk(samples_dir):
 # Sort all files to ensure consistent order
 all_files.sort()
 
-# Filter XML and BAL files
-xml_files = [f for f in all_files if f.endswith('.xml')]
+# Filter XML and BAL files, excluding files ending with -sd.xml
+xml_files = [f for f in all_files if f.endswith('.xml') and not f.endswith('-sd.xml')]
 bal_files = [f for f in all_files if f.endswith('.bal')]
 
 # Group files by their immediate parent directory
@@ -107,9 +107,9 @@ for parent_dir, pairs in sorted_paired_files.items():
 # List directories to identify supported Mule components
 supported_components = sorted([d for d in os.listdir(samples_dir) if os.path.isdir(os.path.join(samples_dir, d)) and d != 'unsupported-block'])
 
-# List DWL and BAL files
-dwl_files = sorted([f for f in os.listdir(dataweave_files_dir) if f.endswith('.dwl')])
-bal_files = sorted([f for f in os.listdir(dataweave_bal_files_dir) if f.endswith('.bal')])
+# List DWL and BAL files, excluding files with -sd in their names
+dwl_files = sorted([f for f in os.listdir(dataweave_files_dir) if f.endswith('.dwl') and '-sd' not in f])
+bal_files = sorted([f for f in os.listdir(dataweave_bal_files_dir) if f.endswith('.bal') and '-sd' not in f])
 
 
 # Function to generate heading from filename
