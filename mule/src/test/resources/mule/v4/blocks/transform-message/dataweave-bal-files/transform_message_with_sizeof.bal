@@ -7,10 +7,10 @@ public type Context record {|
     Vars vars = {};
 |};
 
+public function _dwMethod(Context ctx) returns json => {"hail1": ([1, 2, 3, 4]).length()}.toJsonString();
+
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
-
-public function _dwMethod(Context ctx) returns json => {"hail1": [1, 2, 3, 4].length()}.toJsonString();

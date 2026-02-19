@@ -71,15 +71,15 @@ public class DWContext {
                 if (i > 0) {
                     letExpr.append(", ");
                 }
-                String varName = this.currentScriptContext.letVariables.get(i);
-                String sourceExpr = this.currentScriptContext.letExpressions.get(i);
-                String varType = inferTypeFromExpression(sourceExpr);
-                if (sourceExpr.equals(DWUtils.DW_PAYLOAD_IDENTIFIER) && this.referringToPayload) {
-                    letExpr.append(varType).append(" ").append(varName)
+                LetVariableDeclaration letVar = this.currentScriptContext.letVariables.get(i);
+                String varType = letVar.hasType() ? letVar.type() : inferTypeFromExpression(letVar.expression());
+                if (letVar.expression().equals(DWUtils.DW_PAYLOAD_IDENTIFIER) && this.referringToPayload) {
+                    letExpr.append(varType).append(" ").append(letVar.name())
                             .append(" = check ctx.payload.cloneWithType()");
                     this.currentScriptContext.containsCheck = true;
                 } else {
-                    letExpr.append(varType).append(" ").append(varName).append(" = ").append(sourceExpr);
+                    letExpr.append(varType).append(" ").append(letVar.name())
+                            .append(" = ").append(letVar.expression());
                 }
             }
             letExpr.append(" in ").append(returnExpr);
@@ -90,7 +90,7 @@ public class DWContext {
         if (this.currentScriptContext.statements.isEmpty()) {
             this.isSingleExpression = true;
             if (this.referringToPayload) {
-                returnExpr = "let json payload = check ctx.%s.cloneWithType() in"
+                returnExpr = "let json payload = check ctx.%s.cloneWithType() in "
                         .formatted(DWUtils.DW_PAYLOAD_IDENTIFIER) + returnExpr;
             }
             return new BallerinaModel.Expression.BallerinaExpression(returnExpr);
@@ -153,7 +153,7 @@ public class DWContext {
     public static class DWScriptContext {
         public List<BallerinaModel.Parameter> params = new ArrayList<>();
         public List<BallerinaModel.Statement> statements = new ArrayList<>();
-        public Map<String, String> varTypes = new HashMap<>(); // TODO: do we need this?
+        public Map<String, String> varTypes = new HashMap<>();
         public String outputType;
         public String dwVersion;
         public StringBuilder exprBuilder = new StringBuilder();
@@ -164,7 +164,21 @@ public class DWContext {
         public List<String> errors = new ArrayList<>();
         public boolean visited = false;
         public boolean useLetExpression = false;
-        public List<String> letVariables = new ArrayList<>();
-        public List<String> letExpressions = new ArrayList<>();
+        public List<LetVariableDeclaration> letVariables = new ArrayList<>();
+    }
+
+    public record LetVariableDeclaration(String name, String expression, String type) {
+        public LetVariableDeclaration(String name, String expression) {
+            this(name, expression, null);
+        }
+
+        public LetVariableDeclaration {
+            assert name != null : "Variable name cannot be null";
+            assert expression != null : "Expression cannot be null";
+        }
+
+        public boolean hasType() {
+            return type != null && !type.isEmpty();
+        }
     }
 }

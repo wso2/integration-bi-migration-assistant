@@ -53,7 +53,7 @@ public class TestDWConversion {
                 new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
                 ctx.currentFileCtx.balConstructs.functions, new ArrayList<>());
         PrintStream out = System.out;
-        assert !txtDoc.toSource().isEmpty(): "something went wrong with the conversion, output is empty";
+        assert !txtDoc.toSource().isEmpty() : "something went wrong with the conversion, output is empty";
         out.println(txtDoc.toSource());
     }
 }

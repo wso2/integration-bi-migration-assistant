@@ -182,4 +182,13 @@ public class DWUtils {
                 .collect(Collectors.joining(","));
     }
 
+    /**
+     * Checks if the given expression needs to be wrapped in parentheses when used as a sub-expression.
+     *
+     * @param expr The expression to check.
+     * @return whether the expression needs to be wrapped in parentheses.
+     */
+    public static boolean parenthesisNeeded(String expr) {
+        return expr.contains(" ");
+    }
 }
