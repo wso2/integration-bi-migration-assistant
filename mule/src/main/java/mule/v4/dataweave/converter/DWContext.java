@@ -50,9 +50,10 @@ public class DWContext {
 
     public void clearScript() {
         if (!this.currentScriptContext.errors.isEmpty() && !this.currentScriptContext.visited) {
-            this.currentScriptContext.statements.add(new BallerinaStatement(DWUtils.PARSER_ERROR_COMMENT));
+            // TODO: revisit 19/02/26
+            this.currentScriptContext.addStatement(new BallerinaStatement(DWUtils.PARSER_ERROR_COMMENT));
             for (String error : this.currentScriptContext.errors) {
-                this.currentScriptContext.statements.add(new BallerinaStatement("// " + error + "\n"));
+                this.currentScriptContext.addStatement(new BallerinaStatement("// " + error + "\n"));
             }
             this.currentScriptContext.visited = true;
         }
@@ -61,58 +62,29 @@ public class DWContext {
     }
 
     public BallerinaModel.Expression.BallerinaExpression finalizeFunction() {
-        if (this.currentScriptContext.exprBuilder.isEmpty()) {
-            return new BallerinaModel.Expression.BallerinaExpression("");
-        }
         String returnExpr = this.currentScriptContext.exprBuilder.toString();
-        if (this.currentScriptContext.useLetExpression && !this.currentScriptContext.letVariables.isEmpty()) {
-            StringBuilder letExpr = new StringBuilder("let ");
-            for (int i = 0; i < this.currentScriptContext.letVariables.size(); i++) {
-                if (i > 0) {
-                    letExpr.append(", ");
-                }
-                LetVariableDeclaration letVar = this.currentScriptContext.letVariables.get(i);
-                String varType = letVar.hasType() ? letVar.type() : inferTypeFromExpression(letVar.expression());
-                if (letVar.expression().equals(DWUtils.DW_PAYLOAD_IDENTIFIER) && this.referringToPayload) {
-                    letExpr.append(varType).append(" ").append(letVar.name())
-                            .append(" = check ctx.payload.cloneWithType()");
-                    this.currentScriptContext.containsCheck = true;
-                } else {
-                    letExpr.append(varType).append(" ").append(letVar.name())
-                            .append(" = ").append(letVar.expression());
-                }
-            }
-            letExpr.append(" in ").append(returnExpr);
-            this.isSingleExpression = true;
-            return new BallerinaModel.Expression.BallerinaExpression(letExpr.toString());
-        }
-
-        if (this.currentScriptContext.statements.isEmpty()) {
-            this.isSingleExpression = true;
-            if (this.referringToPayload) {
-                returnExpr = "let json payload = check ctx.%s.cloneWithType() in "
-                        .formatted(DWUtils.DW_PAYLOAD_IDENTIFIER) + returnExpr;
-            }
-            return new BallerinaModel.Expression.BallerinaExpression(returnExpr);
-        } else {
-            if (this.referringToPayload) {
-                this.currentScriptContext.statements.add(0,
-                        new BallerinaStatement("json %s = check ctx.%s.ensureType(json);"
-                                .formatted(DWUtils.DW_PAYLOAD_IDENTIFIER, DWUtils.DW_PAYLOAD_IDENTIFIER)));
-            }
-            this.currentScriptContext.statements.add(
+        if (this.currentScriptContext.hasStatements()) {
+            this.currentScriptContext.addStatement(
                     new BallerinaStatement("return " + returnExpr + ";"));
             return new BallerinaModel.Expression.BallerinaExpression("");
         }
-    }
 
-    private String inferTypeFromExpression(String expr) {
-        // TODO: enhance this to infer more types if needed.
-        //  For now, we only need to handle payload references in let expressions.
-        if (expr.equals(DWUtils.DW_PAYLOAD_IDENTIFIER)) {
-            return "json[]";
+        this.isSingleExpression = true;
+        if (currentScriptContext.letVariables.isEmpty()) {
+            return new BallerinaModel.Expression.BallerinaExpression(returnExpr);
         }
-        return "var";
+
+        StringBuilder letExpr = new StringBuilder("let ");
+        for (int i = 0; i < this.currentScriptContext.letVariables.size(); i++) {
+            if (i > 0) {
+                letExpr.append(", ");
+            }
+            LetVariableDeclaration letVar = this.currentScriptContext.letVariables.get(i);
+            String varType = letVar.hasType() ? letVar.type() : inferTypeFromExpression(letVar.expression());
+            letExpr.append(varType).append(" ").append(letVar.name()).append(" = ").append(letVar.expression());
+        }
+        letExpr.append(" in ").append(returnExpr);
+        return new BallerinaModel.Expression.BallerinaExpression(letExpr.toString());
     }
 
     public String getExpression() {
@@ -136,13 +108,13 @@ public class DWContext {
 
     public void addUnsupportedComment(String context) {
         markAsFailedDWExpr(context);
-        this.currentScriptContext.statements.add(new BallerinaStatement(
+        this.currentScriptContext.addStatement(new BallerinaStatement(
                 String.format(DWUtils.UNSUPPORTED_DW_NODE, context)));
     }
 
     public void addUnsupportedCommentWithType(String context, String type) {
         markAsFailedDWExpr(context);
-        this.currentScriptContext.statements.add(new BallerinaStatement(
+        this.currentScriptContext.addStatement(new BallerinaStatement(
                 String.format(DWUtils.UNSUPPORTED_DW_NODE_WITH_TYPE, context, type)));
     }
 
@@ -152,7 +124,7 @@ public class DWContext {
 
     public static class DWScriptContext {
         public List<BallerinaModel.Parameter> params = new ArrayList<>();
-        public List<BallerinaModel.Statement> statements = new ArrayList<>();
+        private final List<BallerinaModel.Statement> statements = new ArrayList<>();
         public Map<String, String> varTypes = new HashMap<>();
         public String outputType;
         public String dwVersion;
@@ -163,8 +135,30 @@ public class DWContext {
         public String currentType = DWUtils.UNKNOWN;
         public List<String> errors = new ArrayList<>();
         public boolean visited = false;
-        public boolean useLetExpression = false;
         public List<LetVariableDeclaration> letVariables = new ArrayList<>();
+
+        public void addStatement(BallerinaModel.Statement statement) {
+            if (!letVariables.isEmpty()) {
+                for (LetVariableDeclaration letVar : letVariables) {
+                    String varDecl = getVarDeclaration(letVar);
+                    statements.add(new BallerinaStatement(varDecl));
+                }
+                letVariables.clear();
+            }
+            statements.add(statement);
+        }
+
+        public void addStatement(int index, BallerinaModel.Statement statement) {
+            statements.add(index, statement);
+        }
+
+        public List<BallerinaModel.Statement> getStatements() {
+            return statements;
+        }
+
+        public boolean hasStatements() {
+            return !statements.isEmpty();
+        }
     }
 
     public record LetVariableDeclaration(String name, String expression, String type) {
@@ -180,5 +174,21 @@ public class DWContext {
         public boolean hasType() {
             return type != null && !type.isEmpty();
         }
+    }
+
+    private static String getVarDeclaration(LetVariableDeclaration letVar) {
+        return "%s %s = %s;".formatted(
+                letVar.hasType() ? letVar.type() : inferTypeFromExpression(letVar.expression()),
+                letVar.name(),
+                letVar.expression());
+    }
+
+    private static String inferTypeFromExpression(String expr) {
+        // TODO: enhance this to infer more types if needed.
+        //  For now, we only need to handle payload references in let expressions.
+        if (expr.equals(DWUtils.DW_PAYLOAD_IDENTIFIER)) {
+            return "json";
+        }
+        return "var";
     }
 }

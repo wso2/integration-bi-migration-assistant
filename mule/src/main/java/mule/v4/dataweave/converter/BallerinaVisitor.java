@@ -122,7 +122,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         ballerinaType = dwType.equals(DWUtils.NUMBER) ? refineNumberType(valueExpr, ballerinaType) : ballerinaType;
         String statement = ballerinaType + " " + ctx.IDENTIFIER().getText() + " " + ctx.ASSIGN().getText() + " "
                 + valueExpr + ";";
-        this.dwContext.currentScriptContext.statements.add(new BallerinaStatement(statement));
+        this.dwContext.currentScriptContext.addStatement(new BallerinaStatement(statement));
         stats.record(DWConstruct.VARIABLE_DECLARATION, true);
         return null;
     }
@@ -171,7 +171,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             }
             functionBody = new ExpressionFunctionBody(expr);
         } else {
-            functionBody = new BlockFunctionBody(dwContext.currentScriptContext.statements);
+            functionBody = new BlockFunctionBody(dwContext.currentScriptContext.getStatements());
         }
         this.ctx.currentFileCtx.balConstructs.functions.add(Function.publicFunction(methodName,
                 Constants.FUNC_PARAMS_WITH_CONTEXT, typeFrom(outputType), functionBody));
@@ -218,14 +218,6 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         String key = "\"" + ctx.IDENTIFIER().getText() + "\"";
         visit(ctx.expression());
         String value = dwContext.getExpression();
-        // TODO: remove if not needed
-//        if (!isBasicType(dwContext.currentScriptContext.currentType)) {
-//            value += ".ensureType(" + dwContext.currentScriptContext.outputType + ")";
-//            if (!value.startsWith("check")) {
-//                value = "check " + value;
-//                this.dwContext.currentScriptContext.containsCheck = true;
-//            }
-//        }
         dwContext.append(key + ": " + value);
         return null;
     }
@@ -544,7 +536,6 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         if (hasTwoParams) {
             String enumeratedVar = DWUtils.VAR_PREFIX + varCount++;
             dwContext.currentScriptContext.varTypes.put(varName, "var");
-            dwContext.currentScriptContext.useLetExpression = true;
             dwContext.currentScriptContext.letVariables.add(
                     new DWContext.LetVariableDeclaration(varName, sourceExpr)
             );
@@ -570,22 +561,11 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             dwContext.currentScriptContext.varTypes.put(DWUtils.ELEMENT_ARG, "var");
             dwContext.currentScriptContext.varNames.put(DWUtils.DW_INDEX_IDENTIFIER, varName);
             if (sourceExpr.equals(DWUtils.DW_PAYLOAD_IDENTIFIER)) {
-                dwContext.currentScriptContext.useLetExpression = true;
                 dwContext.currentScriptContext.letVariables.add(
                         new DWContext.LetVariableDeclaration("payload", sourceExpr)
                 );
                 dwContext.append(sourceExpr);
             } else {
-                if (dwContext.referringToPayload) {
-                    dwContext.currentScriptContext.letVariables.add(
-                            new DWContext.LetVariableDeclaration(
-                                    "payload",
-                                    "check ctx.%s.cloneWithType()".formatted(DWUtils.DW_PAYLOAD_IDENTIFIER),
-                                    "json"
-                            )
-                    );
-                    dwContext.currentScriptContext.useLetExpression = true;
-                }
                 if (sourceExpr.trim().startsWith("[") && sourceExpr.trim().endsWith("]")) {
                     // If the source expression is an array literal, we can directly use it without a let variable
                     dwContext.append(sourceExpr);
@@ -619,8 +599,14 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         visit(ctx.logicalOrExpression(0));
         if (ctx.DEFAULT() != null) {
             String leftExpr = dwContext.getExpression();
+            if (DWUtils.parenthesisNeeded(leftExpr)) {
+                leftExpr = "(" + leftExpr + ")";
+            }
             visit(ctx.logicalOrExpression(1));
             String rightExpr = dwContext.getExpression();
+            if (DWUtils.parenthesisNeeded(rightExpr)) {
+                rightExpr = "(" + rightExpr + ")";
+            }
             dwContext.append(leftExpr + " ?: " + rightExpr);
         }
         return null;
@@ -643,7 +629,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             dwContext.currentScriptContext.varTypes.put(DWUtils.ELEMENT_ARG, "var");
         }
         dwContext.currentScriptContext.varNames.put(DWUtils.DW_INDEX_IDENTIFIER, varName);
-        dwContext.currentScriptContext.statements.add(new BallerinaStatement(castStatement));
+        dwContext.currentScriptContext.addStatement(new BallerinaStatement(castStatement));
         dwContext.append(varName).append(".filter(");
         visit(ctx.implicitLambdaExpression());
         dwContext.append(")");
@@ -655,7 +641,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     public Void visitReplaceExpression(DataWeaveParser.ReplaceExpressionContext ctx) {
         String regexVar = "pattern";
         String statement = "string:RegExp " + regexVar + " = re `" + ctx.REGEX().getText() + "`;";
-        dwContext.currentScriptContext.statements.add(new BallerinaStatement(statement));
+        dwContext.currentScriptContext.addStatement(new BallerinaStatement(statement));
         visit(ctx.operationExpression());
         String lhsExpr = dwContext.getExpression();
         dwContext.append(regexVar + ".replace(");
@@ -746,17 +732,13 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             case DWUtils.ARRAY:
                 String leftArr = DWUtils.VAR_PREFIX + varCount++;
                 String leftArrayStatement = "any[] " + leftArr + " = " + leftExpr + ";";
-                dwContext.currentScriptContext.statements.add(new BallerinaStatement(leftArrayStatement));
+                dwContext.currentScriptContext.addStatement(new BallerinaStatement(leftArrayStatement));
                 String rightArr = DWUtils.VAR_PREFIX + varCount++;
                 String rightArrayStatement = "var " + rightArr + " = " + rightExpr + ";";
-                dwContext.currentScriptContext.statements.add(new BallerinaStatement(rightArrayStatement));
+                dwContext.currentScriptContext.addStatement(new BallerinaStatement(rightArrayStatement));
                 dwContext.append(leftArr).append(".push(...").append(rightArr).append(")");
                 break;
             default:
-//                String leftMap = DWUtils.VAR_PREFIX + varCount++;
-//                String leftMapStatement = "var " + leftMap + " = " + leftExpr + ";";
-//                dwContext.currentScriptContext.statements.add(new BallerinaStatement(leftMapStatement));
-//                dwContext.append(rightExpr.replaceFirst("\\{", "{ " + leftMap + ", "));
                 dwContext.append(leftExpr).append(" + ").append(rightExpr);
         }
         stats.record(DWConstruct.CONCAT, true);
@@ -923,7 +905,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                         String utcStmt = "time:Utc " + DWUtils.UTC_VAR + " = check time:utcFromCivil(" +
                                 expression + ");";
                         this.dwContext.currentScriptContext.containsCheck = true;
-                        this.dwContext.currentScriptContext.statements.add(new BallerinaStatement(utcStmt));
+                        this.dwContext.currentScriptContext.addStatement(new BallerinaStatement(utcStmt));
                         this.dwContext.append("(" + DWUtils.UTC_VAR + "[0] * 1000 + <int>(" + DWUtils.UTC_VAR +
                                 "[1] * 1000))");
                     } else {
@@ -1080,7 +1062,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitKeySelector(DataWeaveParser.KeySelectorContext ctx) {
-//        assert dwContext.inKeyAccess; TODO
+        assert dwContext.inKeyAccess;
         dwContext.append(ctx.STRING().getText());
         dwContext.addCheckExpr();
         stats.record(DWConstruct.SINGLE_VALUE_SELECTOR, true);
@@ -1144,8 +1126,13 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             return null;
         }
         if (identifier.equals(DWUtils.DW_PAYLOAD_IDENTIFIER)) {
-            this.dwContext.currentScriptContext.currentType = DWUtils.PAYLOAD;
-            this.dwContext.referringToPayload = true;
+            if (!dwContext.referringToPayload) {
+                dwContext.currentScriptContext.letVariables.add(
+                        new DWContext.LetVariableDeclaration(DWUtils.DW_PAYLOAD_IDENTIFIER,
+                                "check ctx.%s.cloneWithType()".formatted(DWUtils.DW_PAYLOAD_IDENTIFIER), "json"));
+                dwContext.currentScriptContext.currentType = DWUtils.PAYLOAD;
+                dwContext.referringToPayload = true;
+            }
         }
         this.dwContext.append(identifier);
         return null;
@@ -1179,7 +1166,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         String varName = DWUtils.VAR_PREFIX + varCount++;
         builder.resultVar = varName;
 
-        dwContext.currentScriptContext.statements.add(new BallerinaStatement(
+        dwContext.currentScriptContext.addStatement(new BallerinaStatement(
                 dwContext.currentScriptContext.outputType + " " + varName + ";"));
 
         // First IF: condition and result
@@ -1212,7 +1199,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             builder.addElseBody(new BallerinaStatement(varName + " = " + dwContext.getExpression() + ";"));
         }
 
-        dwContext.currentScriptContext.statements.add(builder.getStatement());
+        dwContext.currentScriptContext.addStatement(builder.getStatement());
         dwContext.append(" " + varName);
         stats.record(DWConstruct.CONDITIONAL, true);
         return null;
