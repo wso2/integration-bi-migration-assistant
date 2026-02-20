@@ -440,7 +440,9 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function _dwMethod(Context ctx) returns json => ["john", "peter", "matt"].map(element => ["john", "peter", "matt"].indexOf(firstName).toString() + ":" + firstName.toUpperAscii()).toJsonString();
+public function _dwMethod(Context ctx) returns json => let var indexMemberPairs = ["john", "peter", "matt"].enumerate() in indexMemberPairs.map(
+    indexMemberPair => let int position = indexMemberPair[0], var firstName = indexMemberPair[1] in position.toString() + ":" + firstName.toUpperAscii()
+).toJsonString();
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod(ctx);

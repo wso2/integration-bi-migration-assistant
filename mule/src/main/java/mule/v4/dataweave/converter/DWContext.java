@@ -58,7 +58,6 @@ public class DWContext {
             this.currentScriptContext.visited = true;
         }
         this.currentScriptContext = new DWScriptContext();
-        this.isSingleExpression = false;
     }
 
     public BallerinaModel.Expression.BallerinaExpression finalizeFunction() {

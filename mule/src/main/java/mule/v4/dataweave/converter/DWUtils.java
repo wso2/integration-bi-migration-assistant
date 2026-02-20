@@ -191,4 +191,13 @@ public class DWUtils {
     public static boolean parenthesisNeeded(String expr) {
         return expr.contains(" ");
     }
+
+    /**
+     * Checks if the given expression is an array literal.
+     * @param expr The expression to check.
+     * @return whether the expression is an array literal.
+     */
+    public static boolean isArrayLiteral(String expr) {
+        return expr.trim().startsWith("[") && expr.trim().endsWith("]");
+    }
 }

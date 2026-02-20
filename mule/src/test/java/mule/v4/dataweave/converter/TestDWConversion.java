@@ -19,6 +19,7 @@ package mule.v4.dataweave.converter;
 
 import common.BallerinaModel;
 import mule.v4.Context;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.PrintStream;
@@ -53,7 +54,7 @@ public class TestDWConversion {
                 new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
                 ctx.currentFileCtx.balConstructs.functions, new ArrayList<>());
         PrintStream out = System.out;
-        assert !txtDoc.toSource().isEmpty() : "something went wrong with the conversion, output is empty";
+        Assert.assertFalse(txtDoc.toSource().isEmpty(), "something went wrong with the conversion, output is empty");
         out.println(txtDoc.toSource());
     }
 }

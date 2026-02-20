@@ -524,38 +524,43 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     public Void visitMapExpression(DataWeaveParser.MapExpressionContext ctx) {
         visit(ctx.operationExpression());
         String sourceExpr = dwContext.getExpression();
-        String varName = sourceExpr;
-
+        DataWeaveParser.InlineLambdaContext inlineLambda = getInlineLambda(ctx.implicitLambdaExpression());
         boolean hasTwoParams = false;
-        if (ctx.implicitLambdaExpression().inlineLambda() != null) {
-            List<TerminalNode> identifiers = ctx.implicitLambdaExpression().inlineLambda().functionParameters()
-                    .IDENTIFIER();
+        if (inlineLambda != null) {
+            List<TerminalNode> identifiers = inlineLambda.functionParameters().IDENTIFIER();
             hasTwoParams = identifiers.size() == 2;
         }
 
+        String varName = sourceExpr;
         if (hasTwoParams) {
-            String enumeratedVar = DWUtils.VAR_PREFIX + varCount++;
-            dwContext.currentScriptContext.varTypes.put(varName, "var");
-            dwContext.currentScriptContext.letVariables.add(
-                    new DWContext.LetVariableDeclaration(varName, sourceExpr)
-            );
+            // when source is an array literal, we can directly use it without a let
+            if (!DWUtils.isArrayLiteral(sourceExpr)) {
+                varName = "list";
+                if (DWUtils.parenthesisNeeded(sourceExpr)) {
+                    sourceExpr = "(" + sourceExpr + ")";
+                }
+                dwContext.currentScriptContext.letVariables.add(new DWContext.LetVariableDeclaration(
+                        varName, "check %s.cloneWithType()".formatted(sourceExpr), "json[]"));
+            }
+
+            String enumeratedVar = "indexMemberPairs";
             dwContext.currentScriptContext.letVariables.add(
                     new DWContext.LetVariableDeclaration(enumeratedVar, varName + ".enumerate()")
             );
-            dwContext.append(enumeratedVar).append(".map(tuple => let ");
+            dwContext.append(enumeratedVar).append(".map(").append(System.lineSeparator()).append(" ")
+                    .append("indexMemberPair => let ");
 
-            List<TerminalNode> identifiers = ctx.implicitLambdaExpression().inlineLambda().functionParameters()
-                    .IDENTIFIER();
+            List<TerminalNode> identifiers = inlineLambda.functionParameters().IDENTIFIER();
             String indexParam = identifiers.get(1).getText();
             String itemParam = identifiers.getFirst().getText();
             dwContext.currentScriptContext.varNames.put(indexParam, indexParam);
             dwContext.currentScriptContext.varNames.put(itemParam, itemParam);
 
-            dwContext.append("int ").append(indexParam).append(" = tuple[0], ");
-            dwContext.append("int ").append(itemParam).append(" = tuple[1] in ");
+            dwContext.append("int ").append(indexParam).append(" = indexMemberPair[0], ");
+            dwContext.append("var ").append(itemParam).append(" = indexMemberPair[1] in ");
 
-            visit(ctx.implicitLambdaExpression().inlineLambda().expression());
-            dwContext.append(")");
+            visit(inlineLambda.expression());
+            dwContext.append(System.lineSeparator()).append(")");
         } else {
             dwContext.currentScriptContext.varTypes.put(varName, "var");
             dwContext.currentScriptContext.varTypes.put(DWUtils.ELEMENT_ARG, "var");
@@ -566,14 +571,14 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 );
                 dwContext.append(sourceExpr);
             } else {
-                if (sourceExpr.trim().startsWith("[") && sourceExpr.trim().endsWith("]")) {
-                    // If the source expression is an array literal, we can directly use it without a let variable
+                if (DWUtils.isArrayLiteral(sourceExpr)) {
+                    // If the source is an array literal, we can directly use it without a let
                     dwContext.append(sourceExpr);
                 } else {
                     if (DWUtils.parenthesisNeeded(sourceExpr)) {
                         sourceExpr = "(" + sourceExpr + ")";
                     }
-                    String letExpr = "check" + sourceExpr + ".cloneWithType()";
+                    String letExpr = "check " + sourceExpr + ".cloneWithType()";
                     String letVarName = "array";
                     dwContext.currentScriptContext.letVariables.add(
                             new DWContext.LetVariableDeclaration(letVarName, letExpr, "json[]")
@@ -586,6 +591,132 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             dwContext.append(")");
         }
         stats.record(DWConstruct.MAP, true);
+        return null;
+    }
+
+    private DataWeaveParser.InlineLambdaContext getInlineLambda(DataWeaveParser.ImplicitLambdaExpressionContext ctx) {
+        if (ctx.inlineLambda() != null) {
+            return ctx.inlineLambda();
+        }
+        if (ctx.implicitLambdaExpression() != null) {
+            return getInlineLambda(ctx.implicitLambdaExpression());
+        }
+        if (ctx.expression() != null) {
+            return findInlineLambdaInExpression(ctx.expression());
+        }
+        return null;
+    }
+
+    private DataWeaveParser.InlineLambdaContext findInlineLambdaInExpression(
+            DataWeaveParser.ExpressionContext expr) {
+        assert expr != null;
+        if (expr.operationExpression() != null) {
+            return findInlineLambdaInOperationExpression(expr.operationExpression());
+        }
+        return null;
+    }
+
+    private DataWeaveParser.InlineLambdaContext findInlineLambdaInOperationExpression(
+            DataWeaveParser.OperationExpressionContext opExpr) {
+        assert opExpr != null;
+        if (opExpr instanceof DataWeaveParser.OperationExpressionWrapperContext wrapper) {
+            return findInlineLambdaInDefaultExpression(wrapper.defaultExpression());
+        }
+        return null;
+    }
+
+    private DataWeaveParser.InlineLambdaContext findInlineLambdaInDefaultExpression(
+            DataWeaveParser.DefaultExpressionContext defExpr) {
+        assert defExpr != null;
+        if (!defExpr.logicalOrExpression().isEmpty()) {
+            return findInlineLambdaInLogicalOrExpression(defExpr.logicalOrExpression(0));
+        }
+        return null;
+    }
+
+    private DataWeaveParser.InlineLambdaContext findInlineLambdaInLogicalOrExpression(
+            DataWeaveParser.LogicalOrExpressionContext logOrExpr) {
+        assert logOrExpr != null;
+        if (!logOrExpr.logicalAndExpression().isEmpty()) {
+            return findInlineLambdaInLogicalAndExpression(logOrExpr.logicalAndExpression(0));
+        }
+        return null;
+    }
+
+    private DataWeaveParser.InlineLambdaContext findInlineLambdaInLogicalAndExpression(
+            DataWeaveParser.LogicalAndExpressionContext logAndExpr) {
+        assert logAndExpr != null;
+        if (!logAndExpr.equalityExpression().isEmpty()) {
+            return findInlineLambdaInEqualityExpression(logAndExpr.equalityExpression(0));
+        }
+        return null;
+    }
+
+    private DataWeaveParser.InlineLambdaContext findInlineLambdaInEqualityExpression(
+            DataWeaveParser.EqualityExpressionContext eqExpr) {
+        assert eqExpr != null;
+        if (!eqExpr.relationalExpression().isEmpty()) {
+            return findInlineLambdaInRelationalExpression(eqExpr.relationalExpression(0));
+        }
+        return null;
+    }
+
+    private DataWeaveParser.InlineLambdaContext findInlineLambdaInRelationalExpression(
+            DataWeaveParser.RelationalExpressionContext relExpr) {
+        assert relExpr != null;
+        if (relExpr instanceof DataWeaveParser.RelationalComparisonContext cmp) {
+            if (!cmp.additiveExpression().isEmpty()) {
+                return findInlineLambdaInAdditiveExpression(cmp.additiveExpression(0));
+            }
+        }
+        return null;
+    }
+
+    private DataWeaveParser.InlineLambdaContext findInlineLambdaInAdditiveExpression(
+            DataWeaveParser.AdditiveExpressionContext addExpr) {
+        assert addExpr != null;
+        if (!addExpr.multiplicativeExpression().isEmpty()) {
+            return findInlineLambdaInMultiplicativeExpression(addExpr.multiplicativeExpression(0));
+        }
+        return null;
+    }
+
+    private DataWeaveParser.InlineLambdaContext findInlineLambdaInMultiplicativeExpression(
+            DataWeaveParser.MultiplicativeExpressionContext mulExpr) {
+        assert mulExpr != null;
+        if (!mulExpr.typeCoercionExpression().isEmpty()) {
+            return findInlineLambdaInTypeCoercionExpression(mulExpr.typeCoercionExpression(0));
+        }
+        return null;
+    }
+
+    private DataWeaveParser.InlineLambdaContext findInlineLambdaInTypeCoercionExpression(
+            DataWeaveParser.TypeCoercionExpressionContext typeExpr) {
+        assert typeExpr != null;
+        if (typeExpr.unaryExpression() != null) {
+            return findInlineLambdaInUnaryExpression(typeExpr.unaryExpression());
+        }
+        return null;
+    }
+
+    private DataWeaveParser.InlineLambdaContext findInlineLambdaInUnaryExpression(
+            DataWeaveParser.UnaryExpressionContext unaryExpr) {
+        assert unaryExpr != null;
+        if (unaryExpr instanceof DataWeaveParser.PrimaryExpressionWrapperContext wrapper) {
+            return findInlineLambdaInPrimaryExpression(wrapper.primaryExpression());
+        }
+        return null;
+    }
+
+    private DataWeaveParser.InlineLambdaContext findInlineLambdaInPrimaryExpression(
+            DataWeaveParser.PrimaryExpressionContext primExpr) {
+        assert primExpr != null;
+        if (primExpr instanceof DataWeaveParser.LambdaExpressionContext lambdaCtx) {
+            return lambdaCtx.inlineLambda();
+        }
+        if (primExpr instanceof DataWeaveParser.GroupedExpressionContext groupedCtx) {
+            return findInlineLambdaInExpression(groupedCtx.grouped().expression());
+        }
         return null;
     }
 

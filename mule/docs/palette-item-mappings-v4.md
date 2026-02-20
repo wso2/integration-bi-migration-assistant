@@ -3075,7 +3075,6 @@ public listener jms:Listener mq_config = new jms:Listener(
 // TODO: placeholder jms listener for mq_config
 service "mq_config" on mq_config {
     jms:MessageProducer producer0;
-
     function init() returns error? {
         jms:Connection connection0 = check new (mq_configConfig);
         jms:Session session0 = check connection0->createSession();
@@ -3163,7 +3162,6 @@ public listener jms:Listener mq_config = new jms:Listener(
 service "mq_config" on mq_config {
     jms:MessageProducer producer0;
     jms:MessageProducer producer1;
-
     function init() returns error? {
         jms:Connection connection0 = check new (mq_configConfig);
         jms:Session session0 = check connection0->createSession();
@@ -3390,7 +3388,6 @@ public listener http:Listener http\-listener\-config = new (8081);
 
 service / on http\-listener\-config {
     jms:MessageProducer producer0;
-
     function init() returns error? {
         jms:Connection connection0 = check new (mq_configConfig);
         jms:Session session0 = check connection0->createSession();
@@ -3508,7 +3505,6 @@ public listener http:Listener http_config = new (8081);
 
 service /api on http_config {
     jms:MessageProducer producer0;
-
     function init() returns error? {
         jms:Connection connection0 = check new (mq_configConfig);
         jms:Session session0 = check connection0->createSession();
