@@ -28,4 +28,4 @@ public function _dwMethod(Context ctx) returns json|error => let json payload = 
             "domain": secure_xref_orderFiltering_domianNameOrder,
             "defaultValue": false
         }
-    ]).toJsonString();
+    ]);

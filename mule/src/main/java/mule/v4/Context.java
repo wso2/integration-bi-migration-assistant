@@ -98,13 +98,6 @@ public class Context extends ContextBase {
         this(xmlFiles, yamlFiles, null, null, Collections.emptyList(), null, false, false, logger, null, null);
     }
 
-    @NotNull
-    public static Context createMockContext() {
-        Context mockContext = new Context(List.of(), List.of(), new MuleLogger(false));
-        mockContext.currentFileCtx = new FileContext(null, mockContext.projectCtx);
-        return mockContext;
-    }
-
     @Override
     public MigrationMetrics<? extends DWConstructBase> getMigrationMetrics() {
         return migrationMetrics;
@@ -230,7 +223,7 @@ public class Context extends ContextBase {
         public final BalConstructs balConstructs;
         private final Map<String, ModuleVar> configurables;
 
-        FileContext(String filePath, ProjectContext projectContext) {
+        public FileContext(String filePath, ProjectContext projectContext) {
             this.filePath = filePath;
             this.configs = new GlobalConfigs(projectContext);
             this.balConstructs = new BalConstructs(projectContext);

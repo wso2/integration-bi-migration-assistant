@@ -21,4 +21,4 @@ public function _dwMethod(Context ctx) returns json|error => {
     "timeZone": check time:civilFromString("-08:00"),
     "dateTime": check time:civilFromString("2003-10-01T23:57:59-03:00"),
     "localDateTime": check time:civilFromString("2003-10-01T23:57:59")
-}.toJsonString();
+};

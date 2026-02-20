@@ -21,4 +21,4 @@ public function _dwMethod(Context ctx) returns json|error => let json payload = 
         "value": ((secure_xref_orderFiltering_entityApiName.toString() + "|" + check vars.sourceApi.toString() + "|" + item.toString() + "|" + "" + "|").toLowerAscii()) ?: "",
         "domain": secure_xref_orderFiltering_domianNameOrder,
         "defaultValue": false
-    }).toJsonString();
+    });

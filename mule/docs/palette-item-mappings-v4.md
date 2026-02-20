@@ -4668,7 +4668,7 @@ public function transformMessage(Context ctx) returns json => {
     "b": true,
     "a": [1, 2, 3],
     "o": {"name": "Anne"}
-}.toJsonString();
+};
 
 ```
 

@@ -7,7 +7,7 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function _dwMethod(Context ctx) returns json => [1, 2, 3, 4].map(element => element + 1).toJsonString();
+public function _dwMethod(Context ctx) returns json => [1, 2, 3, 4].map(element => element + 1);
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod(ctx);

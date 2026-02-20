@@ -162,13 +162,6 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         this.dwContext.functionNames.add(methodName);
         FunctionBody functionBody;
         if (dwContext.isSingleExpression) {
-            String rawExpr = expr.expr();
-            if (dwContext.currentScriptContext.outputType.equals("json") && !rawExpr.endsWith("()")) {
-                if (rawExpr.startsWith("check")) {
-                    rawExpr = "(" + rawExpr + ")";
-                }
-                expr = exprFrom(rawExpr + ".toJsonString()");
-            }
             functionBody = new ExpressionFunctionBody(expr);
         } else {
             functionBody = new BlockFunctionBody(dwContext.currentScriptContext.getStatements());
@@ -868,6 +861,9 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 String rightArrayStatement = "var " + rightArr + " = " + rightExpr + ";";
                 dwContext.currentScriptContext.addStatement(new BallerinaStatement(rightArrayStatement));
                 dwContext.append(leftArr).append(".push(...").append(rightArr).append(")");
+                break;
+            case DWUtils.OBJECT:
+                dwContext.append("{...").append(leftExpr).append(", ...").append(rightExpr).append("}");
                 break;
             default:
                 dwContext.append(leftExpr).append(" + ").append(rightExpr);

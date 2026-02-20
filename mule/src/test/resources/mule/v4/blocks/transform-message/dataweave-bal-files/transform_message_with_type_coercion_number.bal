@@ -13,4 +13,4 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-public function _dwMethod(Context ctx) returns json|error => (check int:fromString("10")).toJsonString();
+public function _dwMethod(Context ctx) returns json|error => check int:fromString("10");

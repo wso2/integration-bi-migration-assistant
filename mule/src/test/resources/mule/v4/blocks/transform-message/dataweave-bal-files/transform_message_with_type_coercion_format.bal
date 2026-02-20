@@ -21,6 +21,12 @@ public function parseInstant(handle instant) returns handle = @java:Method {
     name: "parse"
 } external;
 
+public function _dwMethod(Context ctx) returns json => {
+    "a": intToString(1, "##,#"),
+    "b": getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd"),
+    "c": true.toString()
+};
+
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
@@ -60,12 +66,6 @@ public function intToString(int intValue, string format) returns string {
     handle stringResult = getFormattedStringFromNumber(formatObj, intValue);
     return stringResult.toString();
 }
-
-public function _dwMethod(Context ctx) returns json => {
-    "a": intToString(1, "##,#"),
-    "b": getFormattedStringFromDate(getCurrentTimeString(), "yyyy-MM-dd"),
-    "c": true.toString()
-}.toJsonString();
 
 public function newDecimalFormat(handle format) returns handle = @java:Constructor {
     'class: "java.text.DecimalFormat"

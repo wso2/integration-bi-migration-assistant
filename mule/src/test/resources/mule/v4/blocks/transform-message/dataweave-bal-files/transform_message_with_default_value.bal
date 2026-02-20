@@ -7,13 +7,13 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in {
-        "hasHomeDelivery": (check payload.hasHomeDelivery) ?: "",
-        "isCompleted": (check payload.isCompleted) ?: ""
-    }.toJsonString();
-
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
+
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in {
+        "hasHomeDelivery": (check payload.hasHomeDelivery) ?: "",
+        "isCompleted": (check payload.isCompleted) ?: ""
+    };

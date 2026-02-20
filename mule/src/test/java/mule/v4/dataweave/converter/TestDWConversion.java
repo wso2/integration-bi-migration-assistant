@@ -18,6 +18,7 @@
 package mule.v4.dataweave.converter;
 
 import common.BallerinaModel;
+import mule.TestUtils;
 import mule.v4.Context;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -31,7 +32,7 @@ public class TestDWConversion {
 
     @Test
     public void testDWConversion() {
-        Context ctx = Context.createMockContext();;
+        Context ctx = TestUtils.createMockContext();;
         DWContext dWCtx = new DWContext(ctx, new ArrayList<>());
         String script = """
                 %dw 2.0
