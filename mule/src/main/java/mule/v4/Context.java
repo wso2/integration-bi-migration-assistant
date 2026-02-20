@@ -22,7 +22,6 @@ import mule.MuleMigrator.MuleVersion;
 import mule.common.ContextBase;
 import mule.common.DWConstructBase;
 import mule.common.MigrationMetrics;
-import mule.common.MuleLogger;
 import mule.common.MuleXMLNavigator;
 import mule.common.MultiRootContext;
 import mule.v4.dataweave.converter.DWConstruct;

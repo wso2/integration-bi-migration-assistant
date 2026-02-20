@@ -44,7 +44,6 @@ import static common.BallerinaModel.FunctionBody;
 import static common.BallerinaModel.Import;
 import static common.BallerinaModel.Parameter;
 import static common.BallerinaModel.Statement;
-import static common.ConversionUtils.exprFrom;
 import static common.ConversionUtils.typeFrom;
 import static mule.v4.Constants.ATTRIBUTES_FIELD_ACCESS;
 import static mule.v4.Constants.BAL_HANDLE_TYPE;
