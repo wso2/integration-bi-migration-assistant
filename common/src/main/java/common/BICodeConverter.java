@@ -143,10 +143,14 @@ public final class BICodeConverter {
                 .filter(func -> !(func.body() instanceof BallerinaModel.ExpressionFunctionBody))
                 .toList();
 
-        Stream<BallerinaModel.TextDocument> regularStream = regularFunctions.isEmpty() ? Stream.empty() :
-                Stream.of(new BallerinaModel.TextDocument("functions.bal",
-                        List.of(), List.of(), List.of(), List.of(), List.of(), regularFunctions,
-                        List.of(), intrinsics, List.of()));
+        Stream<BallerinaModel.TextDocument> regularStream = regularFunctions.isEmpty() ?
+                (intrinsics.isEmpty() ? Stream.empty()
+                        : Stream.of(new BallerinaModel.TextDocument("functions.bal",
+                        List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                        List.of(), intrinsics, List.of())))
+                : Stream.of(new BallerinaModel.TextDocument("functions.bal",
+                List.of(), List.of(), List.of(), List.of(), List.of(), regularFunctions,
+                List.of(), intrinsics, List.of()));
 
         Stream<BallerinaModel.TextDocument> expressionStream = exprBodiedFunctions.isEmpty() ? Stream.empty() :
                 Stream.of(new BallerinaModel.TextDocument("data_mappings.bal",

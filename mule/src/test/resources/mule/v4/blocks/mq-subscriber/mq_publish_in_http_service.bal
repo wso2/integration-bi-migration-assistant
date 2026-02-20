@@ -19,6 +19,7 @@ public listener http:Listener http_config = new (8081);
 
 service /api on http_config {
     jms:MessageProducer producer0;
+
     function init() returns error? {
         jms:Connection connection0 = check new (mq_configConfig);
         jms:Session session0 = check connection0->createSession();

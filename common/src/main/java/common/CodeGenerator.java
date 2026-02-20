@@ -169,7 +169,8 @@ public class CodeGenerator {
             FunctionDefinitionNode functionDefinitionNode;
             switch (f.body()) {
                 case BallerinaModel.BlockFunctionBody blockFuncBody ->
-                        functionDefinitionNode = generateBallerinaRegularFunction(blockFuncBody, f, funcParamString);
+                        functionDefinitionNode = generateBallerinaRegularFunction(blockFuncBody, f, funcParamString,
+                                false);
                 case BallerinaModel.ExpressionFunctionBody exprBody ->
                         functionDefinitionNode = generateBallerinaExpressionFunction(exprBody, f, funcParamString);
                 case BallerinaModel.ExternFunctionBody externalBody ->
@@ -209,7 +210,8 @@ public class CodeGenerator {
         FunctionDefinitionNode functionDefinitionNode;
         switch (function.body()) {
             case BallerinaModel.BlockFunctionBody blockFuncBody ->
-                    functionDefinitionNode = generateBallerinaRegularFunction(blockFuncBody, function, funcParamString);
+                    functionDefinitionNode = generateBallerinaRegularFunction(blockFuncBody, function,
+                            funcParamString, true);
             case BallerinaModel.ExpressionFunctionBody exprBody ->
                     functionDefinitionNode = generateBallerinaExpressionFunction(exprBody, function, funcParamString);
             case BallerinaModel.ExternFunctionBody externalBody ->
@@ -223,12 +225,15 @@ public class CodeGenerator {
 
     private FunctionDefinitionNode generateBallerinaRegularFunction(BallerinaModel.BlockFunctionBody body,
                                                                     Function function,
-                                                                    String funcParamString) {
-        FunctionDefinitionNode fd;
-        fd = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
-                String.format("%sfunction %s(%s) %s {}", getVisibilityQualifier(
-                                function.visibilityQualifier()), function.functionName(), funcParamString,
-                        getReturnTypeDescriptor(function.returnType())));
+                                                                    String funcParamString,
+                                                                    boolean isObjectMember) {
+        String functionDef = String.format("%sfunction %s(%s) %s {}",
+                getVisibilityQualifier(function.visibilityQualifier()),
+                function.functionName(), funcParamString,
+                getReturnTypeDescriptor(function.returnType()));
+        FunctionDefinitionNode fd = isObjectMember
+                ? (FunctionDefinitionNode) NodeParser.parseObjectMember(functionDef)
+                : (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(functionDef);
         FunctionBodyBlockNode funcBodyBlock = constructFunctionBodyBlock(body.statements());
         return fd.modify().withFunctionBody(funcBodyBlock).apply();
     }

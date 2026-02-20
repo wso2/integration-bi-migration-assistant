@@ -8,7 +8,7 @@ public type Context record {|
 |};
 
 configurable string secure_xref_orderFiltering_entityApiName = ?;
-configurable string secure_xref_orderFiltering_domianNameOrder = ?;
+configurable string secure_xref_orderFiltering_domainNameOrder = ?;
 
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod(ctx);
@@ -19,13 +19,13 @@ public function sampleFlow(Context ctx) {
 public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType(), json[] array = check (check payload.ChangeLog.ModTypes.Order).cloneWithType() in (array.map(item => {
         "entity": secure_xref_orderFiltering_entityApiName,
         "value": ((secure_xref_orderFiltering_entityApiName.toString() + "|" + check vars.sourceApi.toString() + "|" + item.toString() + "|" + "" + "|").toLowerAscii()) ?: "",
-        "domain": secure_xref_orderFiltering_domianNameOrder,
+        "domain": secure_xref_orderFiltering_domainNameOrder,
         "defaultValue": false
     })) ?: ([
         {
             "entity": secure_xref_orderFiltering_entityApiName,
             "value": "",
-            "domain": secure_xref_orderFiltering_domianNameOrder,
+            "domain": secure_xref_orderFiltering_domainNameOrder,
             "defaultValue": false
         }
     ]);

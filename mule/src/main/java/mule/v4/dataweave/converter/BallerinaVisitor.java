@@ -252,8 +252,9 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     }
 
     private boolean isBasicType(String currentType) {
-        return currentType == null || currentType.equals(DWUtils.STRING) || currentType.equals(DWUtils.NUMBER) ||
-                currentType.equals(DWUtils.BOOLEAN) || currentType.equals(DWUtils.PAYLOAD);
+        return currentType.equals(DWUtils.UNKNOWN) || currentType.equals(DWUtils.STRING) ||
+                currentType.equals(DWUtils.NUMBER) || currentType.equals(DWUtils.BOOLEAN) ||
+                currentType.equals(DWUtils.PAYLOAD);
     }
 
     @Override
@@ -558,9 +559,6 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             dwContext.currentScriptContext.varTypes.put(DWUtils.ELEMENT_ARG, "var");
             dwContext.currentScriptContext.varNames.put(DWUtils.DW_INDEX_IDENTIFIER, varName);
             if (sourceExpr.equals(DWUtils.DW_PAYLOAD_IDENTIFIER)) {
-                dwContext.currentScriptContext.letVariables.add(
-                        new DWContext.LetVariableDeclaration("payload", sourceExpr)
-                );
                 dwContext.append(sourceExpr);
             } else {
                 if (DWUtils.isArrayLiteral(sourceExpr)) {

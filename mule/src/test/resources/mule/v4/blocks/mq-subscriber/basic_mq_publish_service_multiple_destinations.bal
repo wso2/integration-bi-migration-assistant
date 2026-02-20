@@ -26,6 +26,7 @@ public listener jms:Listener mq_config = new jms:Listener(
 service "mq_config" on mq_config {
     jms:MessageProducer producer0;
     jms:MessageProducer producer1;
+
     function init() returns error? {
         jms:Connection connection0 = check new (mq_configConfig);
         jms:Session session0 = check connection0->createSession();

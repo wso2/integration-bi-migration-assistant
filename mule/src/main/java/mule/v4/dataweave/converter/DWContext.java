@@ -147,10 +147,6 @@ public class DWContext {
             statements.add(statement);
         }
 
-        public void addStatement(int index, BallerinaModel.Statement statement) {
-            statements.add(index, statement);
-        }
-
         public List<BallerinaModel.Statement> getStatements() {
             return statements;
         }

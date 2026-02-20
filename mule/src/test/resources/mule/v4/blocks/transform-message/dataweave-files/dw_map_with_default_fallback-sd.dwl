@@ -10,14 +10,14 @@ output application/json
     ++ "|" ++ ""
     ++ "|"
   ) default "",
-  domain: Mule::p('secure::xref.orderFiltering.domianNameOrder'),
+  domain: Mule::p('secure::xref.orderFiltering.domainNameOrder'),
   defaultValue: false
 })
 default [
   {
     entity: Mule::p('secure::xref.orderFiltering.entityApiName'),
     value: "",
-    domain: Mule::p('secure::xref.orderFiltering.domianNameOrder'),
+    domain: Mule::p('secure::xref.orderFiltering.domainNameOrder'),
     defaultValue: false
   }
 ]
