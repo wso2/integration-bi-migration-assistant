@@ -51,7 +51,8 @@ public class DWReader {
         }
     }
 
-    private static ParseTree readDWScriptFromFileInner(String filePath, DWContext context) throws IOException {
+    private static ParseTree readDWScriptFromFileInner(String filePath, DWContext context)
+            throws IOException, DWCodeGenException {
         Path path = Paths.get(filePath);
         if (Files.exists(path) && Files.isRegularFile(path)) {
             return parseFromFile(path, context);
@@ -63,7 +64,7 @@ public class DWReader {
         throw new IOException("File not found: " + filePath);
     }
 
-    private static ParseTree parseFromFile(Path path, DWContext context) throws IOException {
+    private static ParseTree parseFromFile(Path path, DWContext context) throws IOException, DWCodeGenException {
         if (!path.toString().toLowerCase().endsWith(".dwl")) {
             throw new IOException("Invalid file type. Expected a .dwl file: " + path);
         }
@@ -72,12 +73,12 @@ public class DWReader {
     }
 
     private static ParseTree parseFromStream(InputStream inputStream, String filePath, DWContext context)
-            throws IOException {
+            throws IOException, DWCodeGenException {
         String script = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
         return parseScript(script, context);
     }
 
-    private static ParseTree parseScript(String script, DWContext context) {
+    private static ParseTree parseScript(String script, DWContext context) throws DWCodeGenException {
         DataWeaveLexer lexer = new DataWeaveLexer(CharStreams.fromString(script));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         DataWeaveParser parser = new DataWeaveParser(tokens);
@@ -92,7 +93,9 @@ public class DWReader {
         ParseTree tree = parser.script();
 
         if (errorListener.hasErrors()) {
-            context.currentScriptContext.errors.add(errorListener.getErrors());
+            String errors = errorListener.getErrors();
+            context.currentScriptContext.errors.add(errors);
+            throw new DWCodeGenException(errors);
         }
         return tree;
     }
@@ -161,11 +164,17 @@ public class DWReader {
         context.clearScript();
     }
 
-    private static String getFunctionStatement(String script, String resourcePath, DWContext context,
+    static String getFunctionStatement(String script, String resourcePath, DWContext context,
                                                Context ctx, String varName,
                                                String namePrefix) throws DWCodeGenException {
         if (script != null) {
-            ParseTree tree = parseScript(script, context);
+            ParseTree tree;
+            try {
+                tree = parseScript(script, context);
+            } catch (DWCodeGenException e) {
+                return ConversionUtils.wrapElementInTodoComment(script, "DATAWEAVE PARSING FAILED.");
+            }
+
             BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats,
                     namePrefix, ctx.projectCtx.counters.dwFunctionPrefixCounters);
             visitor.visit(tree);

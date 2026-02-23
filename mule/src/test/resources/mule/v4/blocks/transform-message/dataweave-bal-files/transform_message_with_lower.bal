@@ -13,6 +13,4 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod(Context ctx) returns json {
-    return "APPLE".toLowerAscii();
-}
+public function _dwMethod(Context ctx) returns json => "APPLE".toLowerAscii();

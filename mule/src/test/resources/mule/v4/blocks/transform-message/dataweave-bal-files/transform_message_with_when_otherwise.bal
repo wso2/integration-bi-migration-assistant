@@ -13,9 +13,9 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod(Context ctx) returns json|error {
-    json payload = check ctx.payload.ensureType(json);
+public function _dwMethod(Context ctx) returns json|error {
     json _var_0;
+    json payload = check ctx.payload.cloneWithType();
     if check payload.country == "USA" {
         _var_0 = {"currency": "USD"};
     } else {

@@ -45,7 +45,6 @@ public class MigratorUtils {
             "xmlns:dw", "<dw:transform-message"
     );
 
-
     public static String getBalProjectName(String projectNameArg, String sourceName) {
         String projectName = projectNameArg != null ? projectNameArg : sourceName;
         return ConversionUtils.escapeIdentifier(projectName);

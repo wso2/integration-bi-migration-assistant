@@ -7,13 +7,10 @@ public type Context record {|
     Vars vars = {};
 |};
 
+public function _dwMethod(Context ctx) returns json => {"concat": {...{"aa": "a"}, ...{"cc": "c"}}};
+
 public function sampleFlow(Context ctx) {
-    json _dwOutput_ = check _dwMethod(ctx);
+    json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
-}
-
-function _dwMethod(Context ctx) returns json|error {
-    var _var_0 = {"aa": "a"};
-    return {"concat": check {_var_0, "cc": "c"}.ensureType(json)};
 }

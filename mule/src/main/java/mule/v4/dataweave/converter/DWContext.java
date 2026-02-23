@@ -39,6 +39,7 @@ public class DWContext {
     public boolean referringToPayload = false;
     public boolean inDefaultAccess = false;
     public boolean inKeyAccess = false;
+    public boolean isSingleExpression = false;
 
     public DWContext(Context toolContext, List<BallerinaModel.Statement> statementList) {
         this.parentStatements = statementList;
@@ -49,27 +50,40 @@ public class DWContext {
 
     public void clearScript() {
         if (!this.currentScriptContext.errors.isEmpty() && !this.currentScriptContext.visited) {
-            this.currentScriptContext.statements.add(new BallerinaStatement(DWUtils.PARSER_ERROR_COMMENT));
+            // TODO: revisit 19/02/26
+            this.currentScriptContext.addStatement(new BallerinaStatement(DWUtils.PARSER_ERROR_COMMENT));
             for (String error : this.currentScriptContext.errors) {
-                this.currentScriptContext.statements.add(new BallerinaStatement("// " + error + "\n"));
+                this.currentScriptContext.addStatement(new BallerinaStatement("// " + error + "\n"));
             }
             this.currentScriptContext.visited = true;
         }
         this.currentScriptContext = new DWScriptContext();
     }
 
-    public void finalizeFunction() {
-        if (this.currentScriptContext.exprBuilder.isEmpty()) {
-            return;
+    public BallerinaModel.Expression.BallerinaExpression finalizeFunction() {
+        String returnExpr = this.currentScriptContext.exprBuilder.toString();
+        if (this.currentScriptContext.hasStatements()) {
+            this.currentScriptContext.addStatement(
+                    new BallerinaStatement("return " + returnExpr + ";"));
+            return new BallerinaModel.Expression.BallerinaExpression("");
         }
-        if (this.referringToPayload) {
-            this.currentScriptContext.statements.add(0,
-                    new BallerinaStatement("json %s = check ctx.%s.ensureType(json);"
-                            .formatted(DWUtils.DW_PAYLOAD_IDENTIFIER, DWUtils.DW_PAYLOAD_IDENTIFIER)));
+
+        this.isSingleExpression = true;
+        if (currentScriptContext.letVariables.isEmpty()) {
+            return new BallerinaModel.Expression.BallerinaExpression(returnExpr);
         }
-        this.currentScriptContext.statements.add(
-                new BallerinaStatement("return " + (this.currentScriptContext.exprBuilder + ";")));
-        this.currentScriptContext.exprBuilder = new StringBuilder();
+
+        StringBuilder letExpr = new StringBuilder("let ");
+        for (int i = 0; i < this.currentScriptContext.letVariables.size(); i++) {
+            if (i > 0) {
+                letExpr.append(", ");
+            }
+            LetVariableDeclaration letVar = this.currentScriptContext.letVariables.get(i);
+            String varType = letVar.hasType() ? letVar.type() : inferTypeFromExpression(letVar.expression());
+            letExpr.append(varType).append(" ").append(letVar.name()).append(" = ").append(letVar.expression());
+        }
+        letExpr.append(" in ").append(returnExpr);
+        return new BallerinaModel.Expression.BallerinaExpression(letExpr.toString());
     }
 
     public String getExpression() {
@@ -93,15 +107,13 @@ public class DWContext {
 
     public void addUnsupportedComment(String context) {
         markAsFailedDWExpr(context);
-        this.currentScriptContext.statements.add(new BallerinaStatement(
+        this.currentScriptContext.addStatement(new BallerinaStatement(
                 String.format(DWUtils.UNSUPPORTED_DW_NODE, context)));
-
-
     }
 
     public void addUnsupportedCommentWithType(String context, String type) {
         markAsFailedDWExpr(context);
-        this.currentScriptContext.statements.add(new BallerinaStatement(
+        this.currentScriptContext.addStatement(new BallerinaStatement(
                 String.format(DWUtils.UNSUPPORTED_DW_NODE_WITH_TYPE, context, type)));
     }
 
@@ -111,7 +123,7 @@ public class DWContext {
 
     public static class DWScriptContext {
         public List<BallerinaModel.Parameter> params = new ArrayList<>();
-        public List<BallerinaModel.Statement> statements = new ArrayList<>();
+        private final List<BallerinaModel.Statement> statements = new ArrayList<>();
         public Map<String, String> varTypes = new HashMap<>();
         public String outputType;
         public String dwVersion;
@@ -119,8 +131,59 @@ public class DWContext {
         public boolean containsCheck = false;
         public Map<String, String> varNames = new HashMap<>();
         public String funcName;
-        public String currentType;
+        public String currentType = DWUtils.UNKNOWN;
         public List<String> errors = new ArrayList<>();
         public boolean visited = false;
+        public List<LetVariableDeclaration> letVariables = new ArrayList<>();
+
+        public void addStatement(BallerinaModel.Statement statement) {
+            if (!letVariables.isEmpty()) {
+                for (LetVariableDeclaration letVar : letVariables) {
+                    String varDecl = getVarDeclaration(letVar);
+                    statements.add(new BallerinaStatement(varDecl));
+                }
+                letVariables.clear();
+            }
+            statements.add(statement);
+        }
+
+        public List<BallerinaModel.Statement> getStatements() {
+            return statements;
+        }
+
+        public boolean hasStatements() {
+            return !statements.isEmpty();
+        }
+    }
+
+    public record LetVariableDeclaration(String name, String expression, String type) {
+        public LetVariableDeclaration(String name, String expression) {
+            this(name, expression, null);
+        }
+
+        public LetVariableDeclaration {
+            assert name != null : "Variable name cannot be null";
+            assert expression != null : "Expression cannot be null";
+        }
+
+        public boolean hasType() {
+            return type != null && !type.isEmpty();
+        }
+    }
+
+    private static String getVarDeclaration(LetVariableDeclaration letVar) {
+        return "%s %s = %s;".formatted(
+                letVar.hasType() ? letVar.type() : inferTypeFromExpression(letVar.expression()),
+                letVar.name(),
+                letVar.expression());
+    }
+
+    private static String inferTypeFromExpression(String expr) {
+        // TODO: enhance this to infer more types if needed.
+        //  For now, we only need to handle payload references in let expressions.
+        if (expr.equals(DWUtils.DW_PAYLOAD_IDENTIFIER)) {
+            return "json";
+        }
+        return "var";
     }
 }

@@ -130,15 +130,32 @@ public final class BICodeConverter {
         Optional<BallerinaModel.Function> mainFunction = allFunctions.stream()
                 .filter(func -> "main".equals(func.functionName()))
                 .findFirst();
-        // All other functions (including helpers) go to functions.bal
-        List<BallerinaModel.Function> regularFunctions = allFunctions.stream()
+
+        // Find expression bodied functions
+        List<BallerinaModel.Function> exprBodiedFunctions = allFunctions.stream()
                 .filter(func -> !"main".equals(func.functionName()))
+                .filter(func -> func.body() instanceof BallerinaModel.ExpressionFunctionBody)
                 .toList();
 
-        Stream<BallerinaModel.TextDocument> regularStream = regularFunctions.isEmpty() ? Stream.empty() :
-                Stream.of(new BallerinaModel.TextDocument("functions.bal",
-                        List.of(), List.of(), List.of(), List.of(), List.of(), regularFunctions,
-                        List.of(), intrinsics, List.of()));
+        // Find remaining regular functions
+        List<BallerinaModel.Function> regularFunctions = allFunctions.stream()
+                .filter(func -> !"main".equals(func.functionName()))
+                .filter(func -> !(func.body() instanceof BallerinaModel.ExpressionFunctionBody))
+                .toList();
+
+        Stream<BallerinaModel.TextDocument> regularStream = regularFunctions.isEmpty() ?
+                (intrinsics.isEmpty() ? Stream.empty()
+                        : Stream.of(new BallerinaModel.TextDocument("functions.bal",
+                        List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                        List.of(), intrinsics, List.of())))
+                : Stream.of(new BallerinaModel.TextDocument("functions.bal",
+                List.of(), List.of(), List.of(), List.of(), List.of(), regularFunctions,
+                List.of(), intrinsics, List.of()));
+
+        Stream<BallerinaModel.TextDocument> expressionStream = exprBodiedFunctions.isEmpty() ? Stream.empty() :
+                Stream.of(new BallerinaModel.TextDocument("data_mappings.bal",
+                        List.of(), List.of(), List.of(), List.of(), List.of(), exprBodiedFunctions,
+                        List.of(), List.of(), List.of()));
 
         Stream<BallerinaModel.TextDocument> mainStream = mainFunction
                 .map(fn -> new BallerinaModel.TextDocument("automations.bal",
@@ -147,7 +164,7 @@ public final class BICodeConverter {
                 .map(Stream::of)
                 .orElseGet(Stream::empty);
 
-        return Stream.concat(regularStream, mainStream);
+        return Stream.concat(Stream.concat(regularStream, expressionStream), mainStream);
     }
 
     private BallerinaModel.TextDocument fixImports(BallerinaModel.TextDocument doc) {

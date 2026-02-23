@@ -7,14 +7,13 @@ public type Context record {|
     Vars vars = {};
 |};
 
+public function _dwMethod(Context ctx) returns json {
+    string:RegExp pattern = re `/(\d+)/`;
+    return {"b": pattern.replace("admin123", "ID")};
+}
+
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
-}
-
-function _dwMethod(Context ctx) returns json {
-    string:RegExp _pattern_ = re `/(\d+)/`;
-    var _var_0 = "admin123";
-    return {"b": _pattern_.replace(_var_0, "ID")};
 }

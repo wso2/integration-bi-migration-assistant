@@ -222,7 +222,7 @@ public class Context extends ContextBase {
         public final BalConstructs balConstructs;
         private final Map<String, ModuleVar> configurables;
 
-        FileContext(String filePath, ProjectContext projectContext) {
+        public FileContext(String filePath, ProjectContext projectContext) {
             this.filePath = filePath;
             this.configs = new GlobalConfigs(projectContext);
             this.balConstructs = new BalConstructs(projectContext);

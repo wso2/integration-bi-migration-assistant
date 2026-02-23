@@ -13,7 +13,4 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-function _dwMethod(Context ctx) returns json {
-    var _var_0 = [1, 2, 3, 4];
-    return _var_0.'map(element => _var_0.indexOf(element) + 1);
-}
+public function _dwMethod(Context ctx) returns json => [1, 2, 3, 4].map(element => [1, 2, 3, 4].indexOf(element) + 1);

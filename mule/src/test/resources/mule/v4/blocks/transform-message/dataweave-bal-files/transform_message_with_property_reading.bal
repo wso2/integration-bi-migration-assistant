@@ -7,13 +7,16 @@ public type Context record {|
     Vars vars = {};
 |};
 
+configurable string secure_xref_example_someApiName = ?;
+configurable string secure_xref_example_someDomainName = ?;
+
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
 
-public function _dwMethod(Context ctx) returns json {
-    var _var_0 = [1, 2, 3, 4];
-    return _var_0.filter(element => element > 2);
-}
+public function _dwMethod(Context ctx) returns json => {
+    "someKey": secure_xref_example_someApiName,
+    "anotherKey": secure_xref_example_someDomainName
+};

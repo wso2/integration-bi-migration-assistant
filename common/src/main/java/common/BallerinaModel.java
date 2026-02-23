@@ -538,6 +538,11 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             return new Function(Optional.of("public"), funcName, parameters, Optional.of(returnType),
                     new BlockFunctionBody(body));
         }
+
+        public static Function publicFunction(String funcName, List<Parameter> parameters, TypeDesc returnType,
+                                   FunctionBody body) {
+            return new Function(Optional.of("public"), funcName, parameters, Optional.of(returnType), body);
+        }
     }
 
     public record ClassDef(String className, List<TypeDesc> typeInclusions, List<ObjectField> fields,
@@ -548,6 +553,9 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
     }
 
     public record BlockFunctionBody(List<Statement> statements) implements FunctionBody {
+    }
+
+    public record ExpressionFunctionBody(Expression expression) implements FunctionBody {
     }
 
     public record ExternFunctionBody(String className, Optional<String> javaMethodName, String annotation,

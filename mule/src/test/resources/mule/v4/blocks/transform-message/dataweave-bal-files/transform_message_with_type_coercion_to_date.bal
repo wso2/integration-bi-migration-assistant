@@ -32,10 +32,6 @@ public function getDateFromFormattedString(string dateString, string format) ret
     return check time:utcFromString(toInstant(localDateTime, UTC()).toString());
 }
 
-function _dwMethod(Context ctx) returns json|error {
-    return {"a": time:utcToString([1436287232, 0]), "b": check getDateFromFormattedString("2015-10-07 16:40:32.000", "yyyy-MM-dd HH:mm:ss.SSS")};
-}
-
 public function getDateTimeFormatter(handle format) returns handle = @java:Method {
     'class: "java.time.format.DateTimeFormatter",
     name: "ofPattern",
@@ -46,3 +42,8 @@ public function toInstant(handle localDateTime, handle zoneOffset) returns handl
     'class: "java.time.LocalDateTime",
     paramTypes: ["java.time.ZoneOffset"]
 } external;
+
+public function _dwMethod(Context ctx) returns json|error => {
+    "a": time:utcToString([1436287232, 0]),
+    "b": check getDateFromFormattedString("2015-10-07 16:40:32.000", "yyyy-MM-dd HH:mm:ss.SSS")
+};

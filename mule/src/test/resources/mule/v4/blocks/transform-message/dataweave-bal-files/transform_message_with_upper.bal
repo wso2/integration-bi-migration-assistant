@@ -7,12 +7,10 @@ public type Context record {|
     Vars vars = {};
 |};
 
-function _dwMethod(Context ctx) returns json {
-    return "apple".toUpperAscii();
-}
-
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
+
+public function _dwMethod(Context ctx) returns json => "apple".toUpperAscii();

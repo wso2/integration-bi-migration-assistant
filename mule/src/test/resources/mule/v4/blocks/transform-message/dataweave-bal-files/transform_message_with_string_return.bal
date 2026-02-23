@@ -7,9 +7,7 @@ public type Context record {|
     Vars vars = {};
 |};
 
-function _dwMethod(Context ctx) returns string {
-    return "Hello World";
-}
+public function _dwMethod(Context ctx) returns string => "Hello World";
 
 public function sampleFlow(Context ctx) {
     string _dwOutput_ = _dwMethod(ctx);

@@ -69,6 +69,7 @@ public class DWUtils {
     public static final String PERIOD = "Period";
     public static final String IDENTIFIER = "identifier";
     public static final String PAYLOAD = "payload";
+    public static final String UNKNOWN = "unknown";
 
     // DataWeave Built-in functions
     public static final String DW_FUNCTION_MAP = "map";
@@ -181,4 +182,22 @@ public class DWUtils {
                 .collect(Collectors.joining(","));
     }
 
+    /**
+     * Checks if the given expression needs to be wrapped in parentheses when used as a sub-expression.
+     *
+     * @param expr The expression to check.
+     * @return whether the expression needs to be wrapped in parentheses.
+     */
+    public static boolean parenthesisNeeded(String expr) {
+        return expr.contains(" ");
+    }
+
+    /**
+     * Checks if the given expression is an array literal.
+     * @param expr The expression to check.
+     * @return whether the expression is an array literal.
+     */
+    public static boolean isArrayLiteral(String expr) {
+        return expr.trim().startsWith("[") && expr.trim().endsWith("]");
+    }
 }
