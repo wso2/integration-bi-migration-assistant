@@ -17,6 +17,7 @@
 - [Logger](palette-item-mappings-v4.md#logger)
 - [Message Enricher](palette-item-mappings-v4.md#message-enricher)
 - [Mq Subscriber](palette-item-mappings-v4.md#mq-subscriber)
+- [Munit](palette-item-mappings-v4.md#munit)
 - [Object To Json](palette-item-mappings-v4.md#object-to-json)
 - [Object To String](palette-item-mappings-v4.md#object-to-string)
 - [On Error Continue](palette-item-mappings-v4.md#on-error-continue)
@@ -3533,6 +3534,129 @@ service /api on http_config {
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
     }
+}
+
+```
+
+## Munit
+
+- ### Sample Munit Test
+
+**Input (sample_munit_test.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+      xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+        http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+
+    <munit:config name="sample-test-suite"/>
+
+    <munit:before-suite name="before-suite-setup" description="Setup before all tests">
+        <logger level="INFO" message="Setting up test suite"/>
+    </munit:before-suite>
+
+    <munit:after-suite name="after-suite-cleanup" description="Cleanup after all tests">
+        <logger level="INFO" message="Cleaning up test suite"/>
+    </munit:after-suite>
+
+    <munit:test name="test-simple-assert-equals" description="Test with simple assert equals">
+        <munit:execution>
+            <set-payload value="#[{&quot;status&quot;: &quot;OK&quot;}]"/>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-equals actual="#[payload.status]" expected="#['OK']"/>
+        </munit:validation>
+    </munit:test>
+
+    <munit:test name="test-with-mock" description="Test with mock-when">
+        <munit:behavior>
+            <munit-tools:mock-when processor="http:request" doc:name="Mock HTTP Request">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="config-ref" whereValue="HTTP_Request_Config"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload value="#[{&quot;orderId&quot;: 123}]" mediaType="application/json"/>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <flow-ref name="getOrderFlow"/>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that expression="#[payload]" is="#[MunitTools::notNullValue()]"/>
+            <munit-tools:assert-equals actual="#[payload.orderId]" expected="#[123]"/>
+        </munit:validation>
+    </munit:test>
+
+    <munit:test name="test-assert-fail" description="Test with explicit fail">
+        <munit:validation>
+            <munit-tools:fail message="This test should not pass"/>
+        </munit:validation>
+    </munit:test>
+
+</mule>
+
+
+
+```
+**Output (sample_munit_test.bal):**
+```ballerina
+import ballerina/test;
+
+@test:BeforeSuite
+function before\-suite\-setup() returns error? {
+    log:printInfo("Setting up test suite");
+}
+
+@test:AfterSuite
+function after\-suite\-cleanup() returns error? {
+    log:printInfo("Cleaning up test suite");
+}
+
+@test:Config {}
+function test\-simple\-assert\-equals() returns error? {
+    // Test: Test with simple assert equals
+    // Execution (Act)
+    // set payload
+    anydata payload0 = {"status": "OK"};
+    ctx.payload = payload0;
+    // Validation (Assert)
+    test:assertEquals(ctx.payload.status, 'OK ');
+}
+
+@test:Config {}
+function test\-with\-mock() returns error? {
+    // Test: Test with mock-when
+    // Behavior (Setup)
+    // TODO: MUNIT MOCK — MANUAL CONVERSION REQUIRED.
+    // ------------------------------------------------------------------------
+    // <munit-tools:mock-when processor="http:request" doc:name="Mock HTTP Request">
+    //     <munit-tools:with-attributes>
+    //         <munit-tools:with-attribute attributeName="config-ref" whereValue="HTTP_Request_Config"/>
+    //     </munit-tools:with-attributes>
+    //     <munit-tools:then-return>
+    //         <munit-tools:payload value='#[{"orderId": 123}]' mediaType="application/json"/>
+    //     </munit-tools:then-return>
+    // </munit-tools:mock-when>
+    // ------------------------------------------------------------------------
+    // Execution (Act)
+    // FIXME: failed to find flow getOrderFlow
+    getOrderFlow(ctx);
+    // Validation (Assert)
+    test:assertNotEquals(ctx.payload, ());
+    test:assertEquals(ctx.payload.orderId, 123);
+}
+
+@test:Config {}
+function test\-assert\-fail() returns error? {
+    // Test: Test with explicit fail
+    // Validation (Assert)
+    test:assertFail("This test should not pass");
 }
 
 ```

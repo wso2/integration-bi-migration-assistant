@@ -73,6 +73,7 @@ public class Context extends ContextBase {
     public final MigrationMetrics<DWConstruct> migrationMetrics = new MigrationMetrics<>();
     private final Map<File, ParseResult> parseResults = new HashMap<>();
     private final Map<File, FileContext> fileContexts = new HashMap<>();
+    private final Map<File, mule.v4.model.MUnitModel.TestSuite> munitParseResults = new HashMap<>();
     public String currentServiceBasePath;
     public String currentResourcePath;
     public String currentListenerPort;
@@ -93,8 +94,56 @@ public class Context extends ContextBase {
         isStandaloneBalFile = muleAppDir == null;
     }
 
+    public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
+                   List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
+                   mule.common.MuleLogger logger, mule.common.ProjectMigrationResult result,
+                   mule.common.MultiRootContext multiRootContext, List<File> munitXmlFiles) {
+        super(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName, dryRun, keepStructure,
+                logger, result, multiRootContext, munitXmlFiles);
+        isStandaloneBalFile = muleAppDir == null;
+    }
+
     public Context(List<File> xmlFiles, List<File> yamlFiles, mule.common.MuleLogger logger) {
         this(xmlFiles, yamlFiles, null, null, Collections.emptyList(), null, false, false, logger, null, null);
+    }
+
+    public void parseMUnitFiles() {
+        for (File munitFile : munitXmlFiles) {
+            currentFileCtx = this.fileContexts.computeIfAbsent(munitFile,
+                    (path) -> new FileContext(path.getPath(), projectCtx));
+            try {
+                mule.v4.model.MUnitModel.TestSuite testSuite =
+                        mule.v4.reader.MUnitConfigReader.readMUnitTestSuite(this, getXMLNavigator(),
+                                munitFile.getPath());
+                munitParseResults.put(munitFile, testSuite);
+            } catch (Exception ex) {
+                logger.logSevere("Error while parsing MUnit file %s: %s".formatted(munitFile, ex.getMessage()));
+            }
+        }
+    }
+
+    public List<BallerinaModel.TextDocument> munitCodeGen() {
+        List<BallerinaModel.TextDocument> testDocs = new ArrayList<>();
+        for (Map.Entry<File, mule.v4.model.MUnitModel.TestSuite> entry : munitParseResults.entrySet()) {
+            File munitFile = entry.getKey();
+            mule.v4.model.MUnitModel.TestSuite testSuite = entry.getValue();
+            currentFileCtx = this.fileContexts.get(munitFile);
+
+            String balFileName = munitFile.getName().replace(".xml", "");
+            balFileName = "tests/" + balFileName + ".bal";
+            try {
+                BallerinaModel.TextDocument testDoc =
+                        mule.v4.converter.MUnitConverter.convertTestSuite(this, balFileName, testSuite);
+                testDocs.add(testDoc);
+            } catch (Exception e) {
+                logger.logSevere("Error generating test code for %s: %s".formatted(munitFile, e.getMessage()));
+            }
+        }
+        return testDocs;
+    }
+
+    public boolean hasMUnitFiles() {
+        return !munitXmlFiles.isEmpty();
     }
 
     @Override

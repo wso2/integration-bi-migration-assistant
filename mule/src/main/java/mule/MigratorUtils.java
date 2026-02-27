@@ -64,6 +64,7 @@ public class MigratorUtils {
     public static void writeFile(MuleLogger logger, Path targetDir, String fileName, String content) {
         Path filePath = targetDir.resolve(fileName);
         try {
+            Files.createDirectories(filePath.getParent());
             Files.writeString(filePath, content, StandardCharsets.UTF_8);
             logger.logInfo("Wrote file: " + filePath);
         } catch (IOException e) {
