@@ -100,4 +100,22 @@ public class MuleXMLNavigator {
             return nextSibling != null ? (Element) nextSibling : null;
         }
     }
+
+    /**
+     * A {@link MuleXMLNavigator} that does not record XML tags into migration metrics.
+     * Use this when parsing files whose elements should be excluded from coverage calculation
+     * (e.g. MUnit test files).
+     */
+    public static class MetricsExcludingMuleXMLNavigator extends MuleXMLNavigator {
+
+        public MetricsExcludingMuleXMLNavigator(MigrationMetrics<? extends DWConstructBase> migrationMetrics,
+                                                Function<String, Boolean> isCompatibleFunction) {
+            super(migrationMetrics, isCompatibleFunction);
+        }
+
+        @Override
+        protected void updateXMLTagCountMaps(String tagName) {
+            // intentionally excluded from coverage metrics
+        }
+    }
 }

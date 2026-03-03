@@ -113,7 +113,7 @@ public class Context extends ContextBase {
                     (path) -> new FileContext(path.getPath(), projectCtx));
             try {
                 mule.v4.model.MUnitModel.TestSuite testSuite =
-                        mule.v4.reader.MUnitConfigReader.readMUnitTestSuite(this, getXMLNavigator(),
+                        mule.v4.reader.MUnitConfigReader.readMUnitTestSuite(this, getMUnitXMLNavigator(),
                                 munitFile.getPath());
                 munitParseResults.put(munitFile, testSuite);
             } catch (Exception ex) {
@@ -216,6 +216,11 @@ public class Context extends ContextBase {
     @Override
     protected MuleXMLNavigator getXMLNavigator() {
         return new MuleXMLNavigator(this.migrationMetrics, mule.v4.model.MuleXMLTag::isCompatible);
+    }
+
+    private MuleXMLNavigator getMUnitXMLNavigator() {
+        return new MuleXMLNavigator.MetricsExcludingMuleXMLNavigator(
+                this.migrationMetrics, mule.v4.model.MuleXMLTag::isCompatible);
     }
 
     @Override

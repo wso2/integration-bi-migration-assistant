@@ -143,6 +143,11 @@ public class Context extends ContextBase {
         return new MuleXMLNavigator(this.migrationMetrics, mule.v3.model.MuleXMLTag::isCompatible);
     }
 
+    private MuleXMLNavigator getMUnitXMLNavigator() {
+        return new MuleXMLNavigator.MetricsExcludingMuleXMLNavigator(
+                this.migrationMetrics, mule.v3.model.MuleXMLTag::isCompatible);
+    }
+
     public boolean hasMUnitFiles() {
         return !munitXmlFiles.isEmpty();
     }
@@ -153,7 +158,7 @@ public class Context extends ContextBase {
                     (path) -> new FileContext(path.getPath(), projectCtx));
             try {
                 MUnitModel.TestSuite testSuite =
-                        mule.v3.reader.MUnitConfigReader.readMUnitTestSuite(this, getXMLNavigator(),
+                        mule.v3.reader.MUnitConfigReader.readMUnitTestSuite(this, getMUnitXMLNavigator(),
                                 munitFile.getPath());
                 munitParseResults.put(munitFile, testSuite);
             } catch (Exception ex) {
