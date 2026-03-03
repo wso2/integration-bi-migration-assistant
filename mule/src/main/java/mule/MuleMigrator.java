@@ -543,7 +543,7 @@ public class MuleMigrator {
                                           List<File> munitXmlFiles) {
         if (muleVersion == MuleVersion.MULE_V3) {
             return new mule.v3.Context(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName,
-                    dryRun, keepStructure, logger, result, multiRootContext);
+                    dryRun, keepStructure, logger, result, multiRootContext, munitXmlFiles);
         } else if (muleVersion == MuleVersion.MULE_V4) {
             return new mule.v4.Context(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName,
                     dryRun, keepStructure, logger, result, multiRootContext, munitXmlFiles);

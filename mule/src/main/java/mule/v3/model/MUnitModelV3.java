@@ -17,13 +17,11 @@
  */
 package mule.v3.model;
 
-import mule.v4.model.MUnitModel;
-
-public record MUnitMuleProcessorRef(mule.v3.model.MuleModel.MuleRecord muleRecord)
-        implements MUnitModel.MUnitRecord {
-
-    @Override
-    public MUnitModel.Kind kind() {
-        return MUnitModel.Kind.MULE_PROCESSOR_REF;
+public class MUnitModelV3 extends mule.common.MUnitModel {
+    public record MuleProcessorRef(Kind kind, MuleModel.MuleRecord muleRecord) implements MUnitRecord {
+        public MuleProcessorRef(MuleModel.MuleRecord muleRecord) {
+            this(Kind.MULE_PROCESSOR_REF, muleRecord);
+        }
     }
 }
+

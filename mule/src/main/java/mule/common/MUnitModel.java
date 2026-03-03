@@ -15,12 +15,12 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package mule.v4.model;
+package mule.common;
 
 import java.util.List;
 import java.util.Optional;
 
-public record MUnitModel() {
+public class MUnitModel {
 
     public record TestSuite(String name,
                             List<MUnitTest> tests,
@@ -122,12 +122,6 @@ public record MUnitModel() {
         }
     }
 
-    public record MuleProcessorRef(Kind kind, MuleModel.MuleRecord muleRecord) implements MUnitRecord {
-        public MuleProcessorRef(MuleModel.MuleRecord muleRecord) {
-            this(Kind.MULE_PROCESSOR_REF, muleRecord);
-        }
-    }
-
     public record UnsupportedMUnitBlock(Kind kind, String xmlBlock) implements MUnitRecord {
         public UnsupportedMUnitBlock(String xmlBlock) {
             this(Kind.UNSUPPORTED_MUNIT_BLOCK, xmlBlock);
@@ -146,4 +140,3 @@ public record MUnitModel() {
         UNSUPPORTED_MUNIT_BLOCK
     }
 }
-

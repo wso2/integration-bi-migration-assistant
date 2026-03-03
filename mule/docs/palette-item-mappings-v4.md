@@ -3626,7 +3626,7 @@ function test\-simple\-assert\-equals() returns error? {
     anydata payload0 = {"status": "OK"};
     ctx.payload = payload0;
     // Validation (Assert)
-    test:assertEquals(ctx.payload.status, 'OK ');
+    test:assertEquals(ctx.payload.status, "OK");
 }
 
 @test:Config {}

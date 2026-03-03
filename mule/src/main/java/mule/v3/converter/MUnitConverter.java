@@ -20,23 +20,23 @@ package mule.v3.converter;
 import common.BallerinaModel.Import;
 import common.BallerinaModel.Statement;
 import common.BallerinaModel.TextDocument;
+import mule.common.MUnitModel.AssertEquals;
+import mule.common.MUnitModel.AssertNotNull;
+import mule.common.MUnitModel.AssertThat;
+import mule.common.MUnitModel.Fail;
+import mule.common.MUnitModel.LifecycleBlock;
+import mule.common.MUnitModel.MUnitRecord;
+import mule.common.MUnitModel.MUnitTest;
+import mule.common.MUnitModel.MockWhen;
+import mule.common.MUnitModel.SetEvent;
+import mule.common.MUnitModel.SetEventVariable;
+import mule.common.MUnitModel.TestSuite;
+import mule.common.MUnitModel.UnsupportedMUnitBlock;
+import mule.common.MUnitModel.VerifyCall;
 import mule.v3.Constants;
 import mule.v3.Context;
 import mule.v3.ConversionUtils;
-import mule.v3.model.MUnitMuleProcessorRef;
-import mule.v4.model.MUnitModel.AssertEquals;
-import mule.v4.model.MUnitModel.AssertNotNull;
-import mule.v4.model.MUnitModel.AssertThat;
-import mule.v4.model.MUnitModel.Fail;
-import mule.v4.model.MUnitModel.LifecycleBlock;
-import mule.v4.model.MUnitModel.MUnitRecord;
-import mule.v4.model.MUnitModel.MUnitTest;
-import mule.v4.model.MUnitModel.MockWhen;
-import mule.v4.model.MUnitModel.SetEvent;
-import mule.v4.model.MUnitModel.SetEventVariable;
-import mule.v4.model.MUnitModel.TestSuite;
-import mule.v4.model.MUnitModel.UnsupportedMUnitBlock;
-import mule.v4.model.MUnitModel.VerifyCall;
+import mule.v3.model.MUnitModelV3.MuleProcessorRef;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -160,7 +160,7 @@ public class MUnitConverter {
             case Fail fail -> wrapAsBodyLines(convertFail(fail));
             case SetEvent setEvent -> wrapAsBodyLines(convertSetEvent(ctx, setEvent));
             case VerifyCall verifyCall -> wrapAsBodyLines(convertVerifyCall(verifyCall));
-            case MUnitMuleProcessorRef processorRef -> wrapAsBodyLines(convertMuleProcessor(ctx, processorRef));
+            case MuleProcessorRef processorRef -> wrapAsBodyLines(convertMuleProcessor(ctx, processorRef));
             case UnsupportedMUnitBlock unsupported -> wrapAsBodyLines(convertUnsupportedMUnitBlock(unsupported));
             default -> List.of("    // TODO: unsupported MUnit element: " + record.kind());
         };
@@ -193,7 +193,7 @@ public class MUnitConverter {
         }
 
         mockWhen.thenReturn()
-                .flatMap(mule.v4.model.MUnitModel.MockReturn::payload)
+                .flatMap(mule.common.MUnitModel.MockReturn::payload)
                 .ifPresent(payload -> {
                     xmlReconstructed.append("    <munit:when>\n");
                     xmlReconstructed.append("        <munit:with-payload payload='%s'".formatted(payload.value()));
@@ -242,8 +242,17 @@ public class MUnitConverter {
     }
 
     private static List<Statement> convertFail(Fail fail) {
-        String message = fail.message().map(m -> "\"" + m + "\"").orElse("\"Test explicitly failed\"");
+        String message = fail.message().map(m -> "\"" + escapeBalString(m) + "\"")
+                .orElse("\"Test explicitly failed\"");
         return List.of(stmtFrom("test:assertFail(%s);".formatted(message)));
+    }
+
+    private static String escapeBalString(String s) {
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 
     private static List<Statement> convertSetEvent(Context ctx, SetEvent setEvent) {
@@ -274,7 +283,7 @@ public class MUnitConverter {
         return List.of(stmtFrom(wrapInTodoComment(xmlReconstructed.toString(), TODO_VERIFY_DESC)));
     }
 
-    private static List<Statement> convertMuleProcessor(Context ctx, MUnitMuleProcessorRef processorRef) {
+    private static List<Statement> convertMuleProcessor(Context ctx, MuleProcessorRef processorRef) {
         return MuleConfigConverter.convertTopLevelMuleBlocks(ctx, List.of(processorRef.muleRecord()));
     }
 
@@ -290,7 +299,7 @@ public class MUnitConverter {
             String inner = muleExpr.substring(2, muleExpr.length() - 1).trim();
             return convertInnerMELExpression(ctx, inner);
         }
-        return "\"" + muleExpr + "\"";
+        return "\"" + escapeBalString(muleExpr) + "\"";
     }
 
     private static String convertInnerMELExpression(Context ctx, String inner) {
@@ -311,7 +320,7 @@ public class MUnitConverter {
             return Constants.INBOUND_PROPERTIES_FIELD_ACCESS + "." + propPath;
         }
         if (inner.startsWith("'")) {
-            return inner;
+            return "\"" + inner.substring(1, inner.length() - 1) + "\"";
         }
         if (isLiteralValue(inner.trim())) {
             return inner.trim();

@@ -25,9 +25,9 @@ import mule.common.MigrationMetrics;
 import mule.common.MuleXMLNavigator;
 import mule.common.MultiRootContext;
 import mule.v3.dataweave.converter.DWConstruct;
+import mule.v3.model.MUnitModelV3;
 import mule.v3.model.MuleModel;
 import mule.v3.model.ParseResult;
-import mule.v4.model.MUnitModel;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -49,9 +49,9 @@ import static common.BallerinaModel.Import;
 import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
 import static mule.v3.MuleToBalConverter.generateTextDocument;
+import static mule.v3.model.MuleModel.DbGenericConfig;
 import static mule.v3.model.MuleModel.DbMSQLConfig;
 import static mule.v3.model.MuleModel.DbOracleConfig;
-import static mule.v3.model.MuleModel.DbGenericConfig;
 import static mule.v3.model.MuleModel.DbTemplateQuery;
 import static mule.v3.model.MuleModel.HTTPListenerConfig;
 import static mule.v3.model.MuleModel.HTTPRequestConfig;
@@ -69,7 +69,7 @@ public class Context extends ContextBase {
     public final MigrationMetrics<DWConstruct> migrationMetrics = new MigrationMetrics<>();
     private final Map<File, ParseResult> parseResults = new HashMap<>();
     private final Map<File, FileContext> fileContexts = new HashMap<>();
-    private final Map<File, MUnitModel.TestSuite> munitParseResults = new HashMap<>();
+    private final Map<File, MUnitModelV3.TestSuite> munitParseResults = new HashMap<>();
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                    List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
@@ -157,7 +157,7 @@ public class Context extends ContextBase {
             currentFileCtx = this.fileContexts.computeIfAbsent(munitFile,
                     (path) -> new FileContext(path.getPath(), projectCtx));
             try {
-                MUnitModel.TestSuite testSuite =
+                MUnitModelV3.TestSuite testSuite =
                         mule.v3.reader.MUnitConfigReader.readMUnitTestSuite(this, getMUnitXMLNavigator(),
                                 munitFile.getPath());
                 munitParseResults.put(munitFile, testSuite);
@@ -169,9 +169,9 @@ public class Context extends ContextBase {
 
     public List<BallerinaModel.TextDocument> munitCodeGen() {
         List<BallerinaModel.TextDocument> testDocs = new ArrayList<>();
-        for (Map.Entry<File, MUnitModel.TestSuite> entry : munitParseResults.entrySet()) {
+        for (Map.Entry<File, MUnitModelV3.TestSuite> entry : munitParseResults.entrySet()) {
             File munitFile = entry.getKey();
-            MUnitModel.TestSuite testSuite = entry.getValue();
+            MUnitModelV3.TestSuite testSuite = entry.getValue();
             currentFileCtx = this.fileContexts.get(munitFile);
 
             String balFileName = "tests/" + munitFile.getName().replace(".xml", "") + ".bal";

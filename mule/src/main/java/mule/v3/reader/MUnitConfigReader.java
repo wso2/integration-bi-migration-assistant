@@ -17,27 +17,27 @@
  */
 package mule.v3.reader;
 
+import mule.common.MUnitModel.AssertEquals;
+import mule.common.MUnitModel.AssertNotNull;
+import mule.common.MUnitModel.AssertThat;
+import mule.common.MUnitModel.Fail;
+import mule.common.MUnitModel.LifecycleBlock;
+import mule.common.MUnitModel.MUnitRecord;
+import mule.common.MUnitModel.MUnitTest;
+import mule.common.MUnitModel.MockAttribute;
+import mule.common.MUnitModel.MockPayload;
+import mule.common.MUnitModel.MockReturn;
+import mule.common.MUnitModel.MockWhen;
+import mule.common.MUnitModel.SetEvent;
+import mule.common.MUnitModel.TestSuite;
+import mule.common.MUnitModel.UnsupportedMUnitBlock;
+import mule.common.MUnitModel.VerifyCall;
 import mule.common.MuleXMLNavigator;
 import mule.common.MuleXMLNavigator.MuleElement;
 import mule.v3.Context;
 import mule.v3.ConversionUtils;
-import mule.v3.model.MUnitMuleProcessorRef;
+import mule.v3.model.MUnitModelV3.MuleProcessorRef;
 import mule.v3.model.MUnitXMLTag;
-import mule.v4.model.MUnitModel.AssertEquals;
-import mule.v4.model.MUnitModel.AssertNotNull;
-import mule.v4.model.MUnitModel.AssertThat;
-import mule.v4.model.MUnitModel.Fail;
-import mule.v4.model.MUnitModel.LifecycleBlock;
-import mule.v4.model.MUnitModel.MUnitRecord;
-import mule.v4.model.MUnitModel.MUnitTest;
-import mule.v4.model.MUnitModel.MockAttribute;
-import mule.v4.model.MUnitModel.MockPayload;
-import mule.v4.model.MUnitModel.MockReturn;
-import mule.v4.model.MUnitModel.MockWhen;
-import mule.v4.model.MUnitModel.SetEvent;
-import mule.v4.model.MUnitModel.TestSuite;
-import mule.v4.model.MUnitModel.UnsupportedMUnitBlock;
-import mule.v4.model.MUnitModel.VerifyCall;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -103,7 +104,15 @@ public class MUnitConfigReader {
     private static Element parseMUnitXMLFile(String uri)
             throws ParserConfigurationException, SAXException, IOException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+        factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
         factory.setNamespaceAware(true);
+        factory.setXIncludeAware(false);
+        factory.setExpandEntityReferences(false);
+        factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document document = builder.parse(uri);
         document.getDocumentElement().normalize();
@@ -180,6 +189,7 @@ public class MUnitConfigReader {
             case MUNIT_ASSERT_NOT_NULL -> readAssertNotNull(element);
             case MUNIT_ASSERT_NULL -> readAssertNull(element);
             case MUNIT_ASSERT_THAT -> readAssertThat(element);
+            case MUNIT_ASSERT_TRUE -> readAssertTrue(element);
             case MUNIT_FAIL -> readFail(element);
             case MUNIT_SET_PAYLOAD -> readSetPayload(element);
             case MUNIT_VERIFY_CALL -> readVerifyCall(element);
@@ -187,7 +197,7 @@ public class MUnitConfigReader {
                 if (MUnitXMLTag.isMUnitTag(tagName)) {
                     yield new UnsupportedMUnitBlock(ConversionUtils.elementToString(element));
                 }
-                yield new MUnitMuleProcessorRef(MuleConfigReader.readBlock(ctx, muleElement));
+                yield new MuleProcessorRef(MuleConfigReader.readBlock(ctx, muleElement));
             }
         };
     }
@@ -269,6 +279,10 @@ public class MUnitConfigReader {
 
     private static AssertThat readAssertThat(Element element) {
         return new AssertThat(element.getAttribute("expression"), element.getAttribute("is"));
+    }
+
+    private static AssertThat readAssertTrue(Element element) {
+        return new AssertThat(element.getAttribute("expression"), "true");
     }
 
     private static Fail readFail(Element element) {

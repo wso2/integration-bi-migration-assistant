@@ -73,7 +73,7 @@ public class Context extends ContextBase {
     public final MigrationMetrics<DWConstruct> migrationMetrics = new MigrationMetrics<>();
     private final Map<File, ParseResult> parseResults = new HashMap<>();
     private final Map<File, FileContext> fileContexts = new HashMap<>();
-    private final Map<File, mule.v4.model.MUnitModel.TestSuite> munitParseResults = new HashMap<>();
+    private final Map<File, mule.common.MUnitModel.TestSuite> munitParseResults = new HashMap<>();
     public String currentServiceBasePath;
     public String currentResourcePath;
     public String currentListenerPort;
@@ -112,7 +112,7 @@ public class Context extends ContextBase {
             currentFileCtx = this.fileContexts.computeIfAbsent(munitFile,
                     (path) -> new FileContext(path.getPath(), projectCtx));
             try {
-                mule.v4.model.MUnitModel.TestSuite testSuite =
+                mule.common.MUnitModel.TestSuite testSuite =
                         mule.v4.reader.MUnitConfigReader.readMUnitTestSuite(this, getMUnitXMLNavigator(),
                                 munitFile.getPath());
                 munitParseResults.put(munitFile, testSuite);
@@ -124,9 +124,9 @@ public class Context extends ContextBase {
 
     public List<BallerinaModel.TextDocument> munitCodeGen() {
         List<BallerinaModel.TextDocument> testDocs = new ArrayList<>();
-        for (Map.Entry<File, mule.v4.model.MUnitModel.TestSuite> entry : munitParseResults.entrySet()) {
+        for (Map.Entry<File, mule.common.MUnitModel.TestSuite> entry : munitParseResults.entrySet()) {
             File munitFile = entry.getKey();
-            mule.v4.model.MUnitModel.TestSuite testSuite = entry.getValue();
+            mule.common.MUnitModel.TestSuite testSuite = entry.getValue();
             currentFileCtx = this.fileContexts.get(munitFile);
 
             String balFileName = munitFile.getName().replace(".xml", "");

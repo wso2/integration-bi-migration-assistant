@@ -17,28 +17,28 @@
  */
 package mule.v4.reader;
 
+import mule.common.MUnitModel.AssertEquals;
+import mule.common.MUnitModel.AssertNotNull;
+import mule.common.MUnitModel.AssertThat;
+import mule.common.MUnitModel.Fail;
+import mule.common.MUnitModel.LifecycleBlock;
+import mule.common.MUnitModel.MUnitRecord;
+import mule.common.MUnitModel.MUnitTest;
+import mule.common.MUnitModel.MockAttribute;
+import mule.common.MUnitModel.MockPayload;
+import mule.common.MUnitModel.MockReturn;
+import mule.common.MUnitModel.MockVariable;
+import mule.common.MUnitModel.MockWhen;
+import mule.common.MUnitModel.SetEvent;
+import mule.common.MUnitModel.SetEventVariable;
+import mule.common.MUnitModel.TestSuite;
+import mule.common.MUnitModel.UnsupportedMUnitBlock;
+import mule.common.MUnitModel.VerifyCall;
 import mule.common.MuleXMLNavigator;
 import mule.common.MuleXMLNavigator.MuleElement;
 import mule.v4.Context;
 import mule.v4.ConversionUtils;
-import mule.v4.model.MUnitModel.AssertEquals;
-import mule.v4.model.MUnitModel.AssertNotNull;
-import mule.v4.model.MUnitModel.AssertThat;
-import mule.v4.model.MUnitModel.Fail;
-import mule.v4.model.MUnitModel.LifecycleBlock;
-import mule.v4.model.MUnitModel.MUnitRecord;
-import mule.v4.model.MUnitModel.MUnitTest;
-import mule.v4.model.MUnitModel.MockAttribute;
-import mule.v4.model.MUnitModel.MockPayload;
-import mule.v4.model.MUnitModel.MockReturn;
-import mule.v4.model.MUnitModel.MockVariable;
-import mule.v4.model.MUnitModel.MockWhen;
-import mule.v4.model.MUnitModel.MuleProcessorRef;
-import mule.v4.model.MUnitModel.SetEvent;
-import mule.v4.model.MUnitModel.SetEventVariable;
-import mule.v4.model.MUnitModel.TestSuite;
-import mule.v4.model.MUnitModel.UnsupportedMUnitBlock;
-import mule.v4.model.MUnitModel.VerifyCall;
+import mule.v4.model.MUnitModelV4.MuleProcessorRef;
 import mule.v4.model.MUnitXMLTag;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -49,6 +49,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -105,7 +106,15 @@ public class MUnitConfigReader {
     private static Element parseMUnitXMLFile(String uri)
             throws ParserConfigurationException, SAXException, IOException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+        factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
         factory.setNamespaceAware(true);
+        factory.setXIncludeAware(false);
+        factory.setExpandEntityReferences(false);
+        factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document document = builder.parse(uri);
         document.getDocumentElement().normalize();
@@ -132,7 +141,7 @@ public class MUnitConfigReader {
                 case MUNIT_EXECUTION -> execution.addAll(readMUnitProcessors(ctx, child));
                 case MUNIT_VALIDATION -> validation.addAll(readMUnitProcessors(ctx, child));
                 case MUNIT_ENABLE_FLOW_SOURCES -> {
-                    // Ignore enable-flow-sources for now
+                    execution.add(new UnsupportedMUnitBlock(ConversionUtils.elementToString(childElement)));
                 }
                 default -> execution.add(readMUnitProcessor(ctx, child));
             }
@@ -332,5 +341,4 @@ public class MUnitConfigReader {
                 atMost.isEmpty() ? Optional.empty() : Optional.of(atMost));
     }
 }
-
 

@@ -20,6 +20,7 @@ package mule.v3.blocks;
 import common.BallerinaModel.TextDocument;
 import common.CodeGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import mule.common.MUnitModel.TestSuite;
 import mule.common.MigrationMetrics;
 import mule.common.MuleLogger;
 import mule.common.MuleXMLNavigator;
@@ -27,7 +28,6 @@ import mule.v3.Context;
 import mule.v3.converter.MUnitConverter;
 import mule.v3.dataweave.converter.DWConstruct;
 import mule.v3.reader.MUnitConfigReader;
-import mule.v4.model.MUnitModel.TestSuite;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
