@@ -2396,6 +2396,7 @@ service / on Listener_Config {
 ```
 **Output (sample_munit_test.bal):**
 ```ballerina
+import ballerina/log;
 import ballerina/test;
 
 @test:BeforeSuite

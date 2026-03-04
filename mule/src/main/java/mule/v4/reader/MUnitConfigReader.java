@@ -116,7 +116,7 @@ public class MUnitConfigReader {
         factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
         factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
         DocumentBuilder builder = factory.newDocumentBuilder();
-        Document document = builder.parse(uri);
+        Document document = builder.parse(new java.io.File(uri));
         document.getDocumentElement().normalize();
         return document.getDocumentElement();
     }

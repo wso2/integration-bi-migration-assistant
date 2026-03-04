@@ -3606,6 +3606,7 @@ service /api on http_config {
 ```
 **Output (sample_munit_test.bal):**
 ```ballerina
+import ballerina/log;
 import ballerina/test;
 
 @test:BeforeSuite

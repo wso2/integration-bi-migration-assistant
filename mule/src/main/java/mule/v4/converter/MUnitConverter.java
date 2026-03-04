@@ -81,6 +81,8 @@ public class MUnitConverter {
             intrinsics.add(buildTestFunction(ctx, imports, test));
         }
 
+        imports.addAll(ctx.currentFileCtx.balConstructs.imports);
+
         return new TextDocument(
                 balFileName,
                 new ArrayList<>(imports),
@@ -327,7 +329,7 @@ public class MUnitConverter {
             return Constants.ATTRIBUTES_FIELD_ACCESS + inner.substring("attributes".length());
         }
         if (inner.startsWith("'")) {
-            return "\"" + inner.substring(1, inner.length() - 1) + "\"";
+            return "\"" + escapeBalString(inner.substring(1, inner.length() - 1)) + "\"";
         }
         String trimmed = inner.trim();
         if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
