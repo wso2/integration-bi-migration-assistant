@@ -327,7 +327,11 @@ public class MUnitConverter {
         if (isLiteralValue(inner.trim())) {
             return inner.trim();
         }
-        return ConversionUtils.convertMuleExprToBal(ctx, inner);
+        try {
+            return ConversionUtils.convertMuleExprToBal(ctx, inner);
+        } catch (Exception e) {
+            return "/* TODO: convert expression: " + inner + " */ ()";
+        }
     }
 
     private static boolean isLiteralValue(String expr) {

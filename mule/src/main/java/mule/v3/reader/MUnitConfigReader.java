@@ -27,6 +27,7 @@ import mule.common.MUnitModel.MUnitTest;
 import mule.common.MUnitModel.MockAttribute;
 import mule.common.MUnitModel.MockPayload;
 import mule.common.MUnitModel.MockReturn;
+import mule.common.MUnitModel.MockVariable;
 import mule.common.MUnitModel.MockWhen;
 import mule.common.MUnitModel.SetEvent;
 import mule.common.MUnitModel.TestSuite;
@@ -91,7 +92,9 @@ public class MUnitConfigReader {
                 case MUNIT_BEFORE_TEST -> beforeTest = Optional.of(readLifecycleBlock(ctx, child));
                 case MUNIT_AFTER_TEST -> afterTest = Optional.of(readLifecycleBlock(ctx, child));
                 default -> {
-                    if (!MUnitXMLTag.isMUnitTag(tagName)) {
+                    if (MUnitXMLTag.isMUnitTag(tagName)) {
+                        ctx.logger.logWarn("Unsupported MUnit element ignored: <%s>".formatted(tagName));
+                    } else {
                         MuleConfigReader.readGlobalConfigElement(ctx, child);
                     }
                 }
@@ -217,10 +220,8 @@ public class MUnitConfigReader {
 
             switch (childTag) {
                 case MUNIT_WITH_ATTRIBUTES -> withAttributes.addAll(readWithAttributes(child));
-                case MUNIT_WHEN -> thenReturn = Optional.of(readMockReturn(child));
-                default -> {
-                    // skip unknown children
-                }
+                case MUNIT_WHEN, MUNIT_RETURN -> thenReturn = Optional.of(readMockReturn(child));
+                default -> { }
             }
         }
 
@@ -245,21 +246,44 @@ public class MUnitConfigReader {
 
     private static MockReturn readMockReturn(MuleElement parentElement) {
         Optional<MockPayload> payload = Optional.empty();
+        List<MockVariable> variables = new ArrayList<>();
 
         while (parentElement.peekChild() != null) {
             MuleElement child = parentElement.consumeChild();
             Element element = child.getElement();
             MUnitXMLTag tag = MUnitXMLTag.fromTag(element.getTagName());
 
-            if (tag == MUnitXMLTag.MUNIT_WITH_PAYLOAD) {
-                String value = element.getAttribute("payload");
-                String mediaType = element.getAttribute("mimeType");
-                payload = Optional.of(new MockPayload(value,
-                        mediaType.isEmpty() ? Optional.empty() : Optional.of(mediaType)));
+            switch (tag) {
+                case MUNIT_WITH_PAYLOAD -> {
+                    String value = element.getAttribute("payload");
+                    String mediaType = element.getAttribute("mimeType");
+                    payload = Optional.of(new MockPayload(value,
+                            mediaType.isEmpty() ? Optional.empty() : Optional.of(mediaType)));
+                }
+                case MUNIT_WITH_SESSION_VARIABLES,
+                        MUNIT_WITH_INVOCATION_PROPERTIES,
+                        MUNIT_WITH_INBOUND_PROPERTIES -> variables.addAll(readMockVariables(child));
+                default -> { }
             }
         }
 
-        return new MockReturn(payload, List.of());
+        return new MockReturn(payload, variables);
+    }
+
+    private static List<MockVariable> readMockVariables(MuleElement parentElement) {
+        List<MockVariable> variables = new ArrayList<>();
+        while (parentElement.peekChild() != null) {
+            MuleElement child = parentElement.consumeChild();
+            Element element = child.getElement();
+            String key = element.getAttribute("key");
+            String value = element.getAttribute("value");
+            String mediaType = element.getAttribute("mimeType");
+            if (!key.isEmpty()) {
+                variables.add(new MockVariable(key, value,
+                        mediaType.isEmpty() ? Optional.empty() : Optional.of(mediaType)));
+            }
+        }
+        return variables;
     }
 
     private static AssertEquals readAssertEquals(Element element) {

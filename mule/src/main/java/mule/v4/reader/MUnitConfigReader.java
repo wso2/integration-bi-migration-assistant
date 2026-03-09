@@ -93,7 +93,9 @@ public class MUnitConfigReader {
                 case MUNIT_BEFORE_TEST -> beforeTest = Optional.of(readLifecycleBlock(ctx, child));
                 case MUNIT_AFTER_TEST -> afterTest = Optional.of(readLifecycleBlock(ctx, child));
                 default -> {
-                    if (!MUnitXMLTag.isMUnitTag(tagName)) {
+                    if (MUnitXMLTag.isMUnitTag(tagName)) {
+                        ctx.logger.logWarn("Unsupported MUnit element ignored: <%s>".formatted(tagName));
+                    } else {
                         MuleConfigReader.readGlobalConfigElement(ctx, child);
                     }
                 }
