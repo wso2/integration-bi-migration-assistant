@@ -28,6 +28,7 @@ import mule.common.MUnitModel.MockAttribute;
 import mule.common.MUnitModel.MockPayload;
 import mule.common.MUnitModel.MockReturn;
 import mule.common.MUnitModel.MockVariable;
+import mule.common.MUnitModel.MockVariableScope;
 import mule.common.MUnitModel.MockWhen;
 import mule.common.MUnitModel.SetEvent;
 import mule.common.MUnitModel.TestSuite;
@@ -260,9 +261,12 @@ public class MUnitConfigReader {
                     payload = Optional.of(new MockPayload(value,
                             mediaType.isEmpty() ? Optional.empty() : Optional.of(mediaType)));
                 }
-                case MUNIT_WITH_SESSION_VARIABLES,
-                        MUNIT_WITH_INVOCATION_PROPERTIES,
-                        MUNIT_WITH_INBOUND_PROPERTIES -> variables.addAll(readMockVariables(child));
+                case MUNIT_WITH_SESSION_VARIABLES ->
+                        variables.addAll(readMockVariables(child, MockVariableScope.SESSION_VARIABLE));
+                case MUNIT_WITH_INVOCATION_PROPERTIES ->
+                        variables.addAll(readMockVariables(child, MockVariableScope.INVOCATION_PROPERTY));
+                case MUNIT_WITH_INBOUND_PROPERTIES ->
+                        variables.addAll(readMockVariables(child, MockVariableScope.INBOUND_PROPERTY));
                 default -> { }
             }
         }
@@ -270,7 +274,7 @@ public class MUnitConfigReader {
         return new MockReturn(payload, variables);
     }
 
-    private static List<MockVariable> readMockVariables(MuleElement parentElement) {
+    private static List<MockVariable> readMockVariables(MuleElement parentElement, MockVariableScope scope) {
         List<MockVariable> variables = new ArrayList<>();
         while (parentElement.peekChild() != null) {
             MuleElement child = parentElement.consumeChild();
@@ -280,7 +284,7 @@ public class MUnitConfigReader {
             String mediaType = element.getAttribute("mimeType");
             if (!key.isEmpty()) {
                 variables.add(new MockVariable(key, value,
-                        mediaType.isEmpty() ? Optional.empty() : Optional.of(mediaType)));
+                        mediaType.isEmpty() ? Optional.empty() : Optional.of(mediaType), scope));
             }
         }
         return variables;

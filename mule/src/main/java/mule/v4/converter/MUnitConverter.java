@@ -237,13 +237,15 @@ public class MUnitConverter {
             String converted = convertMUnitExpression(ctx, innerValue);
             return List.of(stmtFrom("test:assertEquals(%s, %s);".formatted(expression, converted)));
         }
+        if (assertThat.is().equals("true")) {
+            return List.of(stmtFrom("test:assertTrue(%s);".formatted(expression)));
+        }
 
         List<Statement> result = new ArrayList<>();
         result.add(stmtFrom(ConversionUtils.wrapElementInTodoComment(
                 "<munit-tools:assert-that expression=\"%s\" is=\"%s\"/>"
                         .formatted(assertThat.expression(), assertThat.is()),
                 TODO_ASSERT_THAT_DESC)));
-        result.add(stmtFrom("test:assertTrue(%s != ());".formatted(expression)));
         return result;
     }
 

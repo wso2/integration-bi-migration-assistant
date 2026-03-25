@@ -68,7 +68,14 @@ public class MUnitModel {
     public record MockPayload(String value, Optional<String> mediaType) {
     }
 
-    public record MockVariable(String key, String value, Optional<String> mediaType) {
+    public record MockVariable(String key, String value, Optional<String> mediaType, MockVariableScope scope) {
+    }
+
+    public enum MockVariableScope {
+        VARIABLE,
+        SESSION_VARIABLE,
+        INVOCATION_PROPERTY,
+        INBOUND_PROPERTY
     }
 
     public record AssertThat(Kind kind,

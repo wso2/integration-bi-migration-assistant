@@ -28,6 +28,7 @@ import mule.common.MUnitModel.MockAttribute;
 import mule.common.MUnitModel.MockPayload;
 import mule.common.MUnitModel.MockReturn;
 import mule.common.MUnitModel.MockVariable;
+import mule.common.MUnitModel.MockVariableScope;
 import mule.common.MUnitModel.MockWhen;
 import mule.common.MUnitModel.SetEvent;
 import mule.common.MUnitModel.SetEventVariable;
@@ -270,7 +271,8 @@ public class MUnitConfigReader {
                 String value = element.getAttribute("value");
                 String mediaType = element.getAttribute("mediaType");
                 variables.add(new MockVariable(key, value,
-                        mediaType.isEmpty() ? Optional.empty() : Optional.of(mediaType)));
+                        mediaType.isEmpty() ? Optional.empty() : Optional.of(mediaType),
+                        MockVariableScope.VARIABLE));
             }
         }
         return variables;

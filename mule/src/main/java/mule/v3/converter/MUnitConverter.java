@@ -27,6 +27,8 @@ import mule.common.MUnitModel.Fail;
 import mule.common.MUnitModel.LifecycleBlock;
 import mule.common.MUnitModel.MUnitRecord;
 import mule.common.MUnitModel.MUnitTest;
+import mule.common.MUnitModel.MockVariable;
+import mule.common.MUnitModel.MockVariableScope;
 import mule.common.MUnitModel.MockWhen;
 import mule.common.MUnitModel.SetEvent;
 import mule.common.MUnitModel.SetEventVariable;
@@ -205,8 +207,35 @@ public class MUnitConverter {
                     xmlReconstructed.append("    </munit:when>\n");
                 });
 
+        mockWhen.thenReturn().ifPresent(thenReturn ->
+                appendScopedVariables(xmlReconstructed, thenReturn.variables()));
+
         xmlReconstructed.append("</munit:mock>");
         return List.of(stmtFrom(wrapInTodoComment(xmlReconstructed.toString(), TODO_MOCK_DESC)));
+    }
+
+    private static void appendScopedVariables(StringBuilder xml, List<MockVariable> variables) {
+        for (MockVariableScope scope : MockVariableScope.values()) {
+            List<MockVariable> scoped = variables.stream()
+                    .filter(v -> v.scope() == scope).toList();
+            if (scoped.isEmpty()) {
+                continue;
+            }
+            String containerTag = switch (scope) {
+                case SESSION_VARIABLE -> "munit:with-session-variables";
+                case INVOCATION_PROPERTY -> "munit:with-invocation-properties";
+                case INBOUND_PROPERTY -> "munit:with-inbound-properties";
+                case VARIABLE -> "munit:with-variables";
+            };
+            xml.append("    <%s>\n".formatted(containerTag));
+            for (MockVariable v : scoped) {
+                xml.append("        <munit:with-entry key=\"%s\" value='%s'"
+                        .formatted(v.key(), v.value()));
+                v.mediaType().ifPresent(mt -> xml.append(" mimeType=\"%s\"".formatted(mt)));
+                xml.append("/>\n");
+            }
+            xml.append("    </%s>\n".formatted(containerTag));
+        }
     }
 
     private static List<Statement> convertAssertEquals(Context ctx, AssertEquals assertEqual) {
@@ -229,12 +258,14 @@ public class MUnitConverter {
             String converted = convertMUnitExpression(ctx, innerValue);
             return List.of(stmtFrom("test:assertEquals(%s, %s);".formatted(expression, converted)));
         }
+        if (assertThat.is().equals("true")) {
+            return List.of(stmtFrom("test:assertTrue(%s);".formatted(expression)));
+        }
 
         List<Statement> result = new ArrayList<>();
         result.add(stmtFrom(wrapInTodoComment(
                 "<munit:assert-that expression=\"%s\" is=\"%s\"/>".formatted(assertThat.expression(), assertThat.is()),
                 TODO_ASSERT_THAT_DESC)));
-        result.add(stmtFrom("test:assertTrue(%s != ());".formatted(expression)));
         return result;
     }
 
