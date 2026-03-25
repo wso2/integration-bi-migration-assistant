@@ -24,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -44,11 +45,20 @@ public abstract class ContextBase {
     public final MuleLogger logger;
     public final ProjectMigrationResult result;
     protected final MultiRootContext multiRootContext;
+    protected final List<File> munitXmlFiles;
 
     protected ContextBase(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                          List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
                           @NotNull MuleLogger logger, ProjectMigrationResult result,
                           MultiRootContext multiRootContext) {
+        this(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName, dryRun, keepStructure,
+                logger, result, multiRootContext, Collections.emptyList());
+    }
+
+    protected ContextBase(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
+                         List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
+                          @NotNull MuleLogger logger, ProjectMigrationResult result,
+                          MultiRootContext multiRootContext, List<File> munitXmlFiles) {
         assert logger != null : "Logger must not be null";
         this.xmlFiles = xmlFiles;
         this.yamlFiles = yamlFiles;
@@ -61,6 +71,7 @@ public abstract class ContextBase {
         this.logger = logger;
         this.result = result;
         this.multiRootContext = multiRootContext;
+        this.munitXmlFiles = munitXmlFiles;
         if (multiRootContext != null) {
             multiRootContext.register(this);
         }

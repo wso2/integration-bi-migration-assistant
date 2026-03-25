@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+      xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+        http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+
+    <munit:config name="sample-test-suite"/>
+
+    <munit:before-suite name="before-suite-setup" description="Setup before all tests">
+        <logger level="INFO" message="Setting up test suite"/>
+    </munit:before-suite>
+
+    <munit:after-suite name="after-suite-cleanup" description="Cleanup after all tests">
+        <logger level="INFO" message="Cleaning up test suite"/>
+    </munit:after-suite>
+
+    <munit:test name="test-simple-assert-equals" description="Test with simple assert equals">
+        <munit:execution>
+            <set-payload value="#[{&quot;status&quot;: &quot;OK&quot;}]"/>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-equals actual="#[payload.status]" expected="#['OK']"/>
+        </munit:validation>
+    </munit:test>
+
+    <munit:test name="test-with-mock" description="Test with mock-when">
+        <munit:behavior>
+            <munit-tools:mock-when processor="http:request" doc:name="Mock HTTP Request">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="config-ref" whereValue="HTTP_Request_Config"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload value="#[{&quot;orderId&quot;: 123}]" mediaType="application/json"/>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <flow-ref name="getOrderFlow"/>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that expression="#[payload]" is="#[MunitTools::notNullValue()]"/>
+            <munit-tools:assert-equals actual="#[payload.orderId]" expected="#[123]"/>
+        </munit:validation>
+    </munit:test>
+
+    <munit:test name="test-assert-fail" description="Test with explicit fail">
+        <munit:validation>
+            <munit-tools:fail message="This test should not pass"/>
+        </munit:validation>
+    </munit:test>
+
+</mule>
+
+

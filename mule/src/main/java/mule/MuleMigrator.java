@@ -481,11 +481,20 @@ public class MuleMigrator {
         Path propFileLocation = version.equals(MuleVersion.MULE_V3) ? muleXmlConfigDir : muleResourcesDir;
         collectYamlAndPropertyFiles(propFileLocation.toFile(), yamlFiles, propertyFiles);
 
+        List<File> munitXmlFiles = new ArrayList<>();
+        Path munitDir = sourcePath.resolve("src").resolve("test").resolve("munit");
+        if (Files.isDirectory(munitDir)) {
+            collectXmlFiles(munitDir.toFile(), munitXmlFiles);
+            if (!munitXmlFiles.isEmpty()) {
+                logger.logInfo("Found " + munitXmlFiles.size() + " MUnit test XML file(s) in " + munitDir);
+            }
+        }
+
         logger.logInfo("Found " + xmlFiles.size() + " .xml files, " + yamlFiles.size() + ".yaml files, and " +
                 propertyFiles.size() + " .properties files.");
 
         ContextBase ctx = getContext(version, xmlFiles, yamlFiles, muleXmlConfigDir, propertyFiles,
-                sourceProjectName, dryRun, keepStructure, logger, result, multiRootContext);
+                sourceProjectName, dryRun, keepStructure, logger, result, multiRootContext, munitXmlFiles);
         return ctx;
     }
 
@@ -516,7 +525,8 @@ public class MuleMigrator {
 
         File xmlConfigFile = inputXmlFilePath.toFile();
         ContextBase ctx = getContext(version, Collections.singletonList(xmlConfigFile), Collections.emptyList(),
-                sourceDir, Collections.emptyList(), inputFileName, dryRun, keepStructure, logger, result, null);
+                sourceDir, Collections.emptyList(), inputFileName, dryRun, keepStructure, logger, result, null,
+                Collections.emptyList());
         try {
             parseMuleProject(ctx);
             generateCodeFromParsedProject(ctx);
@@ -529,13 +539,14 @@ public class MuleMigrator {
             Path muleAppDir, List<File> propertyFiles, String sourceName,
                                           boolean dryRun, boolean keepStructure, MuleLogger logger,
                                           ProjectMigrationResult result,
-                                          MultiRootContext multiRootContext) {
+                                          MultiRootContext multiRootContext,
+                                          List<File> munitXmlFiles) {
         if (muleVersion == MuleVersion.MULE_V3) {
             return new mule.v3.Context(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName,
-                    dryRun, keepStructure, logger, result, multiRootContext);
+                    dryRun, keepStructure, logger, result, multiRootContext, munitXmlFiles);
         } else if (muleVersion == MuleVersion.MULE_V4) {
             return new mule.v4.Context(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName,
-                    dryRun, keepStructure, logger, result, multiRootContext);
+                    dryRun, keepStructure, logger, result, multiRootContext, munitXmlFiles);
         } else {
             throw new IllegalArgumentException("Unsupported Mule version: " + muleVersion);
         }
@@ -606,6 +617,13 @@ public class MuleMigrator {
     private static void parseMuleProject(ContextBase ctx) {
         ctx.logger.logState("Converting Mule XML configs to ballerina intermediate representation...");
         ctx.parseAllFiles();
+        if (ctx instanceof mule.v4.Context v4Ctx && v4Ctx.hasMUnitFiles()) {
+            ctx.logger.logState("Parsing MUnit test XML files...");
+            v4Ctx.parseMUnitFiles();
+        } else if (ctx instanceof mule.v3.Context v3Ctx && v3Ctx.hasMUnitFiles()) {
+            ctx.logger.logState("Parsing MUnit test XML files...");
+            v3Ctx.parseMUnitFiles();
+        }
     }
 
     private static void generateCodeFromParsedProject(ContextBase ctx) {
@@ -614,6 +632,18 @@ public class MuleMigrator {
 
         TextDocument birTxtDoc = genBirForInternalTypes(ctx.logger, ctx);
         birTxtDocs.add(birTxtDoc);
+
+        // Generate MUnit test code
+        List<TextDocument> testDocs = Collections.emptyList();
+        if (ctx instanceof mule.v4.Context v4Ctx && v4Ctx.hasMUnitFiles()) {
+            ctx.logger.logState("Generating Ballerina test files from MUnit tests...");
+            testDocs = v4Ctx.munitCodeGen();
+            ctx.logger.logInfo("Generated " + testDocs.size() + " Ballerina test file(s).");
+        } else if (ctx instanceof mule.v3.Context v3Ctx && v3Ctx.hasMUnitFiles()) {
+            ctx.logger.logState("Generating Ballerina test files from MUnit tests...");
+            testDocs = v3Ctx.munitCodeGen();
+            ctx.logger.logInfo("Generated " + testDocs.size() + " Ballerina test file(s).");
+        }
 
         // 2. Generate migration report
         ProjectMigrationStats migrationStats = getProjectMigrationStats(ctx.muleVersion, ctx.getMigrationMetrics());
@@ -650,6 +680,7 @@ public class MuleMigrator {
         Map<String, String> allFiles = new HashMap<>();
         allFiles.putAll(genProjectArtifacts(ctx, ctx.logger));
         allFiles.putAll(genBalFilesFromBir(ctx.logger, birTxtDocs));
+        allFiles.putAll(genBalFilesFromBir(ctx.logger, testDocs));
         allFiles.putAll(genConfigTOMLFile(ctx.logger, ctx.yamlFiles, ctx.propertyFiles,
                 ctx.result.getConfigurableVariableNames()));
         allFiles = Collections.unmodifiableMap(allFiles);

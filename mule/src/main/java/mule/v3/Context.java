@@ -25,6 +25,7 @@ import mule.common.MigrationMetrics;
 import mule.common.MuleXMLNavigator;
 import mule.common.MultiRootContext;
 import mule.v3.dataweave.converter.DWConstruct;
+import mule.v3.model.MUnitModelV3;
 import mule.v3.model.MuleModel;
 import mule.v3.model.ParseResult;
 import org.jetbrains.annotations.NotNull;
@@ -48,9 +49,9 @@ import static common.BallerinaModel.Import;
 import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
 import static mule.v3.MuleToBalConverter.generateTextDocument;
+import static mule.v3.model.MuleModel.DbGenericConfig;
 import static mule.v3.model.MuleModel.DbMSQLConfig;
 import static mule.v3.model.MuleModel.DbOracleConfig;
-import static mule.v3.model.MuleModel.DbGenericConfig;
 import static mule.v3.model.MuleModel.DbTemplateQuery;
 import static mule.v3.model.MuleModel.HTTPListenerConfig;
 import static mule.v3.model.MuleModel.HTTPRequestConfig;
@@ -68,6 +69,7 @@ public class Context extends ContextBase {
     public final MigrationMetrics<DWConstruct> migrationMetrics = new MigrationMetrics<>();
     private final Map<File, ParseResult> parseResults = new HashMap<>();
     private final Map<File, FileContext> fileContexts = new HashMap<>();
+    private final Map<File, MUnitModelV3.TestSuite> munitParseResults = new HashMap<>();
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                    List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
@@ -75,6 +77,15 @@ public class Context extends ContextBase {
                    mule.common.MultiRootContext multiRootContext) {
         super(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName, dryRun, keepStructure,
                 logger, result, multiRootContext);
+        isStandaloneBalFile = muleAppDir == null;
+    }
+
+    public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
+                   List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
+                   mule.common.MuleLogger logger, mule.common.ProjectMigrationResult result,
+                   mule.common.MultiRootContext multiRootContext, List<File> munitXmlFiles) {
+        super(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName, dryRun, keepStructure,
+                logger, result, multiRootContext, munitXmlFiles);
         isStandaloneBalFile = muleAppDir == null;
     }
 
@@ -132,6 +143,49 @@ public class Context extends ContextBase {
         return new MuleXMLNavigator(this.migrationMetrics, mule.v3.model.MuleXMLTag::isCompatible);
     }
 
+    private MuleXMLNavigator getMUnitXMLNavigator() {
+        return new MuleXMLNavigator.MetricsExcludingMuleXMLNavigator(
+                this.migrationMetrics, mule.v3.model.MuleXMLTag::isCompatible);
+    }
+
+    public boolean hasMUnitFiles() {
+        return !munitXmlFiles.isEmpty();
+    }
+
+    public void parseMUnitFiles() {
+        for (File munitFile : munitXmlFiles) {
+            currentFileCtx = this.fileContexts.computeIfAbsent(munitFile,
+                    (path) -> new FileContext(path.getPath(), projectCtx));
+            try {
+                MUnitModelV3.TestSuite testSuite =
+                        mule.v3.reader.MUnitConfigReader.readMUnitTestSuite(this, getMUnitXMLNavigator(),
+                                munitFile.getPath());
+                munitParseResults.put(munitFile, testSuite);
+            } catch (Exception ex) {
+                logger.logSevere("Error while parsing MUnit file %s: %s".formatted(munitFile, ex.getMessage()));
+            }
+        }
+    }
+
+    public List<BallerinaModel.TextDocument> munitCodeGen() {
+        List<BallerinaModel.TextDocument> testDocs = new ArrayList<>();
+        for (Map.Entry<File, MUnitModelV3.TestSuite> entry : munitParseResults.entrySet()) {
+            File munitFile = entry.getKey();
+            MUnitModelV3.TestSuite testSuite = entry.getValue();
+            currentFileCtx = this.fileContexts.get(munitFile);
+
+            String balFileName = "tests/" + munitFile.getName().replace(".xml", "") + ".bal";
+            try {
+                BallerinaModel.TextDocument testDoc =
+                        mule.v3.converter.MUnitConverter.convertTestSuite(this, balFileName, testSuite);
+                testDocs.add(testDoc);
+            } catch (Exception e) {
+                logger.logSevere("Error generating test code for %s: %s".formatted(munitFile, e.getMessage()));
+            }
+        }
+        return testDocs;
+    }
+
     @Override
     public List<ModuleTypeDef> createContextTypeDefns() {
         return mule.v3.MuleToBalConverter.createContextTypeDefns(this);
@@ -161,7 +215,7 @@ public class Context extends ContextBase {
         public final BalConstructs balConstructs;
         private final Map<String, ModuleVar> configurables;
 
-        FileContext(String filePath, ProjectContext projectContext) {
+        public FileContext(String filePath, ProjectContext projectContext) {
             this.filePath = filePath;
             this.configs = new GlobalConfigs(projectContext);
             this.balConstructs = new BalConstructs();
