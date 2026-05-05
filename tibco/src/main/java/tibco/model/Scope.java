@@ -30,6 +30,12 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
     public sealed interface FaultHandler extends Flow.Activity {
 
         Scope scope();
+
+        record Catch(Optional<String> faultName, Optional<String> faultVariable,
+                     Scope scope, Element element, String fileName)
+                implements FaultHandler, Flow.Activity.ActivityWithScope,
+                Flow.Activity.StartActivity {
+        }
     }
 
     public record Sequence(String name, List<Flow.Activity> activities) {

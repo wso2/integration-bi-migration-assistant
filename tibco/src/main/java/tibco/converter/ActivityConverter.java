@@ -45,6 +45,7 @@ import tibco.model.Resource;
 import tibco.model.Scope.Flow.Activity;
 import tibco.model.Scope.Flow.Activity.ActivityExtension;
 import tibco.model.Scope.Flow.Activity.ActivityExtension.Config.JsonOperation;
+import tibco.model.Scope.FaultHandler;
 import tibco.model.Scope.Flow.Activity.CatchAll;
 import tibco.model.Scope.Flow.Activity.Empty;
 import tibco.model.Scope.Flow.Activity.ExtActivity;
@@ -153,6 +154,7 @@ final class ActivityConverter {
             case ExtActivity extActivity -> convertExtActivity(cx, extActivity);
             case Invoke invoke -> convertInvoke(cx, invoke);
             case Pick pick -> convertPickAction(cx, pick);
+            case FaultHandler.Catch catchActivity -> convertCatch(cx, catchActivity);
             case CatchAll catchAll -> convertCatchAll(cx, catchAll);
             case ReceiveEvent receiveEvent -> convertReceiveEvent(cx, receiveEvent);
             case Reply reply -> convertReply(cx, reply);
@@ -1271,6 +1273,10 @@ final class ActivityConverter {
         body.add(errorValue);
         body.add(stmtFrom(String.format("panic %s;", errorValue.varName())));
         return body;
+    }
+
+    private static List<Statement> convertCatch(ActivityContext cx, FaultHandler.Catch catchActivity) {
+        return convertActivityWithScope(cx, catchActivity);
     }
 
     private static List<Statement> convertCatchAll(ActivityContext cx, CatchAll catchAll) {

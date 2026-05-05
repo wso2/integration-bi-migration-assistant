@@ -798,9 +798,22 @@ public final class XmlToTibcoModelParser {
     private static Scope.FaultHandler parseFaultHandler(ProcessContext cx, Element element) {
         String tag = getTagNameWithoutNameSpace(element);
         return switch (tag) {
+            case "catch" -> parseCatch(cx, element);
             case "catchAll" -> parseCatchAll(cx, element);
             default -> throw new ParserException("Unsupported fault handler " + tag, element);
         };
+    }
+
+    private static Scope.FaultHandler.Catch parseCatch(ProcessContext cx, Element element) {
+        Optional<String> faultName = element.hasAttribute("faultName")
+                ? Optional.of(element.getAttribute("faultName")) : Optional.empty();
+        Optional<String> faultVariable = element.hasAttribute("faultVariable")
+                ? Optional.of(element.getAttribute("faultVariable")) : Optional.empty();
+        Element scope = expectNChildren(element, 1).iterator().next();
+        if (!getTagNameWithoutNameSpace(scope).equals("scope")) {
+            throw new ParserException("Expected a scope inside catch", element);
+        }
+        return new Scope.FaultHandler.Catch(faultName, faultVariable, parseScope(cx, scope), element, cx.fileName());
     }
 
     private static Flow.Activity.CatchAll parseCatchAll(ProcessContext cx, Element element) {
@@ -876,6 +889,7 @@ public final class XmlToTibcoModelParser {
             case "scope" -> parseNestedScope(cx, element);
             case "assign" -> parseAssign(cx, element);
             case "forEach" -> parseForeach(cx, element);
+            case "catch" -> parseCatch(cx, element);
             case "catchAll" -> parseCatchAll(cx, element);
             case "activity" -> parseInlineActivity(cx, element);
             default -> throw new ParserException("Unsupported activity tag: " + tag, element);

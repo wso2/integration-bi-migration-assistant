@@ -171,6 +171,7 @@ public class ProcessAnalysisContext implements LoggingContext {
             case Scope.Flow.Activity.Pick ignored -> "pick";
             case Scope.Flow.Activity.ReceiveEvent ignored -> "receiveEvent";
             case Scope.Flow.Activity.Reply ignored -> "reply";
+            case Scope.FaultHandler.Catch ignored -> "catch";
             case Scope.Flow.Activity.CatchAll ignored -> "catchAll";
             case Scope.Flow.Activity.Throw ignored -> "throw";
             case Scope.Flow.Activity.NestedScope ignored -> "nestedScope";
