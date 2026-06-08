@@ -18,6 +18,22 @@
 
 package synapse.converter;
 
+import common.BallerinaModel.Import;
+import common.BallerinaModel.Listener;
+import common.BallerinaModel.Listener.HTTPListener;
+import common.BallerinaModel.Service;
+import common.BallerinaModel.TextDocument;
+import synapse.converter.Converter.APIConverter;
+import synapse.model.Synapse.Kind;
+import synapse.model.Synapse.SynapseNode;
+import synapse.reader.SynapseConfigReader;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -31,6 +47,17 @@ import java.util.Optional;
  * @since 1.0.0
  */
 public final class SynapseConverter {
+
+    // Maps each SynapseNode kind to the converter responsible for it. Only <api> is supported for now.
+    private static final Map<Kind, Converter> CONVERTERS = Map.of(
+            Kind.API, new APIConverter());
+
+    private static final String MAIN_BAL_FILE = "synapse.bal";
+    private static final String LISTENER_NAME = "httpListener";
+    private static final String DEFAULT_PORT = "8080";
+    private static final String DEFAULT_HOST = "0.0.0.0";
+    private static final String DEFAULT_ORG = "wso2";
+    private static final String DEFAULT_PACKAGE = "synapse";
 
     private SynapseConverter() {
     }
@@ -50,12 +77,56 @@ public final class SynapseConverter {
     public static void migrateSynapse(String sourcePath, String outputPath, boolean keepStructure, boolean verbose,
                                       boolean dryRun, boolean multiRoot, Optional<String> orgName,
                                       Optional<String> projectName) {
-        // TODO: implement Synapse -> Ballerina migration.
-        //  1. Parse the Synapse artifacts (proxy / api / sequence / endpoint) under `sourcePath`.
-        //  2. Build an intermediate model and analyze mediator coverage.
-        //  3. Generate the Ballerina package at `outputPath` (or the default `_converted` location).
-        throw new UnsupportedOperationException(
-                "Synapse migration is not implemented yet. Source: " + sourcePath);
+
+        List<SynapseNode> synapseModel = SynapseConfigReader.parse(sourcePath);
+
+        ConversionContext context = new ConversionContext();
+        for (SynapseNode node : synapseModel) {
+            Converter converter = CONVERTERS.get(node.kind());
+            if (converter == null) {
+                continue;
+            }
+            converter.convert(node, context);
+        }
+
+        if (dryRun) {
+            return;
+        }
+        String targetPath = outputPath != null ? outputPath : sourcePath + "_converted";
+        generateBallerinaPackage(context, targetPath, orgName.orElse(DEFAULT_ORG),
+                projectName.orElse(DEFAULT_PACKAGE));
+    }
+
+    private static void generateBallerinaPackage(ConversionContext context, String targetPath, String orgName,
+                                                 String packageName) {
+
+        List<Service> services = context.services();
+        List<Import> imports = List.of(new Import("ballerina", "http"));
+        List<Listener> listeners = List.of(new HTTPListener(LISTENER_NAME, DEFAULT_PORT, DEFAULT_HOST));
+        TextDocument textDocument = new TextDocument(MAIN_BAL_FILE, imports, List.of(), List.of(), listeners,
+                services, List.of(), List.of(), List.of(), List.of());
+
+        try {
+            Path targetDir = Paths.get(targetPath);
+            Files.createDirectories(targetDir);
+            Files.writeString(targetDir.resolve(MAIN_BAL_FILE), textDocument.toSource());
+            Files.writeString(targetDir.resolve("Ballerina.toml"), ballerinaToml(orgName, packageName));
+        } catch (IOException e) {
+            throw new RuntimeException("Error while writing the Ballerina package: ", e);
+        }
+    }
+
+    private static String ballerinaToml(String orgName, String packageName) {
+        return """
+                [package]
+                org = "%s"
+                name = "%s"
+                version = "0.1.0"
+                distribution = "2201.12.3"
+
+                [build-options]
+                observabilityIncluded = true
+                """.formatted(orgName, packageName);
     }
 
     /**
