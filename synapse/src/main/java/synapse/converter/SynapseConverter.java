@@ -52,7 +52,7 @@ public final class SynapseConverter {
     private static final Map<Kind, Converter> CONVERTERS = Map.of(
             Kind.API, new APIConverter());
 
-    private static final String MAIN_BAL_FILE = "synapse.bal";
+    private static final String MAIN_BAL_FILE = "main.bal";
     private static final String LISTENER_NAME = "httpListener";
     private static final String DEFAULT_PORT = "8080";
     private static final String DEFAULT_HOST = "0.0.0.0";

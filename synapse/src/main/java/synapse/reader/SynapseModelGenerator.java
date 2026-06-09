@@ -21,6 +21,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import synapse.model.Synapse.Api;
+import synapse.model.Synapse.Resource;
 import synapse.model.Synapse.SynapseNode;
 
 import java.util.ArrayList;
@@ -29,11 +30,11 @@ import java.util.List;
 public class SynapseModelGenerator {
 
     private static final String API_TAG = "api";
+    private static final String RESOURCE_TAG = "resource";
 
     public static List<SynapseNode> generateModel(Element rootElement) {
         List<SynapseNode> nodes = new ArrayList<>();
 
-        // The <api> may be the root element itself, or nested under the root.
         if (API_TAG.equals(rootElement.getTagName())) {
             nodes.add(readApi(rootElement));
             return nodes;
@@ -57,6 +58,52 @@ public class SynapseModelGenerator {
     private static Api readApi(Element element) {
         String name = element.getAttribute("name");
         String context = element.getAttribute("context");
-        return new Api(name, context, new ArrayList<>());
+
+        List<SynapseNode> resources = new ArrayList<>();
+        NodeList children = element.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node node = children.item(i);
+            if (node.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+            Element child = (Element) node;
+            if (RESOURCE_TAG.equals(child.getTagName())) {
+                resources.add(readResource(child));
+            }
+        }
+
+        return new Api(name, context, resources);
+    }
+
+    private static Resource readResource(Element element) {
+        String methods = element.getAttribute("methods");
+
+        String uriTemplate = element.getAttribute("uri-template");
+        String urlMapping = element.getAttribute("url-mapping");
+        // TODO: uriTemplate or urlMapping should be mandotory, so it should be checked and handled the error.
+        String template = !uriTemplate.isEmpty() ? uriTemplate : urlMapping;
+
+        String path = "";
+        String query = "";
+        int queryStart = template.indexOf('?');
+        if (queryStart >= 0) {
+            path = template.substring(0, queryStart);
+            query = template.substring(queryStart + 1);
+        } else {
+            path = template;
+        }
+
+        List<String> queryParams = new ArrayList<>();
+        if (!query.isEmpty()) {
+            for (String pair : query.split("&")) {
+                int eq = pair.indexOf('=');
+                String key = eq >= 0 ? pair.substring(0, eq) : pair;
+                if (!key.isEmpty()) {
+                    queryParams.add(key);
+                }
+            }
+        }
+
+        return new Resource(methods, path, queryParams);
     }
 }

@@ -21,11 +21,17 @@ import java.util.List;
 
 public record Synapse() {
 
-    // <api context="/api" name="RESTApi"> -> Ballerina HTTP service
     public record Api(Kind kind, String name, String context, List<SynapseNode> resources)
             implements SynapseNode {
         public Api(String name, String context, List<SynapseNode> resources) {
             this(Kind.API, name, context, resources);
+        }
+    }
+
+    public record Resource(Kind kind, String methods, String path,
+                           List<String> queryParams) implements SynapseNode {
+        public Resource(String methods, String path, List<String> queryParams) {
+            this(Kind.RESOURCE, methods, path, queryParams);
         }
     }
 
@@ -34,6 +40,7 @@ public record Synapse() {
     }
 
     public enum Kind {
-        API
+        API,
+        RESOURCE
     }
 }

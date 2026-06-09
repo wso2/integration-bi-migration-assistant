@@ -17,11 +17,16 @@
  */
 package synapse.converter;
 
+import common.BallerinaModel.Parameter;
+import common.BallerinaModel.Resource;
 import common.BallerinaModel.Service;
+import common.BallerinaModel.TypeDesc.BuiltinType;
 import synapse.model.Synapse.Api;
 import synapse.model.Synapse.SynapseNode;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Converts a single {@link SynapseNode} into its Ballerina representation,
@@ -37,14 +42,47 @@ public interface Converter {
     class APIConverter implements Converter {
 
         private static final String DEFAULT_LISTENER_REF = "httpListener";
+        private static final String ROOT_RESOURCE_PATH = ".";
 
         @Override
         public void convert(SynapseNode node, ConversionContext context) {
             Api api = (Api) node;
-            // <api context="/api"> -> Ballerina HTTP service with basePath = context.
-            // Resources are empty for now since the <api> body is not modeled yet.
-            Service service = new Service(api.context(), DEFAULT_LISTENER_REF, new ArrayList<>());
+            List<Resource> resources = new ArrayList<>();
+            for (SynapseNode child : api.resources()) {
+                if (child instanceof synapse.model.Synapse.Resource resource) {
+                    resources.add(convertResource(resource));
+                }
+            }
+            Service service = new Service(api.context(), DEFAULT_LISTENER_REF, resources);
             context.addService(service);
+        }
+
+        private static Resource convertResource(synapse.model.Synapse.Resource resource) {
+            String method = resource.methods().toLowerCase();
+            String path = buildResourcePath(resource.path());
+
+            List<Parameter> parameters = new ArrayList<>();
+            for (String queryParam : resource.queryParams()) {
+                parameters.add(new Parameter(queryParam, BuiltinType.STRING));
+            }
+
+            return new Resource(method, path, parameters, Optional.empty(), List.of());
+        }
+
+        private static String buildResourcePath(String synapsePath) {
+            List<String> segments = new ArrayList<>();
+            for (String segment : synapsePath.split("/")) {
+                if (segment.isEmpty()) {
+                    continue;
+                }
+                if (segment.startsWith("{") && segment.endsWith("}")) {
+                    String paramName = segment.substring(1, segment.length() - 1);
+                    segments.add("[string " + paramName + "]");
+                } else {
+                    segments.add(segment);
+                }
+            }
+            return segments.isEmpty() ? ROOT_RESOURCE_PATH : String.join("/", segments);
         }
     }
 }

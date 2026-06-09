@@ -25,35 +25,39 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
- * Converts each Synapse project under {@code src/test/resources/synapse.projects} and compares the
+ * Converts each Synapse artifact under {@code src/test/resources/synapse/<Name>} and compares the
  * generated Ballerina package against the expected package under
- * {@code src/test/resources/synapse.projects.converted}.
+ * {@code src/test/resources/ballerina/<Name>}.
  *
- * <p>Each immediate sub-directory of {@code synapse.projects} is paired by name with the
- * sub-directory of the same name under {@code synapse.projects.converted}. To add a new test case,
- * drop a Synapse project under {@code synapse.projects/<Name>} and its expected Ballerina output
- * under {@code synapse.projects.converted/<Name>}.
- *
- * <p>While {@link SynapseConverter} is still a scaffold, the conversion call throws
- * {@link UnsupportedOperationException}; this is translated into a skipped test so the suite stays
- * green until the converter is implemented.
+ * <p>Each immediate sub-directory of {@code synapse} is paired by name with the sub-directory of the
+ * same name under {@code ballerina}. The single {@code *.xml} artifact inside the Synapse directory
+ * is converted via {@link SynapseConverter#migrateSynapse}. To add a new test case, drop a Synapse
+ * artifact under {@code synapse/<Name>/<Name>.xml} and its expected Ballerina output under
+ * {@code ballerina/<Name>}.
  */
 public class SynapseProjectConversionTest {
 
-    private static final Path PROJECTS_DIR = Path.of("src", "test", "resources", "synapse.projects");
-    private static final Path CONVERTED_DIR = Path.of("src", "test", "resources", "synapse.projects.converted");
+    private static final Path SYNAPSE_DIR = Path.of("src", "test", "resources", "synapse");
+    private static final Path BALLERINA_DIR = Path.of("src", "test", "resources", "ballerina");
 
     @Test(groups = {"synapse", "converter"}, dataProvider = "projectTestCaseProvider")
-    public void testProjectConversion(Path synapseProject, Path expectedBallerinaProject) throws IOException {
+    public void testProjectConversion(Path synapseArtifact, Path expectedBallerinaProject) throws IOException {
         Path tempDir = Files.createTempDirectory("synapse-conversion-test");
         try {
-            SynapseConverter.migrateSynapseProject(
-                    synapseProject.toString(),
+            SynapseConverter.migrateSynapse(
+                    synapseArtifact.toString(),
                     tempDir.toString(),
-                    "testOrg",
-                    expectedBallerinaProject.getFileName().toString());
+                    false,
+                    false,
+                    false,
+                    false,
+                    Optional.of("testOrg"),
+                    Optional.of(expectedBallerinaProject.getFileName().toString()));
 
             TestUtils.compareDirectories(tempDir, expectedBallerinaProject);
         } catch (UnsupportedOperationException e) {
@@ -65,11 +69,28 @@ public class SynapseProjectConversionTest {
 
     @DataProvider
     public Object[][] projectTestCaseProvider() throws IOException {
-        try (var dirs = Files.list(PROJECTS_DIR)) {
+        try (Stream<Path> dirs = Files.list(SYNAPSE_DIR)) {
             return dirs
                     .filter(Files::isDirectory)
-                    .map(dir -> new Object[]{dir, CONVERTED_DIR.resolve(dir.getFileName())})
+                    .filter(dir -> dir.getFileName().toString().contains("HelloWorldService"))
+                    .map(dir -> new Object[]{findSynapseArtifact(dir), BALLERINA_DIR.resolve(dir.getFileName())})
                     .toArray(Object[][]::new);
+        }
+    }
+
+    private static Path findSynapseArtifact(Path projectDir) {
+        try (Stream<Path> files = Files.list(projectDir)) {
+            List<Path> xmlFiles = files
+                    .filter(Files::isRegularFile)
+                    .filter(p -> p.getFileName().toString().endsWith(".xml"))
+                    .toList();
+            if (xmlFiles.size() != 1) {
+                throw new IllegalStateException(
+                        "Expected exactly one .xml artifact in " + projectDir + " but found " + xmlFiles.size());
+            }
+            return xmlFiles.get(0);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to locate Synapse artifact in " + projectDir, e);
         }
     }
 }
