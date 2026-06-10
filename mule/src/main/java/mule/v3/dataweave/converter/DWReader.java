@@ -158,8 +158,9 @@ public class DWReader {
         String filePath = resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR);
         ParseTree tree = readDWScriptFromFile(filePath, context);
         if (tree == null) {
-            ctx.migrationMetrics.dwConversionStats.record(DWConstruct.PARSE_FAILURE, false);
-            ctx.migrationMetrics.dwConversionStats.failedDWExpressions.add(filePath);
+            ctx.migrationMetrics.dwConversionStats.record(DWConstruct.MISSING_SCRIPT, false);
+            ctx.migrationMetrics.dwConversionStats.addMissingScriptLineEstimate();
+            ctx.migrationMetrics.dwConversionStats.failedDWExpressions.add("// DataWeave script not found: " + filePath);
             return "\n// TODO: DataWeave script not found in path: " + filePath + "\n";
         }
         BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);

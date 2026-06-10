@@ -172,8 +172,7 @@ public class DWReader {
             try {
                 tree = parseScript(script, context);
             } catch (DWCodeGenException e) {
-                ctx.migrationMetrics.dwConversionStats.record(DWConstruct.PARSE_FAILURE, false);
-                ctx.migrationMetrics.dwConversionStats.failedDWExpressions.add(script);
+                ctx.migrationMetrics.dwConversionStats.recordParseFailure((int) script.lines().count(), script);
                 return ConversionUtils.wrapElementInTodoComment(script, "DATAWEAVE PARSING FAILED.");
             }
 
@@ -188,7 +187,15 @@ public class DWReader {
             return buildStatement(context, varName);
         }
         String resolvedPath = resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR);
-        ParseTree tree = readDWScriptFromFile(resolvedPath, context);
+        ParseTree tree;
+        try {
+            tree = readDWScriptFromFile(resolvedPath, context);
+        } catch (DWCodeGenException e) {
+            ctx.migrationMetrics.dwConversionStats.record(DWConstruct.MISSING_SCRIPT, false);
+            ctx.migrationMetrics.dwConversionStats.addMissingScriptLineEstimate();
+            ctx.migrationMetrics.dwConversionStats.failedDWExpressions.add("// DataWeave script not found: " + resolvedPath);
+            return ConversionUtils.wrapElementInTodoComment(resolvedPath, "DATAWEAVE FILE NOT FOUND.");
+        }
         BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats,
                 namePrefix, ctx.projectCtx.counters.dwFunctionPrefixCounters);
         visitor.visit(tree);

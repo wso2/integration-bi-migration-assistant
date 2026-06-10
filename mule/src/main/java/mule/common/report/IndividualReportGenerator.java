@@ -46,9 +46,9 @@ public class IndividualReportGenerator {
     public static final double WORST_CASE_COMP_TIME_REPEATED_MINUTES = 30;
 
     // Baseline estimates in minutes for DataWeave expressions
-    public static final double BEST_DW_EXPR_TIME_MINUTES = 1;
-    public static final double AVG_CASE_DW_EXPR_TIME_MINUTES = 1.5;
-    public static final double WORST_CASE_DW_EXPR_TIME_MINUTES = 2.5;
+    public static final double BEST_DW_LINE_TIME_MINUTES = 1;
+    public static final double AVG_CASE_DW_LINE_TIME_MINUTES = 1.5;
+    public static final double WORST_CASE_DW_LINE_TIME_MINUTES = 2.5;
 
     public static final String INDIVIDUAL_REPORT_NAME = "migration_report.html";
     public static final String MIGRATION_SUMMARY_TITLE = "Migration Summary";
@@ -62,16 +62,16 @@ public class IndividualReportGenerator {
         int migratableXmlElements = calculateMigratableXmlElements(pms);
         int nonMigratableXmlElements = totalXmlElements - migratableXmlElements;
 
-        // DataWeave metrics
+        // DataWeave metrics (line-based: converted lines via construct count, failed lines explicitly tracked)
         DWConversionStats<? extends DWConstructBase> dwStats = pms.dwConversionStats();
-        int totalDwConstructs = dwStats.getTotalEncounteredCount();
-        int migratableDwConstructs = dwStats.getConvertedCount();
-        int nonMigratableDwConstructs = totalDwConstructs - migratableDwConstructs;
+        int totalDwLines = dwStats.getTotalDWLineCount();
+        int migratableDwLines = dwStats.getConvertedDWLineCount();
+        int nonMigratableDwLines = dwStats.getFailedDWLineCount();
 
         // Calculate total items, migratable items, and non-migratable items
-        int totalItems = totalXmlElements + totalDwConstructs;
-        int migratableItems = migratableXmlElements + migratableDwConstructs;
-        int nonMigratableItems = nonMigratableXmlElements + nonMigratableDwConstructs;
+        int totalItems = totalXmlElements + totalDwLines;
+        int migratableItems = migratableXmlElements + migratableDwLines;
+        int nonMigratableItems = nonMigratableXmlElements + nonMigratableDwLines;
 
         Map<String, Object> coverageOverview = new LinkedHashMap<>();
         coverageOverview.put("unitName", "code lines");
@@ -102,21 +102,21 @@ public class IndividualReportGenerator {
         int elementCoverage = calculateElementsCoverage(pms, muleVersion);
         String elementCoverageColor = getCoverageColor(elementCoverage);
 
-        // DataWeave metrics
+        // DataWeave metrics (line-based: converted lines via construct count, failed lines explicitly tracked)
         DWConversionStats<? extends DWConstructBase> dwStats = pms.dwConversionStats();
-        int totalDwConstructs = dwStats.getTotalEncounteredCount();
-        int migratableDwConstructs = dwStats.getConvertedCount();
-        int nonMigratableDwConstructs = totalDwConstructs - migratableDwConstructs;
+        int totalDwLines = dwStats.getTotalDWLineCount();
+        int migratableDwLines = dwStats.getConvertedDWLineCount();
+        int nonMigratableDwLines = dwStats.getFailedDWLineCount();
         int dataweaveCoverage = calculateDataweaveCoverage(pms);
         String dataweaveCoverageColor = getCoverageColor(dataweaveCoverage);
 
         // Format DataWeave coverage to display N/A when total is zero
-        String dataweaveDisplayValue = totalDwConstructs > 0 ? dataweaveCoverage + "%" : "N/A";
-        String dataweaveBarWidth = totalDwConstructs > 0 ? dataweaveCoverage + "%" : "0%";
+        String dataweaveDisplayValue = totalDwLines > 0 ? dataweaveCoverage + "%" : "N/A";
+        String dataweaveBarWidth = totalDwLines > 0 ? dataweaveCoverage + "%" : "0%";
         // Calculate total items, migratable items, and non-migratable items
-        int totalItems = totalXmlElements + totalDwConstructs;
-        int migratableItems = migratableXmlElements + migratableDwConstructs;
-        int nonMigratableItems = nonMigratableXmlElements + nonMigratableDwConstructs;
+        int totalItems = totalXmlElements + totalDwLines;
+        int migratableItems = migratableXmlElements + migratableDwLines;
+        int nonMigratableItems = nonMigratableXmlElements + nonMigratableDwLines;
 
         // Calculate overall coverage metrics
         int migrationCoverage = pms.migrationCoverage();
@@ -131,11 +131,11 @@ public class IndividualReportGenerator {
         ReportComponent estimationComponent = generateManualWorkEstimationComponent(
                 pms.bestCaseDays(), pms.averageCaseDays(), pms.worstCaseDays(),
                 BEST_CASE_COMP_TIME_NEW_MINUTES, BEST_CASE_COMP_TIME_REPEATED_MINUTES,
-                BEST_DW_EXPR_TIME_MINUTES,
+                BEST_DW_LINE_TIME_MINUTES,
                 AVG_CASE_COMP_TIME_NEW_MINUTES, AVG_CASE_COMP_TIME_REPEATED_MINUTES,
-                AVG_CASE_DW_EXPR_TIME_MINUTES,
+                AVG_CASE_DW_LINE_TIME_MINUTES,
                 WORST_CASE_COMP_TIME_NEW_MINUTES, WORST_CASE_COMP_TIME_REPEATED_MINUTES,
-                WORST_CASE_DW_EXPR_TIME_MINUTES);
+                WORST_CASE_DW_LINE_TIME_MINUTES);
 
         return String.format(
                 IndividualReportTemplate.getHtmlTemplate(),
@@ -155,7 +155,7 @@ public class IndividualReportGenerator {
                 // DataWeave coverage section parameters
                 dataweaveDisplayValue,
                 dataweaveBarWidth, dataweaveCoverageColor,
-                totalDwConstructs, migratableDwConstructs, nonMigratableDwConstructs,
+                totalDwLines, migratableDwLines, nonMigratableDwLines,
                 // Manual Work Estimation component
                 estimationComponent.content(),
                 // Content sections
@@ -197,17 +197,17 @@ public class IndividualReportGenerator {
 
     public static ProjectMigrationStats getProjectMigrationStats(MuleVersion muleVersion,
                                                                  MigrationMetrics<? extends DWConstructBase> metrics) {
-        int failedDWExprCount = countUnsupportedDWExpressions(metrics.dwConversionStats);
+        int failedDWLineCount = countUnsupportedDWExpressions(metrics.dwConversionStats);
 
         // Calculate implementation times
-        double bestCaseDays = calculateBestCaseEstimate(metrics.failedXMLTags, failedDWExprCount);
-        double avgCaseDays = calculateAverageCaseEstimate(metrics.failedXMLTags, failedDWExprCount);
-        double worstCaseDays = calculateWorstCaseEstimate(metrics.failedXMLTags, failedDWExprCount);
+        double bestCaseDays = calculateBestCaseEstimate(metrics.failedXMLTags, failedDWLineCount);
+        double avgCaseDays = calculateAverageCaseEstimate(metrics.failedXMLTags, failedDWLineCount);
+        double worstCaseDays = calculateWorstCaseEstimate(metrics.failedXMLTags, failedDWLineCount);
 
         int migrationCoverage = calculateMigrationCoverage(muleVersion, metrics);
         return new ProjectMigrationStats(metrics.passedXMLTags, metrics.failedXMLTags, metrics.failedBlocks,
                 metrics.dwConversionStats, migrationCoverage, bestCaseDays, avgCaseDays, worstCaseDays,
-                metrics.failedXMLTags.size(), failedDWExprCount);
+                metrics.failedXMLTags.size(), failedDWLineCount);
     }
 
     private static int calculateMigrationCoverage(MuleVersion muleVersion,
@@ -289,33 +289,33 @@ public class IndividualReportGenerator {
         return "Unknown";
     }
 
-    private static double calculateBestCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags, int dwExpressions) {
+    private static double calculateBestCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags, int dwLines) {
         double repeatedElementTime = failedXMLTags.values().stream().filter(x -> x > 1).mapToInt(x -> x - 1)
                 .mapToDouble(integer -> (integer - 1) * BEST_CASE_COMP_TIME_REPEATED_MINUTES).sum();
         double totalMinutes = failedXMLTags.size() * BEST_CASE_COMP_TIME_NEW_MINUTES + repeatedElementTime +
-                dwExpressions * BEST_DW_EXPR_TIME_MINUTES;
+                dwLines * BEST_DW_LINE_TIME_MINUTES;
         return totalMinutes / (8 * 60); // Convert minutes to days (8 hours per day, 60 minutes per hour)
     }
 
     private static double calculateAverageCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags,
-                                                       int dwExpressions) {
+                                                       int dwLines) {
         double repeatedElementTime = failedXMLTags.values().stream().filter(x -> x > 1).mapToInt(x -> x - 1)
                 .mapToDouble(integer -> (integer - 1) * AVG_CASE_COMP_TIME_REPEATED_MINUTES).sum();
         double totalMinutes = failedXMLTags.size() * AVG_CASE_COMP_TIME_NEW_MINUTES + repeatedElementTime +
-                dwExpressions * AVG_CASE_DW_EXPR_TIME_MINUTES;
+                dwLines * AVG_CASE_DW_LINE_TIME_MINUTES;
         return totalMinutes / (8 * 60); // Convert minutes to days (8 hours per day, 60 minutes per hour)
     }
 
-    private static double calculateWorstCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags, int dwExpressions) {
+    private static double calculateWorstCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags, int dwLines) {
         double repeatedElementTime = failedXMLTags.values().stream().filter(x -> x > 1).mapToInt(x -> x - 1)
                 .mapToDouble(integer -> (integer - 1) * WORST_CASE_COMP_TIME_REPEATED_MINUTES).sum();
         double totalMinutes = failedXMLTags.size() * WORST_CASE_COMP_TIME_NEW_MINUTES + repeatedElementTime +
-                dwExpressions * WORST_CASE_DW_EXPR_TIME_MINUTES;
+                dwLines * WORST_CASE_DW_LINE_TIME_MINUTES;
         return totalMinutes / (8 * 60); // Convert minutes to days (8 hours per day, 60 minutes per hour)
     }
 
     private static int countUnsupportedDWExpressions(DWConversionStats<? extends DWConstructBase> dwStats) {
-        return dwStats.getFailedDWExpressions().size();
+        return dwStats.getFailedDWLineCount();
     }
 
     private static int calculateElementsCoverage(ProjectMigrationStats pms, MuleVersion muleVersion) {
@@ -343,11 +343,11 @@ public class IndividualReportGenerator {
     }
 
     private static ReportComponent generateMuleEstimationNotes(double bestCaseCompTimeNew,
-                    double bestCaseCompTimeRepeated, double bestDwExprTime,
+                    double bestCaseCompTimeRepeated, double bestDwLineTime,
             double avgCaseCompTimeNew,
-                    double avgCaseCompTimeRepeated, double avgCaseDwExprTime,
+                    double avgCaseCompTimeRepeated, double avgCaseDwLineTime,
             double worstCaseCompTimeNew,
-            double worstCaseCompTimeRepeated, double worstCaseDwExprTime) {
+            double worstCaseCompTimeRepeated, double worstCaseDwLineTime) {
         String content = String.format(
                 """
                         <div class="estimation-notes">
@@ -383,20 +383,20 @@ public class IndividualReportGenerator {
                               </li>
                             </ul>
                           </div>""",
-                bestCaseCompTimeNew / 60, bestCaseCompTimeRepeated, bestDwExprTime,
-                avgCaseCompTimeNew / 60, avgCaseCompTimeRepeated, avgCaseDwExprTime,
-                worstCaseCompTimeNew / 60, worstCaseCompTimeRepeated, worstCaseDwExprTime);
+                bestCaseCompTimeNew / 60, bestCaseCompTimeRepeated, bestDwLineTime,
+                avgCaseCompTimeNew / 60, avgCaseCompTimeRepeated, avgCaseDwLineTime,
+                worstCaseCompTimeNew / 60, worstCaseCompTimeRepeated, worstCaseDwLineTime);
 
         return new ReportComponent(content, new Styles(Map.of()));
     }
 
     public static ReportComponent generateManualWorkEstimationComponent(double bestCaseDays, double avgCaseDays,
             double worstCaseDays, double bestCaseCompTimeNew,
-            double bestCaseCompTimeRepeated, double bestDwExprTime,
+            double bestCaseCompTimeRepeated, double bestDwLineTime,
             double avgCaseCompTimeNew,
-                    double avgCaseCompTimeRepeated, double avgCaseDwExprTime,
+                    double avgCaseCompTimeRepeated, double avgCaseDwLineTime,
             double worstCaseCompTimeNew,
-            double worstCaseCompTimeRepeated, double worstCaseDwExprTime) {
+            double worstCaseCompTimeRepeated, double worstCaseDwLineTime) {
         // Create TimeEstimation object from the day values
         TimeEstimation estimation = new TimeEstimation(bestCaseDays, avgCaseDays, worstCaseDays);
 
@@ -405,10 +405,10 @@ public class IndividualReportGenerator {
 
         // Generate Mule-specific detailed notes
         ReportComponent muleNotes = generateMuleEstimationNotes(
-                bestCaseCompTimeNew, bestCaseCompTimeRepeated, bestDwExprTime,
+                bestCaseCompTimeNew, bestCaseCompTimeRepeated, bestDwLineTime,
                 avgCaseCompTimeNew, avgCaseCompTimeRepeated,
-                avgCaseDwExprTime, worstCaseCompTimeNew,
-                worstCaseCompTimeRepeated, worstCaseDwExprTime);
+                avgCaseDwLineTime, worstCaseCompTimeNew,
+                worstCaseCompTimeRepeated, worstCaseDwLineTime);
 
         // Combine both components
         String combinedContent = estimateView.content() + muleNotes.content();
