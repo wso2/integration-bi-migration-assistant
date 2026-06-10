@@ -29,17 +29,17 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Converts a single {@link SynapseNode} into its Ballerina representation,
+ * Converts a single {@link SynapseNode} into its Ballerina BIR representation,
  * accumulating the result in the supplied {@link ConversionContext}.
  */
-public interface Converter {
+public interface BIRConverter {
 
     void convert(SynapseNode node, ConversionContext context);
 
     /**
      * Converts a Synapse {@code <api>} element into a Ballerina HTTP service.
      */
-    class APIConverter implements Converter {
+    class APIConverter implements BIRConverter {
 
         private static final String DEFAULT_LISTENER_REF = "httpListener";
         private static final String ROOT_RESOURCE_PATH = ".";

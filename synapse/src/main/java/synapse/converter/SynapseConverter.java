@@ -23,7 +23,7 @@ import common.BallerinaModel.Listener;
 import common.BallerinaModel.Listener.HTTPListener;
 import common.BallerinaModel.Service;
 import common.BallerinaModel.TextDocument;
-import synapse.converter.Converter.APIConverter;
+import synapse.converter.BIRConverter.APIConverter;
 import synapse.model.Synapse.Kind;
 import synapse.model.Synapse.SynapseNode;
 import synapse.reader.SynapseConfigReader;
@@ -49,7 +49,7 @@ import java.util.Optional;
 public final class SynapseConverter {
 
     // Maps each SynapseNode kind to the converter responsible for it. Only <api> is supported for now.
-    private static final Map<Kind, Converter> CONVERTERS = Map.of(
+    private static final Map<Kind, BIRConverter> CONVERTERS = Map.of(
             Kind.API, new APIConverter());
 
     private static final String MAIN_BAL_FILE = "main.bal";
@@ -82,7 +82,7 @@ public final class SynapseConverter {
 
         ConversionContext context = new ConversionContext();
         for (SynapseNode node : synapseModel) {
-            Converter converter = CONVERTERS.get(node.kind());
+            BIRConverter converter = CONVERTERS.get(node.kind());
             if (converter == null) {
                 continue;
             }
