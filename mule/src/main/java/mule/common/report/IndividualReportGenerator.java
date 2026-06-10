@@ -107,14 +107,12 @@ public class IndividualReportGenerator {
         int totalDwConstructs = dwStats.getTotalEncounteredCount();
         int migratableDwConstructs = dwStats.getConvertedCount();
         int nonMigratableDwConstructs = totalDwConstructs - migratableDwConstructs;
-
         int dataweaveCoverage = calculateDataweaveCoverage(pms);
         String dataweaveCoverageColor = getCoverageColor(dataweaveCoverage);
 
         // Format DataWeave coverage to display N/A when total is zero
         String dataweaveDisplayValue = totalDwConstructs > 0 ? dataweaveCoverage + "%" : "N/A";
         String dataweaveBarWidth = totalDwConstructs > 0 ? dataweaveCoverage + "%" : "0%";
-
         // Calculate total items, migratable items, and non-migratable items
         int totalItems = totalXmlElements + totalDwConstructs;
         int migratableItems = migratableXmlElements + migratableDwConstructs;

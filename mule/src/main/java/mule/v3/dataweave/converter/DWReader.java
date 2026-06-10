@@ -124,6 +124,7 @@ public class DWReader {
                     context.setMimeType(((InputPayloadElement) child).mimeType());
                     break;
                 default:
+                    ctx.migrationMetrics.failedBlocks.add(child.toString());
                     statementList.add(new BallerinaStatement(
                             ConversionUtils.wrapElementInUnsupportedBlockComment(child.toString())));
                     break;
@@ -157,7 +158,8 @@ public class DWReader {
         String filePath = resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR);
         ParseTree tree = readDWScriptFromFile(filePath, context);
         if (tree == null) {
-            // TODO: Avoid null return from readDWScriptFromFile()
+            ctx.migrationMetrics.dwConversionStats.record(DWConstruct.PARSE_FAILURE, false);
+            ctx.migrationMetrics.dwConversionStats.failedDWExpressions.add(filePath);
             return "\n// TODO: DataWeave script not found in path: " + filePath + "\n";
         }
         BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);

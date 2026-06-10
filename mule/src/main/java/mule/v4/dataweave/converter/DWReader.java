@@ -135,7 +135,7 @@ public class DWReader {
                             context, ctx, setVariableElement.variableName(), statementList, namePrefix);
                     break;
                 default:
-                    // TODO: add this to unsupported blocks in report?
+                    ctx.migrationMetrics.failedBlocks.add(child.toString());
                     statementList.add(new BallerinaStatement(
                             ConversionUtils.wrapElementInUnsupportedBlockComment(child.toString())));
                     break;
@@ -172,6 +172,8 @@ public class DWReader {
             try {
                 tree = parseScript(script, context);
             } catch (DWCodeGenException e) {
+                ctx.migrationMetrics.dwConversionStats.record(DWConstruct.PARSE_FAILURE, false);
+                ctx.migrationMetrics.dwConversionStats.failedDWExpressions.add(script);
                 return ConversionUtils.wrapElementInTodoComment(script, "DATAWEAVE PARSING FAILED.");
             }
 

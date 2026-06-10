@@ -68,7 +68,8 @@ public enum DWConstruct implements DWConstructBase {
     ATTRIBUTE_SELECTOR("attribute-selector", 2),
     EXISTENCE_QUERY_SELECTOR("existence-query-selector", 2),
 
-    UNSUPPORTED("unsupported", 1000);
+    PARSE_FAILURE("parse-failure", 20),
+    UNSUPPORTED("unsupported", 10);
 
     private final String component;
     private final int weight;
