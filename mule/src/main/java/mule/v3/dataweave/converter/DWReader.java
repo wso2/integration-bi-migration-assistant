@@ -160,7 +160,8 @@ public class DWReader {
         if (tree == null) {
             ctx.migrationMetrics.dwConversionStats.record(DWConstruct.MISSING_SCRIPT, false);
             ctx.migrationMetrics.dwConversionStats.addMissingScriptLineEstimate();
-            ctx.migrationMetrics.dwConversionStats.failedDWExpressions.add("// DataWeave script not found: " + filePath);
+            ctx.migrationMetrics.dwConversionStats.failedDWExpressions
+                    .add("// DataWeave script not found: " + filePath);
             return "\n// TODO: DataWeave script not found in path: " + filePath + "\n";
         }
         BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);

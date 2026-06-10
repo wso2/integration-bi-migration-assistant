@@ -193,7 +193,8 @@ public class DWReader {
         } catch (DWCodeGenException e) {
             ctx.migrationMetrics.dwConversionStats.record(DWConstruct.MISSING_SCRIPT, false);
             ctx.migrationMetrics.dwConversionStats.addMissingScriptLineEstimate();
-            ctx.migrationMetrics.dwConversionStats.failedDWExpressions.add("// DataWeave script not found: " + resolvedPath);
+            ctx.migrationMetrics.dwConversionStats.failedDWExpressions
+                    .add("// DataWeave script not found: " + resolvedPath);
             return ConversionUtils.wrapElementInTodoComment(resolvedPath, "DATAWEAVE FILE NOT FOUND.");
         }
         BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats,
