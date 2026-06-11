@@ -17,15 +17,24 @@
  */
 package synapse.converter;
 
+import common.BallerinaModel.Expression;
+import common.BallerinaModel.Expression.BallerinaExpression;
+import common.BallerinaModel.Expression.StringConstant;
+import common.BallerinaModel.Expression.XMLTemplate;
 import common.BallerinaModel.Parameter;
 import common.BallerinaModel.Resource;
 import common.BallerinaModel.Service;
+import common.BallerinaModel.Statement;
+import common.BallerinaModel.TypeDesc;
 import common.BallerinaModel.TypeDesc.BuiltinType;
 import synapse.model.Synapse.Api;
+import synapse.model.Synapse.Kind;
+import synapse.model.Synapse.PayloadFactory;
 import synapse.model.Synapse.SynapseNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -44,20 +53,23 @@ public interface BIRConverter {
         private static final String DEFAULT_LISTENER_REF = "httpListener";
         private static final String ROOT_RESOURCE_PATH = ".";
 
+        private static final Map<Kind, BIRConverter> CONVERTERS = Map.of(
+                Kind.PAYLOAD_FACTORY, new PayloadFactoryConverter());
+
         @Override
         public void convert(SynapseNode node, ConversionContext context) {
             Api api = (Api) node;
             List<Resource> resources = new ArrayList<>();
             for (SynapseNode child : api.resources()) {
                 if (child instanceof synapse.model.Synapse.Resource resource) {
-                    resources.add(convertResource(resource));
+                    resources.add(convertResource(resource, context));
                 }
             }
             Service service = new Service(api.context(), DEFAULT_LISTENER_REF, resources);
             context.addService(service);
         }
 
-        private static Resource convertResource(synapse.model.Synapse.Resource resource) {
+        private static Resource convertResource(synapse.model.Synapse.Resource resource, ConversionContext context) {
             String method = resource.methods().toLowerCase();
             String path = buildResourcePath(resource.path());
 
@@ -66,7 +78,11 @@ public interface BIRConverter {
                 parameters.add(new Parameter(queryParam, BuiltinType.STRING));
             }
 
-            return new Resource(method, path, parameters, Optional.empty(), List.of());
+            List<Statement> statements = new ArrayList<>();
+            TypeDesc returnType = genResourceBody(resource.inSequence(), statements, context);
+            Optional<TypeDesc> returnTypeDesc = returnType == BuiltinType.NIL
+                    ? Optional.empty() : Optional.of(returnType);
+            return new Resource(method, path, parameters, returnTypeDesc, statements);
         }
 
         private static String buildResourcePath(String synapsePath) {
@@ -83,6 +99,78 @@ public interface BIRConverter {
                 }
             }
             return segments.isEmpty() ? ROOT_RESOURCE_PATH : String.join("/", segments);
+        }
+
+        private static TypeDesc genResourceBody(synapse.model.Synapse.InSequence inSequence, List<Statement> statements,
+                                                ConversionContext context) {
+            if (inSequence == null) {
+                return BuiltinType.NIL;
+            }
+
+            TypeDesc returnType = BuiltinType.NIL;
+            for (SynapseNode node : inSequence.mediators()) {
+                if (node.kind() == Kind.RESPOND) {
+                    returnType = respond(statements, context);
+                } else {
+                    BIRConverter converter = CONVERTERS.getOrDefault(node.kind(), new UnsupportedConverter());
+                    converter.convert(node, context);
+                }
+            }
+            return returnType;
+        }
+
+        private static TypeDesc respond(List<Statement> statements, ConversionContext context) {
+            Optional<ConversionContext.Payload> payload = context.payload();
+            if (payload.isEmpty()) {
+                return BuiltinType.NIL;
+            }
+            if (!context.isRespondInitialized()) {
+                statements.add(0, new Statement.BallerinaStatement("http:Response response = new;"));
+                context.setRespondInitialized(true);
+            }
+            ConversionContext.Payload p = payload.get();
+            statements.add(new Statement.CallStatement(new Expression.MethodCall(
+                    new Expression.VariableReference("response"), "setPayload", List.of(p.value()))));
+            statements.add(new Statement.Return<>(Optional.of(new Expression.VariableReference("response"))));
+            context.setPayload(null);
+            return new TypeDesc.BallerinaType("http:Response");
+        }
+    }
+
+    class PayloadFactoryConverter implements BIRConverter {
+
+        @Override
+        public void convert(SynapseNode node, ConversionContext context) {
+            PayloadFactory payloadFactory = (PayloadFactory) node;
+            TypeDesc type = mediaTypeToType(payloadFactory.mediaType());
+            Expression value = extractValue(payloadFactory.mediaType(), payloadFactory.format());
+            context.setPayload(new ConversionContext.Payload(type, value));
+        }
+
+        private static TypeDesc mediaTypeToType(String mediaType) {
+            return switch (mediaType) {
+                case "json" -> BuiltinType.JSON;
+                case "xml" -> BuiltinType.XML;
+                case "text" -> BuiltinType.STRING;
+                default -> BuiltinType.ANYDATA;
+            };
+        }
+
+        private static Expression extractValue(String mediaType, String format) {
+            return switch (mediaType) {
+                case "text" -> new StringConstant(format);
+                case "xml" -> new XMLTemplate(format);
+                // json (and others): the <format> is already a valid Ballerina literal expression.
+                default -> new BallerinaExpression(format);
+            };
+        }
+    }
+
+    class UnsupportedConverter implements BIRConverter {
+
+        @Override
+        public void convert(SynapseNode node, ConversionContext context) {
+            throw new UnsupportedOperationException("No converter implemented for Synapse node kind: " + node.kind());
         }
     }
 }

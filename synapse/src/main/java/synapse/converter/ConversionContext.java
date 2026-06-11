@@ -17,10 +17,13 @@
  */
 package synapse.converter;
 
+import common.BallerinaModel.Expression;
 import common.BallerinaModel.Service;
+import common.BallerinaModel.TypeDesc;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Holds the state accumulated while converting Synapse records to Ballerina,
@@ -29,6 +32,16 @@ import java.util.List;
 public class ConversionContext {
 
     private final List<Service> services = new ArrayList<>();
+    private Payload payload;
+    private boolean respondInitialized;
+
+    public boolean isRespondInitialized() {
+        return respondInitialized;
+    }
+
+    public void setRespondInitialized(boolean respondInitialized) {
+        this.respondInitialized = respondInitialized;
+    }
 
     public void addService(Service service) {
         services.add(service);
@@ -36,5 +49,22 @@ public class ConversionContext {
 
     public List<Service> services() {
         return services;
+    }
+
+    public void setPayload(Payload payload) {
+        this.payload = payload;
+    }
+
+    public Optional<Payload> payload() {
+        return Optional.ofNullable(payload);
+    }
+
+    /**
+     * A payload extracted from a Synapse mediator (e.g. {@code <payloadFactory>}): the Ballerina
+     * type of the payload and the expression producing its value. How it is finally emitted (as a
+     * return value, a variable, etc.) depends on the surrounding context (e.g. whether a
+     * {@code <respond>} follows), which is resolved later.
+     */
+    public record Payload(TypeDesc type, Expression value) {
     }
 }

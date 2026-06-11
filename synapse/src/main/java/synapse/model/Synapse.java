@@ -29,9 +29,31 @@ public record Synapse() {
     }
 
     public record Resource(Kind kind, String methods, String path,
-                           List<String> queryParams) implements SynapseNode {
-        public Resource(String methods, String path, List<String> queryParams) {
-            this(Kind.RESOURCE, methods, path, queryParams);
+                           List<String> queryParams, InSequence inSequence) implements SynapseNode {
+        public Resource(String methods, String path, List<String> queryParams, InSequence inSequence) {
+            this(Kind.RESOURCE, methods, path, queryParams, inSequence);
+        }
+    }
+
+    // <inSequence> ... </inSequence> -> the request-processing mediator sequence of a resource.
+    public record InSequence(Kind kind, List<SynapseNode> mediators) implements SynapseNode {
+        public InSequence(List<SynapseNode> mediators) {
+            this(Kind.IN_SEQUENCE, mediators);
+        }
+    }
+
+    // <payloadFactory media-type="json"><format>{"Hello":"World"}</format></payloadFactory>
+    // -> sets the response payload to the given format (of the given media type).
+    public record PayloadFactory(Kind kind, String mediaType, String format) implements SynapseNode {
+        public PayloadFactory(String mediaType, String format) {
+            this(Kind.PAYLOAD_FACTORY, mediaType, format);
+        }
+    }
+
+    // <respond/> -> sends the current message back as the response.
+    public record Respond(Kind kind) implements SynapseNode {
+        public Respond() {
+            this(Kind.RESPOND);
         }
     }
 
@@ -41,6 +63,9 @@ public record Synapse() {
 
     public enum Kind {
         API,
-        RESOURCE
+        RESOURCE,
+        IN_SEQUENCE,
+        PAYLOAD_FACTORY,
+        RESPOND
     }
 }
