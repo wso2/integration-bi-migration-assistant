@@ -197,7 +197,7 @@ public class IndividualReportGenerator {
 
     public static ProjectMigrationStats getProjectMigrationStats(MuleVersion muleVersion,
                                                                  MigrationMetrics<? extends DWConstructBase> metrics) {
-        int failedDWLineCount = countFailedDWLines(metrics.dwConversionStats);
+        int failedDWLineCount = metrics.dwConversionStats.getFailedDWLineCount();
 
         // Calculate implementation times
         double bestCaseDays = calculateBestCaseEstimate(metrics.failedXMLTags, failedDWLineCount);
@@ -314,9 +314,6 @@ public class IndividualReportGenerator {
         return totalMinutes / (8 * 60); // Convert minutes to days (8 hours per day, 60 minutes per hour)
     }
 
-    private static int countFailedDWLines(DWConversionStats<? extends DWConstructBase> dwStats) {
-        return dwStats.getFailedDWLineCount();
-    }
 
     private static int calculateElementsCoverage(ProjectMigrationStats pms, MuleVersion muleVersion) {
         int xmlPassedWeight = calculateTotalWeight(muleVersion, pms.passedXMLTags());

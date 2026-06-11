@@ -24,6 +24,7 @@ public class BallerinaDWException extends RuntimeException {
 
     public BallerinaDWException(String scriptIdentifier) {
         super(scriptIdentifier);
+        assert scriptIdentifier != null : "scriptIdentifier must not be null";
         this.scriptIdentifier = scriptIdentifier;
     }
 
