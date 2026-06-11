@@ -197,7 +197,7 @@ public class IndividualReportGenerator {
 
     public static ProjectMigrationStats getProjectMigrationStats(MuleVersion muleVersion,
                                                                  MigrationMetrics<? extends DWConstructBase> metrics) {
-        int failedDWLineCount = countUnsupportedDWExpressions(metrics.dwConversionStats);
+        int failedDWLineCount = countFailedDWLines(metrics.dwConversionStats);
 
         // Calculate implementation times
         double bestCaseDays = calculateBestCaseEstimate(metrics.failedXMLTags, failedDWLineCount);
@@ -291,7 +291,7 @@ public class IndividualReportGenerator {
 
     private static double calculateBestCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags, int dwLines) {
         double repeatedElementTime = failedXMLTags.values().stream().filter(x -> x > 1).mapToInt(x -> x - 1)
-                .mapToDouble(integer -> (integer - 1) * BEST_CASE_COMP_TIME_REPEATED_MINUTES).sum();
+                .mapToDouble(repeatCount -> repeatCount * BEST_CASE_COMP_TIME_REPEATED_MINUTES).sum();
         double totalMinutes = failedXMLTags.size() * BEST_CASE_COMP_TIME_NEW_MINUTES + repeatedElementTime +
                 dwLines * BEST_DW_LINE_TIME_MINUTES;
         return totalMinutes / (8 * 60); // Convert minutes to days (8 hours per day, 60 minutes per hour)
@@ -300,7 +300,7 @@ public class IndividualReportGenerator {
     private static double calculateAverageCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags,
                                                        int dwLines) {
         double repeatedElementTime = failedXMLTags.values().stream().filter(x -> x > 1).mapToInt(x -> x - 1)
-                .mapToDouble(integer -> (integer - 1) * AVG_CASE_COMP_TIME_REPEATED_MINUTES).sum();
+                .mapToDouble(repeatCount -> repeatCount * AVG_CASE_COMP_TIME_REPEATED_MINUTES).sum();
         double totalMinutes = failedXMLTags.size() * AVG_CASE_COMP_TIME_NEW_MINUTES + repeatedElementTime +
                 dwLines * AVG_CASE_DW_LINE_TIME_MINUTES;
         return totalMinutes / (8 * 60); // Convert minutes to days (8 hours per day, 60 minutes per hour)
@@ -308,13 +308,13 @@ public class IndividualReportGenerator {
 
     private static double calculateWorstCaseEstimate(LinkedHashMap<String, Integer> failedXMLTags, int dwLines) {
         double repeatedElementTime = failedXMLTags.values().stream().filter(x -> x > 1).mapToInt(x -> x - 1)
-                .mapToDouble(integer -> (integer - 1) * WORST_CASE_COMP_TIME_REPEATED_MINUTES).sum();
+                .mapToDouble(repeatCount -> repeatCount * WORST_CASE_COMP_TIME_REPEATED_MINUTES).sum();
         double totalMinutes = failedXMLTags.size() * WORST_CASE_COMP_TIME_NEW_MINUTES + repeatedElementTime +
                 dwLines * WORST_CASE_DW_LINE_TIME_MINUTES;
         return totalMinutes / (8 * 60); // Convert minutes to days (8 hours per day, 60 minutes per hour)
     }
 
-    private static int countUnsupportedDWExpressions(DWConversionStats<? extends DWConstructBase> dwStats) {
+    private static int countFailedDWLines(DWConversionStats<? extends DWConstructBase> dwStats) {
         return dwStats.getFailedDWLineCount();
     }
 

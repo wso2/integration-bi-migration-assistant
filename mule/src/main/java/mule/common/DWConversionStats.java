@@ -91,7 +91,8 @@ public class DWConversionStats<T extends DWConstructBase> {
 
     /** DW lines estimated to have been successfully auto-converted. */
     public int getConvertedDWLineCount() {
-        return getConvertedCount() / CONSTRUCTS_PER_DW_LINE;
+        // Ceiling division: ensures at least 1 line is counted when any unsupported constructs exist.
+        return (getConvertedCount() + CONSTRUCTS_PER_DW_LINE - 1) / CONSTRUCTS_PER_DW_LINE;
     }
 
     /** Total DW source lines (converted + failed), used for report display. */

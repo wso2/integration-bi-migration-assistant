@@ -188,9 +188,9 @@ public class DWReader {
             return buildStatement(context, varName);
         }
         String resolvedPath = resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR);
-        ParseTree tree;
+        String fileScript;
         try {
-            tree = readDWScriptFromFile(resolvedPath, context);
+            fileScript = readScriptContent(resolvedPath);
         } catch (DWCodeGenException e) {
             ctx.migrationMetrics.dwConversionStats.record(DWConstruct.MISSING_SCRIPT, false);
             ctx.migrationMetrics.dwConversionStats.addMissingScriptLineEstimate();
@@ -198,19 +198,46 @@ public class DWReader {
                     .add("// DataWeave script not found: " + resolvedPath);
             return ConversionUtils.wrapElementInTodoComment(resolvedPath, "DATAWEAVE FILE NOT FOUND.");
         }
+        ParseTree tree;
+        try {
+            tree = parseScript(fileScript, context);
+        } catch (DWCodeGenException e) {
+            ctx.migrationMetrics.dwConversionStats.recordParseFailure(countDWBodyLines(fileScript), fileScript);
+            return ConversionUtils.wrapElementInTodoComment(fileScript, "DATAWEAVE PARSING FAILED.",
+                    "Error details: " + e.getScriptIdentifier());
+        }
         BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats,
                 namePrefix, ctx.projectCtx.counters.dwFunctionPrefixCounters);
         visitor.visit(tree);
         context.currentScriptContext.funcName = context.functionNames.getLast();
         context.scriptCache.put(resourcePath, context.currentScriptContext);
         return buildStatement(context, varName);
-
     }
 
     private static int countDWBodyLines(String script) {
         return (int) script.lines()
                 .filter(l -> !l.trim().startsWith("%dw") && !l.trim().equals("---"))
                 .count();
+    }
+
+    private static String readScriptContent(String filePath) throws DWCodeGenException {
+        try {
+            Path path = Paths.get(filePath);
+            if (Files.exists(path) && Files.isRegularFile(path)) {
+                if (!filePath.toLowerCase().endsWith(".dwl")) {
+                    throw new IOException("Invalid file type. Expected a .dwl file: " + filePath);
+                }
+                return Files.readString(path, StandardCharsets.UTF_8);
+            }
+            try (InputStream inputStream = DWReader.class.getClassLoader().getResourceAsStream(filePath)) {
+                if (inputStream != null) {
+                    return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                }
+            }
+            throw new IOException("File not found: " + filePath);
+        } catch (IOException e) {
+            throw new DWCodeGenException(filePath, e);
+        }
     }
 
     private static String buildStatement(DWContext context, String varName) {
