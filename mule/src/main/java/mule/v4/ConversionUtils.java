@@ -510,7 +510,7 @@ public class ConversionUtils {
                 "// ------------------------------------------------------------------------\n" +
                 (details != null ? "// %s\n".formatted(details.strip()) +
                         "// ------------------------------------------------------------------------\n" : "") +
-                convertToAComment(inputToBeDump.strip()) +
+                convertToAComment(inputToBeDump.stripIndent()) +
                 "// ------------------------------------------------------------------------\n\n";
     }
 

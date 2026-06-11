@@ -190,7 +190,7 @@ public class DWReader {
         String resolvedPath = resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR);
         String fileScript;
         try {
-            fileScript = readScriptContent(resolvedPath);
+            fileScript = readDWScriptFromFile(resolvedPath);
         } catch (DWCodeGenException e) {
             ctx.migrationMetrics.dwConversionStats.record(DWConstruct.MISSING_SCRIPT, false);
             ctx.migrationMetrics.dwConversionStats.addMissingScriptLineEstimate();
@@ -220,7 +220,7 @@ public class DWReader {
                 .count();
     }
 
-    private static String readScriptContent(String filePath) throws DWCodeGenException {
+    private static String readDWScriptFromFile(String filePath) throws DWCodeGenException {
         try {
             Path path = Paths.get(filePath);
             if (Files.exists(path) && Files.isRegularFile(path)) {

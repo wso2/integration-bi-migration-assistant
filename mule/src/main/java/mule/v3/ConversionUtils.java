@@ -376,7 +376,7 @@ public class ConversionUtils {
             sb.append("// ").append(details.strip()).append("\n")
                     .append("// ------------------------------------------------------------------------\n");
         }
-        String[] lines = input.strip().split("\n");
+        String[] lines = input.stripIndent().split("\n");
         for (String line : lines) {
             sb.append("// ").append(line).append("\n");
         }
