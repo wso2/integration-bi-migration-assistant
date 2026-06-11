@@ -94,7 +94,9 @@ public class DWReader {
         ParseTree tree = parser.script();
 
         if (errorListener.hasErrors()) {
-            context.currentScriptContext.errors.add(errorListener.getErrors());
+            String errors = errorListener.getErrors();
+            context.currentScriptContext.errors.add(errors);
+            throw new BallerinaDWException(errors);
         }
         return tree;
     }
@@ -145,7 +147,14 @@ public class DWReader {
     private static String getFunctionStatement(String script, String resourcePath, DWContext context,
                                                Context ctx, String varName) {
         if (script != null) {
-            ParseTree tree = parseScript(script, context);
+            ParseTree tree;
+            try {
+                tree = parseScript(script, context);
+            } catch (BallerinaDWException e) {
+                ctx.migrationMetrics.dwConversionStats.recordParseFailure(countDWBodyLines(script), script);
+                return ConversionUtils.wrapElementInTodoComment(script, "DATAWEAVE PARSING FAILED.",
+                        "Error details: " + e.getScriptIdentifier());
+            }
             BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);
             visitor.visit(tree);
             context.currentScriptContext.funcName = context.functionNames.getLast();
@@ -170,6 +179,12 @@ public class DWReader {
         context.scriptCache.put(resourcePath, context.currentScriptContext);
         return buildStatement(context, varName);
 
+    }
+
+    private static int countDWBodyLines(String script) {
+        return (int) script.lines()
+                .filter(l -> !l.trim().startsWith("%dw") && !l.trim().equals("---"))
+                .count();
     }
 
     private static String buildStatement(DWContext context, String varName) {

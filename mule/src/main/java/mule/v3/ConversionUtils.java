@@ -360,11 +360,23 @@ public class ConversionUtils {
     }
 
     public static String wrapElementInUnsupportedBlockComment(String input) {
+        return wrapElementInTodoComment(input, "UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.");
+    }
+
+    public static String wrapElementInTodoComment(String input, String todoDescription) {
+        return wrapElementInTodoComment(input, todoDescription, null);
+    }
+
+    public static String wrapElementInTodoComment(String input, String todoDescription, String details) {
         StringBuilder sb = new StringBuilder();
         sb.append("\n\n");
-        sb.append("// TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.\n");
+        sb.append("// TODO: ").append(todoDescription).append("\n");
         sb.append("// ------------------------------------------------------------------------\n");
-        String[] lines = input.split("\n");
+        if (details != null) {
+            sb.append("// ").append(details.strip()).append("\n")
+                    .append("// ------------------------------------------------------------------------\n");
+        }
+        String[] lines = input.strip().split("\n");
         for (String line : lines) {
             sb.append("// ").append(line).append("\n");
         }

@@ -172,8 +172,9 @@ public class DWReader {
             try {
                 tree = parseScript(script, context);
             } catch (DWCodeGenException e) {
-                ctx.migrationMetrics.dwConversionStats.recordParseFailure((int) script.lines().count(), script);
-                return ConversionUtils.wrapElementInTodoComment(script, "DATAWEAVE PARSING FAILED.");
+                ctx.migrationMetrics.dwConversionStats.recordParseFailure(countDWBodyLines(script), script);
+                return ConversionUtils.wrapElementInTodoComment(script, "DATAWEAVE PARSING FAILED.",
+                        "Error details: " + e.getScriptIdentifier());
             }
 
             BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats,
@@ -204,6 +205,12 @@ public class DWReader {
         context.scriptCache.put(resourcePath, context.currentScriptContext);
         return buildStatement(context, varName);
 
+    }
+
+    private static int countDWBodyLines(String script) {
+        return (int) script.lines()
+                .filter(l -> !l.trim().startsWith("%dw") && !l.trim().equals("---"))
+                .count();
     }
 
     private static String buildStatement(DWContext context, String varName) {

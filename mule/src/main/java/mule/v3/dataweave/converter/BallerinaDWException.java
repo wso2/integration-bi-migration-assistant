@@ -19,7 +19,15 @@
 package mule.v3.dataweave.converter;
 
 public class BallerinaDWException extends RuntimeException {
-    public BallerinaDWException(String message) {
-        super(message);
+
+    private final String scriptIdentifier;
+
+    public BallerinaDWException(String scriptIdentifier) {
+        super(scriptIdentifier);
+        this.scriptIdentifier = scriptIdentifier;
+    }
+
+    public String getScriptIdentifier() {
+        return scriptIdentifier;
     }
 }
