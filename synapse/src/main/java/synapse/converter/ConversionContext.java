@@ -26,14 +26,40 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Holds the state accumulated while converting Synapse records to Ballerina,
- * such as the generated services.
+ * Holds the state accumulated while converting Synapse records to Ballerina.
+ *
+ * <p>Contexts form a tree that mirrors the Synapse scope nesting (api -> resource -> ...). A child
+ * context is created for each nested scope via {@link #ConversionContext(ConversionContext)}. State
+ * falls into two categories:
+ * <ul>
+ *   <li><b>Shared / root</b> (e.g. the generated services) is held only at the root and accessed
+ *       through the parent chain, so it survives once a child scope ends.</li>
+ *   <li><b>Scope-local</b> (e.g. the current {@code payload} and the {@code respondInitialized}
+ *       flag) lives only on the context it is set on and dies with that scope.</li>
+ * </ul>
+ * When adding a new field, decide which category it belongs to.
  */
 public class ConversionContext {
 
-    private final List<Service> services = new ArrayList<>();
+    private final ConversionContext parent;
+
+    private final List<Service> services;
+
     private Payload payload;
     private boolean respondInitialized;
+
+    public ConversionContext() {
+        this(null);
+    }
+
+    public ConversionContext(ConversionContext parent) {
+        this.parent = parent;
+        this.services = (parent == null) ? new ArrayList<>() : null;
+    }
+
+    private ConversionContext root() {
+        return (parent == null) ? this : parent.root();
+    }
 
     public boolean isRespondInitialized() {
         return respondInitialized;
@@ -44,11 +70,11 @@ public class ConversionContext {
     }
 
     public void addService(Service service) {
-        services.add(service);
+        root().services.add(service);
     }
 
     public List<Service> services() {
-        return services;
+        return root().services;
     }
 
     public void setPayload(Payload payload) {

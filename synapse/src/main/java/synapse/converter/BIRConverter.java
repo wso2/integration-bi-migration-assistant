@@ -78,8 +78,9 @@ public interface BIRConverter {
                 parameters.add(new Parameter(queryParam, BuiltinType.STRING));
             }
 
+            ConversionContext resourceContext = new ConversionContext(context);
             List<Statement> statements = new ArrayList<>();
-            TypeDesc returnType = genResourceBody(resource.inSequence(), statements, context);
+            TypeDesc returnType = genResourceBody(resource.inSequence(), statements, resourceContext);
             Optional<TypeDesc> returnTypeDesc = returnType == BuiltinType.NIL
                     ? Optional.empty() : Optional.of(returnType);
             return new Resource(method, path, parameters, returnTypeDesc, statements);

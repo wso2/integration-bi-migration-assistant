@@ -1,8 +1,35 @@
 import ballerina/http;
 
-service /HelloWorld on new http:Listener(8290) {
+public listener http:Listener httpListener = new (8080);
 
-    resource function get status() returns json {
-        return {"Hello":"World"};
+service /HelloWorld on httpListener {
+    resource function get .() returns http:Response {
+        http:Response response = new;
+        response.setPayload({"Hello": "World"});
+        return response;
+    }
+
+    resource function get status() returns http:Response {
+        http:Response response = new;
+        response.setPayload({"Hello": "World"});
+        return response;
+    }
+
+    resource function get status/[string id]() returns http:Response {
+        http:Response response = new;
+        response.setPayload({"Hello": "World"});
+        return response;
+    }
+
+    resource function get status/[string name]/[string id](string q) returns http:Response {
+        http:Response response = new;
+        response.setPayload({"Hello": "World"});
+        return response;
+    }
+
+    resource function get .(string p) returns http:Response {
+        http:Response response = new;
+        response.setPayload({"Hello": "World"});
+        return response;
     }
 }

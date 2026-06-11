@@ -48,13 +48,4 @@
         <faultSequence>
         </faultSequence>
     </resource>
-        <resource methods="GET" uri-template="/status/{id}">
-        <inSequence>
-            <payloadFactory media-type="json" template-type="default">
-                <format>{"Hello":"World"}</format>
-            </payloadFactory>
-            <respond/>
-        </inSequence>
-        <faultSequence/>
-    </resource>
 </api>

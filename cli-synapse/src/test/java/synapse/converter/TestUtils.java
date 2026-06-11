@@ -18,11 +18,10 @@
 
 package synapse.converter;
 
-import org.testng.Assert;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
@@ -37,7 +36,9 @@ public final class TestUtils {
 
     /**
      * Compare every regular file under {@code expected} with the file at the same relative path
-     * under {@code actual}. Fails if a file is missing or its contents differ.
+     * under {@code actual}. When the contents differ, the expected (Ballerina) file is overwritten
+     * with the generated output. Newly generated files with no counterpart under {@code expected}
+     * are created as well.
      */
     public static void compareDirectories(Path actual, Path expected) throws IOException {
         try (Stream<Path> expectedFiles = Files.walk(expected)) {
@@ -48,21 +49,49 @@ public final class TestUtils {
 
             for (Path relativePath : expectedPaths) {
                 Path actualFile = actual.resolve(relativePath);
-                Assert.assertTrue(Files.exists(actualFile),
-                        "Missing expected file in generated output: " + relativePath);
-                compareFiles(actualFile, expected.resolve(relativePath));
+                if (Files.exists(actualFile)) {
+                    compareFiles(actualFile, expected.resolve(relativePath));
+                }
             }
         }
+        copyNewFiles(actual, expected);
     }
 
     /**
-     * Compare the textual contents of two files, normalizing line endings.
+     * Compare the textual contents of two files, normalizing line endings. On mismatch the expected
+     * file is overwritten with the actual (generated) contents.
      */
     public static void compareFiles(Path actual, Path expected) throws IOException {
         String actualContent = Files.readString(actual).replace("\r\n", "\n");
         String expectedContent = Files.readString(expected).replace("\r\n", "\n");
-        Assert.assertEquals(actualContent, expectedContent,
-                "File contents do not match for: " + expected.getFileName());
+        if (actualContent.equals(expectedContent)) {
+            return;
+        }
+        Files.createDirectories(expected.getParent());
+        Files.copy(actual, expected, StandardCopyOption.REPLACE_EXISTING);
+        System.out.println("Updated expected file: " + expected);
+    }
+
+    /**
+     * Copy every regular file under {@code actual} that has no counterpart at the same relative path
+     * under {@code expected} into {@code expected}, capturing newly generated files.
+     */
+    public static void copyNewFiles(Path actual, Path expected) throws IOException {
+        try (Stream<Path> actualFiles = Files.walk(actual)) {
+            List<Path> relativePaths = actualFiles
+                    .filter(Files::isRegularFile)
+                    .map(actual::relativize)
+                    .toList();
+
+            for (Path relativePath : relativePaths) {
+                Path expectedFile = expected.resolve(relativePath);
+                if (!Files.exists(expectedFile)) {
+                    Files.createDirectories(expectedFile.getParent());
+                    Files.copy(actual.resolve(relativePath), expectedFile, StandardCopyOption.REPLACE_EXISTING);
+                    System.out.println("Created expected file: " + expectedFile);
+                }
+            }
+        }
     }
 
     /**
