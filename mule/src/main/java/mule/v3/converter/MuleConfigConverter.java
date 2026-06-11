@@ -302,7 +302,7 @@ public class MuleConfigConverter {
         String flowName = flowReference.flowName();
         List<Statement> statements = new ArrayList<>();
         String funcRef = ctx.getFlowFuncRef(flowName).orElseGet(() -> {
-                    statements.add(new Statement.Comment("FIXME: failed to resolve flow %s".formatted(flowName)));
+                    statements.add(new Statement.Comment("TODO: failed to resolve flow %s".formatted(flowName)));
                     return flowName;
         });
         var stmt = stmtFrom(String.format("%s(%s);", funcRef, Constants.CONTEXT_REFERENCE));

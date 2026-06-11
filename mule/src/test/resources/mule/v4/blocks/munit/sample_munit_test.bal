@@ -38,7 +38,7 @@ function test\-with\-mock() returns error? {
     // </munit-tools:mock-when>
     // ------------------------------------------------------------------------
     // Execution (Act)
-    // FIXME: failed to find flow getOrderFlow
+    // TODO: failed to find flow getOrderFlow
     getOrderFlow(ctx);
     // Validation (Assert)
     test:assertNotEquals(ctx.payload, ());

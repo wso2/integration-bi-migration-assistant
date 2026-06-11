@@ -339,7 +339,7 @@ public class MuleConfigConverter {
             BallerinaStatement stmt = stmtFrom("log:%s(%s);".formatted(logFuncName, stringLiteral));
             stmts.add(stmt);
         } catch (ScriptConversionException e) {
-            stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+            stmts.add(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
         }
         return new WorkerStatementResult(stmts);
     }
@@ -356,7 +356,7 @@ public class MuleConfigConverter {
     private static WorkerStatementResult convertAnypointMqAck(Context ctx, AnypointMqAck ack) {
         List<Statement> stmts = new ArrayList<>();
         if (ctx.jmsCaller == null) {
-            stmts.add(new Statement.Comment("FIXME: anypoint-mq:ack requires a JMS caller context"));
+            stmts.add(new Statement.Comment("TODO: anypoint-mq:ack requires a JMS caller context"));
             return new WorkerStatementResult(stmts);
         }
         String messageExpr = Constants.ATTRIBUTES_FIELD_ACCESS + "." + Constants.JMS_MESSAGE_REF;
@@ -392,7 +392,7 @@ public class MuleConfigConverter {
                 stmts.add(new Statement.CallStatement(new BallerinaModel.Expression.Check(
                         new BallerinaModel.Action.RemoteMethodCallAction(producer, "send", List.of(message.ref())))));
             } catch (ScriptConversionException e) {
-                stmts.add(new Statement.Comment("FIXME: failed to convert properties script: " + e.getMessage()));
+                stmts.add(new Statement.Comment("TODO: failed to convert properties script: " + e.getMessage()));
             }
         });
         return new WorkerStatementResult(stmts);
@@ -464,7 +464,7 @@ public class MuleConfigConverter {
             var stmt = stmtFrom(String.format("%s.%s = %s;", Constants.VARS_FIELD_ACCESS, varName, balExpr));
             stmts.add(stmt);
         } catch (ScriptConversionException e) {
-            stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+            stmts.add(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
         }
         return new WorkerStatementResult(stmts);
     }
@@ -499,7 +499,7 @@ public class MuleConfigConverter {
                 }
             }
         } catch (ScriptConversionException e) {
-            stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+            stmts.add(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
             return new WorkerStatementResult(stmts);
         }
 
@@ -522,7 +522,7 @@ public class MuleConfigConverter {
         try {
             ifCondition = convertMuleExprToBal(ctx, firstWhen.condition());
         } catch (ScriptConversionException e) {
-            stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+            stmts.add(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
             ifCondition = "false";
         }
         List<Statement> ifBody = new ArrayList<>();
@@ -543,7 +543,7 @@ public class MuleConfigConverter {
             try {
                 whenCondition = convertMuleExprToBal(ctx, when.condition());
             } catch (ScriptConversionException e) {
-                stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+                stmts.add(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
                 whenCondition = "false";
             }
             ElseIfClause elseIfClause = new ElseIfClause(exprFrom(whenCondition), elseIfBody);
@@ -565,7 +565,7 @@ public class MuleConfigConverter {
         String flowName = flowReference.flowName();
         List<Statement> statements = new ArrayList<>();
         String funcRef = ctx.getFlowFuncRef(flowName).orElseGet(() -> {
-            statements.add(new Statement.Comment("FIXME: failed to find flow %s".formatted(flowName)));
+            statements.add(new Statement.Comment("TODO: failed to find flow %s".formatted(flowName)));
             return flowName;
         });
         var stmt = stmtFrom(String.format("%s(%s);", funcRef, Constants.CONTEXT_REFERENCE));
@@ -598,7 +598,7 @@ public class MuleConfigConverter {
             ConversionUtils.processExprCompContent(ctx, convertedExpr);
             stmts.add(stmtFrom(convertedExpr));
         } catch (ScriptConversionException e) {
-            stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+            stmts.add(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
         }
         return new WorkerStatementResult(stmts);
     }
@@ -612,7 +612,7 @@ public class MuleConfigConverter {
             source = convertMuleExprToBal(ctx, enricher.source());
             target = convertMuleExprToBal(ctx, enricher.target());
         } catch (ScriptConversionException e) {
-            stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+            stmts.add(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
             return new WorkerStatementResult(stmts);
         }
 
@@ -688,7 +688,7 @@ public class MuleConfigConverter {
             try {
                 path = getBallerinaClientResourcePath(ctx, httpRequest.path());
             } catch (ScriptConversionException e) {
-                stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+                stmts.add(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
                 return new WorkerStatementResult(stmts);
             }
         }
@@ -743,7 +743,7 @@ public class MuleConfigConverter {
             try {
                 queryParamsStr = genQueryParam(ctx, queryParams);
             } catch (ScriptConversionException e) {
-                stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+                stmts.add(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
                 queryParamsStr = "";
             }
             if (!queryParamsStr.isEmpty()) {
@@ -805,7 +805,7 @@ public class MuleConfigConverter {
             stmts.add(stmtFrom(
                     "map<string?> %s = %s;".formatted(nilableName, convertMELToBal(ctx, script, true))));
         } catch (ScriptConversionException e) {
-            stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+            stmts.add(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
         }
         stmts.add(stmtFrom(
                 ("map<string> %1$s = map from string key in %2$s.keys() where %2$s.get(key) is string "
@@ -933,7 +933,7 @@ public class MuleConfigConverter {
         try {
             collection = convertMuleExprToBal(ctx, foreach.collection());
         } catch (ScriptConversionException e) {
-            stmts.add(new Statement.Comment("FIXME: failed to convert " + e.getMelExpression()));
+            stmts.add(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
             return new WorkerStatementResult(stmts);
         }
 
@@ -1122,7 +1122,7 @@ public class MuleConfigConverter {
         try {
             DWReader.processDWElements(transformMsg.children(), ctx, stmts, namePrefix);
         } catch (DWCodeGenException e) {
-            stmts.add(new Statement.Comment("FIXME: failed to convert DataWeave script "
+            stmts.add(new Statement.Comment("TODO: failed to convert DataWeave script "
                     + e.getScriptIdentifier()));
         }
         return new WorkerStatementResult(stmts);
