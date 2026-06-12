@@ -72,7 +72,7 @@ public class SynapseProjectConversionTest {
         try (Stream<Path> dirs = Files.list(SYNAPSE_DIR)) {
             return dirs
                     .filter(Files::isDirectory)
-                    .filter(dir -> dir.getFileName().toString().contains("HelloWorldService"))
+                    // .filter(dir -> dir.getFileName().toString().contains("HelloWorldService"))
                     .map(dir -> new Object[]{findSynapseArtifact(dir), BALLERINA_DIR.resolve(dir.getFileName())})
                     .toArray(Object[][]::new);
         }

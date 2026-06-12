@@ -1,12 +1,11 @@
 import ballerina/http;
-import ballerina/log;
 
-// Converted from Synapse REST API `HealthCheckApi` (context: /healthcheck).
-service /healthcheck on new http:Listener(8290) {
+public listener http:Listener httpListener = new (8080);
 
-    resource function get status() returns json {
-        log:printInfo("Health check requested");
-        json response = {"status": "UP"};
+service /healthcheck on httpListener {
+    resource function get status() returns http:Response {
+        http:Response response = new;
+        response.setPayload({"status": "UP"});
         return response;
     }
 }
