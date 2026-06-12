@@ -38,7 +38,7 @@ public class MigratorUtils {
     public static final String BAL_DEFAULT_PROJECT_ORG = "mule_migrator";
 
     public static final List<String> MULE_V4_ONLY_TERMS = Arrays.asList(
-            "doc:id", "xmlns:ee", "<ee:message", "<ee:transform", "<ttp:listener-connection"
+            "doc:id", "xmlns:ee", "<ee:message", "<ee:transform", "<http:listener-connection"
     );
 
     public static final List<String> MULE_V3_ONLY_TERMS = Arrays.asList(
@@ -110,7 +110,8 @@ public class MigratorUtils {
             for (File file : files) {
                 if (file.isDirectory()) {
                     collectYamlAndPropertyFiles(file, yamlFiles, propertiesFiles);
-                } else if (file.getName().toLowerCase().endsWith(".yaml")) {
+                } else if (file.getName().toLowerCase().endsWith(".yaml")
+                        || file.getName().toLowerCase().endsWith(".yml")) {
                     yamlFiles.add(file);
                 } else if (file.getName().toLowerCase().endsWith(".properties")) {
                     propertiesFiles.add(file);
@@ -142,6 +143,11 @@ public class MigratorUtils {
                 Files.exists(muleSourceDir.resolve("src").resolve("main").resolve("app")
                         .resolve("mule-deploy.properties"))) {
             return MuleMigrator.MuleVersion.MULE_V3;
+        }
+
+        // Mule 4 projects use src/main/mule/ for XML configs
+        if (Files.isDirectory(muleSourceDir.resolve("src").resolve("main").resolve("mule"))) {
+            return MuleMigrator.MuleVersion.MULE_V4;
         }
 
         // Unable to determine version, default to MULE_V3

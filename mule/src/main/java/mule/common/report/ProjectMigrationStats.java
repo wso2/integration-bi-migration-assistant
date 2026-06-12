@@ -35,7 +35,7 @@ import java.util.List;
  * @param averageCaseDays           estimated days for average case migration
  * @param worstCaseDays             estimated days for worst case migration
  * @param failedDistinctXMLTagCount count of distinct XML tags that failed migration
- * @param failedDWExprCount         count of DataWeave expressions that failed migration
+ * @param failedDWLineCount         total lines of DataWeave code that require manual conversion
  * @since 1.1.1
  */
 public record ProjectMigrationStats(LinkedHashMap<String, Integer> passedXMLTags,
@@ -47,5 +47,5 @@ public record ProjectMigrationStats(LinkedHashMap<String, Integer> passedXMLTags
                                     double averageCaseDays,
                                     double worstCaseDays,
                                     int failedDistinctXMLTagCount,
-                                    int failedDWExprCount) {
+                                    int failedDWLineCount) {
 }

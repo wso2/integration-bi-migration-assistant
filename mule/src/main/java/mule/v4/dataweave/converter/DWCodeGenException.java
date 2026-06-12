@@ -38,4 +38,3 @@ public class DWCodeGenException extends Exception {
         return scriptIdentifier;
     }
 }
-

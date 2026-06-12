@@ -118,7 +118,7 @@ public class DWContext {
     }
 
     private void markAsFailedDWExpr(String dwExpr) {
-        this.toolContext.migrationMetrics.dwConversionStats.failedDWExpressions.add(dwExpr);
+        this.toolContext.migrationMetrics.dwConversionStats.addFailedExpression(dwExpr);
     }
 
     public static class DWScriptContext {

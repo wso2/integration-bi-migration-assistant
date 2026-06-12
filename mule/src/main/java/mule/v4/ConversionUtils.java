@@ -501,10 +501,16 @@ public class ConversionUtils {
     }
 
     public static String wrapElementInTodoComment(String inputToBeDump, String todoDescription) {
+        return wrapElementInTodoComment(inputToBeDump, todoDescription, null);
+    }
+
+    public static String wrapElementInTodoComment(String inputToBeDump, String todoDescription, String details) {
         return "\n\n" +
                 "// TODO: %s\n".formatted(todoDescription) +
                 "// ------------------------------------------------------------------------\n" +
-                convertToAComment(inputToBeDump) +
+                (details != null ? "// %s\n".formatted(details.strip()) +
+                        "// ------------------------------------------------------------------------\n" : "") +
+                convertToAComment(inputToBeDump.stripIndent()) +
                 "// ------------------------------------------------------------------------\n\n";
     }
 

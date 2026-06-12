@@ -25,7 +25,7 @@ import java.util.List;
 
 import static mule.common.report.IndividualReportGenerator.AVG_CASE_COMP_TIME_NEW_MINUTES;
 import static mule.common.report.IndividualReportGenerator.AVG_CASE_COMP_TIME_REPEATED_MINUTES;
-import static mule.common.report.IndividualReportGenerator.AVG_CASE_DW_EXPR_TIME_MINUTES;
+import static mule.common.report.IndividualReportGenerator.AVG_CASE_DW_LINE_TIME_MINUTES;
 import static mule.common.report.IndividualReportGenerator.INDIVIDUAL_REPORT_NAME;
 
 /**
@@ -158,7 +158,7 @@ public static String generateHtmlReport(AggregateStatistics stats, MuleLogger lo
                 stats.avgCoverage(), // %.0f - avg coverage again
                 AVG_CASE_COMP_TIME_NEW_MINUTES / 60,
                 AVG_CASE_COMP_TIME_REPEATED_MINUTES,
-                AVG_CASE_DW_EXPR_TIME_MINUTES,
+                AVG_CASE_DW_LINE_TIME_MINUTES,
                 generateProjectCards(projectResults, convertedProjectsDir),
                 // html
                 generateFailedElementsRows(projectResults) // %s - failed elements rows html
