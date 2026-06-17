@@ -54,7 +54,8 @@ public interface BIRConverter {
         private static final String ROOT_RESOURCE_PATH = ".";
 
         private static final Map<Kind, BIRConverter> CONVERTERS = Map.of(
-                Kind.PAYLOAD_FACTORY, new PayloadFactoryConverter());
+                Kind.PAYLOAD_FACTORY, new PayloadFactoryConverter(),
+                Kind.PROPERTY, new SynapseConverter.PropertyConverter());
 
         @Override
         public void convert(SynapseNode node, ConversionContext context) {
@@ -79,11 +80,10 @@ public interface BIRConverter {
             }
 
             ConversionContext resourceContext = new ConversionContext(context);
-            List<Statement> statements = new ArrayList<>();
-            TypeDesc returnType = genResourceBody(resource.inSequence(), statements, resourceContext);
+            TypeDesc returnType = genResourceBody(resource.inSequence(), resourceContext);
             Optional<TypeDesc> returnTypeDesc = returnType == BuiltinType.NIL
                     ? Optional.empty() : Optional.of(returnType);
-            return new Resource(method, path, parameters, returnTypeDesc, statements);
+            return new Resource(method, path, parameters, returnTypeDesc, resourceContext.statements());
         }
 
         private static String buildResourcePath(String synapsePath) {
@@ -102,8 +102,7 @@ public interface BIRConverter {
             return segments.isEmpty() ? ROOT_RESOURCE_PATH : String.join("/", segments);
         }
 
-        private static TypeDesc genResourceBody(synapse.model.Synapse.InSequence inSequence, List<Statement> statements,
-                                                ConversionContext context) {
+        private static TypeDesc genResourceBody(synapse.model.Synapse.InSequence inSequence, ConversionContext context) {
             if (inSequence == null) {
                 return BuiltinType.NIL;
             }
@@ -111,7 +110,7 @@ public interface BIRConverter {
             TypeDesc returnType = BuiltinType.NIL;
             for (SynapseNode node : inSequence.mediators()) {
                 if (node.kind() == Kind.RESPOND) {
-                    returnType = respond(statements, context);
+                    returnType = respond(context);
                 } else {
                     BIRConverter converter = CONVERTERS.getOrDefault(node.kind(), new UnsupportedConverter());
                     converter.convert(node, context);
@@ -120,11 +119,12 @@ public interface BIRConverter {
             return returnType;
         }
 
-        private static TypeDesc respond(List<Statement> statements, ConversionContext context) {
+        private static TypeDesc respond(ConversionContext context) {
             Optional<ConversionContext.Payload> payload = context.payload();
             if (payload.isEmpty()) {
                 return BuiltinType.NIL;
             }
+            List<Statement> statements = context.statements();
             if (!context.isRespondInitialized()) {
                 statements.add(0, new Statement.BallerinaStatement("http:Response response = new;"));
                 context.setRespondInitialized(true);

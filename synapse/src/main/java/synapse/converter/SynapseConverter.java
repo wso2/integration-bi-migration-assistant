@@ -22,9 +22,11 @@ import common.BallerinaModel.Import;
 import common.BallerinaModel.Listener;
 import common.BallerinaModel.Listener.HTTPListener;
 import common.BallerinaModel.Service;
+import common.BallerinaModel.Statement;
 import common.BallerinaModel.TextDocument;
 import synapse.converter.BIRConverter.APIConverter;
 import synapse.model.Synapse.Kind;
+import synapse.model.Synapse.Property;
 import synapse.model.Synapse.SynapseNode;
 import synapse.reader.SynapseConfigReader;
 
@@ -145,5 +147,47 @@ public final class SynapseConverter {
         // TODO: implement single-project Synapse -> Ballerina conversion.
         throw new UnsupportedOperationException(
                 "Synapse project migration is not implemented yet. Source: " + sourcePath);
+    }
+
+    /**
+     * Converts a Synapse {@code <property>} mediator. How a property is converted depends on where it
+     * lives: a property within a resource contributes to that resource's body, whereas a property
+     * outside a resource (e.g. an api-level property) is handled differently. This converter therefore
+     * first identifies its scope.
+     */
+    static class PropertyConverter implements BIRConverter {
+
+        private static final String TRANSPORT_SCOPE = "transport";
+        private static final String AXIS2_SCOPE = "axis2";
+
+        @Override
+        public void convert(SynapseNode node, ConversionContext context) {
+            Property property = (Property) node;
+            if (context.isWithinResource()) {
+                convertResourceProperty(property, context);
+            } else {
+                // TODO: convert a property declared outside a resource.
+            }
+        }
+
+        private static void convertResourceProperty(Property property, ConversionContext context) {
+            String statement = switch (property.scope()) {
+                case TRANSPORT_SCOPE -> "response.setHeader(\"" + property.name() + "\", \""
+                        + property.value() + "\");";
+                case AXIS2_SCOPE -> "response.statusCode = " + property.value() + ";";
+                default -> toBallerinaType(property.type()) + " " + property.name() + " = "
+                        + property.value() + ";";
+            };
+            context.statements().add(new Statement.BallerinaStatement(statement));
+        }
+
+        private static String toBallerinaType(String synapseType) {
+            return switch (synapseType.toUpperCase()) {
+                case "INTEGER", "INT", "LONG", "SHORT" -> "int";
+                case "BOOLEAN" -> "boolean";
+                case "DOUBLE", "FLOAT" -> "float";
+                default -> "string";
+            };
+        }
     }
 }

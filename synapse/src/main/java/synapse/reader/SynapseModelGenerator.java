@@ -23,6 +23,7 @@ import org.w3c.dom.NodeList;
 import synapse.model.Synapse.Api;
 import synapse.model.Synapse.InSequence;
 import synapse.model.Synapse.PayloadFactory;
+import synapse.model.Synapse.Property;
 import synapse.model.Synapse.Resource;
 import synapse.model.Synapse.Respond;
 import synapse.model.Synapse.SynapseNode;
@@ -37,7 +38,11 @@ public class SynapseModelGenerator {
     private static final String IN_SEQUENCE_TAG = "inSequence";
     private static final String PAYLOAD_FACTORY_TAG = "payloadFactory";
     private static final String RESPOND_TAG = "respond";
+    private static final String PROPERTY_TAG = "property";
     private static final String FORMAT_TAG = "format";
+
+    private static final String DEFAULT_PROPERTY_TYPE = "string";
+    private static final String DEFAULT_PROPERTY_SCOPE = "default";
 
     public static List<SynapseNode> generateModel(Element rootElement) {
         List<SynapseNode> nodes = new ArrayList<>();
@@ -122,12 +127,30 @@ public class SynapseModelGenerator {
             switch (child.getTagName()) {
                 case PAYLOAD_FACTORY_TAG -> mediators.add(readPayloadFactory(child));
                 case RESPOND_TAG -> mediators.add(new Respond());
+                case PROPERTY_TAG -> mediators.add(readProperty(child));
                 default -> {
                     // Other mediators are not supported yet; skip for now.
                 }
             }
         }
         return new InSequence(mediators);
+    }
+
+    private static Property readProperty(Element element) {
+        String name = element.getAttribute("name");
+
+        String type = element.getAttribute("type");
+        if (type.isEmpty()) {
+            type = DEFAULT_PROPERTY_TYPE;
+        }
+
+        String scope = element.getAttribute("scope");
+        if (scope.isEmpty()) {
+            scope = DEFAULT_PROPERTY_SCOPE;
+        }
+
+        String value = element.getAttribute("value");
+        return new Property(name, type, scope, value);
     }
 
     private static PayloadFactory readPayloadFactory(Element element) {

@@ -57,6 +57,15 @@ public record Synapse() {
         }
     }
 
+    // <property name="..." scope="default|transport|axis2|axis2-client" type="string" value="..."/>
+    // -> sets a named property (of the given type and scope) to the given value.
+    public record Property(Kind kind, String name, String type, String scope, String value)
+            implements SynapseNode {
+        public Property(String name, String type, String scope, String value) {
+            this(Kind.PROPERTY, name, type, scope, value);
+        }
+    }
+
     public interface SynapseNode {
         Kind kind();
     }
@@ -66,6 +75,7 @@ public record Synapse() {
         RESOURCE,
         IN_SEQUENCE,
         PAYLOAD_FACTORY,
-        RESPOND
+        RESPOND,
+        PROPERTY
     }
 }
