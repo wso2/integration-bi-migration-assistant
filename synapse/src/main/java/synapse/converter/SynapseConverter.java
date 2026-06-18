@@ -134,7 +134,7 @@ public final class SynapseConverter {
                 name = "%s"
                 version = "0.1.0"
                 distribution = "2201.12.3"
-
+                
                 [build-options]
                 observabilityIncluded = true
                 """.formatted(orgName, packageName);

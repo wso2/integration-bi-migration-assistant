@@ -45,7 +45,7 @@ public class SynapseProjectConversionTest {
     private static final Path SYNAPSE_DIR = Path.of("src", "test", "resources", "synapse");
     private static final Path BALLERINA_DIR = Path.of("src", "test", "resources", "ballerina");
 
-    @Test(groups = {"synapse", "converter"}, dataProvider = "projectTestCaseProvider")
+    @Test(dataProvider = "projectTestCaseProvider")
     public void testProjectConversion(Path synapseArtifact, Path expectedBallerinaProject) throws IOException {
         Path tempDir = Files.createTempDirectory("synapse-conversion-test");
         try {

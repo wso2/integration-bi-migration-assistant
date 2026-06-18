@@ -37,7 +37,7 @@ public class MigrateSynapseCommand implements BLauncherCmd {
     private static final String CMD_NAME = "migrate-synapse";
     private static final String USAGE = "bal migrate-synapse <source-project-directory-or-file> " +
             "[-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] " +
-                    "[-m|--multi-root] [-g|--org-name <organization-name>] [-p|--project-name <project-name>]";
+            "[-m|--multi-root] [-g|--org-name <organization-name>] [-p|--project-name <project-name>]";
 
     public MigrateSynapseCommand() {
         errStream = System.err;
@@ -47,30 +47,30 @@ public class MigrateSynapseCommand implements BLauncherCmd {
             arity = "0..1")
     private String sourcePath;
 
-    @CommandLine.Option(names = { "--out", "-o" }, description = "Output directory path")
+    @CommandLine.Option(names = {"--out", "-o"}, description = "Output directory path")
     private String outputPath;
 
-    @CommandLine.Option(names = { "--keep-structure", "-k" }, description = "Keep artifact structure")
+    @CommandLine.Option(names = {"--keep-structure", "-k"}, description = "Keep artifact structure")
     private boolean keepStructure = false;
 
-    @CommandLine.Option(names = { "--verbose", "-v" }, description = "Enable verbose output", defaultValue = "false")
+    @CommandLine.Option(names = {"--verbose", "-v"}, description = "Enable verbose output", defaultValue = "false")
     private boolean verbose;
 
-    @CommandLine.Option(names = { "--dry-run",
-            "-d" }, description = "Simulate the conversion without generating output files", defaultValue = "false")
+    @CommandLine.Option(names = {"--dry-run",
+            "-d"}, description = "Simulate the conversion without generating output files", defaultValue = "false")
     private boolean dryRun;
 
-    @CommandLine.Option(names = { "--multi-root", "-m" },
+    @CommandLine.Option(names = {"--multi-root", "-m"},
             description = "Treat each child directory as a separate project and convert all of them",
             defaultValue = "false")
     private boolean multiRoot;
 
-    @CommandLine.Option(names = { "--org-name",
-            "-g" }, description = "Organization name for the generated Ballerina package")
+    @CommandLine.Option(names = {"--org-name",
+            "-g"}, description = "Organization name for the generated Ballerina package")
     private String orgName;
 
-    @CommandLine.Option(names = { "--project-name",
-            "-p" }, description = "Project name for the generated Ballerina package")
+    @CommandLine.Option(names = {"--project-name",
+            "-p"}, description = "Project name for the generated Ballerina package")
     private String projectName;
 
     @Override
@@ -86,7 +86,7 @@ public class MigrateSynapseCommand implements BLauncherCmd {
     private void onInvalidInput() {
         errStream.println("Usage: bal migrate-synapse <source-project-directory-or-file> " +
                 "[-o|--out <output-directory>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root] " +
-                        "[-g|--org-name <organization-name>] [-p|--project-name <project-name>]");
+                "[-g|--org-name <organization-name>] [-p|--project-name <project-name>]");
         System.exit(1);
     }
 
