@@ -94,9 +94,18 @@ public final class SynapseConverter {
         if (dryRun) {
             return;
         }
-        String targetPath = outputPath != null ? outputPath : sourcePath + "_converted";
+        String targetPath = outputPath != null ? outputPath : stripExtension(sourcePath) + "_converted";
         generateBallerinaPackage(context, targetPath, orgName.orElse(DEFAULT_ORG),
                 projectName.orElse(DEFAULT_PACKAGE));
+    }
+
+    private static String stripExtension(String path) {
+        if (!Files.isRegularFile(Paths.get(path))) {
+            return path;
+        }
+        int lastSeparator = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+        int lastDot = path.lastIndexOf('.');
+        return lastDot > lastSeparator ? path.substring(0, lastDot) : path;
     }
 
     private static void generateBallerinaPackage(ConversionContext context, String targetPath, String orgName,
