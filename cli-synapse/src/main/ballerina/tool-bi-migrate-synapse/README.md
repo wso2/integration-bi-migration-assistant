@@ -148,25 +148,3 @@ of them.
   also be listed in the report under heading "Mediators that need manual validation". For most typical use cases, you
   can use the converted source as is, but we highly encourage users to check the converted code. There will be comments
   explaining any limitations/assumptions the tool has made.
-
-### Supported Synapse artifacts and mediators
-
-> NOTE: This list grows as the converter evolves. The items below are the initial targeted set.
-
-- Artifacts
-    - `proxy` (proxy service)
-    - `api` (REST API) with `resource`
-    - `sequence`
-    - `endpoint`
-- Mediators
-    - `log`
-    - `respond`
-    - `send`
-    - `payloadFactory`
-    - `property`
-    - `sequence` (call)
-    - `call` / `callout`
-    - `filter`
-    - `switch`
-    - `iterate`
-    - `foreach`

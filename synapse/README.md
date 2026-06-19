@@ -43,11 +43,18 @@ java -jar cli-synapse/build/libs/synapse-migration-assistant-<version>.jar <syna
 
 The migration tool currently supports the following Synapse elements:
 
+### Artifacts
+
 | Tag | Converted to |
 |-----|--------------|
 | `<api>` | HTTP service |
 | `<resource>` | resource function |
 | `<inSequence>` | resource function body |
+
+### Mediators
+
+| Tag | Converted to |
+|-----|--------------|
 | `<payloadFactory>` | response payload |
 | `<respond>` | response return |
 | `<property>` (static name only) | response header, status code, or local variable |

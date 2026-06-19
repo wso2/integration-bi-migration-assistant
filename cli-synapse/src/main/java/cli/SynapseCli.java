@@ -38,6 +38,9 @@ public class SynapseCli {
         String orgName = null;
         String projectName = null;
         boolean dryRun = false;
+        boolean verbose = false;
+        boolean keepStructure = false;
+        boolean multiRoot = false;
 
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
@@ -75,11 +78,15 @@ public class SynapseCli {
                 //  Implement their behaviour and forward the values to SynapseConverter.migrateSynapse(...).
                 case "-v":
                 case "--verbose":
+                    verbose = true;
+                    break;
                 case "-k":
                 case "--keep-structure":
+                    keepStructure = true;
+                    break;
                 case "-m":
                 case "--multi-root":
-                    logger.warning("Option '" + arg + "' is not supported yet and will be ignored.");
+                    multiRoot = true;
                     break;
                 default:
                     if (arg.startsWith("-")) {
@@ -102,7 +109,7 @@ public class SynapseCli {
             printUsageAndExit();
         }
 
-        SynapseConverter.migrateSynapse(inputPathArg, outputPathArg, false, false, dryRun, false,
+        SynapseConverter.migrateSynapse(inputPathArg, outputPathArg, keepStructure, verbose, dryRun, multiRoot,
                 Optional.ofNullable(orgName), Optional.ofNullable(projectName));
     }
 
@@ -118,7 +125,7 @@ public class SynapseCli {
         err.println("  -g, --org-name <name>         Organization name for the generated Ballerina package");
         err.println("  -p, --project-name <name>     Project name for the generated Ballerina package");
         err.println();
-        err.println("Not supported yet (accepted but ignored):");
+        err.println("Not supported yet:");
         err.println("  -v, --verbose                 Enable verbose output during conversion");
         err.println("  -k, --keep-structure          Keep Synapse project structure");
         err.println("  -m, --multi-root              Treat each child directory as a separate project");

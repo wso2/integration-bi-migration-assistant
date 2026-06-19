@@ -80,6 +80,16 @@ public final class SynapseConverter {
                                       boolean dryRun, boolean multiRoot, Optional<String> orgName,
                                       Optional<String> projectName) {
 
+        if (keepStructure) {
+            throw new UnsupportedOperationException("The 'keepStructure' option is not supported yet.");
+        }
+        if (verbose) {
+            throw new UnsupportedOperationException("The 'verbose' option is not supported yet.");
+        }
+        if (multiRoot) {
+            throw new UnsupportedOperationException("The 'multiRoot' option is not supported yet.");
+        }
+
         List<SynapseNode> synapseModel = SynapseConfigReader.parse(sourcePath);
 
         ConversionContext context = new ConversionContext();

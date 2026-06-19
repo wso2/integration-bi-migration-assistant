@@ -18,6 +18,7 @@
 
 package synapse.converter;
 
+import org.jetbrains.annotations.NotNull;
 import org.testng.SkipException;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -78,6 +79,7 @@ public class SynapseProjectConversionTest {
         }
     }
 
+    @NotNull
     private static Path findSynapseArtifact(Path projectDir) {
         try (Stream<Path> files = Files.list(projectDir)) {
             List<Path> xmlFiles = files

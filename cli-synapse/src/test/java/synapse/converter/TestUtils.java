@@ -49,9 +49,10 @@ public final class TestUtils {
 
             for (Path relativePath : expectedPaths) {
                 Path actualFile = actual.resolve(relativePath);
-                if (Files.exists(actualFile)) {
-                    compareFiles(actualFile, expected.resolve(relativePath));
+                if (!Files.exists(actualFile)) {
+                    throw new AssertionError("Expected file missing in actual output: " + relativePath);
                 }
+                compareFiles(actualFile, expected.resolve(relativePath));
             }
         }
         copyNewFiles(actual, expected);
@@ -69,7 +70,6 @@ public final class TestUtils {
         }
         Files.createDirectories(expected.getParent());
         Files.copy(actual, expected, StandardCopyOption.REPLACE_EXISTING);
-        System.out.println("Updated expected file: " + expected);
     }
 
     /**
@@ -88,7 +88,6 @@ public final class TestUtils {
                 if (!Files.exists(expectedFile)) {
                     Files.createDirectories(expectedFile.getParent());
                     Files.copy(actual.resolve(relativePath), expectedFile, StandardCopyOption.REPLACE_EXISTING);
-                    System.out.println("Created expected file: " + expectedFile);
                 }
             }
         }

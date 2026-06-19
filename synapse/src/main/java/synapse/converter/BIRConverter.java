@@ -102,7 +102,8 @@ public interface BIRConverter {
             return segments.isEmpty() ? ROOT_RESOURCE_PATH : String.join("/", segments);
         }
 
-        private static TypeDesc genResourceBody(synapse.model.Synapse.InSequence inSequence, ConversionContext context) {
+        private static TypeDesc genResourceBody(synapse.model.Synapse.InSequence inSequence, 
+                                                ConversionContext context) {
             if (inSequence == null) {
                 return BuiltinType.NIL;
             }

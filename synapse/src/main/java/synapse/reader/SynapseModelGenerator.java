@@ -86,7 +86,9 @@ public class SynapseModelGenerator {
 
         String uriTemplate = element.getAttribute("uri-template");
         String urlMapping = element.getAttribute("url-mapping");
-        // TODO: uriTemplate or urlMapping should be mandotory, so it should be checked and handled the error.
+        if (uriTemplate.isEmpty() && urlMapping.isEmpty()) {
+            throw new IllegalArgumentException("Synapse resource must define either 'uri-template' or 'url-mapping'.");
+        }
         String template = !uriTemplate.isEmpty() ? uriTemplate : urlMapping;
 
         String path = "";
