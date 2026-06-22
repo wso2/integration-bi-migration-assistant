@@ -38,7 +38,7 @@ function test\-with\-mock() returns error? {
     // </munit:mock>
     // ------------------------------------------------------------------------
     // Execution (Act)
-    // FIXME: failed to resolve flow getOrderFlow
+    // TODO: failed to resolve flow getOrderFlow
     getOrderFlow(ctx);
     // Validation (Assert)
     test:assertNotEquals(ctx.payload, ());

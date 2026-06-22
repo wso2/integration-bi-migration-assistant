@@ -45,38 +45,20 @@ import static mule.v3.model.MuleModel.TransformMessageElement;
 
 public class DWReader {
 
-    public static ParseTree readDWScriptFromFile(String filePath, DWContext context) {
+    private static String readDWScriptFromFile(String filePath) throws IOException {
         Path path = Paths.get(filePath);
         if (Files.exists(path) && Files.isRegularFile(path)) {
-            return parseFromFile(path, context);
+            if (!filePath.toLowerCase().endsWith(".dwl")) {
+                throw new IOException("Invalid file type. Expected a .dwl file: " + filePath);
+            }
+            return Files.readString(path, StandardCharsets.UTF_8);
         }
-        InputStream inputStream = DWReader.class.getClassLoader().getResourceAsStream(filePath);
-        if (inputStream != null) {
-            return parseFromStream(inputStream, filePath, context);
-        } else {
-            return null;
+        try (InputStream inputStream = DWReader.class.getClassLoader().getResourceAsStream(filePath)) {
+            if (inputStream != null) {
+                return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            }
         }
-    }
-
-    private static ParseTree parseFromFile(Path path, DWContext context) {
-        if (!path.toString().toLowerCase().endsWith(".dwl")) {
-            throw new RuntimeException("Invalid file type. Expected a .dwl file: " + path);
-        }
-        try {
-            String script = Files.readString(path, StandardCharsets.UTF_8);
-            return parseScript(script, context);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read file - " + path, e);
-        }
-    }
-
-    private static ParseTree parseFromStream(InputStream inputStream, String filePath, DWContext context) {
-        try {
-            String script = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-            return parseScript(script, context);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read file from resources: " + filePath, e);
-        }
+        throw new IOException("File not found: " + filePath);
     }
 
     private static ParseTree parseScript(String script, DWContext context) {
@@ -94,7 +76,9 @@ public class DWReader {
         ParseTree tree = parser.script();
 
         if (errorListener.hasErrors()) {
-            context.currentScriptContext.errors.add(errorListener.getErrors());
+            String errors = errorListener.getErrors();
+            context.currentScriptContext.errors.add(errors);
+            throw new BallerinaDWException(errors);
         }
         return tree;
     }
@@ -124,6 +108,7 @@ public class DWReader {
                     context.setMimeType(((InputPayloadElement) child).mimeType());
                     break;
                 default:
+                    ctx.migrationMetrics.failedBlocks.add(child.toString());
                     statementList.add(new BallerinaStatement(
                             ConversionUtils.wrapElementInUnsupportedBlockComment(child.toString())));
                     break;
@@ -144,7 +129,14 @@ public class DWReader {
     private static String getFunctionStatement(String script, String resourcePath, DWContext context,
                                                Context ctx, String varName) {
         if (script != null) {
-            ParseTree tree = parseScript(script, context);
+            ParseTree tree;
+            try {
+                tree = parseScript(script, context);
+            } catch (BallerinaDWException e) {
+                ctx.migrationMetrics.dwConversionStats.recordParseFailure(countDWBodyLines(script), script);
+                return ConversionUtils.wrapElementInTodoComment(script, "DATAWEAVE PARSING FAILED.",
+                        "Error details: " + e.getScriptIdentifier());
+            }
             BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);
             visitor.visit(tree);
             context.currentScriptContext.funcName = context.functionNames.getLast();
@@ -155,17 +147,35 @@ public class DWReader {
             return buildStatement(context, varName);
         }
         String filePath = resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR);
-        ParseTree tree = readDWScriptFromFile(filePath, context);
-        if (tree == null) {
-            // TODO: Avoid null return from readDWScriptFromFile()
-            return "\n// TODO: DataWeave script not found in path: " + filePath + "\n";
+        String fileScript;
+        try {
+            fileScript = readDWScriptFromFile(filePath);
+        } catch (IOException e) {
+            ctx.migrationMetrics.dwConversionStats.record(DWConstruct.MISSING_SCRIPT, false);
+            ctx.migrationMetrics.dwConversionStats.addMissingScriptLineEstimate();
+            ctx.migrationMetrics.dwConversionStats.failedDWExpressions
+                    .add("// DataWeave script not found: " + filePath);
+            return ConversionUtils.wrapElementInTodoComment(filePath, "DATAWEAVE FILE NOT FOUND.");
+        }
+        ParseTree tree;
+        try {
+            tree = parseScript(fileScript, context);
+        } catch (BallerinaDWException e) {
+            ctx.migrationMetrics.dwConversionStats.recordParseFailure(countDWBodyLines(fileScript), fileScript);
+            return ConversionUtils.wrapElementInTodoComment(fileScript, "DATAWEAVE PARSING FAILED.",
+                    "Error details: " + e.getScriptIdentifier());
         }
         BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats);
         visitor.visit(tree);
         context.currentScriptContext.funcName = context.functionNames.getLast();
         context.scriptCache.put(resourcePath, context.currentScriptContext);
         return buildStatement(context, varName);
+    }
 
+    private static int countDWBodyLines(String script) {
+        return (int) script.lines()
+                .filter(l -> !l.trim().startsWith("%dw") && !l.trim().equals("---"))
+                .count();
     }
 
     private static String buildStatement(DWContext context, String varName) {

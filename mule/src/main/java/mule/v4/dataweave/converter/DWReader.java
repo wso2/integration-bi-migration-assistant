@@ -135,7 +135,7 @@ public class DWReader {
                             context, ctx, setVariableElement.variableName(), statementList, namePrefix);
                     break;
                 default:
-                    // TODO: add this to unsupported blocks in report?
+                    ctx.migrationMetrics.failedBlocks.add(child.toString());
                     statementList.add(new BallerinaStatement(
                             ConversionUtils.wrapElementInUnsupportedBlockComment(child.toString())));
                     break;
@@ -172,7 +172,9 @@ public class DWReader {
             try {
                 tree = parseScript(script, context);
             } catch (DWCodeGenException e) {
-                return ConversionUtils.wrapElementInTodoComment(script, "DATAWEAVE PARSING FAILED.");
+                ctx.migrationMetrics.dwConversionStats.recordParseFailure(countDWBodyLines(script), script);
+                return ConversionUtils.wrapElementInTodoComment(script, "DATAWEAVE PARSING FAILED.",
+                        "Error details: " + e.getScriptIdentifier());
             }
 
             BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats,
@@ -186,14 +188,56 @@ public class DWReader {
             return buildStatement(context, varName);
         }
         String resolvedPath = resourcePath.replace(Constants.CLASSPATH, Constants.CLASSPATH_DIR);
-        ParseTree tree = readDWScriptFromFile(resolvedPath, context);
+        String fileScript;
+        try {
+            fileScript = readDWScriptFromFile(resolvedPath);
+        } catch (DWCodeGenException e) {
+            ctx.migrationMetrics.dwConversionStats.record(DWConstruct.MISSING_SCRIPT, false);
+            ctx.migrationMetrics.dwConversionStats.addMissingScriptLineEstimate();
+            ctx.migrationMetrics.dwConversionStats.failedDWExpressions
+                    .add("// DataWeave script not found: " + resolvedPath);
+            return ConversionUtils.wrapElementInTodoComment(resolvedPath, "DATAWEAVE FILE NOT FOUND.");
+        }
+        ParseTree tree;
+        try {
+            tree = parseScript(fileScript, context);
+        } catch (DWCodeGenException e) {
+            ctx.migrationMetrics.dwConversionStats.recordParseFailure(countDWBodyLines(fileScript), fileScript);
+            return ConversionUtils.wrapElementInTodoComment(fileScript, "DATAWEAVE PARSING FAILED.",
+                    "Error details: " + e.getScriptIdentifier());
+        }
         BallerinaVisitor visitor = new BallerinaVisitor(context, ctx, ctx.migrationMetrics.dwConversionStats,
                 namePrefix, ctx.projectCtx.counters.dwFunctionPrefixCounters);
         visitor.visit(tree);
         context.currentScriptContext.funcName = context.functionNames.getLast();
         context.scriptCache.put(resourcePath, context.currentScriptContext);
         return buildStatement(context, varName);
+    }
 
+    private static int countDWBodyLines(String script) {
+        return (int) script.lines()
+                .filter(l -> !l.trim().startsWith("%dw") && !l.trim().equals("---"))
+                .count();
+    }
+
+    private static String readDWScriptFromFile(String filePath) throws DWCodeGenException {
+        try {
+            Path path = Paths.get(filePath);
+            if (Files.exists(path) && Files.isRegularFile(path)) {
+                if (!filePath.toLowerCase().endsWith(".dwl")) {
+                    throw new IOException("Invalid file type. Expected a .dwl file: " + filePath);
+                }
+                return Files.readString(path, StandardCharsets.UTF_8);
+            }
+            try (InputStream inputStream = DWReader.class.getClassLoader().getResourceAsStream(filePath)) {
+                if (inputStream != null) {
+                    return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                }
+            }
+            throw new IOException("File not found: " + filePath);
+        } catch (IOException e) {
+            throw new DWCodeGenException(filePath, e);
+        }
     }
 
     private static String buildStatement(DWContext context, String varName) {

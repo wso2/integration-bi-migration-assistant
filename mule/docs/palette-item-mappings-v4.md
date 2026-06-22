@@ -3646,7 +3646,7 @@ function test\-with\-mock() returns error? {
     // </munit-tools:mock-when>
     // ------------------------------------------------------------------------
     // Execution (Act)
-    // FIXME: failed to find flow getOrderFlow
+    // TODO: failed to find flow getOrderFlow
     getOrderFlow(ctx);
     // Validation (Assert)
     test:assertNotEquals(ctx.payload, ());
@@ -4709,6 +4709,8 @@ public type Context record {|
 public function mule6demoFlow(Context ctx) {
 
     // TODO: DATAWEAVE PARSING FAILED.
+    // ------------------------------------------------------------------------
+    // Error details: line 5:18 no viable alternative at input '(item)->{intentionallyadded'
     // ------------------------------------------------------------------------
     // %dw 2.0
     // output application/json
