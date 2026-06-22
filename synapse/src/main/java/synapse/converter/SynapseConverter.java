@@ -30,13 +30,16 @@ import synapse.model.Synapse.Property;
 import synapse.model.Synapse.SynapseNode;
 import synapse.reader.SynapseConfigReader;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Entry point for converting WSO2 Synapse (ESB / Micro Integrator) artifacts to Ballerina.
@@ -67,6 +70,12 @@ public final class SynapseConverter {
     /**
      * Migrate a Synapse project directory or a single artifact file to a Ballerina package.
      *
+     * <p>Artifacts are processed one at a time: each artifact file is parsed, converted and written
+     * to the generated Ballerina package before the next one is read, so the whole project is never
+     * held in memory at once. A single artifact is emitted as a self-contained {@code main.bal};
+     * a project directory shares one HTTP listener (declared in {@code main.bal}) and writes each
+     * artifact to its own {@code .bal} file.
+     *
      * @param sourcePath    Synapse project directory or artifact file path
      * @param outputPath    output directory for the generated Ballerina package (nullable -> default)
      * @param keepStructure preserve the original artifact structure instead of the standard BI layout
@@ -90,23 +99,113 @@ public final class SynapseConverter {
             throw new UnsupportedOperationException("The 'multiRoot' option is not supported yet.");
         }
 
-        List<SynapseNode> synapseModel = SynapseConfigReader.parse(sourcePath);
+        List<File> artifactFiles = SynapseConfigReader.collectArtifactFiles(sourcePath);
+        if (artifactFiles.isEmpty()) {
+            throw new RuntimeException("No Synapse .xml artifacts found at: " + sourcePath);
+        }
 
+        if (dryRun) {
+            // Parse and convert each artifact to surface errors, without generating any output files.
+            for (File artifact : artifactFiles) {
+                convertArtifact(artifact);
+            }
+            return;
+        }
+
+        String targetPath = outputPath != null ? outputPath : stripExtension(sourcePath) + "_converted";
+        try {
+            Path targetDir = Paths.get(targetPath);
+            Files.createDirectories(targetDir);
+            Files.writeString(targetDir.resolve("Ballerina.toml"),
+                    ballerinaToml(orgName.orElse(DEFAULT_ORG), projectName.orElse(DEFAULT_PACKAGE)));
+
+            if (artifactFiles.size() == 1) {
+                // Single artifact: emit one self-contained main.bal (imports + listener + services).
+                ConversionContext context = convertArtifact(artifactFiles.get(0));
+                writeDocument(targetDir, MAIN_BAL_FILE, context.services(), true);
+                return;
+            }
+
+            // Project directory: the shared HTTP listener lives once in main.bal, and every artifact
+            // is converted and written to its own .bal file, one at a time.
+            writeDocument(targetDir, MAIN_BAL_FILE, List.of(), true);
+            Set<String> usedNames = new HashSet<>();
+            for (File artifact : artifactFiles) {
+                ConversionContext context = convertArtifact(artifact);
+                if (context.services().isEmpty()) {
+                    // Not a (supported) Synapse artifact, e.g. an endpoint or config file; skip it.
+                    continue;
+                }
+                writeDocument(targetDir, toBalFileName(artifact, usedNames), context.services(), false);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error while writing the Ballerina package: ", e);
+        }
+    }
+
+    /**
+     * Parse and convert a single Synapse artifact file into a fresh {@link ConversionContext}.
+     */
+    private static ConversionContext convertArtifact(File artifact) {
+        List<SynapseNode> nodes = SynapseConfigReader.parse(artifact);
         ConversionContext context = new ConversionContext();
-        for (SynapseNode node : synapseModel) {
+        for (SynapseNode node : nodes) {
             BIRConverter converter = CONVERTERS.get(node.kind());
             if (converter == null) {
                 continue;
             }
             converter.convert(node, context);
         }
+        return context;
+    }
 
-        if (dryRun) {
-            return;
+    /**
+     * Write a single Ballerina source file containing the given services. When {@code includeListener}
+     * is set, the shared HTTP listener declaration is emitted in the same file.
+     */
+    private static void writeDocument(Path targetDir, String fileName, List<Service> services,
+                                      boolean includeListener) throws IOException {
+        List<Import> imports = List.of(new Import("ballerina", "http"));
+        List<Listener> listeners = includeListener
+                ? List.of(new HTTPListener(LISTENER_NAME, DEFAULT_PORT, DEFAULT_HOST))
+                : List.of();
+        TextDocument textDocument = new TextDocument(fileName, imports, List.of(), List.of(), listeners,
+                services, List.of(), List.of(), List.of(), List.of());
+        Files.writeString(targetDir.resolve(fileName), textDocument.toSource());
+    }
+
+    /**
+     * Derive a unique, valid Ballerina source file name from a Synapse artifact file name.
+     */
+    private static String toBalFileName(File artifact, Set<String> usedNames) {
+        String base = artifact.getName();
+        int dot = base.lastIndexOf('.');
+        if (dot > 0) {
+            base = base.substring(0, dot);
         }
-        String targetPath = outputPath != null ? outputPath : stripExtension(sourcePath) + "_converted";
-        generateBallerinaPackage(context, targetPath, orgName.orElse(DEFAULT_ORG),
-                projectName.orElse(DEFAULT_PACKAGE));
+        String sanitized = sanitizeIdentifier(base);
+        String candidate = sanitized;
+        int suffix = 2;
+        while (!usedNames.add(candidate)) {
+            candidate = sanitized + "_" + suffix++;
+        }
+        return candidate + ".bal";
+    }
+
+    private static String sanitizeIdentifier(String name) {
+        StringBuilder sb = new StringBuilder(name.length());
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            sb.append(Character.isLetterOrDigit(c) || c == '_' ? c : '_');
+        }
+        String result = sb.toString();
+        if (result.isEmpty()) {
+            result = "artifact";
+        }
+        if (Character.isDigit(result.charAt(0))) {
+            result = "_" + result;
+        }
+        return result;
     }
 
     private static String stripExtension(String path) {
@@ -118,25 +217,6 @@ public final class SynapseConverter {
         return lastDot > lastSeparator ? path.substring(0, lastDot) : path;
     }
 
-    private static void generateBallerinaPackage(ConversionContext context, String targetPath, String orgName,
-                                                 String packageName) {
-
-        List<Service> services = context.services();
-        List<Import> imports = List.of(new Import("ballerina", "http"));
-        List<Listener> listeners = List.of(new HTTPListener(LISTENER_NAME, DEFAULT_PORT, DEFAULT_HOST));
-        TextDocument textDocument = new TextDocument(MAIN_BAL_FILE, imports, List.of(), List.of(), listeners,
-                services, List.of(), List.of(), List.of(), List.of());
-
-        try {
-            Path targetDir = Paths.get(targetPath);
-            Files.createDirectories(targetDir);
-            Files.writeString(targetDir.resolve(MAIN_BAL_FILE), textDocument.toSource());
-            Files.writeString(targetDir.resolve("Ballerina.toml"), ballerinaToml(orgName, packageName));
-        } catch (IOException e) {
-            throw new RuntimeException("Error while writing the Ballerina package: ", e);
-        }
-    }
-
     private static String ballerinaToml(String orgName, String packageName) {
         return """
                 [package]
@@ -144,7 +224,7 @@ public final class SynapseConverter {
                 name = "%s"
                 version = "0.1.0"
                 distribution = "2201.12.3"
-                
+
                 [build-options]
                 observabilityIncluded = true
                 """.formatted(orgName, packageName);
