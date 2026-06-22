@@ -18,9 +18,11 @@
 
 package synapse.converter;
 
+import common.BallerinaModel.Function;
 import common.BallerinaModel.Import;
 import common.BallerinaModel.Listener;
 import common.BallerinaModel.Listener.HTTPListener;
+import common.BallerinaModel.ModuleTypeDef;
 import common.BallerinaModel.Service;
 import common.BallerinaModel.Statement;
 import common.BallerinaModel.TextDocument;
@@ -35,11 +37,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Entry point for converting WSO2 Synapse (ESB / Micro Integrator) artifacts to Ballerina.
@@ -58,6 +59,8 @@ public final class SynapseConverter {
             Kind.API, new APIConverter());
 
     private static final String MAIN_BAL_FILE = "main.bal";
+    private static final String FUNCTIONS_BAL_FILE = "functions.bal";
+    private static final String TYPES_BAL_FILE = "types.bal";
     private static final String LISTENER_NAME = "httpListener";
     private static final String DEFAULT_PORT = "8080";
     private static final String DEFAULT_HOST = "0.0.0.0";
@@ -70,11 +73,11 @@ public final class SynapseConverter {
     /**
      * Migrate a Synapse project directory or a single artifact file to a Ballerina package.
      *
-     * <p>Artifacts are processed one at a time: each artifact file is parsed, converted and written
+     * <p>Artifacts are processed one at a time: each artifact file is parsed, converted and flushed
      * to the generated Ballerina package before the next one is read, so the whole project is never
-     * held in memory at once. A single artifact is emitted as a self-contained {@code main.bal};
-     * a project directory shares one HTTP listener (declared in {@code main.bal}) and writes each
-     * artifact to its own {@code .bal} file.
+     * held in memory at once. The generated constructs are consolidated by kind across all artifacts:
+     * services (with the shared HTTP listener) go to {@code main.bal}, functions to
+     * {@code functions.bal} and record types to {@code types.bal}.
      *
      * @param sourcePath    Synapse project directory or artifact file path
      * @param outputPath    output directory for the generated Ballerina package (nullable -> default)
@@ -105,9 +108,8 @@ public final class SynapseConverter {
         }
 
         if (dryRun) {
-            // Parse and convert each artifact to surface errors, without generating any output files.
             for (File artifact : artifactFiles) {
-                convertArtifact(artifact);
+                convertArtifact(artifact, new ConversionContext());
             }
             return;
         }
@@ -119,36 +121,19 @@ public final class SynapseConverter {
             Files.writeString(targetDir.resolve("Ballerina.toml"),
                     ballerinaToml(orgName.orElse(DEFAULT_ORG), projectName.orElse(DEFAULT_PACKAGE)));
 
-            if (artifactFiles.size() == 1) {
-                // Single artifact: emit one self-contained main.bal (imports + listener + services).
-                ConversionContext context = convertArtifact(artifactFiles.get(0));
-                writeDocument(targetDir, MAIN_BAL_FILE, context.services(), true);
-                return;
-            }
-
-            // Project directory: the shared HTTP listener lives once in main.bal, and every artifact
-            // is converted and written to its own .bal file, one at a time.
-            writeDocument(targetDir, MAIN_BAL_FILE, List.of(), true);
-            Set<String> usedNames = new HashSet<>();
+            ConversionContext context = new ConversionContext();
             for (File artifact : artifactFiles) {
-                ConversionContext context = convertArtifact(artifact);
-                if (context.services().isEmpty()) {
-                    // Not a (supported) Synapse artifact, e.g. an endpoint or config file; skip it.
-                    continue;
-                }
-                writeDocument(targetDir, toBalFileName(artifact, usedNames), context.services(), false);
+                convertArtifact(artifact, context);
+                writeArtifacts(targetDir, context);
+                context.clear();
             }
         } catch (IOException e) {
             throw new RuntimeException("Error while writing the Ballerina package: ", e);
         }
     }
 
-    /**
-     * Parse and convert a single Synapse artifact file into a fresh {@link ConversionContext}.
-     */
-    private static ConversionContext convertArtifact(File artifact) {
+    private static ConversionContext convertArtifact(File artifact, ConversionContext context) {
         List<SynapseNode> nodes = SynapseConfigReader.parse(artifact);
-        ConversionContext context = new ConversionContext();
         for (SynapseNode node : nodes) {
             BIRConverter converter = CONVERTERS.get(node.kind());
             if (converter == null) {
@@ -159,53 +144,36 @@ public final class SynapseConverter {
         return context;
     }
 
-    /**
-     * Write a single Ballerina source file containing the given services. When {@code includeListener}
-     * is set, the shared HTTP listener declaration is emitted in the same file.
-     */
-    private static void writeDocument(Path targetDir, String fileName, List<Service> services,
-                                      boolean includeListener) throws IOException {
-        List<Import> imports = List.of(new Import("ballerina", "http"));
-        List<Listener> listeners = includeListener
-                ? List.of(new HTTPListener(LISTENER_NAME, DEFAULT_PORT, DEFAULT_HOST))
-                : List.of();
-        TextDocument textDocument = new TextDocument(fileName, imports, List.of(), List.of(), listeners,
-                services, List.of(), List.of(), List.of(), List.of());
-        Files.writeString(targetDir.resolve(fileName), textDocument.toSource());
+    private static void writeArtifacts(Path targetDir, ConversionContext context) throws IOException {
+        appendToFile(targetDir.resolve(MAIN_BAL_FILE), List.of(new Import("ballerina", "http")),
+                List.of(new HTTPListener(LISTENER_NAME, DEFAULT_PORT, DEFAULT_HOST)),
+                context.services(), List.of(), List.of());
+        if (!context.functions().isEmpty()) {
+            appendToFile(targetDir.resolve(FUNCTIONS_BAL_FILE), List.of(), List.of(),
+                List.of(), context.functions(), List.of());
+        }
+        if (!context.records().isEmpty()) {
+            appendToFile(targetDir.resolve(TYPES_BAL_FILE), List.of(), List.of(),
+                List.of(), List.of(), context.records());
+        }
     }
 
-    /**
-     * Derive a unique, valid Ballerina source file name from a Synapse artifact file name.
-     */
-    private static String toBalFileName(File artifact, Set<String> usedNames) {
-        String base = artifact.getName();
-        int dot = base.lastIndexOf('.');
-        if (dot > 0) {
-            base = base.substring(0, dot);
+    private static void appendToFile(Path file, List<Import> imports, List<Listener> listeners,
+                                     List<Service> services, List<Function> functions,
+                                     List<ModuleTypeDef> records) throws IOException {
+        boolean exists = Files.exists(file);
+        if (exists && services.isEmpty() && functions.isEmpty() && records.isEmpty()) {
+            return;
         }
-        String sanitized = sanitizeIdentifier(base);
-        String candidate = sanitized;
-        int suffix = 2;
-        while (!usedNames.add(candidate)) {
-            candidate = sanitized + "_" + suffix++;
+        TextDocument document = new TextDocument(file.getFileName().toString(),
+                exists ? List.of() : imports, records, List.of(), exists ? List.of() : listeners,
+                services, functions, List.of(), List.of(), List.of());
+        String source = document.toSource();
+        if (exists) {
+            Files.writeString(file, System.lineSeparator() + source, StandardOpenOption.APPEND);
+        } else {
+            Files.writeString(file, source);
         }
-        return candidate + ".bal";
-    }
-
-    private static String sanitizeIdentifier(String name) {
-        StringBuilder sb = new StringBuilder(name.length());
-        for (int i = 0; i < name.length(); i++) {
-            char c = name.charAt(i);
-            sb.append(Character.isLetterOrDigit(c) || c == '_' ? c : '_');
-        }
-        String result = sb.toString();
-        if (result.isEmpty()) {
-            result = "artifact";
-        }
-        if (Character.isDigit(result.charAt(0))) {
-            result = "_" + result;
-        }
-        return result;
     }
 
     private static String stripExtension(String path) {

@@ -17,6 +17,7 @@
  */
 package synapse.converter;
 
+import common.BallerinaModel;
 import common.BallerinaModel.Expression;
 import common.BallerinaModel.Service;
 import common.BallerinaModel.Statement;
@@ -44,6 +45,8 @@ public class ConversionContext {
 
     private final ConversionContext parent;
     private final List<Service> services;
+    private final List<BallerinaModel.Function> functions;
+    private final List<BallerinaModel.ModuleTypeDef> records;
     private final List<Statement> statements = new ArrayList<>();
     private Payload payload;
     private boolean respondInitialized;
@@ -55,6 +58,8 @@ public class ConversionContext {
     public ConversionContext(ConversionContext parent) {
         this.parent = parent;
         this.services = (parent == null) ? new ArrayList<>() : null;
+        this.functions = (parent == null) ? new ArrayList<>() : null;
+        this.records = (parent == null) ? new ArrayList<>() : null;
     }
 
     private ConversionContext root() {
@@ -81,6 +86,22 @@ public class ConversionContext {
         return root().services;
     }
 
+    public void addFunction(BallerinaModel.Function function) {
+        root().functions.add(function);
+    }
+
+    public List<BallerinaModel.Function> functions() {
+        return root().functions;
+    }
+
+    public void addRecord(BallerinaModel.ModuleTypeDef record) {
+        root().records.add(record);
+    }
+
+    public List<BallerinaModel.ModuleTypeDef> records() {
+        return root().records;
+    }
+
     public List<Statement> statements() {
         return statements;
     }
@@ -94,5 +115,11 @@ public class ConversionContext {
     }
 
     public record Payload(TypeDesc type, Expression value) {
+    }
+
+    public void clear() {
+        services().clear();
+        functions().clear();
+        records().clear();
     }
 }
