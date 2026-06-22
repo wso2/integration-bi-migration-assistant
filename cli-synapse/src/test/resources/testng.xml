@@ -1,0 +1,8 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
+<suite name="Suite" time-out="120000">
+    <test name="Synapse Tests">
+        <classes>
+            <class name="synapse.converter.SynapseProjectConversionTest"/>
+        </classes>
+    </test>
+</suite>
