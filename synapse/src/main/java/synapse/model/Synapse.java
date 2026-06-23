@@ -42,6 +42,15 @@ public record Synapse() {
         }
     }
 
+    // <sequence name="..." onError="..." description="..."> ... </sequence>
+    // -> a named, reusable mediator sequence declared at the top level.
+    public record Sequence(Kind kind, String name, String onError, String description,
+                           List<SynapseNode> mediators) implements SynapseNode {
+        public Sequence(String name, String onError, String description, List<SynapseNode> mediators) {
+            this(Kind.SEQUENCE, name, onError, description, mediators);
+        }
+    }
+
     // <payloadFactory media-type="json"><format>{"Hello":"World"}</format></payloadFactory>
     // -> sets the response payload to the given format (of the given media type).
     public record PayloadFactory(Kind kind, String mediaType, String format) implements SynapseNode {
@@ -54,6 +63,13 @@ public record Synapse() {
     public record Respond(Kind kind) implements SynapseNode {
         public Respond() {
             this(Kind.RESPOND);
+        }
+    }
+
+    // <sequence key="name"/> -> invokes the named sequence referenced by 'key'.
+    public record SequenceMediator(Kind kind, String key) implements SynapseNode {
+        public SequenceMediator(String key) {
+            this(Kind.SEQUENCE_MEDIATOR, key);
         }
     }
 
@@ -74,8 +90,10 @@ public record Synapse() {
         API,
         RESOURCE,
         IN_SEQUENCE,
+        SEQUENCE,
         PAYLOAD_FACTORY,
         RESPOND,
-        PROPERTY
+        PROPERTY,
+        SEQUENCE_MEDIATOR
     }
 }

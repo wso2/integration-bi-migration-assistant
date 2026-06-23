@@ -26,6 +26,8 @@ import synapse.model.Synapse.PayloadFactory;
 import synapse.model.Synapse.Property;
 import synapse.model.Synapse.Resource;
 import synapse.model.Synapse.Respond;
+import synapse.model.Synapse.Sequence;
+import synapse.model.Synapse.SequenceMediator;
 import synapse.model.Synapse.SynapseNode;
 
 import java.util.ArrayList;
@@ -34,6 +36,7 @@ import java.util.List;
 public class SynapseModelGenerator {
 
     private static final String API_TAG = "api";
+    private static final String SEQUENCE_TAG = "sequence";
     private static final String RESOURCE_TAG = "resource";
     private static final String IN_SEQUENCE_TAG = "inSequence";
     private static final String PAYLOAD_FACTORY_TAG = "payloadFactory";
@@ -47,24 +50,28 @@ public class SynapseModelGenerator {
     public static List<SynapseNode> generateModel(Element rootElement) {
         List<SynapseNode> nodes = new ArrayList<>();
 
-        if (API_TAG.equals(rootElement.getTagName())) {
-            nodes.add(readApi(rootElement));
+        SynapseNode rootNode = readTopLevel(rootElement);
+        if (rootNode != null) {
+            nodes.add(rootNode);
             return nodes;
         }
 
-        NodeList children = rootElement.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-            Node node = children.item(i);
-            if (node.getNodeType() != Node.ELEMENT_NODE) {
-                continue;
-            }
-            Element element = (Element) node;
-            if (API_TAG.equals(element.getTagName())) {
-                nodes.add(readApi(element));
+        for (Element child : childElements(rootElement)) {
+            SynapseNode node = readTopLevel(child);
+            if (node != null) {
+                nodes.add(node);
             }
         }
 
         return nodes;
+    }
+
+    private static SynapseNode readTopLevel(Element element) {
+        return switch (element.getTagName()) {
+            case API_TAG -> readApi(element);
+            case SEQUENCE_TAG -> readSequence(element);
+            default -> null;
+        };
     }
 
     private static Api readApi(Element element) {
@@ -123,19 +130,31 @@ public class SynapseModelGenerator {
         return new Resource(methods, path, queryParams, inSequence);
     }
 
+    private static Sequence readSequence(Element element) {
+        String name = element.getAttribute("name");
+        String onError = element.getAttribute("onError");
+        String description = element.getAttribute("description");
+        return new Sequence(name, onError, description, readMediators(element));
+    }
+
     private static InSequence readInSequence(Element element) {
+        return new InSequence(readMediators(element));
+    }
+
+    private static List<SynapseNode> readMediators(Element element) {
         List<SynapseNode> mediators = new ArrayList<>();
         for (Element child : childElements(element)) {
             switch (child.getTagName()) {
                 case PAYLOAD_FACTORY_TAG -> mediators.add(readPayloadFactory(child));
                 case RESPOND_TAG -> mediators.add(new Respond());
                 case PROPERTY_TAG -> mediators.add(readProperty(child));
+                case SEQUENCE_TAG -> mediators.add(new SequenceMediator(child.getAttribute("key")));
                 default -> {
                     // Other mediators are not supported yet; skip for now.
                 }
             }
         }
-        return new InSequence(mediators);
+        return mediators;
     }
 
     private static Property readProperty(Element element) {

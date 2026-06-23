@@ -21,6 +21,7 @@ import common.BallerinaModel.Expression;
 import common.BallerinaModel.Expression.BallerinaExpression;
 import common.BallerinaModel.Expression.StringConstant;
 import common.BallerinaModel.Expression.XMLTemplate;
+import common.BallerinaModel.Function;
 import common.BallerinaModel.Parameter;
 import common.BallerinaModel.Resource;
 import common.BallerinaModel.Service;
@@ -30,6 +31,9 @@ import common.BallerinaModel.TypeDesc.BuiltinType;
 import synapse.model.Synapse.Api;
 import synapse.model.Synapse.Kind;
 import synapse.model.Synapse.PayloadFactory;
+import synapse.model.Synapse.Property;
+import synapse.model.Synapse.Sequence;
+import synapse.model.Synapse.SequenceMediator;
 import synapse.model.Synapse.SynapseNode;
 
 import java.util.ArrayList;
@@ -43,7 +47,48 @@ import java.util.Optional;
  */
 public interface BIRConverter {
 
+    Map<Kind, BIRConverter> MEDIATOR_CONVERTERS = Map.of(
+            Kind.PAYLOAD_FACTORY, new PayloadFactoryConverter(),
+            Kind.PROPERTY, new PropertyConverter(),
+            Kind.SEQUENCE_MEDIATOR, new SequenceMediatorConverter());
+
     void convert(SynapseNode node, ConversionContext context);
+
+    /**
+     * Converts a list of Synapse mediators into Ballerina, accumulating the result in {@code context}.
+     * Returns the type the enclosing scope (resource or function) should return: a {@code respond}
+     * mediator yields {@code http:Response}, otherwise {@link BuiltinType#NIL}.
+     */
+    static TypeDesc convertMediators(List<SynapseNode> mediators, ConversionContext context) {
+        TypeDesc returnType = BuiltinType.NIL;
+        for (SynapseNode node : mediators) {
+            if (node.kind() == Kind.RESPOND) {
+                returnType = respond(context);
+            } else {
+                BIRConverter converter = MEDIATOR_CONVERTERS.getOrDefault(node.kind(), new UnsupportedConverter());
+                converter.convert(node, context);
+            }
+        }
+        return returnType;
+    }
+
+    private static TypeDesc respond(ConversionContext context) {
+        Optional<ConversionContext.Payload> payload = context.payload();
+        if (payload.isEmpty()) {
+            return BuiltinType.NIL;
+        }
+        List<Statement> statements = context.statements();
+        if (!context.isRespondInitialized()) {
+            statements.add(0, new Statement.BallerinaStatement("http:Response response = new;"));
+            context.setRespondInitialized(true);
+        }
+        ConversionContext.Payload p = payload.get();
+        statements.add(new Statement.CallStatement(new Expression.MethodCall(
+                new Expression.VariableReference("response"), "setPayload", List.of(p.value()))));
+        statements.add(new Statement.Return<>(Optional.of(new Expression.VariableReference("response"))));
+        context.setPayload(null);
+        return new TypeDesc.BallerinaType("http:Response");
+    }
 
     /**
      * Converts a Synapse {@code <api>} element into a Ballerina HTTP service.
@@ -52,10 +97,6 @@ public interface BIRConverter {
 
         private static final String DEFAULT_LISTENER_REF = "httpListener";
         private static final String ROOT_RESOURCE_PATH = ".";
-
-        private static final Map<Kind, BIRConverter> CONVERTERS = Map.of(
-                Kind.PAYLOAD_FACTORY, new PayloadFactoryConverter(),
-                Kind.PROPERTY, new SynapseConverter.PropertyConverter());
 
         @Override
         public void convert(SynapseNode node, ConversionContext context) {
@@ -102,40 +143,46 @@ public interface BIRConverter {
             return segments.isEmpty() ? ROOT_RESOURCE_PATH : String.join("/", segments);
         }
 
-        private static TypeDesc genResourceBody(synapse.model.Synapse.InSequence inSequence, 
+        private static TypeDesc genResourceBody(synapse.model.Synapse.InSequence inSequence,
                                                 ConversionContext context) {
             if (inSequence == null) {
                 return BuiltinType.NIL;
             }
-
-            TypeDesc returnType = BuiltinType.NIL;
-            for (SynapseNode node : inSequence.mediators()) {
-                if (node.kind() == Kind.RESPOND) {
-                    returnType = respond(context);
-                } else {
-                    BIRConverter converter = CONVERTERS.getOrDefault(node.kind(), new UnsupportedConverter());
-                    converter.convert(node, context);
-                }
-            }
-            return returnType;
+            return convertMediators(inSequence.mediators(), context);
         }
+    }
 
-        private static TypeDesc respond(ConversionContext context) {
-            Optional<ConversionContext.Payload> payload = context.payload();
-            if (payload.isEmpty()) {
-                return BuiltinType.NIL;
-            }
-            List<Statement> statements = context.statements();
-            if (!context.isRespondInitialized()) {
-                statements.add(0, new Statement.BallerinaStatement("http:Response response = new;"));
-                context.setRespondInitialized(true);
-            }
-            ConversionContext.Payload p = payload.get();
-            statements.add(new Statement.CallStatement(new Expression.MethodCall(
-                    new Expression.VariableReference("response"), "setPayload", List.of(p.value()))));
-            statements.add(new Statement.Return<>(Optional.of(new Expression.VariableReference("response"))));
-            context.setPayload(null);
-            return new TypeDesc.BallerinaType("http:Response");
+    /**
+     * Converts a top-level Synapse {@code <sequence>} into a Ballerina function whose body is the
+     * converted mediator flow. The function returns {@code http:Response} when the sequence ends in a
+     * {@code <respond>} with a payload, and is otherwise {@code nil}-returning.
+     */
+    class SequenceConverter implements BIRConverter {
+
+        @Override
+        public void convert(SynapseNode node, ConversionContext context) {
+            Sequence sequence = (Sequence) node;
+            ConversionContext sequenceContext = new ConversionContext(context);
+            TypeDesc returnType = convertMediators(sequence.mediators(), sequenceContext);
+            List<Statement> body = sequenceContext.statements();
+            Function function = returnType == BuiltinType.NIL
+                    ? new Function(sequence.name(), List.of(), body)
+                    : new Function(sequence.name(), List.of(), returnType, body);
+            context.addFunction(function);
+        }
+    }
+
+    /**
+     * Converts a Synapse {@code <sequence key="name"/>} mediator into a call to the Ballerina function
+     * generated for the referenced sequence. The call passes no arguments and discards any return value.
+     */
+    class SequenceMediatorConverter implements BIRConverter {
+
+        @Override
+        public void convert(SynapseNode node, ConversionContext context) {
+            SequenceMediator sequenceMediator = (SequenceMediator) node;
+            context.statements().add(new Statement.CallStatement(
+                    new Expression.FunctionCall(sequenceMediator.key(), List.<Expression>of())));
         }
     }
 
@@ -164,6 +211,48 @@ public interface BIRConverter {
                 case "xml" -> new XMLTemplate(format);
                 // json (and others): the <format> is already a valid Ballerina literal expression.
                 default -> new BallerinaExpression(format);
+            };
+        }
+    }
+
+    /**
+     * Converts a Synapse {@code <property>} mediator. How a property is converted depends on where it
+     * lives: a property within a resource contributes to that resource's body, whereas a property
+     * outside a resource (e.g. an api-level property) is handled differently. This converter therefore
+     * first identifies its scope.
+     */
+    class PropertyConverter implements BIRConverter {
+
+        private static final String TRANSPORT_SCOPE = "transport";
+        private static final String AXIS2_SCOPE = "axis2";
+
+        @Override
+        public void convert(SynapseNode node, ConversionContext context) {
+            Property property = (Property) node;
+            if (context.isWithinResource()) {
+                convertResourceProperty(property, context);
+            } else {
+                // TODO: convert a property declared outside a resource.
+            }
+        }
+
+        private static void convertResourceProperty(Property property, ConversionContext context) {
+            String statement = switch (property.scope()) {
+                case TRANSPORT_SCOPE -> "response.setHeader(\"" + property.name() + "\", \""
+                        + property.value() + "\");";
+                case AXIS2_SCOPE -> "response.statusCode = " + property.value() + ";";
+                default -> toBallerinaType(property.type()) + " " + property.name() + " = "
+                        + property.value() + ";";
+            };
+            context.statements().add(new Statement.BallerinaStatement(statement));
+        }
+
+        private static String toBallerinaType(String synapseType) {
+            return switch (synapseType.toUpperCase()) {
+                case "INTEGER", "INT", "LONG", "SHORT" -> "int";
+                case "BOOLEAN" -> "boolean";
+                case "DOUBLE", "FLOAT" -> "float";
+                default -> "string";
             };
         }
     }
