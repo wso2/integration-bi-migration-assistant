@@ -52,7 +52,7 @@ import java.util.Optional;
  */
 public final class SynapseConverter {
 
-    private static final Map<Kind, BIRConverter> ROOT_CONVERTERS = Map.of(
+    private static final Map<Kind, BIRConverter<ConversionContext>> ROOT_CONVERTERS = Map.of(
             Kind.API, new APIConverter(),
             Kind.SEQUENCE, new BIRConverter.SequenceConverter());
 
@@ -123,7 +123,7 @@ public final class SynapseConverter {
             for (File artifact : artifactFiles) {
                 convertArtifact(artifact, context);
                 writeArtifacts(targetDir, context);
-                context.clear();
+                context.clearArtifactOutput();
             }
         } catch (IOException e) {
             throw new RuntimeException("Error while writing the Ballerina package: ", e);
@@ -133,7 +133,7 @@ public final class SynapseConverter {
     private static ConversionContext convertArtifact(File artifact, ConversionContext context) {
         List<SynapseNode> nodes = SynapseConfigReader.parse(artifact);
         for (SynapseNode node : nodes) {
-            BIRConverter converter = ROOT_CONVERTERS.get(node.kind());
+            BIRConverter<ConversionContext> converter = ROOT_CONVERTERS.get(node.kind());
             if (converter == null) {
                 continue;
             }

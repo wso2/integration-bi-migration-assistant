@@ -71,7 +71,7 @@ public class SynapseProjectConversionTest {
         try (Stream<Path> dirs = Files.list(SYNAPSE_DIR)) {
             return dirs
                     .filter(Files::isDirectory)
-                    .filter(dir -> dir.getFileName().toString().contains("sequence1"))
+                    // .filter(dir -> dir.getFileName().toString().contains("sequence1"))
                     .map(dir -> new Object[]{dir, BALLERINA_DIR.resolve(dir.getFileName())})
                     .toArray(Object[][]::new);
         }
