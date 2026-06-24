@@ -96,12 +96,14 @@ public class MuleMigrator {
             Consumer<String> logCallback = validateAndGetConsumer(parameters, "logCallback");
             Integer muleVersion = validateAndGetForceVersion(parameters);
             boolean multiRoot = validateAndGetBoolean(parameters, "multiRoot", false);
+            boolean keepStructure = validateAndGetBoolean(parameters, "keepStructure", false);
 
             if (multiRoot) {
-                return migrateMuleMultiRootInner(orgName, projectName, sourcePath, muleVersion, stateCallback,
-                        logCallback);
+                return migrateMuleMultiRootInner(orgName, projectName, sourcePath, keepStructure, muleVersion,
+                        stateCallback, logCallback);
             } else {
-                return migrateMuleInner(orgName, projectName, sourcePath, muleVersion, stateCallback, logCallback);
+                return migrateMuleInner(orgName, projectName, sourcePath, keepStructure, muleVersion, stateCallback,
+                        logCallback);
             }
         } catch (IllegalArgumentException e) {
             return Map.of("error", e.getMessage());
@@ -109,11 +111,11 @@ public class MuleMigrator {
     }
 
     private static Map<String, Object> migrateMuleInner(String orgName, String projectName, String sourcePath,
-                                                        Integer muleVersion, Consumer<String> stateCallback,
-                                                        Consumer<String> logCallback) {
+                                                        boolean keepStructure, Integer muleVersion,
+                                                        Consumer<String> stateCallback, Consumer<String> logCallback) {
         MuleLogger logger = new MuleLogger(stateCallback, logCallback);
         MigrationResult result = migrateMuleSourceInMemory(logger, sourcePath, null, orgName, projectName, muleVersion,
-                false, false, false, false);
+                false, false, keepStructure, false);
         if (result.getFatalError().isPresent()) {
             return Map.of("error", result.getFatalError().get());
         }
@@ -128,7 +130,9 @@ public class MuleMigrator {
     }
 
     private static Map<String, Object> migrateMuleMultiRootInner(String orgName, String projectName, String sourcePath,
-            Integer muleVersion, Consumer<String> stateCallback, Consumer<String> logCallback) {
+                                                                 boolean keepStructure, Integer muleVersion,
+                                                                 Consumer<String> stateCallback,
+                                                                 Consumer<String> logCallback) {
         MuleLogger logger = new MuleLogger(stateCallback, logCallback);
         Path inputPath;
         try {
@@ -142,7 +146,7 @@ public class MuleMigrator {
         }
 
         MigrationResult result = migrateMuleSourceInMemory(logger, sourcePath, null, orgName, projectName, muleVersion,
-                false, false, false, true);
+                false, false, keepStructure, true);
         if (result.getFatalError().isPresent()) {
             return Map.of("error", result.getFatalError().get());
         }
