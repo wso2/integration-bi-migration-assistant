@@ -132,6 +132,9 @@ public class SynapseModelGenerator {
 
     private static Sequence readSequence(Element element) {
         String name = element.getAttribute("name");
+        if (name.isBlank()) {
+            throw new IllegalArgumentException("Synapse sequence must define a non-empty 'name'.");
+        }
         String onError = element.getAttribute("onError");
         String description = element.getAttribute("description");
         return new Sequence(name, onError, description, readMediators(element));
@@ -148,7 +151,13 @@ public class SynapseModelGenerator {
                 case PAYLOAD_FACTORY_TAG -> mediators.add(readPayloadFactory(child));
                 case RESPOND_TAG -> mediators.add(new Respond());
                 case PROPERTY_TAG -> mediators.add(readProperty(child));
-                case SEQUENCE_TAG -> mediators.add(new SequenceMediator(child.getAttribute("key")));
+                case SEQUENCE_TAG -> {
+                    String key = child.getAttribute("key");
+                    if (key.isBlank()) {
+                        throw new IllegalArgumentException("Synapse sequence mediator must define a non-empty 'key'.");
+                    }
+                    mediators.add(new SequenceMediator(key));
+                }
                 default -> {
                     // Other mediators are not supported yet; skip for now.
                 }

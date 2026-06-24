@@ -30,6 +30,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -51,11 +52,16 @@ public class SynapseConfigReader {
     public static List<File> collectArtifactFiles(String path) {
         Path sourcePath = Paths.get(path);
         if (!Files.isDirectory(sourcePath)) {
-            return List.of(sourcePath.toFile());
+            String fileName = sourcePath.getFileName() == null ? "" :
+                    sourcePath.getFileName().toString().toLowerCase(Locale.ROOT);
+            if (Files.isRegularFile(sourcePath) && fileName.endsWith(".xml")) {
+                return List.of(sourcePath.toFile());
+            }
+            return List.of();
         }
+
         List<File> xmlFiles = new ArrayList<>();
         collectXmlFiles(sourcePath.toFile(), xmlFiles);
-        // Parse in a deterministic order so the generated output is stable across runs.
         xmlFiles.sort(Comparator.comparing(File::getAbsolutePath));
         return xmlFiles;
     }

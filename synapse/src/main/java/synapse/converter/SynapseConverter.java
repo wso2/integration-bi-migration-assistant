@@ -135,7 +135,7 @@ public final class SynapseConverter {
         for (SynapseNode node : nodes) {
             BIRConverter<ConversionContext> converter = ROOT_CONVERTERS.get(node.kind());
             if (converter == null) {
-                continue;
+                throw new UnsupportedOperationException("No root converter for Synapse node kind: " + node.kind());
             }
             converter.convert(node, context);
         }
