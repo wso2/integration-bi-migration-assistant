@@ -18,7 +18,6 @@
 
 package synapse.converter;
 
-import org.jetbrains.annotations.NotNull;
 import org.testng.SkipException;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -26,7 +25,6 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -36,9 +34,9 @@ import java.util.stream.Stream;
  * {@code src/test/resources/ballerina/<Name>}.
  *
  * <p>Each immediate sub-directory of {@code synapse} is paired by name with the sub-directory of the
- * same name under {@code ballerina}. The single {@code *.xml} artifact inside the Synapse directory
- * is converted via {@link SynapseConverter#migrateSynapse}. To add a new test case, drop a Synapse
- * artifact under {@code synapse/<Name>/<Name>.xml} and its expected Ballerina output under
+ * same name under {@code ballerina}. All {@code *.xml} artifacts inside the Synapse directory are
+ * converted together via {@link SynapseConverter#migrateSynapse}. To add a new test case, drop one or
+ * more Synapse artifacts under {@code synapse/<Name>/} and its expected Ballerina output under
  * {@code ballerina/<Name>}.
  */
 public class SynapseProjectConversionTest {
@@ -47,11 +45,11 @@ public class SynapseProjectConversionTest {
     private static final Path BALLERINA_DIR = Path.of("src", "test", "resources", "ballerina");
 
     @Test(dataProvider = "projectTestCaseProvider")
-    public void testProjectConversion(Path synapseArtifact, Path expectedBallerinaProject) throws IOException {
+    public void testProjectConversion(Path synapseProject, Path expectedBallerinaProject) throws IOException {
         Path tempDir = Files.createTempDirectory("synapse-conversion-test");
         try {
             SynapseConverter.migrateSynapse(
-                    synapseArtifact.toString(),
+                    synapseProject.toString(),
                     tempDir.toString(),
                     false,
                     false,
@@ -73,26 +71,10 @@ public class SynapseProjectConversionTest {
         try (Stream<Path> dirs = Files.list(SYNAPSE_DIR)) {
             return dirs
                     .filter(Files::isDirectory)
-                    // .filter(dir -> dir.getFileName().toString().contains("HelloWorldService"))
-                    .map(dir -> new Object[]{findSynapseArtifact(dir), BALLERINA_DIR.resolve(dir.getFileName())})
+                    // This is a temporary filter to run only single test case.
+                    // .filter(dir -> dir.getFileName().toString().contains("sequence1"))
+                    .map(dir -> new Object[]{dir, BALLERINA_DIR.resolve(dir.getFileName())})
                     .toArray(Object[][]::new);
-        }
-    }
-
-    @NotNull
-    private static Path findSynapseArtifact(Path projectDir) {
-        try (Stream<Path> files = Files.list(projectDir)) {
-            List<Path> xmlFiles = files
-                    .filter(Files::isRegularFile)
-                    .filter(p -> p.getFileName().toString().endsWith(".xml"))
-                    .toList();
-            if (xmlFiles.size() != 1) {
-                throw new IllegalStateException(
-                        "Expected exactly one .xml artifact in " + projectDir + " but found " + xmlFiles.size());
-            }
-            return xmlFiles.get(0);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to locate Synapse artifact in " + projectDir, e);
         }
     }
 }

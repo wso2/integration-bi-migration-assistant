@@ -17,82 +17,71 @@
  */
 package synapse.converter;
 
-import common.BallerinaModel.Expression;
+import common.BallerinaModel.Function;
+import common.BallerinaModel.ModuleTypeDef;
 import common.BallerinaModel.Service;
-import common.BallerinaModel.Statement;
-import common.BallerinaModel.TypeDesc;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
- * Holds the state accumulated while converting Synapse records to Ballerina.
+ * Project-wide state shared across every artifact and every converter for a single migration run.
  *
- * <p>Contexts form a tree that mirrors the Synapse scope nesting (api -> resource -> ...). A child
- * context is created for each nested scope via {@link #ConversionContext(ConversionContext)}. State
- * falls into two categories:
+ * <p>A single instance is created in {@code SynapseConverter} and threaded through all converters.
+ * Scope-local state (the statements, payload and {@code respondInitialized} flag of the resource or
+ * sequence currently being converted) does <b>not</b> live here; it lives on a {@link ScopeContext},
+ * which holds a reference back to this context.
+ *
+ * <p>State here falls into two categories:
  * <ul>
- *   <li><b>Shared / root</b> (e.g. the generated services) is held only at the root and accessed
- *       through the parent chain, so it survives once a child scope ends.</li>
- *   <li><b>Scope-local</b> (e.g. the current {@code payload} and the {@code respondInitialized}
- *       flag) lives only on the context it is set on and dies with that scope.</li>
+ *   <li><b>Per-artifact output</b> ({@link #services()}, {@link #functions()}, {@link #records()})
+ *       is accumulated while an artifact is converted, flushed to the generated package, then
+ *       discarded via {@link #clearArtifactOutput()} before the next artifact is read.</li>
+ *   <li><b>Cross-artifact metadata</b> (e.g. a registry of generated services / sequences for
+ *       resolving references between artifacts) must survive {@link #clearArtifactOutput()}, so it
+ *       belongs in fields that the clear does not touch. See the extension point below.</li>
  * </ul>
- * When adding a new field, decide which category it belongs to.
  */
 public class ConversionContext {
 
-    private final ConversionContext parent;
-    private final List<Service> services;
-    private final List<Statement> statements = new ArrayList<>();
-    private Payload payload;
-    private boolean respondInitialized;
+    private final List<Service> services = new ArrayList<>();
+    private final List<Function> functions = new ArrayList<>();
+    private final List<ModuleTypeDef> records = new ArrayList<>();
 
-    public ConversionContext() {
-        this(null);
-    }
-
-    public ConversionContext(ConversionContext parent) {
-        this.parent = parent;
-        this.services = (parent == null) ? new ArrayList<>() : null;
-    }
-
-    private ConversionContext root() {
-        return (parent == null) ? this : parent.root();
-    }
-
-    public boolean isWithinResource() {
-        return parent != null;
-    }
-
-    public boolean isRespondInitialized() {
-        return respondInitialized;
-    }
-
-    public void setRespondInitialized(boolean respondInitialized) {
-        this.respondInitialized = respondInitialized;
-    }
+    // Extension point: cross-artifact metadata (e.g. a sequence/service registry keyed by name) that
+    // must outlive a single artifact goes here, and must NOT be touched by clearArtifactOutput().
 
     public void addService(Service service) {
-        root().services.add(service);
+        services.add(service);
     }
 
     public List<Service> services() {
-        return root().services;
+        return services;
     }
 
-    public List<Statement> statements() {
-        return statements;
+    public void addFunction(Function function) {
+        functions.add(function);
     }
 
-    public void setPayload(Payload payload) {
-        this.payload = payload;
+    public List<Function> functions() {
+        return functions;
     }
 
-    public Optional<Payload> payload() {
-        return Optional.ofNullable(payload);
+    public void addRecord(ModuleTypeDef record) {
+        records.add(record);
     }
 
-    public record Payload(TypeDesc type, Expression value) {
+    public List<ModuleTypeDef> records() {
+        return records;
+    }
+
+    /**
+     * Discards the output accumulated for the artifact just written, leaving cross-artifact metadata
+     * intact, so the next artifact starts from a clean output buffer.
+     */
+    public void clearArtifactOutput() {
+        services.clear();
+        functions.clear();
+        records.clear();
     }
 }

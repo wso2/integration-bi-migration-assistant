@@ -18,22 +18,24 @@
 
 package synapse.converter;
 
+import common.BallerinaModel.Function;
 import common.BallerinaModel.Import;
 import common.BallerinaModel.Listener;
 import common.BallerinaModel.Listener.HTTPListener;
+import common.BallerinaModel.ModuleTypeDef;
 import common.BallerinaModel.Service;
-import common.BallerinaModel.Statement;
 import common.BallerinaModel.TextDocument;
 import synapse.converter.BIRConverter.APIConverter;
 import synapse.model.Synapse.Kind;
-import synapse.model.Synapse.Property;
 import synapse.model.Synapse.SynapseNode;
 import synapse.reader.SynapseConfigReader;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,11 +52,13 @@ import java.util.Optional;
  */
 public final class SynapseConverter {
 
-    // Maps each SynapseNode kind to the converter responsible for it. Only <api> is supported for now.
-    private static final Map<Kind, BIRConverter> CONVERTERS = Map.of(
-            Kind.API, new APIConverter());
+    private static final Map<Kind, BIRConverter<ConversionContext>> ROOT_CONVERTERS = Map.of(
+            Kind.API, new APIConverter(),
+            Kind.SEQUENCE, new BIRConverter.SequenceConverter());
 
     private static final String MAIN_BAL_FILE = "main.bal";
+    private static final String FUNCTIONS_BAL_FILE = "functions.bal";
+    private static final String TYPES_BAL_FILE = "types.bal";
     private static final String LISTENER_NAME = "httpListener";
     private static final String DEFAULT_PORT = "8080";
     private static final String DEFAULT_HOST = "0.0.0.0";
@@ -66,6 +70,12 @@ public final class SynapseConverter {
 
     /**
      * Migrate a Synapse project directory or a single artifact file to a Ballerina package.
+     *
+     * <p>Artifacts are processed one at a time: each artifact file is parsed, converted and flushed
+     * to the generated Ballerina package before the next one is read, so the whole project is never
+     * held in memory at once. The generated constructs are consolidated by kind across all artifacts:
+     * services (with the shared HTTP listener) go to {@code main.bal}, functions to
+     * {@code functions.bal} and record types to {@code types.bal}.
      *
      * @param sourcePath    Synapse project directory or artifact file path
      * @param outputPath    output directory for the generated Ballerina package (nullable -> default)
@@ -90,23 +100,78 @@ public final class SynapseConverter {
             throw new UnsupportedOperationException("The 'multiRoot' option is not supported yet.");
         }
 
-        List<SynapseNode> synapseModel = SynapseConfigReader.parse(sourcePath);
-
-        ConversionContext context = new ConversionContext();
-        for (SynapseNode node : synapseModel) {
-            BIRConverter converter = CONVERTERS.get(node.kind());
-            if (converter == null) {
-                continue;
-            }
-            converter.convert(node, context);
+        List<File> artifactFiles = SynapseConfigReader.collectArtifactFiles(sourcePath);
+        if (artifactFiles.isEmpty()) {
+            throw new RuntimeException("No Synapse .xml artifacts found at: " + sourcePath);
         }
 
         if (dryRun) {
+            for (File artifact : artifactFiles) {
+                convertArtifact(artifact, new ConversionContext());
+            }
             return;
         }
+
         String targetPath = outputPath != null ? outputPath : stripExtension(sourcePath) + "_converted";
-        generateBallerinaPackage(context, targetPath, orgName.orElse(DEFAULT_ORG),
-                projectName.orElse(DEFAULT_PACKAGE));
+        try {
+            Path targetDir = Paths.get(targetPath);
+            Files.createDirectories(targetDir);
+            Files.writeString(targetDir.resolve("Ballerina.toml"),
+                    ballerinaToml(orgName.orElse(DEFAULT_ORG), projectName.orElse(DEFAULT_PACKAGE)));
+
+            ConversionContext context = new ConversionContext();
+            for (File artifact : artifactFiles) {
+                convertArtifact(artifact, context);
+                writeArtifacts(targetDir, context);
+                context.clearArtifactOutput();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error while writing the Ballerina package: ", e);
+        }
+    }
+
+    private static ConversionContext convertArtifact(File artifact, ConversionContext context) {
+        List<SynapseNode> nodes = SynapseConfigReader.parse(artifact);
+        for (SynapseNode node : nodes) {
+            BIRConverter<ConversionContext> converter = ROOT_CONVERTERS.get(node.kind());
+            if (converter == null) {
+                throw new UnsupportedOperationException("No root converter for Synapse node kind: " + node.kind());
+            }
+            converter.convert(node, context);
+        }
+        return context;
+    }
+
+    private static void writeArtifacts(Path targetDir, ConversionContext context) throws IOException {
+        appendToFile(targetDir.resolve(MAIN_BAL_FILE), List.of(new Import("ballerina", "http")),
+                List.of(new HTTPListener(LISTENER_NAME, DEFAULT_PORT, DEFAULT_HOST)),
+                context.services(), List.of(), List.of());
+        if (!context.functions().isEmpty()) {
+            appendToFile(targetDir.resolve(FUNCTIONS_BAL_FILE), List.of(), List.of(),
+                List.of(), context.functions(), List.of());
+        }
+        if (!context.records().isEmpty()) {
+            appendToFile(targetDir.resolve(TYPES_BAL_FILE), List.of(), List.of(),
+                List.of(), List.of(), context.records());
+        }
+    }
+
+    private static void appendToFile(Path file, List<Import> imports, List<Listener> listeners,
+                                     List<Service> services, List<Function> functions,
+                                     List<ModuleTypeDef> records) throws IOException {
+        boolean exists = Files.exists(file);
+        if (exists && services.isEmpty() && functions.isEmpty() && records.isEmpty()) {
+            return;
+        }
+        TextDocument document = new TextDocument(file.getFileName().toString(),
+                exists ? List.of() : imports, records, List.of(), exists ? List.of() : listeners,
+                services, functions, List.of(), List.of(), List.of());
+        String source = document.toSource();
+        if (exists) {
+            Files.writeString(file, System.lineSeparator() + source, StandardOpenOption.APPEND);
+        } else {
+            Files.writeString(file, source);
+        }
     }
 
     private static String stripExtension(String path) {
@@ -118,25 +183,6 @@ public final class SynapseConverter {
         return lastDot > lastSeparator ? path.substring(0, lastDot) : path;
     }
 
-    private static void generateBallerinaPackage(ConversionContext context, String targetPath, String orgName,
-                                                 String packageName) {
-
-        List<Service> services = context.services();
-        List<Import> imports = List.of(new Import("ballerina", "http"));
-        List<Listener> listeners = List.of(new HTTPListener(LISTENER_NAME, DEFAULT_PORT, DEFAULT_HOST));
-        TextDocument textDocument = new TextDocument(MAIN_BAL_FILE, imports, List.of(), List.of(), listeners,
-                services, List.of(), List.of(), List.of(), List.of());
-
-        try {
-            Path targetDir = Paths.get(targetPath);
-            Files.createDirectories(targetDir);
-            Files.writeString(targetDir.resolve(MAIN_BAL_FILE), textDocument.toSource());
-            Files.writeString(targetDir.resolve("Ballerina.toml"), ballerinaToml(orgName, packageName));
-        } catch (IOException e) {
-            throw new RuntimeException("Error while writing the Ballerina package: ", e);
-        }
-    }
-
     private static String ballerinaToml(String orgName, String packageName) {
         return """
                 [package]
@@ -144,7 +190,7 @@ public final class SynapseConverter {
                 name = "%s"
                 version = "0.1.0"
                 distribution = "2201.12.3"
-                
+
                 [build-options]
                 observabilityIncluded = true
                 """.formatted(orgName, packageName);
@@ -166,47 +212,5 @@ public final class SynapseConverter {
         // TODO: implement single-project Synapse -> Ballerina conversion.
         throw new UnsupportedOperationException(
                 "Synapse project migration is not implemented yet. Source: " + sourcePath);
-    }
-
-    /**
-     * Converts a Synapse {@code <property>} mediator. How a property is converted depends on where it
-     * lives: a property within a resource contributes to that resource's body, whereas a property
-     * outside a resource (e.g. an api-level property) is handled differently. This converter therefore
-     * first identifies its scope.
-     */
-    static class PropertyConverter implements BIRConverter {
-
-        private static final String TRANSPORT_SCOPE = "transport";
-        private static final String AXIS2_SCOPE = "axis2";
-
-        @Override
-        public void convert(SynapseNode node, ConversionContext context) {
-            Property property = (Property) node;
-            if (context.isWithinResource()) {
-                convertResourceProperty(property, context);
-            } else {
-                // TODO: convert a property declared outside a resource.
-            }
-        }
-
-        private static void convertResourceProperty(Property property, ConversionContext context) {
-            String statement = switch (property.scope()) {
-                case TRANSPORT_SCOPE -> "response.setHeader(\"" + property.name() + "\", \""
-                        + property.value() + "\");";
-                case AXIS2_SCOPE -> "response.statusCode = " + property.value() + ";";
-                default -> toBallerinaType(property.type()) + " " + property.name() + " = "
-                        + property.value() + ";";
-            };
-            context.statements().add(new Statement.BallerinaStatement(statement));
-        }
-
-        private static String toBallerinaType(String synapseType) {
-            return switch (synapseType.toUpperCase()) {
-                case "INTEGER", "INT", "LONG", "SHORT" -> "int";
-                case "BOOLEAN" -> "boolean";
-                case "DOUBLE", "FLOAT" -> "float";
-                default -> "string";
-            };
-        }
     }
 }
