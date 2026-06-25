@@ -68,39 +68,56 @@ public interface BIRConverter<C> {
 
     /**
      * Converts a list of Synapse mediators into Ballerina, accumulating the result in {@code context}.
-     * Returns the type the enclosing scope (resource or function) should return: a {@code respond}
-     * mediator yields {@code http:Response}, otherwise {@link BuiltinType#NIL}.
+     * The type the enclosing scope (resource or function) should return is recorded on the context: it
+     * becomes {@code http:Response} when the scope responds — a {@code <respond>} mediator, or a call to
+     * a sequence that responds (directly or down a call chain) — and stays {@link BuiltinType#NIL}
+     * otherwise. Callers read it back via {@link ScopeContext#returnType()}.
+     *
+     * <p>Only a resource body actually emits the {@code return response;}; a {@code <sequence>} body is
+     * generated as a plain {@code nil}-returning function and its respond bubbles up, via the sequence
+     * metadata, to the resource call site that returns to the client.
      */
-    static TypeDesc convertMediators(List<SynapseNode> mediators, ScopeContext context) {
-        TypeDesc returnType = BuiltinType.NIL;
-        for (SynapseNode node : mediators) {
-            if (node.kind() == Kind.RESPOND) {
-                returnType = respond(context);
+    static void convertMediators(List<SynapseNode> mediators, ScopeContext context) {
+        for (SynapseNode mediator : mediators) {
+            if (mediator.kind() == Kind.RESPOND) {
+                emitRespond(context);
             } else {
                 BIRConverter<ScopeContext> converter =
-                        MEDIATOR_CONVERTERS.getOrDefault(node.kind(), new UnsupportedConverter());
-                converter.convert(node, context);
+                        MEDIATOR_CONVERTERS.getOrDefault(mediator.kind(), new UnsupportedConverter());
+                converter.convert(mediator, context);
+            }
+            if (context.isResponded()) {
+                break;
             }
         }
-        return returnType;
     }
 
-    private static TypeDesc respond(ScopeContext context) {
-        Optional<ScopeContext.Payload> payload = context.payload();
-        if (payload.isEmpty()) {
-            return BuiltinType.NIL;
+    /**
+     * Emits the {@code return response;} for a respond in {@code context}, initialising the
+     * {@code http:Response}, flushing any pending payload onto it first, and recording
+     * {@code http:Response} as the scope's {@link ScopeContext#returnType()}. Outside a resource body
+     * nothing is emitted: a sequence function stays {@code nil}-returning and its respond is realised at
+     * the resource that calls it. Either way the scope is marked {@link ScopeContext#isResponded()
+     * responded}, since a respond is terminal and ends mediator conversion.
+     */
+    private static void emitRespond(ScopeContext context) {
+        context.setResponded(true);
+        if (!context.isWithinResource()) {
+            return;
         }
         List<Statement> statements = context.statements();
         if (!context.isRespondInitialized()) {
             statements.add(0, new Statement.BallerinaStatement("http:Response response = new;"));
             context.setRespondInitialized(true);
         }
-        ScopeContext.Payload p = payload.get();
-        statements.add(new Statement.CallStatement(new Expression.MethodCall(
-                new Expression.VariableReference("response"), "setPayload", List.of(p.value()))));
+        Optional<ScopeContext.Payload> payload = context.payload();
+        if (payload.isPresent()) {
+            statements.add(new Statement.CallStatement(new Expression.MethodCall(
+                    new Expression.VariableReference("response"), "setPayload", List.of(payload.get().value()))));
+            context.setPayload(null);
+        }
         statements.add(new Statement.Return<>(Optional.of(new Expression.VariableReference("response"))));
-        context.setPayload(null);
-        return new TypeDesc.BallerinaType("http:Response");
+        context.setReturnType(new TypeDesc.BallerinaType("http:Response"));
     }
 
     /**
@@ -134,7 +151,10 @@ public interface BIRConverter<C> {
             }
 
             ResourceContext resourceContext = new ResourceContext(context);
-            TypeDesc returnType = genResourceBody(resource.inSequence(), resourceContext);
+            if (resource.inSequence() != null) {
+                convertMediators(resource.inSequence().mediators(), resourceContext);
+            }
+            TypeDesc returnType = resourceContext.returnType();
             Optional<TypeDesc> returnTypeDesc = returnType == BuiltinType.NIL
                     ? Optional.empty() : Optional.of(returnType);
             return new Resource(method, path, parameters, returnTypeDesc, resourceContext.statements());
@@ -155,14 +175,6 @@ public interface BIRConverter<C> {
             }
             return segments.isEmpty() ? ROOT_RESOURCE_PATH : String.join("/", segments);
         }
-
-        private static TypeDesc genResourceBody(synapse.model.Synapse.InSequence inSequence,
-                                                ScopeContext context) {
-            if (inSequence == null) {
-                return BuiltinType.NIL;
-            }
-            return convertMediators(inSequence.mediators(), context);
-        }
     }
 
     /**
@@ -176,7 +188,8 @@ public interface BIRConverter<C> {
         public void convert(SynapseNode node, ConversionContext context) {
             Sequence sequence = (Sequence) node;
             SequenceContext sequenceContext = new SequenceContext(context);
-            TypeDesc returnType = convertMediators(sequence.mediators(), sequenceContext);
+            convertMediators(sequence.mediators(), sequenceContext);
+            TypeDesc returnType = sequenceContext.returnType();
             List<Statement> body = sequenceContext.statements();
             Function function = returnType == BuiltinType.NIL
                     ? new Function(sequence.name(), List.of(), body)
@@ -187,7 +200,8 @@ public interface BIRConverter<C> {
 
     /**
      * Converts a Synapse {@code <sequence key="name"/>} mediator into a call to the Ballerina function
-     * generated for the referenced sequence. The call passes no arguments and discards any return value.
+     * generated for the referenced sequence. The call passes no arguments; if the referenced sequence
+     * responds (directly or down a call chain), the call also drives a respond in the enclosing scope.
      */
     class SequenceMediatorConverter implements BIRConverter<ScopeContext> {
 
@@ -196,6 +210,15 @@ public interface BIRConverter<C> {
             SequenceMediator sequenceMediator = (SequenceMediator) node;
             context.statements().add(new Statement.CallStatement(
                     new Expression.FunctionCall(sequenceMediator.key(), List.<Expression>of())));
+            if (containsRespond(context, sequenceMediator.key())) {
+                emitRespond(context);
+            }
+        }
+
+        private static boolean containsRespond(ScopeContext context, String sequenceKey) {
+            return context.shared().sequenceMetadata(sequenceKey)
+                    .map(ConversionContext.SequenceMetadata::containsRespond)
+                    .orElse(false);
         }
     }
 

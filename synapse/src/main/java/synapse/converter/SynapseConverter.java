@@ -26,7 +26,10 @@ import common.BallerinaModel.ModuleTypeDef;
 import common.BallerinaModel.Service;
 import common.BallerinaModel.TextDocument;
 import synapse.converter.BIRConverter.APIConverter;
+import synapse.converter.ConversionContext.SequenceMetadata;
 import synapse.model.Synapse.Kind;
+import synapse.model.Synapse.Sequence;
+import synapse.model.Synapse.SequenceMediator;
 import synapse.model.Synapse.SynapseNode;
 import synapse.reader.SynapseConfigReader;
 
@@ -36,6 +39,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -120,6 +125,7 @@ public final class SynapseConverter {
                     ballerinaToml(orgName.orElse(DEFAULT_ORG), projectName.orElse(DEFAULT_PACKAGE)));
 
             ConversionContext context = new ConversionContext();
+            collectSequenceMetadata(artifactFiles, context);
             for (File artifact : artifactFiles) {
                 convertArtifact(artifact, context);
                 writeArtifacts(targetDir, context);
@@ -127,6 +133,55 @@ public final class SynapseConverter {
             }
         } catch (IOException e) {
             throw new RuntimeException("Error while writing the Ballerina package: ", e);
+        }
+    }
+
+    private static void collectSequenceMetadata(List<File> artifactFiles, ConversionContext context) {
+        Map<String, SequenceMetadata> metadata = new HashMap<>();
+        for (File artifact : artifactFiles) {
+            for (SynapseNode node : SynapseConfigReader.parse(artifact)) {
+                if (node instanceof Sequence sequence) {
+                    SequenceMetadata sequenceMetadata = buildSequenceMetadata(sequence);
+                    metadata.put(sequenceMetadata.name(), sequenceMetadata);
+                }
+            }
+        }
+        propagateRespond(metadata);
+        metadata.values().forEach(context::addSequenceMetadata);
+    }
+
+    private static SequenceMetadata buildSequenceMetadata(Sequence sequence) {
+        boolean containsRespond = false;
+        List<String> referencedSequences = new ArrayList<>();
+        for (SynapseNode mediator : sequence.mediators()) {
+            if (mediator.kind() == Kind.RESPOND) {
+                containsRespond = true;
+            } else if (mediator instanceof SequenceMediator sequenceMediator) {
+                referencedSequences.add(sequenceMediator.key());
+            }
+        }
+        return new SequenceMetadata(sequence.name(), containsRespond, referencedSequences);
+    }
+
+    private static void propagateRespond(Map<String, SequenceMetadata> metadata) {
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (String name : new ArrayList<>(metadata.keySet())) {
+                SequenceMetadata sequenceMetadata = metadata.get(name);
+                if (sequenceMetadata.containsRespond()) {
+                    continue;
+                }
+                for (String referenced : sequenceMetadata.referencedSequences()) {
+                    SequenceMetadata referencedMetadata = metadata.get(referenced);
+                    if (referencedMetadata != null && referencedMetadata.containsRespond()) {
+                        metadata.put(name,
+                                new SequenceMetadata(name, true, sequenceMetadata.referencedSequences()));
+                        changed = true;
+                        break;
+                    }
+                }
+            }
         }
     }
 

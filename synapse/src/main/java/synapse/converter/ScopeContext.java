@@ -20,6 +20,7 @@ package synapse.converter;
 import common.BallerinaModel.Expression;
 import common.BallerinaModel.Statement;
 import common.BallerinaModel.TypeDesc;
+import common.BallerinaModel.TypeDesc.BuiltinType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +41,8 @@ public abstract class ScopeContext {
     private final List<Statement> statements = new ArrayList<>();
     private Payload payload;
     private boolean respondInitialized;
+    private boolean responded;
+    private TypeDesc returnType = BuiltinType.NIL;
 
     protected ScopeContext(ConversionContext shared) {
         assert shared != null : "shared ConversionContext must not be null";
@@ -77,6 +80,30 @@ public abstract class ScopeContext {
 
     public void setRespondInitialized(boolean respondInitialized) {
         this.respondInitialized = respondInitialized;
+    }
+
+    /**
+     * Whether a respond has occurred in this scope — a {@code <respond>} mediator or a call to a
+     * responding sequence. A respond is terminal, so mediator conversion stops once this is set.
+     */
+    public boolean isResponded() {
+        return responded;
+    }
+
+    public void setResponded(boolean responded) {
+        this.responded = responded;
+    }
+
+    /**
+     * The type this scope's enclosing resource or function should return: {@code http:Response} once a
+     * respond has been emitted into this (resource) scope, and {@link BuiltinType#NIL} otherwise.
+     */
+    public TypeDesc returnType() {
+        return returnType;
+    }
+
+    public void setReturnType(TypeDesc returnType) {
+        this.returnType = returnType;
     }
 
     public record Payload(TypeDesc type, Expression value) {

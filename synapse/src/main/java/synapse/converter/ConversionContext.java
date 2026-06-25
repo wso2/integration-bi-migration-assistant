@@ -22,7 +22,10 @@ import common.BallerinaModel.ModuleTypeDef;
 import common.BallerinaModel.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Project-wide state shared across every artifact and every converter for a single migration run.
@@ -48,8 +51,7 @@ public class ConversionContext {
     private final List<Function> functions = new ArrayList<>();
     private final List<ModuleTypeDef> records = new ArrayList<>();
 
-    // Extension point: cross-artifact metadata (e.g. a sequence/service registry keyed by name) that
-    // must outlive a single artifact goes here, and must NOT be touched by clearArtifactOutput().
+    private final Map<String, SequenceMetadata> sequenceMetadata = new HashMap<>();
 
     public void addService(Service service) {
         services.add(service);
@@ -75,6 +77,14 @@ public class ConversionContext {
         return records;
     }
 
+    public void addSequenceMetadata(SequenceMetadata metadata) {
+        sequenceMetadata.put(metadata.name(), metadata);
+    }
+
+    public Optional<SequenceMetadata> sequenceMetadata(String name) {
+        return Optional.ofNullable(sequenceMetadata.get(name));
+    }
+
     /**
      * Discards the output accumulated for the artifact just written, leaving cross-artifact metadata
      * intact, so the next artifact starts from a clean output buffer.
@@ -83,5 +93,14 @@ public class ConversionContext {
         services.clear();
         functions.clear();
         records.clear();
+    }
+
+    /**
+     * Conversion-relevant facts about a top-level {@code <sequence>}, gathered before any artifact is
+     * converted. {@code containsRespond} is whether the sequence holds a {@code <respond>} mediator
+     * directly; {@code referencedSequences} are the keys of the sequences it invokes (via a
+     * {@code <sequence key="..."/>} mediator), so that responding can be resolved across call chains.
+     */
+    public record SequenceMetadata(String name, boolean containsRespond, List<String> referencedSequences) {
     }
 }
