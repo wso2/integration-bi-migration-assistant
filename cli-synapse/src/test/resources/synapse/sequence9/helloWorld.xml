@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/HelloWorld" name="HelloWorld" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="GET" uri-template="/orders">
+        <inSequence>
+            <property name="before" scope="default" type="STRING" value="&quot;before&quot;"/>
+            <payloadFactory media-type="json" template-type="default">
+                <format>{"id": "001"}</format>
+            </payloadFactory>
+            <property name="after" scope="default" type="STRING" value="&quot;after&quot;"/>
+            <respond/>
+        </inSequence>
+        <faultSequence/>
+    </resource>
+</api>

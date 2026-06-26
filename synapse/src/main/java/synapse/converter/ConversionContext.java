@@ -86,6 +86,15 @@ public class ConversionContext {
     }
 
     /**
+     * Whether the generated functions reference {@code http:Response} — true once any sequence holds a
+     * {@code <payloadFactory>} (so its function takes a response parameter), which means
+     * {@code functions.bal} needs the {@code ballerina/http} import.
+     */
+    public boolean functionsRequireHttpImport() {
+        return sequenceMetadata.values().stream().anyMatch(SequenceMetadata::containsPayloadFactory);
+    }
+
+    /**
      * Discards the output accumulated for the artifact just written, leaving cross-artifact metadata
      * intact, so the next artifact starts from a clean output buffer.
      */
@@ -95,12 +104,10 @@ public class ConversionContext {
         records.clear();
     }
 
-    /**
-     * Conversion-relevant facts about a top-level {@code <sequence>}, gathered before any artifact is
-     * converted. {@code containsRespond} is whether the sequence holds a {@code <respond>} mediator
-     * directly; {@code referencedSequences} are the keys of the sequences it invokes (via a
-     * {@code <sequence key="..."/>} mediator), so that responding can be resolved across call chains.
-     */
-    public record SequenceMetadata(String name, boolean containsRespond, List<String> referencedSequences) {
+    // Pre-gathered facts about a <sequence>. containsRespond and containsPayloadFactory are transitive:
+    // also true when a referencedSequences entry responds / sets a payload (resolved by propagation),
+    // so a call site can decide across chains whether to return a response or pass one in.
+    public record SequenceMetadata(String name, boolean containsRespond, boolean containsPayloadFactory,
+                                   List<String> referencedSequences) {
     }
 }

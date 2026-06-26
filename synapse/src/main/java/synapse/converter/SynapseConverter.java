@@ -147,20 +147,25 @@ public final class SynapseConverter {
             }
         }
         propagateRespond(metadata);
+        propagatePayloadFactory(metadata);
         metadata.values().forEach(context::addSequenceMetadata);
     }
 
     private static SequenceMetadata buildSequenceMetadata(Sequence sequence) {
         boolean containsRespond = false;
+        boolean containsPayloadFactory = false;
         List<String> referencedSequences = new ArrayList<>();
         for (SynapseNode mediator : sequence.mediators()) {
             if (mediator.kind() == Kind.RESPOND) {
                 containsRespond = true;
+            } else if (mediator.kind() == Kind.PAYLOAD_FACTORY) {
+                containsPayloadFactory = true;
             } else if (mediator instanceof SequenceMediator sequenceMediator) {
                 referencedSequences.add(sequenceMediator.key());
             }
         }
-        return new SequenceMetadata(sequence.name(), containsRespond, referencedSequences);
+        return new SequenceMetadata(sequence.name(), containsRespond, containsPayloadFactory,
+                referencedSequences);
     }
 
     private static void propagateRespond(Map<String, SequenceMetadata> metadata) {
@@ -175,8 +180,31 @@ public final class SynapseConverter {
                 for (String referenced : sequenceMetadata.referencedSequences()) {
                     SequenceMetadata referencedMetadata = metadata.get(referenced);
                     if (referencedMetadata != null && referencedMetadata.containsRespond()) {
-                        metadata.put(name,
-                                new SequenceMetadata(name, true, sequenceMetadata.referencedSequences()));
+                        metadata.put(name, new SequenceMetadata(name, true,
+                                sequenceMetadata.containsPayloadFactory(),
+                                sequenceMetadata.referencedSequences()));
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private static void propagatePayloadFactory(Map<String, SequenceMetadata> metadata) {
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (String name : new ArrayList<>(metadata.keySet())) {
+                SequenceMetadata sequenceMetadata = metadata.get(name);
+                if (sequenceMetadata.containsPayloadFactory()) {
+                    continue;
+                }
+                for (String referenced : sequenceMetadata.referencedSequences()) {
+                    SequenceMetadata referencedMetadata = metadata.get(referenced);
+                    if (referencedMetadata != null && referencedMetadata.containsPayloadFactory()) {
+                        metadata.put(name, new SequenceMetadata(name, sequenceMetadata.containsRespond(),
+                                true, sequenceMetadata.referencedSequences()));
                         changed = true;
                         break;
                     }
@@ -202,7 +230,9 @@ public final class SynapseConverter {
                 List.of(new HTTPListener(LISTENER_NAME, DEFAULT_PORT, DEFAULT_HOST)),
                 context.services(), List.of(), List.of());
         if (!context.functions().isEmpty()) {
-            appendToFile(targetDir.resolve(FUNCTIONS_BAL_FILE), List.of(), List.of(),
+            List<Import> functionImports = context.functionsRequireHttpImport()
+                    ? List.of(new Import("ballerina", "http")) : List.of();
+            appendToFile(targetDir.resolve(FUNCTIONS_BAL_FILE), functionImports, List.of(),
                 List.of(), context.functions(), List.of());
         }
         if (!context.records().isEmpty()) {
