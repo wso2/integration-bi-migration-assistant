@@ -313,11 +313,13 @@ public class TibcoToBalConverter {
             Consumer<String> stateCallback = validateAndGetConsumer(parameters, "stateCallback");
             Consumer<String> logCallback = validateAndGetConsumer(parameters, "logCallback");
             boolean multiRoot = validateAndGetBoolean(parameters, "multiRoot", false);
+            boolean keepStructure = validateAndGetBoolean(parameters, "keepStructure", false);
 
             if (multiRoot) {
-                return migrateTIBCOMultiRootInner(orgName, projectName, sourcePath, stateCallback, logCallback);
+                return migrateTIBCOMultiRootInner(orgName, projectName, sourcePath, keepStructure, stateCallback,
+                        logCallback);
             } else {
-                return migrateTIBCOInner(orgName, projectName, sourcePath, stateCallback, logCallback);
+                return migrateTIBCOInner(orgName, projectName, sourcePath, keepStructure, stateCallback, logCallback);
             }
         } catch (IllegalArgumentException e) {
             return Map.of("error", e.getMessage());
@@ -325,11 +327,13 @@ public class TibcoToBalConverter {
     }
 
     private static @NotNull Map<String, Object> migrateTIBCOInner(String orgName, String projectName, String sourcePath,
-            Consumer<String> stateCallback, Consumer<String> logCallback) {
+                                                                  boolean keepStructure, Consumer<String> stateCallback,
+                                                                  Consumer<String> logCallback) {
         String escapedOrgName = ConversionUtils.escapeIdentifier(orgName);
         String escapedProjectName = ConversionUtils.escapeIdentifier(projectName);
         ProjectConversionContext cx = new ProjectConversionContext(
-                new ConversionContext(escapedOrgName, false, false, stateCallback, logCallback), escapedProjectName);
+                new ConversionContext(escapedOrgName, false, keepStructure, stateCallback, logCallback),
+                escapedProjectName);
         try {
             tibco.converter.TibcoConverter.ParsedProject parsed =
                     tibco.converter.TibcoConverter.parseProject(cx, sourcePath);
@@ -350,11 +354,12 @@ public class TibcoToBalConverter {
     }
 
     private static @NotNull Map<String, Object> migrateTIBCOMultiRootInner(String orgName, String projectName,
-            String sourcePath,
-            Consumer<String> stateCallback,
-            Consumer<String> logCallback) {
+                                                                           String sourcePath,
+                                                                           boolean keepStructure,
+                                                                           Consumer<String> stateCallback,
+                                                                           Consumer<String> logCallback) {
         String escapedOrgName = ConversionUtils.escapeIdentifier(orgName);
-        ConversionContext cx = new ConversionContext(escapedOrgName, false, false, stateCallback, logCallback);
+        ConversionContext cx = new ConversionContext(escapedOrgName, false, keepStructure, stateCallback, logCallback);
         Path inputPath;
         try {
             inputPath = Paths.get(sourcePath).toRealPath();
