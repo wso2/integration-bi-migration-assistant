@@ -215,9 +215,13 @@ public interface BIRConverter<C> {
      * whose body is the
      * converted mediator flow. A sequence holding a {@code <payloadFactory>}
      * becomes a function taking an
-     * {@code http:Response response} parameter and returning it (with the payload
-     * set); otherwise the
-     * function is {@code nil}-returning and parameterless.
+     * {@code http:Response response} parameter, which it mutates in place (setting
+     * the payload) rather than
+     * returning. The function's return type is driven by the converted mediators:
+     * unless they yield a
+     * non-{@code nil} {@code returnType}, the function is {@code nil}-returning
+     * (see line 239). A sequence
+     * without a {@code <payloadFactory>} is parameterless.
      */
     class SequenceConverter implements BIRConverter<ConversionContext> {
 
