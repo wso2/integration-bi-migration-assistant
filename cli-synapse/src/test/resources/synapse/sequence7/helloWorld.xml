@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/HelloWorld" name="HelloWorld" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="GET" uri-template="/afterRespond">
+        <inSequence>
+            <sequence key="bar"/>
+            <property name="unreachable" scope="default" type="STRING" value="&quot;dropped&quot;"/>
+        </inSequence>
+        <faultSequence/>
+    </resource>
+</api>

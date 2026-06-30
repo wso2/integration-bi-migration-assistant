@@ -22,7 +22,10 @@ import common.BallerinaModel.ModuleTypeDef;
 import common.BallerinaModel.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Project-wide state shared across every artifact and every converter for a single migration run.
@@ -48,8 +51,7 @@ public class ConversionContext {
     private final List<Function> functions = new ArrayList<>();
     private final List<ModuleTypeDef> records = new ArrayList<>();
 
-    // Extension point: cross-artifact metadata (e.g. a sequence/service registry keyed by name) that
-    // must outlive a single artifact goes here, and must NOT be touched by clearArtifactOutput().
+    private final Map<String, SequenceMetadata> sequenceMetadata = new HashMap<>();
 
     public void addService(Service service) {
         services.add(service);
@@ -75,6 +77,23 @@ public class ConversionContext {
         return records;
     }
 
+    public void addSequenceMetadata(SequenceMetadata metadata) {
+        sequenceMetadata.put(metadata.name(), metadata);
+    }
+
+    public Optional<SequenceMetadata> sequenceMetadata(String name) {
+        return Optional.ofNullable(sequenceMetadata.get(name));
+    }
+
+    /**
+     * Whether the generated functions reference {@code http:Response} — true once any sequence holds a
+     * {@code <payloadFactory>} (so its function takes a response parameter), which means
+     * {@code functions.bal} needs the {@code ballerina/http} import.
+     */
+    public boolean functionsRequireHttpImport() {
+        return sequenceMetadata.values().stream().anyMatch(SequenceMetadata::containsPayloadFactory);
+    }
+
     /**
      * Discards the output accumulated for the artifact just written, leaving cross-artifact metadata
      * intact, so the next artifact starts from a clean output buffer.
@@ -83,5 +102,12 @@ public class ConversionContext {
         services.clear();
         functions.clear();
         records.clear();
+    }
+
+    // Pre-gathered facts about a <sequence>. containsRespond and containsPayloadFactory are transitive:
+    // also true when a referencedSequences entry responds / sets a payload (resolved by propagation),
+    // so a call site can decide across chains whether to return a response or pass one in.
+    public record SequenceMetadata(String name, boolean containsRespond, boolean containsPayloadFactory,
+                                   List<String> referencedSequences) {
     }
 }
