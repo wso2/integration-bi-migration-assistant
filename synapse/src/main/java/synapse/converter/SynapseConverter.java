@@ -26,10 +26,10 @@ import common.BallerinaModel.ModuleTypeDef;
 import common.BallerinaModel.Service;
 import common.BallerinaModel.TextDocument;
 import synapse.converter.BIRConverter.APIConverter;
-import synapse.converter.ConversionContext.SequenceMetadata;
+import synapse.model.DependencyGraph;
+import synapse.model.DependencyGraph.ArtifactNode;
+import synapse.model.DependencyResolver;
 import synapse.model.Synapse.Kind;
-import synapse.model.Synapse.Sequence;
-import synapse.model.Synapse.SequenceMediator;
 import synapse.model.Synapse.SynapseNode;
 import synapse.reader.SynapseConfigReader;
 
@@ -41,9 +41,11 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Entry point for converting WSO2 Synapse (ESB / Micro Integrator) artifacts to Ballerina.
@@ -61,9 +63,6 @@ public final class SynapseConverter {
             Kind.API, new APIConverter(),
             Kind.SEQUENCE, new BIRConverter.SequenceConverter());
 
-    private static final String MAIN_BAL_FILE = "main.bal";
-    private static final String FUNCTIONS_BAL_FILE = "functions.bal";
-    private static final String TYPES_BAL_FILE = "types.bal";
     private static final String LISTENER_NAME = "httpListener";
     private static final String DEFAULT_PORT = "8080";
     private static final String DEFAULT_HOST = "0.0.0.0";
@@ -76,11 +75,15 @@ public final class SynapseConverter {
     /**
      * Migrate a Synapse project directory or a single artifact file to a Ballerina package.
      *
-     * <p>Artifacts are processed one at a time: each artifact file is parsed, converted and flushed
-     * to the generated Ballerina package before the next one is read, so the whole project is never
-     * held in memory at once. The generated constructs are consolidated by kind across all artifacts:
-     * services (with the shared HTTP listener) go to {@code main.bal}, functions to
-     * {@code functions.bal} and record types to {@code types.bal}.
+     * <p>Artifacts are processed one at a time in dependency order (leaves first), as given by the
+     * {@link DependencyGraph}: each artifact is parsed, converted and flushed to the generated
+     * Ballerina package before the next one, so the whole project is never held in memory at once.
+     * Converting leaves first means a sequence's dependencies are already converted when it is
+     * reached, so its {@link ConversionContext.SequenceMetadata} (whether it responds or sets a
+     * payload, transitively) is generated during conversion rather than in a separate pass. The
+     * generated constructs are consolidated by kind across all artifacts: services (with the shared
+     * HTTP listener) go to {@code main.bal}, functions to {@code functions.bal} and record types to
+     * {@code types.bal}.
      *
      * @param sourcePath    Synapse project directory or artifact file path
      * @param outputPath    output directory for the generated Ballerina package (nullable -> default)
@@ -110,9 +113,15 @@ public final class SynapseConverter {
             throw new RuntimeException("No Synapse .xml artifacts found at: " + sourcePath);
         }
 
+        DependencyGraph dependencyGraph = DependencyGraph.buildDependencyGraph(artifactFiles);
+
+        ConversionContext context = new ConversionContext();
+        context.setDependencyGraph(dependencyGraph);
+
         if (dryRun) {
-            for (File artifact : artifactFiles) {
-                convertArtifact(artifact, new ConversionContext());
+            for (ArtifactNode artifactNode : dependencyGraph.sortedNodes()) {
+                convertArtifact(artifactNode, context);
+                context.clearArtifactOutput();
             }
             return;
         }
@@ -124,132 +133,71 @@ public final class SynapseConverter {
             Files.writeString(targetDir.resolve("Ballerina.toml"),
                     ballerinaToml(orgName.orElse(DEFAULT_ORG), projectName.orElse(DEFAULT_PACKAGE)));
 
-            ConversionContext context = new ConversionContext();
-            collectSequenceMetadata(artifactFiles, context);
-            for (File artifact : artifactFiles) {
-                convertArtifact(artifact, context);
-                writeArtifacts(targetDir, context);
+            Map<Path, Set<Import>> writtenImports = new HashMap<>();
+            for (ArtifactNode artifactNode : dependencyGraph.sortedNodes()) {
+                convertArtifact(artifactNode, context);
+                writeArtifacts(targetDir, context, writtenImports);
                 context.clearArtifactOutput();
+            }
+            if (dependencyGraph.sortedNodes().isEmpty()) {
+                // No convertible artifacts (e.g. a <proxy>): still emit the base package skeleton.
+                writeArtifacts(targetDir, context, writtenImports);
             }
         } catch (IOException e) {
             throw new RuntimeException("Error while writing the Ballerina package: ", e);
         }
     }
 
-    private static void collectSequenceMetadata(List<File> artifactFiles, ConversionContext context) {
-        Map<String, SequenceMetadata> metadata = new HashMap<>();
-        for (File artifact : artifactFiles) {
-            for (SynapseNode node : SynapseConfigReader.parse(artifact)) {
-                if (node instanceof Sequence sequence) {
-                    SequenceMetadata sequenceMetadata = buildSequenceMetadata(sequence);
-                    metadata.put(sequenceMetadata.name(), sequenceMetadata);
-                }
-            }
+    private static void convertArtifact(ArtifactNode artifactNode, ConversionContext context) {
+        SynapseNode node = DependencyResolver.findArtifact(artifactNode);
+        BIRConverter<ConversionContext> converter = ROOT_CONVERTERS.get(node.kind());
+        if (converter == null) {
+            throw new UnsupportedOperationException("No root converter for Synapse node kind: " + node.kind());
         }
-        propagateRespond(metadata);
-        propagatePayloadFactory(metadata);
-        metadata.values().forEach(context::addSequenceMetadata);
+        converter.convert(node, context);
     }
 
-    private static SequenceMetadata buildSequenceMetadata(Sequence sequence) {
-        boolean containsRespond = false;
-        boolean containsPayloadFactory = false;
-        List<String> referencedSequences = new ArrayList<>();
-        for (SynapseNode mediator : sequence.mediators()) {
-            if (mediator.kind() == Kind.RESPOND) {
-                containsRespond = true;
-            } else if (mediator.kind() == Kind.PAYLOAD_FACTORY) {
-                containsPayloadFactory = true;
-            } else if (mediator instanceof SequenceMediator sequenceMediator) {
-                referencedSequences.add(sequenceMediator.key());
-            }
-        }
-        return new SequenceMetadata(sequence.name(), containsRespond, containsPayloadFactory,
-                referencedSequences);
-    }
-
-    private static void propagateRespond(Map<String, SequenceMetadata> metadata) {
-        boolean changed = true;
-        while (changed) {
-            changed = false;
-            for (String name : new ArrayList<>(metadata.keySet())) {
-                SequenceMetadata sequenceMetadata = metadata.get(name);
-                if (sequenceMetadata.containsRespond()) {
-                    continue;
-                }
-                for (String referenced : sequenceMetadata.referencedSequences()) {
-                    SequenceMetadata referencedMetadata = metadata.get(referenced);
-                    if (referencedMetadata != null && referencedMetadata.containsRespond()) {
-                        metadata.put(name, new SequenceMetadata(name, true,
-                                sequenceMetadata.containsPayloadFactory(),
-                                sequenceMetadata.referencedSequences()));
-                        changed = true;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    private static void propagatePayloadFactory(Map<String, SequenceMetadata> metadata) {
-        boolean changed = true;
-        while (changed) {
-            changed = false;
-            for (String name : new ArrayList<>(metadata.keySet())) {
-                SequenceMetadata sequenceMetadata = metadata.get(name);
-                if (sequenceMetadata.containsPayloadFactory()) {
-                    continue;
-                }
-                for (String referenced : sequenceMetadata.referencedSequences()) {
-                    SequenceMetadata referencedMetadata = metadata.get(referenced);
-                    if (referencedMetadata != null && referencedMetadata.containsPayloadFactory()) {
-                        metadata.put(name, new SequenceMetadata(name, sequenceMetadata.containsRespond(),
-                                true, sequenceMetadata.referencedSequences()));
-                        changed = true;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    private static ConversionContext convertArtifact(File artifact, ConversionContext context) {
-        List<SynapseNode> nodes = SynapseConfigReader.parse(artifact);
-        for (SynapseNode node : nodes) {
-            BIRConverter<ConversionContext> converter = ROOT_CONVERTERS.get(node.kind());
-            if (converter == null) {
-                throw new UnsupportedOperationException("No root converter for Synapse node kind: " + node.kind());
-            }
-            converter.convert(node, context);
-        }
-        return context;
-    }
-
-    private static void writeArtifacts(Path targetDir, ConversionContext context) throws IOException {
-        appendToFile(targetDir.resolve(MAIN_BAL_FILE), List.of(new Import("ballerina", "http")),
+    private static void writeArtifacts(Path targetDir, ConversionContext context,
+                                       Map<Path, Set<Import>> writtenImports) throws IOException {
+        context.addImports(ConversionContext.MAIN_BAL_FILE, List.of(new Import("ballerina", "http")));
+        writeToFile(targetDir.resolve(ConversionContext.MAIN_BAL_FILE),
+                context.importsFor(ConversionContext.MAIN_BAL_FILE),
                 List.of(new HTTPListener(LISTENER_NAME, DEFAULT_PORT, DEFAULT_HOST)),
-                context.services(), List.of(), List.of());
+                context.services(), List.of(), List.of(), writtenImports);
         if (!context.functions().isEmpty()) {
-            List<Import> functionImports = context.functionsRequireHttpImport()
-                    ? List.of(new Import("ballerina", "http")) : List.of();
-            appendToFile(targetDir.resolve(FUNCTIONS_BAL_FILE), functionImports, List.of(),
-                List.of(), context.functions(), List.of());
+            writeToFile(targetDir.resolve(ConversionContext.FUNCTIONS_BAL_FILE),
+                    context.importsFor(ConversionContext.FUNCTIONS_BAL_FILE), List.of(),
+                    List.of(), context.functions(), List.of(), writtenImports);
         }
         if (!context.records().isEmpty()) {
-            appendToFile(targetDir.resolve(TYPES_BAL_FILE), List.of(), List.of(),
-                List.of(), List.of(), context.records());
+            writeToFile(targetDir.resolve(ConversionContext.TYPES_BAL_FILE),
+                    context.importsFor(ConversionContext.TYPES_BAL_FILE), List.of(),
+                    List.of(), List.of(), context.records(), writtenImports);
         }
     }
 
-    private static void appendToFile(Path file, List<Import> imports, List<Listener> listeners,
-                                     List<Service> services, List<Function> functions,
-                                     List<ModuleTypeDef> records) throws IOException {
+    /**
+     * Flushes one artifact's constructs into a shared {@code .bal} file. Constructs are appended, while
+     * imports are kept at the top: {@code writtenImports} tracks what each file already declares, so only
+     * imports this artifact newly introduced are rendered and prepended to the file.
+     */
+    private static void writeToFile(Path file, Set<Import> imports, List<Listener> listeners,
+                                    List<Service> services, List<Function> functions,
+                                    List<ModuleTypeDef> records,
+                                    Map<Path, Set<Import>> writtenImports) throws IOException {
+        appendConstructs(file, listeners, services, functions, records);
+        prependNewImports(file, imports, writtenImports);
+    }
+
+    private static void appendConstructs(Path file, List<Listener> listeners, List<Service> services,
+                                         List<Function> functions, List<ModuleTypeDef> records)
+            throws IOException {
         boolean exists = Files.exists(file);
         if (exists && services.isEmpty() && functions.isEmpty() && records.isEmpty()) {
             return;
         }
         TextDocument document = new TextDocument(file.getFileName().toString(),
-                exists ? List.of() : imports, records, List.of(), exists ? List.of() : listeners,
+                List.of(), records, List.of(), exists ? List.of() : listeners,
                 services, functions, List.of(), List.of(), List.of());
         String source = document.toSource();
         if (exists) {
@@ -257,6 +205,24 @@ public final class SynapseConverter {
         } else {
             Files.writeString(file, source);
         }
+    }
+
+    private static void prependNewImports(Path file, Set<Import> imports,
+                                          Map<Path, Set<Import>> writtenImports) throws IOException {
+        if (!Files.exists(file)) {
+            return;
+        }
+        Set<Import> written = writtenImports.computeIfAbsent(file, key -> new LinkedHashSet<>());
+        Set<Import> newImports = new LinkedHashSet<>(imports);
+        newImports.removeAll(written);
+        if (newImports.isEmpty()) {
+            return;
+        }
+        String importSource = new TextDocument(file.getFileName().toString(), new ArrayList<>(newImports),
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of())
+                .toSource();
+        Files.writeString(file, importSource + Files.readString(file));
+        written.addAll(newImports);
     }
 
     private static String stripExtension(String path) {

@@ -17,6 +17,7 @@
  */
 package synapse.converter;
 
+import common.BallerinaModel.Import;
 import common.BallerinaModel.Statement;
 import common.BallerinaModel.TypeDesc;
 import common.BallerinaModel.TypeDesc.BuiltinType;
@@ -39,6 +40,7 @@ public abstract class ScopeContext {
 
     private final ConversionContext shared;
     private final List<Statement> statements = new ArrayList<>();
+    private final List<Import> importStatements = new ArrayList<>();
     private final boolean responseParam;
     private boolean respondInitialized;
     private boolean responded;
@@ -72,6 +74,10 @@ public abstract class ScopeContext {
 
     public List<Statement> statements() {
         return statements;
+    }
+
+    public List<Import> importStatements() {
+        return importStatements;
     }
 
     public boolean isRespondInitialized() {

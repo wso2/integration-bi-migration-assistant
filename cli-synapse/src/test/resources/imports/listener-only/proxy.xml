@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="ListenerOnlyProxy"
+       transports="http https"
+       startOnLoad="true">
+    <target>
+        <inSequence>
+            <payloadFactory media-type="json">
+                <format>{"message":"Hello, World!"}</format>
+                <args/>
+            </payloadFactory>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence/>
+    </target>
+</proxy>

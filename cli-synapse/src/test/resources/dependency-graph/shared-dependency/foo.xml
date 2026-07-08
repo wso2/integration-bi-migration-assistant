@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="foo" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <payloadFactory media-type="json" template-type="default">
+        <format>{"id": "002"}</format>
+    </payloadFactory>
+</sequence>
