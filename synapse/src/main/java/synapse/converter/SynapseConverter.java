@@ -46,6 +46,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Entry point for converting WSO2 Synapse (ESB / Micro Integrator) artifacts to Ballerina.
@@ -68,6 +70,8 @@ public final class SynapseConverter {
     private static final String DEFAULT_HOST = "0.0.0.0";
     private static final String DEFAULT_ORG = "wso2";
     private static final String DEFAULT_PACKAGE = "synapse";
+
+    private static final Logger LOG = Logger.getLogger(SynapseConverter.class.getName());
 
     private SynapseConverter() {
     }
@@ -114,6 +118,7 @@ public final class SynapseConverter {
         }
 
         DependencyGraph dependencyGraph = DependencyGraph.buildDependencyGraph(artifactFiles);
+        logDependencyWarnings(dependencyGraph);
 
         ConversionContext context = new ConversionContext();
         context.setDependencyGraph(dependencyGraph);
@@ -148,6 +153,23 @@ public final class SynapseConverter {
         }
     }
 
+    /**
+     * Logs a warning for each dependency cycle and each unresolved reference in the graph. Both are
+     * best-effort situations the conversion still proceeds through, so they are surfaced rather than
+     * failing the migration: a cycle has no valid leaf-first order, and an unresolved reference points
+     * at a sequence that was never found among the artifacts.
+     */
+    private static void logDependencyWarnings(DependencyGraph dependencyGraph) {
+        for (List<ArtifactNode> cycle : dependencyGraph.cycles()) {
+            String cyclePath = cycle.stream().map(ArtifactNode::id).collect(Collectors.joining(" -> "));
+            LOG.warning("Cyclic dependency detected among artifacts: " + cyclePath + " -> " + cycle.get(0).id());
+        }
+        for (ArtifactNode unresolved : dependencyGraph.unresolvedNodes()) {
+            LOG.warning("Unresolved dependency: sequence '" + unresolved.name()
+                    + "' is referenced but no matching artifact was found.");
+        }
+    }
+
     private static void convertArtifact(ArtifactNode artifactNode, ConversionContext context) {
         SynapseNode node = DependencyResolver.findArtifact(artifactNode);
         BIRConverter<ConversionContext> converter = ROOT_CONVERTERS.get(node.kind());
@@ -176,11 +198,6 @@ public final class SynapseConverter {
         }
     }
 
-    /**
-     * Flushes one artifact's constructs into a shared {@code .bal} file. Constructs are appended, while
-     * imports are kept at the top: {@code writtenImports} tracks what each file already declares, so only
-     * imports this artifact newly introduced are rendered and prepended to the file.
-     */
     private static void writeToFile(Path file, Set<Import> imports, List<Listener> listeners,
                                     List<Service> services, List<Function> functions,
                                     List<ModuleTypeDef> records,

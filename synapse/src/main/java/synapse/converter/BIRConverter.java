@@ -254,13 +254,6 @@ public interface BIRConverter<C> {
             context.addFunction(function);
         }
 
-        /**
-         * Builds the {@link ConversionContext.SequenceMetadata} for {@code sequence} as it is converted.
-         * A {@code <respond>} or {@code <payloadFactory>} directly in the sequence sets the respective
-         * flag; a referenced {@code <sequence key="..."/>} contributes its own (already computed) flags,
-         * so respond and payloadFactory propagate up the call chain. Because artifacts are converted
-         * leaf-first, every referenced sequence's metadata is already on the context by this point.
-         */
         private static ConversionContext.SequenceMetadata buildSequenceMetadata(Sequence sequence,
                 ConversionContext context) {
             boolean containsRespond = false;
