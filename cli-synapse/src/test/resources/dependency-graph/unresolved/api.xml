@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/U" name="U" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="GET" uri-template="/x">
+        <inSequence>
+            <sequence key="ghost"/>
+        </inSequence>
+    </resource>
+</api>

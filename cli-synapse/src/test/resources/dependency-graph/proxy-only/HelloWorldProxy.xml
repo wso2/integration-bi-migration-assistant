@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy xmlns="http://ws.apache.org/ns/synapse"
+       name="HelloWorldProxy"
+       transports="http https"
+       startOnLoad="true">
+    <target>
+        <inSequence>
+            <log level="full">
+                <property name="message" value="HelloWorldProxy invoked"/>
+            </log>
+            <payloadFactory media-type="json">
+                <format>{"message":"Hello, World!"}</format>
+                <args/>
+            </payloadFactory>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence/>
+    </target>
+</proxy>

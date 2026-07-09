@@ -18,14 +18,19 @@
 package synapse.converter;
 
 import common.BallerinaModel.Function;
+import common.BallerinaModel.Import;
 import common.BallerinaModel.ModuleTypeDef;
 import common.BallerinaModel.Service;
+import synapse.model.DependencyGraph;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Project-wide state shared across every artifact and every converter for a single migration run.
@@ -47,11 +52,26 @@ import java.util.Optional;
  */
 public class ConversionContext {
 
+    public static final String MAIN_BAL_FILE = "main.bal";
+    public static final String FUNCTIONS_BAL_FILE = "functions.bal";
+    public static final String TYPES_BAL_FILE = "types.bal";
+
     private final List<Service> services = new ArrayList<>();
     private final List<Function> functions = new ArrayList<>();
     private final List<ModuleTypeDef> records = new ArrayList<>();
 
     private final Map<String, SequenceMetadata> sequenceMetadata = new HashMap<>();
+    private final Map<String, Set<Import>> importsByFile = new HashMap<>();
+
+    private DependencyGraph dependencyGraph;
+
+    public void setDependencyGraph(DependencyGraph dependencyGraph) {
+        this.dependencyGraph = dependencyGraph;
+    }
+
+    public DependencyGraph dependencyGraph() {
+        return dependencyGraph;
+    }
 
     public void addService(Service service) {
         services.add(service);
@@ -86,12 +106,16 @@ public class ConversionContext {
     }
 
     /**
-     * Whether the generated functions reference {@code http:Response} — true once any sequence holds a
-     * {@code <payloadFactory>} (so its function takes a response parameter), which means
-     * {@code functions.bal} needs the {@code ballerina/http} import.
+     * Records the imports needed by a generated {@code .bal} file, accumulated across every artifact
+     * flushed into that file. Deduplicated, and preserved across {@link #clearArtifactOutput()} since a
+     * later artifact may add imports to a file an earlier one already created.
      */
-    public boolean functionsRequireHttpImport() {
-        return sequenceMetadata.values().stream().anyMatch(SequenceMetadata::containsPayloadFactory);
+    public void addImports(String balFile, Collection<Import> imports) {
+        importsByFile.computeIfAbsent(balFile, key -> new LinkedHashSet<>()).addAll(imports);
+    }
+
+    public Set<Import> importsFor(String balFile) {
+        return importsByFile.getOrDefault(balFile, Set.of());
     }
 
     /**

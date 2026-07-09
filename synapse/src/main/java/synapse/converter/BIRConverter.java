@@ -22,6 +22,7 @@ import common.BallerinaModel.Expression.BallerinaExpression;
 import common.BallerinaModel.Expression.StringConstant;
 import common.BallerinaModel.Expression.XMLTemplate;
 import common.BallerinaModel.Function;
+import common.BallerinaModel.Import;
 import common.BallerinaModel.Parameter;
 import common.BallerinaModel.Resource;
 import common.BallerinaModel.Service;
@@ -70,6 +71,8 @@ public interface BIRConverter<C> {
             Kind.PAYLOAD_FACTORY, new PayloadFactoryConverter(),
             Kind.PROPERTY, new PropertyConverter(),
             Kind.SEQUENCE_MEDIATOR, new SequenceMediatorConverter());
+
+    Import HTTP_IMPORT = new Import("ballerina", "http");
 
     void convert(SynapseNode node, C context);
 
@@ -135,6 +138,7 @@ public interface BIRConverter<C> {
      * earlier declaration).
      */
     private static void ensureResponseAvailable(ScopeContext context) {
+        context.importStatements().add(HTTP_IMPORT);
         if (context.responseAvailable()) {
             return;
         }
@@ -186,6 +190,7 @@ public interface BIRConverter<C> {
             if (resource.inSequence() != null) {
                 convertMediators(resource.inSequence().mediators(), resourceContext);
             }
+            context.addImports(ConversionContext.MAIN_BAL_FILE, resourceContext.importStatements());
             TypeDesc returnType = resourceContext.returnType();
             Optional<TypeDesc> returnTypeDesc = returnType == BuiltinType.NIL
                     ? Optional.empty()
@@ -228,22 +233,49 @@ public interface BIRConverter<C> {
         @Override
         public void convert(SynapseNode node, ConversionContext context) {
             Sequence sequence = (Sequence) node;
-            ConversionContext.SequenceMetadata metadata = context.sequenceMetadata(sequence.name())
-                    .orElse(null);
-            List<Parameter> params = List.of();
-            boolean containsPayloadFactory = metadata != null && metadata.containsPayloadFactory();
-            if (containsPayloadFactory) {
-                params = List.of(new Parameter("response", new TypeDesc.BallerinaType("http:Response")));
-            }
+            ConversionContext.SequenceMetadata metadata = buildSequenceMetadata(sequence, context);
+            context.addSequenceMetadata(metadata);
+            boolean containsPayloadFactory = metadata.containsPayloadFactory();
+            List<Parameter> params = containsPayloadFactory
+                    ? List.of(new Parameter("response", new TypeDesc.BallerinaType("http:Response")))
+                    : List.of();
 
             SequenceContext sequenceContext = new SequenceContext(context, containsPayloadFactory);
+            if (containsPayloadFactory) {
+                sequenceContext.importStatements().add(HTTP_IMPORT);
+            }
             convertMediators(sequence.mediators(), sequenceContext);
+            context.addImports(ConversionContext.FUNCTIONS_BAL_FILE, sequenceContext.importStatements());
             TypeDesc returnType = sequenceContext.returnType();
             List<Statement> body = sequenceContext.statements();
             Function function = returnType == BuiltinType.NIL
                     ? new Function(sequence.name(), params, body)
                     : new Function(sequence.name(), params, returnType, body);
             context.addFunction(function);
+        }
+
+        private static ConversionContext.SequenceMetadata buildSequenceMetadata(Sequence sequence,
+                ConversionContext context) {
+            boolean containsRespond = false;
+            boolean containsPayloadFactory = false;
+            List<String> referencedSequences = new ArrayList<>();
+            for (SynapseNode mediator : sequence.mediators()) {
+                if (mediator.kind() == Kind.RESPOND) {
+                    containsRespond = true;
+                } else if (mediator.kind() == Kind.PAYLOAD_FACTORY) {
+                    containsPayloadFactory = true;
+                } else if (mediator instanceof SequenceMediator sequenceMediator) {
+                    referencedSequences.add(sequenceMediator.key());
+                    ConversionContext.SequenceMetadata referenced =
+                            context.sequenceMetadata(sequenceMediator.key()).orElse(null);
+                    if (referenced != null) {
+                        containsRespond = containsRespond || referenced.containsRespond();
+                        containsPayloadFactory = containsPayloadFactory || referenced.containsPayloadFactory();
+                    }
+                }
+            }
+            return new ConversionContext.SequenceMetadata(sequence.name(), containsRespond,
+                    containsPayloadFactory, referencedSequences);
         }
     }
 
