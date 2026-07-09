@@ -129,9 +129,8 @@ public class ConversionContext {
     }
 
     // Pre-gathered facts about a <sequence>. containsRespond and containsPayloadFactory are transitive:
-    // also true when a referencedSequences entry responds / sets a payload (resolved by propagation),
+    // also true when a referenced sequence responds / sets a payload (resolved by propagation),
     // so a call site can decide across chains whether to return a response or pass one in.
-    public record SequenceMetadata(String name, boolean containsRespond, boolean containsPayloadFactory,
-                                   List<String> referencedSequences) {
+    public record SequenceMetadata(String name, boolean containsRespond, boolean containsPayloadFactory) {
     }
 }

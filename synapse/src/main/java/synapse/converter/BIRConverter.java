@@ -258,14 +258,12 @@ public interface BIRConverter<C> {
                 ConversionContext context) {
             boolean containsRespond = false;
             boolean containsPayloadFactory = false;
-            List<String> referencedSequences = new ArrayList<>();
             for (SynapseNode mediator : sequence.mediators()) {
                 if (mediator.kind() == Kind.RESPOND) {
                     containsRespond = true;
                 } else if (mediator.kind() == Kind.PAYLOAD_FACTORY) {
                     containsPayloadFactory = true;
                 } else if (mediator instanceof SequenceMediator sequenceMediator) {
-                    referencedSequences.add(sequenceMediator.key());
                     ConversionContext.SequenceMetadata referenced =
                             context.sequenceMetadata(sequenceMediator.key()).orElse(null);
                     if (referenced != null) {
@@ -275,7 +273,7 @@ public interface BIRConverter<C> {
                 }
             }
             return new ConversionContext.SequenceMetadata(sequence.name(), containsRespond,
-                    containsPayloadFactory, referencedSequences);
+                    containsPayloadFactory);
         }
     }
 
