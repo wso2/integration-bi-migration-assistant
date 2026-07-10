@@ -224,18 +224,15 @@ public interface BIRConverter<C> {
      * the payload) rather than
      * returning. The function's return type is driven by the converted mediators:
      * unless they yield a
-     * non-{@code nil} {@code returnType}, the function is {@code nil}-returning
-     * (see line 239). A sequence
-     * without a {@code <payloadFactory>} is parameterless.
+     * non-{@code nil} {@code returnType}, the function is {@code nil}-returning.
+     * A sequence without a {@code <payloadFactory>} is parameterless.
      */
     class SequenceConverter implements BIRConverter<ConversionContext> {
 
         @Override
         public void convert(SynapseNode node, ConversionContext context) {
             Sequence sequence = (Sequence) node;
-            ConversionContext.SequenceMetadata metadata = buildSequenceMetadata(sequence, context);
-            context.addSequenceMetadata(metadata);
-            boolean containsPayloadFactory = metadata.containsPayloadFactory();
+            boolean containsPayloadFactory = containsPayloadFactory(sequence, context);
             List<Parameter> params = containsPayloadFactory
                     ? List.of(new Parameter("response", new TypeDesc.BallerinaType("http:Response")))
                     : List.of();
@@ -245,6 +242,8 @@ public interface BIRConverter<C> {
                 sequenceContext.importStatements().add(HTTP_IMPORT);
             }
             convertMediators(sequence.mediators(), sequenceContext);
+            context.addSequenceMetadata(new ConversionContext.SequenceMetadata(
+                    sequence.name(), sequenceContext.isResponded(), containsPayloadFactory));
             context.addImports(ConversionContext.FUNCTIONS_BAL_FILE, sequenceContext.importStatements());
             TypeDesc returnType = sequenceContext.returnType();
             List<Statement> body = sequenceContext.statements();
@@ -254,26 +253,20 @@ public interface BIRConverter<C> {
             context.addFunction(function);
         }
 
-        private static ConversionContext.SequenceMetadata buildSequenceMetadata(Sequence sequence,
-                ConversionContext context) {
-            boolean containsRespond = false;
-            boolean containsPayloadFactory = false;
+        private static boolean containsPayloadFactory(Sequence sequence, ConversionContext context) {
             for (SynapseNode mediator : sequence.mediators()) {
-                if (mediator.kind() == Kind.RESPOND) {
-                    containsRespond = true;
-                } else if (mediator.kind() == Kind.PAYLOAD_FACTORY) {
-                    containsPayloadFactory = true;
-                } else if (mediator instanceof SequenceMediator sequenceMediator) {
+                if (mediator.kind() == Kind.PAYLOAD_FACTORY) {
+                    return true;
+                }
+                if (mediator instanceof SequenceMediator sequenceMediator) {
                     ConversionContext.SequenceMetadata referenced =
                             context.sequenceMetadata(sequenceMediator.key()).orElse(null);
-                    if (referenced != null) {
-                        containsRespond = containsRespond || referenced.containsRespond();
-                        containsPayloadFactory = containsPayloadFactory || referenced.containsPayloadFactory();
+                    if (referenced != null && referenced.containsPayloadFactory()) {
+                        return true;
                     }
                 }
             }
-            return new ConversionContext.SequenceMetadata(sequence.name(), containsRespond,
-                    containsPayloadFactory);
+            return false;
         }
     }
 

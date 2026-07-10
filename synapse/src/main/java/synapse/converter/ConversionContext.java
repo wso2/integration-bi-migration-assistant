@@ -128,9 +128,11 @@ public class ConversionContext {
         records.clear();
     }
 
-    // Pre-gathered facts about a <sequence>. containsRespond and containsPayloadFactory are transitive:
-    // also true when a referenced sequence responds / sets a payload (resolved by propagation),
-    // so a call site can decide across chains whether to return a response or pass one in.
+    // Facts about a <sequence>, recorded once it has been converted. Both are transitive: also true
+    // when a referenced sequence responds / sets a payload, so a call site can decide across chains
+    // whether to return a response or pass one in. containsPayloadFactory is pre-scanned (it decides
+    // the generated function's parameters); containsRespond falls out of the conversion itself, as
+    // whether a respond was emitted into the sequence's scope.
     public record SequenceMetadata(String name, boolean containsRespond, boolean containsPayloadFactory) {
     }
 }
