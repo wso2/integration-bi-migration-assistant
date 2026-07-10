@@ -132,18 +132,27 @@ public interface BIRConverter<C> {
     }
 
     /**
-     * Ensures a {@code response} is in scope, declaring
-     * {@code http:Response response = new;} at the top
-     * of the body when one is not already available (neither a parameter nor an
-     * earlier declaration).
+     * Ensures a {@code response} is in scope. When one is not already available
+     * (neither a parameter nor
+     * an earlier declaration), a resource body declares
+     * {@code http:Response response = new;} at the top,
+     * whereas a sequence body instead takes the response as a parameter it mutates
+     * in place — recorded via
+     * {@link ScopeContext#setResponseParam(boolean)} and realised as a function
+     * parameter once the body is
+     * converted.
      */
     private static void ensureResponseAvailable(ScopeContext context) {
         context.importStatements().add(HTTP_IMPORT);
         if (context.responseAvailable()) {
             return;
         }
-        context.statements().add(0, new Statement.BallerinaStatement("http:Response response = new;"));
-        context.setRespondInitialized(true);
+        if (context.isWithinResource()) {
+            context.statements().add(0, new Statement.BallerinaStatement("http:Response response = new;"));
+            context.setRespondInitialized(true);
+        } else {
+            context.setResponseParam(true);
+        }
     }
 
     /**
@@ -218,55 +227,40 @@ public interface BIRConverter<C> {
     /**
      * Converts a top-level Synapse {@code <sequence>} into a Ballerina function
      * whose body is the
-     * converted mediator flow. A sequence holding a {@code <payloadFactory>}
-     * becomes a function taking an
-     * {@code http:Response response} parameter, which it mutates in place (setting
-     * the payload) rather than
-     * returning. The function's return type is driven by the converted mediators:
-     * unless they yield a
-     * non-{@code nil} {@code returnType}, the function is {@code nil}-returning.
-     * A sequence without a {@code <payloadFactory>} is parameterless.
+     * converted mediator flow. Whether the function takes an
+     * {@code http:Response response} parameter and
+     * whether it responds both fall out of converting the body rather than a
+     * separate pre-scan: when
+     * conversion reaches a {@code <payloadFactory>} (directly or down a call chain)
+     * the sequence takes a
+     * {@code response} parameter it mutates in place instead of returning, and an
+     * unreached payloadFactory
+     * (e.g. after a {@code <respond>}) leaves the function parameterless. The
+     * function's return type is
+     * likewise driven by the converted mediators: unless they yield a
+     * non-{@code nil} {@code returnType},
+     * the function is {@code nil}-returning.
      */
     class SequenceConverter implements BIRConverter<ConversionContext> {
 
         @Override
         public void convert(SynapseNode node, ConversionContext context) {
             Sequence sequence = (Sequence) node;
-            boolean containsPayloadFactory = containsPayloadFactory(sequence, context);
-            List<Parameter> params = containsPayloadFactory
-                    ? List.of(new Parameter("response", new TypeDesc.BallerinaType("http:Response")))
-                    : List.of();
-
-            SequenceContext sequenceContext = new SequenceContext(context, containsPayloadFactory);
-            if (containsPayloadFactory) {
-                sequenceContext.importStatements().add(HTTP_IMPORT);
-            }
+            SequenceContext sequenceContext = new SequenceContext(context);
             convertMediators(sequence.mediators(), sequenceContext);
+            boolean containsPayloadFactory = sequenceContext.hasResponseParam();
             context.addSequenceMetadata(new ConversionContext.SequenceMetadata(
                     sequence.name(), sequenceContext.isResponded(), containsPayloadFactory));
             context.addImports(ConversionContext.FUNCTIONS_BAL_FILE, sequenceContext.importStatements());
+            List<Parameter> params = containsPayloadFactory
+                    ? List.of(new Parameter("response", new TypeDesc.BallerinaType("http:Response")))
+                    : List.of();
             TypeDesc returnType = sequenceContext.returnType();
             List<Statement> body = sequenceContext.statements();
             Function function = returnType == BuiltinType.NIL
                     ? new Function(sequence.name(), params, body)
                     : new Function(sequence.name(), params, returnType, body);
             context.addFunction(function);
-        }
-
-        private static boolean containsPayloadFactory(Sequence sequence, ConversionContext context) {
-            for (SynapseNode mediator : sequence.mediators()) {
-                if (mediator.kind() == Kind.PAYLOAD_FACTORY) {
-                    return true;
-                }
-                if (mediator instanceof SequenceMediator sequenceMediator) {
-                    ConversionContext.SequenceMetadata referenced =
-                            context.sequenceMetadata(sequenceMediator.key()).orElse(null);
-                    if (referenced != null && referenced.containsPayloadFactory()) {
-                        return true;
-                    }
-                }
-            }
-            return false;
         }
     }
 

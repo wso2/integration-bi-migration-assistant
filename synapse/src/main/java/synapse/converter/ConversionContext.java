@@ -128,11 +128,13 @@ public class ConversionContext {
         records.clear();
     }
 
-    // Facts about a <sequence>, recorded once it has been converted. Both are transitive: also true
-    // when a referenced sequence responds / sets a payload, so a call site can decide across chains
-    // whether to return a response or pass one in. containsPayloadFactory is pre-scanned (it decides
-    // the generated function's parameters); containsRespond falls out of the conversion itself, as
-    // whether a respond was emitted into the sequence's scope.
+    // Facts about a <sequence>, recorded once it has been converted. Both fall out of the conversion
+    // itself: containsRespond is whether a respond was emitted into the sequence's scope, and
+    // containsPayloadFactory whether the sequence ended up taking an http:Response parameter to set a
+    // payload on. Both are transitive — reaching a called sequence that responds / sets a payload
+    // propagates during conversion — so a call site can decide across chains whether to return a
+    // response or pass one in. Only mediators actually reached count: a payloadFactory left unreached
+    // after a respond, say, is not recorded.
     public record SequenceMetadata(String name, boolean containsRespond, boolean containsPayloadFactory) {
     }
 }

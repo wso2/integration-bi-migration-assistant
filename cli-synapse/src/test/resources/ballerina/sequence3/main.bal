@@ -6,7 +6,7 @@ service /HelloWorld on httpListener {
     resource function get status/[string name]/[string id](string q) returns http:Response {
         http:Response response = new;
         response.setPayload({"Hello": "World"});
-        foo(response);
+        foo();
         return response;
     }
 
