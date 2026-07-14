@@ -109,19 +109,6 @@ public interface BIRConverter<C> {
         }
     }
 
-    /**
-     * Emits the {@code return response;} for a respond in {@code context},
-     * initialising the
-     * {@code http:Response} first, and recording {@code http:Response} as the
-     * scope's
-     * {@link ScopeContext#returnType()}. Outside a resource body nothing is
-     * emitted: a sequence function
-     * stays {@code nil}-returning and its respond is realised at the resource that
-     * calls it. Either way
-     * the scope is marked {@link ScopeContext#isResponded() responded}, since a
-     * respond is terminal and
-     * ends mediator conversion.
-     */
     private static void emitRespond(ScopeContext context) {
         context.setResponded(true);
         if (!context.isWithinResource()) {
@@ -131,17 +118,6 @@ public interface BIRConverter<C> {
         returnResponse(context);
     }
 
-    /**
-     * Ensures a {@code response} is in scope. When one is not already available
-     * (neither a parameter nor
-     * an earlier declaration), a resource body declares
-     * {@code http:Response response = new;} at the top,
-     * whereas a sequence body instead takes the response as a parameter it mutates
-     * in place — recorded via
-     * {@link ScopeContext#setResponseParam(boolean)} and realised as a function
-     * parameter once the body is
-     * converted.
-     */
     private static void ensureResponseAvailable(ScopeContext context) {
         context.importStatements().add(HTTP_IMPORT);
         if (context.responseAvailable()) {
@@ -155,11 +131,18 @@ public interface BIRConverter<C> {
         }
     }
 
-    /**
-     * Returns {@code response}, recording {@code http:Response} as the scope's
-     * {@link ScopeContext#returnType()}. Assumes a {@code response} is already in
-     * scope.
-     */
+    private static void ensureContextAvailable(ScopeContext context) {
+        if (context.contextAvailable()) {
+            return;
+        }
+        if (context.isWithinResource()) {
+            context.statements().add(0, new Statement.BallerinaStatement("Context ctx = {};"));
+            context.setContextInitialized(true);
+        } else {
+            context.setContextParam(true);
+        }
+    }
+
     private static void returnResponse(ScopeContext context) {
         context.statements().add(new Statement.Return<>(Optional.of(new Expression.VariableReference("response"))));
         context.setReturnType(new TypeDesc.BallerinaType("http:Response"));
@@ -249,12 +232,17 @@ public interface BIRConverter<C> {
             SequenceContext sequenceContext = new SequenceContext(context);
             convertMediators(sequence.mediators(), sequenceContext);
             boolean containsPayloadFactory = sequenceContext.hasResponseParam();
+            boolean usesContext = sequenceContext.hasContextParam();
             context.addSequenceMetadata(new ConversionContext.SequenceMetadata(
-                    sequence.name(), sequenceContext.isResponded(), containsPayloadFactory));
+                    sequence.name(), sequenceContext.isResponded(), containsPayloadFactory, usesContext));
             context.addImports(ConversionContext.FUNCTIONS_BAL_FILE, sequenceContext.importStatements());
-            List<Parameter> params = containsPayloadFactory
-                    ? List.of(new Parameter("response", new TypeDesc.BallerinaType("http:Response")))
-                    : List.of();
+            List<Parameter> params = new ArrayList<>();
+            if (usesContext) {
+                params.add(new Parameter("ctx", new TypeDesc.BallerinaType("Context")));
+            }
+            if (containsPayloadFactory) {
+                params.add(new Parameter("response", new TypeDesc.BallerinaType("http:Response")));
+            }
             TypeDesc returnType = sequenceContext.returnType();
             List<Statement> body = sequenceContext.statements();
             Function function = returnType == BuiltinType.NIL
@@ -282,10 +270,14 @@ public interface BIRConverter<C> {
             SequenceMediator sequenceMediator = (SequenceMediator) node;
             ConversionContext.SequenceMetadata metadata = context.shared().sequenceMetadata(sequenceMediator.key())
                     .orElse(null);
-            List<Expression> args = List.of();
+            List<Expression> args = new ArrayList<>();
+            if (metadata != null && metadata.usesContext()) {
+                ensureContextAvailable(context);
+                args.add(new Expression.VariableReference("ctx"));
+            }
             if (metadata != null && metadata.containsPayloadFactory()) {
                 ensureResponseAvailable(context);
-                args = List.of(new Expression.VariableReference("response"));
+                args.add(new Expression.VariableReference("response"));
             }
             context.statements().add(new Statement.CallStatement(
                     new Expression.FunctionCall(sequenceMediator.key(), args)));
@@ -330,6 +322,7 @@ public interface BIRConverter<C> {
 
         private static final String TRANSPORT_SCOPE = "transport";
         private static final String AXIS2_SCOPE = "axis2";
+        private static final String REMOVE_ACTION = "remove";
 
         @Override
         public void convert(SynapseNode node, ScopeContext context) {
@@ -337,14 +330,25 @@ public interface BIRConverter<C> {
         }
 
         private static void convertProperty(Property property, ScopeContext context) {
-            String statement = switch (property.scope()) {
-                case TRANSPORT_SCOPE -> "response.setHeader(\"" + property.name() + "\", \""
-                        + property.value() + "\");";
-                case AXIS2_SCOPE -> "response.statusCode = " + property.value() + ";";
-                default -> toBallerinaType(property.type()) + " " + property.name() + " = "
-                        + property.value() + ";";
-            };
-            context.statements().add(new Statement.BallerinaStatement(statement));
+            switch (property.scope()) {
+                case TRANSPORT_SCOPE -> context.statements().add(new Statement.BallerinaStatement(
+                        "response.setHeader(\"" + property.name() + "\", \"" + property.value() + "\");"));
+                case AXIS2_SCOPE -> context.statements().add(new Statement.BallerinaStatement(
+                        "response.statusCode = " + property.value() + ";"));
+                default -> convertDefaultProperty(property, context);
+            }
+        }
+
+        private static void convertDefaultProperty(Property property, ScopeContext context) {
+            ensureContextAvailable(context);
+            if (REMOVE_ACTION.equals(property.action())) {
+                context.statements().add(new Statement.BallerinaStatement(
+                        "ctx." + property.name() + " = " + BuiltinType.NIL + ";"));
+                return;
+            }
+            context.shared().addProperty(property.name(), toBallerinaType(property.type()), property.scope());
+            context.statements().add(new Statement.BallerinaStatement(
+                    "ctx." + property.name() + " = " + property.value() + ";"));
         }
 
         private static String toBallerinaType(String synapseType) {

@@ -26,6 +26,7 @@ import synapse.model.DependencyGraph;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +63,7 @@ public class ConversionContext {
 
     private final Map<String, SequenceMetadata> sequenceMetadata = new HashMap<>();
     private final Map<String, Set<Import>> importsByFile = new HashMap<>();
+    private final Map<String, PropertyInfo> properties = new LinkedHashMap<>();
 
     private DependencyGraph dependencyGraph;
 
@@ -106,6 +108,29 @@ public class ConversionContext {
     }
 
     /**
+     * Registers a Synapse property so it becomes a field of the generated {@code Context} record. The
+     * types seen for a name are accumulated and its scope retained; the {@code Context} record
+     * aggregates every property across the whole project, so this map is populated as artifacts are
+     * converted (leaf-first) and preserved across {@link #clearArtifactOutput()}. A name declared with
+     * more than one type across the project therefore records every type — the field becomes a union of
+     * them — while the scope of the first registration is kept.
+     */
+    public void addProperty(String name, String type, String scope) {
+        PropertyInfo existing = properties.get(name);
+        if (existing == null) {
+            Set<String> types = new LinkedHashSet<>();
+            types.add(type);
+            properties.put(name, new PropertyInfo(types, scope));
+        } else {
+            existing.types().add(type);
+        }
+    }
+
+    public Map<String, PropertyInfo> properties() {
+        return properties;
+    }
+
+    /**
      * Records the imports needed by a generated {@code .bal} file, accumulated across every artifact
      * flushed into that file. Deduplicated, and preserved across {@link #clearArtifactOutput()} since a
      * later artifact may add imports to a file an earlier one already created.
@@ -128,13 +153,23 @@ public class ConversionContext {
         records.clear();
     }
 
-    // Facts about a <sequence>, recorded once it has been converted. Both fall out of the conversion
-    // itself: containsRespond is whether a respond was emitted into the sequence's scope, and
+    // Facts about a <sequence>, recorded once it has been converted, all falling out of the conversion
+    // itself: containsRespond is whether a respond was emitted into the sequence's scope,
     // containsPayloadFactory whether the sequence ended up taking an http:Response parameter to set a
-    // payload on. Both are transitive — reaching a called sequence that responds / sets a payload
-    // propagates during conversion — so a call site can decide across chains whether to return a
-    // response or pass one in. Only mediators actually reached count: a payloadFactory left unreached
-    // after a respond, say, is not recorded.
-    public record SequenceMetadata(String name, boolean containsRespond, boolean containsPayloadFactory) {
+    // payload on, and usesContext whether it ended up taking a Context ctx parameter to set default
+    // properties on. All are transitive — reaching a called sequence that responds / sets a payload /
+    // sets a property propagates during conversion — so a call site can decide across chains whether to
+    // return a response or pass one in, and whether to pass ctx. Only mediators actually reached count:
+    // a payloadFactory left unreached after a respond, say, is not recorded.
+    public record SequenceMetadata(String name, boolean containsRespond, boolean containsPayloadFactory,
+                                   boolean usesContext) {
+    }
+
+    // Types and scope of a Synapse property, retained per property name so the generated Context record
+    // can declare a field of the right type. More than one type appears when the same name is declared
+    // with different types across the project, and the field becomes a union of them. Scope is kept for
+    // future non-default scopes even though only default-scope properties currently become Context
+    // fields.
+    public record PropertyInfo(Set<String> types, String scope) {
     }
 }

@@ -43,6 +43,8 @@ public abstract class ScopeContext {
     private final List<Import> importStatements = new ArrayList<>();
     private boolean responseParam;
     private boolean respondInitialized;
+    private boolean contextParam;
+    private boolean contextInitialized;
     private boolean responded;
     private TypeDesc returnType = BuiltinType.NIL;
 
@@ -111,6 +113,37 @@ public abstract class ScopeContext {
 
     public void setResponseParam(boolean responseParam) {
         this.responseParam = responseParam;
+    }
+
+    /**
+     * Whether a {@code ctx} holding the default-scope (Synapse) properties is in scope — either a
+     * {@code Context ctx} parameter (a sequence function that turned out to touch default properties,
+     * directly or down a call chain, see {@link #hasContextParam()}) or a {@code Context ctx} local
+     * declared in this scope. Default properties live for the duration of a request, so within a
+     * resource {@code ctx} is a local declared at the top, whereas a sequence receives it as a
+     * parameter it mutates in place.
+     */
+    public boolean contextAvailable() {
+        return contextParam || contextInitialized;
+    }
+
+    /**
+     * Whether the sequence function generated for this scope takes a {@code Context ctx} parameter,
+     * which it mutates in place. Set while converting the body — when a {@code <property>} in the
+     * default scope, or a call to a sequence that sets one, is reached in a sequence scope — and read
+     * back afterwards to shape the function's signature. A resource scope declares a {@code ctx} local
+     * instead, so this stays {@code false} there.
+     */
+    public boolean hasContextParam() {
+        return contextParam;
+    }
+
+    public void setContextParam(boolean contextParam) {
+        this.contextParam = contextParam;
+    }
+
+    public void setContextInitialized(boolean contextInitialized) {
+        this.contextInitialized = contextInitialized;
     }
 
     /**
