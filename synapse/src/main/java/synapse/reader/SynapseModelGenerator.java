@@ -17,6 +17,7 @@
  */
 package synapse.reader;
 
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -167,6 +168,7 @@ public class SynapseModelGenerator {
         return mediators;
     }
 
+    @NotNull
     private static Property readProperty(Element element) {
         String name = element.getAttribute("name");
 

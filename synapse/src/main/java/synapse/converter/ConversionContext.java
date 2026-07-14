@@ -21,6 +21,7 @@ import common.BallerinaModel.Function;
 import common.BallerinaModel.Import;
 import common.BallerinaModel.ModuleTypeDef;
 import common.BallerinaModel.Service;
+import org.jetbrains.annotations.NotNull;
 import synapse.model.DependencyGraph;
 
 import java.util.ArrayList;
@@ -126,6 +127,7 @@ public class ConversionContext {
         }
     }
 
+    @NotNull
     public Map<String, PropertyInfo> properties() {
         return properties;
     }

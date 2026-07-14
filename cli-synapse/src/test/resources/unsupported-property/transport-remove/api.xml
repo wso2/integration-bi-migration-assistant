@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/x" name="TransportRemove" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="GET" uri-template="/r">
+        <inSequence>
+            <property name="HTTP_SC" scope="transport" type="STRING" value="200" action="remove"/>
+            <respond/>
+        </inSequence>
+        <faultSequence/>
+    </resource>
+</api>

@@ -30,6 +30,7 @@ import common.BallerinaModel.TypeDesc.BallerinaType;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
+import org.jetbrains.annotations.NotNull;
 import synapse.converter.BIRConverter.APIConverter;
 import synapse.converter.ConversionContext.PropertyInfo;
 import synapse.model.DependencyGraph;
@@ -78,6 +79,7 @@ public final class SynapseConverter {
     private static final String DEFAULT_PACKAGE = "synapse";
     private static final String CONTEXT_TYPE = "Context";
     private static final String DEFAULT_SCOPE = "default";
+    private static final String SYNAPSE_SCOPE = "synapse";
 
     private static final Logger LOG = Logger.getLogger(SynapseConverter.class.getName());
 
@@ -193,7 +195,8 @@ public final class SynapseConverter {
     private static void addContextRecord(ConversionContext context) {
         List<RecordField> fields = new ArrayList<>();
         for (Map.Entry<String, PropertyInfo> property : context.properties().entrySet()) {
-            if (DEFAULT_SCOPE.equals(property.getValue().scope())) {
+            String scope = property.getValue().scope();
+            if (DEFAULT_SCOPE.equals(scope) || SYNAPSE_SCOPE.equals(scope)) {
                 fields.add(new RecordField(property.getKey(), fieldType(property.getValue().types()), true));
             }
         }
@@ -203,6 +206,7 @@ public final class SynapseConverter {
         context.addRecord(new ModuleTypeDef(CONTEXT_TYPE, RecordTypeDesc.closedRecord(fields)));
     }
 
+    @NotNull
     private static TypeDesc fieldType(Set<String> types) {
         if (types.size() == 1) {
             return new BallerinaType(types.iterator().next());

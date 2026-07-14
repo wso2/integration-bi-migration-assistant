@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/syn" name="SynApi" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="GET" uri-template="/r">
+        <inSequence>
+            <property name="synProp" scope="synapse" type="STRING" value="&quot;hi&quot;"/>
+            <property name="defProp" scope="default" type="INTEGER" value="7"/>
+            <respond/>
+        </inSequence>
+        <faultSequence/>
+    </resource>
+</api>

@@ -322,6 +322,8 @@ public interface BIRConverter<C> {
 
         private static final String TRANSPORT_SCOPE = "transport";
         private static final String AXIS2_SCOPE = "axis2";
+        private static final String DEFAULT_SCOPE = "default";
+        private static final String SYNAPSE_SCOPE = "synapse";
         private static final String REMOVE_ACTION = "remove";
 
         @Override
@@ -331,11 +333,31 @@ public interface BIRConverter<C> {
 
         private static void convertProperty(Property property, ScopeContext context) {
             switch (property.scope()) {
-                case TRANSPORT_SCOPE -> context.statements().add(new Statement.BallerinaStatement(
-                        "response.setHeader(\"" + property.name() + "\", \"" + property.value() + "\");"));
-                case AXIS2_SCOPE -> context.statements().add(new Statement.BallerinaStatement(
-                        "response.statusCode = " + property.value() + ";"));
-                default -> convertDefaultProperty(property, context);
+                case TRANSPORT_SCOPE -> {
+                    rejectRemoveAction(property);
+                    context.statements().add(new Statement.BallerinaStatement(
+                            "response.setHeader(\"" + property.name() + "\", \"" + property.value() + "\");"));
+                }
+                case AXIS2_SCOPE -> {
+                    rejectRemoveAction(property);
+                    context.statements().add(new Statement.BallerinaStatement(
+                            "response.statusCode = " + property.value() + ";"));
+                }
+                case DEFAULT_SCOPE, SYNAPSE_SCOPE -> convertDefaultProperty(property, context);
+                default -> throw new UnsupportedOperationException("The '" + property.scope()
+                        + "' scope is not supported for property '" + property.name() + "'.");
+            }
+        }
+
+        /**
+         * The {@code remove} action is only supported in the default scope, where it clears a
+         * {@code Context} field. Removing a transport header or an axis2 property has no equivalent in
+         * the generated code yet, so reject it as unsupported rather than emit a misleading assignment.
+         */
+        private static void rejectRemoveAction(Property property) {
+            if (REMOVE_ACTION.equals(property.action())) {
+                throw new UnsupportedOperationException("The 'remove' action is not supported for property '"
+                        + property.name() + "' in the '" + property.scope() + "' scope.");
             }
         }
 

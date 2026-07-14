@@ -33,11 +33,6 @@ import java.util.stream.Stream;
  */
 public final class TestUtils {
 
-    /**
-     * When {@code -Dsynapse.test.updateExpected=true} is passed, {@link #compareDirectories} rewrites
-     * the expected packages from the generated output instead of asserting, regenerating the golden
-     * files after an intentional converter change. Off by default, so a normal run fails on any drift.
-     */
     private static final boolean UPDATE_EXPECTED = false;
 
     private TestUtils() {
@@ -65,11 +60,6 @@ public final class TestUtils {
         }
     }
 
-    /**
-     * Overwrite {@code expected} so it mirrors the generated {@code actual} package: every generated
-     * file is copied over, and any expected file no longer generated is deleted. Used only under
-     * {@link #UPDATE_EXPECTED} to refresh the golden output after an intentional change.
-     */
     private static void regenerateExpected(Path actual, Path expected) throws IOException {
         try (Stream<Path> actualFiles = Files.walk(actual)) {
             for (Path relativePath : actualFiles.filter(Files::isRegularFile).map(actual::relativize).toList()) {
@@ -114,11 +104,6 @@ public final class TestUtils {
         }
     }
 
-    /**
-     * Describe how two files differ, normalizing line endings, or {@link Optional#empty()} when they
-     * are identical. On mismatch the message pinpoints the first differing line so a failure is easy
-     * to act on.
-     */
     private static Optional<String> describeDifference(Path actual, Path expected) throws IOException {
         String actualContent = Files.readString(actual).replace("\r\n", "\n");
         String expectedContent = Files.readString(expected).replace("\r\n", "\n");
