@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="foo" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
-    <property name="i" scope="default" type="INTEGER" value="23"/>
+    <sequence key="bar"/>
+    <property name="shared" scope="default" type="STRING" value="&quot;from-foo&quot;"/>
 </sequence>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/prop" name="RemoveApi" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="GET" uri-template="/run">
+        <inSequence>
+            <property name="temp" scope="default" type="STRING" value="&quot;value&quot;"/>
+            <property name="temp" scope="default" action="remove"/>
+            <payloadFactory media-type="json" template-type="default">
+                <format>{"done":true}</format>
+            </payloadFactory>
+            <respond/>
+        </inSequence>
+        <faultSequence/>
+    </resource>
+</api>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="bar" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <property name="barProp1" scope="default" type="STRING" value="&quot;bar-one&quot;"/>
+    <property name="barProp2" scope="default" type="INTEGER" value="10"/>
+</sequence>

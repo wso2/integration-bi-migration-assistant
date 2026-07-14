@@ -1,3 +1,3 @@
-function sequence() {
-    string str = "Hello world";
+function sequence(Context ctx) {
+    ctx.str = "Hello world";
 }
