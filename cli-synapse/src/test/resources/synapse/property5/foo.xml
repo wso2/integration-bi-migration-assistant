@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="foo" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <property name="before" scope="default" type="STRING" value="&quot;before&quot;"/>
+    <sequence key="bar"/>
+    <property name="after" scope="default" type="STRING" value="&quot;after&quot;"/>
+</sequence>

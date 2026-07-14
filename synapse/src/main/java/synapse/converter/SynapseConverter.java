@@ -25,7 +25,14 @@ import common.BallerinaModel.Listener.HTTPListener;
 import common.BallerinaModel.ModuleTypeDef;
 import common.BallerinaModel.Service;
 import common.BallerinaModel.TextDocument;
+import common.BallerinaModel.TypeDesc;
+import common.BallerinaModel.TypeDesc.BallerinaType;
+import common.BallerinaModel.TypeDesc.RecordTypeDesc;
+import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
+import common.BallerinaModel.TypeDesc.UnionTypeDesc;
+import org.jetbrains.annotations.NotNull;
 import synapse.converter.BIRConverter.APIConverter;
+import synapse.converter.ConversionContext.PropertyInfo;
 import synapse.model.DependencyGraph;
 import synapse.model.DependencyGraph.ArtifactNode;
 import synapse.model.DependencyResolver;
@@ -70,6 +77,9 @@ public final class SynapseConverter {
     private static final String DEFAULT_HOST = "0.0.0.0";
     private static final String DEFAULT_ORG = "wso2";
     private static final String DEFAULT_PACKAGE = "synapse";
+    private static final String CONTEXT_TYPE = "Context";
+    private static final String DEFAULT_SCOPE = "default";
+    private static final String SYNAPSE_SCOPE = "synapse";
 
     private static final Logger LOG = Logger.getLogger(SynapseConverter.class.getName());
 
@@ -144,8 +154,11 @@ public final class SynapseConverter {
                 writeArtifacts(targetDir, context, writtenImports);
                 context.clearArtifactOutput();
             }
-            if (dependencyGraph.sortedNodes().isEmpty()) {
-                // No convertible artifacts (e.g. a <proxy>): still emit the base package skeleton.
+            addContextRecord(context);
+            if (dependencyGraph.sortedNodes().isEmpty() || !context.records().isEmpty()) {
+                // Emit the base package skeleton when there were no convertible artifacts (e.g. a
+                // <proxy>), and flush the Context record to types.bal once every artifact's default
+                // properties have been collected.
                 writeArtifacts(targetDir, context, writtenImports);
             }
         } catch (IOException e) {
@@ -177,6 +190,28 @@ public final class SynapseConverter {
             throw new UnsupportedOperationException("No root converter for Synapse node kind: " + node.kind());
         }
         converter.convert(node, context);
+    }
+
+    private static void addContextRecord(ConversionContext context) {
+        List<RecordField> fields = new ArrayList<>();
+        for (Map.Entry<String, PropertyInfo> property : context.properties().entrySet()) {
+            String scope = property.getValue().scope();
+            if (DEFAULT_SCOPE.equals(scope) || SYNAPSE_SCOPE.equals(scope)) {
+                fields.add(new RecordField(property.getKey(), fieldType(property.getValue().types()), true));
+            }
+        }
+        if (fields.isEmpty()) {
+            return;
+        }
+        context.addRecord(new ModuleTypeDef(CONTEXT_TYPE, RecordTypeDesc.closedRecord(fields)));
+    }
+
+    @NotNull
+    private static TypeDesc fieldType(Set<String> types) {
+        if (types.size() == 1) {
+            return new BallerinaType(types.iterator().next());
+        }
+        return new UnionTypeDesc(types.stream().map(BallerinaType::new).toList());
     }
 
     private static void writeArtifacts(Path targetDir, ConversionContext context,

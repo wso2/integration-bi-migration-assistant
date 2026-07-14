@@ -1,11 +1,11 @@
-function baz() {
-    string str = "Hello world";
+function baz(Context ctx) {
+    ctx.str = "Hello world";
 }
 
-function bar() {
-    baz();
+function bar(Context ctx) {
+    baz(ctx);
 }
 
-function foo() {
-    bar();
+function foo(Context ctx) {
+    bar(ctx);
 }

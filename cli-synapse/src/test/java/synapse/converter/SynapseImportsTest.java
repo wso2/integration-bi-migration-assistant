@@ -84,8 +84,8 @@ public class SynapseImportsTest {
             // 'plain' (no http) is flushed before 'withPayload' (needs http), yet the import stays on top.
             assertTrue(functions.stripLeading().startsWith(HTTP_IMPORT),
                     "http import must be prepended to the top of functions.bal");
-            assertTrue(functions.contains("function plain()"));
-            assertTrue(functions.contains("function withPayload(http:Response response)"));
+            assertTrue(functions.contains("function plain(Context ctx)"));
+            assertTrue(functions.contains("function withPayload(Context ctx, http:Response response)"));
         } finally {
             TestUtils.deleteDirectory(output);
         }

@@ -73,12 +73,14 @@ public record Synapse() {
         }
     }
 
-    // <property name="..." scope="default|transport|axis2|axis2-client" type="string" value="..."/>
-    // -> sets a named property (of the given type and scope) to the given value.
-    public record Property(Kind kind, String name, String type, String scope, String value)
+    // <property name="..." scope="default|transport|axis2|axis2-client" type="string" value="..."
+    //           action="set|remove"/>
+    // -> action "set" (the default) sets a named property (of the given type and scope) to the given
+    //    value; action "remove" clears it.
+    public record Property(Kind kind, String name, String type, String scope, String value, String action)
             implements SynapseNode {
-        public Property(String name, String type, String scope, String value) {
-            this(Kind.PROPERTY, name, type, scope, value);
+        public Property(String name, String type, String scope, String value, String action) {
+            this(Kind.PROPERTY, name, type, scope, value, action);
         }
     }
 

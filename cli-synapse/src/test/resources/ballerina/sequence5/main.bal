@@ -5,7 +5,8 @@ public listener http:Listener httpListener = new (8080);
 service /HelloWorld on httpListener {
     resource function get chain() returns http:Response {
         http:Response response = new;
-        foo();
+        Context ctx = {};
+        foo(ctx);
         return response;
     }
 }

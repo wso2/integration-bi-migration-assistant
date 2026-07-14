@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="seq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <property name="greeting" scope="default" type="STRING" value="&quot;Hello&quot;"/>
+    <property name="count" scope="default" type="INTEGER" value="5"/>
+    <property name="enabled" scope="default" type="BOOLEAN" value="true"/>
+</sequence>

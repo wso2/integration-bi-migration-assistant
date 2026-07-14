@@ -22,8 +22,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -31,66 +33,94 @@ import java.util.stream.Stream;
  */
 public final class TestUtils {
 
+    private static final boolean UPDATE_EXPECTED = false;
+
     private TestUtils() {
     }
 
     /**
-     * Compare every regular file under {@code expected} with the file at the same relative path
-     * under {@code actual}. When the contents differ, the expected (Ballerina) file is overwritten
-     * with the generated output. Newly generated files with no counterpart under {@code expected}
-     * are created as well.
+     * Assert that the generated package at {@code actual} matches the expected package at
+     * {@code expected}, file for file. Every discrepancy — a differing file, an expected file that
+     * was not generated, or a generated file with no expected counterpart — is collected and reported
+     * together in a single {@link AssertionError}. Expected files are never modified unless
+     * {@link #UPDATE_EXPECTED} is set, in which case they are regenerated to match the output.
      */
     public static void compareDirectories(Path actual, Path expected) throws IOException {
-        try (Stream<Path> expectedFiles = Files.walk(expected)) {
-            List<Path> expectedPaths = expectedFiles
-                    .filter(Files::isRegularFile)
-                    .map(expected::relativize)
-                    .toList();
-
-            for (Path relativePath : expectedPaths) {
-                Path actualFile = actual.resolve(relativePath);
-                if (!Files.exists(actualFile)) {
-                    throw new AssertionError("Expected file missing in actual output: " + relativePath);
-                }
-                compareFiles(actualFile, expected.resolve(relativePath));
-            }
+        assert actual != null && expected != null : "actual and expected paths must not be null";
+        if (UPDATE_EXPECTED) {
+            regenerateExpected(actual, expected);
+            return;
         }
-        copyNewFiles(actual, expected);
+        List<String> mismatches = new ArrayList<>();
+        collectMissingAndDiffering(actual, expected, mismatches);
+        collectUnexpected(actual, expected, mismatches);
+        if (!mismatches.isEmpty()) {
+            throw new AssertionError("Generated package does not match expected at " + expected + ":\n"
+                    + String.join("\n", mismatches));
+        }
     }
 
-    /**
-     * Compare the textual contents of two files, normalizing line endings. On mismatch the expected
-     * file is overwritten with the actual (generated) contents.
-     */
-    public static void compareFiles(Path actual, Path expected) throws IOException {
+    private static void regenerateExpected(Path actual, Path expected) throws IOException {
+        try (Stream<Path> actualFiles = Files.walk(actual)) {
+            for (Path relativePath : actualFiles.filter(Files::isRegularFile).map(actual::relativize).toList()) {
+                Path expectedFile = expected.resolve(relativePath);
+                Files.createDirectories(expectedFile.getParent());
+                Files.copy(actual.resolve(relativePath), expectedFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+        }
+        try (Stream<Path> expectedFiles = Files.walk(expected)) {
+            for (Path relativePath : expectedFiles.filter(Files::isRegularFile).map(expected::relativize).toList()) {
+                if (!Files.exists(actual.resolve(relativePath))) {
+                    Files.delete(expected.resolve(relativePath));
+                }
+            }
+        }
+    }
+
+    private static void collectMissingAndDiffering(Path actual, Path expected, List<String> mismatches)
+            throws IOException {
+        try (Stream<Path> expectedFiles = Files.walk(expected)) {
+            for (Path relativePath : expectedFiles.filter(Files::isRegularFile).map(expected::relativize).toList()) {
+                Path actualFile = actual.resolve(relativePath);
+                if (!Files.exists(actualFile)) {
+                    mismatches.add("  missing: " + relativePath + " was not generated");
+                    continue;
+                }
+                Optional<String> difference = describeDifference(actualFile, expected.resolve(relativePath));
+                if (difference.isPresent()) {
+                    mismatches.add("  differs: " + relativePath + " -> " + difference.get());
+                }
+            }
+        }
+    }
+
+    private static void collectUnexpected(Path actual, Path expected, List<String> mismatches) throws IOException {
+        try (Stream<Path> actualFiles = Files.walk(actual)) {
+            for (Path relativePath : actualFiles.filter(Files::isRegularFile).map(actual::relativize).toList()) {
+                if (!Files.exists(expected.resolve(relativePath))) {
+                    mismatches.add("  unexpected: " + relativePath + " was generated but is not expected");
+                }
+            }
+        }
+    }
+
+    private static Optional<String> describeDifference(Path actual, Path expected) throws IOException {
         String actualContent = Files.readString(actual).replace("\r\n", "\n");
         String expectedContent = Files.readString(expected).replace("\r\n", "\n");
         if (actualContent.equals(expectedContent)) {
-            return;
+            return Optional.empty();
         }
-        Files.createDirectories(expected.getParent());
-        Files.copy(actual, expected, StandardCopyOption.REPLACE_EXISTING);
-    }
-
-    /**
-     * Copy every regular file under {@code actual} that has no counterpart at the same relative path
-     * under {@code expected} into {@code expected}, capturing newly generated files.
-     */
-    public static void copyNewFiles(Path actual, Path expected) throws IOException {
-        try (Stream<Path> actualFiles = Files.walk(actual)) {
-            List<Path> relativePaths = actualFiles
-                    .filter(Files::isRegularFile)
-                    .map(actual::relativize)
-                    .toList();
-
-            for (Path relativePath : relativePaths) {
-                Path expectedFile = expected.resolve(relativePath);
-                if (!Files.exists(expectedFile)) {
-                    Files.createDirectories(expectedFile.getParent());
-                    Files.copy(actual.resolve(relativePath), expectedFile, StandardCopyOption.REPLACE_EXISTING);
-                }
+        List<String> actualLines = actualContent.lines().toList();
+        List<String> expectedLines = expectedContent.lines().toList();
+        for (int line = 0; line < Math.max(actualLines.size(), expectedLines.size()); line++) {
+            String expectedLine = line < expectedLines.size() ? expectedLines.get(line) : "<no such line>";
+            String actualLine = line < actualLines.size() ? actualLines.get(line) : "<no such line>";
+            if (!expectedLine.equals(actualLine)) {
+                return Optional.of("first differs at line " + (line + 1)
+                        + "\n      expected: " + expectedLine + "\n      actual:   " + actualLine);
             }
         }
+        return Optional.of("content differs only in trailing whitespace or final newline");
     }
 
     /**

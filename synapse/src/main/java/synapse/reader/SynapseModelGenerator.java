@@ -17,6 +17,7 @@
  */
 package synapse.reader;
 
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -46,6 +47,7 @@ public class SynapseModelGenerator {
 
     private static final String DEFAULT_PROPERTY_TYPE = "string";
     private static final String DEFAULT_PROPERTY_SCOPE = "default";
+    private static final String DEFAULT_PROPERTY_ACTION = "set";
 
     public static List<SynapseNode> generateModel(Element rootElement) {
         List<SynapseNode> nodes = new ArrayList<>();
@@ -166,6 +168,7 @@ public class SynapseModelGenerator {
         return mediators;
     }
 
+    @NotNull
     private static Property readProperty(Element element) {
         String name = element.getAttribute("name");
 
@@ -180,7 +183,13 @@ public class SynapseModelGenerator {
         }
 
         String value = element.getAttribute("value");
-        return new Property(name, type, scope, value);
+
+        String action = element.getAttribute("action");
+        if (action.isEmpty()) {
+            action = DEFAULT_PROPERTY_ACTION;
+        }
+
+        return new Property(name, type, scope, value, action);
     }
 
     private static PayloadFactory readPayloadFactory(Element element) {

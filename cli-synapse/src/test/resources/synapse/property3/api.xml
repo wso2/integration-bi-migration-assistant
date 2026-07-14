@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/orders" name="OrdersApi" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="GET" uri-template="/list">
+        <inSequence>
+            <property name="prop1" scope="default" type="STRING" value="&quot;list&quot;"/>
+            <property name="r1only" scope="default" type="INTEGER" value="1"/>
+            <payloadFactory media-type="json" template-type="default">
+                <format>{"resource":"list"}</format>
+            </payloadFactory>
+            <respond/>
+        </inSequence>
+        <faultSequence/>
+    </resource>
+    <resource methods="POST" uri-template="/create">
+        <inSequence>
+            <property name="prop1" scope="default" type="STRING" value="&quot;create&quot;"/>
+            <property name="r2only" scope="default" type="BOOLEAN" value="true"/>
+            <payloadFactory media-type="json" template-type="default">
+                <format>{"resource":"create"}</format>
+            </payloadFactory>
+            <respond/>
+        </inSequence>
+        <faultSequence/>
+    </resource>
+</api>

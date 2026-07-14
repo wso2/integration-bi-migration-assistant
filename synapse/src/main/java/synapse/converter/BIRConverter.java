@@ -109,19 +109,6 @@ public interface BIRConverter<C> {
         }
     }
 
-    /**
-     * Emits the {@code return response;} for a respond in {@code context},
-     * initialising the
-     * {@code http:Response} first, and recording {@code http:Response} as the
-     * scope's
-     * {@link ScopeContext#returnType()}. Outside a resource body nothing is
-     * emitted: a sequence function
-     * stays {@code nil}-returning and its respond is realised at the resource that
-     * calls it. Either way
-     * the scope is marked {@link ScopeContext#isResponded() responded}, since a
-     * respond is terminal and
-     * ends mediator conversion.
-     */
     private static void emitRespond(ScopeContext context) {
         context.setResponded(true);
         if (!context.isWithinResource()) {
@@ -131,26 +118,31 @@ public interface BIRConverter<C> {
         returnResponse(context);
     }
 
-    /**
-     * Ensures a {@code response} is in scope, declaring
-     * {@code http:Response response = new;} at the top
-     * of the body when one is not already available (neither a parameter nor an
-     * earlier declaration).
-     */
     private static void ensureResponseAvailable(ScopeContext context) {
         context.importStatements().add(HTTP_IMPORT);
         if (context.responseAvailable()) {
             return;
         }
-        context.statements().add(0, new Statement.BallerinaStatement("http:Response response = new;"));
-        context.setRespondInitialized(true);
+        if (context.isWithinResource()) {
+            context.statements().add(0, new Statement.BallerinaStatement("http:Response response = new;"));
+            context.setRespondInitialized(true);
+        } else {
+            context.setResponseParam(true);
+        }
     }
 
-    /**
-     * Returns {@code response}, recording {@code http:Response} as the scope's
-     * {@link ScopeContext#returnType()}. Assumes a {@code response} is already in
-     * scope.
-     */
+    private static void ensureContextAvailable(ScopeContext context) {
+        if (context.contextAvailable()) {
+            return;
+        }
+        if (context.isWithinResource()) {
+            context.statements().add(0, new Statement.BallerinaStatement("Context ctx = {};"));
+            context.setContextInitialized(true);
+        } else {
+            context.setContextParam(true);
+        }
+    }
+
     private static void returnResponse(ScopeContext context) {
         context.statements().add(new Statement.Return<>(Optional.of(new Expression.VariableReference("response"))));
         context.setReturnType(new TypeDesc.BallerinaType("http:Response"));
@@ -218,64 +210,45 @@ public interface BIRConverter<C> {
     /**
      * Converts a top-level Synapse {@code <sequence>} into a Ballerina function
      * whose body is the
-     * converted mediator flow. A sequence holding a {@code <payloadFactory>}
-     * becomes a function taking an
-     * {@code http:Response response} parameter, which it mutates in place (setting
-     * the payload) rather than
-     * returning. The function's return type is driven by the converted mediators:
-     * unless they yield a
-     * non-{@code nil} {@code returnType}, the function is {@code nil}-returning
-     * (see line 239). A sequence
-     * without a {@code <payloadFactory>} is parameterless.
+     * converted mediator flow. Whether the function takes an
+     * {@code http:Response response} parameter and
+     * whether it responds both fall out of converting the body rather than a
+     * separate pre-scan: when
+     * conversion reaches a {@code <payloadFactory>} (directly or down a call chain)
+     * the sequence takes a
+     * {@code response} parameter it mutates in place instead of returning, and an
+     * unreached payloadFactory
+     * (e.g. after a {@code <respond>}) leaves the function parameterless. The
+     * function's return type is
+     * likewise driven by the converted mediators: unless they yield a
+     * non-{@code nil} {@code returnType},
+     * the function is {@code nil}-returning.
      */
     class SequenceConverter implements BIRConverter<ConversionContext> {
 
         @Override
         public void convert(SynapseNode node, ConversionContext context) {
             Sequence sequence = (Sequence) node;
-            ConversionContext.SequenceMetadata metadata = buildSequenceMetadata(sequence, context);
-            context.addSequenceMetadata(metadata);
-            boolean containsPayloadFactory = metadata.containsPayloadFactory();
-            List<Parameter> params = containsPayloadFactory
-                    ? List.of(new Parameter("response", new TypeDesc.BallerinaType("http:Response")))
-                    : List.of();
-
-            SequenceContext sequenceContext = new SequenceContext(context, containsPayloadFactory);
-            if (containsPayloadFactory) {
-                sequenceContext.importStatements().add(HTTP_IMPORT);
-            }
+            SequenceContext sequenceContext = new SequenceContext(context);
             convertMediators(sequence.mediators(), sequenceContext);
+            boolean containsPayloadFactory = sequenceContext.hasResponseParam();
+            boolean usesContext = sequenceContext.hasContextParam();
+            context.addSequenceMetadata(new ConversionContext.SequenceMetadata(
+                    sequence.name(), sequenceContext.isResponded(), containsPayloadFactory, usesContext));
             context.addImports(ConversionContext.FUNCTIONS_BAL_FILE, sequenceContext.importStatements());
+            List<Parameter> params = new ArrayList<>();
+            if (usesContext) {
+                params.add(new Parameter("ctx", new TypeDesc.BallerinaType("Context")));
+            }
+            if (containsPayloadFactory) {
+                params.add(new Parameter("response", new TypeDesc.BallerinaType("http:Response")));
+            }
             TypeDesc returnType = sequenceContext.returnType();
             List<Statement> body = sequenceContext.statements();
             Function function = returnType == BuiltinType.NIL
                     ? new Function(sequence.name(), params, body)
                     : new Function(sequence.name(), params, returnType, body);
             context.addFunction(function);
-        }
-
-        private static ConversionContext.SequenceMetadata buildSequenceMetadata(Sequence sequence,
-                ConversionContext context) {
-            boolean containsRespond = false;
-            boolean containsPayloadFactory = false;
-            List<String> referencedSequences = new ArrayList<>();
-            for (SynapseNode mediator : sequence.mediators()) {
-                if (mediator.kind() == Kind.RESPOND) {
-                    containsRespond = true;
-                } else if (mediator.kind() == Kind.PAYLOAD_FACTORY) {
-                    containsPayloadFactory = true;
-                } else if (mediator instanceof SequenceMediator sequenceMediator) {
-                    referencedSequences.add(sequenceMediator.key());
-                    ConversionContext.SequenceMetadata referenced =
-                            context.sequenceMetadata(sequenceMediator.key()).orElse(null);
-                    if (referenced != null) {
-                        containsRespond = containsRespond || referenced.containsRespond();
-                        containsPayloadFactory = containsPayloadFactory || referenced.containsPayloadFactory();
-                    }
-                }
-            }
-            return new ConversionContext.SequenceMetadata(sequence.name(), containsRespond,
-                    containsPayloadFactory, referencedSequences);
         }
     }
 
@@ -297,10 +270,14 @@ public interface BIRConverter<C> {
             SequenceMediator sequenceMediator = (SequenceMediator) node;
             ConversionContext.SequenceMetadata metadata = context.shared().sequenceMetadata(sequenceMediator.key())
                     .orElse(null);
-            List<Expression> args = List.of();
+            List<Expression> args = new ArrayList<>();
+            if (metadata != null && metadata.usesContext()) {
+                ensureContextAvailable(context);
+                args.add(new Expression.VariableReference("ctx"));
+            }
             if (metadata != null && metadata.containsPayloadFactory()) {
                 ensureResponseAvailable(context);
-                args = List.of(new Expression.VariableReference("response"));
+                args.add(new Expression.VariableReference("response"));
             }
             context.statements().add(new Statement.CallStatement(
                     new Expression.FunctionCall(sequenceMediator.key(), args)));
@@ -345,6 +322,9 @@ public interface BIRConverter<C> {
 
         private static final String TRANSPORT_SCOPE = "transport";
         private static final String AXIS2_SCOPE = "axis2";
+        private static final String DEFAULT_SCOPE = "default";
+        private static final String SYNAPSE_SCOPE = "synapse";
+        private static final String REMOVE_ACTION = "remove";
 
         @Override
         public void convert(SynapseNode node, ScopeContext context) {
@@ -352,14 +332,45 @@ public interface BIRConverter<C> {
         }
 
         private static void convertProperty(Property property, ScopeContext context) {
-            String statement = switch (property.scope()) {
-                case TRANSPORT_SCOPE -> "response.setHeader(\"" + property.name() + "\", \""
-                        + property.value() + "\");";
-                case AXIS2_SCOPE -> "response.statusCode = " + property.value() + ";";
-                default -> toBallerinaType(property.type()) + " " + property.name() + " = "
-                        + property.value() + ";";
-            };
-            context.statements().add(new Statement.BallerinaStatement(statement));
+            switch (property.scope()) {
+                case TRANSPORT_SCOPE -> {
+                    rejectRemoveAction(property);
+                    context.statements().add(new Statement.BallerinaStatement(
+                            "response.setHeader(\"" + property.name() + "\", \"" + property.value() + "\");"));
+                }
+                case AXIS2_SCOPE -> {
+                    rejectRemoveAction(property);
+                    context.statements().add(new Statement.BallerinaStatement(
+                            "response.statusCode = " + property.value() + ";"));
+                }
+                case DEFAULT_SCOPE, SYNAPSE_SCOPE -> convertDefaultProperty(property, context);
+                default -> throw new UnsupportedOperationException("The '" + property.scope()
+                        + "' scope is not supported for property '" + property.name() + "'.");
+            }
+        }
+
+        /**
+         * The {@code remove} action is only supported in the default scope, where it clears a
+         * {@code Context} field. Removing a transport header or an axis2 property has no equivalent in
+         * the generated code yet, so reject it as unsupported rather than emit a misleading assignment.
+         */
+        private static void rejectRemoveAction(Property property) {
+            if (REMOVE_ACTION.equals(property.action())) {
+                throw new UnsupportedOperationException("The 'remove' action is not supported for property '"
+                        + property.name() + "' in the '" + property.scope() + "' scope.");
+            }
+        }
+
+        private static void convertDefaultProperty(Property property, ScopeContext context) {
+            ensureContextAvailable(context);
+            if (REMOVE_ACTION.equals(property.action())) {
+                context.statements().add(new Statement.BallerinaStatement(
+                        "ctx." + property.name() + " = " + BuiltinType.NIL + ";"));
+                return;
+            }
+            context.shared().addProperty(property.name(), toBallerinaType(property.type()), property.scope());
+            context.statements().add(new Statement.BallerinaStatement(
+                    "ctx." + property.name() + " = " + property.value() + ";"));
         }
 
         private static String toBallerinaType(String synapseType) {

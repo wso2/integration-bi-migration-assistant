@@ -1,10 +1,8 @@
-import ballerina/http;
-
-function bar() {
-    string str = "Hello world";
+function bar(Context ctx) {
+    ctx.str = "Hello world";
 }
 
-function foo(http:Response response) {
-    int i = 23;
-    bar();
+function foo(Context ctx) {
+    ctx.i = 23;
+    bar(ctx);
 }
