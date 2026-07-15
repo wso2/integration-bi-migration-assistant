@@ -29,6 +29,7 @@ import synapse.model.Synapse.SynapseNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -53,7 +54,7 @@ public class APIConverter implements BIRConverter<ConversionContext> {
     }
 
     private static Resource convertResource(synapse.model.Synapse.Resource resource, ConversionContext context) {
-        String method = resource.methods().toLowerCase();
+        String method = resource.methods().toLowerCase(Locale.ROOT);
         String path = buildResourcePath(resource.path());
 
         List<Parameter> parameters = new ArrayList<>();

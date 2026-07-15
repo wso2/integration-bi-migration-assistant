@@ -33,6 +33,7 @@ import synapse.model.Synapse.SynapseNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -206,7 +207,7 @@ public final class MediatorConverters {
         }
 
         private static String toBallerinaType(String synapseType) {
-            return switch (synapseType.toUpperCase()) {
+            return switch (synapseType.toUpperCase(Locale.ROOT)) {
                 case "INTEGER", "INT", "LONG", "SHORT" -> "int";
                 case "BOOLEAN" -> "boolean";
                 case "DOUBLE", "FLOAT" -> "float";
