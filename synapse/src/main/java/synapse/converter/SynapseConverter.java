@@ -31,8 +31,10 @@ import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import org.jetbrains.annotations.NotNull;
-import synapse.converter.BIRConverter.APIConverter;
 import synapse.converter.ConversionContext.PropertyInfo;
+import synapse.converter.bir.APIConverter;
+import synapse.converter.bir.BIRConverter;
+import synapse.converter.bir.SequenceConverter;
 import synapse.model.DependencyGraph;
 import synapse.model.DependencyGraph.ArtifactNode;
 import synapse.model.DependencyResolver;
@@ -70,7 +72,7 @@ public final class SynapseConverter {
 
     private static final Map<Kind, BIRConverter<ConversionContext>> ROOT_CONVERTERS = Map.of(
             Kind.API, new APIConverter(),
-            Kind.SEQUENCE, new BIRConverter.SequenceConverter());
+            Kind.SEQUENCE, new SequenceConverter());
 
     private static final String LISTENER_NAME = "httpListener";
     private static final String DEFAULT_PORT = "8080";

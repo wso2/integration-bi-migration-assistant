@@ -17,6 +17,7 @@
  */
 package synapse.converter;
 
+import common.BallerinaModel.Expression;
 import common.BallerinaModel.Import;
 import common.BallerinaModel.Statement;
 import common.BallerinaModel.TypeDesc;
@@ -24,6 +25,7 @@ import common.BallerinaModel.TypeDesc.BuiltinType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * State local to a single Synapse scope being converted (a resource body within
@@ -37,6 +39,8 @@ import java.util.List;
  * @see SequenceContext
  */
 public abstract class ScopeContext {
+
+    private static final Import HTTP_IMPORT = new Import("ballerina", "http");
 
     private final ConversionContext shared;
     private final List<Statement> statements = new ArrayList<>();
@@ -55,6 +59,60 @@ public abstract class ScopeContext {
 
     public ConversionContext shared() {
         return shared;
+    }
+
+    /**
+     * Records a respond in this scope — from a {@code <respond>} mediator or a call to a responding
+     * sequence — and, when this is a resource scope, ensures a {@code response} is in scope and returns
+     * it to the client. A respond is terminal, so mediator conversion stops once this has run.
+     */
+    public void emitRespond() {
+        setResponded(true);
+        if (!isWithinResource()) {
+            return;
+        }
+        ensureResponseAvailable();
+        returnResponse();
+    }
+
+    /**
+     * Ensures an {@code http:Response} is in scope to set a payload on or return: a resource scope
+     * declares a {@code response} local at the top of the body, whereas a sequence scope takes it as a
+     * parameter it mutates in place.
+     */
+    public void ensureResponseAvailable() {
+        importStatements.add(HTTP_IMPORT);
+        if (responseAvailable()) {
+            return;
+        }
+        if (isWithinResource()) {
+            statements.add(0, new Statement.BallerinaStatement("http:Response response = new;"));
+            setRespondInitialized(true);
+        } else {
+            setResponseParam(true);
+        }
+    }
+
+    /**
+     * Ensures a {@code Context ctx} holding the default-scope properties is in scope: a resource scope
+     * declares a {@code ctx} local at the top of the body, whereas a sequence scope takes it as a
+     * parameter it mutates in place.
+     */
+    public void ensureContextAvailable() {
+        if (contextAvailable()) {
+            return;
+        }
+        if (isWithinResource()) {
+            statements.add(0, new Statement.BallerinaStatement("Context ctx = {};"));
+            setContextInitialized(true);
+        } else {
+            setContextParam(true);
+        }
+    }
+
+    private void returnResponse() {
+        statements.add(new Statement.Return<>(Optional.of(new Expression.VariableReference("response"))));
+        setReturnType(new TypeDesc.BallerinaType("http:Response"));
     }
 
     /**
