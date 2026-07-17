@@ -198,12 +198,12 @@ public final class MediatorConverters {
             context.ensureContextAvailable();
             if (REMOVE_ACTION.equals(property.action())) {
                 context.statements().add(new Statement.BallerinaStatement(
-                        "ctx." + property.name() + " = " + BuiltinType.NIL + ";"));
+                        "ctx.variables." + property.name() + " = " + BuiltinType.NIL + ";"));
                 return;
             }
             context.shared().addProperty(property.name(), toBallerinaType(property.type()), property.scope());
             context.statements().add(new Statement.BallerinaStatement(
-                    "ctx." + property.name() + " = " + property.value() + ";"));
+                    "ctx.variables." + property.name() + " = " + property.value() + ";"));
         }
 
         private static String toBallerinaType(String synapseType) {

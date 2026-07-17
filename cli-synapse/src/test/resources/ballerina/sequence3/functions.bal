@@ -1,8 +1,8 @@
 function bar(Context ctx) {
-    ctx.str = "Hello world";
+    ctx.variables.str = "Hello world";
 }
 
 function foo(Context ctx) {
-    ctx.i = 23;
+    ctx.variables.i = 23;
     bar(ctx);
 }

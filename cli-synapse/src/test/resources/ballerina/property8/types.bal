@@ -1,3 +1,7 @@
-public type Context record {|
+public type Variables record {|
     string temp?;
+|};
+
+public type Context record {|
+    Variables variables;
 |};

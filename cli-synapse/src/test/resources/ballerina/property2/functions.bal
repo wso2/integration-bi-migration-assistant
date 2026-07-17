@@ -1,10 +1,10 @@
 function bar(Context ctx) {
-    ctx.barProp1 = "bar-one";
-    ctx.barProp2 = 10;
+    ctx.variables.barProp1 = "bar-one";
+    ctx.variables.barProp2 = 10;
 }
 
 function foo(Context ctx) {
-    ctx.before = "before";
+    ctx.variables.before = "before";
     bar(ctx);
-    ctx.after = "after";
+    ctx.variables.after = "after";
 }

@@ -1,3 +1,3 @@
 function sequence(Context ctx) {
-    ctx.str = "Hello world";
+    ctx.variables.str = "Hello world";
 }

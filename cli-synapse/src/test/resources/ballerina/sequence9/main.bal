@@ -5,10 +5,10 @@ public listener http:Listener httpListener = new (8080);
 service /HelloWorld on httpListener {
     resource function get orders() returns http:Response {
         http:Response response = new;
-        Context ctx = {};
-        ctx.before = "before";
+        Context ctx = {variables: {}};
+        ctx.variables.before = "before";
         response.setPayload({"id": "001"});
-        ctx.after = "after";
+        ctx.variables.after = "after";
         return response;
     }
 }

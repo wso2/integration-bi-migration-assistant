@@ -1,5 +1,9 @@
-public type Context record {|
+public type Variables record {|
     string greeting?;
     int count?;
     boolean enabled?;
+|};
+
+public type Context record {|
+    Variables variables;
 |};

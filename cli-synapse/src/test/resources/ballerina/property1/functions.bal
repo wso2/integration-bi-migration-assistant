@@ -1,5 +1,5 @@
 function seq(Context ctx) {
-    ctx.greeting = "Hello";
-    ctx.count = 5;
-    ctx.enabled = true;
+    ctx.variables.greeting = "Hello";
+    ctx.variables.count = 5;
+    ctx.variables.enabled = true;
 }

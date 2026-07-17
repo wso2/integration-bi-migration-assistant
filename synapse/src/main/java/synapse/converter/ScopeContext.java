@@ -103,7 +103,7 @@ public abstract class ScopeContext {
             return;
         }
         if (isWithinResource()) {
-            statements.add(0, new Statement.BallerinaStatement("Context ctx = {};"));
+            statements.add(0, new Statement.BallerinaStatement("Context ctx = {variables: {}};"));
             setContextInitialized(true);
         } else {
             setContextParam(true);

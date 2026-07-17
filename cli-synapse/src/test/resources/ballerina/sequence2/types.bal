@@ -1,4 +1,8 @@
-public type Context record {|
+public type Variables record {|
     int i?;
     string str?;
+|};
+
+public type Context record {|
+    Variables variables;
 |};

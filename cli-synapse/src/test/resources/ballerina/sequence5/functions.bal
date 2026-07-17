@@ -1,5 +1,5 @@
 function baz(Context ctx) {
-    ctx.str = "Hello world";
+    ctx.variables.str = "Hello world";
 }
 
 function bar(Context ctx) {

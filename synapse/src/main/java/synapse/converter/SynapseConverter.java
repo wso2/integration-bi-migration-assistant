@@ -80,6 +80,8 @@ public final class SynapseConverter {
     private static final String DEFAULT_ORG = "wso2";
     private static final String DEFAULT_PACKAGE = "synapse";
     private static final String CONTEXT_TYPE = "Context";
+    private static final String VARIABLES_TYPE = "Variables";
+    private static final String VARIABLES_FIELD = "variables";
     private static final String DEFAULT_SCOPE = "default";
     private static final String SYNAPSE_SCOPE = "synapse";
 
@@ -205,7 +207,9 @@ public final class SynapseConverter {
         if (fields.isEmpty()) {
             return;
         }
-        context.addRecord(new ModuleTypeDef(CONTEXT_TYPE, RecordTypeDesc.closedRecord(fields)));
+        context.addRecord(new ModuleTypeDef(VARIABLES_TYPE, RecordTypeDesc.closedRecord(fields)));
+        context.addRecord(new ModuleTypeDef(CONTEXT_TYPE, RecordTypeDesc.closedRecord(
+                List.of(new RecordField(VARIABLES_FIELD, new BallerinaType(VARIABLES_TYPE))))));
     }
 
     @NotNull
