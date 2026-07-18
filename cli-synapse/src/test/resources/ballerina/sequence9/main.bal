@@ -7,6 +7,7 @@ service /HelloWorld on httpListener {
         http:Response response = new;
         Context ctx = {variables: {}};
         ctx.variables.before = "before";
+        ctx.payload = {"id": "001"};
         response.setPayload({"id": "001"});
         ctx.variables.after = "after";
         return response;

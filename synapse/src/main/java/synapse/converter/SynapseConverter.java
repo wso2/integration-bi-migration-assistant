@@ -18,6 +18,7 @@
 
 package synapse.converter;
 
+import common.BallerinaModel.Expression.NilConstant;
 import common.BallerinaModel.Function;
 import common.BallerinaModel.Import;
 import common.BallerinaModel.Listener;
@@ -27,6 +28,7 @@ import common.BallerinaModel.Service;
 import common.BallerinaModel.TextDocument;
 import common.BallerinaModel.TypeDesc;
 import common.BallerinaModel.TypeDesc.BallerinaType;
+import common.BallerinaModel.TypeDesc.BuiltinType;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
@@ -82,6 +84,7 @@ public final class SynapseConverter {
     private static final String CONTEXT_TYPE = "Context";
     private static final String VARIABLES_TYPE = "Variables";
     private static final String VARIABLES_FIELD = "variables";
+    private static final String PAYLOAD_FIELD = "payload";
     private static final String DEFAULT_SCOPE = "default";
     private static final String SYNAPSE_SCOPE = "synapse";
 
@@ -197,19 +200,17 @@ public final class SynapseConverter {
     }
 
     private static void addContextRecord(ConversionContext context) {
-        List<RecordField> fields = new ArrayList<>();
+        List<RecordField> variableFields = new ArrayList<>();
         for (Map.Entry<String, PropertyInfo> property : context.properties().entrySet()) {
             String scope = property.getValue().scope();
             if (DEFAULT_SCOPE.equals(scope) || SYNAPSE_SCOPE.equals(scope)) {
-                fields.add(new RecordField(property.getKey(), fieldType(property.getValue().types()), true));
+                variableFields.add(new RecordField(property.getKey(), fieldType(property.getValue().types()), true));
             }
         }
-        if (fields.isEmpty()) {
-            return;
-        }
-        context.addRecord(new ModuleTypeDef(VARIABLES_TYPE, RecordTypeDesc.closedRecord(fields)));
-        context.addRecord(new ModuleTypeDef(CONTEXT_TYPE, RecordTypeDesc.closedRecord(
-                List.of(new RecordField(VARIABLES_FIELD, new BallerinaType(VARIABLES_TYPE))))));
+        context.addRecord(new ModuleTypeDef(VARIABLES_TYPE, RecordTypeDesc.closedRecord(variableFields)));
+        context.addRecord(new ModuleTypeDef(CONTEXT_TYPE, RecordTypeDesc.closedRecord(List.of(
+                new RecordField(VARIABLES_FIELD, new BallerinaType(VARIABLES_TYPE)),
+                new RecordField(PAYLOAD_FIELD, BuiltinType.ANYDATA, new NilConstant())))));
     }
 
     @NotNull

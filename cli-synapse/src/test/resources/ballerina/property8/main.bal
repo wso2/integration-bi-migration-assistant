@@ -8,6 +8,7 @@ service /prop on httpListener {
         Context ctx = {variables: {}};
         ctx.variables.temp = "value";
         ctx.variables.temp = ();
+        ctx.payload = {"done": true};
         response.setPayload({"done": true});
         return response;
     }

@@ -8,6 +8,7 @@ service /orders on httpListener {
         Context ctx = {variables: {}};
         ctx.variables.prop1 = "list";
         ctx.variables.r1only = 1;
+        ctx.payload = {"resource": "list"};
         response.setPayload({"resource": "list"});
         return response;
     }
@@ -17,6 +18,7 @@ service /orders on httpListener {
         Context ctx = {variables: {}};
         ctx.variables.prop1 = 55;
         ctx.variables.r2only = true;
+        ctx.payload = {"resource": "create"};
         response.setPayload({"resource": "create"});
         return response;
     }
