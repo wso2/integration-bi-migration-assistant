@@ -63,7 +63,6 @@ public class APIConverter implements BIRConverter<ConversionContext> {
 
     private static Resource convertResource(synapse.model.Synapse.Resource resource, ConversionContext context) {
         String method = resource.methods().toLowerCase(Locale.ROOT);
-        String path = buildResourcePath(resource.path());
 
         List<Parameter> parameters = new ArrayList<>();
         for (String queryParam : resource.queryParams()) {
@@ -82,7 +81,7 @@ public class APIConverter implements BIRConverter<ConversionContext> {
             MediatorConverters.convertMediators(resource.inSequence().mediators(), resourceContext);
         }
         context.addImports(ConversionContext.MAIN_BAL_FILE, resourceContext.importStatements());
-        return new Resource(method, path, parameters,
+        return new Resource(method, buildResourcePath(resource.path()), parameters,
                 Optional.of(new TypeDesc.BallerinaType("error?")), resourceContext.statements());
     }
 

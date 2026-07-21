@@ -44,14 +44,18 @@ public class SequenceMediatorConverter implements BIRConverter<ScopeContext> {
         SequenceMediator sequenceMediator = (SequenceMediator) node;
         ConversionContext.SequenceMetadata metadata = context.shared().sequenceMetadata(sequenceMediator.key())
                 .orElse(null);
+        if (metadata == null) {
+            throw new UnsupportedOperationException("No metadata found for referenced sequence '"
+                    + sequenceMediator.key() + "'.");
+        }
         List<Expression> args = new ArrayList<>();
-        if (metadata != null && metadata.usesContext()) {
+        if (metadata.usesContext()) {
             context.ensureContextAvailable();
             args.add(new Expression.VariableReference("ctx"));
         }
         Expression call = new Expression.FunctionCall(sequenceMediator.key(), args);
         context.statements().add(new Statement.CallStatement(new Expression.Check(call)));
-        if (metadata != null && metadata.containsRespond()) {
+        if (metadata.containsRespond()) {
             context.markResponded();
         }
     }

@@ -68,11 +68,6 @@ public class PropertyConverter implements BIRConverter<ScopeContext> {
         }
     }
 
-    /**
-     * The {@code remove} action is only supported in the default scope, where it clears a
-     * {@code Context} field. Removing a transport header or an axis2 property has no equivalent in
-     * the generated code yet, so reject it as unsupported rather than emit a misleading assignment.
-     */
     private static void rejectRemoveAction(Property property) {
         if (REMOVE_ACTION.equals(property.action())) {
             throw new UnsupportedOperationException("The 'remove' action is not supported for property '"
