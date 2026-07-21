@@ -20,13 +20,11 @@ package synapse.converter;
 /**
  * Scope context for a top-level Synapse {@code <sequence>} body, converted into
  * a Ballerina function.
- * Unlike a resource body, {@link #isWithinResource()} remains {@code false}; a
- * response is never declared
- * as a local here. Instead, if converting the body reaches a
- * {@code <payloadFactory>} (directly or down a
- * call chain), {@link #hasResponseParam()} is set and the generated function
- * takes an
- * {@code http:Response response} parameter that it mutates in place.
+ * Unlike a resource body, a {@code ctx} is never declared as a local here.
+ * Instead, if converting the body reaches a mediator that touches {@code ctx}
+ * (directly or down a call chain), {@link #ensureContextAvailable()} sets
+ * {@link #hasContextParam()} and the generated function takes a
+ * {@code Context ctx} parameter that it mutates in place.
  */
 public final class SequenceContext extends ScopeContext {
 

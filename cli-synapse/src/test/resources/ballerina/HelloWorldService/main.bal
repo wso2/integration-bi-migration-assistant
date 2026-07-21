@@ -3,43 +3,33 @@ import ballerina/http;
 public listener http:Listener httpListener = new (8080);
 
 service /HelloWorld on httpListener {
-    resource function get .() returns http:Response {
-        http:Response response = new;
-        Context ctx = {variables: {}};
+    resource function get .(http:Caller caller) returns error? {
+        Context ctx = {variables: {}, caller: caller};
         ctx.payload = {"Hello": "World"};
-        response.setPayload({"Hello": "World"});
-        return response;
+        check respond(ctx);
     }
 
-    resource function get status() returns http:Response {
-        http:Response response = new;
-        Context ctx = {variables: {}};
+    resource function get status(http:Caller caller) returns error? {
+        Context ctx = {variables: {}, caller: caller};
         ctx.payload = {"Hello": "World"};
-        response.setPayload({"Hello": "World"});
-        return response;
+        check respond(ctx);
     }
 
-    resource function get status/[string id]() returns http:Response {
-        http:Response response = new;
-        Context ctx = {variables: {}};
+    resource function get status/[string id](http:Caller caller) returns error? {
+        Context ctx = {variables: {}, caller: caller};
         ctx.payload = {"Hello": "World"};
-        response.setPayload({"Hello": "World"});
-        return response;
+        check respond(ctx);
     }
 
-    resource function get status/[string name]/[string id](string q) returns http:Response {
-        http:Response response = new;
-        Context ctx = {variables: {}};
+    resource function get status/[string name]/[string id](string q, http:Caller caller) returns error? {
+        Context ctx = {variables: {}, caller: caller};
         ctx.payload = {"Hello": "World"};
-        response.setPayload({"Hello": "World"});
-        return response;
+        check respond(ctx);
     }
 
-    resource function get .(string p) returns http:Response {
-        http:Response response = new;
-        Context ctx = {variables: {}};
+    resource function get .(string p, http:Caller caller) returns error? {
+        Context ctx = {variables: {}, caller: caller};
         ctx.payload = {"Hello": "World"};
-        response.setPayload({"Hello": "World"});
-        return response;
+        check respond(ctx);
     }
 }

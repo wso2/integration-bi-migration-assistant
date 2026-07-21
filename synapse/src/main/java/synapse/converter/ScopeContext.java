@@ -17,15 +17,11 @@
  */
 package synapse.converter;
 
-import common.BallerinaModel.Expression;
 import common.BallerinaModel.Import;
 import common.BallerinaModel.Statement;
-import common.BallerinaModel.TypeDesc;
-import common.BallerinaModel.TypeDesc.BuiltinType;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * State local to a single Synapse scope being converted (a resource body within
@@ -40,17 +36,12 @@ import java.util.Optional;
  */
 public abstract class ScopeContext {
 
-    private static final Import HTTP_IMPORT = new Import("ballerina", "http");
-
     private final ConversionContext shared;
     private final List<Statement> statements = new ArrayList<>();
     private final List<Import> importStatements = new ArrayList<>();
-    private boolean responseParam;
-    private boolean respondInitialized;
     private boolean contextParam;
     private boolean contextInitialized;
     private boolean responded;
-    private TypeDesc returnType = BuiltinType.NIL;
 
     protected ScopeContext(ConversionContext shared) {
         assert shared != null : "shared ConversionContext must not be null";
@@ -62,69 +53,37 @@ public abstract class ScopeContext {
     }
 
     /**
-     * Records a respond in this scope — from a {@code <respond>} mediator or a call to a responding
-     * sequence — and, when this is a resource scope, ensures a {@code response} is in scope and returns
-     * it to the client. A respond is terminal, so mediator conversion stops once this has run.
+     * Records that this scope responds — from a {@code <respond>} mediator or a call to a responding
+     * sequence — a terminal event that stops mediator conversion, and ensures a {@code ctx} (which
+     * carries the {@code http:Caller}) is in scope. Every generated function and resource returns
+     * {@code error?}, so the respond is {@code check}ed regardless.
      */
-    public void emitRespond() {
+    public void markResponded() {
         setResponded(true);
-        if (!isWithinResource()) {
-            return;
-        }
-        ensureResponseAvailable();
-        returnResponse();
+        ensureContextAvailable();
     }
 
     /**
-     * Ensures an {@code http:Response} is in scope to set a payload on or return: a resource scope
-     * declares a {@code response} local at the top of the body, whereas a sequence scope takes it as a
-     * parameter it mutates in place.
+     * Declares the {@code Context ctx} local at the top of a resource body, seeded with the
+     * {@code http:Caller caller} parameter every generated resource takes. Called once at the start of
+     * each resource so {@code ctx} is unconditionally in scope; sequences receive {@code ctx} as a
+     * parameter instead (see {@link #ensureContextAvailable()}) and never call this.
      */
-    public void ensureResponseAvailable() {
-        importStatements.add(HTTP_IMPORT);
-        if (responseAvailable()) {
-            return;
-        }
-        if (isWithinResource()) {
-            statements.add(0, new Statement.BallerinaStatement("http:Response response = new;"));
-            setRespondInitialized(true);
-        } else {
-            setResponseParam(true);
-        }
+    public void initContext() {
+        statements.add(new Statement.BallerinaStatement("Context ctx = {variables: {}, caller: caller};"));
+        setContextInitialized(true);
     }
 
     /**
-     * Ensures a {@code Context ctx} holding the default-scope properties is in scope: a resource scope
-     * declares a {@code ctx} local at the top of the body, whereas a sequence scope takes it as a
-     * parameter it mutates in place.
+     * Ensures a {@code Context ctx} is in scope for a sequence body: the generated function takes a
+     * {@code Context ctx} parameter it mutates in place. Resources declare {@code ctx} upfront via
+     * {@link #initContext()}, so this is a no-op for them.
      */
     public void ensureContextAvailable() {
         if (contextAvailable()) {
             return;
         }
-        if (isWithinResource()) {
-            statements.add(0, new Statement.BallerinaStatement("Context ctx = {variables: {}};"));
-            setContextInitialized(true);
-        } else {
-            setContextParam(true);
-        }
-    }
-
-    private void returnResponse() {
-        statements.add(new Statement.Return<>(Optional.of(new Expression.VariableReference("response"))));
-        setReturnType(new TypeDesc.BallerinaType("http:Response"));
-    }
-
-    /**
-     * Whether this scope is a resource body, where an HTTP {@code response} object
-     * is in scope (as
-     * opposed to a plain sequence function). Mediators whose Ballerina shape
-     * depends on having a
-     * response — e.g. a {@code transport}-scope property setting a header — branch
-     * on this.
-     */
-    public boolean isWithinResource() {
-        return false;
+        setContextParam(true);
     }
 
     public List<Statement> statements() {
@@ -133,44 +92,6 @@ public abstract class ScopeContext {
 
     public List<Import> importStatements() {
         return importStatements;
-    }
-
-    public boolean isRespondInitialized() {
-        return respondInitialized;
-    }
-
-    public void setRespondInitialized(boolean respondInitialized) {
-        this.respondInitialized = respondInitialized;
-    }
-
-    /**
-     * Whether a {@code response} is in scope to set a payload on or return — either
-     * an
-     * {@code http:Response response} parameter (a sequence function that turned out
-     * to need one, see
-     * {@link #hasResponseParam()}) or a {@code response} local already declared in
-     * this scope.
-     */
-    public boolean responseAvailable() {
-        return responseParam || respondInitialized;
-    }
-
-    /**
-     * Whether the sequence function generated for this scope takes an
-     * {@code http:Response response}
-     * parameter, which it mutates in place. Set while converting the body — when a
-     * {@code <payloadFactory>}, or a call to a sequence that sets a payload, is
-     * reached in a sequence
-     * scope — and read back afterwards to shape the function's signature. A resource
-     * scope declares a
-     * {@code response} local instead, so this stays {@code false} there.
-     */
-    public boolean hasResponseParam() {
-        return responseParam;
-    }
-
-    public void setResponseParam(boolean responseParam) {
-        this.responseParam = responseParam;
     }
 
     /**
@@ -216,19 +137,5 @@ public abstract class ScopeContext {
 
     public void setResponded(boolean responded) {
         this.responded = responded;
-    }
-
-    /**
-     * The type this scope's enclosing resource or function should return:
-     * {@code http:Response} once a
-     * respond has been emitted into this (resource) scope, and
-     * {@link BuiltinType#NIL} otherwise.
-     */
-    public TypeDesc returnType() {
-        return returnType;
-    }
-
-    public void setReturnType(TypeDesc returnType) {
-        this.returnType = returnType;
     }
 }

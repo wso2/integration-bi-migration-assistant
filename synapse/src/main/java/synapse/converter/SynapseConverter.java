@@ -18,17 +18,21 @@
 
 package synapse.converter;
 
+import common.BallerinaModel.Expression.MappingConstructor;
 import common.BallerinaModel.Expression.NilConstant;
 import common.BallerinaModel.Function;
 import common.BallerinaModel.Import;
 import common.BallerinaModel.Listener;
 import common.BallerinaModel.Listener.HTTPListener;
 import common.BallerinaModel.ModuleTypeDef;
+import common.BallerinaModel.Parameter;
 import common.BallerinaModel.Service;
+import common.BallerinaModel.Statement;
 import common.BallerinaModel.TextDocument;
 import common.BallerinaModel.TypeDesc;
 import common.BallerinaModel.TypeDesc.BallerinaType;
 import common.BallerinaModel.TypeDesc.BuiltinType;
+import common.BallerinaModel.TypeDesc.MapTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
@@ -85,6 +89,15 @@ public final class SynapseConverter {
     private static final String VARIABLES_TYPE = "Variables";
     private static final String VARIABLES_FIELD = "variables";
     private static final String PAYLOAD_FIELD = "payload";
+    private static final String HEADERS_FIELD = "headers";
+    private static final String STATUS_CODE_FIELD = "statusCode";
+    private static final String CALLER_FIELD = "caller";
+    private static final String REQUEST_PARAM = "request";
+    private static final String RESPOND_FUNCTION = "respond";
+    private static final String EMIT_PAYLOAD_FUNCTION = "emitPayload";
+    private static final String HTTP_CALLER = "http:Caller";
+    private static final String HTTP_REQUEST = "http:Request";
+    private static final String ERROR_OPTIONAL = "error?";
     private static final String DEFAULT_SCOPE = "default";
     private static final String SYNAPSE_SCOPE = "synapse";
 
@@ -162,6 +175,8 @@ public final class SynapseConverter {
                 context.clearArtifactOutput();
             }
             addContextRecord(context);
+            addRespondFunction(context);
+            addEmitPayloadFunction(context);
             if (dependencyGraph.sortedNodes().isEmpty() || !context.records().isEmpty()) {
                 // Emit the base package skeleton when there were no convertible artifacts (e.g. a
                 // <proxy>), and flush the Context record to types.bal once every artifact's default
@@ -207,10 +222,51 @@ public final class SynapseConverter {
                 variableFields.add(new RecordField(property.getKey(), fieldType(property.getValue().types()), true));
             }
         }
+        context.addImports(ConversionContext.TYPES_BAL_FILE, List.of(new Import("ballerina", "http")));
         context.addRecord(new ModuleTypeDef(VARIABLES_TYPE, RecordTypeDesc.closedRecord(variableFields)));
         context.addRecord(new ModuleTypeDef(CONTEXT_TYPE, RecordTypeDesc.closedRecord(List.of(
                 new RecordField(VARIABLES_FIELD, new BallerinaType(VARIABLES_TYPE)),
-                new RecordField(PAYLOAD_FIELD, BuiltinType.ANYDATA, new NilConstant())))));
+                new RecordField(PAYLOAD_FIELD, BuiltinType.ANYDATA, new NilConstant()),
+                new RecordField(HEADERS_FIELD, new MapTypeDesc(BuiltinType.STRING),
+                        new MappingConstructor(List.of())),
+                new RecordField(STATUS_CODE_FIELD, BuiltinType.INT, true),
+                new RecordField(CALLER_FIELD, new BallerinaType(HTTP_CALLER), true)))));
+    }
+
+    private static void addRespondFunction(ConversionContext context) {
+        context.addImports(ConversionContext.FUNCTIONS_BAL_FILE, List.of(new Import("ballerina", "http")));
+        context.addFunction(new Function(RESPOND_FUNCTION,
+                List.of(new Parameter("ctx", new BallerinaType(CONTEXT_TYPE))),
+                new BallerinaType(ERROR_OPTIONAL),
+                List.of(
+                        new Statement.BallerinaStatement("http:Response response = new;"),
+                        new Statement.BallerinaStatement("response.setPayload(ctx.payload);"),
+                        new Statement.BallerinaStatement(
+                                "foreach [string, string] [name, value] in ctx.headers.entries() {"
+                                        + " response.setHeader(name, value); }"),
+                        new Statement.BallerinaStatement("int? statusCode = ctx.statusCode;"),
+                        new Statement.BallerinaStatement("if statusCode is int { response.statusCode = statusCode; }"),
+                        new Statement.BallerinaStatement(
+                                "check (<http:Caller>ctx.caller)->respond(response);"))));
+    }
+
+    private static void addEmitPayloadFunction(ConversionContext context) {
+        context.addImports(ConversionContext.FUNCTIONS_BAL_FILE, List.of(new Import("ballerina", "http")));
+        context.addFunction(new Function(EMIT_PAYLOAD_FUNCTION,
+                List.of(new Parameter("ctx", new BallerinaType(CONTEXT_TYPE)),
+                        new Parameter(REQUEST_PARAM, new BallerinaType(HTTP_REQUEST))),
+                new BallerinaType("error?"),
+                List.of(
+                        new Statement.BallerinaStatement("string contentType = request.getContentType();"),
+                        new Statement.BallerinaStatement(
+                                "if contentType.startsWith(\"application/json\") {"
+                                        + " ctx.payload = check request.getJsonPayload(); }"
+                                        + " else if contentType.startsWith(\"application/xml\")"
+                                        + " || contentType.startsWith(\"text/xml\") {"
+                                        + " ctx.payload = check request.getXmlPayload(); }"
+                                        + " else if contentType.startsWith(\"text/\") {"
+                                        + " ctx.payload = check request.getTextPayload(); }"
+                                        + " else { ctx.payload = check request.getBinaryPayload(); }"))));
     }
 
     @NotNull

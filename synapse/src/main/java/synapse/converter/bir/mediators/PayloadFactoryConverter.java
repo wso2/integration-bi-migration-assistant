@@ -27,8 +27,11 @@ import synapse.converter.bir.BIRConverter;
 import synapse.model.Synapse.PayloadFactory;
 import synapse.model.Synapse.SynapseNode;
 
-import java.util.List;
-
+/**
+ * Converts a Synapse {@code <payloadFactory>} mediator into an assignment of the built payload onto
+ * {@code ctx.payload}. The payload is not written to an {@code http:Response} here; a later
+ * {@code <respond>} reads it back off {@code ctx} through the generated {@code respond} utility.
+ */
 public class PayloadFactoryConverter implements BIRConverter<ScopeContext> {
 
     @Override
@@ -38,9 +41,6 @@ public class PayloadFactoryConverter implements BIRConverter<ScopeContext> {
         context.ensureContextAvailable();
         context.statements().add(new Statement.VarAssignStatement(
                 new Expression.FieldAccess(new Expression.VariableReference("ctx"), "payload"), value));
-        context.ensureResponseAvailable();
-        context.statements().add(new Statement.CallStatement(new Expression.MethodCall(
-                new Expression.VariableReference("response"), "setPayload", List.of(value))));
     }
 
     private static Expression extractValue(String mediaType, String format) {

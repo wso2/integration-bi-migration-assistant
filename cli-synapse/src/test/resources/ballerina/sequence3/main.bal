@@ -3,21 +3,15 @@ import ballerina/http;
 public listener http:Listener httpListener = new (8080);
 
 service /HelloWorld on httpListener {
-    resource function get status/[string name]/[string id](string q) returns http:Response {
-        http:Response response = new;
-        Context ctx = {variables: {}};
+    resource function get status/[string name]/[string id](string q, http:Caller caller) returns error? {
+        Context ctx = {variables: {}, caller: caller};
         ctx.payload = {"Hello": "World"};
-        response.setPayload({"Hello": "World"});
-        foo(ctx);
-        return response;
+        check foo(ctx);
     }
 
-    resource function get id1/[string id]() returns http:Response {
-        http:Response response = new;
-        Context ctx = {variables: {}};
+    resource function get id1/[string id](http:Caller caller) returns error? {
+        Context ctx = {variables: {}, caller: caller};
         ctx.payload = {"Hello": "World"};
-        response.setPayload({"Hello": "World"});
-        bar(ctx);
-        return response;
+        check bar(ctx);
     }
 }

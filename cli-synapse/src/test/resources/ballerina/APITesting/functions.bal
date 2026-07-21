@@ -1,13 +1,5 @@
 import ballerina/http;
 
-function foo(Context ctx) returns error? {
-    ctx.payload = {"id": "002"};
-}
-
-function wrapper(Context ctx) returns error? {
-    check foo(ctx);
-}
-
 function respond(Context ctx) returns error? {
     http:Response response = new;
     response.setPayload(ctx.payload);

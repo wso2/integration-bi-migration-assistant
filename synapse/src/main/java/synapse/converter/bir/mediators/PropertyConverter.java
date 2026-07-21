@@ -52,13 +52,15 @@ public class PropertyConverter implements BIRConverter<ScopeContext> {
         switch (property.scope()) {
             case TRANSPORT_SCOPE -> {
                 rejectRemoveAction(property);
+                context.ensureContextAvailable();
                 context.statements().add(new Statement.BallerinaStatement(
-                        "response.setHeader(\"" + property.name() + "\", \"" + property.value() + "\");"));
+                        "ctx.headers[\"" + property.name() + "\"] = \"" + property.value() + "\";"));
             }
             case AXIS2_SCOPE -> {
                 rejectRemoveAction(property);
+                context.ensureContextAvailable();
                 context.statements().add(new Statement.BallerinaStatement(
-                        "response.statusCode = " + property.value() + ";"));
+                        "ctx.statusCode = " + property.value() + ";"));
             }
             case DEFAULT_SCOPE, SYNAPSE_SCOPE -> convertDefaultProperty(property, context);
             default -> throw new UnsupportedOperationException("The '" + property.scope()

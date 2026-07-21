@@ -31,13 +31,11 @@ import java.util.List;
 /**
  * Converts a Synapse {@code <sequence key="name"/>} mediator into a call to the
  * Ballerina function
- * generated for the referenced sequence. When that function takes an
- * {@code http:Response response}
- * parameter, the call passes {@code response} (declaring it first if not
- * already in scope). If the
- * referenced sequence responds (directly or down a call chain), the call also
- * drives a respond in
- * the enclosing scope.
+ * generated for the referenced sequence. When that sequence takes a {@code Context ctx} parameter, the
+ * call passes {@code ctx} (declaring it first if not already in scope). Every generated function returns
+ * {@code error?}, so the call is always {@code check}ed; and if the referenced sequence responds
+ * (directly or down a call chain), the enclosing scope is marked as responding, since the callee sends
+ * the response through {@code ctx.caller}.
  */
 public class SequenceMediatorConverter implements BIRConverter<ScopeContext> {
 
@@ -51,14 +49,10 @@ public class SequenceMediatorConverter implements BIRConverter<ScopeContext> {
             context.ensureContextAvailable();
             args.add(new Expression.VariableReference("ctx"));
         }
-        if (metadata != null && metadata.containsPayloadFactory()) {
-            context.ensureResponseAvailable();
-            args.add(new Expression.VariableReference("response"));
-        }
-        context.statements().add(new Statement.CallStatement(
-                new Expression.FunctionCall(sequenceMediator.key(), args)));
+        Expression call = new Expression.FunctionCall(sequenceMediator.key(), args);
+        context.statements().add(new Statement.CallStatement(new Expression.Check(call)));
         if (metadata != null && metadata.containsRespond()) {
-            context.emitRespond();
+            context.markResponded();
         }
     }
 }

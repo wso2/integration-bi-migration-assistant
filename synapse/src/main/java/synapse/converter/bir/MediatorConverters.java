@@ -17,10 +17,10 @@
  */
 package synapse.converter.bir;
 
-import common.BallerinaModel.TypeDesc.BuiltinType;
 import synapse.converter.ScopeContext;
 import synapse.converter.bir.mediators.PayloadFactoryConverter;
 import synapse.converter.bir.mediators.PropertyConverter;
+import synapse.converter.bir.mediators.RespondConverter;
 import synapse.converter.bir.mediators.SequenceMediatorConverter;
 import synapse.converter.bir.mediators.UnsupportedConverter;
 import synapse.model.Synapse.Kind;
@@ -40,7 +40,8 @@ public final class MediatorConverters {
     private static final Map<Kind, BIRConverter<ScopeContext>> MEDIATOR_CONVERTERS = Map.of(
             Kind.PAYLOAD_FACTORY, new PayloadFactoryConverter(),
             Kind.PROPERTY, new PropertyConverter(),
-            Kind.SEQUENCE_MEDIATOR, new SequenceMediatorConverter());
+            Kind.SEQUENCE_MEDIATOR, new SequenceMediatorConverter(),
+            Kind.RESPOND, new RespondConverter());
 
     private MediatorConverters() {
     }
@@ -48,30 +49,16 @@ public final class MediatorConverters {
     /**
      * Converts a list of Synapse mediators into Ballerina, accumulating the result
      * in {@code context}.
-     * The type the enclosing scope (resource or function) should return is recorded
-     * on the context: it
-     * becomes {@code http:Response} when the scope responds — a {@code <respond>}
-     * mediator, or a call to
-     * a sequence that responds (directly or down a call chain) — and stays
-     * {@link BuiltinType#NIL}
-     * otherwise. Callers read it back via {@link ScopeContext#returnType()}.
-     *
-     * <p>
-     * Only a resource body actually emits the {@code return response;}; a
-     * {@code <sequence>} body is
-     * generated as a plain {@code nil}-returning function and its respond bubbles
-     * up, via the sequence
-     * metadata, to the resource call site that returns to the client.
+     * A {@code <respond>} mediator (or a call to a sequence that responds, directly or down a call chain)
+     * is terminal, so conversion stops at the first one. Every generated function and resource returns
+     * {@code error?}, and a respond sends its response through {@code ctx.caller} via the generated
+     * {@code respond} utility rather than by returning an {@code http:Response}.
      */
     static void convertMediators(List<SynapseNode> mediators, ScopeContext context) {
         for (SynapseNode mediator : mediators) {
-            if (mediator.kind() == Kind.RESPOND) {
-                context.emitRespond();
-            } else {
-                BIRConverter<ScopeContext> converter = MEDIATOR_CONVERTERS.getOrDefault(mediator.kind(),
-                        new UnsupportedConverter());
-                converter.convert(mediator, context);
-            }
+            BIRConverter<ScopeContext> converter = MEDIATOR_CONVERTERS.getOrDefault(mediator.kind(),
+                    new UnsupportedConverter());
+            converter.convert(mediator, context);
             if (context.isResponded()) {
                 break;
             }
