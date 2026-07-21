@@ -17,14 +17,20 @@
  */
 package synapse.converter.bir;
 
+import common.BallerinaModel;
 import common.BallerinaModel.Expression;
 import common.BallerinaModel.Expression.BallerinaExpression;
 import common.BallerinaModel.Expression.StringConstant;
 import common.BallerinaModel.Expression.XMLTemplate;
+import common.BallerinaModel.Function;
+import common.BallerinaModel.Import;
+import common.BallerinaModel.Parameter;
 import common.BallerinaModel.Statement;
+import common.BallerinaModel.TypeDesc;
 import common.BallerinaModel.TypeDesc.BuiltinType;
 import synapse.converter.ConversionContext;
 import synapse.converter.ScopeContext;
+import synapse.model.Synapse.ClassMediator;
 import synapse.model.Synapse.Kind;
 import synapse.model.Synapse.PayloadFactory;
 import synapse.model.Synapse.Property;
@@ -47,7 +53,8 @@ public final class MediatorConverters {
     private static final Map<Kind, BIRConverter<ScopeContext>> MEDIATOR_CONVERTERS = Map.of(
             Kind.PAYLOAD_FACTORY, new PayloadFactoryConverter(),
             Kind.PROPERTY, new PropertyConverter(),
-            Kind.SEQUENCE_MEDIATOR, new SequenceMediatorConverter());
+            Kind.SEQUENCE_MEDIATOR, new SequenceMediatorConverter(),
+            Kind.CLASS_MEDIATOR, new ClassMediatorConverter());
 
     private MediatorConverters() {
     }
@@ -213,6 +220,88 @@ public final class MediatorConverters {
                 case "DOUBLE", "FLOAT" -> "float";
                 default -> "string";
             };
+        }
+    }
+
+    /**
+     * Converts a Synapse {@code <class>} mediator into a call to a generated Ballerina stub function.
+     *
+     * <p>Because the mediator's Java logic cannot be automatically translated, a stub function is
+     * emitted into {@code functions.bal}. The call site passes any {@code <property>} values as
+     * {@code string} arguments, and {@code http:Response response} when one is in scope.
+     * The developer is expected to replace the stub body with equivalent Ballerina.
+     */
+    static class ClassMediatorConverter implements BIRConverter<ScopeContext> {
+
+        private static final Import HTTP_IMPORT = new Import("ballerina", "http");
+
+        @Override
+        public void convert(SynapseNode node, ScopeContext context) {
+            ClassMediator classMediator = (ClassMediator) node;
+            String functionName = stubFunctionName(classMediator.className());
+
+            // Build the stub function once and register it for functions.bal.
+            // The stub takes http:Response first (when a response is in scope), then
+            // each <property> value as a string parameter.
+            List<Parameter> params = buildStubParams(classMediator, context);
+            List<Statement> stubBody = buildStubBody(classMediator);
+            Function stub = new Function(functionName, params, stubBody);
+            context.shared().addFunction(stub);
+            context.shared().addImports(ConversionContext.FUNCTIONS_BAL_FILE,
+                    params.stream().anyMatch(p -> p.name().equals("response"))
+                            ? List.of(HTTP_IMPORT)
+                            : List.of());
+
+            // Emit the call at the mediator site.
+            List<Expression> callArgs = buildCallArgs(classMediator, context, functionName);
+            context.statements().add(new Statement.CallStatement(
+                    new Expression.FunctionCall(functionName, callArgs)));
+        }
+
+        /** Converts {@code org.example.MyMediator} → {@code myMediator}. */
+        private static String stubFunctionName(String className) {
+            String simpleName = className.contains(".")
+                    ? className.substring(className.lastIndexOf('.') + 1)
+                    : className;
+            return Character.toLowerCase(simpleName.charAt(0)) + simpleName.substring(1);
+        }
+
+        private static List<Parameter> buildStubParams(ClassMediator mediator, ScopeContext context) {
+            List<Parameter> params = new ArrayList<>();
+            if (context.responseAvailable() || context.isWithinResource()) {
+                params.add(new Parameter("response", new TypeDesc.BallerinaType("http:Response")));
+            }
+            for (Property property : mediator.properties()) {
+                if (property.expression().isPresent()) {
+                    // Expressions are dynamic (XPath/JSONPath evaluated at runtime) — skip as parameter.
+                    continue;
+                }
+                params.add(new Parameter(property.name(), BuiltinType.STRING));
+            }
+            return params;
+        }
+
+        private static List<Expression> buildCallArgs(ClassMediator mediator, ScopeContext context, String functionName) {
+            List<Expression> args = new ArrayList<>();
+            if (context.responseAvailable() || context.isWithinResource()) {
+                if (!context.responseAvailable()) {
+                    context.statements().add(0, new Statement.BallerinaStatement("http:Response response = new;"));
+                    context.setRespondInitialized(true);
+                }
+                context.importStatements().add(new Import("ballerina", "http"));
+                args.add(new Expression.VariableReference("response"));
+            }
+            for (Property property : mediator.properties()) {
+                if (property.expression().isPresent()) {
+                    continue;
+                }
+                args.add(new StringConstant(property.value()));
+            }
+            return args;
+        }
+
+        private static List<Statement> buildStubBody(ClassMediator mediator) {
+            return List.of();
         }
     }
 

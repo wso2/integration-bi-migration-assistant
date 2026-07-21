@@ -22,6 +22,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import synapse.model.Synapse.Api;
+import synapse.model.Synapse.ClassMediator;
 import synapse.model.Synapse.InSequence;
 import synapse.model.Synapse.PayloadFactory;
 import synapse.model.Synapse.Property;
@@ -33,6 +34,7 @@ import synapse.model.Synapse.SynapseNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class SynapseModelGenerator {
 
@@ -44,6 +46,7 @@ public class SynapseModelGenerator {
     private static final String RESPOND_TAG = "respond";
     private static final String PROPERTY_TAG = "property";
     private static final String FORMAT_TAG = "format";
+    private static final String CLASS_TAG = "class";
 
     private static final String DEFAULT_PROPERTY_TYPE = "string";
     private static final String DEFAULT_PROPERTY_SCOPE = "default";
@@ -160,6 +163,7 @@ public class SynapseModelGenerator {
                     }
                     mediators.add(new SequenceMediator(key));
                 }
+                case CLASS_TAG -> mediators.add(readClass(child));
                 default -> {
                     // Other mediators are not supported yet; skip for now.
                 }
@@ -189,7 +193,11 @@ public class SynapseModelGenerator {
             action = DEFAULT_PROPERTY_ACTION;
         }
 
-        return new Property(name, type, scope, value, action);
+        String expressionAttr = element.getAttribute("expression");
+        Optional<String> expression = expressionAttr.isEmpty() ?
+                Optional.empty() : Optional.of(expressionAttr);
+
+        return new Property(name, type, scope, value, expression, action);
     }
 
     private static PayloadFactory readPayloadFactory(Element element) {
@@ -213,5 +221,19 @@ public class SynapseModelGenerator {
             }
         }
         return elements;
+    }
+
+    private static ClassMediator readClass(Element element) {
+        String className = element.getAttribute("name");
+        if (className.isBlank()) {
+            throw new IllegalArgumentException("Synapse class mediator must define a non-empty 'name'.");
+        }
+        List<Property> properties = new ArrayList<>();
+        for (Element child : childElements(element)) {
+            if (PROPERTY_TAG.equals(child.getTagName())) {
+                properties.add(readProperty(child));
+            }
+        }
+        return new ClassMediator(className, properties);
     }
 }

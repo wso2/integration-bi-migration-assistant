@@ -1,0 +1,14 @@
+<api context="/hello" name="HelloClass" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="GET" uri-template="/greet">
+        <inSequence>
+            <payloadFactory media-type="json">
+                <format>{"msg":"hello"}</format>
+            </payloadFactory>
+            <class name="org.example.GreetMediator">
+                <property name="lang" value="en"/>
+                <property name="greeting" expression="get-property('msg')"/>
+            </class>
+            <respond/>
+        </inSequence>
+    </resource>
+</api>
