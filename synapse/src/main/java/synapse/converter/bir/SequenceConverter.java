@@ -19,9 +19,7 @@ package synapse.converter.bir;
 
 import common.BallerinaModel.Function;
 import common.BallerinaModel.Parameter;
-import common.BallerinaModel.Statement;
 import common.BallerinaModel.TypeDesc;
-import common.BallerinaModel.TypeDesc.BuiltinType;
 import synapse.converter.ConversionContext;
 import synapse.converter.SequenceContext;
 import synapse.model.Synapse.Sequence;
@@ -33,19 +31,17 @@ import java.util.List;
 /**
  * Converts a top-level Synapse {@code <sequence>} into a Ballerina function
  * whose body is the
- * converted mediator flow. Whether the function takes an
- * {@code http:Response response} parameter and
- * whether it responds both fall out of converting the body rather than a
- * separate pre-scan: when
- * conversion reaches a {@code <payloadFactory>} (directly or down a call chain)
- * the sequence takes a
- * {@code response} parameter it mutates in place instead of returning, and an
- * unreached payloadFactory
- * (e.g. after a {@code <respond>}) leaves the function parameterless. The
- * function's return type is
- * likewise driven by the converted mediators: unless they yield a
- * non-{@code nil} {@code returnType},
- * the function is {@code nil}-returning.
+ * converted mediator flow. Whether the function takes a {@code Context ctx}
+ * parameter and whether it
+ * responds both fall out of converting the body rather than a separate pre-scan:
+ * when conversion reaches
+ * a mediator that touches {@code ctx} (a {@code <property>}, a
+ * {@code <payloadFactory>}, a
+ * {@code <respond>}, or a call to a sequence that does — directly or down a call
+ * chain) the sequence
+ * takes a {@code ctx} parameter it mutates in place. Every generated function
+ * returns {@code error?}, so a
+ * respond down any call chain can be {@code check}ed uniformly.
  */
 public class SequenceConverter implements BIRConverter<ConversionContext> {
 
@@ -54,23 +50,15 @@ public class SequenceConverter implements BIRConverter<ConversionContext> {
         Sequence sequence = (Sequence) node;
         SequenceContext sequenceContext = new SequenceContext(context);
         MediatorConverters.convertMediators(sequence.mediators(), sequenceContext);
-        boolean containsPayloadFactory = sequenceContext.hasResponseParam();
         boolean usesContext = sequenceContext.hasContextParam();
         context.addSequenceMetadata(new ConversionContext.SequenceMetadata(
-                sequence.name(), sequenceContext.isResponded(), containsPayloadFactory, usesContext));
+                sequence.name(), sequenceContext.isResponded(), usesContext));
         context.addImports(ConversionContext.FUNCTIONS_BAL_FILE, sequenceContext.importStatements());
         List<Parameter> params = new ArrayList<>();
         if (usesContext) {
             params.add(new Parameter("ctx", new TypeDesc.BallerinaType("Context")));
         }
-        if (containsPayloadFactory) {
-            params.add(new Parameter("response", new TypeDesc.BallerinaType("http:Response")));
-        }
-        TypeDesc returnType = sequenceContext.returnType();
-        List<Statement> body = sequenceContext.statements();
-        Function function = returnType == BuiltinType.NIL
-                ? new Function(sequence.name(), params, body)
-                : new Function(sequence.name(), params, returnType, body);
-        context.addFunction(function);
+        context.addFunction(new Function(sequence.name(), params,
+                new TypeDesc.BallerinaType("error?"), sequenceContext.statements()));
     }
 }

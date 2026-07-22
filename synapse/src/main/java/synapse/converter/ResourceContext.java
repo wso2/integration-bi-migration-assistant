@@ -18,17 +18,12 @@
 package synapse.converter;
 
 /**
- * Scope context for a resource body within a Synapse {@code <api>}. An HTTP {@code response} object is
- * in scope here, so {@link #isWithinResource()} is {@code true}.
+ * Scope context for a resource body within a Synapse {@code <api>}. A resource declares its
+ * {@code Context ctx} as a local, seeded upfront via {@link #initContext()}.
  */
 public final class ResourceContext extends ScopeContext {
 
     public ResourceContext(ConversionContext shared) {
         super(shared);
-    }
-
-    @Override
-    public boolean isWithinResource() {
-        return true;
     }
 }

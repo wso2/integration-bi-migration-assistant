@@ -156,15 +156,13 @@ public class ConversionContext {
     }
 
     // Facts about a <sequence>, recorded once it has been converted, all falling out of the conversion
-    // itself: containsRespond is whether a respond was emitted into the sequence's scope,
-    // containsPayloadFactory whether the sequence ended up taking an http:Response parameter to set a
-    // payload on, and usesContext whether it ended up taking a Context ctx parameter to set default
-    // properties on. All are transitive — reaching a called sequence that responds / sets a payload /
-    // sets a property propagates during conversion — so a call site can decide across chains whether to
-    // return a response or pass one in, and whether to pass ctx. Only mediators actually reached count:
-    // a payloadFactory left unreached after a respond, say, is not recorded.
-    public record SequenceMetadata(String name, boolean containsRespond, boolean containsPayloadFactory,
-                                   boolean usesContext) {
+    // itself: containsRespond is whether a respond was emitted into the sequence's scope, and usesContext
+    // whether it ended up taking a Context ctx parameter (to set default properties / a payload on, or to
+    // carry the http:Caller a respond needs). Both are transitive — reaching a called sequence that
+    // responds / sets a property propagates during conversion — so a call site can decide across chains
+    // whether to check the call and pass ctx. Only mediators actually reached count: a mediator left
+    // unreached after a respond, say, is not recorded.
+    public record SequenceMetadata(String name, boolean containsRespond, boolean usesContext) {
     }
 
     // Types and scope of a Synapse property, retained per property name so the generated Context record
