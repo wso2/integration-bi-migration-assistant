@@ -25,14 +25,14 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 /**
  * Tests that the per-artifact import handling writes correct {@code import} statements into the
- * generated files: {@code main.bal} always imports {@code ballerina/http} for the listener, while
- * {@code functions.bal} imports it only when a sequence uses {@code http:Response}. The import is kept
- * at the top of the file and deduplicated even when introduced by a later-flushed artifact.
+ * generated files: {@code main.bal} always imports {@code ballerina/http} for the listener, and
+ * {@code functions.bal} always imports it for the generated {@code respond} utility (which references
+ * {@code http:Response} and {@code http:Caller}). The import is kept at the top of the file and
+ * deduplicated even when introduced by a later-flushed artifact.
  */
 public class SynapseImportsTest {
 
@@ -66,11 +66,14 @@ public class SynapseImportsTest {
     }
 
     @Test
-    public void functionsWithoutHttpUsageHaveNoImport() throws IOException {
+    public void functionsAlwaysImportHttpForRespondUtility() throws IOException {
         Path output = convert("no-http-import");
         try {
             String functions = Files.readString(output.resolve("functions.bal"));
-            assertFalse(functions.contains(HTTP_IMPORT), "functions.bal must not import http when unused");
+            assertTrue(functions.stripLeading().startsWith(HTTP_IMPORT),
+                    "functions.bal must import http for the generated respond utility");
+            assertTrue(functions.contains("function respond(Context ctx)"),
+                    "functions.bal must contain the respond utility");
         } finally {
             TestUtils.deleteDirectory(output);
         }
@@ -81,11 +84,12 @@ public class SynapseImportsTest {
         Path output = convert("late-http-import");
         try {
             String functions = Files.readString(output.resolve("functions.bal"));
-            // 'plain' (no http) is flushed before 'withPayload' (needs http), yet the import stays on top.
+            // The sequence artifacts need no http, but the respond utility (added after every artifact)
+            // introduces it, yet the import still lands on top of functions.bal.
             assertTrue(functions.stripLeading().startsWith(HTTP_IMPORT),
                     "http import must be prepended to the top of functions.bal");
             assertTrue(functions.contains("function plain(Context ctx)"));
-            assertTrue(functions.contains("function withPayload(Context ctx, http:Response response)"));
+            assertTrue(functions.contains("function withPayload(Context ctx)"));
         } finally {
             TestUtils.deleteDirectory(output);
         }
@@ -109,7 +113,9 @@ public class SynapseImportsTest {
             String main = Files.readString(output.resolve("main.bal"));
             assertTrue(main.stripLeading().startsWith(HTTP_IMPORT));
             assertTrue(main.contains("listener http:Listener httpListener"));
-            assertFalse(Files.exists(output.resolve("functions.bal")), "a proxy has no functions");
+            String functions = Files.readString(output.resolve("functions.bal"));
+            assertTrue(functions.contains("function respond(Context ctx)"),
+                    "the respond utility is always generated, even for a proxy-only project");
         } finally {
             TestUtils.deleteDirectory(output);
         }
