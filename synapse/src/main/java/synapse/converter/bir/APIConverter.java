@@ -20,6 +20,7 @@ package synapse.converter.bir;
 import common.BallerinaModel.Parameter;
 import common.BallerinaModel.Resource;
 import common.BallerinaModel.Service;
+import common.BallerinaModel.Statement;
 import common.BallerinaModel.TypeDesc;
 import common.BallerinaModel.TypeDesc.BuiltinType;
 import synapse.converter.ConversionContext;
@@ -31,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Converts a Synapse {@code <api>} element into a Ballerina HTTP service.
@@ -39,6 +41,12 @@ public class APIConverter implements BIRConverter<ConversionContext> {
 
     private static final String DEFAULT_LISTENER_REF = "httpListener";
     private static final String ROOT_RESOURCE_PATH = ".";
+    private static final String CALLER_PARAM = "caller";
+    private static final String REQUEST_PARAM = "request";
+
+    // Accessors whose HTTP method may carry a request body, so the generated resource takes an
+    // http:Request parameter. GET, HEAD and OPTIONS are excluded.
+    private static final Set<String> REQUEST_BODY_METHODS = Set.of("post", "put", "patch", "delete", "default");
 
     @Override
     public void convert(SynapseNode node, ConversionContext context) {
@@ -55,23 +63,26 @@ public class APIConverter implements BIRConverter<ConversionContext> {
 
     private static Resource convertResource(synapse.model.Synapse.Resource resource, ConversionContext context) {
         String method = resource.methods().toLowerCase(Locale.ROOT);
-        String path = buildResourcePath(resource.path());
 
         List<Parameter> parameters = new ArrayList<>();
         for (String queryParam : resource.queryParams()) {
             parameters.add(new Parameter(queryParam, BuiltinType.STRING));
         }
+        parameters.add(new Parameter(CALLER_PARAM, new TypeDesc.BallerinaType("http:Caller")));
 
         ResourceContext resourceContext = new ResourceContext(context);
+        resourceContext.initContext();
+        if (REQUEST_BODY_METHODS.contains(method)) {
+            parameters.add(new Parameter(REQUEST_PARAM, new TypeDesc.BallerinaType("http:Request")));
+            resourceContext.statements().add(new Statement.BallerinaStatement("check emitPayload(ctx, request);"));
+        }
+
         if (resource.inSequence() != null) {
             MediatorConverters.convertMediators(resource.inSequence().mediators(), resourceContext);
         }
         context.addImports(ConversionContext.MAIN_BAL_FILE, resourceContext.importStatements());
-        TypeDesc returnType = resourceContext.returnType();
-        Optional<TypeDesc> returnTypeDesc = returnType == BuiltinType.NIL
-                ? Optional.empty()
-                : Optional.of(returnType);
-        return new Resource(method, path, parameters, returnTypeDesc, resourceContext.statements());
+        return new Resource(method, buildResourcePath(resource.path()), parameters,
+                Optional.of(new TypeDesc.BallerinaType("error?")), resourceContext.statements());
     }
 
     private static String buildResourcePath(String synapsePath) {
