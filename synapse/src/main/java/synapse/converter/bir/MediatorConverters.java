@@ -17,7 +17,6 @@
  */
 package synapse.converter.bir;
 
-import common.BallerinaModel;
 import common.BallerinaModel.Expression;
 import common.BallerinaModel.Expression.BallerinaExpression;
 import common.BallerinaModel.Expression.StringConstant;
@@ -172,6 +171,10 @@ public final class MediatorConverters {
         }
 
         private static void convertProperty(Property property, ScopeContext context) {
+            if (property.expression().isPresent()) {
+                throw new UnsupportedOperationException("Property '" + property.name()
+                        + "' uses a dynamic expression, which is not yet supported.");
+            }
             switch (property.scope()) {
                 case TRANSPORT_SCOPE -> {
                     rejectRemoveAction(property);
@@ -240,25 +243,24 @@ public final class MediatorConverters {
             ClassMediator classMediator = (ClassMediator) node;
             String functionName = stubFunctionName(classMediator.className());
 
-            // Build the stub function once and register it for functions.bal.
-            // The stub takes http:Response first (when a response is in scope), then
-            // each <property> value as a string parameter.
             List<Parameter> params = buildStubParams(classMediator, context);
-            List<Statement> stubBody = buildStubBody(classMediator);
-            Function stub = new Function(functionName, params, stubBody);
-            context.shared().addFunction(stub);
-            context.shared().addImports(ConversionContext.FUNCTIONS_BAL_FILE,
-                    params.stream().anyMatch(p -> p.name().equals("response"))
-                            ? List.of(HTTP_IMPORT)
-                            : List.of());
+            // Register the stub only once: the same mediator (or two classes sharing a simple name)
+            // can appear at several sites, but functions.bal must declare each function name once.
+            if (!isStubRegistered(context, functionName)) {
+                Function stub = new Function(functionName, params, buildStubBody());
+                context.shared().addFunction(stub);
+                context.shared().addImports(ConversionContext.FUNCTIONS_BAL_FILE,
+                        params.stream().anyMatch(p -> p.name().equals("response"))
+                                ? List.of(HTTP_IMPORT)
+                                : List.of());
+            }
 
-            // Emit the call at the mediator site.
-            List<Expression> callArgs = buildCallArgs(classMediator, context, functionName);
+            List<Expression> callArgs = buildCallArgs(classMediator, context);
             context.statements().add(new Statement.CallStatement(
                     new Expression.FunctionCall(functionName, callArgs)));
         }
 
-        /** Converts {@code org.example.MyMediator} → {@code myMediator}. */
+        /** Converts {@code org.example.MyMediator} to {@code myMediator}. */
         private static String stubFunctionName(String className) {
             String simpleName = className.contains(".")
                     ? className.substring(className.lastIndexOf('.') + 1)
@@ -266,14 +268,25 @@ public final class MediatorConverters {
             return Character.toLowerCase(simpleName.charAt(0)) + simpleName.substring(1);
         }
 
+        /** A response parameter is needed whenever a response exists or the scope is a resource. */
+        private static boolean needsResponse(ScopeContext context) {
+            return context.responseAvailable() || context.isWithinResource();
+        }
+
+        private static boolean isStubRegistered(ScopeContext context, String functionName) {
+            return context.shared().functions().stream()
+                    .anyMatch(f -> f.functionName().equals(functionName));
+        }
+
         private static List<Parameter> buildStubParams(ClassMediator mediator, ScopeContext context) {
             List<Parameter> params = new ArrayList<>();
-            if (context.responseAvailable() || context.isWithinResource()) {
+            if (needsResponse(context)) {
                 params.add(new Parameter("response", new TypeDesc.BallerinaType("http:Response")));
             }
             for (Property property : mediator.properties()) {
                 if (property.expression().isPresent()) {
-                    // Expressions are dynamic (XPath/JSONPath evaluated at runtime) — skip as parameter.
+                    // Dynamic (XPath/JSONPath) values are resolved at runtime, so they cannot become
+                    // a static string parameter.
                     continue;
                 }
                 params.add(new Parameter(property.name(), BuiltinType.STRING));
@@ -281,14 +294,10 @@ public final class MediatorConverters {
             return params;
         }
 
-        private static List<Expression> buildCallArgs(ClassMediator mediator, ScopeContext context, String functionName) {
+        private static List<Expression> buildCallArgs(ClassMediator mediator, ScopeContext context) {
             List<Expression> args = new ArrayList<>();
-            if (context.responseAvailable() || context.isWithinResource()) {
-                if (!context.responseAvailable()) {
-                    context.statements().add(0, new Statement.BallerinaStatement("http:Response response = new;"));
-                    context.setRespondInitialized(true);
-                }
-                context.importStatements().add(new Import("ballerina", "http"));
+            if (needsResponse(context)) {
+                context.ensureResponseAvailable();
                 args.add(new Expression.VariableReference("response"));
             }
             for (Property property : mediator.properties()) {
@@ -300,7 +309,7 @@ public final class MediatorConverters {
             return args;
         }
 
-        private static List<Statement> buildStubBody(ClassMediator mediator) {
+        private static List<Statement> buildStubBody() {
             return List.of();
         }
     }
