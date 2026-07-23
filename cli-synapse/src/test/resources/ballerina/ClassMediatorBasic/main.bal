@@ -3,10 +3,10 @@ import ballerina/http;
 public listener http:Listener httpListener = new (8080);
 
 service /hello on httpListener {
-    resource function get greet() returns http:Response {
-        http:Response response = new;
-        response.setPayload({"msg": "hello"});
-        greetMediator(response, "en");
-        return response;
+    resource function get greet(http:Caller caller) returns error? {
+        Context ctx = {variables: {}, caller: caller};
+        ctx.payload = {"msg": "hello"};
+        greetMediator(ctx, "en");
+        check respond(ctx);
     }
 }
