@@ -22,6 +22,7 @@ import common.BallerinaModel.Import;
 import common.BallerinaModel.ModuleTypeDef;
 import common.BallerinaModel.Service;
 import org.jetbrains.annotations.NotNull;
+import synapse.converter.bir.mediators.classmediator.source.JavaSourceResolver;
 import synapse.model.DependencyGraph;
 
 import java.util.ArrayList;
@@ -67,6 +68,7 @@ public class ConversionContext {
     private final Map<String, PropertyInfo> properties = new LinkedHashMap<>();
 
     private DependencyGraph dependencyGraph;
+    private JavaSourceResolver javaSourceResolver = new JavaSourceResolver(List.of());
 
     public void setDependencyGraph(DependencyGraph dependencyGraph) {
         this.dependencyGraph = dependencyGraph;
@@ -74,6 +76,15 @@ public class ConversionContext {
 
     public DependencyGraph dependencyGraph() {
         return dependencyGraph;
+    }
+
+    /** The resolver used to locate a class mediator's original Java source; empty by default. */
+    public JavaSourceResolver javaSourceResolver() {
+        return javaSourceResolver;
+    }
+
+    public void setJavaSourceResolver(JavaSourceResolver javaSourceResolver) {
+        this.javaSourceResolver = javaSourceResolver;
     }
 
     public void addService(Service service) {

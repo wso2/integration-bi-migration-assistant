@@ -18,7 +18,7 @@
 package synapse.converter.bir;
 
 import synapse.converter.ScopeContext;
-import synapse.converter.bir.mediators.ClassMediatorConverter;
+import synapse.converter.bir.mediators.classmediator.ClassMediatorConverter;
 import synapse.converter.bir.mediators.PayloadFactoryConverter;
 import synapse.converter.bir.mediators.PropertyConverter;
 import synapse.converter.bir.mediators.RespondConverter;

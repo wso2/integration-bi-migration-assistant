@@ -39,6 +39,7 @@ import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import org.jetbrains.annotations.NotNull;
 import synapse.converter.ConversionContext.PropertyInfo;
 import synapse.converter.bir.APIConverter;
+import synapse.converter.bir.mediators.classmediator.source.JavaSourceResolver;
 import synapse.converter.bir.BIRConverter;
 import synapse.converter.bir.SequenceConverter;
 import synapse.model.DependencyGraph;
@@ -131,6 +132,18 @@ public final class SynapseConverter {
     public static void migrateSynapse(String sourcePath, String outputPath, boolean keepStructure, boolean verbose,
                                       boolean dryRun, boolean multiRoot, Optional<String> orgName,
                                       Optional<String> projectName) {
+        migrateSynapse(sourcePath, outputPath, keepStructure, verbose, dryRun, multiRoot, orgName, projectName,
+                javaSourceRoots(sourcePath));
+    }
+
+    /**
+     * As {@link #migrateSynapse(String, String, boolean, boolean, boolean, boolean, Optional, Optional)},
+     * but with explicit Java source roots for locating class mediator sources.
+     * Used by tests that keep mediator sources in a shared location.
+     */
+    public static void migrateSynapse(String sourcePath, String outputPath, boolean keepStructure, boolean verbose,
+                                      boolean dryRun, boolean multiRoot, Optional<String> orgName,
+                                      Optional<String> projectName, List<Path> javaSourceRoots) {
 
         if (keepStructure) {
             throw new UnsupportedOperationException("The 'keepStructure' option is not supported yet.");
@@ -152,6 +165,7 @@ public final class SynapseConverter {
 
         ConversionContext context = new ConversionContext();
         context.setDependencyGraph(dependencyGraph);
+        context.setJavaSourceResolver(new JavaSourceResolver(javaSourceRoots));
 
         if (dryRun) {
             for (ArtifactNode artifactNode : dependencyGraph.sortedNodes()) {
@@ -203,6 +217,28 @@ public final class SynapseConverter {
             LOG.warning("Unresolved dependency: sequence '" + unresolved.name()
                     + "' is referenced but no matching artifact was found.");
         }
+    }
+
+    /**
+     * Class mediator Java lives beside the artifacts being converted.
+     * Returns whichever of these exist, as source roots for the {@link JavaSourceResolver};
+     * an empty list means no original source is embedded.
+     */
+    private static List<Path> javaSourceRoots(String sourcePath) {
+        Path base = Paths.get(sourcePath);
+        if (!Files.isDirectory(base)) {
+            base = base.getParent();
+        }
+        List<Path> roots = new ArrayList<>();
+        if (base != null) {
+            for (String candidate : List.of("java", "src/main/java")) {
+                Path root = base.resolve(candidate);
+                if (Files.isDirectory(root)) {
+                    roots.add(root);
+                }
+            }
+        }
+        return roots;
     }
 
     private static void convertArtifact(ArtifactNode artifactNode, ConversionContext context) {

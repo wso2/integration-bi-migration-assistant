@@ -15,7 +15,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package synapse.converter.bir.mediators;
+package synapse.converter.bir.mediators.classmediator;
 
 import common.BallerinaModel.Expression;
 import common.BallerinaModel.Expression.StringConstant;
@@ -26,6 +26,7 @@ import common.BallerinaModel.TypeDesc;
 import common.BallerinaModel.TypeDesc.BuiltinType;
 import synapse.converter.ScopeContext;
 import synapse.converter.bir.BIRConverter;
+import synapse.converter.bir.mediators.classmediator.source.JavaSource;
 import synapse.model.Synapse.ClassMediator;
 import synapse.model.Synapse.Property;
 import synapse.model.Synapse.SynapseNode;
@@ -37,10 +38,14 @@ import java.util.List;
  * Converts a Synapse {@code <class>} mediator into a call to a generated Ballerina stub function.
  *
  * <p>Because the mediator's Java logic cannot be automatically translated, a stub function is
- * emitted into {@code functions.bal} with an empty body. The stub takes the {@code Context ctx}
- * followed by each static {@code <property>} value as a {@code string} argument; dynamic
- * {@code expression} properties are omitted, since they cannot be evaluated statically.
- * The developer replaces the stub body with the equivalent Ballerina.
+ * emitted into {@code functions.bal}. The stub takes the {@code Context ctx} followed by each static
+ * {@code <property>} value as a {@code string} argument; dynamic {@code expression} properties are
+ * omitted, since they cannot be evaluated statically.
+ *
+ * <p>When the mediator's original Java source can be located (see {@code JavaSourceResolver}) it is
+ * embedded in the stub body as a reference comment, tagged with its {@link JavaSource.Origin}, so the
+ * developer can port it in place. When it cannot be found, a TODO records that the source was
+ * unavailable. Either way the developer replaces the body with equivalent Ballerina.
  */
 public class ClassMediatorConverter implements BIRConverter<ScopeContext> {
 
@@ -52,8 +57,8 @@ public class ClassMediatorConverter implements BIRConverter<ScopeContext> {
         // Register the stub only once: the same mediator (or two classes sharing a simple name)
         // can appear at several sites, but functions.bal must declare each function name once.
         if (!isStubRegistered(context, functionName)) {
-            context.shared().addFunction(
-                    new Function(functionName, buildStubParams(classMediator), buildStubBody()));
+            context.shared().addFunction(new Function(
+                    functionName, buildStubParams(classMediator), buildStubBody(context, classMediator.className())));
         }
 
         context.statements().add(new Statement.CallStatement(
@@ -100,7 +105,24 @@ public class ClassMediatorConverter implements BIRConverter<ScopeContext> {
         return args;
     }
 
-    private static List<Statement> buildStubBody() {
-        return List.of();
+    /**
+     * Builds the stub body. When the original Java can be located it is embedded as a reference
+     * comment for the developer to port; otherwise a TODO notes that no source was found.
+     */
+    private static List<Statement> buildStubBody(ScopeContext context, String className) {
+        return context.shared().javaSourceResolver().resolve(className)
+                .map(ClassMediatorConverter::referenceComment)
+                .orElseGet(() -> List.of(new Statement.BallerinaStatement(
+                        "// TODO: implement '" + className + "' (original Java source not found).")));
+    }
+
+    /**
+     * Renders the stub body for a located source: a single-line note recording that the
+     * original source was found and where it came from.
+     */
+    public static List<Statement> referenceComment(JavaSource source) {
+        return List.of(new Statement.BallerinaStatement(
+                "// TODO: implement from the original mediator logic (source located: "
+                        + source.origin() + ")."));
     }
 }
