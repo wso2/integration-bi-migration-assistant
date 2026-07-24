@@ -18,6 +18,7 @@
 package synapse.model;
 
 import java.util.List;
+import java.util.Optional;
 
 public record Synapse() {
 
@@ -77,10 +78,21 @@ public record Synapse() {
     //           action="set|remove"/>
     // -> action "set" (the default) sets a named property (of the given type and scope) to the given
     //    value; action "remove" clears it.
-    public record Property(Kind kind, String name, String type, String scope, String value, String action)
+    public record Property(Kind kind, String name, String type, String scope,
+                           String value, Optional<String> expression, String action)
             implements SynapseNode {
-        public Property(String name, String type, String scope, String value, String action) {
-            this(Kind.PROPERTY, name, type, scope, value, action);
+        public Property(String name, String type, String scope,
+                        String value, Optional<String> expression, String action) {
+            this(Kind.PROPERTY, name, type, scope, value, expression, action);
+        }
+    }
+
+    // <class name="org.example.MyMediator">
+    //   <property name="key" value="val"/>
+    // </class>
+    public record ClassMediator(Kind kind, String className, List<Property> properties) implements SynapseNode {
+        public ClassMediator(String className, List<Property> properties) {
+            this(Kind.CLASS_MEDIATOR, className, properties);
         }
     }
 
@@ -96,6 +108,7 @@ public record Synapse() {
         PAYLOAD_FACTORY,
         RESPOND,
         PROPERTY,
-        SEQUENCE_MEDIATOR
+        SEQUENCE_MEDIATOR,
+        CLASS_MEDIATOR
     }
 }

@@ -25,6 +25,7 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -56,7 +57,8 @@ public class SynapseProjectConversionTest {
                     false,
                     false,
                     Optional.of("testOrg"),
-                    Optional.of(expectedBallerinaProject.getFileName().toString()));
+                    Optional.of(expectedBallerinaProject.getFileName().toString()),
+                    List.of(Path.of("src", "test", "resources")));
 
             TestUtils.compareDirectories(tempDir, expectedBallerinaProject);
         } catch (UnsupportedOperationException e) {

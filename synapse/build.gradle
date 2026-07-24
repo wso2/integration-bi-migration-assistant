@@ -22,6 +22,7 @@ dependencies {
     testImplementation group: 'org.testng', name: 'testng', version: "${testngVersion}"
     testImplementation group: 'com.google.code.gson', name: 'gson', version: "${gsonVersion}"
     spotbugs group: 'com.github.spotbugs', name: 'spotbugs', version: "${spotbugsVersion}"
+    implementation group: 'org.benf', name: 'cfr', version: "${cfrVersion}"
 }
 
 checkstyle {
