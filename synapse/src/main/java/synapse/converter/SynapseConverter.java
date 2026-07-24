@@ -39,6 +39,8 @@ import common.BallerinaModel.TypeDesc.UnionTypeDesc;
 import org.jetbrains.annotations.NotNull;
 import synapse.converter.ConversionContext.PropertyInfo;
 import synapse.converter.bir.APIConverter;
+import synapse.converter.bir.mediators.classmediator.source.CfrDecompiler;
+import synapse.converter.bir.mediators.classmediator.source.Decompiler;
 import synapse.converter.bir.mediators.classmediator.source.JavaSourceResolver;
 import synapse.converter.bir.BIRConverter;
 import synapse.converter.bir.SequenceConverter;
@@ -64,6 +66,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Entry point for converting WSO2 Synapse (ESB / Micro Integrator) artifacts to Ballerina.
@@ -129,11 +132,19 @@ public final class SynapseConverter {
      * @param orgName       organization name for the generated Ballerina package
      * @param projectName   project name for the generated Ballerina package
      */
-    public static void migrateSynapse(String sourcePath, String outputPath, boolean keepStructure, boolean verbose,
-                                      boolean dryRun, boolean multiRoot, Optional<String> orgName,
+    public static void migrateSynapse(String sourcePath, String outputPath, boolean keepStructure,
+                                      boolean verbose, boolean dryRun, boolean multiRoot, Optional<String> orgName,
                                       Optional<String> projectName) {
-        migrateSynapse(sourcePath, outputPath, keepStructure, verbose, dryRun, multiRoot, orgName, projectName,
-                javaSourceRoots(sourcePath));
+        migrateSynapse(sourcePath, outputPath, keepStructure, verbose, dryRun, multiRoot, orgName,
+                projectName, javaSourceRoots(sourcePath), javaArchives(sourcePath), new CfrDecompiler());
+    }
+
+    // Explicit source roots only
+    public static void migrateSynapse(String sourcePath, String outputPath, boolean keepStructure,
+                                      boolean verbose, boolean dryRun, boolean multiRoot, Optional<String> orgName,
+                                      Optional<String> projectName, List<Path> javaSourceRoots) {
+        migrateSynapse(sourcePath, outputPath, keepStructure, verbose, dryRun, multiRoot, orgName,
+                projectName, javaSourceRoots, List.of(), Decompiler.NONE);
     }
 
     /**
@@ -141,9 +152,10 @@ public final class SynapseConverter {
      * but with explicit Java source roots for locating class mediator sources.
      * Used by tests that keep mediator sources in a shared location.
      */
-    public static void migrateSynapse(String sourcePath, String outputPath, boolean keepStructure, boolean verbose,
-                                      boolean dryRun, boolean multiRoot, Optional<String> orgName,
-                                      Optional<String> projectName, List<Path> javaSourceRoots) {
+    public static void migrateSynapse(String sourcePath, String outputPath, boolean keepStructure,
+                                      boolean verbose, boolean dryRun, boolean multiRoot, Optional<String> orgName,
+                                      Optional<String> projectName, List<Path> javaSourceRoots, List<Path> javaArchives,
+                                      Decompiler decompiler) {
 
         if (keepStructure) {
             throw new UnsupportedOperationException("The 'keepStructure' option is not supported yet.");
@@ -165,7 +177,7 @@ public final class SynapseConverter {
 
         ConversionContext context = new ConversionContext();
         context.setDependencyGraph(dependencyGraph);
-        context.setJavaSourceResolver(new JavaSourceResolver(javaSourceRoots));
+        context.setJavaSourceResolver(new JavaSourceResolver(javaSourceRoots, javaArchives, decompiler));
 
         if (dryRun) {
             for (ArtifactNode artifactNode : dependencyGraph.sortedNodes()) {
@@ -225,7 +237,7 @@ public final class SynapseConverter {
      * an empty list means no original source is embedded.
      */
     private static List<Path> javaSourceRoots(String sourcePath) {
-        Path base = Paths.get(sourcePath);
+        Path base = Paths.get(sourcePath).toAbsolutePath();
         if (!Files.isDirectory(base)) {
             base = base.getParent();
         }
@@ -239,6 +251,28 @@ public final class SynapseConverter {
             }
         }
         return roots;
+    }
+
+    /** Jars carrying mediator sources or bytecode: {@code <project>/lib}, {@code <project>/dropins}. */
+    private static List<Path> javaArchives(String sourcePath) {
+        Path base = Paths.get(sourcePath).toAbsolutePath();
+        if (!Files.isDirectory(base)) {
+            base = base.getParent();
+        }
+        List<Path> jars = new ArrayList<>();
+        if (base != null) {
+            for (String dir : List.of("lib", "dropins")) {
+                Path d = base.resolve(dir);
+                if (Files.isDirectory(d)) {
+                    try (Stream<Path> s = Files.list(d)) {
+                        s.filter(p -> p.toString().endsWith(".jar")).forEach(jars::add);
+                    } catch (IOException e) {
+                        LOG.warning("Could not list archive directory " + d + ": " + e.getMessage());
+                    }
+                }
+            }
+        }
+        return jars;
     }
 
     private static void convertArtifact(ArtifactNode artifactNode, ConversionContext context) {

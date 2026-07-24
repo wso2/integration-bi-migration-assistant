@@ -1,4 +1,4 @@
-package org.example;
+package javasamples;
 
 import org.apache.synapse.MessageContext;
 import org.apache.synapse.mediators.AbstractMediator;
@@ -6,7 +6,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Sample class mediator matching the {@code <class name="org.example.GreetMediator">} in the
+ * Sample class mediator matching the {@code <class name="javasamples.GreetMediator">} in the
  * HelloClass API. Reads the {@code lang} and {@code greeting} properties off the message context and
  * writes a composed greeting back.
  */

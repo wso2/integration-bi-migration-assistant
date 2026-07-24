@@ -79,11 +79,13 @@ public class ConversionContext {
     }
 
     /** The resolver used to locate a class mediator's original Java source; empty by default. */
+    @NotNull
     public JavaSourceResolver javaSourceResolver() {
         return javaSourceResolver;
     }
 
     public void setJavaSourceResolver(JavaSourceResolver javaSourceResolver) {
+        assert javaSourceResolver != null : "javaSourceResolver must not be null";
         this.javaSourceResolver = javaSourceResolver;
     }
 

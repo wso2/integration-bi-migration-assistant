@@ -17,6 +17,8 @@
  */
 package synapse.converter.bir.mediators.classmediator.source;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -25,18 +27,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.regex.Pattern;
 
 /**
  * Locates the Java source for a class mediator across the shapes it realistically arrives in, in a
  * fixed preference order (highest fidelity first):
  *
  * <ol>
- *   <li><b>Source roots</b> — a loose {@code pkg/Name.java} under a configured directory.</li>
+ *   <li><b>Source roots</b> — a loose {@code pkg/Name.java} under a configured directory.
  *   <li><b>Sources jars</b> — a {@code pkg/Name.java} entry inside a configured jar (e.g. a
  *       {@code *-sources.jar} shipped alongside the mediator).</li>
  *   <li><b>Bytecode jars</b> — a {@code pkg/Name.class} entry, decompiled via the configured
  *       {@link Decompiler}.
- *       under {@code lib/} or {@code dropins/} and no source ships.</li>
  * </ol>
  *
  * <p>When none of these yield source (including when no decompiler is configured), {@link #resolve}
@@ -66,9 +68,14 @@ public final class JavaSourceResolver {
         this.decompiler = decompiler;
     }
 
+    // A resolvable name is dot-separated Java identifiers; anything else is rejected.
+    private static final Pattern BINARY_CLASS_NAME =
+            Pattern.compile("[\\p{L}_$][\\p{L}\\p{N}_$]*(\\.[\\p{L}_$][\\p{L}\\p{N}_$]*)*");
+
     /** Resolves {@code className} to its Java source, or empty if it cannot be found anywhere. */
+    @NotNull
     public Optional<JavaSource> resolve(String className) {
-        if (className == null || className.isBlank()) {
+        if (className == null || !BINARY_CLASS_NAME.matcher(className).matches()) {
             return Optional.empty();
         }
         String javaEntry = className.replace('.', '/') + ".java";
@@ -79,21 +86,26 @@ public final class JavaSourceResolver {
                 .or(() -> fromBytecodeJars(className, classEntry));
     }
 
+    @NotNull
     private Optional<JavaSource> fromSourceRoots(String className, String javaEntry) {
         for (Path root : sourceRoots) {
-            Path candidate = root.resolve(javaEntry);
+            Path candidate = root.resolve(javaEntry).normalize();
+            if (!candidate.startsWith(root.normalize())) {
+                continue;
+            }
             if (Files.isRegularFile(candidate)) {
                 try {
                     return Optional.of(new JavaSource(
                             className, Files.readString(candidate), JavaSource.Origin.SOURCE_FILE));
                 } catch (IOException e) {
-                    return Optional.empty();
+                    // Unreadable here; keep looking under the remaining roots.
                 }
             }
         }
         return Optional.empty();
     }
 
+    @NotNull
     private Optional<JavaSource> fromSourcesJars(String className, String javaEntry) {
         for (Path archive : archives) {
             Optional<String> text = readEntry(archive, javaEntry)
@@ -105,17 +117,23 @@ public final class JavaSourceResolver {
         return Optional.empty();
     }
 
+    @NotNull
     private Optional<JavaSource> fromBytecodeJars(String className, String classEntry) {
         for (Path archive : archives) {
             Optional<byte[]> classBytes = readEntry(archive, classEntry);
-            if (classBytes.isPresent()) {
-                return decompiler.decompile(className, classBytes.get())
-                        .map(src -> new JavaSource(className, src, JavaSource.Origin.DECOMPILED));
+            if (classBytes.isEmpty()) {
+                continue;
+            }
+            Optional<JavaSource> decompiled = decompiler.decompile(className, classBytes.get())
+                    .map(src -> new JavaSource(className, src, JavaSource.Origin.DECOMPILED));
+            if (decompiled.isPresent()) {
+                return decompiled;
             }
         }
         return Optional.empty();
     }
 
+    @NotNull
     private static Optional<byte[]> readEntry(Path archive, String entryName) {
         if (!Files.isRegularFile(archive)) {
             return Optional.empty();

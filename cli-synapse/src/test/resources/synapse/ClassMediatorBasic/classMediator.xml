@@ -4,7 +4,7 @@
             <payloadFactory media-type="json">
                 <format>{"msg":"hello"}</format>
             </payloadFactory>
-            <class name="javaSamples.GreetMediator">
+            <class name="javasamples.GreetMediator">
                 <property name="lang" value="en"/>
                 <property name="greeting" expression="get-property('msg')"/>
             </class>

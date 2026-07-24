@@ -17,6 +17,8 @@
  */
 package synapse.converter.bir.mediators.classmediator.source;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Optional;
 
 /**
@@ -29,11 +31,11 @@ import java.util.Optional;
 public interface Decompiler {
 
     /**
-     * @param className  fully-qualified class name
+     * @param className  fully-qualified class name (for laying out the temp artifact)
      * @param classBytes the raw bytecode of the class
      * @return reconstructed Java source, or empty if decompilation is unavailable or failed
      */
-    Optional<String> decompile(String className, byte[] classBytes);
+    @NotNull Optional<String> decompile(String className, byte[] classBytes);
 
     /** A decompiler that never produces source — the default when none is configured. */
     Decompiler NONE = (className, classBytes) -> Optional.empty();

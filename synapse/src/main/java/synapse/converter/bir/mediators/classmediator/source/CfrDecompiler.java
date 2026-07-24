@@ -20,13 +20,19 @@ package synapse.converter.bir.mediators.classmediator.source;
 import org.benf.cfr.reader.api.CfrDriver;
 import org.benf.cfr.reader.api.OutputSinkFactory;
 import org.benf.cfr.reader.api.SinkReturns;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /**
  * A {@link Decompiler} backed by CFR ({@code org.benf:cfr}). Reconstructs Java source from a
@@ -38,12 +44,25 @@ import java.util.Optional;
  */
 public final class CfrDecompiler implements Decompiler {
 
+    private static final Logger LOG = Logger.getLogger(CfrDecompiler.class.getName());
+
+    // A decompilable name is dot-separated Java identifiers; anything else is rejected
+    private static final Pattern BINARY_CLASS_NAME =
+            Pattern.compile("[\\p{L}_$][\\p{L}\\p{N}_$]*(\\.[\\p{L}_$][\\p{L}\\p{N}_$]*)*");
+
     @Override
+    @NotNull
     public Optional<String> decompile(String className, byte[] classBytes) {
+        if (className == null || !BINARY_CLASS_NAME.matcher(className).matches()) {
+            return Optional.empty();
+        }
         Path tempDir = null;
         try {
             tempDir = Files.createTempDirectory("cfr-");
-            Path classFile = tempDir.resolve(className.replace('.', '/') + ".class");
+            Path classFile = tempDir.resolve(className.replace('.', '/') + ".class").normalize();
+            if (!classFile.startsWith(tempDir)) {
+                return Optional.empty();
+            }
             Files.createDirectories(classFile.getParent());
             Files.write(classFile, classBytes);
 
@@ -63,6 +82,9 @@ public final class CfrDecompiler implements Decompiler {
                         return (Sink<T>) (Sink<SinkReturns.Decompiled>)
                                 d -> decompiled.append(d.getJava());
                     }
+                    if (sinkType == SinkType.JAVA && sinkClass == SinkClass.STRING) {
+                        return (Sink<T>) (Sink<String>) decompiled::append;
+                    }
                     return ignored -> { };
                 }
             };
@@ -75,19 +97,25 @@ public final class CfrDecompiler implements Decompiler {
         } catch (IOException | RuntimeException e) {
             return Optional.empty();
         } finally {
-            deleteQuietly(tempDir);
+            deleteTempDirectory(tempDir);
         }
     }
 
-    private static void deleteQuietly(Path dir) {
+    private static void deleteTempDirectory(Path dir) {
         if (dir == null) {
             return;
         }
-        try (var walk = Files.walk(dir)) {
-            walk.sorted((a, b) -> b.getNameCount() - a.getNameCount())
-                    .forEach(p -> p.toFile().delete());
-        } catch (IOException ignored) {
-            // Best-effort cleanup of a temp directory.
+
+        try (Stream<Path> walk = Files.walk(dir)) {
+            walk.sorted(Comparator.reverseOrder()).forEach(path -> {
+                try {
+                    Files.deleteIfExists(path);
+                } catch (IOException e) {
+                    LOG.log(Level.WARNING, "Failed to delete temporary file: " + path, e);
+                }
+            });
+        } catch (IOException e) {
+            LOG.log(Level.WARNING, "Failed to clean up temporary directory: " + dir, e);
         }
     }
 }
