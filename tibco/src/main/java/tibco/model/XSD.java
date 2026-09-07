@@ -72,7 +72,8 @@ public record XSD(Element type, org.w3c.dom.Element element) {
             DOUBLE("double"),
             BOOLEAN("boolean"),
             ANY("any"),
-            DATE("date");
+            DATE("date"),
+            DATETIME("dateTime");
 
             private final String value;
 

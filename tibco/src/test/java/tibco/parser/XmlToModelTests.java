@@ -390,6 +390,35 @@ public class XmlToModelTests {
     }
 
     @Test
+    public void testParseSchemaSupportsDateTimeType() throws Exception {
+        String schemaXml = """
+                <xs:schema attributeFormDefault="unqualified"
+                            elementFormDefault="qualified"
+                            targetNamespace="http://example.com/effective"
+                            xmlns:tns="http://example.com/effective" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+                            <xs:complexType name="EffectiveType">
+                                <xs:sequence>
+                                    <xs:element minOccurs="0" name="EffectiveEndDate" type="dateTime"/>
+                                </xs:sequence>
+                            </xs:complexType>
+                        </xs:schema>
+                """;
+        Optional<Type.Schema> schemaOpt = XmlToTibcoModelParser.parseSchema(projectContext,
+                TestUtils.stringToElement(schemaXml));
+        assertTrue(schemaOpt.isPresent());
+        Type.Schema.SchemaXsdType effectiveType = schemaOpt.get().xsdTypes().stream()
+                .filter(each -> each.name().equals("EffectiveType")).findFirst().orElseThrow();
+        XSD.XSDType.ComplexType complexType = (XSD.XSDType.ComplexType) effectiveType.type();
+        XSD.Element dateTimeField = complexType.body().elements().stream()
+                .filter(each -> each.name().equals("EffectiveEndDate")).findFirst().orElseThrow();
+        assertEquals(dateTimeField.type(), XSD.XSDType.BasicXSDType.DATETIME);
+
+        assertTrue(tibco.converter.ConversionUtils.usesTimeType(complexType));
+        assertEquals(tibco.converter.ConversionUtils.toTypeDesc(dateTimeField.type()),
+                new common.BallerinaModel.TypeDesc.TypeReference("time:Civil"));
+    }
+
+    @Test
     public void testJsonParserIsolatesUnsupportedSchema() throws Exception {
         String activityXml = """
                 <pd:activity name="Parse JSON">

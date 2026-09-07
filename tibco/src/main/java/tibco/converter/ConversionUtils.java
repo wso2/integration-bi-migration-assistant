@@ -340,7 +340,8 @@ public final class ConversionUtils {
 
     public static boolean usesTimeType(XSD.XSDType type) {
         return switch (type) {
-            case XSD.XSDType.BasicXSDType basicXSDType -> basicXSDType == XSD.XSDType.BasicXSDType.DATE;
+            case XSD.XSDType.BasicXSDType basicXSDType ->
+                    basicXSDType == XSD.XSDType.BasicXSDType.DATE || basicXSDType == XSD.XSDType.BasicXSDType.DATETIME;
             case XSD.XSDType.ComplexType complexType ->
                     complexType.body().elements().stream().anyMatch(each -> usesTimeType(each.type()));
         };
@@ -360,6 +361,7 @@ public final class ConversionUtils {
     }
 
     private static final BallerinaModel.TypeDesc TIME_DATE = new BallerinaModel.TypeDesc.TypeReference("time:Date");
+    private static final BallerinaModel.TypeDesc TIME_CIVIL = new BallerinaModel.TypeDesc.TypeReference("time:Civil");
 
     private static BallerinaModel.TypeDesc basicTypeToTD(XSD.XSDType.BasicXSDType basicXSDType) {
         return switch (basicXSDType) {
@@ -370,6 +372,7 @@ public final class ConversionUtils {
             case BOOLEAN -> BOOLEAN;
             case ANY -> ANYDATA;
             case DATE -> TIME_DATE;
+            case DATETIME -> TIME_CIVIL;
         };
     }
 
