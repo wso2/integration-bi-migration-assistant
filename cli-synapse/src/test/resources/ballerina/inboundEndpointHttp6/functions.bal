@@ -1,12 +1,12 @@
 import ballerina/http;
 
-function fault(Context ctx) returns error? {
-    ctx.payload = {"error": "handled by project fault sequence"};
+function foo(Context ctx) returns error? {
+    ctx.payload = {"Hello": "World"};
     check respond(ctx);
 }
 
-function mainFlow(Context ctx) returns error? {
-    ctx.payload = {"status": "ok"};
+function handleError(Context ctx) returns error? {
+    ctx.payload = {"error": "failed"};
     check respond(ctx);
 }
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<inboundEndpoint name="HttpInboundUnresolvedOnError" sequence="mainFlow" onError="missingFaultSeq"
-                 protocol="http" suspend="false" xmlns="http://ws.apache.org/ns/synapse">
+<inboundEndpoint name="SuspendedHttpInbound" sequence="foo" onError="handleError" protocol="http" suspend="true"
+                 xmlns="http://ws.apache.org/ns/synapse">
     <parameters>
-        <parameter name="inbound.http.port">8090</parameter>
+        <parameter name="inbound.http.port">8085</parameter>
     </parameters>
 </inboundEndpoint>

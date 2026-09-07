@@ -2,12 +2,16 @@
 
 1 Synapse construct could not be automatically converted and was left as TODOs in the generated code. Each entry shows the source file and the original Synapse code; review and migrate them manually.
 
-## Unresolved fault sequence (1)
+## Unsupported inbound endpoint attribute (1)
 
-### `<onError>` — inboundEndpoint.xml
+### `<suspend>` — inboundEndpoint.xml
 
-Referenced fault sequence 'missingFaultSeq' was not found among the converted artifacts; falling back to the default error handler.
+Inbound endpoint 'SuspendedHttpInbound' declares suspend="true", so Synapse would deploy it inactive; the generated Ballerina listener has no equivalent and starts accepting traffic immediately. Manual conversion required.
 
 ```xml
-onError="missingFaultSeq"
+<inboundEndpoint xmlns="http://ws.apache.org/ns/synapse" name="SuspendedHttpInbound" onError="handleError" protocol="http" sequence="foo" suspend="true">
+    <parameters>
+        <parameter name="inbound.http.port">8085</parameter>
+    </parameters>
+</inboundEndpoint>
 ```

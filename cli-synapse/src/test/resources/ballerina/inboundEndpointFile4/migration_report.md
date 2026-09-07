@@ -34,7 +34,7 @@ Mediator not supported; manual conversion required.
 
 ## Unsupported inbound endpoint parameter (14)
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="scheduleType">` — inboundEndpoint.xml
 
 Inbound endpoint 'FileInboundEndpoint' parameter 'scheduleType' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -42,7 +42,7 @@ Inbound endpoint 'FileInboundEndpoint' parameter 'scheduleType' is not mapped to
 <parameter name="scheduleType">Polling</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="interval">` — inboundEndpoint.xml
 
 Inbound endpoint 'FileInboundEndpoint' parameter 'interval' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -50,7 +50,7 @@ Inbound endpoint 'FileInboundEndpoint' parameter 'interval' is not mapped to any
 <parameter name="interval">5000</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="cronExpression">` — inboundEndpoint.xml
 
 Inbound endpoint 'FileInboundEndpoint' parameter 'cronExpression' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -58,7 +58,7 @@ Inbound endpoint 'FileInboundEndpoint' parameter 'cronExpression' is not mapped 
 <parameter name="cronExpression"></parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="fileThrottlingType">` — inboundEndpoint.xml
 
 Inbound endpoint 'FileInboundEndpoint' parameter 'fileThrottlingType' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -66,7 +66,7 @@ Inbound endpoint 'FileInboundEndpoint' parameter 'fileThrottlingType' is not map
 <parameter name="fileThrottlingType">Count</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="transport.vfs.FileProcessCount">` — inboundEndpoint.xml
 
 Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.FileProcessCount' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -74,7 +74,7 @@ Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.FileProcessCount
 <parameter name="transport.vfs.FileProcessCount">10</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="transport.vfs.FileProcessInterval">` — inboundEndpoint.xml
 
 Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.FileProcessInterval' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -82,7 +82,7 @@ Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.FileProcessInter
 <parameter name="transport.vfs.FileProcessInterval">0</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="sequential">` — inboundEndpoint.xml
 
 Inbound endpoint 'FileInboundEndpoint' parameter 'sequential' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -90,7 +90,7 @@ Inbound endpoint 'FileInboundEndpoint' parameter 'sequential' is not mapped to a
 <parameter name="sequential">true</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="coordination">` — inboundEndpoint.xml
 
 Inbound endpoint 'FileInboundEndpoint' parameter 'coordination' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -98,7 +98,7 @@ Inbound endpoint 'FileInboundEndpoint' parameter 'coordination' is not mapped to
 <parameter name="coordination">true</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="transport.vfs.ContentType">` — inboundEndpoint.xml
 
 Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.ContentType' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -106,7 +106,7 @@ Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.ContentType' is 
 <parameter name="transport.vfs.ContentType">text/plain</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="transport.vfs.FileNamePattern">` — inboundEndpoint.xml
 
 Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.FileNamePattern' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -114,7 +114,7 @@ Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.FileNamePattern'
 <parameter name="transport.vfs.FileNamePattern">.*\.txt</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="transport.vfs.ActionAfterProcess">` — inboundEndpoint.xml
 
 Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.ActionAfterProcess' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -122,7 +122,7 @@ Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.ActionAfterProce
 <parameter name="transport.vfs.ActionAfterProcess">MOVE</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="transport.vfs.MoveAfterProcess">` — inboundEndpoint.xml
 
 Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.MoveAfterProcess' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -130,7 +130,7 @@ Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.MoveAfterProcess
 <parameter name="transport.vfs.MoveAfterProcess">file:///C:/projects/Test/inbound/done</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="transport.vfs.ActionAfterFailure">` — inboundEndpoint.xml
 
 Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.ActionAfterFailure' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -138,7 +138,7 @@ Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.ActionAfterFailu
 <parameter name="transport.vfs.ActionAfterFailure">MOVE</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="transport.vfs.MoveAfterFailure">` — inboundEndpoint.xml
 
 Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.MoveAfterFailure' is not mapped to any Ballerina construct; manual conversion required.
 
