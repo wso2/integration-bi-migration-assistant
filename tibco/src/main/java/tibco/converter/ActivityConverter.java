@@ -746,6 +746,11 @@ final class ActivityConverter {
         body.add(xmlInput);
         body.add(stmtFrom("xmlns \"http://www.tibco.com/namespaces/tnt/plugins/json\" as ns;"));
         cx.log(WARN, "JSONRender: assuming single element");
+        jsonRender.targetType().ifPresent(xsd -> {
+            if (ConversionUtils.usesTimeType(xsd.type().type())) {
+                cx.addLibraryImport(Library.TIME);
+            }
+        });
         BallerinaModel.TypeDesc targetType = jsonRender.targetType().map(ConversionUtils::toTypeDesc).orElseGet(
                 () -> new BallerinaModel.TypeDesc.MapTypeDesc(JSON));
         return finishConvertJsonRender(cx, body, targetType, "ns:ActivityOutputClass", xmlInput.ref());

@@ -513,16 +513,17 @@ public final class XmlToTibcoModelParser {
         }
     }
 
-    private static XSD parseXSD(Context cx, Element element) {
+    private static @NotNull XSD parseXSD(Context cx, Element element) {
         return new XSD(parseXSDXElement(cx, element), element);
     }
 
-    private static XSD.Element parseXSDXElement(Context cx, Element element) {
+    private static @NotNull XSD.Element parseXSDXElement(Context cx, Element element) {
         String name = element.getAttribute("name");
         String typeAttr = element.getAttribute("type");
-        XSD.XSDType type = typeAttr.isBlank() ? parseComplexType(cx, getFirstChildWithTag(element, "complexType"))
-                : XSD.XSDType.BasicXSDType.parse(typeAttr);
-        return new XSD.Element(name, type, parseMinOccurs(element), parseMaxOccurs(element));
+        return new XSD.Element(name,
+                typeAttr.isBlank() ? parseComplexType(cx, getFirstChildWithTag(element, "complexType"))
+                        : XSD.XSDType.BasicXSDType.parse(typeAttr),
+                parseMinOccurs(element), parseMaxOccurs(element));
     }
 
     private static @NotNull Optional<Integer> parseMinOccurs(Element element) {
@@ -538,12 +539,13 @@ public final class XmlToTibcoModelParser {
                 : tryParseConfig(Optional.of(maxOccursAttrib), Integer::parseInt);
     }
 
-    private static XSD.XSDType.ComplexType parseComplexType(Context cx, Element complexType) {
+    private static @NotNull XSD.XSDType.ComplexType parseComplexType(Context cx, Element complexType) {
         return new XSD.XSDType.ComplexType(parseXSDSequence(cx, getFirstChildWithTag(complexType, "sequence")));
     }
 
-    private static XSD.XSDType.ComplexType.ComplexTypeBody.Sequence parseXSDSequence(Context cx, Element sequence) {
-        List<XSD.Element> elements = ElementIterable.of(sequence).stream()
+    private static @NotNull XSD.XSDType.ComplexType.ComplexTypeBody.Sequence parseXSDSequence(Context cx,
+            Element sequence) {
+        return new XSD.XSDType.ComplexType.ComplexTypeBody.Sequence(ElementIterable.of(sequence).stream()
                 .map(child -> {
                     try {
                         return Optional.of(parseXSDXElement(cx, child));
@@ -556,8 +558,7 @@ public final class XmlToTibcoModelParser {
                     }
                 })
                 .flatMap(Optional::stream)
-                .toList();
-        return new XSD.XSDType.ComplexType.ComplexTypeBody.Sequence(elements);
+                .toList());
     }
 
     private static InlineActivity.SOAPSendReceive parseSoapSendReceive(ProcessContext cx, Element element, String name,

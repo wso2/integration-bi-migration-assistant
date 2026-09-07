@@ -364,7 +364,8 @@ public class XmlToModelTests {
                 <xs:schema attributeFormDefault="unqualified"
                             elementFormDefault="qualified"
                             targetNamespace="http://tns.tibco.com/bw/activity/timer/xsd/output"
-                            xmlns:tns="http://tns.tibco.com/bw/activity/timer/xsd/output" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+                            xmlns:tns="http://tns.tibco.com/bw/activity/timer/xsd/output"
+                            xmlns:xs="http://www.w3.org/2001/XMLSchema">
                             <xs:complexType name="TimerOutputSchemaType">
                                 <xs:sequence>
                                     <xs:element form="unqualified" name="Now" type="xs:long"/>

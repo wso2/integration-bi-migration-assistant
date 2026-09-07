@@ -349,14 +349,13 @@ public final class ConversionUtils {
 
     private static BallerinaModel.TypeDesc complexTypeToTD(XSD.XSDType.ComplexType complexType) {
         List<RecordTypeDesc.RecordField> fields = complexType.body().elements().stream()
-                .map(each -> {
-                    Optional<String> comment = each.type() == XSD.XSDType.BasicXSDType.ANY
-                            ? Optional.of("FIXME: unsupported XSD type, defaulted to anydata")
-                            : Optional.empty();
-                    return new RecordTypeDesc.RecordField(each.name(), toTypeDesc(each.type()),
-                            each.minOccur().map(minOccurs -> minOccurs == 0).orElse(false),
-                            Optional.empty(), Optional.empty(), comment);
-                }).toList();
+                .map(each -> new RecordTypeDesc.RecordField(each.name(), toTypeDesc(each.type()),
+                        each.minOccur().map(minOccurs -> minOccurs == 0).orElse(false),
+                        Optional.empty(), Optional.empty(),
+                        each.type() == XSD.XSDType.BasicXSDType.ANY
+                                ? Optional.of("FIXME: unsupported XSD type, defaulted to anydata")
+                                : Optional.empty()))
+                .toList();
         return new RecordTypeDesc(fields);
     }
 
