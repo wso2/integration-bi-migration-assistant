@@ -31,7 +31,8 @@ enum Library {
     LOG("ballerina", "log"),
     FILE("ballerina", "file"),
     SOAP("ballerina", "soap.soap11"),
-    SQL("ballerina", "sql");
+    SQL("ballerina", "sql"),
+    TIME("ballerina", "time");
 
     public final String moduleName;
     public final String orgName;

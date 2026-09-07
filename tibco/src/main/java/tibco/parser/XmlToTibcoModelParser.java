@@ -487,51 +487,77 @@ public final class XmlToTibcoModelParser {
 
     private static InlineActivity.JSONRender parseJSONRenderActivity(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
-        return new InlineActivity.JSONRender(element, name, inputBinding, getJSONActivityTarget(element),
+        return new InlineActivity.JSONRender(element, name, inputBinding, getJSONActivityTarget(cx, element),
                 cx.fileName());
     }
 
     private static InlineActivity.JSONParser parseJSONParserActivity(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
-        return new InlineActivity.JSONParser(element, name, inputBinding, getJSONActivityTarget(element),
+        return new InlineActivity.JSONParser(element, name, inputBinding, getJSONActivityTarget(cx, element),
                 cx.fileName());
     }
 
-    private static @NotNull Optional<XSD> getJSONActivityTarget(Element element) {
+    private static @NotNull Optional<XSD> getJSONActivityTarget(Context cx, Element element) {
         return tryGetFirstChildWithTag(element, "config")
                 .flatMap(config -> tryGetFirstChildWithTag(config, "ActivityOutputEditor"))
                 .flatMap(activityOutputEditor -> tryGetFirstChildWithTag(activityOutputEditor, "element"))
-                .map(XmlToTibcoModelParser::parseXSD);
+                .flatMap(each -> tryParseXSD(cx, each));
     }
 
-    private static XSD parseXSD(Element element) {
-        return new XSD(parseXSDXElement(element), element);
+    private static @NotNull Optional<XSD> tryParseXSD(Context cx, Element element) {
+        try {
+            return Optional.of(parseXSD(cx, element));
+        } catch (Exception ex) {
+            cx.registerPartiallySupportedSchema(element);
+            return Optional.empty();
+        }
     }
 
-    private static XSD.Element parseXSDXElement(Element element) {
+    private static XSD parseXSD(Context cx, Element element) {
+        return new XSD(parseXSDXElement(cx, element), element);
+    }
+
+    private static XSD.Element parseXSDXElement(Context cx, Element element) {
         String name = element.getAttribute("name");
         String typeAttr = element.getAttribute("type");
-        XSD.XSDType type = typeAttr.isBlank() ? parseComplexType(getFirstChildWithTag(element, "complexType"))
+        XSD.XSDType type = typeAttr.isBlank() ? parseComplexType(cx, getFirstChildWithTag(element, "complexType"))
                 : XSD.XSDType.BasicXSDType.parse(typeAttr);
-        String minOccursAttrib = element.getAttribute("minOccurs");
-        Optional<Integer> minOccurs = minOccursAttrib.isBlank() ? Optional.empty()
-                : tryParseConfig(Optional.of(minOccursAttrib), Integer::parseInt);
+        return new XSD.Element(name, type, parseMinOccurs(element), parseMaxOccurs(element));
+    }
 
+    private static @NotNull Optional<Integer> parseMinOccurs(Element element) {
+        String minOccursAttrib = element.getAttribute("minOccurs");
+        return minOccursAttrib.isBlank() ? Optional.empty()
+                : tryParseConfig(Optional.of(minOccursAttrib), Integer::parseInt);
+    }
+
+    private static @NotNull Optional<Integer> parseMaxOccurs(Element element) {
         String maxOccursAttrib = element.getAttribute("maxOccurs");
-        Optional<Integer> maxOccurs = maxOccursAttrib.isBlank() || maxOccursAttrib.equals("unbounded")
+        return maxOccursAttrib.isBlank() || maxOccursAttrib.equals("unbounded")
                 ? Optional.empty()
                 : tryParseConfig(Optional.of(maxOccursAttrib), Integer::parseInt);
-
-        return new XSD.Element(name, type, minOccurs, maxOccurs);
     }
 
-    private static XSD.XSDType.ComplexType parseComplexType(Element complexType) {
-        return new XSD.XSDType.ComplexType(parseXSDSequence(getFirstChildWithTag(complexType, "sequence")));
+    private static XSD.XSDType.ComplexType parseComplexType(Context cx, Element complexType) {
+        return new XSD.XSDType.ComplexType(parseXSDSequence(cx, getFirstChildWithTag(complexType, "sequence")));
     }
 
-    private static XSD.XSDType.ComplexType.ComplexTypeBody.Sequence parseXSDSequence(Element sequence) {
-        return new XSD.XSDType.ComplexType.ComplexTypeBody.Sequence(
-                ElementIterable.of(sequence).stream().map(XmlToTibcoModelParser::parseXSDXElement).toList());
+    private static XSD.XSDType.ComplexType.ComplexTypeBody.Sequence parseXSDSequence(Context cx, Element sequence) {
+        List<XSD.Element> elements = ElementIterable.of(sequence).stream()
+                .map(child -> {
+                    try {
+                        return Optional.of(parseXSDXElement(cx, child));
+                    } catch (Exception ex) {
+                        cx.registerPartiallySupportedSchema(child);
+                        String name = child.getAttribute("name");
+                        return name.isBlank() ? Optional.<XSD.Element>empty()
+                                : Optional.of(new XSD.Element(name, XSD.XSDType.BasicXSDType.ANY,
+                                        parseMinOccurs(child), parseMaxOccurs(child)));
+                    }
+                })
+                .flatMap(Optional::stream)
+                .toList();
+        return new XSD.XSDType.ComplexType.ComplexTypeBody.Sequence(elements);
     }
 
     private static InlineActivity.SOAPSendReceive parseSoapSendReceive(ProcessContext cx, Element element, String name,
@@ -1633,7 +1659,11 @@ public final class XmlToTibcoModelParser {
                 String tag = getTagNameWithoutNameSpace(child);
                 String name = child.getAttribute("name");
                 if (tag.equals("complexType")) {
-                    complexTypes.put(name, new Type.Schema.SchemaXsdType(name, parseComplexType(child)));
+                    try {
+                        complexTypes.put(name, new Type.Schema.SchemaXsdType(name, parseComplexType(cx, child)));
+                    } catch (Exception ex) {
+                        cx.registerPartiallySupportedSchema(child);
+                    }
                 } else if (tag.equals("element")) {
                     String type = ConversionUtils.stripNamespace(child.getAttribute("type"));
                     aliases.put(name, type);

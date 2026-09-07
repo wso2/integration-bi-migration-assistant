@@ -32,6 +32,7 @@ import java.io.StringWriter;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
@@ -337,13 +338,28 @@ public final class ConversionUtils {
         };
     }
 
+    public static boolean usesTimeType(XSD.XSDType type) {
+        return switch (type) {
+            case XSD.XSDType.BasicXSDType basicXSDType -> basicXSDType == XSD.XSDType.BasicXSDType.DATE;
+            case XSD.XSDType.ComplexType complexType ->
+                    complexType.body().elements().stream().anyMatch(each -> usesTimeType(each.type()));
+        };
+    }
+
     private static BallerinaModel.TypeDesc complexTypeToTD(XSD.XSDType.ComplexType complexType) {
         List<RecordTypeDesc.RecordField> fields = complexType.body().elements().stream()
-                .map(each ->
-                        new RecordTypeDesc.RecordField(each.name(), toTypeDesc(each.type()),
-                                each.minOccur().map(minOccurs -> minOccurs == 0).orElse(false))).toList();
+                .map(each -> {
+                    Optional<String> comment = each.type() == XSD.XSDType.BasicXSDType.ANY
+                            ? Optional.of("FIXME: unsupported XSD type, defaulted to anydata")
+                            : Optional.empty();
+                    return new RecordTypeDesc.RecordField(each.name(), toTypeDesc(each.type()),
+                            each.minOccur().map(minOccurs -> minOccurs == 0).orElse(false),
+                            Optional.empty(), Optional.empty(), comment);
+                }).toList();
         return new RecordTypeDesc(fields);
     }
+
+    private static final BallerinaModel.TypeDesc TIME_DATE = new BallerinaModel.TypeDesc.TypeReference("time:Date");
 
     private static BallerinaModel.TypeDesc basicTypeToTD(XSD.XSDType.BasicXSDType basicXSDType) {
         return switch (basicXSDType) {
@@ -352,6 +368,8 @@ public final class ConversionUtils {
             case DECIMAL -> DECIMAL;
             case FLOAT, DOUBLE -> FLOAT;
             case BOOLEAN -> BOOLEAN;
+            case ANY -> ANYDATA;
+            case DATE -> TIME_DATE;
         };
     }
 

@@ -34,6 +34,8 @@ import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
 import tibco.model.Resource;
 import tibco.model.Scope;
+import tibco.model.Type;
+import tibco.model.XSD;
 import tibco.util.TestUtils;
 
 import static org.testng.Assert.assertEquals;
@@ -273,5 +275,146 @@ public class XmlToModelTests {
         assert xsltContent.contains("xmlns:ns1=\"http://ns1.example.com\"");
         assert xsltContent.contains("xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"");
         assert !xsltContent.contains("xmlns:tns=\"http://xmlns.example.com\"");
+    }
+
+    @Test
+    public void testParseSchemaIsolatesUnsupportedField() throws Exception {
+        String schemaXml = """
+                <xs:schema attributeFormDefault="unqualified"
+                            elementFormDefault="qualified"
+                            targetNamespace="http://www.tibco.com/pe/EngineTypes"
+                            xmlns:tns="http://www.tibco.com/pe/EngineTypes" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+                            <xs:complexType name="ErrorReport">
+                                <xs:sequence>
+                                    <xs:element name="StackTrace" type="xs:string"/>
+                                    <xs:element name="Msg" type="xs:string"/>
+                                    <xs:element minOccurs="0" name="Data" type="tns:anydata"/>
+                                </xs:sequence>
+                            </xs:complexType>
+                            <xs:complexType name="anydata">
+                                <xs:sequence>
+                                    <xs:any namespace="##any" processContents="lax"/>
+                                </xs:sequence>
+                            </xs:complexType>
+                        </xs:schema>
+                """;
+        Optional<Type.Schema> schemaOpt = XmlToTibcoModelParser.parseSchema(projectContext,
+                TestUtils.stringToElement(schemaXml));
+        assertTrue(schemaOpt.isPresent());
+        Type.Schema schema = schemaOpt.get();
+        Type.Schema.SchemaXsdType errorReport = schema.xsdTypes().stream()
+                .filter(each -> each.name().equals("ErrorReport")).findFirst().orElseThrow();
+        XSD.XSDType.ComplexType complexType = (XSD.XSDType.ComplexType) errorReport.type();
+        List<XSD.Element> fields = complexType.body().elements();
+        assertEquals(fields.size(), 3);
+        XSD.Element dataField = fields.stream().filter(each -> each.name().equals("Data")).findFirst().orElseThrow();
+        assertEquals(dataField.type(), XSD.XSDType.BasicXSDType.ANY);
+
+        common.BallerinaModel.TypeDesc.RecordTypeDesc recordTypeDesc =
+                (common.BallerinaModel.TypeDesc.RecordTypeDesc) tibco.converter.ConversionUtils.toTypeDesc(complexType);
+        common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField dataRecordField = recordTypeDesc.fields().stream()
+                .filter(each -> each.name().equals("Data")).findFirst().orElseThrow();
+        assertTrue(dataRecordField.comment().isPresent());
+        assertTrue(dataRecordField.toString().endsWith("// FIXME: unsupported XSD type, defaulted to anydata"));
+    }
+
+    @Test
+    public void testParseSchemaPreservesMinOccurs() throws Exception {
+        String schemaXml = """
+                <xs:schema attributeFormDefault="unqualified"
+                            elementFormDefault="qualified"
+                            targetNamespace="http://www.tibco.com/pe/EngineTypes"
+                            xmlns:tns="http://www.tibco.com/pe/EngineTypes" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+                            <xs:complexType name="ErrorReport">
+                                <xs:sequence>
+                                    <xs:element name="StackTrace" type="xs:string"/>
+                                    <xs:element name="Msg" type="xs:string"/>
+                                    <xs:element name="Data" type="tns:anydata"/>
+                                </xs:sequence>
+                            </xs:complexType>
+                            <xs:complexType name="anydata">
+                                <xs:sequence>
+                                    <xs:any namespace="##any" processContents="lax"/>
+                                </xs:sequence>
+                            </xs:complexType>
+                        </xs:schema>
+                """;
+        Optional<Type.Schema> schemaOpt = XmlToTibcoModelParser.parseSchema(projectContext,
+                TestUtils.stringToElement(schemaXml));
+        assertTrue(schemaOpt.isPresent());
+        Type.Schema schema = schemaOpt.get();
+        Type.Schema.SchemaXsdType errorReport = schema.xsdTypes().stream()
+                .filter(each -> each.name().equals("ErrorReport")).findFirst().orElseThrow();
+        XSD.XSDType.ComplexType complexType = (XSD.XSDType.ComplexType) errorReport.type();
+        XSD.Element dataField = complexType.body().elements().stream()
+                .filter(each -> each.name().equals("Data")).findFirst().orElseThrow();
+        assertEquals(dataField.type(), XSD.XSDType.BasicXSDType.ANY);
+        assertTrue(dataField.minOccur().isEmpty());
+
+        common.BallerinaModel.TypeDesc.RecordTypeDesc recordTypeDesc =
+                (common.BallerinaModel.TypeDesc.RecordTypeDesc) tibco.converter.ConversionUtils.toTypeDesc(complexType);
+        common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField dataRecordField = recordTypeDesc.fields().stream()
+                .filter(each -> each.name().equals("Data")).findFirst().orElseThrow();
+        assertTrue(!dataRecordField.isOptional());
+    }
+
+    @Test
+    public void testParseSchemaSupportsDateType() throws Exception {
+        String schemaXml = """
+                <xs:schema attributeFormDefault="unqualified"
+                            elementFormDefault="qualified"
+                            targetNamespace="http://tns.tibco.com/bw/activity/timer/xsd/output"
+                            xmlns:tns="http://tns.tibco.com/bw/activity/timer/xsd/output" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+                            <xs:complexType name="TimerOutputSchemaType">
+                                <xs:sequence>
+                                    <xs:element form="unqualified" name="Now" type="xs:long"/>
+                                    <xs:element form="unqualified" name="Date" type="xs:date"/>
+                                </xs:sequence>
+                            </xs:complexType>
+                            <xs:element name="TimerOutputSchema" type="tns:TimerOutputSchemaType"/>
+                        </xs:schema>
+                """;
+        Optional<Type.Schema> schemaOpt = XmlToTibcoModelParser.parseSchema(projectContext,
+                TestUtils.stringToElement(schemaXml));
+        assertTrue(schemaOpt.isPresent());
+        Type.Schema.SchemaXsdType timerOutput = schemaOpt.get().xsdTypes().stream()
+                .filter(each -> each.name().equals("TimerOutputSchemaType")).findFirst().orElseThrow();
+        XSD.XSDType.ComplexType complexType = (XSD.XSDType.ComplexType) timerOutput.type();
+        XSD.Element dateField = complexType.body().elements().stream()
+                .filter(each -> each.name().equals("Date")).findFirst().orElseThrow();
+        assertEquals(dateField.type(), XSD.XSDType.BasicXSDType.DATE);
+
+        assertTrue(tibco.converter.ConversionUtils.usesTimeType(complexType));
+        assertEquals(tibco.converter.ConversionUtils.toTypeDesc(dateField.type()),
+                new common.BallerinaModel.TypeDesc.TypeReference("time:Date"));
+    }
+
+    @Test
+    public void testJsonParserIsolatesUnsupportedSchema() throws Exception {
+        String activityXml = """
+                <pd:activity name="Parse JSON">
+                	<pd:type>com.tibco.plugin.json.activities.JSONParserActivity</pd:type>
+                	<pd:resourceType>ae.activities.JSONParserActivity</pd:resourceType>
+                	<config>
+                		<SchemaType>xsdType</SchemaType>
+                		<ActivityOutputEditor>
+                			<xsd:element name="Foo" type="tns:UnknownType"/>
+                		</ActivityOutputEditor>
+                	</config>
+                	<pd:inputBindings>
+                		<ns1:ActivityInputClass>
+                			<jsonString>
+                				<xsl:value-of select="$Start/foo"/>
+                			</jsonString>
+                		</ns1:ActivityInputClass>
+                	</pd:inputBindings>
+                </pd:activity>
+                """;
+
+        Element element = TestUtils.stringToElement(activityXml);
+        Scope.Flow.Activity actual = XmlToTibcoModelParser.parseActivity(getProcessContext(), element).get();
+        InlineActivity.JSONParser jsonParser = (InlineActivity.JSONParser) actual;
+        assertTrue(jsonParser.targetType().isEmpty());
+        assertTrue(jsonParser.inputBinding() != null);
     }
 }
