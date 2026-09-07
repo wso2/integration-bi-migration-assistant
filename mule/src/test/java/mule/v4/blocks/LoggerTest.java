@@ -35,4 +35,10 @@ public class LoggerTest extends AbstractBlockTest {
     public void testLoggerWithDataWeaveScript() {
         testMule4ToBal("logger/logger_with_dataweave_script.xml", "logger/logger_with_dataweave_script.bal");
     }
+
+    @Test
+    public void testLoggerWithDataWeaveScriptWithoutOutputDirective() {
+        testMule4ToBal("logger/logger_with_dataweave_script_no_output.xml",
+                "logger/logger_with_dataweave_script_no_output.bal");
+    }
 }

@@ -3868,6 +3868,42 @@ public function _dwMethod(Context ctx) returns json|error {
 
 ```
 
+- ### Logger With Dataweave Script No Output
+
+**Input (logger_with_dataweave_script_no_output.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <sub-flow name="log-without-output-directive" doc:id="1d0f1f26-1b6a-4a2f-9a4a-3b1c0f0a1c11">
+        <logger level="INFO" doc:name="Log Without Output Directive" doc:id="2c1a9d5e-6f27-4c3f-9f52-8a6d2b7e4f10" message="#[%dw 2.0&#10;&#10;var status = &quot;ok&quot;&#10;&#10;---&#10;{&#10;    status: status,&#10;    message: &quot;no output directive&quot;&#10;}]" />
+    </sub-flow>
+</mule>
+
+```
+**Output (logger_with_dataweave_script_no_output.bal):**
+```ballerina
+import ballerina/log;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+public function log\-without\-output\-directive(Context ctx) {
+    any logMessage0 = _dwMethod(ctx);
+    log:printInfo(logMessage0.toString());
+}
+
+public function _dwMethod(Context ctx) returns any {
+    string status = "ok";
+    return {
+        "status": status,
+        "message": "no output directive"
+    };
+}
+
+```
+
 ## Message Enricher
 
 - ### Empty Message Enricher

@@ -166,9 +166,24 @@ public class DWReader {
         context.clearScript();
     }
 
-    public static String processInlineDWScript(String script, Context ctx, List<Statement> statementList,
-                                              String varName, String namePrefix) throws DWCodeGenException {
-        return getFunctionStatement(script, null, new DWContext(ctx, statementList), ctx, varName, namePrefix);
+    /**
+     * Converts an inline DataWeave script into a Ballerina variable declaration statement.
+     *
+     * @return the generated statement together with the Ballerina type the script's output directive maps to
+     */
+    @NotNull
+    public static InlineDWScript processInlineDWScript(String script, Context ctx, List<Statement> statementList,
+                                                       String varName, String namePrefix) throws DWCodeGenException {
+        DWContext context = new DWContext(ctx, statementList);
+        String statement = getFunctionStatement(script, null, context, ctx, varName, namePrefix);
+        return new InlineDWScript(statement, context.currentScriptContext.outputType);
+    }
+
+    public record InlineDWScript(String statement, String outputType) {
+        public InlineDWScript {
+            assert statement != null : "Statement cannot be null";
+            assert outputType != null : "Output type cannot be null";
+        }
     }
 
     static String getFunctionStatement(String script, String resourcePath, DWContext context,

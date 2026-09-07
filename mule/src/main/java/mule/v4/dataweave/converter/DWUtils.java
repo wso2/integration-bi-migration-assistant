@@ -71,6 +71,7 @@ public class DWUtils {
     public static final String IDENTIFIER = "identifier";
     public static final String PAYLOAD = "payload";
     public static final String UNKNOWN = "unknown";
+    public static final String BAL_ANY_TYPE = "any";
 
     // DataWeave Built-in functions
     public static final String DW_FUNCTION_MAP = "map";
@@ -114,7 +115,7 @@ public class DWUtils {
 
     public static String findBallerinaType(String mediaType) {
         return switch (mediaType) {
-            case APPLICATION_JAVA, APPLICATION_CSV, APPLICATION_DW -> "any";
+            case APPLICATION_JAVA, APPLICATION_CSV, APPLICATION_DW -> BAL_ANY_TYPE;
             case APPLICATION_JSON, TEXT_JSON -> "json";
             case APPLICATION_XML, TEXT_XML -> "xml";
             case TEXT_CSV, TEXT_PLAIN -> "string";

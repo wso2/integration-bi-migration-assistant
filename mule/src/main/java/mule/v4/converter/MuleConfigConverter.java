@@ -26,6 +26,7 @@ import mule.v4.Context;
 import mule.v4.ConversionUtils;
 import mule.v4.dataweave.converter.DWCodeGenException;
 import mule.v4.dataweave.converter.DWReader;
+import mule.v4.dataweave.converter.DWUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -364,14 +365,22 @@ public class MuleConfigConverter {
         String varName = Constants.VAR_LOG_MESSAGE_TEMPLATE
                 .formatted(ctx.projectCtx.counters.logMessageVarCount++);
         try {
-            stmts.add(new BallerinaStatement(
-                    DWReader.processInlineDWScript(dwScript, ctx, stmts, varName, "_dwMethod")));
-            stmts.add(stmtFrom("log:%s(%s.toJsonString());".formatted(logFuncName, varName)));
+            DWReader.InlineDWScript inlineDWScript =
+                    DWReader.processInlineDWScript(dwScript, ctx, stmts, varName, "_dwMethod");
+            stmts.add(new BallerinaStatement(inlineDWScript.statement()));
+            stmts.add(stmtFrom("log:%s(%s);".formatted(logFuncName,
+                    logMessageSerializationExpr(varName, inlineDWScript.outputType()))));
         } catch (DWCodeGenException e) {
             stmts.add(new Statement.Comment("TODO: failed to convert DataWeave script "
                     + e.getScriptIdentifier()));
         }
         return new WorkerStatementResult(stmts);
+    }
+
+    private static String logMessageSerializationExpr(String varName, String outputType) {
+        // `toJsonString` is only defined on `anydata`. A script whose output directive maps to `any`
+        // (application/dw, application/java, application/csv, or no directive at all) has to use `toString`.
+        return DWUtils.BAL_ANY_TYPE.equals(outputType) ? varName + ".toString()" : varName + ".toJsonString()";
     }
 
     private static String getBallerinaLogFunction(LogLevel logLevel) {
