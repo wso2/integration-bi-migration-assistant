@@ -58,6 +58,26 @@ public interface DataWeaveListener extends ParseTreeListener {
 	 */
 	void exitOutputDirective(DataWeaveParser.OutputDirectiveContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link DataWeaveParser#outputOption}.
+	 * @param ctx the parse tree
+	 */
+	void enterOutputOption(DataWeaveParser.OutputOptionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DataWeaveParser#outputOption}.
+	 * @param ctx the parse tree
+	 */
+	void exitOutputOption(DataWeaveParser.OutputOptionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link DataWeaveParser#outputOptionValue}.
+	 * @param ctx the parse tree
+	 */
+	void enterOutputOptionValue(DataWeaveParser.OutputOptionValueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DataWeaveParser#outputOptionValue}.
+	 * @param ctx the parse tree
+	 */
+	void exitOutputOptionValue(DataWeaveParser.OutputOptionValueContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link DataWeaveParser#inputDirective}.
 	 * @param ctx the parse tree
 	 */

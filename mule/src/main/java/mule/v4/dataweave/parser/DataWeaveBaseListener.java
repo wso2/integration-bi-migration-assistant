@@ -77,6 +77,30 @@ public class DataWeaveBaseListener implements DataWeaveListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterOutputOption(DataWeaveParser.OutputOptionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitOutputOption(DataWeaveParser.OutputOptionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterOutputOptionValue(DataWeaveParser.OutputOptionValueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitOutputOptionValue(DataWeaveParser.OutputOptionValueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterInputDirective(DataWeaveParser.InputDirectiveContext ctx) { }
 	/**
 	 * {@inheritDoc}

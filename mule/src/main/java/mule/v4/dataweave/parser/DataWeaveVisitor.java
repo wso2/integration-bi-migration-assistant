@@ -41,6 +41,18 @@ public interface DataWeaveVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitOutputDirective(DataWeaveParser.OutputDirectiveContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link DataWeaveParser#outputOption}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitOutputOption(DataWeaveParser.OutputOptionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link DataWeaveParser#outputOptionValue}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitOutputOptionValue(DataWeaveParser.OutputOptionValueContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link DataWeaveParser#inputDirective}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

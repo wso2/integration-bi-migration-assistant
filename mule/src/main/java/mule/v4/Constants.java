@@ -81,6 +81,8 @@ public class Constants {
     public static final String VAR_ORIGINAL_PAYLOAD_TEMPLATE = "originalPayload%s";
     public static final String VAR_WORKER_RESULT_TEMPLATE = "workerResults%s";
     public static final String VAR_SCATTER_GATHER_TEMPLATE = "scatterGatherResults%s";
+    public static final String VAR_LOG_MESSAGE_TEMPLATE = "logMessage%s";
+    public static final String DW_SCRIPT_HEADER_PREFIX = "%dw";
     public static final String WORKER_SCATTER_GATHER = "R%s";
     public static final String FUNC_FIRST_SUCCESSFUL = "firstSuccessful%s";
     public static final String VAR_FIRST_SUCCESSFUL_RESULT = "firstSuccessfulResult%s";

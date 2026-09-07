@@ -469,6 +469,7 @@ public class Context extends ContextBase {
         public int foreachIteratorCount = 0;
         public int originalPayloadVarCount = 0;
         public int scatterGatherVarCount = 0;
+        public int logMessageVarCount = 0;
         public int scatterGatherWorkerCount = 0;
         public int workerWaitVarCount = 0;
         public int firstSuccessfulCount = 0;

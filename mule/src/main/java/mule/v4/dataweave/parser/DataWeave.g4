@@ -105,7 +105,11 @@ directive
 
 dwVersion: DW NUMBER;
 
-outputDirective: OUTPUT MEDIA_TYPE;
+outputDirective: OUTPUT MEDIA_TYPE outputOption*;
+
+outputOption: IDENTIFIER ASSIGN outputOptionValue;
+
+outputOptionValue: STRING | BOOLEAN | NUMBER | IDENTIFIER;
 
 inputDirective: INPUT IDENTIFIER MEDIA_TYPE;
 

@@ -3789,6 +3789,121 @@ service /mule4 on config {
 
 ```
 
+- ### Logger With Dataweave Script
+
+**Input (logger_with_dataweave_script.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:outlook365="http://www.mulesoft.org/schema/mule/outlook365" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/outlook365 http://www.mulesoft.org/schema/mule/outlook365/current/mule-outlook365.xsd">
+    <sub-flow name="send-email" doc:id="8392e0ae-bce0-4ee4-80eb-132869c33d01">
+        <logger level="INFO" doc:name="Before Request Send Email" doc:id="6b0bbb74-e49d-40e4-915e-3a52de2bb289" message="#[%dw 2.0&#10;output application/json skipNullOn=&quot;everywhere&quot;&#10;&#10;&#10;var logPayload = &quot;&quot;&#10;var status = &quot;ok&quot;&#10;var msg = &quot;Before Request Send Email&quot;&#10;&#10;---&#10;CustomLogMapper::logger(&#10;    {&#10;        correlationId: correlationId,&#10;        app: app,&#10;        mule: mule,&#10;        status: status,&#10;        message: msg,&#10;        version: Mule::p('application.version'), &#10;        tracepoint: Mule::p('tracepoint.beforeRequest'),&#10;        businessProcess: vars.businessProcess,&#10;        (payload: logPayload) if (p('log.level') == &quot;DEBUG&quot;),        &#10;        env: p('mule.env')&#10;    }&#10;)]" category="${logCategory.common}" />
+        <outlook365:send-mail userId="${outlook.userId}" doc:name="Send mail" doc:id="f0c4ddbe-d3e2-48b7-804a-7e5896a02733" config-ref="Outlook365Config" />
+        <logger level="INFO" doc:name="After Request Send Email" doc:id="760a88a0-ec1f-4cbf-a388-1073ad6a1b18" message="#[%dw 2.0&#10;output application/json skipNullOn=&quot;everywhere&quot;&#10;&#10;&#10;var logPayload = &quot;&quot;&#10;var status = &quot;ok&quot;&#10;var msg = &quot;After Request Send Email&quot;&#10;&#10;---&#10;CustomLogMapper::logger(&#10;    {&#10;        correlationId: correlationId,&#10;        app: app,&#10;        mule: mule,&#10;        status: status,&#10;        message: msg,&#10;        version: Mule::p('application.version'), &#10;        tracepoint: Mule::p('tracepoint.afterRequest'),&#10;        businessProcess: vars.businessProcess,&#10;        (payload: logPayload) if (p('log.level') == &quot;DEBUG&quot;),         &#10;        env: p('mule.env')&#10;    }&#10;)]" category="${logCategory.common}" />
+    </sub-flow>
+</mule>
+
+```
+**Output (logger_with_dataweave_script.bal):**
+```ballerina
+import ballerina/log;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+configurable string application_version = ?;
+configurable string tracepoint_beforeRequest = ?;
+configurable string tracepoint_afterRequest = ?;
+
+public function _dwMethod1(Context ctx) returns json|error {
+    string logPayload = "";
+    string status = "ok";
+    string msg = "After Request Send Email";
+    return CustomLogMapper::logger({
+                                      "correlationId": correlationId,
+                                      "app": app,
+                                      "mule": mule,
+                                      "status": status,
+                                      "message": msg,
+                                      "version": application_version,
+                                      "tracepoint": tracepoint_afterRequest,
+                                      "businessProcess": check vars.businessProcess,
+                                      ...(p("log.level") == "DEBUG" ? {"payload": logPayload} : {}),
+                                      "env": p("mule.env")
+                                  });
+}
+
+public function send\-email(Context ctx) {
+    json logMessage0 = check _dwMethod(ctx);
+    log:printInfo(logMessage0.toJsonString());
+
+    // TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.
+    // ------------------------------------------------------------------------
+    // <outlook365:send-mail config-ref="Outlook365Config" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" doc:id="f0c4ddbe-d3e2-48b7-804a-7e5896a02733" doc:name="Send mail" userId="${outlook.userId}" xmlns:outlook365="http://www.mulesoft.org/schema/mule/outlook365"/>
+    // ------------------------------------------------------------------------
+
+    json logMessage1 = check _dwMethod1(ctx);
+    log:printInfo(logMessage1.toJsonString());
+}
+
+public function _dwMethod(Context ctx) returns json|error {
+    string logPayload = "";
+    string status = "ok";
+    string msg = "Before Request Send Email";
+    return CustomLogMapper::logger({
+                                      "correlationId": correlationId,
+                                      "app": app,
+                                      "mule": mule,
+                                      "status": status,
+                                      "message": msg,
+                                      "version": application_version,
+                                      "tracepoint": tracepoint_beforeRequest,
+                                      "businessProcess": check vars.businessProcess,
+                                      ...(p("log.level") == "DEBUG" ? {"payload": logPayload} : {}),
+                                      "env": p("mule.env")
+                                  });
+}
+
+```
+
+- ### Logger With Dataweave Script No Output
+
+**Input (logger_with_dataweave_script_no_output.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <sub-flow name="log-without-output-directive" doc:id="1d0f1f26-1b6a-4a2f-9a4a-3b1c0f0a1c11">
+        <logger level="INFO" doc:name="Log Without Output Directive" doc:id="2c1a9d5e-6f27-4c3f-9f52-8a6d2b7e4f10" message="#[%dw 2.0&#10;&#10;var status = &quot;ok&quot;&#10;&#10;---&#10;{&#10;    status: status,&#10;    message: &quot;no output directive&quot;&#10;}]" />
+    </sub-flow>
+</mule>
+
+```
+**Output (logger_with_dataweave_script_no_output.bal):**
+```ballerina
+import ballerina/log;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+public function log\-without\-output\-directive(Context ctx) {
+    any logMessage0 = _dwMethod(ctx);
+    log:printInfo(logMessage0.toString());
+}
+
+public function _dwMethod(Context ctx) returns any {
+    string status = "ok";
+    return {
+        "status": status,
+        "message": "no output directive"
+    };
+}
+
+```
+
 ## Message Enricher
 
 - ### Empty Message Enricher
