@@ -21,6 +21,8 @@ package tibco.converter;
 import common.BallerinaModel;
 import common.BallerinaModel.Expression;
 import common.BallerinaModel.Statement.VarDeclStatment;
+import common.BallerinaModel.TypeDesc.BuiltinType;
+import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.model.Process;
@@ -106,9 +108,11 @@ public final class ConversionUtils {
 
     public static @NotNull String sanitizes(String name) {
         String sanitized = name.replaceAll("[^a-zA-Z0-9]", "_");
-        while (!Character.isAlphabetic(sanitized.charAt(0))) {
-            sanitized = sanitized.substring(1);
+        int start = 0;
+        while (start < sanitized.length() && !Character.isAlphabetic(sanitized.charAt(start))) {
+            start++;
         }
+        sanitized = start == sanitized.length() ? "'" + sanitized : sanitized.substring(start);
         if (isReserved(sanitized)) {
             sanitized = "'" + name;
         }
