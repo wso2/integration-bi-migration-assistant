@@ -41,6 +41,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import static common.BallerinaModel.TypeDesc.BuiltinType.ANY;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static common.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
 import static common.BallerinaModel.TypeDesc.BuiltinType.BuiltinType;
@@ -353,7 +354,7 @@ public final class ConversionUtils {
                         each.minOccur().map(minOccurs -> minOccurs == 0).orElse(false),
                         Optional.empty(), Optional.empty(),
                         each.type() == XSD.XSDType.BasicXSDType.ANY
-                                ? Optional.of("FIXME: unsupported XSD type, defaulted to anydata")
+                                ? Optional.of("FIXME: unsupported XSD type, defaulted to any")
                                 : Optional.empty()))
                 .toList();
         return new RecordTypeDesc(fields);
@@ -369,7 +370,7 @@ public final class ConversionUtils {
             case DECIMAL -> DECIMAL;
             case FLOAT, DOUBLE -> FLOAT;
             case BOOLEAN -> BOOLEAN;
-            case ANY -> ANYDATA;
+            case ANY -> ANY;
             case DATE -> TIME_DATE;
             case DATETIME -> TIME_CIVIL;
         };
