@@ -299,7 +299,6 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
 
         enum BuiltinType implements TypeDesc {
-            ANY("any"),
             ANYDATA("anydata"),
             BOOLEAN("boolean"),
             DECIMAL("decimal"),

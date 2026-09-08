@@ -315,7 +315,7 @@ public class XmlToModelTests {
         common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField dataRecordField = recordTypeDesc.fields().stream()
                 .filter(each -> each.name().equals("Data")).findFirst().orElseThrow();
         assertTrue(dataRecordField.comment().isPresent());
-        assertTrue(dataRecordField.toString().endsWith("// FIXME: unsupported XSD type, defaulted to any"));
+        assertTrue(dataRecordField.toString().endsWith("// FIXME: unsupported XSD type, defaulted to anydata"));
     }
 
     @Test
