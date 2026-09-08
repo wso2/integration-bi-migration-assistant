@@ -56,6 +56,7 @@ import tibco.model.Scope.Flow.Activity.Reply;
 import tibco.model.Scope.Flow.Activity.Throw;
 import tibco.model.Scope.Flow.Activity.UnhandledActivity;
 import tibco.model.ValueSource;
+import tibco.model.XSD;
 import tibco.xslt.AddMissingParameters;
 import tibco.xslt.IgnoreRootWrapper;
 import tibco.xslt.ReplaceDotAccessWithXPath;
@@ -745,6 +746,11 @@ final class ActivityConverter {
         body.add(xmlInput);
         body.add(stmtFrom("xmlns \"http://www.tibco.com/namespaces/tnt/plugins/json\" as ns;"));
         cx.log(WARN, "JSONRender: assuming single element");
+        jsonRender.targetType().ifPresent(xsd -> {
+            if (ConversionUtils.usesTimeType(xsd.type().type())) {
+                cx.addLibraryImport(Library.TIME);
+            }
+        });
         BallerinaModel.TypeDesc targetType = jsonRender.targetType().map(ConversionUtils::toTypeDesc).orElseGet(
                 () -> new BallerinaModel.TypeDesc.MapTypeDesc(JSON));
         return finishConvertJsonRender(cx, body, targetType, "ns:ActivityOutputClass", xmlInput.ref());
@@ -1452,7 +1458,11 @@ final class ActivityConverter {
                                                                       VariableReference input,
                                                                       JsonOperation jsonOperation) {
         AnalysisResult ar = cx.processContext.getAnalysisResult();
-        BallerinaModel.TypeDesc targetType = ConversionUtils.toTypeDesc(ar.getType(jsonOperation.type().name()));
+        XSD.XSDType xsdType = ar.getType(jsonOperation.type().name());
+        if (ConversionUtils.usesTimeType(xsdType)) {
+            cx.addLibraryImport(Library.TIME);
+        }
+        BallerinaModel.TypeDesc targetType = ConversionUtils.toTypeDesc(xsdType);
         return finishConvertJsonRender(cx, new ArrayList<>(), targetType, "root", input);
     }
 

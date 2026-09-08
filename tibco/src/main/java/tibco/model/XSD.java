@@ -70,7 +70,10 @@ public record XSD(Element type, org.w3c.dom.Element element) {
             DECIMAL("decimal"),
             FLOAT("float"),
             DOUBLE("double"),
-            BOOLEAN("boolean");
+            BOOLEAN("boolean"),
+            ANY("any"),
+            DATE("date"),
+            DATETIME("dateTime");
 
             private final String value;
 

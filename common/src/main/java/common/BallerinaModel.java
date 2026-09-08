@@ -221,18 +221,24 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             }
 
             public record RecordField(String name, TypeDesc typeDesc, boolean isOptional,
-                                      Optional<Expression> defaultValue, Optional<Namespace> namespace) {
+                                      Optional<Expression> defaultValue, Optional<Namespace> namespace,
+                                      Optional<String> comment) {
 
                 public RecordField(String name, TypeDesc typeDesc, Expression defaultValue) {
-                    this(name, typeDesc, false, Optional.of(defaultValue), Optional.empty());
+                    this(name, typeDesc, false, Optional.of(defaultValue), Optional.empty(), Optional.empty());
                 }
 
                 public RecordField(String name, TypeDesc typeDesc) {
-                    this(name, typeDesc, false, Optional.empty(), Optional.empty());
+                    this(name, typeDesc, false, Optional.empty(), Optional.empty(), Optional.empty());
                 }
 
                 public RecordField(String name, TypeDesc typeDesc, boolean isOptional) {
-                    this(name, typeDesc, isOptional, Optional.empty(), Optional.empty());
+                    this(name, typeDesc, isOptional, Optional.empty(), Optional.empty(), Optional.empty());
+                }
+
+                public RecordField(String name, TypeDesc typeDesc, boolean isOptional,
+                                   Optional<Expression> defaultValue, Optional<Namespace> namespace) {
+                    this(name, typeDesc, isOptional, defaultValue, namespace, Optional.empty());
                 }
 
                 @Override
@@ -245,6 +251,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                         sb.append("?");
                     }
                     sb.append(";");
+                    comment.ifPresent(c -> sb.append(" // ").append(c));
                     return sb.toString();
                 }
             }
