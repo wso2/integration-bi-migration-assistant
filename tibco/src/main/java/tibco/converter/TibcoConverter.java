@@ -138,21 +138,19 @@ public class TibcoConverter {
                 new BICodeConverter(BICodeConverter.DEFAULT_IS_CONFIGURABLE_PREDICATE,
                         BICodeConverter.DEFAULT_IS_CONNECTION_PREDICATE,
                         BICodeConverter.DEFAULT_SKIP_CONVERSION_PREDICATE, allProjectImports).convert(result.module());
+        SyntaxTree irTypesTree = null;
         for (BallerinaModel.TextDocument textDocument : module.textDocuments()) {
             SyntaxTree st = new CodeGenerator(textDocument).generateSyntaxTree();
-            files.put(textDocument.documentName(), st.toSourceCode());
+            if (textDocument.documentName().equals("types.bal")) {
+                irTypesTree = st;
+            } else {
+                files.put(textDocument.documentName(), st.toSourceCode());
+            }
         }
 
-        SyntaxTree typesTree = result.types();
-        if (typesTree != null) {
-            String xsdTypeSource = typesTree.toSourceCode();
-            String typeSource;
-            if (files.containsKey("types.bal")) {
-                typeSource = files.get("types.bal") + "\n" + xsdTypeSource;
-            } else {
-                typeSource = xsdTypeSource;
-            }
-            files.put("types.bal", typeSource);
+        SyntaxTree combinedTypesTree = mergeNullable(irTypesTree, result.types());
+        if (combinedTypesTree != null) {
+            files.put("types.bal", CodeGenerator.formatSyntaxTree(combinedTypesTree).toSourceCode());
         }
         files.put("Ballerina.toml", ballerinaToml(cx));
 
@@ -164,6 +162,16 @@ public class TibcoConverter {
                         .sum());
 
         return new SerializedProject(files, report);
+    }
+
+    private static SyntaxTree mergeNullable(SyntaxTree first, SyntaxTree second) {
+        if (first == null) {
+            return second;
+        }
+        if (second == null) {
+            return first;
+        }
+        return CodeGenerator.merge(first, second);
     }
 
     public static void migrateTibcoProject(ProjectConversionContext cx, String projectPath, String targetPath)

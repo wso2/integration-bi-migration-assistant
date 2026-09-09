@@ -41,8 +41,10 @@ import org.ballerinalang.formatter.core.FormatterException;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static common.BallerinaModel.Function;
@@ -368,6 +370,32 @@ public class CodeGenerator {
         SyntaxTree syntaxTree = SyntaxTree.from(TextDocuments.from(""));
         syntaxTree = syntaxTree.modifyWith(modulePartNode);
         return syntaxTree;
+    }
+
+    public static SyntaxTree merge(SyntaxTree first, SyntaxTree second) {
+        ModulePartNode firstPart = (ModulePartNode) first.rootNode();
+        ModulePartNode secondPart = (ModulePartNode) second.rootNode();
+
+        List<ImportDeclarationNode> mergedImports = new ArrayList<>();
+        Set<String> seenImports = new LinkedHashSet<>();
+        for (ImportDeclarationNode each : firstPart.imports()) {
+            if (seenImports.add(each.toSourceCode().strip())) {
+                mergedImports.add(each);
+            }
+        }
+        for (ImportDeclarationNode each : secondPart.imports()) {
+            if (seenImports.add(each.toSourceCode().strip())) {
+                mergedImports.add(each);
+            }
+        }
+
+        List<ModuleMemberDeclarationNode> mergedMembers = new ArrayList<>();
+        firstPart.members().forEach(mergedMembers::add);
+        secondPart.members().forEach(mergedMembers::add);
+
+        return createSyntaxTree(NodeFactory.createNodeList(mergedImports),
+                NodeFactory.createNodeList(mergedMembers),
+                firstPart.eofToken().leadingMinutiae());
     }
 
     public static SyntaxTree formatSyntaxTree(SyntaxTree syntaxTree) {
